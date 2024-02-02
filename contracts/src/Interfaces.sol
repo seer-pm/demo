@@ -15,6 +15,8 @@ interface IRealityETH_v3_0 {
     function getContentHash(
         bytes32 question_id
     ) external view returns (bytes32);
+
+    function getTimeout(bytes32 question_id) external view returns (uint32);
 }
 
 interface IRealityProxy {
@@ -69,6 +71,10 @@ interface IConditionalTokens {
         address collateralToken,
         bytes32 collectionId
     ) external pure returns (uint);
+
+    function getOutcomeSlotCount(
+        bytes32 conditionId
+    ) external view returns (uint);
 }
 
 interface Wrapped1155Factory {
@@ -79,10 +85,13 @@ interface Wrapped1155Factory {
     ) external returns (/*Wrapped1155*/ address);
 }
 
-interface IUniswapV3Factory {
-    function createPool(
-    address tokenA,
-    address tokenB,
-    uint24 fee
-  ) external returns (address pool);
+interface IMavFactory {
+    function create(
+        uint256 _fee,
+        uint256 _tickSpacing,
+        int256 _lookback,
+        int32 _activeTick,
+        address _tokenA,
+        address _tokenB
+    ) external returns (address);
 }

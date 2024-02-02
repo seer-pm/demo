@@ -6,7 +6,8 @@
     "scripts": {
     },
     "workspaces": [
-        "contracts"
+        "contracts",
+        "web"
     ],
     "dependencies": {},
     "devDependencies": {

@@ -3,10 +3,19 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./Market.sol";
-import {IRealityETH_v3_0, IConditionalTokens, IRealityProxy, Wrapped1155Factory, IUniswapV3Factory} from "./Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IRealityProxy, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
+
+    struct CreateMarketParams {
+        string marketName;
+        string encodedQuestion;
+        string[] outcomes;
+        uint256 minBond;
+        uint256 templateId;
+        uint32 openingTime;
+    }
 
     uint32 public constant QUESTION_TIMEOUT = 1.5 days;
 
@@ -16,10 +25,13 @@ contract MarketFactory {
     IConditionalTokens public immutable conditionalTokens;
     address public immutable collateralToken;
     IRealityProxy public immutable oracle;
-    IUniswapV3Factory public immutable uniswapv3Factory;
+    IMavFactory public immutable mavFactory;
     address public governor;
     address[] public markets;
     address public market;
+
+    bytes internal constant ERC20_DATA =
+        hex"5365657200000000000000000000000000000000000000000000000000000008534545520000000000000000000000000000000000000000000000000000000812";
 
     event NewMarket(address indexed market);
 
@@ -32,7 +44,7 @@ contract MarketFactory {
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
      *  @param _oracle Address of the Oracle implementation.
-     *  @param _uniswapv3Factory Address of the Uniswapv3Factory implementation.
+     *  @param _mavFactory Address of the Maverick Factory implementation.
      *  @param _governor Address of the governor of this contract.
      */
     constructor(
@@ -43,7 +55,7 @@ contract MarketFactory {
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         IRealityProxy _oracle,
-        IUniswapV3Factory _uniswapv3Factory,
+        IMavFactory _mavFactory,
         address _governor
     ) {
         market = _market;
@@ -53,7 +65,7 @@ contract MarketFactory {
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
         oracle = _oracle;
-        uniswapv3Factory = _uniswapv3Factory;
+        mavFactory = _mavFactory;
         governor = _governor;
     }
 
@@ -68,33 +80,35 @@ contract MarketFactory {
     }
 
     function createMarket(
-        string memory marketName,
-        string memory encodedQuestion,
-        string[] memory outcomes,
-        uint256 minBond,
-        uint256 templateId,
-        uint32 openingTime
+        CreateMarketParams memory params
     ) external returns (address) {
         bytes32 questionId = askRealityQuestion(
-            encodedQuestion,
-            templateId,
-            openingTime,
-            minBond
+            params.encodedQuestion,
+            params.templateId,
+            params.openingTime,
+            params.minBond
         );
 
-        bytes32 conditionId = prepareCondition(questionId, outcomes.length);
+        bytes32 conditionId = prepareCondition(
+            questionId,
+            params.outcomes.length
+        );
 
-        deployERC20Positions(conditionId, outcomes.length);
+        address[] memory pools = deployERC20Positions(
+            conditionId,
+            params.outcomes.length
+        );
 
         Market instance = Market(market.clone());
         instance.initialize(
-            marketName,
-            outcomes,
+            params.marketName,
+            params.outcomes,
             conditionId,
             questionId,
-            templateId,
-            encodedQuestion,
-            oracle
+            params.templateId,
+            params.encodedQuestion,
+            oracle,
+            pools
         );
 
         emit NewMarket(address(instance));
@@ -109,17 +123,36 @@ contract MarketFactory {
         uint32 openingTime,
         uint256 minBond
     ) internal returns (bytes32) {
-        bytes32 questionId = realitio.askQuestionWithMinBond(
-            templateId,
-            question,
-            arbitrator,
-            QUESTION_TIMEOUT,
-            openingTime,
-            0,
-            minBond
+        bytes32 content_hash = keccak256(
+            abi.encodePacked(templateId, openingTime, question)
         );
 
-        return questionId;
+        bytes32 question_id = keccak256(
+            abi.encodePacked(
+                content_hash,
+                arbitrator,
+                QUESTION_TIMEOUT,
+                minBond,
+                address(realitio),
+                address(this),
+                uint256(0)
+            )
+        );
+
+        if (realitio.getTimeout(question_id) != 0) {
+            return question_id;
+        }
+
+        return
+            realitio.askQuestionWithMinBond(
+                templateId,
+                question,
+                arbitrator,
+                QUESTION_TIMEOUT,
+                openingTime,
+                0,
+                minBond
+            );
     }
 
     function prepareCondition(
@@ -143,7 +176,8 @@ contract MarketFactory {
     function deployERC20Positions(
         bytes32 conditionId,
         uint256 outcomeSlotCount
-    ) internal {
+    ) internal returns (address[] memory) {
+        address[] memory pools = new address[](outcomeSlotCount);
         uint[] memory partition = generateBasicPartition(outcomeSlotCount);
         for (uint j = 0; j < partition.length; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
@@ -155,13 +189,27 @@ contract MarketFactory {
                 collateralToken,
                 collectionId
             );
+
             address wrapped1155 = wrapped1155Factory.requireWrapped1155(
                 address(conditionalTokens),
                 tokenId,
-                ""
+                ERC20_DATA
             );
-            uniswapv3Factory.createPool(wrapped1155, collateralToken, 3000);
+
+            (address token0, address token1) = wrapped1155 < collateralToken
+                ? (wrapped1155, collateralToken)
+                : (collateralToken, wrapped1155);
+            pools[j] = mavFactory.create(
+                300000000000000,
+                10,
+                10800000000000000000000,
+                17,
+                token0,
+                token1
+            );
         }
+
+        return pools;
     }
 
     function generateBasicPartition(
