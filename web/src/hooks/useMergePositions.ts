@@ -1,14 +1,14 @@
-import { ConditionalTokensAbi } from "@/abi/ConditionalTokensAbi";
+import { RouterAbi } from "@/abi/RouterAbi";
 import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, parseUnits, stringToHex } from "viem";
+import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { Address, TransactionReceipt, erc20Abi, parseUnits, stringToHex } from "viem";
 
 interface MergePositionProps {
   account: Address;
-  conditionalTokens: Address;
+  router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
   collateralDecimals: number;
@@ -19,17 +19,44 @@ interface MergePositionProps {
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
   const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
 
+  const parentCollectionId = stringToHex("", { size: 32 });
+
+  const partition = generateBasicPartition(props.outcomeSlotCount);
+  for (const indexSet of partition) {
+    const { result: tokenAddress } = await simulateContract(config, {
+      abi: RouterAbi,
+      address: props.router,
+      functionName: "getTokenAddress",
+      args: [props.collateralToken, parentCollectionId, props.conditionId, indexSet],
+    });
+
+    const allowance = await readContract(config, {
+      abi: erc20Abi,
+      address: tokenAddress,
+      functionName: "allowance",
+      args: [props.account, props.router],
+    });
+
+    if (allowance < parsedAmount) {
+      const hash = await writeContract(config, {
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [props.router, parsedAmount],
+      });
+
+      await waitForTransactionReceipt(config, {
+        confirmations: 0,
+        hash,
+      });
+    }
+  }
+
   const hash = await writeContract(config, {
-    address: props.conditionalTokens,
-    abi: ConditionalTokensAbi,
+    address: props.router,
+    abi: RouterAbi,
     functionName: "mergePositions",
-    args: [
-      props.collateralToken,
-      stringToHex("", { size: 32 }),
-      props.conditionId,
-      generateBasicPartition(props.outcomeSlotCount),
-      parsedAmount,
-    ],
+    args: [props.collateralToken, parentCollectionId, props.conditionId, partition, parsedAmount],
   });
 
   const transactionReceipt = await waitForTransactionReceipt(config, {

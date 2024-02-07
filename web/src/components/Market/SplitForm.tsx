@@ -4,7 +4,6 @@ import { useERC20Balance } from "@/hooks/useERC20Balance";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { useAccount } from "wagmi";
 
 interface SplitFormValues {
   amount: number;
@@ -12,7 +11,7 @@ interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
-  conditionalTokens: Address;
+  router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
   collateralDecimals: number;
@@ -21,7 +20,7 @@ interface SplitFormProps {
 
 export function SplitForm({
   account,
-  conditionalTokens,
+  router,
   conditionId,
   collateralToken,
   collateralDecimals,
@@ -39,9 +38,7 @@ export function SplitForm({
     },
   });
 
-  const { address } = useAccount();
-
-  const { data: balance = BigInt(0) } = useERC20Balance(address, collateralToken);
+  const { data: balance = BigInt(0) } = useERC20Balance(account, collateralToken);
 
   const splitPosition = useSplitPosition((_receipt: TransactionReceipt) => {
     reset();
@@ -51,7 +48,7 @@ export function SplitForm({
   const onSubmit = async (values: SplitFormValues) => {
     await splitPosition.mutateAsync({
       account: account!,
-      conditionalTokens,
+      router: router,
       conditionId,
       collateralToken,
       collateralDecimals,

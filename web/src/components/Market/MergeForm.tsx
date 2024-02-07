@@ -1,7 +1,7 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { Position } from "@/hooks/usePositions";
+import { Position, usePositions } from "@/hooks/usePositions";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 
@@ -11,23 +11,32 @@ interface MergeFormValues {
 
 interface MergeFormProps {
   account?: Address;
-  conditionalTokens: Address;
+  router: Address;
   conditionId: `0x${string}`;
+  conditionalTokens: Address;
   collateralToken: Address;
   collateralDecimals: number;
   outcomeSlotCount: number;
-  positions: Position[];
 }
 
 export function MergeForm({
   account,
-  conditionalTokens,
+  router,
   conditionId,
+  conditionalTokens,
   collateralToken,
   collateralDecimals,
   outcomeSlotCount,
-  positions,
 }: MergeFormProps) {
+  const { data: positions = [] } = usePositions(
+    account,
+    router,
+    conditionId,
+    conditionalTokens,
+    collateralToken,
+    outcomeSlotCount,
+  );
+
   const {
     register,
     reset,
@@ -48,7 +57,7 @@ export function MergeForm({
   const onSubmit = async (values: MergeFormValues) => {
     await mergePositions.mutateAsync({
       account: account!,
-      conditionalTokens,
+      router,
       conditionId,
       collateralToken,
       collateralDecimals,
@@ -57,7 +66,7 @@ export function MergeForm({
     });
   };
 
-  const minPositionAmount = positions.reduce((acum, curr) => {
+  const minPositionAmount = positions.reduce((acum, curr: Position) => {
     if (curr.balance > acum) {
       // biome-ignore lint/style/noParameterAssign:
       acum = curr.balance;

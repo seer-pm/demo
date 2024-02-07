@@ -1,4 +1,4 @@
-import { ConditionalTokensAbi } from "@/abi/ConditionalTokensAbi";
+import { RouterAbi } from "@/abi/RouterAbi";
 import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -9,7 +9,7 @@ import { erc20Abi } from "viem";
 
 interface SplitPositionProps {
   account: Address;
-  conditionalTokens: Address;
+  router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
   collateralDecimals: number;
@@ -22,7 +22,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
     abi: erc20Abi,
     address: props.collateralToken,
     functionName: "allowance",
-    args: [props.account, props.conditionalTokens],
+    args: [props.account, props.router],
   });
 
   const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
@@ -32,7 +32,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
       address: props.collateralToken,
       abi: erc20Abi,
       functionName: "approve",
-      args: [props.conditionalTokens, parsedAmount],
+      args: [props.router, parsedAmount],
     });
 
     await waitForTransactionReceipt(config, {
@@ -42,8 +42,8 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
   }
 
   const hash = await writeContract(config, {
-    address: props.conditionalTokens,
-    abi: ConditionalTokensAbi,
+    address: props.router,
+    abi: RouterAbi,
     functionName: "splitPosition",
     args: [
       props.collateralToken,

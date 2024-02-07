@@ -75,6 +75,14 @@ interface IConditionalTokens {
         uint amount
     ) external;
 
+    function mergePositions(
+        /*IERC20*/ address collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata partition,
+        uint amount
+    ) external;
+
     function redeemPositions(
         /*IERC20*/ address collateralToken,
         bytes32 parentCollectionId,
