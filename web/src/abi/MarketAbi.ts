@@ -1,18 +1,5 @@
 export const MarketAbi = [
   {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "bytes32",
-        name: "_questionId",
-        type: "bytes32",
-      },
-    ],
-    name: "QuestionsRegistered",
-    type: "event",
-  },
-  {
     inputs: [],
     name: "conditionId",
     outputs: [

@@ -7,15 +7,31 @@ import { DEFAULT_CHAIN, getConfigAddress } from "../lib/config";
 import { config } from "../wagmi";
 import { useMarketFactory } from "./useMarketFactory";
 
+interface Question {
+  content_hash: `0x${string}`;
+  arbitrator: Address;
+  opening_ts: number;
+  timeout: number;
+  finalize_ts: number;
+  is_pending_arbitration: boolean;
+  bounty: bigint;
+  best_answer: `0x${string}`;
+  history_hash: `0x${string}`;
+  bond: bigint;
+  min_bond: bigint;
+}
+
 export interface Market {
+  id: Address;
   marketName: string;
-  outcomes: string[];
+  outcomes: readonly string[];
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
   encodedQuestion: string;
   oracle: Address;
-  pools: Address[];
+  pools: readonly Address[];
+  question: Question;
 }
 
 export const useMarket = (marketId: Address) => {
@@ -27,23 +43,12 @@ export const useMarket = (marketId: Address) => {
     enabled: !!marketId && !!marketFactory,
     queryKey: ["useMarket", marketId],
     queryFn: async () => {
-      const market = await readContract(config, {
+      return await readContract(config, {
         abi: MarketViewAbi,
         address: getConfigAddress("MARKET_VIEW", chainId),
         functionName: "getMarket",
-        args: [marketFactory?.conditionalTokens!, marketId],
+        args: [marketFactory?.conditionalTokens!, getConfigAddress("REALITIO", chainId), marketId],
       });
-
-      return {
-        marketName: market[0],
-        outcomes: market[1] as string[],
-        conditionId: market[2],
-        questionId: market[3],
-        templateId: market[4],
-        encodedQuestion: market[5],
-        oracle: market[6],
-        pools: market[7] as Address[],
-      };
     },
   });
 };

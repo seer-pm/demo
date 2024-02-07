@@ -98,7 +98,7 @@ export function MergeForm({
           type="submit"
           disabled={!isValid || mergePositions.isPending || !account}
           isLoading={mergePositions.isPending}
-          text="Merge positions"
+          text="Submit"
         />
       </div>
     </form>

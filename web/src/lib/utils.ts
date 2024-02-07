@@ -26,5 +26,11 @@ export const isUndefined = (maybeObject: any): maybeObject is undefined | null =
 };
 
 export function displayBalance(amount: bigint, decimals: number) {
-  return Number(formatUnits(amount, decimals)).toFixed(3);
+  const number = Number(formatUnits(amount, decimals));
+
+  if (number % 1 === 0) {
+    return String(number);
+  }
+
+  return number.toFixed(3);
 }

@@ -4,6 +4,7 @@ import { Address, TransactionReceipt, parseUnits, stringToHex } from "viem";
 import { erc20Abi } from "viem";
 import { ConditionalTokensAbi } from "../abi/ConditionalTokensAbi";
 import { generateBasicPartition } from "../lib/conditional-tokens";
+import { queryClient } from "../lib/query-client";
 import { config } from "../wagmi";
 
 interface SplitPositionProps {
@@ -64,6 +65,10 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
 export const useSplitPosition = (onSuccess: (data: TransactionReceipt) => unknown) => {
   return useMutation({
     mutationFn: splitPosition,
-    onSuccess,
+    onSuccess: (data: TransactionReceipt) => {
+      queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useERC20Balance"] });
+      onSuccess(data);
+    },
   });
 };

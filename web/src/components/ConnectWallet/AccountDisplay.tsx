@@ -4,7 +4,7 @@ import { Address, formatUnits, isAddress } from "viem";
 import { useAccount, useEnsAvatar, useEnsName } from "wagmi";
 import { useERC20Balance } from "../../hooks/useERC20Balance";
 import { useMarketFactory } from "../../hooks/useMarketFactory";
-import { displayBalance, shortenAddress } from "../../lib/utils";
+import { displayBalance, isUndefined, shortenAddress } from "../../lib/utils";
 
 interface IIdenticonOrAvatar {
   size?: `${number}`;
@@ -62,7 +62,7 @@ export const CollateralBalance: React.FC<{ address?: Address }> = ({ address: pr
   const { data: marketFactory } = useMarketFactory(chainId);
   const { data: balance } = useERC20Balance(address, marketFactory?.collateralToken);
 
-  if (!balance) {
+  if (isUndefined(balance)) {
     return null;
   }
 

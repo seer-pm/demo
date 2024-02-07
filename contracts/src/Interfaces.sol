@@ -1,6 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+interface IERC20 {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    function balanceOf(address owner) external returns (uint256);
+}
+
 interface IRealityETH_v3_0 {
     function askQuestionWithMinBond(
         uint256 template_id,
@@ -55,6 +67,21 @@ interface IConditionalTokens {
         uint outcomeSlotCount
     ) external;
 
+    function splitPosition(
+        /*IERC20*/ address collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata partition,
+        uint amount
+    ) external;
+
+    function redeemPositions(
+        /*IERC20*/ address collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata indexSets
+    ) external;
+
     function getConditionId(
         address oracle,
         bytes32 questionId,
@@ -75,6 +102,14 @@ interface IConditionalTokens {
     function getOutcomeSlotCount(
         bytes32 conditionId
     ) external view returns (uint);
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes calldata data
+    ) external;
 }
 
 interface Wrapped1155Factory {
@@ -82,7 +117,15 @@ interface Wrapped1155Factory {
         /*IERC1155*/ address multiToken,
         uint256 tokenId,
         bytes calldata data
-    ) external returns (/*Wrapped1155*/ address);
+    ) external returns (/*Wrapped1155*/ IERC20);
+
+    function unwrap(
+        /*IERC1155*/ address multiToken,
+        uint256 tokenId,
+        uint256 amount,
+        address recipient,
+        bytes calldata data
+    ) external;
 }
 
 interface IMavFactory {

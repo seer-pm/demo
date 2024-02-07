@@ -30,6 +30,7 @@ contract MarketFactory {
     address[] public markets;
     address public market;
 
+    // this needs to be the same ERC20_DATA used by Router
     bytes internal constant ERC20_DATA =
         hex"5365657200000000000000000000000000000000000000000000000000000008534545520000000000000000000000000000000000000000000000000000000812";
 
@@ -190,10 +191,12 @@ contract MarketFactory {
                 collectionId
             );
 
-            address wrapped1155 = wrapped1155Factory.requireWrapped1155(
-                address(conditionalTokens),
-                tokenId,
-                ERC20_DATA
+            address wrapped1155 = address(
+                wrapped1155Factory.requireWrapped1155(
+                    address(conditionalTokens),
+                    tokenId,
+                    ERC20_DATA
+                )
             );
 
             (address token0, address token1) = wrapped1155 < collateralToken

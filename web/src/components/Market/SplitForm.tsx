@@ -93,7 +93,7 @@ export function SplitForm({
           type="submit"
           disabled={!isValid || splitPosition.isPending || !account}
           isLoading={splitPosition.isPending}
-          text="Split position"
+          text="Submit"
         />
       </div>
     </form>

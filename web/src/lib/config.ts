@@ -35,8 +35,8 @@ const ADDRESSES_CONFIG: AddressConfigValues = {
   },
 
   REALITIO: {
-    [goerli.id]: "0xe78996a233895be74a66f451f1019ca9734205cc",
-    [hardhat.id]: "0xe78996a233895be74a66f451f1019ca9734205cc",
+    [goerli.id]: "0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f",
+    [hardhat.id]: "0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f",
     [mainnet.id]: "0x92115220C28e78312cCe86f3d1dE652CFBD0357A",
   },
 };

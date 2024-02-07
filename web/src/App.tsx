@@ -1,17 +1,17 @@
 import { HashRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
-import CreateMarket from "./pages/CreateMarket";
-import Home from "./pages/Home";
-import Market from "./pages/Market";
+import CreateMarketPage from "./pages/CreateMarkePage";
+import HomePage from "./pages/HomePage";
+import MarketPage from "./pages/MarketPage";
 
 function App() {
   return (
     <HashRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="create-market" element={<CreateMarket />} />
-          <Route path="markets/:id" element={<Market />} />
+          <Route index element={<HomePage />} />
+          <Route path="create-market" element={<CreateMarketPage />} />
+          <Route path="markets/:id" element={<MarketPage />} />
         </Route>
       </Routes>
     </HashRouter>

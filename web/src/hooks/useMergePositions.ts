@@ -3,6 +3,7 @@ import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits, stringToHex } from "viem";
 import { ConditionalTokensAbi } from "../abi/ConditionalTokensAbi";
 import { generateBasicPartition } from "../lib/conditional-tokens";
+import { queryClient } from "../lib/query-client";
 import { config } from "../wagmi";
 
 interface MergePositionProps {
@@ -42,6 +43,10 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
 export const useMergePositions = (onSuccess: (data: TransactionReceipt) => unknown) => {
   return useMutation({
     mutationFn: mergePositions,
-    onSuccess,
+    onSuccess: (data: TransactionReceipt) => {
+      queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useERC20Balance"] });
+      onSuccess(data);
+    },
   });
 };
