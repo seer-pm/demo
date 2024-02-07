@@ -1,11 +1,11 @@
+import Button from "@/components/Form/Button";
+import Select from "@/components/Form/Select";
+import { Market } from "@/hooks/useMarket";
+import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
+import { getConfigAddress } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
 import { useAccount } from "wagmi";
-import { Market } from "../../hooks/useMarket";
-import { useSubmitAnswer } from "../../hooks/useSubmitAnswer";
-import { getConfigAddress } from "../../lib/config";
-import Button from "../Form/Button";
-import Select from "../Form/Select";
 
 interface AnswerFormValues {
   outcome: string;
@@ -16,7 +16,7 @@ interface AnswerFormProps {
   market: Market;
 }
 
-export function AnswerForm({ market }: AnswerFormProps) {
+export function AnswerFormLink({ market }: AnswerFormProps) {
   const { chainId } = useAccount();
   return (
     <a
@@ -32,10 +32,8 @@ export function AnswerForm({ market }: AnswerFormProps) {
   );
 }
 
-/*export function AnswerForm({
-  market,
-}: AnswerFormProps) {
-  const {chainId, address} = useAccount();
+export function AnswerForm({ market }: AnswerFormProps) {
+  const { chainId, address } = useAccount();
 
   const {
     register,
@@ -45,7 +43,7 @@ export function AnswerForm({ market }: AnswerFormProps) {
   } = useForm<AnswerFormValues>({
     mode: "all",
     defaultValues: {
-      outcome: '',
+      outcome: "",
     },
   });
 
@@ -59,8 +57,8 @@ export function AnswerForm({ market }: AnswerFormProps) {
       questionId: market.questionId,
       outcome: values.outcome,
       currentBond: market.question.bond,
-      minBod: market.question.min_bond,
-      chainId,
+      minBond: market.question.min_bond,
+      chainId: chainId!,
     });
   };
 
@@ -69,7 +67,7 @@ export function AnswerForm({ market }: AnswerFormProps) {
       <div className="space-y-2">
         <div className="font-bold">Result</div>
         <Select
-          options={market.outcomes.map((outcome, i) => ({value: i, text: outcome}))}
+          options={market.outcomes.map((outcome, i) => ({ value: i, text: outcome }))}
           {...register("outcome", {
             required: "This field is required.",
           })}
@@ -82,11 +80,11 @@ export function AnswerForm({ market }: AnswerFormProps) {
         <Button
           className="btn btn-primary"
           type="submit"
-          disabled={!isValid || submitAnswer.isPending || !address}
+          disabled={!isValid || submitAnswer.isPending || !address || !chainId}
           isLoading={submitAnswer.isPending}
           text="Submit"
         />
       </div>
     </form>
   );
-}*/
+}

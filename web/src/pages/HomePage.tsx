@@ -1,7 +1,7 @@
+import { Card } from "@/components/Card";
+import { useMarkets } from "@/hooks/useMarkets";
+import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
-import { Card } from "../components/Card";
-import { useMarkets } from "../hooks/useMarkets";
-import { paths } from "../lib/paths";
 
 function Home() {
   const { data: markets = [] } = useMarkets();

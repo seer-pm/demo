@@ -2,12 +2,12 @@ import React from "react";
 import { FieldErrors } from "react-hook-form";
 import FormError from "./FormError";
 
-type InputProps = {
+type SelectProps = {
   errors?: FieldErrors;
   options: { value: number | string; text: string }[];
-} & React.InputHTMLAttributes<HTMLInputElement>;
+} & React.SelectHTMLAttributes<HTMLSelectElement>;
 
-const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref) => {
+const Select = React.forwardRef<HTMLSelectElement | null, SelectProps>((props, ref) => {
   const { className, errors, options, ...restProps } = props;
 
   return (
@@ -25,4 +25,4 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
   );
 });
 
-export default Input;
+export default Select;

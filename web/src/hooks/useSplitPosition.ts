@@ -1,11 +1,11 @@
+import { ConditionalTokensAbi } from "@/abi/ConditionalTokensAbi";
+import { generateBasicPartition } from "@/lib/conditional-tokens";
+import { queryClient } from "@/lib/query-client";
+import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits, stringToHex } from "viem";
 import { erc20Abi } from "viem";
-import { ConditionalTokensAbi } from "../abi/ConditionalTokensAbi";
-import { generateBasicPartition } from "../lib/conditional-tokens";
-import { queryClient } from "../lib/query-client";
-import { config } from "../wagmi";
 
 interface SplitPositionProps {
   account: Address;

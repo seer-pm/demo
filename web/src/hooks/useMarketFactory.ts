@@ -1,9 +1,9 @@
+import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
+import { getConfigAddress } from "@/lib/config";
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { MarketFactoryAbi } from "../abi/MarketFactoryAbi";
-import { getConfigAddress } from "../lib/config";
-import { config } from "../wagmi";
 
 export interface MarketFactory {
   conditionalTokens: Address;

@@ -1,5 +1,5 @@
+import { Market } from "@/hooks/useMarket";
 import { Address, Hex, hexToNumber, pad, toHex } from "viem";
-import { Market } from "../hooks/useMarket";
 
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
 export const REALITY_TEMPLATE_MULTIPLE_SELECT = "3";

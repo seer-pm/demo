@@ -1,21 +1,21 @@
+import { Card } from "@/components/Card";
+import { AnswerFormLink } from "@/components/Market/AnswerForm";
+import { MergeForm } from "@/components/Market/MergeForm";
+import { Positions } from "@/components/Market/Positions";
+import { SplitForm } from "@/components/Market/SplitForm";
+import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarketFactory } from "@/hooks/useMarketFactory";
+import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { usePositions } from "@/hooks/usePositions";
+import { getAnswerText, getCurrentBond } from "@/lib/reality";
+import { displayBalance } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { Card } from "../components/Card";
-import { AnswerForm } from "../components/Market/AnswerForm";
-import { MergeForm } from "../components/Market/MergeForm";
-import { Positions } from "../components/Market/Positions";
-import { SplitForm } from "../components/Market/SplitForm";
-import { Market, useMarket } from "../hooks/useMarket";
-import { useMarketFactory } from "../hooks/useMarketFactory";
-import { MarketStatus, useMarketStatus } from "../hooks/useMarketStatus";
-import { usePositions } from "../hooks/usePositions";
-import { getAnswerText, getCurrentBond } from "../lib/reality";
-import { displayBalance } from "../lib/utils";
 
 function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
   if (marketStatus === MarketStatus.OPEN) {
-    return <div>Closes on {new Date(market.question.opening_ts * 1000).toGMTString()}</div>;
+    return <div>Closes on {new Date(market.question.opening_ts * 1000).toUTCString()}</div>;
   }
 
   if (marketStatus === MarketStatus.CLOSED) {
@@ -31,10 +31,10 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
         </div>
         <div>
           Current answer: {getAnswerText(market)}. Closes on{" "}
-          {new Date(market.question.finalize_ts * 1000).toGMTString()}
+          {new Date(market.question.finalize_ts * 1000).toUTCString()}
         </div>
         <div>
-          <AnswerForm market={market} />
+          <AnswerFormLink market={market} />
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ function MarketPage() {
   const { id } = useParams();
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
   const { data: marketFactory, isError: isFactoryError, isPending: isFactoryPending } = useMarketFactory(chainId);
-  const { data: marketStatus } = useMarketStatus(market, chainId);
+  const { data: marketStatus } = useMarketStatus(market);
   const { data: positions = [] } = usePositions(
     address,
     market?.conditionId,

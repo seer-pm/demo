@@ -1,8 +1,8 @@
+import Button from "@/components/Form/Button";
+import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/config";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import { useAccount, useSwitchChain } from "wagmi";
-import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "../../lib/config";
-import Button from "../Form/Button";
 import AccountDisplay from "./AccountDisplay";
 
 export const SwitchChainButton: React.FC = () => {
@@ -34,7 +34,7 @@ const ConnectButton = () => {
 };
 
 const ConnectWallet = () => {
-  const { isConnected, chain, ...rest } = useAccount();
+  const { isConnected, chain } = useAccount();
   if (isConnected) {
     if (!chain) {
       return <SwitchChainButton />;

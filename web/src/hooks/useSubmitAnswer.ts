@@ -1,11 +1,11 @@
+import { RealityAbi } from "@/abi/RealityAbi";
+import { getConfigAddress } from "@/lib/config";
+import { queryClient } from "@/lib/query-client";
+import { formatOutcome, getCurrentBond } from "@/lib/reality";
+import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
-import { RealityAbi } from "../abi/RealityAbi";
-import { getConfigAddress } from "../lib/config";
-import { queryClient } from "../lib/query-client";
-import { formatOutcome, getCurrentBond } from "../lib/reality";
-import { config } from "../wagmi";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;

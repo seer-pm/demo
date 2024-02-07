@@ -1,9 +1,9 @@
+import Button from "@/components/Form/Button";
+import Input from "@/components/Form/Input";
+import { useMergePositions } from "@/hooks/useMergePositions";
+import { Position } from "@/hooks/usePositions";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { useMergePositions } from "../../hooks/useMergePositions";
-import { Position } from "../../hooks/usePositions";
-import Button from "../Form/Button";
-import Input from "../Form/Input";
 
 interface MergeFormValues {
   amount: number;

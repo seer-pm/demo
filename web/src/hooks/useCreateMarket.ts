@@ -1,9 +1,9 @@
+import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
+import { getConfigAddress, getConfigNumber } from "@/lib/config";
+import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
-import { MarketFactoryAbi } from "../abi/MarketFactoryAbi";
-import { getConfigAddress, getConfigNumber } from "../lib/config";
-import { config } from "../wagmi";
 
 interface CreateMarketProps {
   marketName: string;

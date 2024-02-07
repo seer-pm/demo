@@ -1,4 +1,11 @@
-export function Card({ children, title }): React.FC<{ title?: string }> {
+import React from "react";
+
+interface CardProps {
+  children: React.ReactNode;
+  title?: string;
+}
+
+export function Card({ children, title }: CardProps) {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">

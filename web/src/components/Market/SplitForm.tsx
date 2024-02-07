@@ -1,10 +1,10 @@
+import Button from "@/components/Form/Button";
+import Input from "@/components/Form/Input";
+import { useERC20Balance } from "@/hooks/useERC20Balance";
+import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { useAccount } from "wagmi";
-import { useERC20Balance } from "../../hooks/useERC20Balance";
-import { useSplitPosition } from "../../hooks/useSplitPosition";
-import Button from "../Form/Button";
-import Input from "../Form/Input";
 
 interface SplitFormValues {
   amount: number;

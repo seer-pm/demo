@@ -1,7 +1,7 @@
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { config } from "../wagmi";
 
 export const useERC20Balance = (owner?: Address, token?: Address) => {
   return useQuery<bigint | undefined, Error>({

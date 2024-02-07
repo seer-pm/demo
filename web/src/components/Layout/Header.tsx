@@ -1,6 +1,6 @@
+import ConnectWallet from "@/components/ConnectWallet";
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { Link } from "react-router-dom";
-import ConnectWallet from "../ConnectWallet";
 
 export default function Header() {
   return (

@@ -1,9 +1,9 @@
+import { ConditionalTokensAbi } from "@/abi/ConditionalTokensAbi";
+import { generateBasicPartition, getPositionId } from "@/lib/conditional-tokens";
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, stringToHex } from "viem";
-import { ConditionalTokensAbi } from "../abi/ConditionalTokensAbi";
-import { generateBasicPartition, getPositionId } from "../lib/conditional-tokens";
-import { config } from "../wagmi";
 
 export type Position = { positionId: bigint; balance: bigint };
 

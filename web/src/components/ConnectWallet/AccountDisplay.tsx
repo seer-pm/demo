@@ -1,10 +1,10 @@
+import { useERC20Balance } from "@/hooks/useERC20Balance";
+import { useMarketFactory } from "@/hooks/useMarketFactory";
+import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
 import React from "react";
 import Identicon from "react-identicons";
-import { Address, formatUnits, isAddress } from "viem";
+import { Address, isAddress } from "viem";
 import { useAccount, useEnsAvatar, useEnsName } from "wagmi";
-import { useERC20Balance } from "../../hooks/useERC20Balance";
-import { useMarketFactory } from "../../hooks/useMarketFactory";
-import { displayBalance, isUndefined, shortenAddress } from "../../lib/utils";
 
 interface IIdenticonOrAvatar {
   size?: `${number}`;
@@ -20,7 +20,7 @@ export const IdenticonOrAvatar: React.FC<IIdenticonOrAvatar> = ({ size = "16", a
     chainId: 1,
   });
   const { data: avatar } = useEnsAvatar({
-    name,
+    name: name || "",
     chainId: 1,
   });
 

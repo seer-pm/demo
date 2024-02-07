@@ -1,8 +1,8 @@
-import { Market } from "../../hooks/useMarket";
-import { MarketFactory } from "../../hooks/useMarketFactory";
-import { Position } from "../../hooks/usePositions";
-import { displayBalance } from "../../lib/utils";
-import { Card } from "../Card";
+import { Card } from "@/components/Card";
+import { Market } from "@/hooks/useMarket";
+import { MarketFactory } from "@/hooks/useMarketFactory";
+import { Position } from "@/hooks/usePositions";
+import { displayBalance } from "@/lib/utils";
 
 interface PositionsProps {
   market: Market;
