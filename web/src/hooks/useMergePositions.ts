@@ -1,10 +1,10 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
+import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, erc20Abi, parseUnits, stringToHex } from "viem";
+import { Address, TransactionReceipt, erc20Abi, parseUnits } from "viem";
 
 interface MergePositionProps {
   account: Address;
@@ -19,15 +19,13 @@ interface MergePositionProps {
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
   const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
 
-  const parentCollectionId = stringToHex("", { size: 32 });
-
   const partition = generateBasicPartition(props.outcomeSlotCount);
   for (const indexSet of partition) {
     const { result: tokenAddress } = await simulateContract(config, {
       abi: RouterAbi,
       address: props.router,
       functionName: "getTokenAddress",
-      args: [props.collateralToken, parentCollectionId, props.conditionId, indexSet],
+      args: [props.collateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, indexSet],
     });
 
     const allowance = await readContract(config, {
@@ -56,7 +54,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
     address: props.router,
     abi: RouterAbi,
     functionName: "mergePositions",
-    args: [props.collateralToken, parentCollectionId, props.conditionId, partition, parsedAmount],
+    args: [props.collateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, partition, parsedAmount],
   });
 
   const transactionReceipt = await waitForTransactionReceipt(config, {

@@ -1,5 +1,7 @@
-import { Market } from "@/hooks/useMarket";
-import { Address, Hex, hexToNumber, pad, toHex } from "viem";
+import { Market, Question } from "@/hooks/useMarket";
+import compareAsc from "date-fns/compareAsc";
+import fromUnixTime from "date-fns/fromUnixTime";
+import { Hex, hexToNumber, pad, toHex } from "viem";
 
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
 export const REALITY_TEMPLATE_MULTIPLE_SELECT = "3";
@@ -10,20 +12,6 @@ export const ANSWERED_TOO_SOON = "0xffffffffffffffffffffffffffffffffffffffffffff
 export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string | typeof INVALID_RESULT | typeof ANSWERED_TOO_SOON;
-
-export interface Question {
-  contentHash: `0x${string}`;
-  arbitrator: Address;
-  openingTs: number;
-  timeout: number;
-  finalizeTs: number;
-  isPendingArbitration: boolean;
-  bounty: bigint;
-  bestAnswer: `0x{string}`;
-  historyHash: `0x{string}`;
-  bond: bigint;
-  minBond: bigint;
-}
 
 function encodeOutcomes(outcomes: string[]) {
   return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
@@ -117,4 +105,9 @@ export function getAnswerText(market: Market, noAnswerText = "Not answered yet")
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint) {
   return currentBond === 0n ? minBond : currentBond * 2n;
+}
+
+export function isFinalized(question: Question) {
+  const finalizeTs = Number(question.finalize_ts);
+  return !question.is_pending_arbitration && finalizeTs > 0 && compareAsc(new Date(), fromUnixTime(finalizeTs)) === 1;
 }

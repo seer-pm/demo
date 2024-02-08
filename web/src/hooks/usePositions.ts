@@ -1,9 +1,9 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
+import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts, simulateContract } from "@wagmi/core";
-import { Address, erc20Abi, stringToHex } from "viem";
+import { Address, erc20Abi } from "viem";
 
 export type Position = { tokenId: Address; balance: bigint };
 
@@ -19,8 +19,6 @@ export const usePositions = (
     enabled: !!address && !!router && !!conditionId && !!conditionalTokens && !!collateralToken && !!outcomeSlotCount,
     queryKey: ["usePositions", address, router, conditionId, conditionalTokens, collateralToken, outcomeSlotCount],
     queryFn: async () => {
-      const parentCollectionId = stringToHex("", { size: 32 });
-
       const partitions = generateBasicPartition(outcomeSlotCount!);
 
       const wrappedAddresses = (
@@ -30,7 +28,7 @@ export const usePositions = (
               abi: RouterAbi,
               address: router!,
               functionName: "getTokenAddress",
-              args: [collateralToken!, parentCollectionId, conditionId!, indexSet],
+              args: [collateralToken!, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
             }),
           ),
         )

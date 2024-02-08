@@ -1,10 +1,10 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
+import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, parseUnits, stringToHex } from "viem";
+import { Address, TransactionReceipt, parseUnits } from "viem";
 import { erc20Abi } from "viem";
 
 interface SplitPositionProps {
@@ -47,7 +47,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
     functionName: "splitPosition",
     args: [
       props.collateralToken,
-      stringToHex("", { size: 32 }),
+      EMPTY_PARENT_COLLECTION,
       props.conditionId,
       generateBasicPartition(props.outcomeSlotCount),
       BigInt(parsedAmount),

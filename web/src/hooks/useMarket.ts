@@ -7,7 +7,7 @@ import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { useMarketFactory } from "./useMarketFactory";
 
-interface Question {
+export interface Question {
   content_hash: `0x${string}`;
   arbitrator: Address;
   opening_ts: number;

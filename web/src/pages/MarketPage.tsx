@@ -1,25 +1,47 @@
 import { Card } from "@/components/Card";
-import { AnswerFormLink } from "@/components/Market/AnswerForm";
+import Button from "@/components/Form/Button";
+import { AnswerForm, AnswerFormLink } from "@/components/Market/AnswerForm";
 import { MergeForm } from "@/components/Market/MergeForm";
 import { Positions } from "@/components/Market/Positions";
+import { RedeemForm } from "@/components/Market/RedeemForm";
 import { SplitForm } from "@/components/Market/SplitForm";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketFactory } from "@/hooks/useMarketFactory";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { getConfigAddress } from "@/lib/config";
 import { getAnswerText, getCurrentBond } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
 import { useParams } from "react-router-dom";
-import { Address } from "viem";
+import { Address, TransactionReceipt } from "viem";
 import { useAccount } from "wagmi";
 
 function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
+  const resolveMarket = useResolveMarket((_receipt: TransactionReceipt) => {
+    alert("Market resolved!");
+  });
+
+  const resolveHandler = async () => {
+    resolveMarket.mutateAsync({
+      marketId: market.id,
+    });
+  };
+
   if (marketStatus === MarketStatus.OPEN) {
     return <div>Closes on {new Date(market.question.opening_ts * 1000).toUTCString()}</div>;
   }
 
   if (marketStatus === MarketStatus.CLOSED) {
-    return <div>CLOSED</div>;
+    return <div>Market closed. Result: {getAnswerText(market)}</div>;
+  }
+
+  if (marketStatus === MarketStatus.WAITING_PAYOUT_REPORT) {
+    return (
+      <div className="space-y-3">
+        <div>Anyone can resolve the market to be able to redeem the prizes.</div>
+        <Button className="btn btn-primary btn-xs" text="Resolve market" onClick={resolveHandler} />
+      </div>
+    );
   }
 
   if (marketStatus === MarketStatus.WAITING_RESULTS) {
@@ -30,11 +52,14 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
           {displayBalance(getCurrentBond(market.question.bond, market.question.min_bond), 18)} DAI.
         </div>
         <div>
-          Current answer: {getAnswerText(market)}. Closes on{" "}
-          {new Date(market.question.finalize_ts * 1000).toUTCString()}
+          Current answer: {getAnswerText(market)}.
+          {market.question.finalize_ts > 0 && (
+            <>Closes on {new Date(market.question.finalize_ts * 1000).toUTCString()}</>
+          )}
         </div>
         <div>
           <AnswerFormLink market={market} />
+          <AnswerForm market={market} />
         </div>
       </div>
     );
@@ -48,7 +73,7 @@ function MarketPage() {
   const { id } = useParams();
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
   const { data: marketFactory, isError: isFactoryError, isPending: isFactoryPending } = useMarketFactory(chainId);
-  const { data: marketStatus } = useMarketStatus(market);
+  const { data: marketStatus } = useMarketStatus(market, chainId);
 
   const router = getConfigAddress("ROUTER", chainId);
 
@@ -109,7 +134,16 @@ function MarketPage() {
                 </Card>
               </>
             )}
-            {marketStatus === MarketStatus.CLOSED && <div>Redeem</div>}
+            {marketStatus === MarketStatus.CLOSED && (
+              <RedeemForm
+                account={address}
+                router={router}
+                conditionalTokens={marketFactory.conditionalTokens}
+                collateralToken={marketFactory.collateralToken}
+                conditionId={market.conditionId}
+                outcomeSlotCount={market.outcomes.length}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -4,7 +4,23 @@ import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
 
 function Home() {
-  const { data: markets = [] } = useMarkets();
+  const { data: markets = [], isPending } = useMarkets();
+
+  if (isPending) {
+    return (
+      <div className="py-10 px-10">
+        <span className="loading loading-spinner"></span>
+      </div>
+    );
+  }
+
+  if (markets.length === 0) {
+    return (
+      <div className="p-10">
+        <div className="alert alert-warning">No markets found.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-4 gap-5 m-4">

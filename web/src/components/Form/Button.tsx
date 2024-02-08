@@ -3,7 +3,6 @@ import React from "react";
 type ButtonProps = {
   text: string;
   isLoading?: boolean;
-  small?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const Button = React.forwardRef<HTMLButtonElement | null, ButtonProps>((props, ref) => {
