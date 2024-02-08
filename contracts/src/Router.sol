@@ -205,4 +205,26 @@ contract Router is ERC1155Holder {
                 ERC20_DATA
             );
     }
+
+    function getWinningOutcomes(
+        bytes32 conditionId
+    ) external view returns (bool[] memory) {
+        bool[] memory result = new bool[](
+            conditionalTokens.getOutcomeSlotCount(conditionId)
+        );
+
+        for (uint256 i = 0; i < result.length; i++) {
+            result[i] = conditionalTokens.payoutNumerators(conditionId, i) == 0
+                ? false
+                : true;
+        }
+
+        return result;
+    }
+
+    function isPayoutReported(
+        bytes32 conditionId
+    ) external view returns (bool) {
+        return conditionalTokens.payoutDenominator(conditionId) > 0;
+    }
 }

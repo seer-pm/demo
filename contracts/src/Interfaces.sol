@@ -13,6 +13,7 @@ interface IERC20 {
     function balanceOf(address owner) external returns (uint256);
 }
 
+// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol
 interface IRealityETH_v3_0 {
     function askQuestionWithMinBond(
         uint256 template_id,
@@ -31,6 +32,7 @@ interface IRealityETH_v3_0 {
     function getTimeout(bytes32 question_id) external view returns (uint32);
 }
 
+// https://github.com/seer-pm/realitio-gnosis-proxy/blob/master/contracts/RealitioProxy.sol
 interface IRealityProxy {
     function resolve(
         bytes32 questionId,
@@ -40,27 +42,17 @@ interface IRealityProxy {
     ) external;
 }
 
-interface IRealityRegistry {
-    function registerQuestion(
-        bytes32 question_id,
-        uint256 template_id,
-        uint32 opening_ts,
-        string calldata title,
-        string calldata outcomes,
-        string calldata category,
-        string calldata language
-    ) external;
-
-    function getQuestion(
-        uint256 templateId,
-        string calldata title,
-        string calldata outcomes,
-        string calldata category,
-        string calldata language
-    ) external view returns (string memory question);
-}
-
+// https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol
 interface IConditionalTokens {
+    function payoutNumerators(
+        bytes32 conditionId,
+        uint index
+    ) external view returns (uint);
+
+    function payoutDenominator(
+        bytes32 conditionId
+    ) external view returns (uint);
+
     function prepareCondition(
         address oracle,
         bytes32 questionId,
@@ -120,6 +112,7 @@ interface IConditionalTokens {
     ) external;
 }
 
+// https://github.com/gnosis/1155-to-20/blob/master/contracts/Wrapped1155Factory.sol
 interface Wrapped1155Factory {
     function requireWrapped1155(
         /*IERC1155*/ address multiToken,

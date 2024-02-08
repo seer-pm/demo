@@ -88,6 +88,10 @@ contract MarketView {
 
         MarketInfo[] memory marketsInfo = new MarketInfo[](count);
 
+        if (allMarkets.length == 0) {
+            return marketsInfo;
+        }
+
         uint256 lastIndex = allMarkets.length - 1;
         uint256 startIndex = allMarkets.length > count
             ? allMarkets.length - count
