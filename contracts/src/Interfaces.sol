@@ -8,6 +8,11 @@ interface IERC20 {
         uint256 amount
     ) external returns (bool);
 
+    function transfer(
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
     function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address owner) external returns (uint256);

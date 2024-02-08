@@ -2,7 +2,6 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-
 import {IConditionalTokens, Wrapped1155Factory, IERC20} from "./Interfaces.sol";
 
 contract Router is ERC1155Holder {
@@ -64,8 +63,7 @@ contract Router is ERC1155Holder {
             );
 
             // transfer the ERC20 back to the user
-            wrapped1155.approve(address(this), amount);
-            wrapped1155.transferFrom(address(this), msg.sender, amount);
+            wrapped1155.transfer(msg.sender, amount);
         }
     }
 
@@ -110,8 +108,7 @@ contract Router is ERC1155Holder {
             amount
         );
 
-        collateralToken.approve(address(this), amount);
-        collateralToken.transferFrom(address(this), msg.sender, amount);
+        collateralToken.transfer(msg.sender, amount);
     }
 
     function redeemPositions(
@@ -130,14 +127,14 @@ contract Router is ERC1155Holder {
                 indexSets[j]
             );
 
-            uint256 amount = collateralToken.balanceOf(msg.sender);
-
             // unwrap ERC20
             IERC20 wrapped1155 = wrapped1155Factory.requireWrapped1155(
                 address(conditionalTokens),
                 tokenId,
                 ERC20_DATA
             );
+
+            uint256 amount = wrapped1155.balanceOf(msg.sender);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
 
@@ -161,11 +158,7 @@ contract Router is ERC1155Holder {
         uint256 finalBalance = collateralToken.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
-            collateralToken.transferFrom(
-                address(this),
-                msg.sender,
-                finalBalance - initialBalance
-            );
+            collateralToken.transfer(msg.sender, finalBalance - initialBalance);
         }
     }
 
