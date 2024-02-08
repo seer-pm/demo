@@ -18,6 +18,8 @@
     "@types/mocha": ">=9.1.0",
     "chai": "^4.2.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "openzeppelin-contracts-1155-to-20": "npm:@openzeppelin/contracts@3.4.0",
+    "openzeppelin-solidity-conditional-tokens": "npm:openzeppelin-solidity@2.3.0",
     "solidity-coverage": "^0.8.1",
     "solmate": "^6.2.0",
     "viem": "^1.15.1"
