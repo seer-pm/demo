@@ -20,15 +20,32 @@ contract Router is ERC1155Holder {
         wrapped1155Factory = _wrapped1155Factory;
     }
 
+    // @notice Transfers the collateral to the Router and then splits the position.
     function splitPosition(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition,
         uint amount
-    ) external {
+    ) public {
         IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        _splitPosition(
+            collateralToken,
+            parentCollectionId,
+            conditionId,
+            partition,
+            amount
+        );
+    }
 
+    // @notice Splits a position and sends the outcome tokens to the user.
+    function _splitPosition(
+        IERC20 collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata partition,
+        uint amount
+    ) internal {
         IERC20(collateralToken).approve(address(conditionalTokens), amount);
 
         conditionalTokens.splitPosition(
@@ -67,13 +84,33 @@ contract Router is ERC1155Holder {
         }
     }
 
+    // @notice Merges positions and sends the collateral tokens to the user.
     function mergePositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition,
         uint amount
-    ) external {
+    ) public {
+        _mergePositions(
+            collateralToken,
+            parentCollectionId,
+            conditionId,
+            partition,
+            amount
+        );
+        collateralToken.transfer(msg.sender, amount);
+    }
+
+    // @notice Merges positions and receives the collateral tokens.
+    // @dev callers to this function must send the collateral to the user.
+    function _mergePositions(
+        IERC20 collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata partition,
+        uint amount
+    ) internal {
         for (uint j = 0; j < partition.length; j++) {
             uint256 tokenId = getTokenId(
                 collateralToken,
@@ -107,18 +144,39 @@ contract Router is ERC1155Holder {
             partition,
             amount
         );
-
-        collateralToken.transfer(msg.sender, amount);
     }
 
+    // @notice Redeems positions and sends the collateral tokens to the user.
     function redeemPositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata indexSets
-    ) external {
+    ) public {
         uint256 initialBalance = collateralToken.balanceOf(address(this));
 
+        _redeemPositions(
+            collateralToken,
+            parentCollectionId,
+            conditionId,
+            indexSets
+        );
+
+        uint256 finalBalance = collateralToken.balanceOf(address(this));
+
+        if (finalBalance > initialBalance) {
+            collateralToken.transfer(msg.sender, finalBalance - initialBalance);
+        }
+    }
+
+    // @notice Redeems positions and receives the collateral tokens.
+    // @dev Callers to this function must send the collateral to the user.
+    function _redeemPositions(
+        IERC20 collateralToken,
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint[] calldata indexSets
+    ) internal {
         for (uint j = 0; j < indexSets.length; j++) {
             uint256 tokenId = getTokenId(
                 collateralToken,
@@ -153,15 +211,9 @@ contract Router is ERC1155Holder {
             conditionId,
             indexSets
         );
-
-        // transfer collateral to the user
-        uint256 finalBalance = collateralToken.balanceOf(address(this));
-
-        if (finalBalance > initialBalance) {
-            collateralToken.transfer(msg.sender, finalBalance - initialBalance);
-        }
     }
 
+    // @notice Constructs a tokenId from a collateral token and an outcome collection.
     function getTokenId(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
@@ -180,6 +232,7 @@ contract Router is ERC1155Holder {
             );
     }
 
+    // @notice Returns the address of the ERC-20 associated to the ERC-1155 outcome token.
     function getTokenAddress(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
@@ -199,6 +252,7 @@ contract Router is ERC1155Holder {
             );
     }
 
+    // @notice Helper function used to know the redeemable outcomes associated to a conditionId.
     function getWinningOutcomes(
         bytes32 conditionId
     ) external view returns (bool[] memory) {
@@ -215,6 +269,7 @@ contract Router is ERC1155Holder {
         return result;
     }
 
+    // @notice Helper function used to know if the user can redeem the tokens.
     function isPayoutReported(
         bytes32 conditionId
     ) external view returns (bool) {
