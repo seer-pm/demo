@@ -66,7 +66,7 @@ export const CollateralBalance: React.FC<{ address?: Address }> = ({ address: pr
     return null;
   }
 
-  return <div>${displayBalance(balance, marketFactory?.collateralDecimals!)}</div>;
+  return <div>{displayBalance(balance, marketFactory?.collateralDecimals!)} sDAI</div>;
 };
 
 const AccountDisplay: React.FC = () => {

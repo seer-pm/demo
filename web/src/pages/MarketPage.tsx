@@ -5,6 +5,7 @@ import { MergeForm } from "@/components/Market/MergeForm";
 import { Positions } from "@/components/Market/Positions";
 import { RedeemForm } from "@/components/Market/RedeemForm";
 import { SplitForm } from "@/components/Market/SplitForm";
+import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketFactory } from "@/hooks/useMarketFactory";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
@@ -88,7 +89,7 @@ function MarketPage() {
   if (isMarketPending || isFactoryPending || !router || !market || !marketFactory) {
     return (
       <div className="py-10 px-10">
-        <span className="loading loading-spinner"></span>
+        <Spinner />
       </div>
     );
   }
@@ -116,7 +117,6 @@ function MarketPage() {
                     account={address}
                     router={router}
                     collateralToken={marketFactory.collateralToken}
-                    collateralDecimals={marketFactory.collateralDecimals}
                     conditionId={market.conditionId}
                     outcomeSlotCount={market.outcomes.length}
                   />
@@ -127,7 +127,6 @@ function MarketPage() {
                     router={router}
                     conditionalTokens={marketFactory.conditionalTokens}
                     collateralToken={marketFactory.collateralToken}
-                    collateralDecimals={marketFactory.collateralDecimals}
                     conditionId={market.conditionId}
                     outcomeSlotCount={market.outcomes.length}
                   />

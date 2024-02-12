@@ -1,4 +1,5 @@
 import { Card } from "@/components/Card";
+import { Spinner } from "@/components/Spinner";
 import { useMarkets } from "@/hooks/useMarkets";
 import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
@@ -9,7 +10,7 @@ function Home() {
   if (isPending) {
     return (
       <div className="py-10 px-10">
-        <span className="loading loading-spinner"></span>
+        <Spinner />
       </div>
     );
   }

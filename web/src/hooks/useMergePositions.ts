@@ -1,5 +1,8 @@
+import { GnosisRouterAbi } from "@/abi/GnosisRouterAbi";
+import { MainnetRouterAbi } from "@/abi/MainnetRouterAbi";
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
+import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -10,10 +13,48 @@ interface MergePositionProps {
   account: Address;
   router: Address;
   conditionId: `0x${string}`;
+  mainCollateralToken: Address;
   collateralToken: Address;
   collateralDecimals: number;
   outcomeSlotCount: number;
   amount: number;
+  isMainCollateral: boolean;
+  routerType: RouterTypes;
+}
+
+async function mergeFromRouter(
+  isMainCollateral: boolean,
+  routerType: RouterTypes,
+  router: Address,
+  collateralToken: Address,
+  conditionId: `0x${string}`,
+  partition: bigint[],
+  amount: bigint,
+) {
+  if (isMainCollateral) {
+    return await writeContract(config, {
+      address: router,
+      abi: RouterAbi,
+      functionName: "mergePositions",
+      args: [collateralToken, EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+    });
+  }
+
+  if (routerType === "mainnet") {
+    return await writeContract(config, {
+      address: router,
+      abi: MainnetRouterAbi,
+      functionName: "mergeToDai",
+      args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+    });
+  }
+
+  return await writeContract(config, {
+    address: router,
+    abi: GnosisRouterAbi,
+    functionName: "mergeToBase",
+    args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+  });
 }
 
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
@@ -25,7 +66,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
       abi: RouterAbi,
       address: props.router,
       functionName: "getTokenAddress",
-      args: [props.collateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, indexSet],
+      args: [props.mainCollateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, indexSet],
     });
 
     const allowance = await readContract(config, {
@@ -50,12 +91,15 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
     }
   }
 
-  const hash = await writeContract(config, {
-    address: props.router,
-    abi: RouterAbi,
-    functionName: "mergePositions",
-    args: [props.collateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, partition, parsedAmount],
-  });
+  const hash = await mergeFromRouter(
+    props.isMainCollateral,
+    props.routerType,
+    props.router,
+    props.collateralToken,
+    props.conditionId,
+    generateBasicPartition(props.outcomeSlotCount),
+    BigInt(parsedAmount),
+  );
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
     confirmations: 0,

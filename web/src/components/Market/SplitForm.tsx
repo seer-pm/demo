@@ -1,12 +1,19 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
+import { AltCollateralSwitch } from "@/components/Market/AltCollateralSwitch";
+import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
 import { useERC20Balance } from "@/hooks/useERC20Balance";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
+import { CHAIN_ROUTERS } from "@/lib/config";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
+import { useAccount } from "wagmi";
+import { Spinner } from "../Spinner";
 
-interface SplitFormValues {
+export interface SplitFormValues {
   amount: number;
+  useAltCollateral: boolean;
 }
 
 interface SplitFormProps {
@@ -14,46 +21,59 @@ interface SplitFormProps {
   router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
-  collateralDecimals: number;
   outcomeSlotCount: number;
 }
 
-export function SplitForm({
-  account,
-  router,
-  conditionId,
-  collateralToken,
-  collateralDecimals,
-  outcomeSlotCount,
-}: SplitFormProps) {
+export function SplitForm({ account, router, conditionId, outcomeSlotCount }: SplitFormProps) {
+  const { chainId } = useAccount();
   const {
     register,
     reset,
     formState: { errors, isValid },
     handleSubmit,
+    watch,
+    trigger,
   } = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
       amount: 0,
+      useAltCollateral: false,
     },
   });
 
-  const { data: balance = BigInt(0) } = useERC20Balance(account, collateralToken);
+  const { data: collaterals = [] } = useCollateralsInfo(chainId);
+
+  const altCollateralEnabled = collaterals.length > 1;
+
+  const useAltCollateral = watch("useAltCollateral");
+
+  const selectedCollateral = altCollateralEnabled && useAltCollateral ? collaterals[1] : collaterals[0];
+  const { data: balance = BigInt(0) } = useERC20Balance(account, selectedCollateral?.address);
+
+  useEffect(() => {
+    trigger("amount");
+  }, [balance]);
 
   const splitPosition = useSplitPosition((_receipt: TransactionReceipt) => {
     reset();
     alert("Position split!");
   });
 
+  if (collaterals.length === 0) {
+    return <Spinner />;
+  }
+
   const onSubmit = async (values: SplitFormValues) => {
     await splitPosition.mutateAsync({
       account: account!,
       router: router,
       conditionId,
-      collateralToken,
-      collateralDecimals,
+      collateralToken: selectedCollateral.address,
+      collateralDecimals: selectedCollateral.decimals,
       outcomeSlotCount,
       amount: values.amount,
+      isMainCollateral: !useAltCollateral,
+      routerType: CHAIN_ROUTERS[chainId!],
     });
   };
 
@@ -64,15 +84,16 @@ export function SplitForm({
         <Input
           autoComplete="off"
           type="number"
+          step="any"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,
             validate: (v) => {
-              if (Number.isNaN(Number(v)) || Number(v) < 0) {
+              if (Number.isNaN(Number(v)) || Number(v) <= 0) {
                 return "Amount must be greater than 0.";
               }
 
-              if (parseUnits(String(v), collateralDecimals) > balance) {
+              if (parseUnits(String(v), selectedCollateral.decimals) > balance) {
                 return "Not enough balance.";
               }
 
@@ -83,6 +104,8 @@ export function SplitForm({
           errors={errors}
         />
       </div>
+
+      {altCollateralEnabled && <AltCollateralSwitch register={register} />}
 
       <div>
         <Button

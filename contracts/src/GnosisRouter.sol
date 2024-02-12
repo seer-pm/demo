@@ -13,6 +13,8 @@ interface SavingsXDaiAdapter {
 }
 
 contract GnosisRouter is Router {
+    IERC20 public constant sDAI =
+        IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
     SavingsXDaiAdapter public constant savingsXDaiAdapter =
         SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94);
 
@@ -23,7 +25,6 @@ contract GnosisRouter is Router {
 
     /// @notice Splits a position using xDAI.
     function splitFromBase(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition
@@ -33,7 +34,7 @@ contract GnosisRouter is Router {
         );
 
         _splitPosition(
-            collateralToken,
+            sDAI,
             parentCollectionId,
             conditionId,
             partition,
@@ -43,41 +44,34 @@ contract GnosisRouter is Router {
 
     /// @notice Merges the position and sends xDAI to the user.
     function mergeToBase(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition,
         uint amount
     ) external {
         _mergePositions(
-            collateralToken,
+            sDAI,
             parentCollectionId,
             conditionId,
             partition,
             amount
         );
 
-        collateralToken.approve(address(savingsXDaiAdapter), amount);
+        sDAI.approve(address(savingsXDaiAdapter), amount);
         savingsXDaiAdapter.redeemXDAI(amount, msg.sender);
     }
 
     // @notice The user sends the outcome tokens and receives xDAI in exchange.
     function redeemToBase(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata indexSets
     ) external {
-        uint256 initialBalance = collateralToken.balanceOf(address(this));
+        uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(
-            collateralToken,
-            parentCollectionId,
-            conditionId,
-            indexSets
-        );
+        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
 
-        uint256 finalBalance = collateralToken.balanceOf(address(this));
+        uint256 finalBalance = sDAI.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
             savingsXDaiAdapter.redeemXDAI(

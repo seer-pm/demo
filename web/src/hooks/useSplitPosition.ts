@@ -1,5 +1,8 @@
+import { GnosisRouterAbi } from "@/abi/GnosisRouterAbi";
+import { MainnetRouterAbi } from "@/abi/MainnetRouterAbi";
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
+import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -15,6 +18,44 @@ interface SplitPositionProps {
   collateralDecimals: number;
   outcomeSlotCount: number;
   amount: number;
+  isMainCollateral: boolean;
+  routerType: RouterTypes;
+}
+
+async function splitFromRouter(
+  isMainCollateral: boolean,
+  routerType: RouterTypes,
+  router: Address,
+  collateralToken: Address,
+  conditionId: `0x${string}`,
+  partition: bigint[],
+  amount: bigint,
+) {
+  if (isMainCollateral) {
+    return await writeContract(config, {
+      address: router,
+      abi: RouterAbi,
+      functionName: "splitPosition",
+      args: [collateralToken, EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+    });
+  }
+
+  if (routerType === "mainnet") {
+    return await writeContract(config, {
+      address: router,
+      abi: MainnetRouterAbi,
+      functionName: "splitFromDai",
+      args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+    });
+  }
+
+  return await writeContract(config, {
+    address: router,
+    abi: GnosisRouterAbi,
+    functionName: "splitFromBase",
+    args: [EMPTY_PARENT_COLLECTION, conditionId, partition],
+    value: amount,
+  });
 }
 
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
@@ -41,18 +82,15 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
     });
   }
 
-  const hash = await writeContract(config, {
-    address: props.router,
-    abi: RouterAbi,
-    functionName: "splitPosition",
-    args: [
-      props.collateralToken,
-      EMPTY_PARENT_COLLECTION,
-      props.conditionId,
-      generateBasicPartition(props.outcomeSlotCount),
-      BigInt(parsedAmount),
-    ],
-  });
+  const hash = await splitFromRouter(
+    props.isMainCollateral,
+    props.routerType,
+    props.router,
+    props.collateralToken,
+    props.conditionId,
+    generateBasicPartition(props.outcomeSlotCount),
+    BigInt(parsedAmount),
+  );
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
     confirmations: 0,

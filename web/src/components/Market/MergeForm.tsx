@@ -1,12 +1,20 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
+import { AltCollateralSwitch } from "@/components/Market/AltCollateralSwitch";
+import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
+import { useERC20Balance } from "@/hooks/useERC20Balance";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { Position, usePositions } from "@/hooks/usePositions";
+import { CHAIN_ROUTERS } from "@/lib/config";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
+import { useAccount } from "wagmi";
+import { Spinner } from "../Spinner";
 
-interface MergeFormValues {
+export interface MergeFormValues {
   amount: number;
+  useAltCollateral: boolean;
 }
 
 interface MergeFormProps {
@@ -15,7 +23,6 @@ interface MergeFormProps {
   conditionId: `0x${string}`;
   conditionalTokens: Address;
   collateralToken: Address;
-  collateralDecimals: number;
   outcomeSlotCount: number;
 }
 
@@ -25,9 +32,9 @@ export function MergeForm({
   conditionId,
   conditionalTokens,
   collateralToken,
-  collateralDecimals,
   outcomeSlotCount,
 }: MergeFormProps) {
+  const { chainId } = useAccount();
   const { data: positions = [] } = usePositions(
     account,
     router,
@@ -42,6 +49,8 @@ export function MergeForm({
     reset,
     formState: { errors, isValid },
     handleSubmit,
+    watch,
+    trigger,
   } = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
@@ -49,20 +58,40 @@ export function MergeForm({
     },
   });
 
+  const { data: collaterals = [] } = useCollateralsInfo(chainId);
+
+  const altCollateralEnabled = collaterals.length > 1;
+
+  const useAltCollateral = watch("useAltCollateral");
+
+  const selectedCollateral = altCollateralEnabled && useAltCollateral ? collaterals[1] : collaterals[0];
+  const { data: balance = BigInt(0) } = useERC20Balance(account, selectedCollateral?.address);
+
+  useEffect(() => {
+    trigger("amount");
+  }, [balance]);
+
   const mergePositions = useMergePositions((_receipt: TransactionReceipt) => {
     reset();
     alert("Position merged!");
   });
+
+  if (collaterals.length === 0) {
+    return <Spinner />;
+  }
 
   const onSubmit = async (values: MergeFormValues) => {
     await mergePositions.mutateAsync({
       account: account!,
       router,
       conditionId,
-      collateralToken,
-      collateralDecimals,
+      mainCollateralToken: collaterals[0].address,
+      collateralToken: selectedCollateral.address,
+      collateralDecimals: selectedCollateral.decimals,
       outcomeSlotCount,
       amount: values.amount,
+      isMainCollateral: !useAltCollateral,
+      routerType: CHAIN_ROUTERS[chainId!],
     });
   };
 
@@ -81,15 +110,16 @@ export function MergeForm({
         <Input
           autoComplete="off"
           type="number"
+          step="any"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,
             validate: (v) => {
-              if (Number.isNaN(Number(v)) || Number(v) < 0) {
+              if (Number.isNaN(Number(v)) || Number(v) <= 0) {
                 return "Amount must be greater than 0.";
               }
 
-              if (parseUnits(String(v), collateralDecimals) > minPositionAmount) {
+              if (parseUnits(String(v), selectedCollateral.decimals) > minPositionAmount) {
                 return "Not enough balance.";
               }
 
@@ -100,6 +130,8 @@ export function MergeForm({
           errors={errors}
         />
       </div>
+
+      {altCollateralEnabled && <AltCollateralSwitch register={register} />}
 
       <div>
         <Button

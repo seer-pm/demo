@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "./Router.sol";
 
-interface SavingsDai {
+interface SavingsDai is IERC20 {
     function deposit(
         uint256 assets,
         address receiver
@@ -29,19 +29,17 @@ contract MainnetRouter is Router {
 
     /// @notice Splits a position using DAI.
     function splitFromDai(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition,
         uint amount
     ) external {
         DAI.transferFrom(msg.sender, address(this), amount);
-
         DAI.approve(address(sDAI), amount);
         uint256 shares = sDAI.deposit(amount, address(this));
 
         _splitPosition(
-            collateralToken,
+            IERC20(address(sDAI)),
             parentCollectionId,
             conditionId,
             partition,
@@ -51,14 +49,13 @@ contract MainnetRouter is Router {
 
     /// @notice Merges the position and sends DAI to the user.
     function mergeToDai(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata partition,
         uint amount
     ) external {
         _mergePositions(
-            collateralToken,
+            IERC20(address(sDAI)),
             parentCollectionId,
             conditionId,
             partition,
@@ -69,21 +66,15 @@ contract MainnetRouter is Router {
 
     /// @notice The user sends the outcome tokens and receives DAI in exchange.
     function redeemToDai(
-        IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata indexSets
     ) external {
-        uint256 initialBalance = collateralToken.balanceOf(address(this));
+        uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(
-            collateralToken,
-            parentCollectionId,
-            conditionId,
-            indexSets
-        );
+        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
 
-        uint256 finalBalance = collateralToken.balanceOf(address(this));
+        uint256 finalBalance = sDAI.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
             sDAI.redeem(
