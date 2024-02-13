@@ -1,16 +1,18 @@
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { http, createConfig } from "wagmi";
-import { goerli, hardhat, mainnet } from "wagmi/chains";
+import { Chain, gnosis, goerli, hardhat, mainnet } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
+import { SUPPORTED_CHAINS } from "./lib/config";
 
 export const config = createConfig({
-  chains: [mainnet, goerli, hardhat],
+  chains: Object.values(SUPPORTED_CHAINS) as [Chain, ...Chain[]],
   connectors: [
     injected(),
     coinbaseWallet({ appName: "Create Wagmi" }),
     walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
   ],
   transports: {
+    [gnosis.id]: http(),
     [mainnet.id]: http(),
     [goerli.id]: http(),
     [hardhat.id]: http(),

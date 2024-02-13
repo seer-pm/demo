@@ -1,16 +1,20 @@
+import { CollateralData } from "@/hooks/useCollateralsInfo";
 import React from "react";
 import Toggle from "../Form/Toggle";
 
-const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, React.InputHTMLAttributes<HTMLInputElement>>(
-  (props, ref) => {
-    return (
-      <div className="flex space-x-2">
-        <div>sDAI</div>
-        <Toggle {...props} ref={ref} />
-        <div>DAI</div>
-      </div>
-    );
-  },
-);
+type AltCollateralSwitchProps = {
+  altCollateral: CollateralData;
+} & React.InputHTMLAttributes<HTMLInputElement>;
+
+const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollateralSwitchProps>((props, ref) => {
+  const { altCollateral, ...toggleProps } = props;
+  return (
+    <div className="flex space-x-2">
+      <div>sDAI</div>
+      <Toggle {...toggleProps} ref={ref} />
+      <div>{altCollateral.symbol}</div>
+    </div>
+  );
+});
 
 export default AltCollateralSwitch;

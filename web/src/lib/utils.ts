@@ -1,5 +1,7 @@
 import { formatUnits, getAddress } from "viem";
 
+export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
 // https://stackoverflow.com/a/72190364
 export function localTimeToUtc(utcTime: Date | string | number) {
   if (typeof utcTime === "string" || typeof utcTime === "number") {

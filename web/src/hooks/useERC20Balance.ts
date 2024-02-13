@@ -1,15 +1,16 @@
+import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
-import { Address, erc20Abi } from "viem";
+import { getBalance } from "@wagmi/core";
+import { Address } from "viem";
 
 export async function fetchERC20Balance(token: Address, owner: Address) {
-  return await readContract(config, {
-    abi: erc20Abi,
-    address: token,
-    functionName: "balanceOf",
-    args: [owner],
-  });
+  return (
+    await getBalance(config, {
+      address: owner,
+      token: token === NATIVE_TOKEN ? undefined : token,
+    })
+  ).value;
 }
 
 export const useERC20Balance = (owner?: Address, token?: Address) => {

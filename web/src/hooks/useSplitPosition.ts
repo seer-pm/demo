@@ -4,6 +4,7 @@ import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
+import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
@@ -59,27 +60,29 @@ async function splitFromRouter(
 }
 
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
-  const allowance = await readContract(config, {
-    abi: erc20Abi,
-    address: props.collateralToken,
-    functionName: "allowance",
-    args: [props.account, props.router],
-  });
-
   const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
 
-  if (allowance < parsedAmount) {
-    const hash = await writeContract(config, {
-      address: props.collateralToken,
+  if (props.collateralToken !== NATIVE_TOKEN) {
+    const allowance = await readContract(config, {
       abi: erc20Abi,
-      functionName: "approve",
-      args: [props.router, parsedAmount],
+      address: props.collateralToken,
+      functionName: "allowance",
+      args: [props.account, props.router],
     });
 
-    await waitForTransactionReceipt(config, {
-      confirmations: 0,
-      hash,
-    });
+    if (allowance < parsedAmount) {
+      const hash = await writeContract(config, {
+        address: props.collateralToken,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [props.router, parsedAmount],
+      });
+
+      await waitForTransactionReceipt(config, {
+        confirmations: 0,
+        hash,
+      });
+    }
   }
 
   const hash = await splitFromRouter(

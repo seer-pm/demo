@@ -82,7 +82,9 @@ export function RedeemForm({
   return (
     <Card title="Redeem">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} />}
+        {altCollateralEnabled && (
+          <AltCollateralSwitch {...register("useAltCollateral")} altCollateral={collaterals[1]} />
+        )}
 
         <Button
           className="btn btn-primary"

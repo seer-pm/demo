@@ -1,12 +1,13 @@
 import { Address, Chain, parseUnits, zeroAddress } from "viem";
-import { gnosis, goerli, hardhat, mainnet } from "viem/chains";
+import { gnosis, hardhat, mainnet } from "viem/chains";
+import { NATIVE_TOKEN } from "./utils";
 
-export const DEFAULT_CHAIN = hardhat.id;
+export const DEFAULT_CHAIN = gnosis.id;
 
 export const SUPPORTED_CHAINS: Record<number, Chain> = {
-  [goerli.id]: goerli,
-  [hardhat.id]: hardhat,
-};
+  [gnosis.id]: gnosis,
+  //[hardhat.id]: hardhat,
+} as const;
 
 type AddressMap = Record<number, Address>;
 type BigInt = Record<number, bigint>;
@@ -25,41 +26,36 @@ type BigIntConfigValues = {
 
 const ADDRESSES_CONFIG: AddressConfigValues = {
   MARKET_FACTORY: {
-    [goerli.id]: "0x25381667a57e9e0a78aa26dc2fb21e9105459a63",
-    [hardhat.id]: "0x057cd3082efed32d5c907801bf3628b27d88fd80",
-    [mainnet.id]: "0xad203b3144f8c09a20532957174fc0366291643c",
+    [gnosis.id]: "0xab797c4c6022a401c31543e316d3cd04c67a87fc",
+    [mainnet.id]: zeroAddress,
   },
 
   ROUTER: {
-    [goerli.id]: zeroAddress,
-    [hardhat.id]: "0xd73bab8f06db28c87932571f87d0d2c0fdf13d94",
+    [gnosis.id]: "0xfe8bf5140f00de6f75bafa3ca0f4ebf2084a46b2",
     [mainnet.id]: zeroAddress,
   },
 
   MARKET_VIEW: {
-    [goerli.id]: zeroAddress,
-    [hardhat.id]: "0x31403b1e52051883f2ce1b1b4c89f36034e1221d",
+    [gnosis.id]: "0x12bb49deb8f293435e27f6f4ab140184604ce346",
     [mainnet.id]: zeroAddress,
   },
 
   REALITIO: {
-    [goerli.id]: "0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f",
-    [hardhat.id]: "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
-    [mainnet.id]: "0x92115220C28e78312cCe86f3d1dE652CFBD0357A",
+    [gnosis.id]: "0xE78996A233895bE74a66F451f1019cA9734205cc",
+    [mainnet.id]: "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
   },
 
   ALT_COLLATERAL: {
-    [goerli.id]: zeroAddress,
-    [hardhat.id]: "0x6b175474e89094c44da98b954eedeac495271d0f",
+    [gnosis.id]: NATIVE_TOKEN, // xDAI
     [mainnet.id]: "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
   },
 };
 
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
-    [goerli.id]: parseUnits("5", 18),
+    [gnosis.id]: parseUnits("0.1", 18),
+    [mainnet.id]: parseUnits("5", 18),
     [hardhat.id]: parseUnits("5", 18),
-    [mainnet.id]: parseUnits("0.0001", 18),
   },
 };
 

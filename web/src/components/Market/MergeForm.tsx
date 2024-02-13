@@ -131,7 +131,7 @@ export function MergeForm({
         />
       </div>
 
-      {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} />}
+      {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} altCollateral={collaterals[1]} />}
 
       <div>
         <Button
