@@ -5,6 +5,7 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
 import { useCreateMarket } from "@/hooks/useCreateMarket";
+import { DEFAULT_CHAIN } from "@/lib/config";
 import { paths } from "@/lib/paths";
 import { REALITY_TEMPLATE_SINGLE_SELECT, encodeQuestionText } from "@/lib/reality";
 import { localTimeToUtc } from "@/lib/utils";
@@ -59,7 +60,7 @@ function OutcomeFields({ outcomeIndex, removeOutcome, errors, register }: Outcom
 
 export default function MarketForm() {
   const navigate = useNavigate();
-  const { chain, chainId } = useAccount();
+  const { chain, chainId = DEFAULT_CHAIN } = useAccount();
   const createMarket = useCreateMarket((receipt: TransactionReceipt) => {
     const marketId = parseEventLogs({
       abi: MarketFactoryAbi,
@@ -68,7 +69,7 @@ export default function MarketForm() {
     })?.[0]?.args?.market;
 
     if (marketId) {
-      navigate(paths.market(marketId));
+      navigate(paths.market(marketId, chainId));
     }
   });
 

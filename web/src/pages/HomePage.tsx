@@ -1,11 +1,14 @@
 import { Card } from "@/components/Card";
 import { Spinner } from "@/components/Spinner";
 import { useMarkets } from "@/hooks/useMarkets";
+import { DEFAULT_CHAIN } from "@/lib/config";
 import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
+import { useAccount } from "wagmi";
 
 function Home() {
-  const { data: markets = [], isPending } = useMarkets();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
+  const { data: markets = [], isPending } = useMarkets(chainId);
 
   if (isPending) {
     return (
@@ -27,7 +30,7 @@ function Home() {
     <div className="grid grid-cols-4 gap-5 m-4">
       {markets.map((market) => (
         <Card key={market.id}>
-          <Link to={paths.market(market.id)} className="font-medium text-sm">
+          <Link to={paths.market(market.id, chainId)} className="font-medium text-sm">
             {market.marketName}
           </Link>
           <div>

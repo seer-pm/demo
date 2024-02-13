@@ -11,14 +11,14 @@ export interface MarketFactory {
   collateralDecimals: number;
 }
 
-export const useMarketFactory = (chainId?: number) => {
+export const useMarketFactory = (chainId: number) => {
   return useQuery<MarketFactory | undefined, Error>({
-    enabled: !!chainId,
     queryKey: ["useMarketFactory", chainId],
     queryFn: async () => {
       const marketFactoryContract = {
         abi: MarketFactoryAbi,
         address: getConfigAddress("MARKET_FACTORY", chainId),
+        chainId,
       } as const;
 
       const result = await readContracts(config, {

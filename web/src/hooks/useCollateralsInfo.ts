@@ -36,7 +36,7 @@ export async function fetchERC20Info(token: Address) {
   };
 }
 
-export const useCollateralsInfo = (chainId: number | undefined) => {
+export const useCollateralsInfo = (chainId: number) => {
   const { data: marketFactory } = useMarketFactory(chainId);
   return useQuery<CollateralData[] | undefined, Error>({
     enabled: !!marketFactory,

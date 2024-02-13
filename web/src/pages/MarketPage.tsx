@@ -70,8 +70,12 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
 }
 
 function MarketPage() {
-  const { chainId, address } = useAccount();
-  const { id } = useParams();
+  const { address } = useAccount();
+
+  const params = useParams();
+  const id = params.id as Address;
+  const chainId = Number(params.chainId);
+
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
   const { data: marketFactory, isError: isFactoryError, isPending: isFactoryPending } = useMarketFactory(chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
@@ -115,6 +119,7 @@ function MarketPage() {
                 <Card title="Split Position">
                   <SplitForm
                     account={address}
+                    chainId={chainId}
                     router={router}
                     collateralToken={marketFactory.collateralToken}
                     conditionId={market.conditionId}
@@ -124,6 +129,7 @@ function MarketPage() {
                 <Card title="Merge Positions">
                   <MergeForm
                     account={address}
+                    chainId={chainId}
                     router={router}
                     conditionalTokens={marketFactory.conditionalTokens}
                     collateralToken={marketFactory.collateralToken}
@@ -136,6 +142,7 @@ function MarketPage() {
             {marketStatus === MarketStatus.CLOSED && (
               <RedeemForm
                 account={address}
+                chainId={chainId}
                 router={router}
                 conditionalTokens={marketFactory.conditionalTokens}
                 collateralToken={marketFactory.collateralToken}

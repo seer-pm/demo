@@ -34,13 +34,13 @@ const ConnectButton = () => {
 };
 
 const ConnectWallet = () => {
-  const { isConnected, chain } = useAccount();
+  const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
   if (isConnected) {
     if (!chain) {
       return <SwitchChainButton />;
     }
 
-    return <AccountDisplay />;
+    return <AccountDisplay chainId={chainId} />;
   }
 
   return <ConnectButton />;

@@ -48,6 +48,7 @@ export const useMarket = (marketId: Address) => {
         address: getConfigAddress("MARKET_VIEW", chainId),
         functionName: "getMarket",
         args: [marketFactory?.conditionalTokens!, getConfigAddress("REALITIO", chainId), marketId],
+        chainId,
       });
     },
   });

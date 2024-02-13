@@ -56,8 +56,11 @@ export const ChainDisplay: React.FC = () => {
   return <label>{chain?.name}</label>;
 };
 
-export const CollateralBalance: React.FC<{ address?: Address }> = ({ address: propAddress }) => {
-  const { address: defaultAddress, chainId } = useAccount();
+export const CollateralBalance: React.FC<{ chainId: number; address?: Address }> = ({
+  chainId,
+  address: propAddress,
+}) => {
+  const { address: defaultAddress } = useAccount();
   const address = propAddress || defaultAddress;
   const { data: marketFactory } = useMarketFactory(chainId);
   const { data: balance } = useERC20Balance(address, marketFactory?.collateralToken);
@@ -69,7 +72,7 @@ export const CollateralBalance: React.FC<{ address?: Address }> = ({ address: pr
   return <div>{displayBalance(balance, marketFactory?.collateralDecimals!)} sDAI</div>;
 };
 
-const AccountDisplay: React.FC = () => {
+const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId }) => {
   return (
     <div className="flex space-x-2">
       <div className="flex space-x-2 items-center">
@@ -80,7 +83,7 @@ const AccountDisplay: React.FC = () => {
         <ChainDisplay />
       </div>
       <div>
-        <CollateralBalance />
+        <CollateralBalance chainId={chainId} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { Address } from "viem";
 
 export const paths = {
-  market: (id: Address | string) => `/markets/${id.toString()}/`,
+  market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/`,
 };

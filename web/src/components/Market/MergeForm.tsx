@@ -9,7 +9,6 @@ import { CHAIN_ROUTERS } from "@/lib/config";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { useAccount } from "wagmi";
 import { Spinner } from "../Spinner";
 
 export interface MergeFormValues {
@@ -19,6 +18,7 @@ export interface MergeFormValues {
 
 interface MergeFormProps {
   account?: Address;
+  chainId: number;
   router: Address;
   conditionId: `0x${string}`;
   conditionalTokens: Address;
@@ -28,13 +28,13 @@ interface MergeFormProps {
 
 export function MergeForm({
   account,
+  chainId,
   router,
   conditionId,
   conditionalTokens,
   collateralToken,
   outcomeSlotCount,
 }: MergeFormProps) {
-  const { chainId } = useAccount();
   const { data: positions = [] } = usePositions(
     account,
     router,

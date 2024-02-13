@@ -8,7 +8,6 @@ import { CHAIN_ROUTERS } from "@/lib/config";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { useAccount } from "wagmi";
 import { Spinner } from "../Spinner";
 
 export interface SplitFormValues {
@@ -18,14 +17,14 @@ export interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
+  chainId: number;
   router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
   outcomeSlotCount: number;
 }
 
-export function SplitForm({ account, router, conditionId, outcomeSlotCount }: SplitFormProps) {
-  const { chainId } = useAccount();
+export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCount }: SplitFormProps) {
   const {
     register,
     reset,

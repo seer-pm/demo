@@ -7,7 +7,6 @@ import { generateWinningIndexSet } from "@/lib/conditional-tokens";
 import { CHAIN_ROUTERS } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
-import { useAccount } from "wagmi";
 import { Spinner } from "../Spinner";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 
@@ -17,6 +16,7 @@ export interface RedeemFormValues {
 
 interface RedeemFormProps {
   account?: Address;
+  chainId: number;
   router: Address;
   conditionId: `0x${string}`;
   conditionalTokens: Address;
@@ -26,13 +26,13 @@ interface RedeemFormProps {
 
 export function RedeemForm({
   account,
+  chainId,
   router,
   conditionId,
   conditionalTokens,
   collateralToken,
   outcomeSlotCount,
 }: RedeemFormProps) {
-  const { chainId } = useAccount();
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {

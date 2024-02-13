@@ -11,7 +11,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="create-market" element={<CreateMarketPage />} />
-          <Route path="markets/:id" element={<MarketPage />} />
+          <Route path="markets/:chainId/:id" element={<MarketPage />} />
         </Route>
       </Routes>
     </HashRouter>
