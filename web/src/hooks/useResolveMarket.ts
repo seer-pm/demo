@@ -29,6 +29,7 @@ export const useResolveMarket = (onSuccess: (data: TransactionReceipt) => unknow
     mutationFn: resolveMarket,
     onSuccess: (data: TransactionReceipt) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
+      queryClient.invalidateQueries({ queryKey: ["useMarketStatus"] });
       onSuccess(data);
     },
   });

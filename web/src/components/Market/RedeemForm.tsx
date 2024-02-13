@@ -1,9 +1,19 @@
 import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
+import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { generateWinningIndexSet } from "@/lib/conditional-tokens";
+import { CHAIN_ROUTERS } from "@/lib/config";
+import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
+import { useAccount } from "wagmi";
+import { Spinner } from "../Spinner";
+import AltCollateralSwitch from "./AltCollateralSwitch";
+
+export interface RedeemFormValues {
+  useAltCollateral: boolean;
+}
 
 interface RedeemFormProps {
   account?: Address;
@@ -22,6 +32,18 @@ export function RedeemForm({
   collateralToken,
   outcomeSlotCount,
 }: RedeemFormProps) {
+  const { chainId } = useAccount();
+  const { register, handleSubmit } = useForm<RedeemFormValues>({
+    mode: "all",
+    defaultValues: {
+      useAltCollateral: false,
+    },
+  });
+
+  const { data: collaterals = [] } = useCollateralsInfo(chainId);
+
+  const altCollateralEnabled = collaterals.length > 1;
+
   const { data: winningPositions = [] } = useWinningPositions(
     account,
     router,
@@ -37,32 +59,39 @@ export function RedeemForm({
     alert("Position redeemed!");
   });
 
-  const onSubmit = async () => {
+  if (winningIndexSet.length === 0) {
+    return null;
+  }
+
+  if (collaterals.length === 0) {
+    return <Spinner />;
+  }
+
+  const onSubmit = async (values: RedeemFormValues) => {
     await redeemPositions.mutateAsync({
       account: account!,
       router,
       conditionId,
       collateralToken,
       indexSets: winningIndexSet,
+      isMainCollateral: !values.useAltCollateral,
+      routerType: CHAIN_ROUTERS[chainId!],
     });
   };
 
-  if (winningIndexSet.length === 0) {
-    return null;
-  }
-
   return (
     <Card title="Redeem">
-      <div className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} />}
+
         <Button
           className="btn btn-primary"
-          type="button"
-          onClick={onSubmit}
+          type="submit"
           disabled={redeemPositions.isPending || !account}
           isLoading={redeemPositions.isPending}
           text="Submit"
         />
-      </div>
+      </form>
     </Card>
   );
 }

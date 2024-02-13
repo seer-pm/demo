@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
-import { AltCollateralSwitch } from "@/components/Market/AltCollateralSwitch";
+import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
 import { useERC20Balance } from "@/hooks/useERC20Balance";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
@@ -105,7 +105,7 @@ export function SplitForm({ account, router, conditionId, outcomeSlotCount }: Sp
         />
       </div>
 
-      {altCollateralEnabled && <AltCollateralSwitch register={register} />}
+      {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} />}
 
       <div>
         <Button

@@ -1,13 +1,16 @@
-import { UseFormRegister } from "react-hook-form";
-import { MergeFormValues } from "./MergeForm";
-import { SplitFormValues } from "./SplitForm";
+import React from "react";
+import Toggle from "../Form/Toggle";
 
-export function AltCollateralSwitch({ register }: { register: UseFormRegister<MergeFormValues | SplitFormValues> }) {
-  return (
-    <div className="flex space-x-2">
-      <div>sDAI</div>
-      <input type="checkbox" className="toggle toggle-md" {...register("useAltCollateral")} />
-      <div>DAI</div>
-    </div>
-  );
-}
+const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, React.InputHTMLAttributes<HTMLInputElement>>(
+  (props, ref) => {
+    return (
+      <div className="flex space-x-2">
+        <div>sDAI</div>
+        <Toggle {...props} ref={ref} />
+        <div>DAI</div>
+      </div>
+    );
+  },
+);
+
+export default AltCollateralSwitch;
