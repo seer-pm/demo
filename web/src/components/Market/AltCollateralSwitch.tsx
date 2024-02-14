@@ -1,18 +1,24 @@
-import { CollateralData } from "@/hooks/useCollateralsInfo";
+import { COLLATERAL_TOKENS } from "@/lib/config";
+import { isUndefined } from "@/lib/utils";
 import React from "react";
 import Toggle from "../Form/Toggle";
 
 type AltCollateralSwitchProps = {
-  altCollateral: CollateralData;
+  chainId: number;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollateralSwitchProps>((props, ref) => {
-  const { altCollateral, ...toggleProps } = props;
+  const { chainId, ...toggleProps } = props;
+
+  if (isUndefined(COLLATERAL_TOKENS[chainId].secondary)) {
+    return null;
+  }
+
   return (
     <div className="flex space-x-2">
       <div>sDAI</div>
       <Toggle {...toggleProps} ref={ref} />
-      <div>{altCollateral.symbol}</div>
+      <div>{COLLATERAL_TOKENS[chainId].secondary!.symbol}</div>
     </div>
   );
 });

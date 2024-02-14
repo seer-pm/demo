@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { useMarketFactory } from "./useMarketFactory";
 
 export interface Question {
   content_hash: `0x${string}`;
@@ -37,17 +36,14 @@ export interface Market {
 export const useMarket = (marketId: Address) => {
   const { chainId = DEFAULT_CHAIN } = useAccount();
 
-  const { data: marketFactory } = useMarketFactory(chainId);
-
   return useQuery<Market | undefined, Error>({
-    enabled: !!marketId && !!marketFactory,
     queryKey: ["useMarket", marketId],
     queryFn: async () => {
       return await readContract(config, {
         abi: MarketViewAbi,
         address: getConfigAddress("MARKET_VIEW", chainId),
         functionName: "getMarket",
-        args: [marketFactory?.conditionalTokens!, getConfigAddress("REALITIO", chainId), marketId],
+        args: [getConfigAddress("CONDITIONAL_TOKENS", chainId), getConfigAddress("REALITIO", chainId), marketId],
         chainId,
       });
     },

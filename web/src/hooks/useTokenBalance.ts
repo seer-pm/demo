@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
 import { Address } from "viem";
 
-export async function fetchERC20Balance(token: Address, owner: Address) {
+export async function fetchTokenBalance(token: Address, owner: Address) {
   return (
     await getBalance(config, {
       address: owner,
@@ -13,12 +13,12 @@ export async function fetchERC20Balance(token: Address, owner: Address) {
   ).value;
 }
 
-export const useERC20Balance = (owner?: Address, token?: Address) => {
+export const useTokenBalance = (owner?: Address, token?: Address) => {
   return useQuery<bigint | undefined, Error>({
     enabled: !!owner && !!token,
     queryKey: ["useERC20Balance", owner, token],
     queryFn: async () => {
-      return await fetchERC20Balance(token!, owner!);
+      return await fetchTokenBalance(token!, owner!);
     },
   });
 };

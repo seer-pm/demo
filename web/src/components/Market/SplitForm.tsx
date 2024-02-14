@@ -1,14 +1,13 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
-import { useERC20Balance } from "@/hooks/useERC20Balance";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
-import { CHAIN_ROUTERS } from "@/lib/config";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { Spinner } from "../Spinner";
 
 export interface SplitFormValues {
   amount: number;
@@ -20,7 +19,6 @@ interface SplitFormProps {
   chainId: number;
   router: Address;
   conditionId: `0x${string}`;
-  collateralToken: Address;
   outcomeSlotCount: number;
 }
 
@@ -40,14 +38,14 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     },
   });
 
-  const { data: collaterals = [] } = useCollateralsInfo(chainId);
-
-  const altCollateralEnabled = collaterals.length > 1;
-
   const useAltCollateral = watch("useAltCollateral");
 
-  const selectedCollateral = altCollateralEnabled && useAltCollateral ? collaterals[1] : collaterals[0];
-  const { data: balance = BigInt(0) } = useERC20Balance(account, selectedCollateral?.address);
+  const selectedCollateral = (
+    hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral
+      ? COLLATERAL_TOKENS[chainId].secondary
+      : COLLATERAL_TOKENS[chainId].primary
+  ) as Token;
+  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   useEffect(() => {
     trigger("amount");
@@ -57,10 +55,6 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     reset();
     alert("Position split!");
   });
-
-  if (collaterals.length === 0) {
-    return <Spinner />;
-  }
 
   const onSubmit = async (values: SplitFormValues) => {
     await splitPosition.mutateAsync({
@@ -104,7 +98,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
         />
       </div>
 
-      {altCollateralEnabled && <AltCollateralSwitch {...register("useAltCollateral")} altCollateral={collaterals[1]} />}
+      <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
       <div>
         <Button

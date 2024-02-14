@@ -1,5 +1,5 @@
-import { useERC20Balance } from "@/hooks/useERC20Balance";
-import { useMarketFactory } from "@/hooks/useMarketFactory";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
 import React from "react";
 import Identicon from "react-identicons";
@@ -62,14 +62,13 @@ export const CollateralBalance: React.FC<{ chainId: number; address?: Address }>
 }) => {
   const { address: defaultAddress } = useAccount();
   const address = propAddress || defaultAddress;
-  const { data: marketFactory } = useMarketFactory(chainId);
-  const { data: balance } = useERC20Balance(address, marketFactory?.collateralToken);
+  const { data: balance } = useTokenBalance(address, COLLATERAL_TOKENS[chainId].primary.address);
 
   if (isUndefined(balance)) {
     return null;
   }
 
-  return <div>{displayBalance(balance, marketFactory?.collateralDecimals!)} sDAI</div>;
+  return <div>{displayBalance(balance, COLLATERAL_TOKENS[chainId].primary.decimals)} sDAI</div>;
 };
 
 const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId }) => {

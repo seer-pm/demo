@@ -1,5 +1,6 @@
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts, simulateContract } from "@wagmi/core";
@@ -9,15 +10,14 @@ export type Position = { tokenId: Address; balance: bigint };
 
 export const usePositions = (
   address?: Address,
+  chainId?: number,
   router?: Address,
   conditionId?: `0x${string}`,
-  conditionalTokens?: Address,
-  collateralToken?: Address,
   outcomeSlotCount?: number,
 ) => {
   return useQuery<Position[] | undefined, Error>({
-    enabled: !!address && !!router && !!conditionId && !!conditionalTokens && !!collateralToken && !!outcomeSlotCount,
-    queryKey: ["usePositions", address, router, conditionId, conditionalTokens, collateralToken, outcomeSlotCount],
+    enabled: !!address && !!chainId && !!router && !!conditionId && !!outcomeSlotCount,
+    queryKey: ["usePositions", address, chainId, router, conditionId, outcomeSlotCount],
     queryFn: async () => {
       const partitions = generateBasicPartition(outcomeSlotCount!);
 
@@ -28,7 +28,7 @@ export const usePositions = (
               abi: RouterAbi,
               address: router!,
               functionName: "getTokenAddress",
-              args: [collateralToken!, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
+              args: [COLLATERAL_TOKENS[chainId!].primary.address, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
             }),
           ),
         )

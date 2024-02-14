@@ -8,7 +8,7 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, erc20Abi } from "viem";
-import { fetchERC20Balance } from "./useERC20Balance";
+import { fetchTokenBalance } from "./useTokenBalance";
 
 interface RedeemPositionProps {
   account: Address;
@@ -70,7 +70,7 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
       args: [props.account, props.router],
     });
 
-    const balance = await fetchERC20Balance(tokenAddress, props.account);
+    const balance = await fetchTokenBalance(tokenAddress, props.account);
 
     if (allowance < balance) {
       const hash = await writeContract(config, {

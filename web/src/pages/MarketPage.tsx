@@ -7,7 +7,6 @@ import { RedeemForm } from "@/components/Market/RedeemForm";
 import { SplitForm } from "@/components/Market/SplitForm";
 import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
-import { useMarketFactory } from "@/hooks/useMarketFactory";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { getConfigAddress } from "@/lib/config";
@@ -77,12 +76,11 @@ function MarketPage() {
   const chainId = Number(params.chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
-  const { data: marketFactory, isError: isFactoryError, isPending: isFactoryPending } = useMarketFactory(chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
 
   const router = getConfigAddress("ROUTER", chainId);
 
-  if (isMarketError || isFactoryError) {
+  if (isMarketError) {
     return (
       <div className="py-10 px-10">
         <div className="alert alert-error mb-5">Market not found</div>
@@ -90,7 +88,7 @@ function MarketPage() {
     );
   }
 
-  if (isMarketPending || isFactoryPending || !router || !market || !marketFactory) {
+  if (isMarketPending || !router || !market) {
     return (
       <div className="py-10 px-10">
         <Spinner />
@@ -106,9 +104,9 @@ function MarketPage() {
 
         <div className="grid grid-cols-12 gap-10">
           <div className="col-span-8 space-y-5">
-            {address && market && marketFactory && (
+            {address && market && (
               <>
-                <Positions address={address} router={router} market={market} marketFactory={marketFactory} />
+                <Positions address={address} chainId={chainId} router={router} market={market} />
                 {/* show tokens, liquidity, etc */}
               </>
             )}
@@ -121,7 +119,6 @@ function MarketPage() {
                     account={address}
                     chainId={chainId}
                     router={router}
-                    collateralToken={marketFactory.collateralToken}
                     conditionId={market.conditionId}
                     outcomeSlotCount={market.outcomes.length}
                   />
@@ -131,8 +128,6 @@ function MarketPage() {
                     account={address}
                     chainId={chainId}
                     router={router}
-                    conditionalTokens={marketFactory.conditionalTokens}
-                    collateralToken={marketFactory.collateralToken}
                     conditionId={market.conditionId}
                     outcomeSlotCount={market.outcomes.length}
                   />
@@ -144,8 +139,6 @@ function MarketPage() {
                 account={address}
                 chainId={chainId}
                 router={router}
-                conditionalTokens={marketFactory.conditionalTokens}
-                collateralToken={marketFactory.collateralToken}
                 conditionId={market.conditionId}
                 outcomeSlotCount={market.outcomes.length}
               />

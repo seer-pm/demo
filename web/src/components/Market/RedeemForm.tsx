@@ -1,13 +1,11 @@
 import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
-import { useCollateralsInfo } from "@/hooks/useCollateralsInfo";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { generateWinningIndexSet } from "@/lib/conditional-tokens";
-import { CHAIN_ROUTERS } from "@/lib/config";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
-import { Spinner } from "../Spinner";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 
 export interface RedeemFormValues {
@@ -19,20 +17,10 @@ interface RedeemFormProps {
   chainId: number;
   router: Address;
   conditionId: `0x${string}`;
-  conditionalTokens: Address;
-  collateralToken: Address;
   outcomeSlotCount: number;
 }
 
-export function RedeemForm({
-  account,
-  chainId,
-  router,
-  conditionId,
-  conditionalTokens,
-  collateralToken,
-  outcomeSlotCount,
-}: RedeemFormProps) {
+export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotCount }: RedeemFormProps) {
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -40,18 +28,7 @@ export function RedeemForm({
     },
   });
 
-  const { data: collaterals = [] } = useCollateralsInfo(chainId);
-
-  const altCollateralEnabled = collaterals.length > 1;
-
-  const { data: winningPositions = [] } = useWinningPositions(
-    account,
-    router,
-    conditionId,
-    conditionalTokens,
-    collateralToken,
-    outcomeSlotCount,
-  );
+  const { data: winningPositions = [] } = useWinningPositions(account, chainId, router, conditionId, outcomeSlotCount);
 
   const winningIndexSet = generateWinningIndexSet(winningPositions);
 
@@ -63,16 +40,12 @@ export function RedeemForm({
     return null;
   }
 
-  if (collaterals.length === 0) {
-    return <Spinner />;
-  }
-
   const onSubmit = async (values: RedeemFormValues) => {
     await redeemPositions.mutateAsync({
       account: account!,
       router,
       conditionId,
-      collateralToken,
+      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       indexSets: winningIndexSet,
       isMainCollateral: !values.useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
@@ -82,9 +55,7 @@ export function RedeemForm({
   return (
     <Card title="Redeem">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {altCollateralEnabled && (
-          <AltCollateralSwitch {...register("useAltCollateral")} altCollateral={collaterals[1]} />
-        )}
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
         <Button
           className="btn btn-primary"

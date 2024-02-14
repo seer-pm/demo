@@ -1,5 +1,6 @@
 import { Address, Chain, parseUnits, zeroAddress } from "viem";
 import { gnosis, hardhat, mainnet } from "viem/chains";
+import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
 
 export const DEFAULT_CHAIN = gnosis.id;
@@ -17,7 +18,7 @@ type AddressConfigValues = {
   ROUTER: AddressMap;
   MARKET_VIEW: AddressMap;
   REALITIO: AddressMap;
-  ALT_COLLATERAL: AddressMap;
+  CONDITIONAL_TOKENS: AddressMap;
 };
 
 type BigIntConfigValues = {
@@ -45,11 +46,24 @@ const ADDRESSES_CONFIG: AddressConfigValues = {
     [mainnet.id]: "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
   },
 
-  ALT_COLLATERAL: {
-    [gnosis.id]: NATIVE_TOKEN, // xDAI
-    [mainnet.id]: "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
+  CONDITIONAL_TOKENS: {
+    [gnosis.id]: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
+    [mainnet.id]: "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
   },
 };
+
+type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | undefined }>;
+
+export const COLLATERAL_TOKENS: CollateralTokensMap = {
+  [gnosis.id]: {
+    primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
+    secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
+  },
+  [mainnet.id]: {
+    primary: { address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA", symbol: "sDAI", decimals: 18 },
+    secondary: { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI", decimals: 18 },
+  },
+} as const;
 
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
