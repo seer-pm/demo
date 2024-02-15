@@ -19,6 +19,7 @@ type AddressConfigValues = {
   MARKET_VIEW: AddressMap;
   REALITIO: AddressMap;
   CONDITIONAL_TOKENS: AddressMap;
+  POOL_INFORMATION: AddressMap;
 };
 
 type BigIntConfigValues = {
@@ -49,6 +50,11 @@ const ADDRESSES_CONFIG: AddressConfigValues = {
   CONDITIONAL_TOKENS: {
     [gnosis.id]: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
     [mainnet.id]: "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
+  },
+
+  POOL_INFORMATION: {
+    [gnosis.id]: zeroAddress,
+    [mainnet.id]: "0x0087D11551437c3964Dddf0F4FA58836c5C5d949",
   },
 };
 

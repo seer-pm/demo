@@ -1,6 +1,7 @@
 import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
 import { AnswerForm, AnswerFormLink } from "@/components/Market/AnswerForm";
+import { SwapTokens } from "@/components/Market/SwapTokens";
 import { MergeForm } from "@/components/Market/MergeForm";
 import { Positions } from "@/components/Market/Positions";
 import { RedeemForm } from "@/components/Market/RedeemForm";
@@ -119,6 +120,7 @@ function MarketPage() {
             {address && market && (
               <>
                 <Positions address={address} chainId={chainId} router={router} market={market} />
+
                 {/* show tokens, liquidity, etc */}
               </>
             )}
@@ -126,6 +128,11 @@ function MarketPage() {
           <div className="col-span-4 space-y-5">
             {marketStatus === MarketStatus.OPEN && (
               <>
+              <Card>
+              <SwapTokens market={market} chainId={chainId}/>
+              </Card>
+                
+
                 <Card title="Split Position">
                   <SplitForm
                     account={address}
