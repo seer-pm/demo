@@ -37,6 +37,16 @@ export const MarketViewAbi = [
             type: "string[]",
           },
           {
+            internalType: "uint256",
+            name: "lowerBound",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "upperBound",
+            type: "uint256",
+          },
+          {
             internalType: "bytes32",
             name: "conditionId",
             type: "bytes32",
@@ -55,11 +65,6 @@ export const MarketViewAbi = [
             internalType: "string",
             name: "encodedQuestion",
             type: "string",
-          },
-          {
-            internalType: "address",
-            name: "oracle",
-            type: "address",
           },
           {
             internalType: "address[]",
@@ -170,6 +175,16 @@ export const MarketViewAbi = [
             type: "string[]",
           },
           {
+            internalType: "uint256",
+            name: "lowerBound",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "upperBound",
+            type: "uint256",
+          },
+          {
             internalType: "bytes32",
             name: "conditionId",
             type: "bytes32",
@@ -188,11 +203,6 @@ export const MarketViewAbi = [
             internalType: "string",
             name: "encodedQuestion",
             type: "string",
-          },
-          {
-            internalType: "address",
-            name: "oracle",
-            type: "address",
           },
           {
             internalType: "address[]",

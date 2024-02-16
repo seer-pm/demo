@@ -33,7 +33,12 @@ export const MarketFactoryAbi = [
       },
       {
         internalType: "contract IRealityProxy",
-        name: "_oracle",
+        name: "_categoricalOracle",
+        type: "address",
+      },
+      {
+        internalType: "contract IRealityScalarAdapter",
+        name: "_scalarOracle",
         type: "address",
       },
       {
@@ -100,6 +105,19 @@ export const MarketFactoryAbi = [
     outputs: [
       {
         internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "categoricalOracle",
+    outputs: [
+      {
+        internalType: "contract IRealityProxy",
         name: "",
         type: "address",
       },
@@ -180,12 +198,17 @@ export const MarketFactoryAbi = [
           },
           {
             internalType: "uint256",
-            name: "minBond",
+            name: "lowerBound",
             type: "uint256",
           },
           {
             internalType: "uint256",
-            name: "templateId",
+            name: "upperBound",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "minBond",
             type: "uint256",
           },
           {
@@ -199,7 +222,63 @@ export const MarketFactoryAbi = [
         type: "tuple",
       },
     ],
-    name: "createMarket",
+    name: "createCategoricalMarket",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "string",
+            name: "marketName",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "encodedQuestion",
+            type: "string",
+          },
+          {
+            internalType: "string[]",
+            name: "outcomes",
+            type: "string[]",
+          },
+          {
+            internalType: "uint256",
+            name: "lowerBound",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "upperBound",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "minBond",
+            type: "uint256",
+          },
+          {
+            internalType: "uint32",
+            name: "openingTime",
+            type: "uint32",
+          },
+        ],
+        internalType: "struct MarketFactory.CreateMarketParams",
+        name: "params",
+        type: "tuple",
+      },
+    ],
+    name: "createScalarMarket",
     outputs: [
       {
         internalType: "address",
@@ -283,10 +362,10 @@ export const MarketFactoryAbi = [
   },
   {
     inputs: [],
-    name: "oracle",
+    name: "realitio",
     outputs: [
       {
-        internalType: "contract IRealityProxy",
+        internalType: "contract IRealityETH_v3_0",
         name: "",
         type: "address",
       },
@@ -296,10 +375,10 @@ export const MarketFactoryAbi = [
   },
   {
     inputs: [],
-    name: "realitio",
+    name: "scalarOracle",
     outputs: [
       {
-        internalType: "contract IRealityETH_v3_0",
+        internalType: "contract IRealityScalarAdapter",
         name: "",
         type: "address",
       },

@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./Market.sol";
-import {IRealityETH_v3_0, IConditionalTokens, IRealityProxy, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IRealityProxy, IRealityScalarAdapter, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
@@ -12,10 +12,21 @@ contract MarketFactory {
         string marketName;
         string encodedQuestion;
         string[] outcomes;
+        uint256 lowerBound;
+        uint256 upperBound;
         uint256 minBond;
-        uint256 templateId;
         uint32 openingTime;
     }
+
+    struct InternalMarketConfig {
+        bytes32 questionId;
+        bytes32 conditionId;
+        uint256 outcomeSlotCount;
+        uint256 templateId;
+    }
+
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1;
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
 
     uint32 public constant QUESTION_TIMEOUT = 1.5 days;
 
@@ -24,7 +35,8 @@ contract MarketFactory {
     Wrapped1155Factory public immutable wrapped1155Factory;
     IConditionalTokens public immutable conditionalTokens;
     address public immutable collateralToken;
-    IRealityProxy public immutable oracle;
+    IRealityProxy public immutable categoricalOracle;
+    IRealityScalarAdapter public immutable scalarOracle;
     IMavFactory public immutable mavFactory;
     address public governor;
     address[] public markets;
@@ -44,7 +56,8 @@ contract MarketFactory {
      *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
-     *  @param _oracle Address of the Oracle implementation.
+     *  @param _categoricalOracle Address of the Categorical Oracle implementation.
+     *  @param _scalarOracle Address of the Scalar Oracle implementation.
      *  @param _mavFactory Address of the Maverick Factory implementation.
      *  @param _governor Address of the governor of this contract.
      */
@@ -55,7 +68,8 @@ contract MarketFactory {
         Wrapped1155Factory _wrapped1155Factory,
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
-        IRealityProxy _oracle,
+        IRealityProxy _categoricalOracle,
+        IRealityScalarAdapter _scalarOracle,
         IMavFactory _mavFactory,
         address _governor
     ) {
@@ -65,7 +79,8 @@ contract MarketFactory {
         wrapped1155Factory = _wrapped1155Factory;
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
-        oracle = _oracle;
+        categoricalOracle = _categoricalOracle;
+        scalarOracle = _scalarOracle;
         mavFactory = _mavFactory;
         governor = _governor;
     }
@@ -80,35 +95,98 @@ contract MarketFactory {
         market = _market;
     }
 
-    function createMarket(
+    function createCategoricalMarket(
         CreateMarketParams memory params
     ) external returns (address) {
-        bytes32 questionId = askRealityQuestion(
+        require(params.outcomes.length >= 2, "Invalid outcomes count");
+
+        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+            params,
+            address(categoricalOracle),
+            params.outcomes.length,
+            REALITY_SINGLE_SELECT_TEMPLATE
+        );
+        address marketId = createMarket(
+            params,
+            InternalMarketConfig({
+                questionId: questionId,
+                conditionId: conditionId,
+                outcomeSlotCount: params.outcomes.length,
+                templateId: REALITY_SINGLE_SELECT_TEMPLATE
+            })
+        );
+
+        return marketId;
+    }
+
+    function createScalarMarket(
+        CreateMarketParams memory params
+    ) external returns (address) {
+        require(params.upperBound > params.lowerBound, "Invalid bounds");
+
+        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+            params,
+            address(scalarOracle),
+            2,
+            REALITY_UINT_TEMPLATE
+        );
+
+        address marketId = createMarket(
+            params,
+            InternalMarketConfig({
+                questionId: questionId,
+                conditionId: conditionId,
+                outcomeSlotCount: 2,
+                templateId: REALITY_UINT_TEMPLATE
+            })
+        );
+
+        scalarOracle.announceConditionQuestionId(
+            questionId,
+            params.lowerBound,
+            params.upperBound
+        );
+
+        return marketId;
+    }
+
+    function setUpQuestionAndCondition(
+        CreateMarketParams memory params,
+        address oracle,
+        uint256 outcomeSlotCount,
+        uint256 templateId
+    ) internal returns (bytes32 questionId, bytes32 conditionId) {
+        questionId = askRealityQuestion(
             params.encodedQuestion,
-            params.templateId,
+            templateId,
             params.openingTime,
             params.minBond
         );
 
-        bytes32 conditionId = prepareCondition(
-            questionId,
-            params.outcomes.length
-        );
+        conditionId = prepareCondition(questionId, outcomeSlotCount, oracle);
+    }
+
+    function createMarket(
+        CreateMarketParams memory params,
+        InternalMarketConfig memory config
+    ) internal returns (address) {
+        Market instance = Market(market.clone());
 
         address[] memory pools = deployERC20Positions(
-            conditionId,
-            params.outcomes.length
+            config.conditionId,
+            config.outcomeSlotCount
         );
-
-        Market instance = Market(market.clone());
         instance.initialize(
             params.marketName,
             params.outcomes,
-            conditionId,
-            questionId,
-            params.templateId,
+            params.lowerBound,
+            params.upperBound,
+            config.conditionId,
+            config.questionId,
+            config.templateId,
             params.encodedQuestion,
-            oracle,
+            categoricalOracle,
+            scalarOracle,
             pools
         );
 
@@ -158,17 +236,18 @@ contract MarketFactory {
 
     function prepareCondition(
         bytes32 questionId,
-        uint outcomeSlotCount
+        uint outcomeSlotCount,
+        address oracle
     ) internal returns (bytes32) {
         conditionalTokens.prepareCondition(
-            address(oracle),
+            oracle,
             questionId,
             outcomeSlotCount
         );
 
         return
             conditionalTokens.getConditionId(
-                address(oracle),
+                oracle,
                 questionId,
                 outcomeSlotCount
             );

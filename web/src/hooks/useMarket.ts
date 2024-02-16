@@ -28,7 +28,6 @@ export interface Market {
   questionId: `0x${string}`;
   templateId: bigint;
   encodedQuestion: string;
-  oracle: Address;
   pools: readonly Address[];
   question: Question;
 }

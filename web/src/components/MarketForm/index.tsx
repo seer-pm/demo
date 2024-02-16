@@ -4,11 +4,12 @@ import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
-import { useCreateMarket } from "@/hooks/useCreateMarket";
+import { MarketTypes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { DEFAULT_CHAIN } from "@/lib/config";
 import { paths } from "@/lib/paths";
-import { REALITY_TEMPLATE_SINGLE_SELECT, encodeQuestionText } from "@/lib/reality";
 import { localTimeToUtc } from "@/lib/utils";
+import clsx from "clsx";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TransactionReceipt } from "viem";
 import { parseEventLogs } from "viem/utils";
@@ -23,7 +24,10 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
 
 interface MarketFormValues {
   market: string;
-  outcomes: { value: string }[];
+  outcomes: { value: string }[]; // for categorical markets
+  lowerBound: number; // for scalar markets
+  upperBound: number; // for scalar markets
+  unit: string; // for scalar markets
   category: string;
   openingTime: string;
 }
@@ -59,6 +63,8 @@ function OutcomeFields({ outcomeIndex, removeOutcome, errors, register }: Outcom
 }
 
 export default function MarketForm() {
+  const [marketType, setMarketType] = useState(MarketTypes.CATEGORICAL);
+
   const navigate = useNavigate();
   const { chain, chainId = DEFAULT_CHAIN } = useAccount();
   const createMarket = useCreateMarket((receipt: TransactionReceipt) => {
@@ -78,15 +84,21 @@ export default function MarketForm() {
     control,
     formState: { errors, isValid },
     handleSubmit,
+    watch,
   } = useForm<MarketFormValues>({
     mode: "all",
     defaultValues: {
       market: "",
       outcomes: [],
+      lowerBound: 0,
+      upperBound: 0,
+      unit: "",
       category: "",
       openingTime: "",
     },
   });
+
+  const lowerBound = watch("lowerBound");
 
   const {
     fields: outcomesFields,
@@ -102,18 +114,36 @@ export default function MarketForm() {
     const outcomes = values.outcomes.map((o) => o.value);
 
     await createMarket.mutateAsync({
+      marketType,
       marketName: values.market,
-      encodedQuestion: encodeQuestionText("single-select", values.market, outcomes, values.category, "en_US"),
       outcomes,
-      templateId: REALITY_TEMPLATE_SINGLE_SELECT,
+      lowerBound: values.lowerBound,
+      upperBound: values.upperBound,
+      unit: values.unit,
+      category: values.category,
       openingTime: Math.round(localTimeToUtc(values.openingTime).getTime() / 1000),
       chainId,
     });
   };
 
+  const onMarketTypeClick = (type: MarketTypes) => () => setMarketType(type);
+
   return (
     <div className="text-center py-10 px-10">
       <div className="text-4xl font-bold mb-5">Create Market</div>
+
+      <div className="space-x-4 my-5">
+        <Button
+          text="Categorical Market"
+          className={clsx(marketType === MarketTypes.CATEGORICAL && "btn-primary")}
+          onClick={onMarketTypeClick(MarketTypes.CATEGORICAL)}
+        ></Button>
+        <Button
+          text="Scalar Market"
+          className={clsx(marketType === MarketTypes.SCALAR && "btn-primary")}
+          onClick={onMarketTypeClick(MarketTypes.SCALAR)}
+        ></Button>
+      </div>
 
       {!chain && <div className="alert alert-warning">Connect your wallet to a supported network.</div>}
 
@@ -148,31 +178,100 @@ export default function MarketForm() {
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="font-bold">Answers</div>
+          {marketType === MarketTypes.CATEGORICAL && (
+            <div className="space-y-2">
+              <div className="font-bold">Answers</div>
 
-            {outcomesFields.length > 0 && (
-              <>
-                {outcomesFields.map((outcomeField, i) => {
-                  return (
-                    <OutcomeFields
-                      key={outcomeField.id}
-                      outcomeIndex={i}
-                      removeOutcome={removeOutcome}
-                      errors={errors}
-                      register={register}
-                    />
-                  );
-                })}
-              </>
-            )}
+              {outcomesFields.length > 0 && (
+                <>
+                  {outcomesFields.map((outcomeField, i) => {
+                    return (
+                      <OutcomeFields
+                        key={outcomeField.id}
+                        outcomeIndex={i}
+                        removeOutcome={removeOutcome}
+                        errors={errors}
+                        register={register}
+                      />
+                    );
+                  })}
+                </>
+              )}
 
-            <div>
-              <button type="button" className="btn btn-neutral btn-sm" onClick={addOutcome}>
-                Add Option
-              </button>
+              <div>
+                <button type="button" className="btn btn-neutral btn-sm" onClick={addOutcome}>
+                  Add Option
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {marketType === MarketTypes.SCALAR && (
+            <div className="grid grid-cols-3 gap-4 w-full md:w-2/3 mx-auto">
+              <div>
+                <div className="space-y-2">
+                  <div className="font-bold">Lower Bound</div>
+                  <Input
+                    autoComplete="off"
+                    type="number"
+                    step="any"
+                    min="0"
+                    {...register("lowerBound", {
+                      required: "This field is required.",
+                      valueAsNumber: true,
+                      validate: (v) => {
+                        if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                          return "Value cannot be negative.";
+                        }
+
+                        return true;
+                      },
+                    })}
+                    className="w-full"
+                    errors={errors}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="space-y-2">
+                  <div className="font-bold">Upper Bound</div>
+                  <Input
+                    autoComplete="off"
+                    type="number"
+                    min="0"
+                    step="any"
+                    {...register("upperBound", {
+                      required: "This field is required.",
+                      valueAsNumber: true,
+                      validate: (v) => {
+                        if (v <= lowerBound) {
+                          return `Value must be greater than ${lowerBound}.`;
+                        }
+
+                        return true;
+                      },
+                    })}
+                    className="w-full"
+                    errors={errors}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="space-y-2">
+                  <div className="font-bold">Unit</div>
+                  <Input
+                    autoComplete="off"
+                    type="text"
+                    {...register("unit", {
+                      required: "This field is required.",
+                    })}
+                    className="w-full"
+                    errors={errors}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="font-bold">Opening time</div>
@@ -195,7 +294,11 @@ export default function MarketForm() {
             <Button
               className="btn btn-primary"
               type="submit"
-              disabled={!isValid || outcomesFields.length < 2 || createMarket.isPending}
+              disabled={
+                !isValid ||
+                (marketType === MarketTypes.CATEGORICAL && outcomesFields.length < 2) ||
+                createMarket.isPending
+              }
               isLoading={createMarket.isPending}
               text="Create Market"
             />

@@ -3,8 +3,9 @@ import compareAsc from "date-fns/compareAsc";
 import fromUnixTime from "date-fns/fromUnixTime";
 import { Hex, hexToNumber, pad, toHex } from "viem";
 
+export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
-export const REALITY_TEMPLATE_MULTIPLE_SELECT = "3";
+export const REALITY_TEMPLATE_MULTIPLE_SELECT = 3;
 
 export const INVALID_RESULT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 export const ANSWERED_TOO_SOON = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
@@ -13,14 +14,14 @@ export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string | typeof INVALID_RESULT | typeof ANSWERED_TOO_SOON;
 
-function encodeOutcomes(outcomes: string[]) {
+function encodeOutcomes(outcomes: string[] | null) {
   return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
 }
 
 export function encodeQuestionText(
   qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
   txt: string,
-  outcomes: string[],
+  outcomes: string[] | null,
   category: string,
   lang?: string,
 ) {
@@ -94,7 +95,7 @@ export function getAnswerText(market: Market, noAnswerText = "Not answered yet")
 
   const outcomeIndex = hexToNumber(market.question.best_answer);
 
-  if (market.templateId.toString() === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
       .map((answer) => market.outcomes[answer] || noAnswerText)
       .join(", ");

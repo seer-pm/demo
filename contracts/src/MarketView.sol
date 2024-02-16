@@ -35,11 +35,12 @@ contract MarketView {
         address id;
         string marketName;
         string[] outcomes;
+        uint256 lowerBound;
+        uint256 upperBound;
         bytes32 conditionId;
         bytes32 questionId;
         uint256 templateId;
         string encodedQuestion;
-        address oracle;
         address[] pools;
         IRealityETH_v3_0.Question question;
     }
@@ -60,8 +61,17 @@ contract MarketView {
         string[] memory outcomes = new string[](outcomeSlotCount);
         address[] memory pools = new address[](outcomeSlotCount);
 
+        uint256 lowerBound = market.lowerBound();
+        uint256 upperBound = market.upperBound();
+
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
-            outcomes[i] = market.outcomes(i);
+            if (lowerBound == 0 && upperBound == 0) {
+                // categorical market
+                outcomes[i] = market.outcomes(i);
+            } else {
+                // scalar market
+                outcomes[i] = i == 0 ? 'Low' : 'High';
+            }
             pools[i] = market.pools(i);
         }
 
@@ -70,11 +80,12 @@ contract MarketView {
                 id: marketId,
                 marketName: market.marketName(),
                 outcomes: outcomes,
+                lowerBound: lowerBound,
+                upperBound: upperBound,
                 conditionId: conditionId,
                 questionId: market.questionId(),
                 templateId: market.templateId(),
                 encodedQuestion: market.encodedQuestion(),
-                oracle: address(market.oracle()),
                 pools: pools,
                 question: realitio.questions(market.questionId())
             });

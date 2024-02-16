@@ -47,6 +47,21 @@ interface IRealityProxy {
     ) external;
 }
 
+interface IRealityScalarAdapter {
+    function announceConditionQuestionId(
+    bytes32 questionId,
+    uint256 low,
+    uint256 high
+  ) external;
+
+  function resolve(
+    bytes32 questionId,
+    string calldata question,
+    uint256 low,
+    uint256 high
+  ) external;
+}
+
 // https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol
 interface IConditionalTokens {
     function payoutNumerators(
