@@ -10,6 +10,7 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { getConfigAddress } from "@/lib/config";
+import { getClosingTime } from "@/lib/market";
 import { getAnswerText, getCurrentBond } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
 import { useParams } from "react-router-dom";
@@ -28,11 +29,17 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
   };
 
   if (marketStatus === MarketStatus.OPEN) {
-    return <div>Closes on {new Date(market.question.opening_ts * 1000).toUTCString()}</div>;
+    return <div>Closes on {getClosingTime(market)}</div>;
   }
 
   if (marketStatus === MarketStatus.CLOSED) {
-    return <div>Market closed. Result: {getAnswerText(market)}</div>;
+    return (
+      <div>
+        Market closed.{" "}
+        {market.questions.length === 1 &&
+          `Result: ${getAnswerText(market.questions[0], market.outcomes, market.templateId)}`}
+      </div>
+    );
   }
 
   if (marketStatus === MarketStatus.WAITING_PAYOUT_REPORT) {
@@ -45,16 +52,21 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
   }
 
   if (marketStatus === MarketStatus.WAITING_RESULTS) {
+    if (market.questions.length > 1) {
+      // multi scalar market
+      return "This market is not resolved yet.";
+    }
+
     return (
       <div>
         <div>
           This market is not resolved yet. You can provide an answer below, depositing a bond of{" "}
-          {displayBalance(getCurrentBond(market.question.bond, market.question.min_bond), 18)} DAI.
+          {displayBalance(getCurrentBond(market.questions[0].bond, market.questions[0].min_bond), 18)} DAI.
         </div>
         <div>
-          Current answer: {getAnswerText(market)}.
-          {market.question.finalize_ts > 0 && (
-            <>Closes on {new Date(market.question.finalize_ts * 1000).toUTCString()}</>
+          Current answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}.
+          {market.questions[0].finalize_ts > 0 && (
+            <>Closes on {new Date(market.questions[0].finalize_ts * 1000).toUTCString()}</>
           )}
         </div>
         <div>

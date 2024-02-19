@@ -4,7 +4,7 @@ import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
-import { MarketTypes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { MarketTypes, OUTCOME_PLACEHOLDER, useCreateMarket } from "@/hooks/useCreateMarket";
 import { DEFAULT_CHAIN } from "@/lib/config";
 import { paths } from "@/lib/paths";
 import { localTimeToUtc } from "@/lib/utils";
@@ -24,7 +24,8 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
 
 interface MarketFormValues {
   market: string;
-  outcomes: { value: string }[]; // for categorical markets
+  outcomes: { value: string }[]; // for categorical and multi scalar markets
+  outcomesQuestion: string; // for multi scalar markets
   lowerBound: number; // for scalar markets
   upperBound: number; // for scalar markets
   unit: string; // for scalar markets
@@ -34,12 +35,21 @@ interface MarketFormValues {
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
+  outcomes: MarketFormValues["outcomes"];
+  outcomesQuestion: string;
   removeOutcome: (i: number) => void;
   errors: FieldErrors;
   register: UseFormRegister<MarketFormValues>;
 }
 
-function OutcomeFields({ outcomeIndex, removeOutcome, errors, register }: OutcomeFieldsProps) {
+function OutcomeFields({
+  outcomeIndex,
+  outcomes,
+  outcomesQuestion,
+  removeOutcome,
+  errors,
+  register,
+}: OutcomeFieldsProps) {
   return (
     <div className="relative w-full md:w-2/3 mx-auto">
       <Input
@@ -49,6 +59,11 @@ function OutcomeFields({ outcomeIndex, removeOutcome, errors, register }: Outcom
         })}
         className="w-full"
         errors={errors}
+        helpText={
+          outcomesQuestion &&
+          outcomes[outcomeIndex].value &&
+          `Outcome question: ${outcomesQuestion.replace(OUTCOME_PLACEHOLDER, outcomes[outcomeIndex].value)}`
+        }
       />
 
       <button
@@ -90,6 +105,7 @@ export default function MarketForm() {
     defaultValues: {
       market: "",
       outcomes: [],
+      outcomesQuestion: "",
       lowerBound: 0,
       upperBound: 0,
       unit: "",
@@ -98,7 +114,7 @@ export default function MarketForm() {
     },
   });
 
-  const lowerBound = watch("lowerBound");
+  const [lowerBound, outcomesQuestion, outcomes] = watch(["lowerBound", "outcomesQuestion", "outcomes"]);
 
   const {
     fields: outcomesFields,
@@ -117,6 +133,7 @@ export default function MarketForm() {
       marketType,
       marketName: values.market,
       outcomes,
+      outcomesQuestion: values.outcomesQuestion,
       lowerBound: values.lowerBound,
       upperBound: values.upperBound,
       unit: values.unit,
@@ -127,6 +144,8 @@ export default function MarketForm() {
   };
 
   const onMarketTypeClick = (type: MarketTypes) => () => setMarketType(type);
+
+  const hasOutcomes = marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;
 
   return (
     <div className="text-center py-10 px-10">
@@ -142,6 +161,11 @@ export default function MarketForm() {
           text="Scalar Market"
           className={clsx(marketType === MarketTypes.SCALAR && "btn-primary")}
           onClick={onMarketTypeClick(MarketTypes.SCALAR)}
+        ></Button>
+        <Button
+          text="Multi Scalar Market"
+          className={clsx(marketType === MarketTypes.MULTI_SCALAR && "btn-primary")}
+          onClick={onMarketTypeClick(MarketTypes.MULTI_SCALAR)}
         ></Button>
       </div>
 
@@ -178,7 +202,22 @@ export default function MarketForm() {
             />
           </div>
 
-          {marketType === MarketTypes.CATEGORICAL && (
+          {marketType === MarketTypes.MULTI_SCALAR && (
+            <div className="space-y-2">
+              <div className="font-bold">Outcomes question template</div>
+              <Input
+                autoComplete="off"
+                {...register("outcomesQuestion", {
+                  required: "This field is required.",
+                })}
+                className="w-full md:w-2/3"
+                errors={errors}
+                helpText={`Each outcome will have their own question. Use ${OUTCOME_PLACEHOLDER} to replace the outcome value in the question.`}
+              />
+            </div>
+          )}
+
+          {hasOutcomes && (
             <div className="space-y-2">
               <div className="font-bold">Answers</div>
 
@@ -192,6 +231,8 @@ export default function MarketForm() {
                         removeOutcome={removeOutcome}
                         errors={errors}
                         register={register}
+                        outcomesQuestion={outcomesQuestion}
+                        outcomes={outcomes}
                       />
                     );
                   })}
@@ -294,11 +335,7 @@ export default function MarketForm() {
             <Button
               className="btn btn-primary"
               type="submit"
-              disabled={
-                !isValid ||
-                (marketType === MarketTypes.CATEGORICAL && outcomesFields.length < 2) ||
-                createMarket.isPending
-              }
+              disabled={!isValid || (hasOutcomes && outcomesFields.length < 2) || createMarket.isPending}
               isLoading={createMarket.isPending}
               text="Create Market"
             />

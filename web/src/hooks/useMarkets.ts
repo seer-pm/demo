@@ -17,7 +17,10 @@ export const useMarkets = (chainId: number) => {
         chainId,
       });
 
-      return markets.filter((m) => m.question.opening_ts !== 0);
+      return markets.filter((m) => {
+        const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
+        return hasOpenQuestions;
+      });
     },
   });
 };

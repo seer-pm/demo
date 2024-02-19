@@ -24,7 +24,7 @@ export function encodeQuestionText(
   outcomes: string[] | null,
   category: string,
   lang?: string,
-) {
+): string {
   let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
   const delim = "\u241f";
 
@@ -80,28 +80,33 @@ function getMultiSelectAnswers(value: number): number[] {
   return indexes;
 }
 
-export function getAnswerText(market: Market, noAnswerText = "Not answered yet"): string {
-  if (market.question.finalize_ts === 0) {
+export function getAnswerText(
+  question: Question,
+  outcomes: Market["outcomes"],
+  templateId: bigint,
+  noAnswerText = "Not answered yet",
+): string {
+  if (question.finalize_ts === 0) {
     return noAnswerText;
   }
 
-  if (market.question.best_answer === INVALID_RESULT) {
+  if (question.best_answer === INVALID_RESULT) {
     return "Invalid result";
   }
 
-  if (market.question.best_answer === ANSWERED_TOO_SOON) {
+  if (question.best_answer === ANSWERED_TOO_SOON) {
     return "Answered too soon";
   }
 
-  const outcomeIndex = hexToNumber(market.question.best_answer);
+  const outcomeIndex = hexToNumber(question.best_answer);
 
-  if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
-      .map((answer) => market.outcomes[answer] || noAnswerText)
+      .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }
 
-  return market.outcomes[outcomeIndex] || noAnswerText;
+  return outcomes[outcomeIndex] || noAnswerText;
 }
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint) {

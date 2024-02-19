@@ -27,9 +27,8 @@ export interface Market {
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
-  encodedQuestion: string;
   pools: readonly Address[];
-  question: Question;
+  questions: readonly Question[];
 }
 
 export const useMarket = (marketId: Address) => {

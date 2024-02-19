@@ -56,8 +56,8 @@ export function AnswerForm({ market }: AnswerFormProps) {
     await submitAnswer.mutateAsync({
       questionId: market.questionId,
       outcome: values.outcome,
-      currentBond: market.question.bond,
-      minBond: market.question.min_bond,
+      currentBond: market.questions[0].bond, // TODO: refactor for multi scalar markets
+      minBond: market.questions[0].min_bond, // TODO: refactor for multi scalar markets
       chainId: chainId!,
     });
   };

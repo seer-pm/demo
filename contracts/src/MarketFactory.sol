@@ -3,14 +3,15 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./Market.sol";
-import {IRealityETH_v3_0, IConditionalTokens, IRealityProxy, IRealityScalarAdapter, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
+import "./RealityProxy.sol";
+import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
 
     struct CreateMarketParams {
         string marketName;
-        string encodedQuestion;
+        string[] encodedQuestions;
         string[] outcomes;
         uint256 lowerBound;
         uint256 upperBound;
@@ -20,6 +21,7 @@ contract MarketFactory {
 
     struct InternalMarketConfig {
         bytes32 questionId;
+        bytes32[] questionsIds;
         bytes32 conditionId;
         uint256 outcomeSlotCount;
         uint256 templateId;
@@ -35,8 +37,7 @@ contract MarketFactory {
     Wrapped1155Factory public immutable wrapped1155Factory;
     IConditionalTokens public immutable conditionalTokens;
     address public immutable collateralToken;
-    IRealityProxy public immutable categoricalOracle;
-    IRealityScalarAdapter public immutable scalarOracle;
+    RealityProxy public immutable realityProxy;
     IMavFactory public immutable mavFactory;
     address public governor;
     address[] public markets;
@@ -56,8 +57,7 @@ contract MarketFactory {
      *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
-     *  @param _categoricalOracle Address of the Categorical Oracle implementation.
-     *  @param _scalarOracle Address of the Scalar Oracle implementation.
+     *  @param _realityProxy Address of the RealityProxy implementation.
      *  @param _mavFactory Address of the Maverick Factory implementation.
      *  @param _governor Address of the governor of this contract.
      */
@@ -68,8 +68,7 @@ contract MarketFactory {
         Wrapped1155Factory _wrapped1155Factory,
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
-        IRealityProxy _categoricalOracle,
-        IRealityScalarAdapter _scalarOracle,
+        RealityProxy _realityProxy,
         IMavFactory _mavFactory,
         address _governor
     ) {
@@ -79,8 +78,7 @@ contract MarketFactory {
         wrapped1155Factory = _wrapped1155Factory;
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
-        categoricalOracle = _categoricalOracle;
-        scalarOracle = _scalarOracle;
+        realityProxy = _realityProxy;
         mavFactory = _mavFactory;
         governor = _governor;
     }
@@ -101,15 +99,22 @@ contract MarketFactory {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
-            params,
-            address(categoricalOracle),
+            params.encodedQuestions[0],
+            REALITY_SINGLE_SELECT_TEMPLATE,
+            params.openingTime,
+            params.minBond,
             params.outcomes.length,
-            REALITY_SINGLE_SELECT_TEMPLATE
+            address(realityProxy)
         );
+
+        bytes32[] memory questionsIds = new bytes32[](1);
+        questionsIds[0] = questionId;
+
         address marketId = createMarket(
             params,
             InternalMarketConfig({
                 questionId: questionId,
+                questionsIds: questionsIds,
                 conditionId: conditionId,
                 outcomeSlotCount: params.outcomes.length,
                 templateId: REALITY_SINGLE_SELECT_TEMPLATE
@@ -125,42 +130,89 @@ contract MarketFactory {
         require(params.upperBound > params.lowerBound, "Invalid bounds");
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
-            params,
-            address(scalarOracle),
+            params.encodedQuestions[0],
+            REALITY_UINT_TEMPLATE,
+            params.openingTime,
+            params.minBond,
             2,
-            REALITY_UINT_TEMPLATE
+            address(realityProxy)
         );
+
+        bytes32[] memory questionsIds = new bytes32[](1);
+        questionsIds[0] = questionId;
 
         address marketId = createMarket(
             params,
             InternalMarketConfig({
                 questionId: questionId,
+                questionsIds: questionsIds,
                 conditionId: conditionId,
                 outcomeSlotCount: 2,
                 templateId: REALITY_UINT_TEMPLATE
             })
         );
 
-        scalarOracle.announceConditionQuestionId(
+        return marketId;
+    }
+
+    function createMultiScalarMarket(
+        CreateMarketParams memory params
+    ) external returns (address) {
+        require(
+            params.outcomes.length == params.encodedQuestions.length,
+            "Lenght mismatch"
+        );
+
+        bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
+
+        bytes32 questionId = bytes32(0);
+
+        for (uint256 i = 0; i < params.outcomes.length; i++) {
+            questionsIds[i] = askRealityQuestion(
+                params.encodedQuestions[i],
+                REALITY_UINT_TEMPLATE,
+                params.openingTime,
+                params.minBond
+            );
+
+            questionId = keccak256(
+                abi.encodePacked(questionId, questionsIds[i])
+            );
+        }
+
+        bytes32 conditionId = prepareCondition(
             questionId,
-            params.lowerBound,
-            params.upperBound
+            params.outcomes.length,
+            address(realityProxy)
+        );
+
+        address marketId = createMarket(
+            params,
+            InternalMarketConfig({
+                questionId: questionId,
+                questionsIds: questionsIds,
+                conditionId: conditionId,
+                outcomeSlotCount: params.outcomes.length,
+                templateId: REALITY_UINT_TEMPLATE
+            })
         );
 
         return marketId;
     }
 
     function setUpQuestionAndCondition(
-        CreateMarketParams memory params,
-        address oracle,
+        string memory question,
+        uint256 templateId,
+        uint32 openingTime,
+        uint256 minBond,
         uint256 outcomeSlotCount,
-        uint256 templateId
+        address oracle
     ) internal returns (bytes32 questionId, bytes32 conditionId) {
         questionId = askRealityQuestion(
-            params.encodedQuestion,
+            question,
             templateId,
-            params.openingTime,
-            params.minBond
+            openingTime,
+            minBond
         );
 
         conditionId = prepareCondition(questionId, outcomeSlotCount, oracle);
@@ -183,10 +235,10 @@ contract MarketFactory {
             params.upperBound,
             config.conditionId,
             config.questionId,
+            config.questionsIds,
             config.templateId,
-            params.encodedQuestion,
-            categoricalOracle,
-            scalarOracle,
+            params.encodedQuestions,
+            realityProxy,
             pools
         );
 

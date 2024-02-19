@@ -8,10 +8,7 @@ interface IERC20 {
         uint256 amount
     ) external returns (bool);
 
-    function transfer(
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function transfer(address to, uint256 amount) external returns (bool);
 
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -30,6 +27,10 @@ interface IRealityETH_v3_0 {
         uint256 min_bond
     ) external payable returns (bytes32);
 
+    function resultForOnceSettled(
+        bytes32 question_id
+    ) external view returns (bytes32);
+
     function getContentHash(
         bytes32 question_id
     ) external view returns (bytes32);
@@ -37,32 +38,6 @@ interface IRealityETH_v3_0 {
     function getTimeout(bytes32 question_id) external view returns (uint32);
 }
 
-// https://github.com/seer-pm/realitio-gnosis-proxy/blob/master/contracts/RealitioProxy.sol
-interface IRealityProxy {
-    function resolve(
-        bytes32 questionId,
-        uint256 templateId,
-        string calldata question,
-        uint256 numOutcomes
-    ) external;
-}
-
-interface IRealityScalarAdapter {
-    function announceConditionQuestionId(
-    bytes32 questionId,
-    uint256 low,
-    uint256 high
-  ) external;
-
-  function resolve(
-    bytes32 questionId,
-    string calldata question,
-    uint256 low,
-    uint256 high
-  ) external;
-}
-
-// https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol
 interface IConditionalTokens {
     function payoutNumerators(
         bytes32 conditionId,
@@ -77,6 +52,11 @@ interface IConditionalTokens {
         address oracle,
         bytes32 questionId,
         uint outcomeSlotCount
+    ) external;
+
+    function reportPayouts(
+        bytes32 questionId,
+        uint[] calldata payouts
     ) external;
 
     function splitPosition(
@@ -132,7 +112,6 @@ interface IConditionalTokens {
     ) external;
 }
 
-// https://github.com/gnosis/1155-to-20/blob/master/contracts/Wrapped1155Factory.sol
 interface Wrapped1155Factory {
     function requireWrapped1155(
         /*IERC1155*/ address multiToken,

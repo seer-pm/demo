@@ -21,7 +21,7 @@ export function Positions({ address, chainId, router, market }: PositionsProps) 
 
   return (
     <Card title="Your Positions">
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         {positions.map((position, i) => (
           <div key={position.tokenId}>
             <div>{market.outcomes[i]}</div>

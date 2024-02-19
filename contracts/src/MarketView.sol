@@ -40,9 +40,8 @@ contract MarketView {
         bytes32 conditionId;
         bytes32 questionId;
         uint256 templateId;
-        string encodedQuestion;
         address[] pools;
-        IRealityETH_v3_0.Question question;
+        IRealityETH_v3_0.Question[] questions;
     }
 
     function getMarket(
@@ -75,6 +74,12 @@ contract MarketView {
             pools[i] = market.pools(i);
         }
 
+        uint256 questionsCount = market.getQuestionsCount();
+        IRealityETH_v3_0.Question[] memory questions = new IRealityETH_v3_0.Question[](questionsCount);
+        for (uint256 i = 0; i < questionsCount; i++) {
+            questions[i] = realitio.questions(market.questionsIds(i));
+        }
+
         return
             MarketInfo({
                 id: marketId,
@@ -85,9 +90,8 @@ contract MarketView {
                 conditionId: conditionId,
                 questionId: market.questionId(),
                 templateId: market.templateId(),
-                encodedQuestion: market.encodedQuestion(),
                 pools: pools,
-                question: realitio.questions(market.questionId())
+                questions: questions
             });
     }
 

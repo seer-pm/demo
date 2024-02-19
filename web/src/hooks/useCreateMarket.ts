@@ -9,12 +9,14 @@ import { TransactionReceipt } from "viem";
 export enum MarketTypes {
   CATEGORICAL = 1,
   SCALAR = 2,
+  MULTI_SCALAR = 3,
 }
 
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
   outcomes: string[];
+  outcomesQuestion: string;
   lowerBound: number;
   upperBound: number;
   unit: string;
@@ -23,25 +25,45 @@ interface CreateMarketProps {
   chainId?: number;
 }
 
-function getEncodedQuestion(props: CreateMarketProps) {
+export const OUTCOME_PLACEHOLDER = "[PLACEHOLDER]";
+
+const MarketTypeFunction: Record<string, "createCategoricalMarket" | "createScalarMarket" | "createMultiScalarMarket"> =
+  {
+    [MarketTypes.CATEGORICAL]: "createCategoricalMarket",
+    [MarketTypes.SCALAR]: "createScalarMarket",
+    [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
+  } as const;
+
+function getEncodedQuestions(props: CreateMarketProps): string[] {
   if (props.marketType === MarketTypes.CATEGORICAL) {
-    return encodeQuestionText("single-select", props.marketName, props.outcomes, props.category, "en_US");
+    return [encodeQuestionText("single-select", props.marketName, props.outcomes, props.category, "en_US")];
   }
 
-  return encodeQuestionText("uint", `${props.marketName} [${props.unit}]`, null, props.category, "en_US");
+  if (props.marketType === MarketTypes.MULTI_SCALAR) {
+    return props.outcomes.map((outcome) => {
+      return encodeQuestionText(
+        "uint",
+        props.outcomesQuestion.replace(OUTCOME_PLACEHOLDER, outcome),
+        null,
+        props.category,
+        "en_US",
+      );
+    });
+  }
+
+  // MarketTypes.SCALAR
+  return [encodeQuestionText("uint", `${props.marketName} [${props.unit}]`, null, props.category, "en_US")];
 }
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
-  const encodedQuestion = getEncodedQuestion(props);
-
   const hash = await writeContract(config, {
     address: getConfigAddress("MARKET_FACTORY", props.chainId),
     abi: MarketFactoryAbi,
-    functionName: props.marketType === MarketTypes.CATEGORICAL ? "createCategoricalMarket" : "createScalarMarket",
+    functionName: MarketTypeFunction[props.marketType],
     args: [
       {
         marketName: props.marketName,
-        encodedQuestion: encodedQuestion,
+        encodedQuestions: getEncodedQuestions(props),
         outcomes: props.outcomes,
         lowerBound: BigInt(props.lowerBound),
         upperBound: BigInt(props.upperBound),

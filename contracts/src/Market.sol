@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {IRealityProxy, IRealityScalarAdapter} from "./Interfaces.sol";
+import "./RealityProxy.sol";
 
 contract Market {
     bool public initialized;
@@ -11,11 +11,11 @@ contract Market {
     uint256 public lowerBound;
     uint256 public upperBound;
     bytes32 public conditionId;
-    bytes32 public questionId;
+    bytes32 public questionId; // conditional tokens questionId
+    bytes32[] public questionsIds; // reality questionId's
     uint256 public templateId;
-    string public encodedQuestion;
-    IRealityProxy public categoricalOracle;
-    IRealityScalarAdapter public scalarOracle;
+    string[] public encodedQuestions;
+    RealityProxy public realityProxy;
     address[] public pools;
 
     function initialize(
@@ -25,10 +25,10 @@ contract Market {
         uint256 _upperBound,
         bytes32 _conditionId,
         bytes32 _questionId,
+        bytes32[] memory _questionsIds,
         uint256 _templateId,
-        string memory _encodedQuestion,
-        IRealityProxy _categoricalOracle,
-        IRealityScalarAdapter _scalarOracle,
+        string[] memory _encodedQuestions,
+        RealityProxy _realityProxy,
         address[] memory _pools
     ) external {
         require(!initialized, "Already initialized.");
@@ -39,30 +39,40 @@ contract Market {
         upperBound = _upperBound;
         conditionId = _conditionId;
         questionId = _questionId;
+        questionsIds = _questionsIds;
         templateId = _templateId;
-        encodedQuestion = _encodedQuestion;
-        categoricalOracle = _categoricalOracle;
-        scalarOracle = _scalarOracle;
+        encodedQuestions = _encodedQuestions;
+        realityProxy = _realityProxy;
         pools = _pools;
 
         initialized = true;
     }
 
+    function getQuestionsCount() external view returns (uint256) {
+        return questionsIds.length;
+    }
+
     function resolve() external {
-        if (lowerBound == 0 && upperBound == 0) {
-            categoricalOracle.resolve(
+        if (questionsIds.length > 1) {
+            realityProxy.resolveMultiScalarMarket(
                 questionId,
-                templateId,
-                encodedQuestion,
+                questionsIds,
                 outcomes.length
             );
-        } else {
-            scalarOracle.resolve(
-                questionId,
-                encodedQuestion,
-                lowerBound,
-                upperBound
-            );
+
+            return;
         }
+
+        if (lowerBound == 0 && upperBound == 0) {
+            realityProxy.resolveCategoricalMarket(
+                questionId,
+                templateId,
+                outcomes.length
+            );
+
+            return;
+        }
+
+        realityProxy.resolveScalarMarket(questionId, lowerBound, upperBound);
     }
 }
