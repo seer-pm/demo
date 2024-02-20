@@ -52,27 +52,23 @@ contract Market {
         return questionsIds.length;
     }
 
+    function numOutcomes() external view returns (uint256) {
+        return outcomes.length;
+    }
+
     function resolve() external {
         if (questionsIds.length > 1) {
-            realityProxy.resolveMultiScalarMarket(
-                questionId,
-                questionsIds,
-                outcomes.length
-            );
+            realityProxy.resolveMultiScalarMarket(this);
 
             return;
         }
 
         if (lowerBound == 0 && upperBound == 0) {
-            realityProxy.resolveCategoricalMarket(
-                questionId,
-                templateId,
-                outcomes.length
-            );
+            realityProxy.resolveCategoricalMarket(this);
 
             return;
         }
 
-        realityProxy.resolveScalarMarket(questionId, lowerBound, upperBound);
+        realityProxy.resolveScalarMarket(this);
     }
 }

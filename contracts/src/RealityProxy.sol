@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IConditionalTokens, IRealityETH_v3_0} from "./Interfaces.sol";
+import "./Market.sol";
 
 contract RealityProxy {
     IConditionalTokens public conditionalTokens;
@@ -15,16 +16,15 @@ contract RealityProxy {
         realitio = _realitio;
     }
 
-    function resolveCategoricalMarket(
-        bytes32 questionId,
-        uint256 templateId,
-        uint256 numOutcomes
-    ) external {
+    function resolveCategoricalMarket(Market market) external {
         uint256[] memory payouts;
+
+        bytes32 questionId = market.questionId();
+        uint256 templateId = market.templateId();
 
         if (templateId == 0 || templateId == 2) {
             // binary or single-select
-            payouts = getSingleSelectPayouts(questionId, numOutcomes);
+            payouts = getSingleSelectPayouts(questionId, market.numOutcomes());
         } else {
             revert("Unknown templateId");
         }
@@ -32,15 +32,16 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    function resolveScalarMarket(
-        bytes32 questionId,
-        uint256 low,
-        uint256 high
-    ) external {
+    function resolveScalarMarket(Market market) external {
+        uint256 low = market.lowerBound();
+        uint256 high = market.upperBound();
+
         require(low < high, "Range invalid");
         require(high != type(uint256).max, "Invalid high point");
 
         uint256[] memory payouts = new uint256[](2);
+
+        bytes32 questionId = market.questionId();
 
         uint256 answer = uint256(realitio.resultForOnceSettled(questionId));
 
@@ -64,20 +65,17 @@ contract RealityProxy {
         );
     }
 
-    function resolveMultiScalarMarket(
-        bytes32 questionId,
-        bytes32[] memory questionsIds,
-        uint256 numOutcomes
-    ) external {
+    function resolveMultiScalarMarket(Market market) external {
+        uint256 numOutcomes = market.numOutcomes();
         uint256[] memory payouts = new uint256[](numOutcomes);
 
         for (uint i = 0; i < numOutcomes; i++) {
             payouts[i] = uint256(
-                realitio.resultForOnceSettled(questionsIds[i])
+                realitio.resultForOnceSettled(market.questionsIds(i))
             );
         }
 
-        conditionalTokens.reportPayouts(questionId, payouts);
+        conditionalTokens.reportPayouts(market.questionId(), payouts);
     }
 
     function getSingleSelectPayouts(
