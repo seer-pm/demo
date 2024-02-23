@@ -1,81 +1,101 @@
-import { Market } from "@/hooks/useMarket";
-import { useState } from "react";
-import Button from "../Form/Button";
-import Input from "../Form/Input";
-import { useForm } from "react-hook-form";
-//import { TransactionReceipt } from "viem";
 import { useCalculateSwap } from "@/hooks/useCalculateSwap";
 import { useSwapTokens } from "@/hooks/useSwapTokens";
+import { displayBalance } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { Address, TransactionReceipt } from "viem";
+import Button from "../Form/Button";
+import Input from "../Form/Input";
 
 interface SwapFormValues {
-    type: 'buy' | 'sell';
-    outcomeIndex: number;
-    amount: number;
-  }
+  type: "buy" | "sell";
+  amount: number;
+}
 
-export function SwapTokens({ market, chainId }: { market: Market, chainId: number }) {
-  const [activeTab, setActiveTab] = useState("buy");
+interface SwapTokensProps {
+  account: Address | undefined;
+  chainId: number;
+  pool: Address;
+  outcomeToken: Address;
+  outcomeText: string;
+  swapType: "buy" | "sell";
+  setSwapType: (type: "buy" | "sell") => void;
+}
 
-  const tabClick = (type: string) => () => setActiveTab(type);
+export function SwapTokens({
+  account,
+  chainId,
+  pool,
+  outcomeToken,
+  outcomeText,
+  swapType,
+  setSwapType,
+}: SwapTokensProps) {
+  const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
   const {
     register,
     reset,
     formState: { errors, isValid },
     handleSubmit,
-    setValue,
-    watch
+    watch,
   } = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
       type: "buy",
-      outcomeIndex: 0,
       amount: 0,
     },
   });
 
-  const swapTokens = useSwapTokens((/*_receipt: TransactionReceipt*/) => {
+  const swapTokens = useSwapTokens((_receipt: TransactionReceipt) => {
     reset();
     alert("Tokens swaped!");
   });
 
-  const [amount, outcomeIndex] = watch(['amount', 'outcomeIndex']);
+  const [amount] = watch(["amount"]);
 
-  const {data: swapOutput = 0n} = useCalculateSwap(chainId, market.pools[amount], BigInt(outcomeIndex), true, false, 0n)
+  const {
+    data: swapData,
+    isPending: calculateIsPending,
+    isError: calculateIsError,
+  } = useCalculateSwap(chainId, pool, amount, outcomeToken, swapType);
 
-  const onSubmit = async (/*values: SwapFormValues*/) => {
-    // TODO: swap tokens
-  }
+  const onSubmit = async (values: SwapFormValues) => {
+    await swapTokens.mutateAsync({
+      account: account!,
+      chainId,
+      amount: values.amount,
+      type: values.type,
+      amountOutMinimum: swapData?.output!,
+      outcomeToken,
+      pool,
+      isMainCollateral: false, // TODO
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div className="font-bold text-center text-lg">{outcomeText}</div>
       <div role="tablist" className="tabs tabs-bordered">
-        <a
+        <button
+          type="button"
           role="tab"
-          className={`tab ${activeTab === "buy" && "tab-active"}`}
+          className={`tab ${swapType === "buy" && "tab-active"}`}
           onClick={tabClick("buy")}
         >
           Buy
-        </a>
-        <a
+        </button>
+        <button
+          type="button"
           role="tab"
-          className={`tab ${activeTab === "sell" && "tab-active"}`}
+          className={`tab ${swapType === "sell" && "tab-active"}`}
           onClick={tabClick("sell")}
         >
           Sell
-        </a>
-      </div>
-
-      <div className="text-bold">Outcome</div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {market.outcomes.map((outcome, index) => (
-          <Button text={outcome} key={outcome} onClick={() => setValue('outcomeIndex', index)}></Button>
-        ))}
+        </button>
       </div>
 
       <div className="space-y-2">
-        <div className="font-bold">Amount</div>
+        <div className="font-bold">{swapType === "buy" ? "Amount" : "Shares"}</div>
         <Input
           autoComplete="off"
           type="number"
@@ -100,20 +120,22 @@ export function SwapTokens({ market, chainId }: { market: Market, chainId: numbe
         />
       </div>
 
-      <div>
-        <div>Shares</div>
-        <div>{swapOutput.toString()}</div>
+      <div className="flex space-x-2">
+        <div>{swapType === "buy" ? "Shares" : "Amount"}:</div>
+        <div>{swapData ? displayBalance(swapData.output, swapData.decimals) : 0}</div>
       </div>
 
+      {calculateIsError && <div className="alert alert-error">Not enough liquidity</div>}
+
       <div>
-            <Button
-              className="btn btn-primary"
-              type="submit"
-              disabled={!isValid || swapTokens.isPending}
-              isLoading={swapTokens.isPending}
-              text="Swap"
-            />
-          </div>
+        <Button
+          className="btn btn-primary"
+          type="submit"
+          disabled={!!swapData?.output || !account || !isValid || swapTokens.isPending}
+          isLoading={swapTokens.isPending || calculateIsPending}
+          text={swapType === "buy" ? "Buy" : "Sell"}
+        />
+      </div>
     </form>
   );
 }

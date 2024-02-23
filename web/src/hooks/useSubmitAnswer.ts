@@ -25,7 +25,6 @@ async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceip
   });
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 0,
     hash,
   });
 

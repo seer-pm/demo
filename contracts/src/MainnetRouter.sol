@@ -24,8 +24,8 @@ contract MainnetRouter is Router {
 
     constructor(
         IConditionalTokens _conditionalTokens,
-        Wrapped1155Factory _wrapped1155Factory
-    ) Router(_conditionalTokens, _wrapped1155Factory) {}
+        WrappedERC20Factory _wrappedERC20Factory
+    ) Router(_conditionalTokens, _wrappedERC20Factory) {}
 
     /// @notice Splits a position using DAI.
     function splitFromDai(

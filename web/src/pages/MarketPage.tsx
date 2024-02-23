@@ -1,19 +1,21 @@
 import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
 import { AnswerForm, AnswerFormLink } from "@/components/Market/AnswerForm";
-import { SwapTokens } from "@/components/Market/SwapTokens";
 import { MergeForm } from "@/components/Market/MergeForm";
 import { Positions } from "@/components/Market/Positions";
 import { RedeemForm } from "@/components/Market/RedeemForm";
 import { SplitForm } from "@/components/Market/SplitForm";
+import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
+import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { getConfigAddress } from "@/lib/config";
 import { getClosingTime } from "@/lib/market";
 import { getAnswerText, getCurrentBond } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Address, TransactionReceipt } from "viem";
 import { useAccount } from "wagmi";
@@ -82,16 +84,25 @@ function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: Ma
 }
 
 function MarketPage() {
-  const { address } = useAccount();
+  const { address: account } = useAccount();
+
+  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
+  const [outcomeIndex, setOutcomeIndex] = useState(0);
 
   const params = useParams();
   const id = params.id as Address;
   const chainId = Number(params.chainId);
 
+  const router = getConfigAddress("ROUTER", chainId);
+
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
   const { data: marketStatus } = useMarketStatus(market, chainId);
-
-  const router = getConfigAddress("ROUTER", chainId);
+  const { data: wrappedAddresses = [] } = useWrappedAddresses(
+    chainId,
+    router,
+    market?.conditionId,
+    market?.outcomes.length,
+  );
 
   if (isMarketError) {
     return (
@@ -109,6 +120,11 @@ function MarketPage() {
     );
   }
 
+  const tradeCallback = (action: "buy" | "sell", poolIndex: number) => {
+    setSwapType(action);
+    setOutcomeIndex(poolIndex);
+  };
+
   return (
     <div className="py-10 px-10">
       <div className="space-y-5">
@@ -117,45 +133,52 @@ function MarketPage() {
 
         <div className="grid grid-cols-12 gap-10">
           <div className="col-span-8 space-y-5">
-            {address && market && (
-              <>
-                <Positions address={address} chainId={chainId} router={router} market={market} />
-
-                {/* show tokens, liquidity, etc */}
-              </>
+            {market && (
+              <Positions
+                account={account}
+                chainId={chainId}
+                router={router}
+                market={market}
+                tradeCallback={tradeCallback}
+              />
             )}
           </div>
           <div className="col-span-4 space-y-5">
-            {marketStatus === MarketStatus.OPEN && (
-              <>
-              <Card>
-              <SwapTokens market={market} chainId={chainId}/>
-              </Card>
-                
+            <Card>
+              <SwapTokens
+                account={account}
+                chainId={chainId}
+                swapType={swapType}
+                setSwapType={setSwapType}
+                pool={market.pools[outcomeIndex]}
+                outcomeText={market.outcomes[outcomeIndex]}
+                outcomeToken={wrappedAddresses[outcomeIndex]}
+              />
+            </Card>
 
-                <Card title="Split Position">
-                  <SplitForm
-                    account={address}
-                    chainId={chainId}
-                    router={router}
-                    conditionId={market.conditionId}
-                    outcomeSlotCount={market.outcomes.length}
-                  />
-                </Card>
-                <Card title="Merge Positions">
-                  <MergeForm
-                    account={address}
-                    chainId={chainId}
-                    router={router}
-                    conditionId={market.conditionId}
-                    outcomeSlotCount={market.outcomes.length}
-                  />
-                </Card>
-              </>
-            )}
+            <Card title="Split Position">
+              <SplitForm
+                account={account}
+                chainId={chainId}
+                router={router}
+                conditionId={market.conditionId}
+                outcomeSlotCount={market.outcomes.length}
+              />
+            </Card>
+
+            <Card title="Merge Positions">
+              <MergeForm
+                account={account}
+                chainId={chainId}
+                router={router}
+                conditionId={market.conditionId}
+                outcomeSlotCount={market.outcomes.length}
+              />
+            </Card>
+
             {marketStatus === MarketStatus.CLOSED && (
               <RedeemForm
-                account={address}
+                account={account}
                 chainId={chainId}
                 router={router}
                 conditionId={market.conditionId}

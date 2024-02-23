@@ -79,7 +79,6 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
       });
 
       await waitForTransactionReceipt(config, {
-        confirmations: 0,
         hash,
       });
     }
@@ -96,7 +95,6 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
   );
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 0,
     hash,
   });
 

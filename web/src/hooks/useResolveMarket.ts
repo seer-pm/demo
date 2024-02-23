@@ -17,7 +17,6 @@ async function resolveMarket(props: ResolveMarketProps): Promise<TransactionRece
   });
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 0,
     hash,
   });
 

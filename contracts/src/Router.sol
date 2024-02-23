@@ -2,22 +2,19 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {IConditionalTokens, Wrapped1155Factory, IERC20} from "./Interfaces.sol";
+import "./WrappedERC20Factory.sol";
+import {IConditionalTokens, IERC20} from "./Interfaces.sol";
 
 contract Router is ERC1155Holder {
-    // this needs to be the same ERC20_DATA used by MarketFactory
-    bytes internal constant ERC20_DATA =
-        hex"5365657200000000000000000000000000000000000000000000000000000008534545520000000000000000000000000000000000000000000000000000000812";
-
     IConditionalTokens public conditionalTokens;
-    Wrapped1155Factory public wrapped1155Factory;
+    WrappedERC20Factory public wrappedERC20Factory;
 
     constructor(
         IConditionalTokens _conditionalTokens,
-        Wrapped1155Factory _wrapped1155Factory
+        WrappedERC20Factory _wrappedERC20Factory
     ) {
         conditionalTokens = _conditionalTokens;
-        wrapped1155Factory = _wrapped1155Factory;
+        wrappedERC20Factory = _wrappedERC20Factory;
     }
 
     // @notice Transfers the collateral to the Router and then splits the position.
@@ -67,17 +64,13 @@ contract Router is ERC1155Holder {
             // wrap to erc20
             conditionalTokens.safeTransferFrom(
                 address(this),
-                address(wrapped1155Factory),
+                address(wrappedERC20Factory.wrapped1155Factory()),
                 tokenId,
                 amount,
-                ERC20_DATA
+                wrappedERC20Factory.data(tokenId)
             );
 
-            IERC20 wrapped1155 = wrapped1155Factory.requireWrapped1155(
-                address(conditionalTokens),
-                tokenId,
-                ERC20_DATA
-            );
+            IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
 
             // transfer the ERC20 back to the user
             wrapped1155.transfer(msg.sender, amount);
@@ -111,6 +104,9 @@ contract Router is ERC1155Holder {
         uint[] calldata partition,
         uint amount
     ) internal {
+        Wrapped1155Factory wrapped1155Factory = wrappedERC20Factory
+            .wrapped1155Factory();
+
         for (uint j = 0; j < partition.length; j++) {
             uint256 tokenId = getTokenId(
                 collateralToken,
@@ -120,11 +116,7 @@ contract Router is ERC1155Holder {
             );
 
             // unwrap ERC20
-            IERC20 wrapped1155 = wrapped1155Factory.requireWrapped1155(
-                address(conditionalTokens),
-                tokenId,
-                ERC20_DATA
-            );
+            IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
 
@@ -133,7 +125,7 @@ contract Router is ERC1155Holder {
                 tokenId,
                 amount,
                 address(this),
-                ERC20_DATA
+                wrappedERC20Factory.data(tokenId)
             );
         }
 
@@ -177,6 +169,9 @@ contract Router is ERC1155Holder {
         bytes32 conditionId,
         uint[] calldata indexSets
     ) internal {
+        Wrapped1155Factory wrapped1155Factory = wrappedERC20Factory
+            .wrapped1155Factory();
+
         for (uint j = 0; j < indexSets.length; j++) {
             uint256 tokenId = getTokenId(
                 collateralToken,
@@ -186,11 +181,7 @@ contract Router is ERC1155Holder {
             );
 
             // unwrap ERC20
-            IERC20 wrapped1155 = wrapped1155Factory.requireWrapped1155(
-                address(conditionalTokens),
-                tokenId,
-                ERC20_DATA
-            );
+            IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
 
             uint256 amount = wrapped1155.balanceOf(msg.sender);
 
@@ -201,7 +192,7 @@ contract Router is ERC1155Holder {
                 tokenId,
                 amount,
                 address(this),
-                ERC20_DATA
+                wrappedERC20Factory.data(tokenId)
             );
         }
 
@@ -238,17 +229,15 @@ contract Router is ERC1155Holder {
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint indexSet
-    ) external returns (IERC20) {
+    ) external view returns (IERC20) {
         return
-            wrapped1155Factory.requireWrapped1155(
-                address(conditionalTokens),
+            wrappedERC20Factory.tokens(
                 getTokenId(
                     collateralToken,
                     parentCollectionId,
                     conditionId,
                     indexSet
-                ),
-                ERC20_DATA
+                )
             );
     }
 

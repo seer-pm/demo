@@ -74,7 +74,6 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
   });
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 2,
     hash,
   });
 

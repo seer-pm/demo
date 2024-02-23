@@ -2,9 +2,11 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./Market.sol";
 import "./RealityProxy.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IMavFactory} from "./Interfaces.sol";
+import "./WrappedERC20Factory.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IMavFactory} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
@@ -34,7 +36,7 @@ contract MarketFactory {
 
     address public immutable arbitrator;
     IRealityETH_v3_0 public immutable realitio;
-    Wrapped1155Factory public immutable wrapped1155Factory;
+    WrappedERC20Factory public immutable wrappedERC20Factory;
     IConditionalTokens public immutable conditionalTokens;
     address public immutable collateralToken;
     RealityProxy public immutable realityProxy;
@@ -43,10 +45,6 @@ contract MarketFactory {
     address[] public markets;
     address public market;
 
-    // this needs to be the same ERC20_DATA used by Router
-    bytes internal constant ERC20_DATA =
-        hex"5365657200000000000000000000000000000000000000000000000000000008534545520000000000000000000000000000000000000000000000000000000812";
-
     event NewMarket(address indexed market);
 
     /**
@@ -54,7 +52,7 @@ contract MarketFactory {
      *  @param _market Address of the market contract that is going to be used for each new deployment.
      *  @param _arbitrator Address of the arbitrator that is going to resolve Realitio disputes.
      *  @param _realitio Address of the Realitio implementation.
-     *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
+     *  @param _wrappedERC20Factory Address of the WrappedERC20Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
@@ -65,7 +63,7 @@ contract MarketFactory {
         address _market,
         address _arbitrator,
         IRealityETH_v3_0 _realitio,
-        Wrapped1155Factory _wrapped1155Factory,
+        WrappedERC20Factory _wrappedERC20Factory,
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         RealityProxy _realityProxy,
@@ -75,7 +73,7 @@ contract MarketFactory {
         market = _market;
         arbitrator = _arbitrator;
         realitio = _realitio;
-        wrapped1155Factory = _wrapped1155Factory;
+        wrappedERC20Factory = _wrappedERC20Factory;
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
         realityProxy = _realityProxy;
@@ -226,7 +224,8 @@ contract MarketFactory {
 
         address[] memory pools = deployERC20Positions(
             config.conditionId,
-            config.outcomeSlotCount
+            config.outcomeSlotCount,
+            markets.length + 1
         );
         instance.initialize(
             params.marketName,
@@ -307,7 +306,8 @@ contract MarketFactory {
 
     function deployERC20Positions(
         bytes32 conditionId,
-        uint256 outcomeSlotCount
+        uint256 outcomeSlotCount,
+        uint256 marketIndex
     ) internal returns (address[] memory) {
         address[] memory pools = new address[](outcomeSlotCount);
         uint[] memory partition = generateBasicPartition(outcomeSlotCount);
@@ -322,25 +322,38 @@ contract MarketFactory {
                 collectionId
             );
 
-            address wrapped1155 = address(
-                wrapped1155Factory.requireWrapped1155(
-                    address(conditionalTokens),
-                    tokenId,
-                    ERC20_DATA
+            string memory tokenName = string(
+                abi.encodePacked(
+                    "SEER_",
+                    Strings.toString(marketIndex),
+                    "_",
+                    Strings.toString(j + 1)
                 )
             );
 
-            (address token0, address token1) = wrapped1155 < collateralToken
-                ? (wrapped1155, collateralToken)
-                : (collateralToken, wrapped1155);
-            pools[j] = mavFactory.create(
-                300000000000000,
-                10,
-                10800000000000000000000,
-                17,
-                token0,
-                token1
+            address wrapped1155 = address(
+                wrappedERC20Factory.createWrappedToken(
+                    address(conditionalTokens),
+                    tokenId,
+                    tokenName,
+                    tokenName
+                )
             );
+
+            if (address(mavFactory) != address(0)) {
+                (address token0, address token1) = wrapped1155 < collateralToken
+                    ? (wrapped1155, collateralToken)
+                    : (collateralToken, wrapped1155);
+
+                pools[j] = mavFactory.create(
+                    300000000000000,
+                    10,
+                    10800000000000000000000,
+                    17,
+                    token0,
+                    token1
+                );
+            }
         }
 
         return pools;

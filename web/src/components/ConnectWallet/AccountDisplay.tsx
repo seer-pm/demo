@@ -68,7 +68,11 @@ export const CollateralBalance: React.FC<{ chainId: number; address?: Address }>
     return null;
   }
 
-  return <div>{displayBalance(balance, COLLATERAL_TOKENS[chainId].primary.decimals)} {COLLATERAL_TOKENS[chainId].primary.symbol}</div>;
+  return (
+    <div>
+      {displayBalance(balance, COLLATERAL_TOKENS[chainId].primary.decimals)} {COLLATERAL_TOKENS[chainId].primary.symbol}
+    </div>
+  );
 };
 
 const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId }) => {

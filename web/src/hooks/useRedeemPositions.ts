@@ -81,7 +81,6 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
       });
 
       await waitForTransactionReceipt(config, {
-        confirmations: 0,
         hash,
       });
     }
@@ -97,7 +96,6 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
   );
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 0,
     hash,
   });
 

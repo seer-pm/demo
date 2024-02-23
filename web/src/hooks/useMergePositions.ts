@@ -85,7 +85,6 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
       });
 
       await waitForTransactionReceipt(config, {
-        confirmations: 0,
         hash,
       });
     }
@@ -102,7 +101,6 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
   );
 
   const transactionReceipt = await waitForTransactionReceipt(config, {
-    confirmations: 0,
     hash,
   });
 
