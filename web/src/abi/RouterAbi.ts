@@ -7,8 +7,8 @@ export const RouterAbi = [
         type: "address",
       },
       {
-        internalType: "contract Wrapped1155Factory",
-        name: "_wrapped1155Factory",
+        internalType: "contract WrappedERC20Factory",
+        name: "_wrappedERC20Factory",
         type: "address",
       },
     ],
@@ -59,7 +59,7 @@ export const RouterAbi = [
         type: "address",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -327,10 +327,10 @@ export const RouterAbi = [
   },
   {
     inputs: [],
-    name: "wrapped1155Factory",
+    name: "wrappedERC20Factory",
     outputs: [
       {
-        internalType: "contract Wrapped1155Factory",
+        internalType: "contract WrappedERC20Factory",
         name: "",
         type: "address",
       },

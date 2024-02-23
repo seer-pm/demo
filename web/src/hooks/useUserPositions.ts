@@ -6,7 +6,7 @@ import { Address, erc20Abi } from "viem";
 
 export type Position = { tokenId: Address; balance: bigint };
 
-export const usePositions = (
+export const useUserPositions = (
   address: Address | undefined,
   chainId: number,
   router: Address,

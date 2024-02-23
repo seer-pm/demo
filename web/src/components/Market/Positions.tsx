@@ -1,7 +1,7 @@
 import { Card } from "@/components/Card";
 import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
-import { usePositions } from "@/hooks/usePositions";
+import { useUserPositions } from "@/hooks/useUserPositions";
 import { SUPPORTED_CHAINS } from "@/lib/config";
 import { WRAPPED_OUTCOME_TOKEN_DECIMALS } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
@@ -17,10 +17,15 @@ interface PositionsProps {
 }
 
 export function Positions({ account, chainId, router, market, tradeCallback }: PositionsProps) {
-  const { data: positions = [] } = usePositions(account, chainId, router, market.conditionId, market.outcomes.length);
+  const { data: userPositions = [] } = useUserPositions(
+    account,
+    chainId,
+    router,
+    market.conditionId,
+    market.outcomes.length,
+  );
 
   const { data: marketPositions = [] } = useMarketPositions(
-    account,
     chainId,
     router,
     market.conditionId,
@@ -28,7 +33,7 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
     market.pools,
   );
 
-  if (positions.length === 0 || marketPositions.length === 0) {
+  if (marketPositions.length === 0) {
     return null;
   }
 
@@ -41,7 +46,7 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
           <div className="w-1/2">Outcome</div>
           <div>Actions</div>
         </div>
-        {positions.map((position, i) => (
+        {marketPositions.map((position, i) => (
           <div key={position.tokenId} className="flex border-b pb-2">
             <div className="w-1/2 space-y-1">
               <div>
@@ -54,9 +59,11 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
                   {market.outcomes[i]}
                 </a>
               </div>
-              <div className="text-xs">
-                Your balance: {displayBalance(position.balance, WRAPPED_OUTCOME_TOKEN_DECIMALS)}
-              </div>
+              {userPositions[i] && (
+                <div className="text-xs">
+                  Your balance: {displayBalance(userPositions[i].balance, WRAPPED_OUTCOME_TOKEN_DECIMALS)}
+                </div>
+              )}
               <div className="space-x-2 text-xs">
                 <a
                   href={`https://${chainId === 5 ? "testnet" : "app"}.mav.xyz/boosted-positions/${
@@ -70,8 +77,8 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
                 </a>
 
                 <span>
-                  {displayBalance(marketPositions[i].tokenABalance, 18)} {marketPositions[i].tokenASymbol},{" "}
-                  {displayBalance(marketPositions[i].tokenBBalance, 18)} {marketPositions[i].tokenBSymbol}
+                  {displayBalance(position.tokenABalance, 18)} {position.tokenASymbol},{" "}
+                  {displayBalance(position.tokenBBalance, 18)} {position.tokenBSymbol}
                 </span>
               </div>
             </div>

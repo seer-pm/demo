@@ -1,4 +1,4 @@
-import { Position } from "@/hooks/usePositions";
+import { Position } from "@/hooks/useUserPositions";
 import { Address, encodePacked, hexToBigInt, keccak256, stringToHex } from "viem";
 
 export const EMPTY_PARENT_COLLECTION = stringToHex("", { size: 32 });

@@ -3,7 +3,7 @@ import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/condition
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { simulateContract } from "@wagmi/core";
+import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 
 export const useWrappedAddresses = (
@@ -18,18 +18,15 @@ export const useWrappedAddresses = (
     queryFn: async () => {
       const partitions = generateBasicPartition(outcomeSlotCount!);
 
-      return (
-        await Promise.all(
-          partitions.map((indexSet) =>
-            simulateContract(config, {
-              abi: RouterAbi,
-              address: router,
-              functionName: "getTokenAddress",
-              args: [COLLATERAL_TOKENS[chainId].primary.address, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
-            }),
-          ),
-        )
-      ).map((r) => r.result);
+      return readContracts(config, {
+        allowFailure: false,
+        contracts: partitions.map((indexSet) => ({
+          abi: RouterAbi,
+          address: router,
+          functionName: "getTokenAddress",
+          args: [COLLATERAL_TOKENS[chainId].primary.address, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
+        })),
+      });
     },
   });
 };

@@ -17,7 +17,6 @@ export type MarketPosition = {
 };
 
 export const useMarketPositions = (
-  account: Address | undefined,
   chainId: number,
   router: Address,
   conditionId: `0x${string}`,
@@ -27,15 +26,8 @@ export const useMarketPositions = (
   const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
 
   return useQuery<MarketPosition[] | undefined, Error>({
-    enabled:
-      !!account &&
-      !!chainId &&
-      !!router &&
-      !!conditionId &&
-      !!outcomeSlotCount &&
-      !!pools &&
-      wrappedAddresses.length > 0,
-    queryKey: ["useMarketPositions", account, chainId, conditionId],
+    enabled: !!chainId && !!router && !!conditionId && !!outcomeSlotCount && !!pools && wrappedAddresses.length > 0,
+    queryKey: ["useMarketPositions", chainId, conditionId],
     queryFn: async () => {
       const collateralToken = COLLATERAL_TOKENS[chainId].primary.address;
 

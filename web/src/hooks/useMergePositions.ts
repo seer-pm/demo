@@ -6,7 +6,7 @@ import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, erc20Abi, parseUnits } from "viem";
 
 interface MergePositionProps {
@@ -62,7 +62,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
 
   const partition = generateBasicPartition(props.outcomeSlotCount);
   for (const indexSet of partition) {
-    const { result: tokenAddress } = await simulateContract(config, {
+    const tokenAddress = await readContract(config, {
       abi: RouterAbi,
       address: props.router,
       functionName: "getTokenAddress",
