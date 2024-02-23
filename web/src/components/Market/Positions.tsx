@@ -2,6 +2,7 @@ import { Card } from "@/components/Card";
 import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { usePositions } from "@/hooks/usePositions";
+import { SUPPORTED_CHAINS } from "@/lib/config";
 import { WRAPPED_OUTCOME_TOKEN_DECIMALS } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
 import { Address } from "viem";
@@ -31,6 +32,8 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
     return null;
   }
 
+  const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
+
   return (
     <Card title="Positions">
       <div className="space-y-3">
@@ -41,35 +44,35 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
         {positions.map((position, i) => (
           <div key={position.tokenId} className="flex border-b pb-2">
             <div className="w-1/2 space-y-1">
-              <div>{market.outcomes[i]}</div>
+              <div>
+                <a
+                  href={`${blockExplorerUrl}/address/${position.tokenId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {market.outcomes[i]}
+                </a>
+              </div>
               <div className="text-xs">
                 Your balance: {displayBalance(position.balance, WRAPPED_OUTCOME_TOKEN_DECIMALS)}
               </div>
               <div className="space-x-2 text-xs">
                 <a
-                  href={`https://app.mav.xyz/pool/${market.pools[i]}?chain=${chainId}`}
+                  href={`https://${chainId === 5 ? "testnet" : "app"}.mav.xyz/boosted-positions/${
+                    market.pools[i]
+                  }?chain=${chainId}`}
                   className="text-primary hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Liquidity pool
+                  Add liquidity
                 </a>
 
                 <span>
                   {displayBalance(marketPositions[i].tokenABalance, 18)} {marketPositions[i].tokenASymbol},{" "}
-                  {displayBalance(marketPositions[i].tokenBBalance, 18)} {marketPositions[i].tokenBSymbol},
+                  {displayBalance(marketPositions[i].tokenBBalance, 18)} {marketPositions[i].tokenBSymbol}
                 </span>
-
-                <span>|</span>
-
-                <a
-                  href={`https://etherscan.io/address/${position.tokenId}`}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Token
-                </a>
               </div>
             </div>
             <div className="space-x-3">
