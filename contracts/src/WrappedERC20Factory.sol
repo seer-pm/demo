@@ -21,6 +21,29 @@ contract WrappedERC20Factory {
         wrapped1155Factory = _wrapped1155Factory;
     }
 
+    // @dev see https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922
+    function toString31(
+        string memory value
+    ) public pure returns (bytes32 encodedString) {
+        uint256 length = bytes(value).length;
+        require(length < 32, "string too long");
+
+        // Read the right-padded string data, which is guaranteed to fit into a single
+        // word because its length is less than 32.
+        assembly {
+            encodedString := mload(add(value, 0x20))
+        }
+
+        // Now mask the string data, this ensures that the bytes past the string length
+        // are all 0s.
+        bytes32 mask = bytes32(type(uint256).max << ((32 - length) << 3));
+        encodedString = encodedString & mask;
+
+        // Finally, set the least significant byte to be the hex length of the encoded
+        // string, that is its byte-length times two.
+        encodedString = encodedString | bytes32(length << 1);
+    }
+
     function createWrappedToken(
         address multiToken,
         uint256 tokenId,
@@ -28,8 +51,8 @@ contract WrappedERC20Factory {
         string memory tokenSymbol
     ) external returns (IERC20) {
         bytes memory tokenData = abi.encodePacked(
-            bytes32(bytes(tokenName)),
-            bytes32(bytes(tokenSymbol)),
+            toString31(tokenName),
+            toString31(tokenSymbol),
             uint8(18)
         );
 
