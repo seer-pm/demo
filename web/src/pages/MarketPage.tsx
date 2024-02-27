@@ -1,6 +1,7 @@
 import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
 import { AnswerForm, AnswerFormLink } from "@/components/Market/AnswerForm";
+import { CowSwapEmbed } from "@/components/Market/CowSwapEmbed";
 import { MergeForm } from "@/components/Market/MergeForm";
 import { Positions } from "@/components/Market/Positions";
 import { RedeemForm } from "@/components/Market/RedeemForm";
@@ -11,13 +12,13 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
-import { getConfigAddress } from "@/lib/config";
+import { COLLATERAL_TOKENS, getConfigAddress } from "@/lib/config";
 import { getClosingTime } from "@/lib/market";
 import { getAnswerText, getCurrentBond } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Address, TransactionReceipt } from "viem";
+import { Address, TransactionReceipt, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 function MarketInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
@@ -95,7 +96,7 @@ function MarketPage() {
 
   const router = getConfigAddress("ROUTER", chainId);
 
-  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address);
+  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
@@ -125,6 +126,9 @@ function MarketPage() {
     setOutcomeIndex(poolIndex);
   };
 
+  const swapExchange: "maverick" | "cowswap" =
+    getConfigAddress("MAVERICK_ROUTER", chainId) !== zeroAddress ? "maverick" : "cowswap";
+
   return (
     <div className="py-10 px-10">
       <div className="space-y-5">
@@ -144,17 +148,31 @@ function MarketPage() {
             )}
           </div>
           <div className="col-span-4 space-y-5">
-            <Card>
-              <SwapTokens
-                account={account}
+            {swapExchange === "maverick" && (
+              <Card>
+                <SwapTokens
+                  account={account}
+                  chainId={chainId}
+                  swapType={swapType}
+                  setSwapType={setSwapType}
+                  pool={market.pools[outcomeIndex]}
+                  outcomeText={market.outcomes[outcomeIndex]}
+                  outcomeToken={wrappedAddresses[outcomeIndex]}
+                />
+              </Card>
+            )}
+
+            {swapExchange === "cowswap" && (
+              <CowSwapEmbed
                 chainId={chainId}
-                swapType={swapType}
-                setSwapType={setSwapType}
-                pool={market.pools[outcomeIndex]}
-                outcomeText={market.outcomes[outcomeIndex]}
-                outcomeToken={wrappedAddresses[outcomeIndex]}
+                sellAsset={
+                  swapType === "sell" ? wrappedAddresses[outcomeIndex] : COLLATERAL_TOKENS[chainId].primary.address
+                }
+                buyAsset={
+                  swapType === "buy" ? wrappedAddresses[outcomeIndex] : COLLATERAL_TOKENS[chainId].primary.address
+                }
               />
-            </Card>
+            )}
 
             <Card title="Split Position">
               <SplitForm

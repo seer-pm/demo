@@ -1,10 +1,10 @@
 import { MaverickPoolAbi } from "@/abi/MaverickPoolAbi";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, getConfigAddress } from "@/lib/config";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 
 export type MarketPosition = {
   tokenId: Address;
@@ -14,6 +14,7 @@ export type MarketPosition = {
   tokenBBalance: bigint;
   tokenASymbol: string;
   tokenBSymbol: string;
+  isMaverickPool: boolean;
 };
 
 export const useMarketPositions = (
@@ -41,7 +42,8 @@ export const useMarketPositions = (
               ? [COLLATERAL_TOKENS[chainId].primary.symbol, "Outcome"]
               : ["Outcome", COLLATERAL_TOKENS[chainId].primary.symbol];
 
-          const [tokenABalance, tokenBBalance] = await fetchLPTokensBalances(pools[i]);
+          const isMaverickPool = getConfigAddress("MAVERICK_ROUTER", chainId) !== zeroAddress;
+          const [tokenABalance, tokenBBalance] = isMaverickPool ? await fetchLPTokensBalances(pools[i]) : [0n, 0n];
 
           return {
             tokenId: wrappedAddress,
@@ -51,6 +53,7 @@ export const useMarketPositions = (
             tokenBBalance,
             tokenASymbol,
             tokenBSymbol,
+            isMaverickPool,
           };
         }),
       );

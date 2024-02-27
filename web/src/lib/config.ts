@@ -30,21 +30,21 @@ type BigIntConfigValues = {
 
 const ADDRESSES_CONFIG: AddressConfigValues = {
   MARKET_FACTORY: {
-    [gnosis.id]: "0xab797c4c6022a401c31543e316d3cd04c67a87fc",
+    [gnosis.id]: "0x1f728c2fd6a3008935c1446a965a313e657b7904",
     [mainnet.id]: zeroAddress,
     [bsc.id]: "0x44921b4c7510fb306d8e58cf3894fa2bc8a79f00",
     [goerli.id]: "0xcb62878ac4b2e506dc690cde9e9d4cf78ccb91a6",
   },
 
   ROUTER: {
-    [gnosis.id]: "0xfe8bf5140f00de6f75bafa3ca0f4ebf2084a46b2",
+    [gnosis.id]: "0x886ef0a78fabbae942f1da1791a8ed02a5af8bc6",
     [mainnet.id]: zeroAddress,
     [bsc.id]: "0xb2ab74afe47e6f9d8c392fa15b139ac02684771a",
     [goerli.id]: "0x50b8d283319a93fc0186e60ab78f5145d6327605",
   },
 
   MARKET_VIEW: {
-    [gnosis.id]: "0x12bb49deb8f293435e27f6f4ab140184604ce346",
+    [gnosis.id]: "0x44921b4c7510fb306d8e58cf3894fa2bc8a79f00",
     [mainnet.id]: zeroAddress,
     [bsc.id]: "0x0956b70ac0eca45db9661a1cee96b2e7062d8a1c",
     [goerli.id]: "0xdf2e1829a65028228ab6c5d800b346ef2595f643",

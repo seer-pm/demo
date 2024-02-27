@@ -51,7 +51,7 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
             <div className="w-1/2 space-y-1">
               <div>
                 <a
-                  href={`${blockExplorerUrl}/address/${position.tokenId}`}
+                  href={blockExplorerUrl && `${blockExplorerUrl}/address/${position.tokenId}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
@@ -65,16 +65,18 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
                 </div>
               )}
               <div className="space-x-2 text-xs">
-                <a
-                  href={`https://${chainId === 5 ? "testnet" : "app"}.mav.xyz/boosted-positions/${
-                    market.pools[i]
-                  }?chain=${chainId}`}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Add liquidity
-                </a>
+                {position.isMaverickPool && (
+                  <a
+                    href={`https://${chainId === 5 ? "testnet" : "app"}.mav.xyz/boosted-positions/${
+                      market.pools[i]
+                    }?chain=${chainId}`}
+                    className="text-primary hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Add liquidity
+                  </a>
+                )}
 
                 <span>
                   {displayBalance(position.tokenABalance, 18)} {position.tokenASymbol},{" "}

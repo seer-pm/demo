@@ -8,7 +8,7 @@ export const config = createConfig({
   chains: Object.values(SUPPORTED_CHAINS) as [Chain, ...Chain[]],
   connectors: [
     injected(),
-    coinbaseWallet({ appName: "Create Wagmi" }),
+    coinbaseWallet({ appName: "Seer" }),
     walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
   ],
   transports: {

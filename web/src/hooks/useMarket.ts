@@ -1,10 +1,9 @@
 import { MarketViewAbi } from "@/abi/MarketViewAbi";
-import { DEFAULT_CHAIN, getConfigAddress } from "@/lib/config";
+import { getConfigAddress } from "@/lib/config";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
-import { useAccount } from "wagmi";
 
 export interface Question {
   content_hash: `0x${string}`;
@@ -31,11 +30,9 @@ export interface Market {
   questions: readonly Question[];
 }
 
-export const useMarket = (marketId: Address) => {
-  const { chainId = DEFAULT_CHAIN } = useAccount();
-
+export const useMarket = (marketId: Address, chainId: number) => {
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", marketId],
+    queryKey: ["useMarket", marketId, chainId],
     queryFn: async () => {
       return await readContract(config, {
         abi: MarketViewAbi,

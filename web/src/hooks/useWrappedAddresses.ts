@@ -25,6 +25,7 @@ export const useWrappedAddresses = (
           address: router,
           functionName: "getTokenAddress",
           args: [COLLATERAL_TOKENS[chainId].primary.address, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
+          chainId
         })),
       });
     },

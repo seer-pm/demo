@@ -1,6 +1,7 @@
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import Identicon from "react-identicons";
 import { Address, isAddress } from "viem";
@@ -53,7 +54,12 @@ export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }
 
 export const ChainDisplay: React.FC = () => {
   const { chain } = useAccount();
-  return <label>{chain?.name}</label>;
+  const { open } = useWeb3Modal();
+  return (
+    <div className="cursor-pointer" onClick={() => open({ view: "Networks" })}>
+      {chain?.name}
+    </div>
+  );
 };
 
 export const CollateralBalance: React.FC<{ chainId: number; address?: Address }> = ({
