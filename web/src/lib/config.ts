@@ -96,7 +96,7 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
   },
   [goerli.id]: {
     primary: { address: "0x65a5ba240cbd7fd75700836b683ba95ebb2f32bd", symbol: "DAI", decimals: 18 },
-    secondary: undefined,
+    secondary: { address: NATIVE_TOKEN, symbol: "ETH", decimals: 18 },
   },
 } as const;
 
