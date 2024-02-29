@@ -8,7 +8,7 @@ export const DEFAULT_CHAIN = goerli.id;
 export const SUPPORTED_CHAINS: Record<number, Chain> = {
   [gnosis.id]: gnosis,
   [goerli.id]: goerli,
-  //[hardhat.id]: hardhat,
+  ...(!import.meta.env.PROD ? { [hardhat.id]: hardhat } : ({} as Chain)),
 } as const;
 
 type AddressMap = Record<number, Address>;
@@ -20,8 +20,6 @@ type AddressConfigValues = {
   MARKET_VIEW: AddressMap;
   REALITIO: AddressMap;
   CONDITIONAL_TOKENS: AddressMap;
-  POOL_INFORMATION: AddressMap;
-  MAVERICK_ROUTER: AddressMap;
 };
 
 type BigIntConfigValues = {
@@ -62,20 +60,6 @@ const ADDRESSES_CONFIG: AddressConfigValues = {
     [mainnet.id]: "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
     [bsc.id]: "0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E",
     [goerli.id]: "0x383e1Dd5D232516aFa1b1524d31B1EF6E9c6caFb",
-  },
-
-  POOL_INFORMATION: {
-    [gnosis.id]: zeroAddress,
-    [mainnet.id]: "0x0087D11551437c3964Dddf0F4FA58836c5C5d949",
-    [bsc.id]: "0xB3916179619EEF2497C646e664Be6e13cd1AB445",
-    [goerli.id]: "0x0Eb806b0daE0D9639A531F1eB820d8F94fB9E941",
-  },
-
-  MAVERICK_ROUTER: {
-    [gnosis.id]: zeroAddress,
-    [mainnet.id]: "0xbBF1EE38152E9D8e3470Dc47947eAa65DcA94913",
-    [bsc.id]: "0xD53a9f3FAe2bd46D35E9a30bA58112A585542869",
-    [goerli.id]: "0x9563Fdb01BFbF3D6c548C2C64E446cb5900ACA88",
   },
 };
 

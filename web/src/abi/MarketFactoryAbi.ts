@@ -17,8 +17,8 @@ export const MarketFactoryAbi = [
         type: "address",
       },
       {
-        internalType: "contract Wrapped1155Factory",
-        name: "_wrapped1155Factory",
+        internalType: "contract WrappedERC20Factory",
+        name: "_wrappedERC20Factory",
         type: "address",
       },
       {
@@ -34,11 +34,6 @@ export const MarketFactoryAbi = [
       {
         internalType: "contract RealityProxy",
         name: "_realityProxy",
-        type: "address",
-      },
-      {
-        internalType: "contract IMavFactory",
-        name: "_mavFactory",
         type: "address",
       },
       {
@@ -387,19 +382,6 @@ export const MarketFactoryAbi = [
   },
   {
     inputs: [],
-    name: "mavFactory",
-    outputs: [
-      {
-        internalType: "contract IMavFactory",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "realitio",
     outputs: [
       {
@@ -426,10 +408,10 @@ export const MarketFactoryAbi = [
   },
   {
     inputs: [],
-    name: "wrapped1155Factory",
+    name: "wrappedERC20Factory",
     outputs: [
       {
-        internalType: "contract Wrapped1155Factory",
+        internalType: "contract WrappedERC20Factory",
         name: "",
         type: "address",
       },

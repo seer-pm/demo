@@ -62,11 +62,6 @@ export const MarketViewAbi = [
             type: "uint256",
           },
           {
-            internalType: "address[]",
-            name: "pools",
-            type: "address[]",
-          },
-          {
             components: [
               {
                 internalType: "bytes32",
@@ -193,11 +188,6 @@ export const MarketViewAbi = [
             internalType: "uint256",
             name: "templateId",
             type: "uint256",
-          },
-          {
-            internalType: "address[]",
-            name: "pools",
-            type: "address[]",
           },
           {
             components: [

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./Market.sol";
 import "./RealityProxy.sol";
 import "./WrappedERC20Factory.sol";
-import {IRealityETH_v3_0, IConditionalTokens, IMavFactory} from "./Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
@@ -40,7 +40,6 @@ contract MarketFactory {
     IConditionalTokens public immutable conditionalTokens;
     address public immutable collateralToken;
     RealityProxy public immutable realityProxy;
-    IMavFactory public immutable mavFactory;
     address public governor;
     address[] public markets;
     address public market;
@@ -56,7 +55,6 @@ contract MarketFactory {
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
-     *  @param _mavFactory Address of the Maverick Factory implementation.
      *  @param _governor Address of the governor of this contract.
      */
     constructor(
@@ -67,7 +65,6 @@ contract MarketFactory {
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         RealityProxy _realityProxy,
-        IMavFactory _mavFactory,
         address _governor
     ) {
         market = _market;
@@ -77,7 +74,6 @@ contract MarketFactory {
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
         realityProxy = _realityProxy;
-        mavFactory = _mavFactory;
         governor = _governor;
     }
 
@@ -222,7 +218,7 @@ contract MarketFactory {
     ) internal returns (address) {
         Market instance = Market(market.clone());
 
-        address[] memory pools = deployERC20Positions(
+        deployERC20Positions(
             config.conditionId,
             config.outcomeSlotCount,
             markets.length + 1
@@ -237,8 +233,7 @@ contract MarketFactory {
             config.questionsIds,
             config.templateId,
             params.encodedQuestions,
-            realityProxy,
-            pools
+            realityProxy
         );
 
         emit NewMarket(address(instance));
@@ -308,8 +303,7 @@ contract MarketFactory {
         bytes32 conditionId,
         uint256 outcomeSlotCount,
         uint256 marketIndex
-    ) internal returns (address[] memory) {
-        address[] memory pools = new address[](outcomeSlotCount);
+    ) internal {
         uint[] memory partition = generateBasicPartition(outcomeSlotCount);
         for (uint j = 0; j < partition.length; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
@@ -331,32 +325,13 @@ contract MarketFactory {
                 )
             );
 
-            address wrapped1155 = address(
-                wrappedERC20Factory.createWrappedToken(
-                    address(conditionalTokens),
-                    tokenId,
-                    tokenName,
-                    tokenName
-                )
+            wrappedERC20Factory.createWrappedToken(
+                address(conditionalTokens),
+                tokenId,
+                tokenName,
+                tokenName
             );
-
-            if (address(mavFactory) != address(0)) {
-                (address token0, address token1) = wrapped1155 < collateralToken
-                    ? (wrapped1155, collateralToken)
-                    : (collateralToken, wrapped1155);
-
-                pools[j] = mavFactory.create(
-                    300000000000000,
-                    10,
-                    10800000000000000000000,
-                    17,
-                    token0,
-                    token1
-                );
-            }
         }
-
-        return pools;
     }
 
     function generateBasicPartition(

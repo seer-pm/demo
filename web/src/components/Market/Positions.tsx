@@ -30,7 +30,6 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
     router,
     market.conditionId,
     market.outcomes.length,
-    market.pools,
   );
 
   if (marketPositions.length === 0) {
@@ -64,25 +63,6 @@ export function Positions({ account, chainId, router, market, tradeCallback }: P
                   Your balance: {displayBalance(userPositions[i].balance, WRAPPED_OUTCOME_TOKEN_DECIMALS)}
                 </div>
               )}
-              <div className="space-x-2 text-xs">
-                {position.isMaverickPool && (
-                  <a
-                    href={`https://${chainId === 5 ? "testnet" : "app"}.mav.xyz/boosted-positions/${
-                      market.pools[i]
-                    }?chain=${chainId}`}
-                    className="text-primary hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Add liquidity
-                  </a>
-                )}
-
-                <span>
-                  {displayBalance(position.tokenABalance, 18)} {position.tokenASymbol},{" "}
-                  {displayBalance(position.tokenBBalance, 18)} {position.tokenBSymbol}
-                </span>
-              </div>
             </div>
             <div className="space-x-3">
               <Button text="Buy" onClick={() => tradeCallback("buy", i)} className="bg-[green] text-white" />

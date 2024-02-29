@@ -13,13 +13,32 @@ export const MarketAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "encodedQuestion",
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "encodedQuestions",
     outputs: [
       {
         internalType: "string",
         name: "",
         type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getQuestionsCount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -38,6 +57,16 @@ export const MarketAbi = [
         type: "string[]",
       },
       {
+        internalType: "uint256",
+        name: "_lowerBound",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "_upperBound",
+        type: "uint256",
+      },
+      {
         internalType: "bytes32",
         name: "_conditionId",
         type: "bytes32",
@@ -48,24 +77,24 @@ export const MarketAbi = [
         type: "bytes32",
       },
       {
+        internalType: "bytes32[]",
+        name: "_questionsIds",
+        type: "bytes32[]",
+      },
+      {
         internalType: "uint256",
         name: "_templateId",
         type: "uint256",
       },
       {
-        internalType: "string",
-        name: "_encodedQuestion",
-        type: "string",
+        internalType: "string[]",
+        name: "_encodedQuestions",
+        type: "string[]",
       },
       {
-        internalType: "contract IRealityProxy",
-        name: "_oracle",
+        internalType: "contract RealityProxy",
+        name: "_realityProxy",
         type: "address",
-      },
-      {
-        internalType: "address[]",
-        name: "_pools",
-        type: "address[]",
       },
     ],
     name: "initialize",
@@ -88,6 +117,19 @@ export const MarketAbi = [
   },
   {
     inputs: [],
+    name: "lowerBound",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "marketName",
     outputs: [
       {
@@ -101,12 +143,12 @@ export const MarketAbi = [
   },
   {
     inputs: [],
-    name: "oracle",
+    name: "numOutcomes",
     outputs: [
       {
-        internalType: "contract IRealityProxy",
+        internalType: "uint256",
         name: "",
-        type: "address",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -132,25 +174,6 @@ export const MarketAbi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "pools",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "questionId",
     outputs: [
@@ -158,6 +181,38 @@ export const MarketAbi = [
         internalType: "bytes32",
         name: "",
         type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "questionsIds",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "realityProxy",
+    outputs: [
+      {
+        internalType: "contract RealityProxy",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -173,6 +228,19 @@ export const MarketAbi = [
   {
     inputs: [],
     name: "templateId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "upperBound",
     outputs: [
       {
         internalType: "uint256",

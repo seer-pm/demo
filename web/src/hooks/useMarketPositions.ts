@@ -1,20 +1,14 @@
-import { MaverickPoolAbi } from "@/abi/MaverickPoolAbi";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
-import { COLLATERAL_TOKENS, getConfigAddress } from "@/lib/config";
-import { config } from "@/wagmi";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
-import { readContracts } from "@wagmi/core";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 
 export type MarketPosition = {
   tokenId: Address;
   tokenA: Address;
   tokenB: Address;
-  tokenABalance: bigint;
-  tokenBBalance: bigint;
   tokenASymbol: string;
   tokenBSymbol: string;
-  isMaverickPool: boolean;
 };
 
 export const useMarketPositions = (
@@ -22,18 +16,17 @@ export const useMarketPositions = (
   router: Address,
   conditionId: `0x${string}`,
   outcomeSlotCount: number,
-  pools: readonly Address[],
 ) => {
   const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
 
   return useQuery<MarketPosition[] | undefined, Error>({
-    enabled: !!chainId && !!router && !!conditionId && !!outcomeSlotCount && !!pools && wrappedAddresses.length > 0,
+    enabled: !!chainId && !!router && !!conditionId && !!outcomeSlotCount && wrappedAddresses.length > 0,
     queryKey: ["useMarketPositions", chainId, conditionId],
     queryFn: async () => {
       const collateralToken = COLLATERAL_TOKENS[chainId].primary.address;
 
       return await Promise.all(
-        wrappedAddresses!.map(async (wrappedAddress, i) => {
+        wrappedAddresses!.map(async (wrappedAddress) => {
           const [tokenA, tokenB] =
             collateralToken > wrappedAddress ? [wrappedAddress, collateralToken] : [collateralToken, wrappedAddress];
 
@@ -42,39 +35,15 @@ export const useMarketPositions = (
               ? [COLLATERAL_TOKENS[chainId].primary.symbol, "Outcome"]
               : ["Outcome", COLLATERAL_TOKENS[chainId].primary.symbol];
 
-          const isMaverickPool = getConfigAddress("MAVERICK_ROUTER", chainId) !== zeroAddress;
-          const [tokenABalance, tokenBBalance] = isMaverickPool ? await fetchLPTokensBalances(pools[i]) : [0n, 0n];
-
           return {
             tokenId: wrappedAddress,
             tokenA,
             tokenB,
-            tokenABalance,
-            tokenBBalance,
             tokenASymbol,
             tokenBSymbol,
-            isMaverickPool,
           };
         }),
       );
     },
   });
 };
-
-async function fetchLPTokensBalances(pool: Address) {
-  return (await readContracts(config, {
-    contracts: [
-      {
-        abi: MaverickPoolAbi,
-        address: pool,
-        functionName: "binBalanceA",
-      },
-      {
-        abi: MaverickPoolAbi,
-        address: pool,
-        functionName: "binBalanceB",
-      },
-    ],
-    allowFailure: false,
-  })) as bigint[];
-}

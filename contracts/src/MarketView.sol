@@ -40,7 +40,6 @@ contract MarketView {
         bytes32 conditionId;
         bytes32 questionId;
         uint256 templateId;
-        address[] pools;
         IRealityETH_v3_0.Question[] questions;
     }
 
@@ -58,7 +57,6 @@ contract MarketView {
         );
 
         string[] memory outcomes = new string[](outcomeSlotCount);
-        address[] memory pools = new address[](outcomeSlotCount);
 
         uint256 lowerBound = market.lowerBound();
         uint256 upperBound = market.upperBound();
@@ -71,7 +69,6 @@ contract MarketView {
                 // scalar market
                 outcomes[i] = i == 0 ? 'Low' : 'High';
             }
-            pools[i] = market.pools(i);
         }
 
         uint256 questionsCount = market.getQuestionsCount();
@@ -90,7 +87,6 @@ contract MarketView {
                 conditionId: conditionId,
                 questionId: market.questionId(),
                 templateId: market.templateId(),
-                pools: pools,
                 questions: questions
             });
     }

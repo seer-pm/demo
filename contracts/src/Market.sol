@@ -16,7 +16,6 @@ contract Market {
     uint256 public templateId;
     string[] public encodedQuestions;
     RealityProxy public realityProxy;
-    address[] public pools;
 
     function initialize(
         string memory _marketName,
@@ -28,8 +27,7 @@ contract Market {
         bytes32[] memory _questionsIds,
         uint256 _templateId,
         string[] memory _encodedQuestions,
-        RealityProxy _realityProxy,
-        address[] memory _pools
+        RealityProxy _realityProxy
     ) external {
         require(!initialized, "Already initialized.");
 
@@ -43,7 +41,6 @@ contract Market {
         templateId = _templateId;
         encodedQuestions = _encodedQuestions;
         realityProxy = _realityProxy;
-        pools = _pools;
 
         initialized = true;
     }

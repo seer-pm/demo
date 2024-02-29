@@ -26,7 +26,6 @@ export interface Market {
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
-  pools: readonly Address[];
   questions: readonly Question[];
 }
 
