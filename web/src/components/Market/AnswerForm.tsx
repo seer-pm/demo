@@ -20,7 +20,7 @@ export function AnswerFormLink({ market }: AnswerFormProps) {
   const { chainId } = useAccount();
   return (
     <a
-      href={`https://reality.eth.limo/app/#!/network/${chainId}/question/${getConfigAddress("REALITIO", chainId)}-${
+      href={`https://reality.eth.limo/app/#!/network/${chainId}/question/${getConfigAddress("Reality", chainId)}-${
         market.questionId
       }`}
       className="text-primary"

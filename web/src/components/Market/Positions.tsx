@@ -2,7 +2,7 @@ import { Card } from "@/components/Card";
 import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useUserPositions } from "@/hooks/useUserPositions";
-import { SUPPORTED_CHAINS } from "@/lib/config";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { WRAPPED_OUTCOME_TOKEN_DECIMALS } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
 import { Address } from "viem";

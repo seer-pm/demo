@@ -10,10 +10,10 @@ export const useMarkets = (chainId: number) => {
     queryKey: ["useMarkets", chainId],
     queryFn: async () => {
       const markets = await readContract(config, {
-        address: getConfigAddress("MARKET_VIEW", chainId),
+        address: getConfigAddress("MarketView", chainId),
         abi: MarketViewAbi,
         functionName: "getMarkets",
-        args: [BigInt(50), getConfigAddress("MARKET_FACTORY", chainId)],
+        args: [BigInt(50), getConfigAddress("MarketFactory", chainId)],
         chainId,
       });
 

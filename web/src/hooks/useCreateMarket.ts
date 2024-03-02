@@ -57,7 +57,7 @@ function getEncodedQuestions(props: CreateMarketProps): string[] {
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const hash = await writeContract(config, {
-    address: getConfigAddress("MARKET_FACTORY", props.chainId),
+    address: getConfigAddress("MarketFactory", props.chainId),
     abi: MarketFactoryAbi,
     functionName: MarketTypeFunction[props.marketType],
     args: [

@@ -5,7 +5,7 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
 import { MarketTypes, OUTCOME_PLACEHOLDER, useCreateMarket } from "@/hooks/useCreateMarket";
-import { DEFAULT_CHAIN } from "@/lib/config";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { localTimeToUtc } from "@/lib/utils";
 import clsx from "clsx";

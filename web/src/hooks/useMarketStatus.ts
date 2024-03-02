@@ -28,7 +28,7 @@ export const useMarketStatus = (market?: Market, chainId?: number) => {
 
       const isPayoutReported = await readContract(config, {
         abi: RouterAbi,
-        address: getConfigAddress("ROUTER", chainId),
+        address: getConfigAddress("Router", chainId),
         functionName: "isPayoutReported",
         args: [market?.conditionId!],
       });

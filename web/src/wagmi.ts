@@ -2,7 +2,7 @@ import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { http, createConfig } from "wagmi";
 import { Chain, bsc, gnosis, goerli, hardhat, mainnet } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
-import { SUPPORTED_CHAINS } from "./lib/config";
+import { SUPPORTED_CHAINS } from "./lib/chains";
 
 export const config = createConfig({
   chains: Object.values(SUPPORTED_CHAINS) as [Chain, ...Chain[]],

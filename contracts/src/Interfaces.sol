@@ -127,14 +127,3 @@ interface Wrapped1155Factory {
         bytes calldata data
     ) external;
 }
-
-interface IMavFactory {
-    function create(
-        uint256 _fee,
-        uint256 _tickSpacing,
-        int256 _lookback,
-        int32 _activeTick,
-        address _tokenA,
-        address _tokenB
-    ) external returns (address);
-}

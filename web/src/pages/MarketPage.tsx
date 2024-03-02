@@ -93,7 +93,7 @@ function MarketPage() {
   const id = params.id as Address;
   const chainId = Number(params.chainId);
 
-  const router = getConfigAddress("ROUTER", chainId);
+  const router = getConfigAddress("Router", chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);

@@ -17,7 +17,7 @@ interface SubmitAnswerProps {
 
 async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceipt> {
   const hash = await writeContract(config, {
-    address: getConfigAddress("REALITIO", props.chainId),
+    address: getConfigAddress("Reality", props.chainId),
     abi: RealityAbi,
     functionName: "submitAnswer",
     args: [props.questionId, formatOutcome(props.outcome), props.currentBond],

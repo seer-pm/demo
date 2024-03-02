@@ -35,9 +35,9 @@ export const useMarket = (marketId: Address, chainId: number) => {
     queryFn: async () => {
       return await readContract(config, {
         abi: MarketViewAbi,
-        address: getConfigAddress("MARKET_VIEW", chainId),
+        address: getConfigAddress("MarketView", chainId),
         functionName: "getMarket",
-        args: [getConfigAddress("CONDITIONAL_TOKENS", chainId), getConfigAddress("REALITIO", chainId), marketId],
+        args: [getConfigAddress("ConditionalTokens", chainId), getConfigAddress("Reality", chainId), marketId],
         chainId,
       });
     },

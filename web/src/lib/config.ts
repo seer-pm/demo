@@ -1,66 +1,14 @@
-import { Address, Chain, parseUnits, zeroAddress } from "viem";
+import { Address, parseUnits } from "viem";
 import { bsc, gnosis, goerli, hardhat, mainnet } from "viem/chains";
+import { ADDRESSES_CONFIG, AddressConfigValues } from "./addresses";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
+import { DEFAULT_CHAIN } from "./chains";
 
-export const DEFAULT_CHAIN = goerli.id;
-
-export const SUPPORTED_CHAINS: Record<number, Chain> = {
-  [gnosis.id]: gnosis,
-  [goerli.id]: goerli,
-  ...(!import.meta.env.PROD ? { [hardhat.id]: hardhat } : ({} as Chain)),
-} as const;
-
-type AddressMap = Record<number, Address>;
 type BigInt = Record<number, bigint>;
-
-type AddressConfigValues = {
-  MARKET_FACTORY: AddressMap;
-  ROUTER: AddressMap;
-  MARKET_VIEW: AddressMap;
-  REALITIO: AddressMap;
-  CONDITIONAL_TOKENS: AddressMap;
-};
 
 type BigIntConfigValues = {
   MIN_BOND: BigInt;
-};
-
-const ADDRESSES_CONFIG: AddressConfigValues = {
-  MARKET_FACTORY: {
-    [gnosis.id]: "0x1f728c2fd6a3008935c1446a965a313e657b7904",
-    [mainnet.id]: zeroAddress,
-    [bsc.id]: "0x44921b4c7510fb306d8e58cf3894fa2bc8a79f00",
-    [goerli.id]: "0xcb62878ac4b2e506dc690cde9e9d4cf78ccb91a6",
-  },
-
-  ROUTER: {
-    [gnosis.id]: "0x886ef0a78fabbae942f1da1791a8ed02a5af8bc6",
-    [mainnet.id]: zeroAddress,
-    [bsc.id]: "0xb2ab74afe47e6f9d8c392fa15b139ac02684771a",
-    [goerli.id]: "0x50b8d283319a93fc0186e60ab78f5145d6327605",
-  },
-
-  MARKET_VIEW: {
-    [gnosis.id]: "0x44921b4c7510fb306d8e58cf3894fa2bc8a79f00",
-    [mainnet.id]: zeroAddress,
-    [bsc.id]: "0x0956b70ac0eca45db9661a1cee96b2e7062d8a1c",
-    [goerli.id]: "0xdf2e1829a65028228ab6c5d800b346ef2595f643",
-  },
-
-  REALITIO: {
-    [gnosis.id]: "0xE78996A233895bE74a66F451f1019cA9734205cc",
-    [mainnet.id]: "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
-    [bsc.id]: "0xa925646Cae3721731F9a8C886E5D1A7B123151B9",
-    [goerli.id]: "0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f",
-  },
-
-  CONDITIONAL_TOKENS: {
-    [gnosis.id]: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
-    [mainnet.id]: "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
-    [bsc.id]: "0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E",
-    [goerli.id]: "0x383e1Dd5D232516aFa1b1524d31B1EF6E9c6caFb",
-  },
 };
 
 type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | undefined }>;
@@ -105,9 +53,32 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 } as const;
 
 export const getConfigAddress = <T extends keyof AddressConfigValues>(configKey: T, chainId?: number): Address => {
+  if (configKey === 'Router') {
+    if(CHAIN_ROUTERS[chainId || DEFAULT_CHAIN] === 'gnosis') {
+      return ADDRESSES_CONFIG['GnosisRouter'][chainId || DEFAULT_CHAIN];
+    }
+    if(CHAIN_ROUTERS[chainId || DEFAULT_CHAIN] === 'mainnet') {
+      return ADDRESSES_CONFIG['MainnetRouter'][chainId || DEFAULT_CHAIN];
+    }
+    if(CHAIN_ROUTERS[chainId || DEFAULT_CHAIN] === 'base') {
+      return ADDRESSES_CONFIG['Router'][chainId || DEFAULT_CHAIN];
+    }
+  }
+
   return ADDRESSES_CONFIG[configKey][chainId || DEFAULT_CHAIN];
 };
 
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
   return BIG_NUMBERS_CONFIG[configKey][chainId || DEFAULT_CHAIN];
 };
+
+// add hardhat
+/*const cloneChain = gnosis.id;
+SUPPORTED_CHAINS[hardhat.id] = hardhat;
+ADDRESSES_CONFIG.MarketFactory[hardhat.id] = "0xe38b6847e611e942e6c80ed89ae867f522402e80"; //ADDRESSES_CONFIG.MARKET_FACTORY[cloneChain];
+//ADDRESSES_CONFIG.Router[hardhat.id] = "0x2c8ed11fd7a058096f2e5828799c68be88744e2f"; //ADDRESSES_CONFIG.ROUTER[cloneChain];
+ADDRESSES_CONFIG.MarketView[hardhat.id] = "0x7580708993de7ca120e957a62f26a5ddd4b3d8ac"; //ADDRESSES_CONFIG.MARKET_VIEW[cloneChain];
+ADDRESSES_CONFIG.Reality[hardhat.id] = ADDRESSES_CONFIG.Reality[cloneChain];
+ADDRESSES_CONFIG.ConditionalTokens[hardhat.id] = ADDRESSES_CONFIG.ConditionalTokens[cloneChain];
+CHAIN_ROUTERS[hardhat.id] = CHAIN_ROUTERS[cloneChain];
+COLLATERAL_TOKENS[hardhat.id] = COLLATERAL_TOKENS[cloneChain];*/

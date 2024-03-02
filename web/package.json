@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "yarn generate:contracts && tsc && vite build",
     "lint": "biome check --apply ./src",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:contracts": "npx tsx ./generate-contracts.ts --use-yarn"
   },
   "dependencies": {
     "@biomejs/biome": "^1.1.2",
@@ -31,6 +32,7 @@
     "@types/react": "^18.2.22",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.1.0",
+    "@wagmi/cli": "^2.1.1",
     "autoprefixer": "^10.4.17",
     "buffer": "^6.0.3",
     "daisyui": "^4.6.0",

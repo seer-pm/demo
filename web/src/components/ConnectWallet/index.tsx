@@ -1,5 +1,5 @@
 import Button from "@/components/Form/Button";
-import { DEFAULT_CHAIN } from "@/lib/config";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import { useAccount } from "wagmi";

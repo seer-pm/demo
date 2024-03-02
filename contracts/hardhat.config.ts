@@ -1,5 +1,9 @@
+import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import "hardhat-deploy";
+
+dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -24,8 +28,48 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  networks: {
+    localhost: {
+      chainId: 31337,
+      forking: {
+        url: "https://rpc.gnosischain.com",
+      },
+      mining: {
+        auto: false,
+        interval: 100,
+      },
+      saveDeployments: true,
+    },
+    mainnet: {
+      chainId: 1,
+      url: "https://eth.llamarpc.com",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+    },
+    gnosis: {
+      chainId: 100,
+      url: "https://rpc.gnosischain.com",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+    },
+    goerli: {
+      chainId: 5,
+      url: process.env.GOERLI_RPC || "https://rpc.ankr.com/eth_goerli",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+    },
+  },
   paths: {
     sources: "./src",
+  },
+  etherscan: {
+    apiKey: {
+      goerli: process.env.GOERLISCAN_API_KEY!,
+      xdai: process.env.GNOSISSCAN_API_KEY!,
+    },
   },
 };
 

@@ -12,3 +12,11 @@ node_modules
 # solidity-coverage files
 /coverage
 /coverage.json
+
+# forge
+/cache_forge
+/out
+lib/forge-std
+
+deployments/localhost
+deployments/**/solcInputs
