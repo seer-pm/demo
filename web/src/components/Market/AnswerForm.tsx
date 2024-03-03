@@ -1,8 +1,9 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
+import { realityAddress } from "@/hooks/contracts/generated";
 import { Market } from "@/hooks/useMarket";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
-import { getConfigAddress } from "@/lib/config";
+import { SupportedChain } from "@/lib/chains";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
 import { useAccount } from "wagmi";
@@ -20,7 +21,7 @@ export function AnswerFormLink({ market }: AnswerFormProps) {
   const { chainId } = useAccount();
   return (
     <a
-      href={`https://reality.eth.limo/app/#!/network/${chainId}/question/${getConfigAddress("Reality", chainId)}-${
+      href={`https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId as SupportedChain]}-${
         market.questionId
       }`}
       className="text-primary"
@@ -58,7 +59,7 @@ export function AnswerForm({ market }: AnswerFormProps) {
       outcome: values.outcome,
       currentBond: market.questions[0].bond, // TODO: refactor for multi scalar markets
       minBond: market.questions[0].min_bond, // TODO: refactor for multi scalar markets
-      chainId: chainId!,
+      chainId: chainId! as SupportedChain,
     });
   };
 

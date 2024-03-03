@@ -1,10 +1,16 @@
 import { Chain, gnosis, hardhat, mainnet } from "wagmi/chains";
 
-export const DEFAULT_CHAIN = gnosis.id;
+// used with wagmi generate
+const wagmiCliProd = typeof process !== 'undefined' && typeof process.env.WAGMI_CLI_PROD !== 'undefined' && process.env.WAGMI_CLI_PROD === 'true'
+// used with yarn build / yarn dev
+const viteProd = typeof import.meta.env?.PROD !== 'undefined' && import.meta.env.PROD
 
-export const SUPPORTED_CHAINS: Record<number, Chain> = {
+export const SUPPORTED_CHAINS = {
   [gnosis.id]: gnosis,
   [mainnet.id]: mainnet,
-  //[goerli.id]: goerli,
-  ...(!import.meta?.env?.PROD ? { [hardhat.id]: hardhat } : ({} as Chain)),
-} as const;
+  ...((!(wagmiCliProd || viteProd) ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
+} as const satisfies Record<string, Chain>;
+
+export type SupportedChain = keyof typeof SUPPORTED_CHAINS
+
+export const DEFAULT_CHAIN: SupportedChain = gnosis.id;

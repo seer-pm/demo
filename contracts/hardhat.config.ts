@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    localhost: {
+    hardhat: {
       chainId: 31337,
       forking: {
         url: "https://rpc.gnosischain.com",

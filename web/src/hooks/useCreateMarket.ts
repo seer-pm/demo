@@ -1,10 +1,10 @@
-import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
-import { getConfigAddress, getConfigNumber } from "@/lib/config";
+import { getConfigNumber } from "@/lib/config";
 import { encodeQuestionText } from "@/lib/reality";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { waitForTransactionReceipt } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
+import { writeMarketFactory } from "./contracts/generated";
 
 export enum MarketTypes {
   CATEGORICAL = 1,
@@ -56,9 +56,7 @@ function getEncodedQuestions(props: CreateMarketProps): string[] {
 }
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
-  const hash = await writeContract(config, {
-    address: getConfigAddress("MarketFactory", props.chainId),
-    abi: MarketFactoryAbi,
+  const hash = await writeMarketFactory(config, {
     functionName: MarketTypeFunction[props.marketType],
     args: [
       {

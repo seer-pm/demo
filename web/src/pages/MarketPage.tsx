@@ -11,7 +11,8 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
-import { COLLATERAL_TOKENS, getConfigAddress } from "@/lib/config";
+import { SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
 import { getClosingTime } from "@/lib/market";
 import { getAnswerText, getCurrentBond } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
@@ -91,9 +92,9 @@ function MarketPage() {
 
   const params = useParams();
   const id = params.id as Address;
-  const chainId = Number(params.chainId);
+  const chainId = Number(params.chainId) as SupportedChain;
 
-  const router = getConfigAddress("Router", chainId);
+  const router = getRouterAddress(chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);

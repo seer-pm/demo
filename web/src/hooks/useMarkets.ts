@@ -1,19 +1,15 @@
-import { MarketViewAbi } from "@/abi/MarketViewAbi";
-import { getConfigAddress } from "@/lib/config";
+import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
+import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
 import { Market } from "./useMarket";
 
-export const useMarkets = (chainId: number) => {
+export const useMarkets = (chainId: SupportedChain) => {
   return useQuery<Market[] | undefined, Error>({
     queryKey: ["useMarkets", chainId],
     queryFn: async () => {
-      const markets = await readContract(config, {
-        address: getConfigAddress("MarketView", chainId),
-        abi: MarketViewAbi,
-        functionName: "getMarkets",
-        args: [BigInt(50), getConfigAddress("MarketFactory", chainId)],
+      const markets = await readMarketViewGetMarkets(config, {
+        args: [BigInt(50), marketFactoryAddress[chainId]],
         chainId,
       });
 

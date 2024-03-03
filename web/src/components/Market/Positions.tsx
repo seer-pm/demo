@@ -2,7 +2,7 @@ import { Card } from "@/components/Card";
 import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useUserPositions } from "@/hooks/useUserPositions";
-import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { WRAPPED_OUTCOME_TOKEN_DECIMALS } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
 import { Address } from "viem";
@@ -10,7 +10,7 @@ import Button from "../Form/Button";
 
 interface PositionsProps {
   account: Address | undefined;
-  chainId: number;
+  chainId: SupportedChain;
   router: Address;
   market: Market;
   tradeCallback: (action: "buy" | "sell", poolIndex: number) => void;

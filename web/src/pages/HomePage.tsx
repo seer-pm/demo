@@ -1,14 +1,14 @@
 import { Card } from "@/components/Card";
 import { Spinner } from "@/components/Spinner";
 import { useMarkets } from "@/hooks/useMarkets";
-import { DEFAULT_CHAIN } from "@/lib/chains";
+import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { data: markets = [], isPending } = useMarkets(chainId);
+  const { data: markets = [], isPending } = useMarkets(chainId as SupportedChain);
 
   if (isPending) {
     return (

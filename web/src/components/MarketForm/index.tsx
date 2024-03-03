@@ -1,9 +1,9 @@
 import { FieldErrors, UseFormRegister, useFieldArray, useForm } from "react-hook-form";
 
-import { MarketFactoryAbi } from "@/abi/MarketFactoryAbi";
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
+import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { MarketTypes, OUTCOME_PLACEHOLDER, useCreateMarket } from "@/hooks/useCreateMarket";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { paths } from "@/lib/paths";
@@ -84,7 +84,7 @@ export default function MarketForm() {
   const { chain, chainId = DEFAULT_CHAIN } = useAccount();
   const createMarket = useCreateMarket((receipt: TransactionReceipt) => {
     const marketId = parseEventLogs({
-      abi: MarketFactoryAbi,
+      abi: marketFactoryAbi,
       eventName: "NewMarket",
       logs: receipt.logs,
     })?.[0]?.args?.market;

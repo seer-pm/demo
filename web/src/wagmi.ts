@@ -5,7 +5,7 @@ import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS } from "./lib/chains";
 
 export const config = createConfig({
-  chains: Object.values(SUPPORTED_CHAINS) as [Chain, ...Chain[]],
+  chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
   connectors: [
     injected(),
     coinbaseWallet({ appName: "Seer" }),

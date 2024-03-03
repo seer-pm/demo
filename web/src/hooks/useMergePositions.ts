@@ -1,5 +1,3 @@
-import { GnosisRouterAbi } from "@/abi/GnosisRouterAbi";
-import { MainnetRouterAbi } from "@/abi/MainnetRouterAbi";
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
@@ -8,6 +6,7 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, erc20Abi, parseUnits } from "viem";
+import { writeGnosisRouterMergeToBase, writeMainnetRouterMergeToDai } from "./contracts/generated";
 
 interface MergePositionProps {
   account: Address;
@@ -41,18 +40,12 @@ async function mergeFromRouter(
   }
 
   if (routerType === "mainnet") {
-    return await writeContract(config, {
-      address: router,
-      abi: MainnetRouterAbi,
-      functionName: "mergeToDai",
+    return await writeMainnetRouterMergeToDai(config, {
       args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
     });
   }
 
-  return await writeContract(config, {
-    address: router,
-    abi: GnosisRouterAbi,
-    functionName: "mergeToBase",
+  return await writeGnosisRouterMergeToBase(config, {
     args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
   });
 }

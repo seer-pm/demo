@@ -1,5 +1,3 @@
-import { GnosisRouterAbi } from "@/abi/GnosisRouterAbi";
-import { MainnetRouterAbi } from "@/abi/MainnetRouterAbi";
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
@@ -8,6 +6,7 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, erc20Abi } from "viem";
+import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
 import { fetchTokenBalance } from "./useTokenBalance";
 
 interface RedeemPositionProps {
@@ -38,18 +37,12 @@ async function redeemFromRouter(
   }
 
   if (routerType === "mainnet") {
-    return await writeContract(config, {
-      address: router,
-      abi: MainnetRouterAbi,
-      functionName: "redeemToDai",
+    return await writeMainnetRouterRedeemToDai(config, {
       args: [EMPTY_PARENT_COLLECTION, conditionId, indexSets],
     });
   }
 
-  return await writeContract(config, {
-    address: router,
-    abi: GnosisRouterAbi,
-    functionName: "redeemToBase",
+  return await writeGnosisRouterRedeemToBase(config, {
     args: [EMPTY_PARENT_COLLECTION, conditionId, indexSets],
   });
 }

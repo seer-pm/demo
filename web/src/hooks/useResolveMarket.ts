@@ -1,9 +1,9 @@
-import { MarketAbi } from "@/abi/MarketAbi";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
+import { marketAbi } from "./contracts/generated";
 
 interface ResolveMarketProps {
   marketId: Address;
@@ -12,7 +12,7 @@ interface ResolveMarketProps {
 async function resolveMarket(props: ResolveMarketProps): Promise<TransactionReceipt> {
   const hash = await writeContract(config, {
     address: props.marketId,
-    abi: MarketAbi,
+    abi: marketAbi,
     functionName: "resolve",
   });
 

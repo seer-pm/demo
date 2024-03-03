@@ -1,5 +1,6 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { getConfigAddress } from "@/lib/config";
+import { SupportedChain } from "@/lib/chains";
+import { getRouterAddress } from "@/lib/config";
 import { isOpen, isWaitingResults } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ export enum MarketStatus {
   CLOSED = 4,
 }
 
-export const useMarketStatus = (market?: Market, chainId?: number) => {
+export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
   return useQuery<MarketStatus | undefined, Error>({
     enabled: !!market && !!chainId,
     queryKey: ["useMarketStatus", market?.id, chainId],
@@ -28,7 +29,7 @@ export const useMarketStatus = (market?: Market, chainId?: number) => {
 
       const isPayoutReported = await readContract(config, {
         abi: RouterAbi,
-        address: getConfigAddress("Router", chainId),
+        address: getRouterAddress(chainId),
         functionName: "isPayoutReported",
         args: [market?.conditionId!],
       });

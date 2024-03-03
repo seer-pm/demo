@@ -1,5 +1,3 @@
-import { GnosisRouterAbi } from "@/abi/GnosisRouterAbi";
-import { MainnetRouterAbi } from "@/abi/MainnetRouterAbi";
 import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
@@ -10,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { erc20Abi } from "viem";
+import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "./contracts/generated";
 
 interface SplitPositionProps {
   account: Address;
@@ -42,18 +41,12 @@ async function splitFromRouter(
   }
 
   if (routerType === "mainnet") {
-    return await writeContract(config, {
-      address: router,
-      abi: MainnetRouterAbi,
-      functionName: "splitFromDai",
+    return await writeMainnetRouterSplitFromDai(config, {
       args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
     });
   }
 
-  return await writeContract(config, {
-    address: router,
-    abi: GnosisRouterAbi,
-    functionName: "splitFromBase",
+  return await writeGnosisRouterSplitFromBase(config, {
     args: [EMPTY_PARENT_COLLECTION, conditionId, partition],
     value: amount,
   });

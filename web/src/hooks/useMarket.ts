@@ -1,9 +1,8 @@
-import { MarketViewAbi } from "@/abi/MarketViewAbi";
-import { getConfigAddress } from "@/lib/config";
+import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import { Address } from "viem";
+import { conditionalTokensAddress, readMarketViewGetMarket, realityAddress } from "./contracts/generated";
 
 export interface Question {
   content_hash: `0x${string}`;
@@ -29,15 +28,12 @@ export interface Market {
   questions: readonly Question[];
 }
 
-export const useMarket = (marketId: Address, chainId: number) => {
+export const useMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", marketId, chainId],
     queryFn: async () => {
-      return await readContract(config, {
-        abi: MarketViewAbi,
-        address: getConfigAddress("MarketView", chainId),
-        functionName: "getMarket",
-        args: [getConfigAddress("ConditionalTokens", chainId), getConfigAddress("Reality", chainId), marketId],
+      return await readMarketViewGetMarket(config, {
+        args: [conditionalTokensAddress[chainId], realityAddress[chainId], marketId],
         chainId,
       });
     },
