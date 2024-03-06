@@ -46,7 +46,7 @@ export type RouterTypes = "base" | "mainnet" | "gnosis";
 
 export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [gnosis.id]: "gnosis",
-  [hardhat.id]: "mainnet",
+  [hardhat.id]: "gnosis",
   [mainnet.id]: "mainnet",
   [bsc.id]: "base",
   [goerli.id]: "base",

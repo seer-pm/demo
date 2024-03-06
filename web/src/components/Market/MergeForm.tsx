@@ -8,7 +8,7 @@ import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, TransactionReceipt, parseUnits } from "viem";
+import { Address, TransactionReceipt, formatUnits, parseUnits } from "viem";
 
 export interface MergeFormValues {
   amount: number;
@@ -33,6 +33,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
     handleSubmit,
     watch,
     trigger,
+    setValue,
   } = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
@@ -84,7 +85,15 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="space-y-2">
-        <div className="font-bold">Amount</div>
+        <div className="flex justify-between items-center">
+          <div className="text-[14px]">Amount</div>
+          <div
+            className="text-primary cursor-pointer"
+            onClick={() => setValue("amount", Number(formatUnits(minPositionAmount, selectedCollateral.decimals)))}
+          >
+            Max
+          </div>
+        </div>
         <Input
           autoComplete="off"
           type="number"
@@ -104,7 +113,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
               return true;
             },
           })}
-          className="w-full md:w-2/3"
+          className="w-full"
           errors={errors}
         />
       </div>
@@ -117,7 +126,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
           type="submit"
           disabled={!isValid || mergePositions.isPending || !account}
           isLoading={mergePositions.isPending}
-          text="Submit"
+          text="Merge"
         />
       </div>
     </form>
