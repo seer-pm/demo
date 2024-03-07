@@ -1,12 +1,12 @@
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
-import { CowSwapEmbed } from "@/components/Market/CowSwapEmbed";
 import { MarketHeader } from "@/components/Market/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
+import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
+import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
@@ -62,6 +62,12 @@ function MarketPage() {
     setOutcomeIndex(poolIndex);
   };
 
+  const outcomeToken = {
+    address: wrappedAddresses[outcomeIndex],
+    decimals: 18,
+    symbol: "SEER_OUTCOME", // it's not used
+  };
+
   return (
     <div className="py-10 px-10">
       <div className="space-y-5">
@@ -74,10 +80,11 @@ function MarketPage() {
             {market && <Outcomes chainId={chainId} router={router} market={market} tradeCallback={tradeCallback} />}
           </div>
           <div className="col-span-4 space-y-5">
-            <CowSwapEmbed
+            <SwapTokens
+              account={account}
               chainId={chainId}
-              sellAsset={wrappedAddresses[outcomeIndex]}
-              buyAsset={COLLATERAL_TOKENS[chainId].primary.address}
+              outcomeText={market.outcomes[outcomeIndex]}
+              outcomeToken={outcomeToken}
             />
 
             <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />

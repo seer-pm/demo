@@ -16,7 +16,12 @@ type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | u
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
     primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
-    secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
+    secondary: {
+      address: NATIVE_TOKEN,
+      symbol: "xDAI",
+      decimals: 18,
+      wrapped: { address: "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d", symbol: "wxDAI", decimals: 18 },
+    },
   },
   [mainnet.id]: {
     primary: { address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA", symbol: "sDAI", decimals: 18 },

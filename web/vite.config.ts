@@ -15,6 +15,11 @@ export default defineConfig({
     }),
     checker({ typescript: true }),
   ],
+  resolve: {
+    alias: {
+      'node-fetch': 'isomorphic-fetch',
+    },
+  },
   css: {
     postcss: {
       plugins: [tailwindcss()],

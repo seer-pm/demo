@@ -5,6 +5,7 @@ export interface Token {
   address: Address;
   symbol: string;
   decimals: number;
+  wrapped?: Token;
 }
 
 export const WRAPPED_OUTCOME_TOKEN_DECIMALS = 18;
