@@ -94,7 +94,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-white p-[24px] drop-shadow">
       <div className="flex items-center space-x-[12px]">
         <div>
-          <div className="w-[48px] h-[48px] rounded-full bg-primary"></div>
+          <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
         </div>
         <div className="text-[16px]">{outcomeText}</div>
       </div>
@@ -122,7 +122,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
         <div className="flex justify-between items-center">
           <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
           <div
-            className="text-primary cursor-pointer"
+            className="text-purple-primary cursor-pointer"
             onClick={() => setValue("amount", Number(formatUnits(balance, sellToken.decimals)))}
           >
             Max
@@ -152,7 +152,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
         />
       </div>
 
-      <div className="flex space-x-2 text-primary">
+      <div className="flex space-x-2 text-purple-primary">
         {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
         {swapData ? displayBalance(swapData.value, swapData.decimals) : 0}
       </div>
@@ -166,7 +166,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
 
       <div>
         <Button
-          className="btn btn-primary"
+          variant="primary"
           type="submit"
           disabled={
             isUndefined(swapData?.value) || swapData?.value === 0n || !account || !isValid || swapTokens.isPending

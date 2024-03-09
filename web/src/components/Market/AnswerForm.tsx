@@ -1,9 +1,9 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
-import { realityAddress } from "@/hooks/contracts/generated";
 import { Market } from "@/hooks/useMarket";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SupportedChain } from "@/lib/chains";
+import { getRealityLink } from "@/lib/reality";
 import { useForm } from "react-hook-form";
 import { Address, TransactionReceipt } from "viem";
 import { useAccount } from "wagmi";
@@ -21,10 +21,8 @@ export function AnswerFormLink({ market }: AnswerFormProps) {
   const { chainId } = useAccount();
   return (
     <a
-      href={`https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId as SupportedChain]}-${
-        market.questionId
-      }`}
-      className="text-primary"
+      href={getRealityLink(chainId as SupportedChain, market.questionId)}
+      className="text-purple-primary"
       target="_blank"
       rel="noreferrer"
     >
@@ -79,7 +77,7 @@ export function AnswerForm({ market }: AnswerFormProps) {
 
       <div>
         <Button
-          className="btn btn-primary"
+          variant="primary"
           type="submit"
           disabled={!isValid || submitAnswer.isPending || !address || !chainId}
           isLoading={submitAnswer.isPending}

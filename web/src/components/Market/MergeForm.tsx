@@ -88,7 +88,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
         <div className="flex justify-between items-center">
           <div className="text-[14px]">Amount</div>
           <div
-            className="text-primary cursor-pointer"
+            className="text-purple-primary cursor-pointer"
             onClick={() => setValue("amount", Number(formatUnits(minPositionAmount, selectedCollateral.decimals)))}
           >
             Max
@@ -122,7 +122,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
 
       <div>
         <Button
-          className="btn btn-primary"
+          variant="primary"
           type="submit"
           disabled={!isValid || mergePositions.isPending || !account}
           isLoading={mergePositions.isPending}

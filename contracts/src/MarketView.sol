@@ -41,6 +41,7 @@ contract MarketView {
         bytes32 questionId;
         uint256 templateId;
         IRealityETH_v3_0.Question[] questions;
+        bool payoutReported;
     }
 
     function getMarket(
@@ -87,7 +88,8 @@ contract MarketView {
                 conditionId: conditionId,
                 questionId: market.questionId(),
                 templateId: market.templateId(),
-                questions: questions
+                questions: questions,
+                payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0
             });
     }
 

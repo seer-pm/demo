@@ -1,7 +1,9 @@
+import { realityAddress } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
 import compareAsc from "date-fns/compareAsc";
 import fromUnixTime from "date-fns/fromUnixTime";
 import { Hex, hexToNumber, pad, toHex } from "viem";
+import { SupportedChain } from "./chains";
 
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
@@ -116,4 +118,8 @@ export function getCurrentBond(currentBond: bigint, minBond: bigint) {
 export function isFinalized(question: Question) {
   const finalizeTs = Number(question.finalize_ts);
   return !question.is_pending_arbitration && finalizeTs > 0 && compareAsc(new Date(), fromUnixTime(finalizeTs)) === 1;
+}
+
+export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}`) {
+  return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;
 }

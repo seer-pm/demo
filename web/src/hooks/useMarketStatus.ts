@@ -1,17 +1,18 @@
 import { RouterAbi } from "@/abi/RouterAbi";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
-import { isOpen, isWaitingResults } from "@/lib/market";
+import { hasAllUnansweredQuestions, hasOpenQuestions, isWaitingResults } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Market } from "./useMarket";
 
 export enum MarketStatus {
-  OPEN = 1,
-  WAITING_RESULTS = 2,
-  WAITING_PAYOUT_REPORT = 3,
-  CLOSED = 4,
+  NOT_OPEN = 1,
+  OPEN = 2,
+  ANSWER_NOT_FINAL = 3,
+  PENDING_EXECUTION = 4,
+  CLOSED = 5,
 }
 
 export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
@@ -19,14 +20,19 @@ export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
     enabled: !!market && !!chainId,
     queryKey: ["useMarketStatus", market?.id, chainId],
     queryFn: async () => {
-      if (isOpen(market!)) {
+      if (!hasOpenQuestions(market!)) {
+        return MarketStatus.NOT_OPEN;
+      }
+
+      if (hasAllUnansweredQuestions(market!)) {
         return MarketStatus.OPEN;
       }
 
       if (isWaitingResults(market!)) {
-        return MarketStatus.WAITING_RESULTS;
+        return MarketStatus.ANSWER_NOT_FINAL;
       }
 
+      // TODO: add this to MarketView
       const isPayoutReported = await readContract(config, {
         abi: RouterAbi,
         address: getRouterAddress(chainId),
@@ -35,7 +41,7 @@ export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
       });
 
       if (!isPayoutReported) {
-        return MarketStatus.WAITING_PAYOUT_REPORT;
+        return MarketStatus.PENDING_EXECUTION;
       }
 
       return MarketStatus.CLOSED;

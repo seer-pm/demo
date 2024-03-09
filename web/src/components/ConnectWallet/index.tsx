@@ -12,7 +12,7 @@ export const SwitchChainButton: React.FC = () => {
   };
   return (
     <Button
-      className="btn-primary"
+      className="btn-purple-primary"
       isLoading={status === "pending"}
       disabled={status === "pending"}
       text="Switch to a supported network"
@@ -23,7 +23,7 @@ export const SwitchChainButton: React.FC = () => {
 
 const ConnectButton = () => {
   const { open } = useWeb3Modal();
-  return <Button text={"Connect"} onClick={async () => open({ view: "Connect" })} />;
+  return <Button text={"Connect"} variant="primary" size="small" onClick={async () => open({ view: "Connect" })} />;
 };
 
 const ConnectWallet = () => {

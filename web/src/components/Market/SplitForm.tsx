@@ -77,7 +77,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
         <div className="flex justify-between items-center">
           <div className="text-[14px]">Amount</div>
           <div
-            className="text-primary cursor-pointer"
+            className="text-purple-primary cursor-pointer"
             onClick={() => setValue("amount", Number(formatUnits(balance, selectedCollateral.decimals)))}
           >
             Max
@@ -111,7 +111,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
 
       <div>
         <Button
-          className="btn btn-primary"
+          variant="primary"
           type="submit"
           disabled={!isValid || splitPosition.isPending || !account}
           isLoading={splitPosition.isPending}

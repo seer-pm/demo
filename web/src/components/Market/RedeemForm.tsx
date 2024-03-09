@@ -58,7 +58,7 @@ export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotC
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
         <Button
-          className="btn btn-primary"
+          variant="primary"
           type="submit"
           disabled={redeemPositions.isPending || !account}
           isLoading={redeemPositions.isPending}

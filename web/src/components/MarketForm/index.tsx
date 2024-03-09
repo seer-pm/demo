@@ -8,7 +8,6 @@ import { MarketTypes, OUTCOME_PLACEHOLDER, useCreateMarket } from "@/hooks/useCr
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { localTimeToUtc } from "@/lib/utils";
-import clsx from "clsx";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TransactionReceipt } from "viem";
@@ -154,17 +153,17 @@ export default function MarketForm() {
       <div className="space-x-4 my-5">
         <Button
           text="Categorical Market"
-          className={clsx(marketType === MarketTypes.CATEGORICAL && "btn-primary")}
+          variant={marketType === MarketTypes.CATEGORICAL ? "primary" : "secondary"}
           onClick={onMarketTypeClick(MarketTypes.CATEGORICAL)}
         ></Button>
         <Button
           text="Scalar Market"
-          className={clsx(marketType === MarketTypes.SCALAR && "btn-primary")}
+          variant={marketType === MarketTypes.SCALAR ? "primary" : "secondary"}
           onClick={onMarketTypeClick(MarketTypes.SCALAR)}
         ></Button>
         <Button
           text="Multi Scalar Market"
-          className={clsx(marketType === MarketTypes.MULTI_SCALAR && "btn-primary")}
+          variant={marketType === MarketTypes.MULTI_SCALAR ? "primary" : "secondary"}
           onClick={onMarketTypeClick(MarketTypes.MULTI_SCALAR)}
         ></Button>
       </div>
@@ -333,7 +332,6 @@ export default function MarketForm() {
 
           <div>
             <Button
-              className="btn btn-primary"
               type="submit"
               disabled={!isValid || (hasOutcomes && outcomesFields.length < 2) || createMarket.isPending}
               isLoading={createMarket.isPending}

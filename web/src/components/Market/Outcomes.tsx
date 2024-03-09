@@ -49,7 +49,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
           >
             <div className="flex space-x-[12px]">
               <div>
-                <div className="w-[48px] h-[48px] rounded-full bg-primary"></div>
+                <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
               </div>
               <div className="space-y-1">
                 <div>

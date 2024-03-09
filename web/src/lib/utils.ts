@@ -1,3 +1,8 @@
+import { intervalToDuration } from "date-fns";
+import compareAsc from "date-fns/compareAsc";
+import format from "date-fns/format";
+import formatDuration from "date-fns/formatDuration";
+import fromUnixTime from "date-fns/fromUnixTime";
 import { formatUnits, getAddress } from "viem";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -11,6 +16,36 @@ export function localTimeToUtc(utcTime: Date | string | number) {
 
   const tzOffset = utcTime.getTimezoneOffset() * 60000;
   return new Date(utcTime.getTime() + tzOffset);
+}
+
+export function formatDate(timestamp: number) {
+  const date = fromUnixTime(timestamp);
+  return format(date, "MMMM d, yyyy");
+}
+
+export function getTimeLeft(endDate: Date | string | number, withSeconds = false): string | false {
+  const startDate = new Date();
+
+  if (typeof endDate === "number" || typeof endDate === "string") {
+    // biome-ignore lint/style/noParameterAssign:
+    endDate = fromUnixTime(Number(endDate));
+  }
+
+  if (compareAsc(startDate, endDate) === 1) {
+    return false;
+  }
+
+  const duration = intervalToDuration({ start: startDate, end: endDate });
+
+  const format = ["years", "months", "weeks", "days", "hours"];
+
+  if (withSeconds) {
+    format.push("minutes", "seconds");
+  } else if (Number(duration.days) < 1) {
+    format.push("minutes");
+  }
+
+  return formatDuration(duration, { format });
 }
 
 export function shortenAddress(address: string): string {

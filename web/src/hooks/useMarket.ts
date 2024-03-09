@@ -26,6 +26,8 @@ export interface Market {
   questionId: `0x${string}`;
   templateId: bigint;
   questions: readonly Question[];
+  lowerBound: bigint;
+  upperBound: bigint;
 }
 
 export const useMarket = (marketId: Address, chainId: SupportedChain) => {
