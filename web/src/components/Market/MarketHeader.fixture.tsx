@@ -57,10 +57,22 @@ function getMarket(marketStatus: MarketStatus) {
   return market;
 }
 
-export default {
-  "Not Open": <MarketHeader market={getMarket(MarketStatus.NOT_OPEN)} chainId={100} />,
-  Open: <MarketHeader market={getMarket(MarketStatus.OPEN)} chainId={100} />,
-  "Answer Not Final": <MarketHeader market={getMarket(MarketStatus.ANSWER_NOT_FINAL)} chainId={100} />,
-  "Pending Execution": <MarketHeader market={getMarket(MarketStatus.PENDING_EXECUTION)} chainId={100} />,
-  Closed: <MarketHeader market={getMarket(MarketStatus.CLOSED)} chainId={100} />,
-};
+const FIXTURE: [string, MarketStatus][] = [
+  ["Not Open", MarketStatus.NOT_OPEN],
+  ["Open", MarketStatus.OPEN],
+  ["Answer Not Final", MarketStatus.ANSWER_NOT_FINAL],
+  ["Pending Execution", MarketStatus.PENDING_EXECUTION],
+  ["Closed", MarketStatus.CLOSED],
+];
+
+export default Object.fromEntries(
+  FIXTURE.map((f) => [
+    f[0],
+    <div className="space-y-5">
+      <MarketHeader market={getMarket(f[1])} chainId={100} />
+      <div className="max-w-[500px] mx-auto">
+        <MarketHeader market={getMarket(f[1])} chainId={100} showOutcomes={true} />
+      </div>
+    </div>,
+  ]),
+);

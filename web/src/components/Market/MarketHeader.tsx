@@ -1,17 +1,22 @@
 import { Market } from "@/hooks/useMarket";
+import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain } from "@/lib/chains";
+import { getRouterAddress } from "@/lib/config";
 import { CalendarIcon, CategoryIcon, CheckCircleIcon, DaiLogo, HourGlassIcon, RightArrow } from "@/lib/icons";
 import { getMarketType, getOpeningTime } from "@/lib/market";
+import { paths } from "@/lib/paths";
 import { getAnswerText, getRealityLink } from "@/lib/reality";
 import { getTimeLeft } from "@/lib/utils";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
 import { TransactionReceipt } from "viem";
 
 interface MarketHeaderProps {
   market: Market;
   chainId: SupportedChain;
+  showOutcomes?: boolean;
 }
 
 const STATUS_TEXTS: Record<MarketStatus, string> = {
@@ -151,7 +156,49 @@ function MarketInfo({
   );
 }
 
-export function MarketHeader({ market, chainId }: MarketHeaderProps) {
+export function OutcomesInfo({ chainId, market }: { chainId: SupportedChain; market: Market }) {
+  const router = getRouterAddress(chainId);
+
+  const { data: marketPositions = [] } = useMarketPositions(
+    chainId,
+    router,
+    market.conditionId,
+    market.outcomes.length,
+  );
+
+  if (marketPositions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <div className="space-y-3">
+        {marketPositions.slice(0, 3).map((position, i) => (
+          <div key={position.tokenId} className={clsx("flex justify-between px-[24px] py-[8px]")}>
+            <div className="flex space-x-[12px]">
+              <div className="w-[65px]">
+                <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
+              </div>
+              <div className="space-y-1">
+                <div>
+                  <span className="text-[16px]">
+                    #{i + 1} {market.outcomes[i]}
+                  </span>
+                </div>
+                <div className="text-[12px] text-[#999999]">xM DAI</div>
+              </div>
+            </div>
+            <div className="flex space-x-10 items-center">
+              <div className="text-[24px] font-semibold">50%</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
 
   const colors = marketStatus && COLORS[marketStatus];
@@ -172,17 +219,28 @@ export function MarketHeader({ market, chainId }: MarketHeaderProps) {
         </div>
         <div>#57</div>
       </div>
+
       <div className="flex space-x-3 p-[24px]">
         <div>
-          <div className="w-[70px] h-[70px] rounded-full bg-purple-primary"></div>
+          <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
         </div>
         <div>
-          <div className="text-[24px] font-semibold mb-1">{market.marketName}</div>
+          <div className={clsx("font-semibold mb-1", showOutcomes ? "text-[16px]" : "text-[24px]")}>
+            {!showOutcomes && market.marketName}
+            {showOutcomes && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
+          </div>
           <div className={clsx("text-[14px]", colors?.text)}>
             {market && marketStatus && <MarketInfo market={market} marketStatus={marketStatus} chainId={chainId} />}
           </div>
         </div>
       </div>
+
+      {showOutcomes && (
+        <div className="border-t border-[#E5E5E5] py-[16px]">
+          <OutcomesInfo market={market} chainId={chainId} />
+        </div>
+      )}
+
       <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[14px]">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">

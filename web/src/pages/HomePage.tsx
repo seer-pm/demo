@@ -1,9 +1,7 @@
-import { Card } from "@/components/Card";
+import { MarketHeader } from "@/components/Market/MarketHeader";
 import { Spinner } from "@/components/Spinner";
 import { useMarkets } from "@/hooks/useMarkets";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { paths } from "@/lib/paths";
-import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 function Home() {
@@ -27,25 +25,12 @@ function Home() {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-5 m-4">
-      {markets.map((market) => (
-        <Card key={market.id}>
-          <Link to={paths.market(market.id, chainId)} className="font-medium text-sm">
-            {market.marketName}
-          </Link>
-          <div>
-            {market.outcomes.map((o) => (
-              <div key={o} className="flex justify-between">
-                <div>{o}</div>
-                <div className="flex w-32 justify-between">
-                  <div className="text-success">Yes 0&cent;</div>
-                  <div className="text-error">No 0&cent;</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      ))}
+    <div className="max-w-[1184px] mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 m-4">
+        {markets.map((market) => (
+          <MarketHeader market={market} chainId={chainId as SupportedChain} showOutcomes={true} key={market.id} />
+        ))}
+      </div>
     </div>
   );
 }
