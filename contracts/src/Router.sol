@@ -257,11 +257,4 @@ contract Router is ERC1155Holder {
 
         return result;
     }
-
-    // @notice Helper function used to know if the user can redeem the tokens.
-    function isPayoutReported(
-        bytes32 conditionId
-    ) external view returns (bool) {
-        return conditionalTokens.payoutDenominator(conditionId) > 0;
-    }
 }

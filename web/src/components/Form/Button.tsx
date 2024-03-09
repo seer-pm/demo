@@ -14,7 +14,7 @@ type ButtonProps = {
 const variants: Record<ButtonVariant, string> = {
   primary: "btn-primary",
   secondary: "btn-secondary",
-  tertiary: "btn-tertiary",
+  tertiary: "btn-accent",
 };
 
 const sizes: Record<ButtonSize, string> = {

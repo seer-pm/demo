@@ -40,6 +40,17 @@ const config: HardhatUserConfig = {
       },
       saveDeployments: true,
     },
+    localhost: {
+      chainId: 31337,
+      forking: {
+        url: "https://rpc.gnosischain.com",
+      },
+      mining: {
+        auto: false,
+        interval: 100,
+      },
+      saveDeployments: true,
+    },
     mainnet: {
       chainId: 1,
       url: "https://eth.llamarpc.com",

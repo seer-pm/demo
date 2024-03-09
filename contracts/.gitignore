@@ -18,5 +18,7 @@ node_modules
 /out
 lib/forge-std
 
+# Hardhat deploy files
 deployments/localhost
+deployments/hardhat
 deployments/**/solcInputs

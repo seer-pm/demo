@@ -118,25 +118,6 @@ export const RouterAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "conditionId",
-        type: "bytes32",
-      },
-    ],
-    name: "isPayoutReported",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "contract IERC20",
         name: "collateralToken",
         type: "address",

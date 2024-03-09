@@ -28,6 +28,7 @@ export interface Market {
   questions: readonly Question[];
   lowerBound: bigint;
   upperBound: bigint;
+  payoutReported: boolean;
 }
 
 export const useMarket = (marketId: Address, chainId: SupportedChain) => {

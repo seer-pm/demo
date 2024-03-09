@@ -5,54 +5,49 @@
 :root {
     --rounded-btn: 3px;
 
+    --white: 100% 0 0;
     --purple-primary: 59.81% 0.254 298.01;
     --purple-secondary: 72.91% 0.16070787426161062 297.0607660474308;
+    --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
     --blue-primary: 78.99% 0.143 224.17;
     --blue-secondary: 37.3% 0.234 269.89;
     --black-light: 98.81% 0 0;
 }
 
 /* BUTTONS */
+.btn.btn-disabled, .btn[disabled], .btn:disabled {
+    --n: var(--black-light);
+    --tw-bg-opacity: 1;
+    border-color: transparent;
+}
 .btn.btn-primary {
-    --fallback-pc: white;
+    --pc: var(--white);
     --btn-color: var(--purple-primary);
 
     &:hover {
         background-color: oklch(var(--purple-secondary));
         border-color: oklch(var(--purple-secondary));
     }
-
-    &.btn-disabled, &[disabled], &:disabled {
-        --n: var(--black-light);
-        --tw-bg-opacity: 1;
-    }
 }
 .btn.btn-secondary {
     --sc: var(--purple-primary);
-    --btn-color: white;
+    --btn-color: var(--white);
     border-color: oklch(var(--purple-primary));
 
     &:hover {
-        background: #FBF8FF;
-    }
-
-    &.btn-disabled, &[disabled], &:disabled {
-        --n: var(--black-light);
-        --tw-bg-opacity: 1;
-        border-color: transparent;
+        background-color: #FBF8FF;
     }
 }
-.btn.btn-tertiary {
-    --bc: 100% 0 0;
+.btn.btn-accent {
+    --ac: var(--white);
     --btn-color: var(--blue-secondary);
 
     &:hover {
         --btn-color: var(--blue-primary);
     }
+}
 
-    &.btn-disabled, &[disabled], &:disabled {
-        --n: var(--black-light);
-        --bc: 0.278078 0.029596 256.847952;
-        --tw-bg-opacity: 1;
-    }
+/* RADIO */
+.radio:checked, .radio[aria-checked="true"] {
+    --bc: var(--purple-primary);
 }

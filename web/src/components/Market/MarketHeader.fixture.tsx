@@ -11,6 +11,7 @@ const baseMarket: Market = {
   templateId: 2n,
   lowerBound: 0n,
   upperBound: 0n,
+  payoutReported: true,
   questions: [
     {
       content_hash: "0xfd6032d057b3d122455d310c1f6556650456b045ecf38c5b767f7e75818b22aa",
@@ -45,12 +46,12 @@ function getMarket(marketStatus: MarketStatus) {
     // opening_ts in the past, finalize_ts in the past, market not solved
     market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
     market.questions[0].finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
-    // TODO: market not solved
+    market.payoutReported = false;
   } else if (marketStatus === MarketStatus.CLOSED) {
     // opening_ts in the past, finalize_ts in the past, market solved
     market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
     market.questions[0].finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
-    // TODO: market solved
+    market.payoutReported = true;
   }
 
   return market;
