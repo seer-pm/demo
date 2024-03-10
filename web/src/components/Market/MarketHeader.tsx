@@ -225,7 +225,7 @@ export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHe
           <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
         </div>
         <div>
-          <div className={clsx("font-semibold mb-1", showOutcomes ? "text-[16px]" : "text-[24px]")}>
+          <div className={clsx("font-semibold mb-1 text-[16px]", !showOutcomes && "lg:text-[24px]")}>
             {!showOutcomes && market.marketName}
             {showOutcomes && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
           </div>
@@ -241,8 +241,8 @@ export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHe
         </div>
       )}
 
-      <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[14px]">
-        <div className="flex items-center space-x-6">
+      <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[11px] lg:text-[14px]">
+        <div className="flex items-center space-x-[10px] lg:space-x-6">
           <div className="flex items-center space-x-2">
             <CategoryIcon /> <div>{getMarketType(market)}</div>
           </div>
@@ -252,7 +252,7 @@ export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHe
         </div>
         <div className="text-[#00C42B] flex items-center space-x-2">
           <CheckCircleIcon />
-          <div>Verified</div>
+          <div className="max-lg:hidden">Verified</div>
         </div>
       </div>
     </div>

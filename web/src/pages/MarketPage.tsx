@@ -75,11 +75,11 @@ function MarketPage() {
 
         <MarketHeader market={market} chainId={chainId} />
 
-        <div className="grid grid-cols-12 gap-10">
-          <div className="col-span-8 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="col-span-1 lg:col-span-8 space-y-5">
             {market && <Outcomes chainId={chainId} router={router} market={market} tradeCallback={tradeCallback} />}
           </div>
-          <div className="col-span-4 space-y-5">
+          <div className="col-span-1 lg:col-span-4 space-y-5">
             <SwapTokens
               account={account}
               chainId={chainId}

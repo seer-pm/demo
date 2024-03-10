@@ -43,7 +43,8 @@ export default {
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
-      'white': '#ffffff',
+      white: '#fff',
+      black: '#000',
       ...COLORS,
     },
   },
