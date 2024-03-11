@@ -6,6 +6,7 @@
     --rounded-btn: 3px;
 
     --white: 100% 0 0;
+    --black: 0% 0 0;
     --purple-primary: 59.81% 0.254 298.01;
     --purple-secondary: 72.91% 0.16070787426161062 297.0607660474308;
     --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
@@ -50,4 +51,17 @@
 /* RADIO */
 .radio:checked, .radio[aria-checked="true"] {
     --bc: var(--purple-primary);
+}
+
+/* TABS */
+.tab {
+    --tab-border: 0px;
+    --tab-color: var(--black);
+    font-weight: 600;
+
+    &.tab-active:not(.tab-disabled):not([disabled]), &:is(input:checked) {
+        --bc: var(--purple-primary);
+        color: oklch(var(--purple-primary));
+        border-bottom-width: 3px;
+    }
 }
