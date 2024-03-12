@@ -1,7 +1,8 @@
 import { queryClient } from "@/lib/query-client";
+import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
 import { marketAbi } from "./contracts/generated";
 
@@ -10,26 +11,32 @@ interface ResolveMarketProps {
 }
 
 async function resolveMarket(props: ResolveMarketProps): Promise<TransactionReceipt> {
-  const hash = await writeContract(config, {
-    address: props.marketId,
-    abi: marketAbi,
-    functionName: "resolve",
-  });
+  const result = await toastifyTx(
+    () =>
+      writeContract(config, {
+        address: props.marketId,
+        abi: marketAbi,
+        functionName: "resolve",
+      }),
+    {
+      txSent: { title: "Resolving market..." },
+      txSuccess: { title: "Market resolved!" },
+    },
+  );
 
-  const transactionReceipt = await waitForTransactionReceipt(config, {
-    hash,
-  });
+  if (!result.status) {
+    throw result.error;
+  }
 
-  return transactionReceipt as TransactionReceipt;
+  return result.receipt;
 }
 
-export const useResolveMarket = (onSuccess: (data: TransactionReceipt) => unknown) => {
+export const useResolveMarket = () => {
   return useMutation({
     mutationFn: resolveMarket,
-    onSuccess: (data: TransactionReceipt) => {
+    onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
       queryClient.invalidateQueries({ queryKey: ["useMarketStatus"] });
-      onSuccess(data);
     },
   });
 };

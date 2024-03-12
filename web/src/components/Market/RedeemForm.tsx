@@ -5,7 +5,7 @@ import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { generateWinningIndexSet } from "@/lib/conditional-tokens";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
-import { Address, TransactionReceipt } from "viem";
+import { Address } from "viem";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 
 export interface RedeemFormValues {
@@ -32,9 +32,7 @@ export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotC
 
   const winningIndexSet = generateWinningIndexSet(winningPositions);
 
-  const redeemPositions = useRedeemPositions((_receipt: TransactionReceipt) => {
-    alert("Position redeemed!");
-  });
+  const redeemPositions = useRedeemPositions();
 
   if (winningIndexSet.length === 0) {
     return null;

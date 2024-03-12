@@ -8,7 +8,7 @@ import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, TransactionReceipt, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 
 export interface MergeFormValues {
   amount: number;
@@ -54,9 +54,8 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
     trigger("amount");
   }, [balance]);
 
-  const mergePositions = useMergePositions((_receipt: TransactionReceipt) => {
+  const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
     reset();
-    alert("Position merged!");
   });
 
   const onSubmit = async (values: MergeFormValues) => {

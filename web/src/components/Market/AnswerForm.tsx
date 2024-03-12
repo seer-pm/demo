@@ -5,7 +5,7 @@ import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SupportedChain } from "@/lib/chains";
 import { getRealityLink } from "@/lib/reality";
 import { useForm } from "react-hook-form";
-import { Address, TransactionReceipt } from "viem";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 interface AnswerFormValues {
@@ -46,9 +46,8 @@ export function AnswerForm({ market }: AnswerFormProps) {
     },
   });
 
-  const submitAnswer = useSubmitAnswer((_receipt: TransactionReceipt) => {
+  const submitAnswer = useSubmitAnswer((/*receipt: TransactionReceipt*/) => {
     reset();
-    alert("Answer submited!");
   });
 
   const onSubmit = async (values: AnswerFormValues) => {

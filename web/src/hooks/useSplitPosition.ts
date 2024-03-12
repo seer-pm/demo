@@ -2,10 +2,11 @@ import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
+import { toastifyTx } from "@/lib/toastify";
 import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { erc20Abi } from "viem";
 import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "./contracts/generated";
@@ -64,34 +65,42 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
     });
 
     if (allowance < parsedAmount) {
-      const hash = await writeContract(config, {
-        address: props.collateralToken,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [props.router, parsedAmount],
-      });
+      const result = await toastifyTx(
+        () =>
+          writeContract(config, {
+            address: props.collateralToken,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [props.router, parsedAmount],
+          }),
+        { txSent: { title: "Approving tokens..." }, txSuccess: { title: "Tokens approved." } },
+      );
 
-      await waitForTransactionReceipt(config, {
-        hash,
-      });
+      if (!result.status) {
+        throw result.error;
+      }
     }
   }
 
-  const hash = await splitFromRouter(
-    props.isMainCollateral,
-    props.routerType,
-    props.router,
-    props.collateralToken,
-    props.conditionId,
-    generateBasicPartition(props.outcomeSlotCount),
-    BigInt(parsedAmount),
+  const result = await toastifyTx(
+    () =>
+      splitFromRouter(
+        props.isMainCollateral,
+        props.routerType,
+        props.router,
+        props.collateralToken,
+        props.conditionId,
+        generateBasicPartition(props.outcomeSlotCount),
+        BigInt(parsedAmount),
+      ),
+    { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
   );
 
-  const transactionReceipt = await waitForTransactionReceipt(config, {
-    hash,
-  });
+  if (!result.status) {
+    throw result.error;
+  }
 
-  return transactionReceipt as TransactionReceipt;
+  return result.receipt;
 }
 
 export const useSplitPosition = (onSuccess: (data: TransactionReceipt) => unknown) => {

@@ -70,9 +70,8 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
     trigger("amount");
   }, [balance]);
 
-  const swapTokens = useSwapTokens((_orderId: string) => {
+  const swapTokens = useSwapTokens((/*orderId: string*/) => {
     reset();
-    alert("Tokens swaped!");
   });
 
   const {

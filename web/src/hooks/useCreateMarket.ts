@@ -1,8 +1,8 @@
 import { getConfigNumber } from "@/lib/config";
 import { encodeQuestionText } from "@/lib/reality";
+import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
 import { writeMarketFactory } from "./contracts/generated";
 
@@ -56,26 +56,33 @@ function getEncodedQuestions(props: CreateMarketProps): string[] {
 }
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
-  const hash = await writeMarketFactory(config, {
-    functionName: MarketTypeFunction[props.marketType],
-    args: [
-      {
-        marketName: props.marketName,
-        encodedQuestions: getEncodedQuestions(props),
-        outcomes: props.outcomes,
-        lowerBound: BigInt(props.lowerBound),
-        upperBound: BigInt(props.upperBound),
-        minBond: getConfigNumber("MIN_BOND", props.chainId),
-        openingTime: props.openingTime,
-      },
-    ],
-  });
+  const result = await toastifyTx(
+    () =>
+      writeMarketFactory(config, {
+        functionName: MarketTypeFunction[props.marketType],
+        args: [
+          {
+            marketName: props.marketName,
+            encodedQuestions: getEncodedQuestions(props),
+            outcomes: props.outcomes,
+            lowerBound: BigInt(props.lowerBound),
+            upperBound: BigInt(props.upperBound),
+            minBond: getConfigNumber("MIN_BOND", props.chainId),
+            openingTime: props.openingTime,
+          },
+        ],
+      }),
+    {
+      txSent: { title: "Creating market..." },
+      txSuccess: { title: "Market created!" },
+    },
+  );
 
-  const transactionReceipt = await waitForTransactionReceipt(config, {
-    hash,
-  });
+  if (!result.status) {
+    throw result.error;
+  }
 
-  return transactionReceipt as TransactionReceipt;
+  return result.receipt;
 }
 
 export const useCreateMarket = (onSuccess: (data: TransactionReceipt) => unknown) => {

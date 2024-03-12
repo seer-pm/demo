@@ -13,6 +13,14 @@
     --blue-primary: 78.99% 0.143 224.17;
     --blue-secondary: 37.3% 0.234 269.89;
     --black-light: 98.81% 0 0;
+
+    --toastify-toast-width: 422px;
+    --toastify-color-light: oklch(var(--purple-primary));
+    --toastify-text-color-light: oklch(var(--white));
+    --toastify-icon-color-info: oklch(var(--white));
+    --toastify-icon-color-success: oklch(var(--white));
+    --toastify-icon-color-warning: oklch(var(--white));
+    --toastify-icon-color-error: oklch(var(--white));
 }
 
 /* BUTTONS */
@@ -64,4 +72,18 @@
         color: oklch(var(--purple-primary));
         border-bottom-width: 3px;
     }
+}
+
+/* TOASTIFY */
+.Toastify__toast-body {
+    padding-top: 13px;
+    padding-bottom: 13px;
+}
+.Toastify__toast-icon {
+    width: 32px;
+    margin-left: 10px;
+    margin-right: 16px;
+}
+.Toastify__close-button--light {
+    color: #FFF;
 }

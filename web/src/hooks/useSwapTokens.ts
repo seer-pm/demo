@@ -1,4 +1,5 @@
 import { queryClient } from "@/lib/query-client";
+import { toastify } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { OrderBookApi, OrderParameters, OrderSigningUtils, SigningScheme } from "@cowprotocol/cow-sdk";
 import { useMutation } from "@tanstack/react-query";
@@ -32,11 +33,24 @@ async function swapTokens({ account, chainId, quote }: SwapTokensProps): Promise
 
   const orderBookApi = new OrderBookApi({ chainId });
 
-  return await orderBookApi.sendOrder({
-    ...quote,
-    signature: orderSigningResult.signature,
-    signingScheme: orderSigningResult.signingScheme as string as SigningScheme,
-  });
+  const result = await toastify(
+    () =>
+      orderBookApi.sendOrder({
+        ...quote,
+        signature: orderSigningResult.signature,
+        signingScheme: orderSigningResult.signingScheme as string as SigningScheme,
+      }),
+    {
+      txSent: { title: "Executing swap..." },
+      txSuccess: { title: "Tokens swapped!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
 }
 
 export interface SwapConfig {

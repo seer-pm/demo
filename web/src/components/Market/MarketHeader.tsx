@@ -11,7 +11,6 @@ import { getAnswerText, getRealityLink } from "@/lib/reality";
 import { getTimeLeft } from "@/lib/utils";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
-import { TransactionReceipt } from "viem";
 
 interface MarketHeaderProps {
   market: Market;
@@ -65,9 +64,7 @@ function MarketInfo({
   marketStatus,
   chainId,
 }: { market: Market; marketStatus: MarketStatus; chainId: SupportedChain }) {
-  const resolveMarket = useResolveMarket((_receipt: TransactionReceipt) => {
-    alert("Market resolved!");
-  });
+  const resolveMarket = useResolveMarket();
 
   const resolveHandler = async () => {
     resolveMarket.mutateAsync({

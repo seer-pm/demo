@@ -1,9 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { formatOutcome, getCurrentBond } from "@/lib/reality";
+import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { writeContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
 import { realityAbi, realityAddress } from "./contracts/generated";
 
@@ -16,19 +17,26 @@ interface SubmitAnswerProps {
 }
 
 async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceipt> {
-  const hash = await writeContract(config, {
-    address: realityAddress[props.chainId],
-    abi: realityAbi,
-    functionName: "submitAnswer",
-    args: [props.questionId, formatOutcome(props.outcome), props.currentBond],
-    value: getCurrentBond(props.currentBond, props.minBond),
-  });
+  const result = await toastifyTx(
+    () =>
+      writeContract(config, {
+        address: realityAddress[props.chainId],
+        abi: realityAbi,
+        functionName: "submitAnswer",
+        args: [props.questionId, formatOutcome(props.outcome), props.currentBond],
+        value: getCurrentBond(props.currentBond, props.minBond),
+      }),
+    {
+      txSent: { title: "Sending answer..." },
+      txSuccess: { title: "Answer sent!" },
+    },
+  );
 
-  const transactionReceipt = await waitForTransactionReceipt(config, {
-    hash,
-  });
+  if (!result.status) {
+    throw result.error;
+  }
 
-  return transactionReceipt as TransactionReceipt;
+  return result.receipt;
 }
 
 export const useSubmitAnswer = (onSuccess: (data: TransactionReceipt) => unknown) => {

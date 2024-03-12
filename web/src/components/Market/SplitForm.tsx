@@ -7,7 +7,7 @@ import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, TransactionReceipt, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 
 export interface SplitFormValues {
   amount: number;
@@ -52,9 +52,8 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     trigger("amount");
   }, [balance]);
 
-  const splitPosition = useSplitPosition((_receipt: TransactionReceipt) => {
+  const splitPosition = useSplitPosition((/*receipt: TransactionReceipt*/) => {
     reset();
-    alert("Position split!");
   });
 
   const onSubmit = async (values: SplitFormValues) => {

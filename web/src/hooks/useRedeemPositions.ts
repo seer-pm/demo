@@ -2,9 +2,10 @@ import { RouterAbi } from "@/abi/RouterAbi";
 import { EMPTY_PARENT_COLLECTION } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
+import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt, erc20Abi } from "viem";
 import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
 import { fetchTokenBalance } from "./useTokenBalance";
@@ -48,6 +49,7 @@ async function redeemFromRouter(
 }
 
 async function redeemPositions(props: RedeemPositionProps): Promise<TransactionReceipt> {
+  let n = 1;
   for (const indexSet of props.indexSets) {
     const tokenAddress = await readContract(config, {
       abi: RouterAbi,
@@ -66,42 +68,57 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
     const balance = await fetchTokenBalance(tokenAddress, props.account);
 
     if (allowance < balance) {
-      const hash = await writeContract(config, {
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [props.router, balance],
-      });
+      const result = await toastifyTx(
+        () =>
+          writeContract(config, {
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [props.router, balance],
+          }),
+        {
+          txSent: { title: `Approving outcome token #${n}...` },
+          txSuccess: { title: `Outcome token #${n} approved.` },
+        },
+      );
 
-      await waitForTransactionReceipt(config, {
-        hash,
-      });
+      if (!result.status) {
+        throw result.error;
+      }
     }
+
+    n++;
   }
 
-  const hash = await redeemFromRouter(
-    props.isMainCollateral,
-    props.routerType,
-    props.router,
-    props.collateralToken,
-    props.conditionId,
-    props.indexSets,
+  const result = await toastifyTx(
+    () =>
+      redeemFromRouter(
+        props.isMainCollateral,
+        props.routerType,
+        props.router,
+        props.collateralToken,
+        props.conditionId,
+        props.indexSets,
+      ),
+    {
+      txSent: { title: "Redeeming tokens..." },
+      txSuccess: { title: "Tokens redeemed!" },
+    },
   );
 
-  const transactionReceipt = await waitForTransactionReceipt(config, {
-    hash,
-  });
+  if (!result.status) {
+    throw result.error;
+  }
 
-  return transactionReceipt as TransactionReceipt;
+  return result.receipt;
 }
 
-export const useRedeemPositions = (onSuccess: (data: TransactionReceipt) => unknown) => {
+export const useRedeemPositions = () => {
   return useMutation({
     mutationFn: redeemPositions,
-    onSuccess: (data: TransactionReceipt) => {
+    onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["usePositions"] });
       queryClient.invalidateQueries({ queryKey: ["useERC20Balance"] });
-      onSuccess(data);
     },
   });
 };
