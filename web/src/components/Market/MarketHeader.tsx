@@ -1,9 +1,7 @@
 import { Market } from "@/hooks/useMarket";
-import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import { CalendarIcon, CategoryIcon, CheckCircleIcon, DaiLogo, HourGlassIcon, RightArrow } from "@/lib/icons";
 import { getMarketType, getOpeningTime } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -16,6 +14,7 @@ interface MarketHeaderProps {
   market: Market;
   chainId: SupportedChain;
   showOutcomes?: boolean;
+  outcomesCount?: number;
 }
 
 const STATUS_TEXTS: Record<MarketStatus, string> = {
@@ -153,25 +152,15 @@ function MarketInfo({
   );
 }
 
-export function OutcomesInfo({ chainId, market }: { chainId: SupportedChain; market: Market }) {
-  const router = getRouterAddress(chainId);
-
-  const { data: marketPositions = [] } = useMarketPositions(
-    chainId,
-    router,
-    market.conditionId,
-    market.outcomes.length,
-  );
-
-  if (marketPositions.length === 0) {
-    return null;
-  }
+export function OutcomesInfo({ market, outcomesCount = 0 }: { market: Market; outcomesCount?: number }) {
+  const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
 
   return (
     <div>
       <div className="space-y-3">
-        {marketPositions.slice(0, 3).map((position, i) => (
-          <div key={position.tokenId} className={clsx("flex justify-between px-[24px] py-[8px]")}>
+        {outcomes.map((outcome, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey:
+          <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
             <div className="flex space-x-[12px]">
               <div className="w-[65px]">
                 <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
@@ -179,7 +168,7 @@ export function OutcomesInfo({ chainId, market }: { chainId: SupportedChain; mar
               <div className="space-y-1">
                 <div>
                   <span className="text-[16px]">
-                    #{i + 1} {market.outcomes[i]}
+                    #{i + 1} {outcome}
                   </span>
                 </div>
                 <div className="text-[12px] text-[#999999]">xM DAI</div>
@@ -195,13 +184,13 @@ export function OutcomesInfo({ chainId, market }: { chainId: SupportedChain; mar
   );
 }
 
-export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHeaderProps) {
+export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCount = 0 }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
 
   const colors = marketStatus && COLORS[marketStatus];
 
   return (
-    <div className="bg-white rounded-[3px] drop-shadow">
+    <div className="bg-white rounded-[3px] drop-shadow text-left">
       <div
         className={clsx(
           "flex justify-between border-t border-t-[5px] text-[14px] px-[25px] h-[45px] items-center",
@@ -234,7 +223,7 @@ export function MarketHeader({ market, chainId, showOutcomes = false }: MarketHe
 
       {showOutcomes && (
         <div className="border-t border-[#E5E5E5] py-[16px]">
-          <OutcomesInfo market={market} chainId={chainId} />
+          <OutcomesInfo market={market} outcomesCount={outcomesCount} />
         </div>
       )}
 

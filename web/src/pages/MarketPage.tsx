@@ -1,3 +1,4 @@
+import { Alert } from "@/components/Alert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
@@ -45,7 +46,9 @@ function MarketPage() {
   if (isMarketError) {
     return (
       <div className="py-10 px-10">
-        <div className="alert alert-error mb-5">Market not found</div>
+        <Alert type="error" className="mb-5">
+          Market not found
+        </Alert>
       </div>
     );
   }

@@ -1,4 +1,3 @@
-import { Card } from "@/components/Card";
 import Button from "@/components/Form/Button";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
@@ -51,18 +50,16 @@ export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotC
   };
 
   return (
-    <Card title="Redeem">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={redeemPositions.isPending || !account}
-          isLoading={redeemPositions.isPending}
-          text="Submit"
-        />
-      </form>
-    </Card>
+      <Button
+        variant="primary"
+        type="submit"
+        disabled={redeemPositions.isPending || !account}
+        isLoading={redeemPositions.isPending}
+        text="Submit"
+      />
+    </form>
   );
 }

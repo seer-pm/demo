@@ -1,3 +1,4 @@
+import { Alert } from "@/components/Alert";
 import { MarketHeader } from "@/components/Market/MarketHeader";
 import { Spinner } from "@/components/Spinner";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -19,7 +20,7 @@ function Home() {
   if (markets.length === 0) {
     return (
       <div className="p-10">
-        <div className="alert alert-warning">No markets found.</div>
+        <Alert type="warning">No markets found.</Alert>
       </div>
     );
   }
@@ -28,7 +29,13 @@ function Home() {
     <div className="max-w-[1184px] mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 m-4">
         {markets.map((market) => (
-          <MarketHeader market={market} chainId={chainId as SupportedChain} showOutcomes={true} key={market.id} />
+          <MarketHeader
+            market={market}
+            chainId={chainId as SupportedChain}
+            showOutcomes={true}
+            outcomesCount={3}
+            key={market.id}
+          />
         ))}
       </div>
     </div>

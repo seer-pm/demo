@@ -1,5 +1,5 @@
 import { Market } from "@/hooks/useMarket";
-import { useMarketPositions } from "@/hooks/useMarketPositions";
+import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import clsx from "clsx";
 import { useState } from "react";
@@ -14,14 +14,14 @@ interface PositionsProps {
 
 export function Outcomes({ chainId, router, market, tradeCallback }: PositionsProps) {
   const [activeOutcome, setActiveOutcome] = useState(0);
-  const { data: marketPositions = [] } = useMarketPositions(
+  const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
     router,
     market.conditionId,
     market.outcomes.length,
   );
 
-  if (marketPositions.length === 0) {
+  if (wrappedAddresses.length === 0) {
     return null;
   }
 
@@ -38,9 +38,9 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {marketPositions.map((position, i) => (
+        {wrappedAddresses.map((wrappedAddress, i) => (
           <div
-            key={position.tokenId}
+            key={wrappedAddress}
             onClick={outcomeClick(i)}
             className={clsx(
               "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
@@ -54,7 +54,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
               <div className="space-y-1">
                 <div>
                   <a
-                    href={blockExplorerUrl && `${blockExplorerUrl}/address/${position.tokenId}`}
+                    href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[16px] hover:underline"

@@ -8,6 +8,7 @@ import { displayBalance, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
+import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import AltCollateralSwitch from "./AltCollateralSwitch";
@@ -156,7 +157,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
         {swapData ? displayBalance(swapData.value, swapData.decimals) : 0}
       </div>
 
-      {calculateIsError && <div className="alert alert-error">Not enough liquidity</div>}
+      {calculateIsError && <Alert type="error">Not enough liquidity</Alert>}
 
       <div className="flex justify-between">
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />

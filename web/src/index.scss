@@ -12,7 +12,11 @@
     --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
     --blue-primary: 78.99% 0.143 224.17;
     --blue-secondary: 37.3% 0.234 269.89;
+    --black-medium: 92.19% 0 0;
     --black-light: 98.81% 0 0;
+    --warning-primary: 77.2% 0.17381536485188528 64.55196581322063;
+    --success-primary: 71.22% 0.23 144.12;
+    --error-primary: 61.65% 0.245 22.93;
 
     --toastify-toast-width: 422px;
     --toastify-color-light: oklch(var(--purple-primary));
@@ -86,4 +90,76 @@
 }
 .Toastify__close-button--light {
     color: #FFF;
+}
+
+/* ALERT */
+.alert {
+    --rounded-box: 3px;
+    --alert-bg: transparent;
+
+    font-size: 14px;
+
+    &.alert-info {
+        --fallback-in: oklch(var(--purple-primary));
+        &>svg, .alert-title {
+            color: var(--fallback-in);
+        }
+    }
+
+    &.alert-success {
+        --fallback-su: oklch(var(--success-primary));
+        &>svg, .alert-title {
+            color: var(--fallback-su);
+        }
+    }
+
+    &.alert-warning {
+        --fallback-wa: oklch(var(--warning-primary));
+        &>svg, .alert-title {
+            color: var(--fallback-wa);
+        }
+    }
+
+    &.alert-error {
+        --fallback-er: oklch(var(--error-primary));
+        &>svg, .alert-title {
+            color: var(--fallback-er);
+        }
+    }
+}
+
+/* STEPS */
+.steps {
+    font-size: 12px;
+
+    .step:after {
+        --b3: var(--white);
+        --bc: var(--black-medium);
+        width: 24px;
+        height: 24px;
+    }
+    .step:not(.step-primary) {
+        &:after {
+            border: 1px solid oklch(var(--black-medium));
+        }
+    }
+    .step-primary[data-content] {
+        &:after {
+            --p: var(--white);
+            --pc: var(--purple-primary);
+            border: 1px solid oklch(var(--purple-primary));
+        }
+    }
+
+    .step-primary:after {
+        --p: var(--purple-primary);
+        --pc: var(--white);
+    }
+
+    &.steps-horizontal .step:before {
+        --b3: var(--black-medium);
+        --p: var(--black-medium);
+        width: 50%;
+        height: 1px;
+    }
 }

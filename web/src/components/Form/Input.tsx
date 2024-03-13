@@ -13,7 +13,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
   return (
     <>
       <input {...restProps} className={`input input-bordered ${className ?? ""}`} ref={ref} />
-      {helpText && <p className="text-accent-content mt-2">{helpText}</p>}
+      {helpText && <p className="text-accent-content text-[12px] mt-2">{helpText}</p>}
       <FormError errors={errors} name={props.name} />
     </>
   );

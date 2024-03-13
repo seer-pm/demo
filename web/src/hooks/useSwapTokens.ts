@@ -66,7 +66,6 @@ export const useSwapTokens = (onSuccess: (data: string) => unknown) => {
     onSuccess: (data: string) => {
       queryClient.invalidateQueries({ queryKey: ["usePositions"] });
       queryClient.invalidateQueries({ queryKey: ["useERC20Balance"] });
-      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       onSuccess(data);
     },
   });
