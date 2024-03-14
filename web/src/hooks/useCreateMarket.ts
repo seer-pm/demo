@@ -16,6 +16,7 @@ interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
   outcomes: string[];
+  tokenNames: string[];
   outcomesQuestion: string;
   lowerBound: number;
   upperBound: number;
@@ -55,7 +56,31 @@ function getEncodedQuestions(props: CreateMarketProps): string[] {
   return [encodeQuestionText("uint", `${props.marketName} [${props.unit}]`, null, props.category, "en_US")];
 }
 
+export function getOutcomes(
+  outcomes: string[],
+  lowerBound: number,
+  upperBound: number,
+  unit: string,
+  marketType: MarketTypes,
+) {
+  if (marketType === MarketTypes.SCALAR) {
+    return [`Lower than ${lowerBound} ${unit}`, `Higher than ${upperBound} ${unit}`];
+  }
+
+  return outcomes;
+}
+
+function getTokenNames(tokenNames: string[], outcomes: string[]) {
+  // we loop over `outcomes` because it's the return valut of getOutcomes(),
+  // that already has the correct outcomes for scalar markets
+  return outcomes.map((outcome, i) =>
+    tokenNames[i].trim() !== "" ? tokenNames[i].trim() : outcome.toLocaleUpperCase().replaceAll(" ", "_"),
+  );
+}
+
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
+  const outcomes = getOutcomes(props.outcomes, props.lowerBound, props.upperBound, props.unit, props.marketType);
+
   const result = await toastifyTx(
     () =>
       writeMarketFactory(config, {
@@ -64,7 +89,8 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
           {
             marketName: props.marketName,
             encodedQuestions: getEncodedQuestions(props),
-            outcomes: props.outcomes,
+            outcomes,
+            tokenNames: getTokenNames(props.tokenNames, outcomes),
             lowerBound: BigInt(props.lowerBound),
             upperBound: BigInt(props.upperBound),
             minBond: getConfigNumber("MIN_BOND", props.chainId),

@@ -63,13 +63,7 @@ contract MarketView {
         uint256 upperBound = market.upperBound();
 
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
-            if (lowerBound == 0 && upperBound == 0) {
-                // categorical market
-                outcomes[i] = market.outcomes(i);
-            } else {
-                // scalar market
-                outcomes[i] = i == 0 ? 'Low' : 'High';
-            }
+            outcomes[i] = market.outcomes(i);
         }
 
         uint256 questionsCount = market.getQuestionsCount();

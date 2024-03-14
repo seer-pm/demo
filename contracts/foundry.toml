@@ -1,0 +1,8 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['node_modules', 'lib', '../node_modules']
+test = 'test'
+cache_path  = 'cache_forge'
+allow_paths = ['../node_modules']
+gas_reports = ['Market', 'MarketFactory']

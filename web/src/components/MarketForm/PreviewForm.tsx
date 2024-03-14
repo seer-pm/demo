@@ -1,5 +1,5 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { MarketTypes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { MarketTypes, getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { Market } from "@/hooks/useMarket";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
@@ -48,14 +48,14 @@ export function PreviewForm({
     }
   });
 
-  const outcomes =
-    marketTypeValues.marketType === MarketTypes.SCALAR ? ["Low", "High"] : outcomesValues.outcomes.map((o) => o.value);
+  const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
   const onSubmit = async () => {
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: questionValues.market,
-      outcomes,
+      outcomes: outcomes,
+      tokenNames: outcomesValues.outcomes.map((o) => o.token),
       outcomesQuestion: outcomesValues.outcomesQuestion,
       lowerBound: outcomesValues.lowerBound,
       upperBound: outcomesValues.upperBound,
@@ -69,7 +69,13 @@ export function PreviewForm({
   const dummyMarket: Market = {
     id: "0x000",
     marketName: questionValues.market,
-    outcomes: outcomes,
+    outcomes: getOutcomes(
+      outcomes,
+      outcomesValues.lowerBound,
+      outcomesValues.upperBound,
+      outcomesValues.unit,
+      marketTypeValues.marketType,
+    ),
     conditionId: "0x000",
     questionId: "0x000",
     templateId: 2n,

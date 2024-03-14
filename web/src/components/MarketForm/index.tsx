@@ -56,7 +56,7 @@ export type QuestionFormValues = {
 };
 
 export type OutcomesFormValues = {
-  outcomes: { value: string }[]; // for categorical and multi scalar markets
+  outcomes: { value: string; token: string }[]; // for categorical and multi scalar markets
   outcomesQuestion: string; // for multi scalar markets
   lowerBound: number; // for scalar markets
   upperBound: number; // for scalar markets

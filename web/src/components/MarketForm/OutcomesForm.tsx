@@ -1,6 +1,6 @@
 import { MarketTypes, OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FieldErrors, FormProvider, UseFormRegister, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import Input from "../Form/Input";
@@ -22,6 +22,7 @@ export function OutcomeFields({
   errors,
   register,
 }: OutcomeFieldsProps) {
+  const [showCustomToken, setShowCustomToken] = useState(false);
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
@@ -47,6 +48,29 @@ export function OutcomeFields({
         >
           Remove
         </button>
+      </div>
+
+      <div>
+        {showCustomToken && (
+          <div>
+            <Input
+              autoComplete="off"
+              {...register(`outcomes.${outcomeIndex}.token`, {
+                required: "This field is required.",
+              })}
+              className="w-full"
+              errors={errors}
+            />
+          </div>
+        )}
+        <div
+          className="text-purple-primary text-[12px] cursor-pointer mb-[5px]"
+          onClick={() => {
+            setShowCustomToken(!showCustomToken);
+          }}
+        >
+          {showCustomToken ? "Hide custom token name" : "Show custom token name"}
+        </div>
       </div>
     </div>
   );
@@ -80,7 +104,7 @@ export function OutcomesForm({
   }, []);
 
   const addOutcome = () => {
-    return appendOutcome({ value: "" });
+    return appendOutcome({ value: "", token: "" });
   };
 
   const hasOutcomes = marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;

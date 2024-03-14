@@ -19,6 +19,7 @@ contract MarketFactory {
         uint256 upperBound;
         uint256 minBond;
         uint32 openingTime;
+        string[] tokenNames;
     }
 
     struct InternalMarketConfig {
@@ -122,13 +123,15 @@ contract MarketFactory {
         CreateMarketParams memory params
     ) external returns (address) {
         require(params.upperBound > params.lowerBound, "Invalid bounds");
+        require(params.outcomes.length == 2, "Invalid outcomes");
+
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
             REALITY_UINT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            2,
+            params.outcomes.length,
             address(realityProxy)
         );
 
@@ -221,7 +224,7 @@ contract MarketFactory {
         deployERC20Positions(
             config.conditionId,
             config.outcomeSlotCount,
-            markets.length + 1
+            params.tokenNames
         );
         instance.initialize(
             params.marketName,
@@ -302,7 +305,7 @@ contract MarketFactory {
     function deployERC20Positions(
         bytes32 conditionId,
         uint256 outcomeSlotCount,
-        uint256 marketIndex
+        string[] memory tokenNames
     ) internal {
         uint[] memory partition = generateBasicPartition(outcomeSlotCount);
         for (uint j = 0; j < partition.length; j++) {
@@ -316,20 +319,13 @@ contract MarketFactory {
                 collectionId
             );
 
-            string memory tokenName = string(
-                abi.encodePacked(
-                    "SEER_",
-                    Strings.toString(marketIndex),
-                    "_",
-                    Strings.toString(j + 1)
-                )
-            );
+            require(bytes(tokenNames[j]).length != 0);
 
             wrappedERC20Factory.createWrappedToken(
                 address(conditionalTokens),
                 tokenId,
-                tokenName,
-                tokenName
+                tokenNames[j],
+                tokenNames[j]
             );
         }
     }
