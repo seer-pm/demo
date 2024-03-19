@@ -1,0 +1,57 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MarketFactory
+    network: gnosis
+    source:
+      address: "0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA"
+      abi: MarketFactory
+      startBlock: 32986755
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - NewMarket
+      abis:
+        - name: MarketFactory
+          file: ./abis/MarketFactory.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+      eventHandlers:
+        - event: NewMarket(indexed address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
+          handler: handleNewMarket
+      file: ./src/market-factory.ts
+  - kind: ethereum
+    name: Reality
+    network: gnosis
+    source:
+      address: "0xE78996A233895bE74a66F451f1019cA9734205cc"
+      abi: Reality
+      startBlock: 32986755
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: Reality
+          file: ./abis/Realitiy.json
+      entities:
+        - Event
+        - Bet
+      eventHandlers:
+        - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed address,uint256,uint256,bool)
+          handler: handleNewAnswer
+        - event: LogFinalize(indexed bytes32,indexed bytes32)
+          handler: handleFinalize
+        - event: LogNotifyOfArbitrationRequest(indexed bytes32,indexed address)
+          handler: handleArbitrationRequest
+        - event: LogReopenQuestion(indexed bytes32,indexed bytes32)
+          handler: handleReopenQuestion
+        - event: LogCancelArbitration(indexed bytes32)
+          handler: handleCancelArbitration
+      file: ./src/reality.ts

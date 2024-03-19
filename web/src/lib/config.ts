@@ -57,6 +57,10 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [goerli.id]: "base",
 } as const;
 
+export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/xyzseer/seer-pm",
+};
+
 export const getRouterAddress = (chainId?: SupportedChain): Address => {
   const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress);
   return addresses[chainId || DEFAULT_CHAIN];

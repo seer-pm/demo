@@ -7,7 +7,8 @@
     },
     "workspaces": [
         "contracts",
-        "web"
+        "web",
+        "subgraph"
     ],
     "dependencies": {},
     "devDependencies": {

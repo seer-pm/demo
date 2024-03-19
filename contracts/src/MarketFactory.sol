@@ -45,7 +45,18 @@ contract MarketFactory {
     address[] public markets;
     address public market;
 
-    event NewMarket(address indexed market);
+    event NewMarket(
+        address indexed market,
+        string marketName,
+        string[] outcomes,
+        uint256 lowerBound,
+        uint256 upperBound,
+        bytes32 conditionId,
+        bytes32 questionId,
+        bytes32[] questionsIds,
+        uint256 templateId,
+        string[] encodedQuestions
+    );
 
     /**
      *  @dev Constructor.
@@ -124,7 +135,6 @@ contract MarketFactory {
     ) external returns (address) {
         require(params.upperBound > params.lowerBound, "Invalid bounds");
         require(params.outcomes.length == 2, "Invalid outcomes");
-
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
@@ -239,7 +249,18 @@ contract MarketFactory {
             realityProxy
         );
 
-        emit NewMarket(address(instance));
+        emit NewMarket(
+            address(instance),
+            params.marketName,
+            params.outcomes,
+            params.lowerBound,
+            params.upperBound,
+            config.conditionId,
+            config.questionId,
+            config.questionsIds,
+            config.templateId,
+            params.encodedQuestions
+        );
         markets.push(address(instance));
 
         return address(instance);

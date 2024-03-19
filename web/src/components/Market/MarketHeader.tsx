@@ -17,7 +17,7 @@ interface MarketHeaderProps {
   outcomesCount?: number;
 }
 
-const STATUS_TEXTS: Record<MarketStatus, string> = {
+export const STATUS_TEXTS: Record<MarketStatus, string> = {
   [MarketStatus.NOT_OPEN]: "Market not open yet",
   [MarketStatus.OPEN]: "Market open",
   [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",

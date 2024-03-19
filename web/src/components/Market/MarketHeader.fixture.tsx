@@ -14,15 +14,12 @@ const baseMarket: Market = {
   payoutReported: true,
   questions: [
     {
-      content_hash: "0xfd6032d057b3d122455d310c1f6556650456b045ecf38c5b767f7e75818b22aa",
       arbitrator: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
       opening_ts: 1717192800,
       timeout: 129600,
       finalize_ts: 0,
       is_pending_arbitration: false,
-      bounty: 0n,
       best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      history_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
       bond: 0n,
       min_bond: 100000000000000000n,
     },

@@ -6,6 +6,7 @@ type ButtonVariant = "primary" | "secondary" | "tertiary";
 
 type ButtonProps = {
   text: string;
+  icon?: React.ReactNode;
   isLoading?: boolean;
   size?: ButtonSize;
   variant?: ButtonVariant;
@@ -23,10 +24,11 @@ const sizes: Record<ButtonSize, string> = {
 };
 
 const Button = React.forwardRef<HTMLButtonElement | null, ButtonProps>((props, ref) => {
-  const { text, type, size = "large", variant = "primary", isLoading, ...restProps } = props;
+  const { text, type, size = "large", variant = "primary", icon, isLoading, ...restProps } = props;
 
   return (
     <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
+      {icon || ""}
       {text} {isLoading && <span className="loading loading-spinner"></span>}
     </button>
   );

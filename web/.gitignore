@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 src/hooks/contracts
+src/hooks/queries
 cosmos-export
 
 # Editor directories and files

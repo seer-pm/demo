@@ -50,6 +50,8 @@ export function PreviewForm({
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
+  const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
+
   const onSubmit = async () => {
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
@@ -61,7 +63,7 @@ export function PreviewForm({
       upperBound: outcomesValues.upperBound,
       unit: outcomesValues.unit,
       category: questionValues.category,
-      openingTime: Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000),
+      openingTime,
       chainId,
     });
   };
@@ -84,15 +86,12 @@ export function PreviewForm({
     payoutReported: true,
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
       (_) => ({
-        content_hash: "0x000",
         arbitrator: "0x000",
-        opening_ts: Math.round(new Date().getTime() / 1000) + 60 * 60,
+        opening_ts: openingTime,
         timeout: 129600,
         finalize_ts: 0,
         is_pending_arbitration: false,
-        bounty: 0n,
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
-        history_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
         bond: 0n,
         min_bond: 100000000000000000n,
       }),

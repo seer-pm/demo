@@ -20,7 +20,7 @@ export function localTimeToUtc(utcTime: Date | string | number) {
 
 export function formatDate(timestamp: number) {
   const date = fromUnixTime(timestamp);
-  return format(date, "MMMM d, yyyy");
+  return format(date, "MMMM d yyyy, HH:mm");
 }
 
 export function getTimeLeft(endDate: Date | string | number, withSeconds = false): string | false {

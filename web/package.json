@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "WAGMI_CLI_PROD=true wagmi generate && tsc && vite build",
+    "build": "WAGMI_CLI_PROD=true yarn generate && tsc && vite build",
     "lint": "biome check --apply ./src",
+    "generate": "yarn generate:hooks && yarn generate:gql",
+    "generate:hooks": "wagmi generate",
+    "generate:gql": "graphql-codegen",
     "preview": "vite preview",
     "cosmos": "cosmos",
     "cosmos-export": "cosmos-export"
@@ -15,12 +18,17 @@
     "@biomejs/biome": "^1.1.2",
     "@cowprotocol/cow-sdk": "^5.1.0",
     "@cowprotocol/widget-react": "^0.3.0",
+    "@graphql-codegen/named-operations-object": "^3.0.0",
+    "@graphql-codegen/typescript-graphql-request": "^6.2.0",
+    "@graphql-codegen/typescript-operations": "^4.2.0",
+    "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@heroicons/react": "^2.1.1",
     "@hookform/error-message": "^2.0.1",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
     "@web3modal/wagmi": "^4.0.11",
     "clsx": "^2.1.0",
+    "graphql": "^16.8.1",
     "isomorphic-fetch": "^3.0.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.44",
@@ -33,6 +41,7 @@
     "wagmi": "2.2.1"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
     "@types/react": "^18.2.22",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.1.0",

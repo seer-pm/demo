@@ -1,0 +1,6 @@
+# subgraph
+generated/*
+build/*
+generated/*
+build/*
+contracts/*

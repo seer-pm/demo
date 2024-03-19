@@ -5,15 +5,12 @@ import { Address } from "viem";
 import { conditionalTokensAddress, readMarketViewGetMarket, realityAddress } from "./contracts/generated";
 
 export interface Question {
-  content_hash: `0x${string}`;
   arbitrator: Address;
   opening_ts: number;
   timeout: number;
   finalize_ts: number;
   is_pending_arbitration: boolean;
-  bounty: bigint;
   best_answer: `0x${string}`;
-  history_hash: `0x${string}`;
   bond: bigint;
   min_bond: bigint;
 }
