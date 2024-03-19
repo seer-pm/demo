@@ -4,11 +4,28 @@ import {
   NewMarket as NewMarketEvent,
 } from "../generated/MarketFactory/MarketFactory";
 import { Reality } from "../generated/Reality/Reality";
-import { Market, MarketQuestion, Question } from "../generated/schema";
+import {
+  Market,
+  MarketQuestion,
+  MarketsCount,
+  Question,
+} from "../generated/schema";
+
+function getNextMarketIndex(): BigInt {
+  let marketsCount = MarketsCount.load("markets-count");
+  if (!marketsCount) {
+    marketsCount = new MarketsCount("markets-count");
+    marketsCount.count = BigInt.fromI32(0);
+  }
+
+  marketsCount.count = marketsCount.count.plus(BigInt.fromI32(1));
+  marketsCount.save();
+  return marketsCount.count;
+}
 
 export function handleNewMarket(event: NewMarketEvent): void {
-  let marketFactory = MarketFactory.bind(event.address);
-  let market = new Market(event.params.market);
+  const marketFactory = MarketFactory.bind(event.address);
+  const market = new Market(event.params.market);
   market.marketName = event.params.marketName;
   market.outcomes = event.params.outcomes;
   market.lowerBound = event.params.lowerBound;
@@ -23,18 +40,19 @@ export function handleNewMarket(event: NewMarketEvent): void {
   market.finalizeTs = BigInt.fromI32(0);
   market.questionsInArbitration = BigInt.fromI32(0);
   market.hasAnswers = false;
+  market.index = getNextMarketIndex();
 
   const reality = Reality.bind(marketFactory.realitio());
 
   for (let i = 0; i < market.questionsIds.length; i++) {
-    let questionResult = reality.questions(market.questionsIds[i]);
+    const questionResult = reality.questions(market.questionsIds[i]);
 
     if (i === 0) {
       // all the questions have the same opening_ts
       market.openingTs = questionResult.getOpening_ts();
     }
 
-    let question = new Question(market.questionsIds[i].toHexString());
+    const question = new Question(market.questionsIds[i].toHexString());
     question.arbitrator = questionResult.getArbitrator();
     question.opening_ts = questionResult.getOpening_ts();
     question.timeout = questionResult.getTimeout();

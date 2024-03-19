@@ -1,35 +1,32 @@
 import { SupportedChain } from "@/lib/chains";
-import { graphQLClient } from "@/lib/subgraph";
+import { graphQLClient, mapGraphMarket } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
-import { GetMarketsQuery, Market_Filter, getSdk } from "./queries/generated";
+import { Market_Filter, getSdk } from "./queries/generated";
 import { Market } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 
-function mapGraphMarket(market: GetMarketsQuery["markets"][number]): Market {
-  return {
-    ...market,
-    lowerBound: BigInt(market.lowerBound),
-    upperBound: BigInt(market.upperBound),
-    templateId: BigInt(market.templateId),
-    questions: market.questions.map((marketQuestion) => {
-      const question = marketQuestion.question;
-      return {
-        ...question,
-        opening_ts: Number(question.opening_ts),
-        timeout: Number(question.timeout),
-        finalize_ts: Number(question.finalize_ts),
-        bond: BigInt(question.bond),
-        min_bond: BigInt(question.min_bond),
-      };
-    }),
-  };
-}
-
-export const useMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
-    queryKey: ["useMarkets", chainId, marketName, marketStatus],
+    queryKey: ["useOnChainMarkets", chainId, marketName, marketStatus],
+    queryFn: async () => {
+      const markets = await readMarketViewGetMarkets(config, {
+        args: [BigInt(50), marketFactoryAddress[chainId]],
+        chainId,
+      });
+
+      return markets.filter((m) => {
+        const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
+        return hasOpenQuestions;
+      });
+    },
+  });
+};
+
+export const useGraphMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+  return useQuery<Market[] | undefined, Error>({
+    queryKey: ["useGraphMarkets", chainId, marketName, marketStatus],
     queryFn: async () => {
       try {
         const client = graphQLClient(chainId);
@@ -62,17 +59,19 @@ export const useMarkets = (chainId: SupportedChain, marketName: string, marketSt
       } catch (e) {
         console.log("subgraph error", e);
       }
-
-      // fallback to market view if subgraph fails
-      const markets = await readMarketViewGetMarkets(config, {
-        args: [BigInt(50), marketFactoryAddress[chainId]],
-        chainId,
-      });
-
-      return markets.filter((m) => {
-        const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
-        return hasOpenQuestions;
-      });
     },
   });
+};
+
+export const useMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+  const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
+  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus);
+
+  if (marketName || marketStatus) {
+    // we only filter using the subgraph
+    return graphMarkets;
+  }
+
+  // if the subgraph is slow return first the onChain data, and update with the subgraph data once it's available
+  return graphMarkets.data ? graphMarkets : onChainMarkets;
 };

@@ -29,14 +29,20 @@ export function getClosingTime(market: Market) {
   return new Date(market.questions[0].opening_ts * 1000).toUTCString();
 }
 
-export function getMarketType(market: Market) {
+export enum MarketTypes {
+  CATEGORICAL = 1,
+  SCALAR = 2,
+  MULTI_SCALAR = 3,
+}
+
+export function getMarketType(market: Market): MarketTypes {
   if (market.questions.length > 1) {
-    return "Multi Scalar";
+    return MarketTypes.MULTI_SCALAR;
   }
 
   if (market.lowerBound === 0n && market.upperBound === 0n) {
-    return "Categorical";
+    return MarketTypes.CATEGORICAL;
   }
 
-  return "Scalar";
+  return MarketTypes.SCALAR;
 }

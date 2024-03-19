@@ -10,6 +10,25 @@ fragment Question on Question {
   min_bond
 }
 
+fragment Market on Market {
+    id
+    marketName
+    outcomes
+    conditionId
+    questionId
+    templateId
+    questionsIds
+    lowerBound
+    upperBound
+    index
+    questions {
+        question {
+            ...Question
+        }
+    }
+    payoutReported
+}
+
 query GetMarkets(
     $skip: Int = 0
     $first: Int = 100
@@ -28,20 +47,14 @@ query GetMarkets(
         block: $block
         subgraphError: $subgraphError
     ) {
-        id
-        marketName
-        outcomes
-        conditionId
-        questionId
-        templateId
-        questionsIds
-        lowerBound
-        upperBound
-        questions {
-            question {
-                ...Question
-            }
-        }
-        payoutReported
+        ...Market
+    }
+}
+
+query GetMarket(
+    $id: ID!
+) {
+    market(id: $id) {
+        ...Market
     }
 }

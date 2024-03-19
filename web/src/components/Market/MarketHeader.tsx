@@ -3,7 +3,7 @@ import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CalendarIcon, CategoryIcon, CheckCircleIcon, DaiLogo, HourGlassIcon, RightArrow } from "@/lib/icons";
-import { getMarketType, getOpeningTime } from "@/lib/market";
+import { MarketTypes, getMarketType, getOpeningTime } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { getAnswerText, getRealityLink } from "@/lib/reality";
 import { getTimeLeft } from "@/lib/utils";
@@ -23,6 +23,12 @@ export const STATUS_TEXTS: Record<MarketStatus, string> = {
   [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",
   [MarketStatus.PENDING_EXECUTION]: "Pending execution",
   [MarketStatus.CLOSED]: "Closed",
+};
+
+export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
+  [MarketTypes.CATEGORICAL]: "Categorical",
+  [MarketTypes.SCALAR]: "Scalar",
+  [MarketTypes.MULTI_SCALAR]: "Multi Scalar",
 };
 
 export const COLORS: Record<MarketStatus, { border: string; bg: string; text: string; dot: string }> = {
@@ -96,27 +102,39 @@ function MarketInfo({
   }
 
   if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
+    const marketType = getMarketType(market);
     return (
-      <div className="flex items-center space-x-[12px]">
-        <div className="flex items-center space-x-2">
-          <HourGlassIcon />
-          <div>Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}</div>
-        </div>
-        <div className="text-black-medium">|</div>
-        <div className="flex items-center space-x-2">
-          <div className="text-black-secondary">
-            If this is not correct, you can correct it within {getTimeLeft(market.questions[0].finalize_ts)} on{" "}
-            <a
-              className="text-purple-primary"
-              href={getRealityLink(chainId, market.questionId)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Reality.eth
-            </a>
+      <div className="space-y-[5px]">
+        {market.questions.map((question, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey:
+          <div className="flex items-center space-x-[12px]" key={i}>
+            <div className="flex items-center space-x-2">
+              <HourGlassIcon />
+              {marketType === MarketTypes.MULTI_SCALAR && (
+                <>
+                  <div>{market.outcomes[i]}</div>
+                  <div className="text-black-medium">|</div>
+                </>
+              )}
+              <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+            </div>
+            <div className="text-black-medium">|</div>
+            <div className="flex items-center space-x-2">
+              <div className="text-black-secondary">
+                If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on{" "}
+                <a
+                  className="text-purple-primary"
+                  href={getRealityLink(chainId, market.questionId)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Reality.eth
+                </a>
+              </div>
+              <RightArrow />
+            </div>
           </div>
-          <RightArrow />
-        </div>
+        ))}
       </div>
     );
   }
@@ -190,7 +208,7 @@ export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCo
   const colors = marketStatus && COLORS[marketStatus];
 
   return (
-    <div className="bg-white rounded-[3px] drop-shadow text-left">
+    <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
       <div
         className={clsx(
           "flex justify-between border-t border-t-[5px] text-[14px] px-[25px] h-[45px] items-center",
@@ -203,7 +221,7 @@ export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCo
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus]}</div>}
         </div>
-        <div>#57</div>
+        <div>{market.index && `#${market.index}`}</div>
       </div>
 
       <div className="flex space-x-3 p-[24px]">
@@ -227,10 +245,10 @@ export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCo
         </div>
       )}
 
-      <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[11px] lg:text-[14px]">
+      <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[11px] lg:text-[14px] mt-auto">
         <div className="flex items-center space-x-[10px] lg:space-x-6">
           <div className="flex items-center space-x-2">
-            <CategoryIcon /> <div>{getMarketType(market)}</div>
+            <CategoryIcon /> <div>{MARKET_TYPES_TEXTS[getMarketType(market)]}</div>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[#999999]">Open interest:</span> <div>15M DAI</div> <DaiLogo />

@@ -18,6 +18,12 @@ type Market @entity {
   hasAnswers: Boolean!
   finalizeTs: BigInt!
   questionsInArbitration: BigInt!
+  index: BigInt!
+}
+
+type MarketsCount @entity {
+  id: ID!
+  count: BigInt!
 }
 
 type Question @entity {

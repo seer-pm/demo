@@ -2,7 +2,7 @@ import { realityAddress } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
 import compareAsc from "date-fns/compareAsc";
 import fromUnixTime from "date-fns/fromUnixTime";
-import { Hex, hexToNumber, pad, toHex } from "viem";
+import { Hex, formatEther, hexToNumber, pad, toHex } from "viem";
 import { SupportedChain } from "./chains";
 
 export const REALITY_TEMPLATE_UINT = 1;
@@ -101,6 +101,10 @@ export function getAnswerText(
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
+
+  if (Number(templateId) === REALITY_TEMPLATE_UINT) {
+    return formatEther(BigInt(outcomeIndex));
+  }
 
   if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
