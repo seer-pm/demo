@@ -1,19 +1,19 @@
-type Market @entity(immutable: true) {
+type Market @entity {
   id: Bytes!
-  marketName: String! # string
-  outcomes: [String!]! # string[]
-  lowerBound: BigInt! # uint256
-  upperBound: BigInt! # uint256
-  conditionId: Bytes! # bytes32
-  questionId: Bytes! # bytes32
-  questionsIds: [Bytes!]! # bytes32[]
-  templateId: BigInt! # uint256
-  encodedQuestions: [String!]! # string[]
+  marketName: String!
+  outcomes: [String!]!
+  lowerBound: BigInt!
+  upperBound: BigInt!
+  conditionId: Bytes!
+  questionId: Bytes!
+  questionsIds: [Bytes!]!
+  templateId: BigInt!
+  encodedQuestions: [String!]!
   payoutReported: Boolean!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  questions: [Question!]!
+  questions: [MarketQuestion!]! @derivedFrom(field: "market")
   openingTs: BigInt!
   hasAnswers: Boolean!
   finalizeTs: BigInt!
@@ -31,5 +31,11 @@ type Question @entity {
   bond: BigInt!
   min_bond: BigInt!
   arbitration_occurred: Boolean!
-  markets: [Market!]! @derivedFrom(field: "questions")
+  markets: [MarketQuestion!]! @derivedFrom(field: "question")
+}
+
+type MarketQuestion @entity {
+  id: Bytes!
+  market: Market!
+  question: Question!
 }

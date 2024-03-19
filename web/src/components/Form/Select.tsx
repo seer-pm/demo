@@ -13,7 +13,6 @@ const Select = React.forwardRef<HTMLSelectElement | null, SelectProps>((props, r
   return (
     <>
       <select {...restProps} className={`select select-bordered ${className ?? ""}`} ref={ref}>
-        <option value=""></option>
         {options.map((option) => (
           <option value={option.value} key={option.value}>
             {option.text}

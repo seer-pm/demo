@@ -13,7 +13,8 @@ function mapGraphMarket(market: GetMarketsQuery["markets"][number]): Market {
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     templateId: BigInt(market.templateId),
-    questions: market.questions.map((question) => {
+    questions: market.questions.map((marketQuestion) => {
+      const question = marketQuestion.question;
       return {
         ...question,
         opening_ts: Number(question.opening_ts),
