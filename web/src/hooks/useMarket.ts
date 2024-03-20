@@ -3,7 +3,7 @@ import { graphQLClient, mapGraphMarket } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { conditionalTokensAddress, readMarketViewGetMarket, realityAddress } from "./contracts/generated";
+import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
 import { getSdk } from "./queries/generated";
 
 export interface Question {
@@ -21,6 +21,7 @@ export interface Market {
   id: Address;
   marketName: string;
   outcomes: readonly string[];
+  outcomesSupply: bigint;
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
@@ -36,7 +37,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
     queryKey: ["useOnChainMarket", marketId, chainId],
     queryFn: async () => {
       return await readMarketViewGetMarket(config, {
-        args: [conditionalTokensAddress[chainId], realityAddress[chainId], marketId],
+        args: [marketFactoryAddress[chainId], marketId],
         chainId,
       });
     },
@@ -44,25 +45,24 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
 };
 
 const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
-  return useQuery<Market | undefined, Error>({
+  return useQuery<Market, Error>({
     queryKey: ["useGraphMarket", marketId, chainId],
     queryFn: async () => {
-      try {
-        const client = graphQLClient(chainId);
+      const client = graphQLClient(chainId);
 
-        if (client) {
-          const { market } = await getSdk(client).GetMarket({ id: marketId });
+      if (client) {
+        const { market } = await getSdk(client).GetMarket({ id: marketId });
 
-          if (!market) {
-            throw new Error("Market not found");
-          }
-
-          return mapGraphMarket(market);
+        if (!market) {
+          throw new Error("Market not found");
         }
-      } catch (e) {
-        console.log("subgraph error", e);
+
+        return mapGraphMarket(market);
       }
+
+      throw new Error("Subgraph not available");
     },
+    retry: false,
   });
 };
 

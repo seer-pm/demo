@@ -62,12 +62,24 @@ export const isUndefined = (maybeObject: any): maybeObject is undefined | null =
   return typeof maybeObject === "undefined" || maybeObject === null;
 };
 
+function formatBigNumbers(amount: number) {
+  const quantifiers: [number, string][] = [
+    [10 ** 9, "B"],
+    [10 ** 6, "M"],
+    [10 ** 3, "k"],
+  ];
+
+  for (const [denominator, letter] of quantifiers) {
+    if (amount >= denominator) {
+      return `${+Math.round((amount * 100) / denominator) / 100} ${letter}`;
+    }
+  }
+
+  return Math.round(amount);
+}
+
 export function displayBalance(amount: bigint, decimals: number) {
   const number = Number(formatUnits(amount, decimals));
 
-  if (number % 1 === 0) {
-    return String(number);
-  }
-
-  return number.toFixed(3);
+  return formatBigNumbers(number);
 }

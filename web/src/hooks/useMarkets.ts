@@ -25,41 +25,40 @@ export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, m
 };
 
 export const useGraphMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
-  return useQuery<Market[] | undefined, Error>({
+  return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainId, marketName, marketStatus],
     queryFn: async () => {
-      try {
-        const client = graphQLClient(chainId);
+      const client = graphQLClient(chainId);
 
-        if (client) {
-          const now = String(Math.round(new Date().getTime() / 1000));
+      if (client) {
+        const now = String(Math.round(new Date().getTime() / 1000));
 
-          const where: Market_Filter = { marketName_contains_nocase: marketName };
+        const where: Market_Filter = { marketName_contains_nocase: marketName };
 
-          if (marketStatus === MarketStatus.NOT_OPEN) {
-            where["openingTs_gt"] = now;
-          } else if (marketStatus === MarketStatus.OPEN) {
-            where["openingTs_lt"] = now;
-            where["hasAnswers"] = false;
-          } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
-            where["openingTs_lt"] = now;
-            where["hasAnswers"] = true;
-            where["finalizeTs_gt"] = now;
-          } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
-            where["finalizeTs_gt"] = "0";
-            where["finalizeTs_lt"] = now;
-            where["payoutReported"] = false;
-          } else if (marketStatus === MarketStatus.CLOSED) {
-            where["payoutReported"] = true;
-          }
-
-          const { markets } = await getSdk(client).GetMarkets({ where });
-          return markets.map((market) => mapGraphMarket(market));
+        if (marketStatus === MarketStatus.NOT_OPEN) {
+          where["openingTs_gt"] = now;
+        } else if (marketStatus === MarketStatus.OPEN) {
+          where["openingTs_lt"] = now;
+          where["hasAnswers"] = false;
+        } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
+          where["openingTs_lt"] = now;
+          where["hasAnswers"] = true;
+          where["finalizeTs_gt"] = now;
+        } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
+          where["finalizeTs_gt"] = "0";
+          where["finalizeTs_lt"] = now;
+          where["payoutReported"] = false;
+        } else if (marketStatus === MarketStatus.CLOSED) {
+          where["payoutReported"] = true;
         }
-      } catch (e) {
-        console.log("subgraph error", e);
+
+        const { markets } = await getSdk(client).GetMarkets({ where });
+        return markets.map((market) => mapGraphMarket(market));
       }
+
+      throw new Error("Subgraph not available");
     },
+    retry: false,
   });
 };
 

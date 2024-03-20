@@ -2,7 +2,35 @@
 pragma solidity 0.8.20;
 
 import {Market} from "./Market.sol";
-import {IConditionalTokens} from "./Interfaces.sol";
+
+interface IConditionalTokens {
+    function getCollectionId(
+        bytes32 parentCollectionId,
+        bytes32 conditionId,
+        uint indexSet
+    ) external view returns (bytes32);
+
+    function getPositionId(
+        address collateralToken,
+        bytes32 collectionId
+    ) external pure returns (uint);
+
+    function getOutcomeSlotCount(
+        bytes32 conditionId
+    ) external view returns (uint);
+
+    function payoutDenominator(
+        bytes32 conditionId
+    ) external view returns (uint);
+}
+
+interface IERC20 {
+    function totalSupply() external view returns (uint256);
+}
+
+interface IWrappedERC20Factory {
+    function tokens(uint256 tokenId) external view returns (IERC20 token);
+}
 
 interface IMarketFactory {
     function allMarkets() external view returns (address[] memory);
@@ -10,6 +38,10 @@ interface IMarketFactory {
     function conditionalTokens() external view returns (IConditionalTokens);
 
     function realitio() external view returns (IRealityETH_v3_0);
+
+    function wrappedERC20Factory() external view returns (IWrappedERC20Factory);
+
+    function collateralToken() external view returns (address);
 }
 
 interface IRealityETH_v3_0 {
@@ -27,7 +59,9 @@ interface IRealityETH_v3_0 {
         uint256 min_bond;
     }
 
-    function questions(bytes32 question_id) external view returns (Question memory);
+    function questions(
+        bytes32 question_id
+    ) external view returns (Question memory);
 }
 
 contract MarketView {
@@ -35,6 +69,7 @@ contract MarketView {
         address id;
         string marketName;
         string[] outcomes;
+        uint256 outcomesSupply;
         uint256 lowerBound;
         uint256 upperBound;
         bytes32 conditionId;
@@ -45,13 +80,15 @@ contract MarketView {
     }
 
     function getMarket(
-        IConditionalTokens conditionalTokens,
-        IRealityETH_v3_0 realitio,
+        IMarketFactory marketFactory,
         address marketId
     ) public view returns (MarketInfo memory) {
         Market market = Market(marketId);
 
         bytes32 conditionId = market.conditionId();
+
+        IConditionalTokens conditionalTokens = marketFactory
+            .conditionalTokens();
 
         uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(
             conditionId
@@ -59,17 +96,33 @@ contract MarketView {
 
         string[] memory outcomes = new string[](outcomeSlotCount);
 
-        uint256 lowerBound = market.lowerBound();
-        uint256 upperBound = market.upperBound();
+        uint256 outcomesSupply = marketFactory
+            .wrappedERC20Factory()
+            .tokens(
+                conditionalTokens.getPositionId(
+                    marketFactory.collateralToken(),
+                    conditionalTokens.getCollectionId(
+                        bytes32(0),
+                        conditionId,
+                        1
+                    )
+                )
+            )
+            .totalSupply();
 
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
             outcomes[i] = market.outcomes(i);
         }
 
-        uint256 questionsCount = market.getQuestionsCount();
-        IRealityETH_v3_0.Question[] memory questions = new IRealityETH_v3_0.Question[](questionsCount);
-        for (uint256 i = 0; i < questionsCount; i++) {
-            questions[i] = realitio.questions(market.questionsIds(i));
+        IRealityETH_v3_0.Question[]
+            memory questions = new IRealityETH_v3_0.Question[](
+                market.getQuestionsCount()
+            );
+        {
+            IRealityETH_v3_0 realitio = marketFactory.realitio();
+            for (uint256 i = 0; i < questions.length; i++) {
+                questions[i] = realitio.questions(market.questionsIds(i));
+            }
         }
 
         return
@@ -77,13 +130,16 @@ contract MarketView {
                 id: marketId,
                 marketName: market.marketName(),
                 outcomes: outcomes,
-                lowerBound: lowerBound,
-                upperBound: upperBound,
+                outcomesSupply: outcomesSupply,
+                lowerBound: market.lowerBound(),
+                upperBound: market.upperBound(),
                 conditionId: conditionId,
                 questionId: market.questionId(),
                 templateId: market.templateId(),
                 questions: questions,
-                payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0
+                payoutReported: conditionalTokens.payoutDenominator(
+                    conditionId
+                ) > 0
             });
     }
 
@@ -107,8 +163,7 @@ contract MarketView {
 
         for (uint256 j = lastIndex; j >= startIndex; j--) {
             marketsInfo[currentIndex++] = getMarket(
-                marketFactory.conditionalTokens(),
-                marketFactory.realitio(),
+                marketFactory,
                 allMarkets[j]
             );
 

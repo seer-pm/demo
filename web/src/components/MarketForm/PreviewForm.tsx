@@ -78,6 +78,7 @@ export function PreviewForm({
       outcomesValues.unit,
       marketTypeValues.marketType,
     ),
+    outcomesSupply: 0n,
     conditionId: "0x000",
     questionId: "0x000",
     templateId: 2n,

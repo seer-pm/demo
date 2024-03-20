@@ -6,7 +6,7 @@ import { CalendarIcon, CategoryIcon, CheckCircleIcon, DaiLogo, HourGlassIcon, Ri
 import { MarketTypes, getMarketType, getOpeningTime } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { getAnswerText, getRealityLink } from "@/lib/reality";
-import { getTimeLeft } from "@/lib/utils";
+import { displayBalance, getTimeLeft } from "@/lib/utils";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 
@@ -112,52 +112,53 @@ function MarketInfo({
             <HourGlassIcon /> <div>There are outcomes waiting for answers.</div>
           </div>
         )}
-        {showQuestions && market.questions.map((question, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey:
-          <div className="flex items-center space-x-[12px]" key={i}>
-            <div className="flex items-center space-x-2">
-              <HourGlassIcon />
-              {marketType === MarketTypes.MULTI_SCALAR && (
-                <>
-                  <div>{market.outcomes[i]}</div>
-                  <div className="text-black-medium">|</div>
-                </>
+        {showQuestions &&
+          market.questions.map((question, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey:
+            <div className="flex items-center space-x-[12px]" key={i}>
+              <div className="flex items-center space-x-2">
+                <HourGlassIcon />
+                {marketType === MarketTypes.MULTI_SCALAR && (
+                  <>
+                    <div>{market.outcomes[i]}</div>
+                    <div className="text-black-medium">|</div>
+                  </>
+                )}
+                {question.finalize_ts > 0 && (
+                  <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+                )}
+              </div>
+              {question.finalize_ts === 0 && (
+                <a
+                  className="text-purple-primary"
+                  href={getRealityLink(chainId, market.questionId)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Answer on Reality.eth
+                </a>
               )}
               {question.finalize_ts > 0 && (
-                <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+                <>
+                  <div className="text-black-medium">|</div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-black-secondary">
+                      If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on{" "}
+                      <a
+                        className="text-purple-primary"
+                        href={getRealityLink(chainId, market.questionId)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Reality.eth
+                      </a>
+                    </div>
+                    <RightArrow />
+                  </div>
+                </>
               )}
             </div>
-            {question.finalize_ts === 0 && (
-              <a
-                className="text-purple-primary"
-                href={getRealityLink(chainId, market.questionId)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Answer on Reality.eth
-              </a>
-            )}
-            {question.finalize_ts > 0 && (
-              <>
-                <div className="text-black-medium">|</div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-black-secondary">
-                    If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on{" "}
-                    <a
-                      className="text-purple-primary"
-                      href={getRealityLink(chainId, market.questionId)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Reality.eth
-                    </a>
-                  </div>
-                  <RightArrow />
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+          ))}
       </div>
     );
   }
@@ -276,7 +277,8 @@ export function MarketHeader({ market, chainId, isPreview = false }: MarketHeade
             <CategoryIcon /> <div>{MARKET_TYPES_TEXTS[getMarketType(market)]}</div>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-[#999999]">Open interest:</span> <div>15M DAI</div> <DaiLogo />
+            <span className="text-[#999999]">Open interest:</span>{" "}
+            <div>{displayBalance(market.outcomesSupply, 18)} sDAI</div> <DaiLogo />
           </div>
         </div>
         <div className="text-[#00C42B] flex items-center space-x-2">

@@ -17,9 +17,11 @@ export function graphQLClient(chainId: SupportedChain) {
 export function mapGraphMarket(market: GetMarketsQuery["markets"][number]): Market {
   return {
     ...market,
+    id: market.id as `0x${string}`,
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     templateId: BigInt(market.templateId),
+    outcomesSupply: BigInt(market.outcomesSupply),
     index: Number(market.index),
     questions: market.questions.map((marketQuestion) => {
       const question = marketQuestion.question;
