@@ -71,13 +71,7 @@ function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
-          <MarketHeader
-            market={market}
-            chainId={chainId as SupportedChain}
-            showOutcomes={true}
-            outcomesCount={3}
-            key={market.id}
-          />
+          <MarketHeader market={market} chainId={chainId as SupportedChain} isPreview={true} key={market.id} />
         ))}
       </div>
     </div>

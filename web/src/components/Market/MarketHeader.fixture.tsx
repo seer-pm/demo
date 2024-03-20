@@ -68,7 +68,7 @@ export default Object.fromEntries(
     <div className="space-y-5">
       <MarketHeader market={getMarket(f[1])} chainId={100} />
       <div className="max-w-[500px] mx-auto">
-        <MarketHeader market={getMarket(f[1])} chainId={100} showOutcomes={true} />
+        <MarketHeader market={getMarket(f[1])} chainId={100} isPreview={true} />
       </div>
     </div>,
   ]),

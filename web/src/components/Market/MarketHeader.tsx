@@ -13,8 +13,7 @@ import { Link } from "react-router-dom";
 interface MarketHeaderProps {
   market: Market;
   chainId: SupportedChain;
-  showOutcomes?: boolean;
-  outcomesCount?: number;
+  isPreview?: boolean;
 }
 
 export const STATUS_TEXTS: Record<MarketStatus, string> = {
@@ -67,8 +66,9 @@ export const COLORS: Record<MarketStatus, { border: string; bg: string; text: st
 function MarketInfo({
   market,
   marketStatus,
+  isPreview,
   chainId,
-}: { market: Market; marketStatus: MarketStatus; chainId: SupportedChain }) {
+}: { market: Market; marketStatus: MarketStatus; isPreview: boolean; chainId: SupportedChain }) {
   const resolveMarket = useResolveMarket();
 
   const resolveHandler = async () => {
@@ -103,9 +103,16 @@ function MarketInfo({
 
   if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
     const marketType = getMarketType(market);
+    const showQuestions = !isPreview || (isPreview && marketType !== MarketTypes.MULTI_SCALAR);
+
     return (
       <div className="space-y-[5px]">
-        {market.questions.map((question, i) => (
+        {!showQuestions && (
+          <div className="flex items-center space-x-2">
+            <HourGlassIcon /> <div>There are outcomes waiting for answers.</div>
+          </div>
+        )}
+        {showQuestions && market.questions.map((question, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey:
           <div className="flex items-center space-x-[12px]" key={i}>
             <div className="flex items-center space-x-2">
@@ -116,23 +123,39 @@ function MarketInfo({
                   <div className="text-black-medium">|</div>
                 </>
               )}
-              <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+              {question.finalize_ts > 0 && (
+                <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+              )}
             </div>
-            <div className="text-black-medium">|</div>
-            <div className="flex items-center space-x-2">
-              <div className="text-black-secondary">
-                If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on{" "}
-                <a
-                  className="text-purple-primary"
-                  href={getRealityLink(chainId, market.questionId)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Reality.eth
-                </a>
-              </div>
-              <RightArrow />
-            </div>
+            {question.finalize_ts === 0 && (
+              <a
+                className="text-purple-primary"
+                href={getRealityLink(chainId, market.questionId)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Answer on Reality.eth
+              </a>
+            )}
+            {question.finalize_ts > 0 && (
+              <>
+                <div className="text-black-medium">|</div>
+                <div className="flex items-center space-x-2">
+                  <div className="text-black-secondary">
+                    If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on{" "}
+                    <a
+                      className="text-purple-primary"
+                      href={getRealityLink(chainId, market.questionId)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Reality.eth
+                    </a>
+                  </div>
+                  <RightArrow />
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -202,7 +225,7 @@ export function OutcomesInfo({ market, outcomesCount = 0 }: { market: Market; ou
   );
 }
 
-export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCount = 0 }: MarketHeaderProps) {
+export function MarketHeader({ market, chainId, isPreview = false }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
 
   const colors = marketStatus && COLORS[marketStatus];
@@ -229,19 +252,21 @@ export function MarketHeader({ market, chainId, showOutcomes = false, outcomesCo
           <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
         </div>
         <div>
-          <div className={clsx("font-semibold mb-1 text-[16px]", !showOutcomes && "lg:text-[24px]")}>
-            {!showOutcomes && market.marketName}
-            {showOutcomes && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
+          <div className={clsx("font-semibold mb-1 text-[16px]", !isPreview && "lg:text-[24px]")}>
+            {!isPreview && market.marketName}
+            {isPreview && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
           </div>
           <div className={clsx("text-[14px]", colors?.text)}>
-            {market && marketStatus && <MarketInfo market={market} marketStatus={marketStatus} chainId={chainId} />}
+            {market && marketStatus && (
+              <MarketInfo market={market} marketStatus={marketStatus} isPreview={isPreview} chainId={chainId} />
+            )}
           </div>
         </div>
       </div>
 
-      {showOutcomes && (
+      {isPreview && (
         <div className="border-t border-[#E5E5E5] py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={outcomesCount} />
+          <OutcomesInfo market={market} outcomesCount={3} />
         </div>
       )}
 

@@ -112,7 +112,7 @@ export function PreviewForm({
         className="max-w-[644px] bg-purple-medium p-[32px] rounded-[3px] mx-auto"
         style={{ backgroundImage: `url("${svg}")` }}
       >
-        <MarketHeader market={dummyMarket} chainId={DEFAULT_CHAIN} showOutcomes={true} />
+        <MarketHeader market={dummyMarket} chainId={DEFAULT_CHAIN} isPreview={true} />
       </div>
 
       <ButtonsWrapper goToPrevStep={goToPrevStep} isLoading={createMarket.isPending} />
