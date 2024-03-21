@@ -24,6 +24,9 @@ createWeb3Modal({
   wagmiConfig: config,
   projectId: import.meta.env.VITE_WC_PROJECT_ID,
   enableAnalytics: true,
+  themeVariables: {
+    "--w3m-z-index": 1000,
+  },
 });
 
 declare module "wagmi" {

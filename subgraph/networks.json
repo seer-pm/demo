@@ -7,6 +7,10 @@
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
       "startBlock": 32986755
+    },
+    "ConditionalTokens": {
+      "address": "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
+      "startBlock": 32986755
     }
   }
 }

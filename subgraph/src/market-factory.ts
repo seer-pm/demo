@@ -5,6 +5,7 @@ import {
 } from "../generated/MarketFactory/MarketFactory";
 import { Reality } from "../generated/Reality/Reality";
 import {
+  Condition,
   Market,
   MarketQuestion,
   MarketsCount,
@@ -25,9 +26,10 @@ function getNextMarketIndex(): BigInt {
 
 export function handleNewMarket(event: NewMarketEvent): void {
   const marketFactory = MarketFactory.bind(event.address);
-  const market = new Market(event.params.market);
+  const market = new Market(event.params.market.toHexString());
   market.marketName = event.params.marketName;
   market.outcomes = event.params.outcomes;
+  market.outcomesSupply = BigInt.fromI32(0);
   market.lowerBound = event.params.lowerBound;
   market.upperBound = event.params.upperBound;
   market.conditionId = event.params.conditionId;
@@ -53,6 +55,7 @@ export function handleNewMarket(event: NewMarketEvent): void {
     }
 
     const question = new Question(market.questionsIds[i].toHexString());
+    question.index = i;
     question.arbitrator = questionResult.getArbitrator();
     question.opening_ts = questionResult.getOpening_ts();
     question.timeout = questionResult.getTimeout();
@@ -66,7 +69,7 @@ export function handleNewMarket(event: NewMarketEvent): void {
     question.save();
 
     const marketQuestion = new MarketQuestion(
-      market.id.concat(market.questionsIds[i])
+      market.id.concat(market.questionsIds[i].toHexString())
     );
     marketQuestion.market = market.id;
     marketQuestion.question = question.id;
@@ -78,4 +81,8 @@ export function handleNewMarket(event: NewMarketEvent): void {
   market.transactionHash = event.transaction.hash;
 
   market.save();
+
+  const condition = new Condition(market.conditionId.toHexString());
+  condition.market = market.id;
+  condition.save();
 }

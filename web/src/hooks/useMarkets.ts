@@ -4,17 +4,19 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
 import { Market_Filter, getSdk } from "./queries/generated";
-import { Market } from "./useMarket";
+import { Market, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
     queryKey: ["useOnChainMarkets", chainId, marketName, marketStatus],
     queryFn: async () => {
-      const markets = await readMarketViewGetMarkets(config, {
-        args: [BigInt(50), marketFactoryAddress[chainId]],
-        chainId,
-      });
+      const markets = (
+        await readMarketViewGetMarkets(config, {
+          args: [BigInt(50), marketFactoryAddress[chainId]],
+          chainId,
+        })
+      ).map(mapOnChainMarket);
 
       return markets.filter((m) => {
         const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);

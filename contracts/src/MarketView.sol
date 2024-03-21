@@ -76,6 +76,7 @@ contract MarketView {
         bytes32 questionId;
         uint256 templateId;
         IRealityETH_v3_0.Question[] questions;
+        bytes32[] questionsIds;
         bool payoutReported;
     }
 
@@ -118,10 +119,12 @@ contract MarketView {
             memory questions = new IRealityETH_v3_0.Question[](
                 market.getQuestionsCount()
             );
+        bytes32[] memory questionsIds = new bytes32[](questions.length);
         {
             IRealityETH_v3_0 realitio = marketFactory.realitio();
             for (uint256 i = 0; i < questions.length; i++) {
-                questions[i] = realitio.questions(market.questionsIds(i));
+                questionsIds[i] = market.questionsIds(i);
+                questions[i] = realitio.questions(questionsIds[i]);
             }
         }
 
@@ -137,6 +140,7 @@ contract MarketView {
                 questionId: market.questionId(),
                 templateId: market.templateId(),
                 questions: questions,
+                questionsIds: questionsIds,
                 payoutReported: conditionalTokens.payoutDenominator(
                     conditionId
                 ) > 0

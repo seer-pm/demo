@@ -7,7 +7,7 @@ import { Spinner } from "@/components/Spinner";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { CategoryIcon, SearchIcon } from "@/lib/icons";
+import { PlusIcon, SearchIcon } from "@/lib/icons";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
@@ -43,7 +43,7 @@ function MarketsFilter({
       </div>
       <div>
         <Link to={"/create-market"}>
-          <Button text="Create New Market" icon={<CategoryIcon />} />
+          <Button text="Create New Market" icon={<PlusIcon />} />
         </Link>
       </div>
     </div>

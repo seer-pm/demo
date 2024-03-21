@@ -78,8 +78,16 @@ function formatBigNumbers(amount: number) {
   return Math.round(amount);
 }
 
-export function displayBalance(amount: bigint, decimals: number) {
+export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {
   const number = Number(formatUnits(amount, decimals));
 
-  return formatBigNumbers(number);
+  if (formatAmount) {
+    return formatBigNumbers(number);
+  }
+
+  if (number % 1 === 0) {
+    return String(number);
+  }
+
+  return number.toFixed(2);
 }

@@ -163,3 +163,16 @@
         height: 1px;
     }
 }
+
+/* MODAL */
+.modal {
+    &:not(dialog:not(.modal-open)),
+    &::backdrop {
+      background-color: #0006;
+      animation: modal-pop 0.2s ease-out;
+    }
+    .modal-box {
+        --rounded-box: 0;
+        max-width: 600px;
+    }
+  }

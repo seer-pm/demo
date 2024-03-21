@@ -1,7 +1,8 @@
 type Market @entity {
-  id: Bytes!
+  id: ID!
   marketName: String!
   outcomes: [String!]!
+  outcomesSupply: BigInt!
   lowerBound: BigInt!
   upperBound: BigInt!
   conditionId: Bytes!
@@ -28,6 +29,7 @@ type MarketsCount @entity {
 
 type Question @entity {
   id: ID!
+  index: Int!
   arbitrator: Bytes!
   opening_ts: BigInt!
   timeout: BigInt!
@@ -41,7 +43,13 @@ type Question @entity {
 }
 
 type MarketQuestion @entity {
-  id: Bytes!
+  id: ID!
   market: Market!
   question: Question!
+}
+
+type Condition @entity {
+  " Conditional token conditionId "
+  id: ID!
+  market: Market!
 }

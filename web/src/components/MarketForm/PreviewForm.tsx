@@ -87,6 +87,7 @@ export function PreviewForm({
     payoutReported: true,
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
       (_) => ({
+        id: "0x000",
         arbitrator: "0x000",
         opening_ts: openingTime,
         timeout: 129600,

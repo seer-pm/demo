@@ -2,7 +2,7 @@ import { realityAddress } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
 import compareAsc from "date-fns/compareAsc";
 import fromUnixTime from "date-fns/fromUnixTime";
-import { Hex, formatEther, hexToNumber, pad, toHex } from "viem";
+import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 
 export const REALITY_TEMPLATE_UINT = 1;
@@ -58,7 +58,7 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
       (partialSum: number, value: number) => partialSum + 2 ** Number(value),
       0,
     );
-    return pad(toHex(answerChoice), { size: 32 });
+    return numberToHex(answerChoice, { size: 32 });
   }
 
   // single-select
@@ -66,7 +66,7 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
     return outcome as Hex;
   }
 
-  return pad(toHex(Number(outcome)), { size: 32 });
+  return numberToHex(BigInt(outcome), { size: 32 });
 }
 
 function getMultiSelectAnswers(value: number): number[] {
@@ -100,11 +100,11 @@ export function getAnswerText(
     return "Answered too soon";
   }
 
-  const outcomeIndex = hexToNumber(question.best_answer);
-
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return formatEther(BigInt(outcomeIndex));
+    return formatEther(BigInt(question.best_answer));
   }
+
+  const outcomeIndex = hexToNumber(question.best_answer);
 
   if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)

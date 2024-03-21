@@ -1,6 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
-import { formatOutcome, getCurrentBond } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -10,9 +9,8 @@ import { realityAbi, realityAddress } from "./contracts/generated";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;
-  outcome: string;
+  outcome: `0x${string}`;
   currentBond: bigint;
-  minBond: bigint;
   chainId: SupportedChain;
 }
 
@@ -23,8 +21,8 @@ async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceip
         address: realityAddress[props.chainId],
         abi: realityAbi,
         functionName: "submitAnswer",
-        args: [props.questionId, formatOutcome(props.outcome), props.currentBond],
-        value: getCurrentBond(props.currentBond, props.minBond),
+        args: [props.questionId, props.outcome, props.currentBond],
+        value: props.currentBond,
       }),
     {
       txSent: { title: "Sending answer..." },

@@ -7,6 +7,7 @@ import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/gener
 import { getSdk } from "./queries/generated";
 
 export interface Question {
+  id: `0x${string}`;
   arbitrator: Address;
   opening_ts: number;
   timeout: number;
@@ -32,21 +33,36 @@ export interface Market {
   index?: number;
 }
 
+export function mapOnChainMarket(market: Awaited<ReturnType<typeof readMarketViewGetMarket>>) {
+  return {
+    ...market,
+    questions: market.questions.map(
+      (question, i) =>
+        ({
+          id: market.questionsIds[i],
+          ...question,
+        }) as Question,
+    ),
+  };
+}
+
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useOnChainMarket", marketId, chainId],
+    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId],
     queryFn: async () => {
-      return await readMarketViewGetMarket(config, {
-        args: [marketFactoryAddress[chainId], marketId],
-        chainId,
-      });
+      return mapOnChainMarket(
+        await readMarketViewGetMarket(config, {
+          args: [marketFactoryAddress[chainId], marketId],
+          chainId,
+        }),
+      );
     },
   });
 };
 
 const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market, Error>({
-    queryKey: ["useGraphMarket", marketId, chainId],
+    queryKey: ["useMarket", "useGraphMarket", marketId, chainId],
     queryFn: async () => {
       const client = graphQLClient(chainId);
 

@@ -1,5 +1,6 @@
 fragment Question on Question {
   id
+  index
   arbitrator
   opening_ts
   timeout

@@ -16,7 +16,7 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - NewMarket
+        - Market
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
@@ -41,8 +41,7 @@ dataSources:
         - name: Reality
           file: ./abis/Realitiy.json
       entities:
-        - Event
-        - Bet
+        - Market
       eventHandlers:
         - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed address,uint256,uint256,bool)
           handler: handleNewAnswer
@@ -55,3 +54,25 @@ dataSources:
         - event: LogCancelArbitration(indexed bytes32)
           handler: handleCancelArbitration
       file: ./src/reality.ts
+  - kind: ethereum
+    name: ConditionalTokens
+    network: gnosis
+    source:
+      address: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce"
+      abi: ConditionalTokens
+      startBlock: 32986755
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: ConditionalTokens
+          file: ./abis/ConditionalTokens.json
+      entities:
+        - Market
+      eventHandlers:
+        - event: PositionSplit(indexed address,address,indexed bytes32,indexed bytes32,uint256[],uint256)
+          handler: handlePositionSplit
+        - event: PositionsMerge(indexed address,address,indexed bytes32,indexed bytes32,uint256[],uint256)
+          handler: handlePositionMerge
+      file: ./src/conditional-tokens.ts

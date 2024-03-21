@@ -1,4 +1,4 @@
-import { Market } from "@/hooks/useMarket";
+import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { MarketHeader } from "./MarketHeader";
 
@@ -13,43 +13,65 @@ const baseMarket: Market = {
   lowerBound: 0n,
   upperBound: 0n,
   payoutReported: true,
-  questions: [
-    {
-      arbitrator: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
-      opening_ts: 1717192800,
-      timeout: 129600,
-      finalize_ts: 0,
-      is_pending_arbitration: false,
-      best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      bond: 0n,
-      min_bond: 100000000000000000n,
-    },
-  ],
+  questions: [],
 };
 
-function getMarket(marketStatus: MarketStatus) {
-  const market = structuredClone(baseMarket);
+const baseQuestion: Question = {
+  id: "0x000" as `0x${string}`,
+  arbitrator: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
+  opening_ts: 1717192800,
+  timeout: 129600,
+  finalize_ts: 0,
+  is_pending_arbitration: false,
+  best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  bond: 0n,
+  min_bond: 100000000000000000n,
+};
+
+function getQuestion(marketStatus: MarketStatus) {
+  const question = structuredClone(baseQuestion);
 
   if (marketStatus === MarketStatus.NOT_OPEN) {
     // opening_ts in the future
-    market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) + 60 * 60;
+    question.opening_ts = Math.round(new Date().getTime() / 1000) + 60 * 60;
   } else if (marketStatus === MarketStatus.OPEN) {
     // opening_ts in the past
-    market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
+    question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
   } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
     // opening_ts in the past, finalize_ts in the future
-    market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
-    market.questions[0].finalize_ts = Math.round(new Date().getTime() / 1000) + 60 * 60 * 2;
+    question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
+    question.finalize_ts = Math.round(new Date().getTime() / 1000) + 60 * 60 * 2;
   } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
     // opening_ts in the past, finalize_ts in the past, market not solved
-    market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
-    market.questions[0].finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
-    market.payoutReported = false;
+    question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
+    question.finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
   } else if (marketStatus === MarketStatus.CLOSED) {
     // opening_ts in the past, finalize_ts in the past, market solved
-    market.questions[0].opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
-    market.questions[0].finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
+    question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
+    question.finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
+  }
+
+  return question;
+}
+
+function getMarket(marketStatus: MarketStatus, isMultiScalar = false) {
+  const market = {
+    ...structuredClone(baseMarket),
+    questions: [getQuestion(marketStatus)],
+  };
+
+  if (marketStatus === MarketStatus.PENDING_EXECUTION) {
+    // market not solved
+    market.payoutReported = false;
+  } else if (marketStatus === MarketStatus.CLOSED) {
+    // market solved
     market.payoutReported = true;
+  }
+
+  if (isMultiScalar) {
+    market.questions.push(getQuestion(MarketStatus.OPEN));
+    market.questions.push(getQuestion(MarketStatus.CLOSED));
+    market.outcomes = ["One", "Two", "Three"];
   }
 
   return market;
@@ -71,6 +93,15 @@ export default Object.fromEntries(
       <div className="max-w-[500px] mx-auto">
         <MarketHeader market={getMarket(f[1])} chainId={100} isPreview={true} />
       </div>
+
+      {f[1] === MarketStatus.ANSWER_NOT_FINAL && (
+        <>
+          <MarketHeader market={getMarket(f[1], true)} chainId={100} />
+          <div className="max-w-[500px] mx-auto">
+            <MarketHeader market={getMarket(f[1], true)} chainId={100} isPreview={true} />
+          </div>
+        </>
+      )}
     </div>,
   ]),
 );

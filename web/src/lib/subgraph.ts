@@ -23,16 +23,19 @@ export function mapGraphMarket(market: GetMarketsQuery["markets"][number]): Mark
     templateId: BigInt(market.templateId),
     outcomesSupply: BigInt(market.outcomesSupply),
     index: Number(market.index),
-    questions: market.questions.map((marketQuestion) => {
-      const question = marketQuestion.question;
-      return {
-        ...question,
-        opening_ts: Number(question.opening_ts),
-        timeout: Number(question.timeout),
-        finalize_ts: Number(question.finalize_ts),
-        bond: BigInt(question.bond),
-        min_bond: BigInt(question.min_bond),
-      };
-    }),
+    questions: market.questions
+      .map((marketQuestion) => {
+        const question = marketQuestion.question;
+        return {
+          ...question,
+          id: question.id as `0x${string}`,
+          opening_ts: Number(question.opening_ts),
+          timeout: Number(question.timeout),
+          finalize_ts: Number(question.finalize_ts),
+          bond: BigInt(question.bond),
+          min_bond: BigInt(question.min_bond),
+        };
+      })
+      .sort((a, b) => a.index - b.index),
   };
 }
