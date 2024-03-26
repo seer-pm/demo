@@ -1,6 +1,7 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { MarketTypes, getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { Market } from "@/hooks/useMarket";
+import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { localTimeToUtc } from "@/lib/utils";
@@ -16,6 +17,7 @@ import {
   QuestionFormValues,
 } from ".";
 import { Alert } from "../Alert";
+import { DashedBox } from "../DashedBox";
 import { MarketHeader } from "../Market/MarketHeader";
 
 type FormStepPreview = {
@@ -25,6 +27,53 @@ type FormStepPreview = {
   dateValues: DateFormValues;
   chainId: SupportedChain;
 };
+
+interface GetImagesReturn {
+  url: {
+    market: string;
+    outcomes: string[];
+  };
+  file: {
+    market: File;
+    outcomes: File[];
+  };
+}
+
+function getImages(
+  marketType: MarketTypes,
+  questionValues: QuestionFormValues,
+  outcomesValues: OutcomesFormValues,
+): GetImagesReturn | false {
+  if (!questionValues.image) {
+    return false;
+  }
+
+  let outcomesFiles: File[] = [];
+
+  if (marketType === MarketTypes.SCALAR) {
+    // there are no images for outcomes in scalar markets
+  } else {
+    // CATEGORICAL & MULTI_SCALAR
+    const allOutcomesWithImages = outcomesValues.outcomes.every((o) => o.image instanceof File);
+
+    if (!allOutcomesWithImages) {
+      return false;
+    }
+
+    outcomesFiles = outcomesValues.outcomes.map((i) => i.image as File);
+  }
+
+  return {
+    url: {
+      market: URL.createObjectURL(questionValues.image),
+      outcomes: outcomesFiles.map((f) => URL.createObjectURL(f)),
+    },
+    file: {
+      market: questionValues.image,
+      outcomes: outcomesFiles,
+    },
+  };
+}
 
 export function PreviewForm({
   marketTypeValues,
@@ -36,7 +85,12 @@ export function PreviewForm({
 }: FormStepPreview & FormWithPrevStep) {
   const navigate = useNavigate();
 
-  const createMarket = useCreateMarket((receipt: TransactionReceipt) => {
+  const images = getImages(marketTypeValues.marketType, questionValues, outcomesValues);
+  const submitToVerification = images !== false;
+
+  const verifyMarket = useVerifyMarket();
+
+  const createMarket = useCreateMarket(async (receipt: TransactionReceipt) => {
     const marketId = parseEventLogs({
       abi: marketFactoryAbi,
       eventName: "NewMarket",
@@ -44,6 +98,14 @@ export function PreviewForm({
     })?.[0]?.args?.market;
 
     if (marketId) {
+      if (submitToVerification) {
+        await verifyMarket.mutateAsync({
+          marketId,
+          marketImage: images.file.market,
+          outcomesImages: images.file.outcomes,
+        });
+      }
+
       navigate(paths.market(marketId, chainId));
     }
   });
@@ -100,24 +162,25 @@ export function PreviewForm({
     ),
   };
 
-  const svg = `data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='3' ry='3' stroke='%239747FF' stroke-width='2' stroke-dasharray='15%2c 10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e`;
-
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      {createMarket.isError && (
+      {(createMarket.isError || verifyMarket.isError) && (
         <Alert type="error" className="mb-5">
           There was an error while submitting the transaction.
         </Alert>
       )}
 
-      <div
-        className="max-w-[644px] bg-purple-medium p-[32px] rounded-[3px] mx-auto"
-        style={{ backgroundImage: `url("${svg}")` }}
-      >
-        <MarketHeader market={dummyMarket} chainId={DEFAULT_CHAIN} isPreview={true} />
-      </div>
+      <DashedBox className="max-w-[644px] p-[32px] mx-auto">
+        <MarketHeader
+          market={dummyMarket}
+          images={images === false ? undefined : images.url}
+          chainId={DEFAULT_CHAIN}
+          isPreview={true}
+          isVerified={submitToVerification}
+        />
+      </DashedBox>
 
-      <ButtonsWrapper goToPrevStep={goToPrevStep} isLoading={createMarket.isPending} />
+      <ButtonsWrapper goToPrevStep={goToPrevStep} isLoading={createMarket.isPending || verifyMarket.isPending} />
     </form>
   );
 }

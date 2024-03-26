@@ -13,7 +13,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const market = await deployments.get("Market");
-  const arbitrator = await deployments.get("Arbitrator");
+  const realitioArbitrator = await deployments.get("RealitioArbitrator");
   const reality = await deployments.get("Reality");
   const wrappedERC20Factory = await deployments.get("WrappedERC20Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
@@ -24,7 +24,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
     from: deployer,
     args: [
       market.address,
-      arbitrator.address,
+      realitioArbitrator.address,
       reality.address,
       wrappedERC20Factory.address,
       conditionalTokens.address,

@@ -1,9 +1,10 @@
 import { MarketTypes, OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
 import { useEffect, useState } from "react";
-import { FieldErrors, FormProvider, UseFormRegister, useFieldArray } from "react-hook-form";
+import { FieldErrors, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import Input from "../Form/Input";
+import { ImageUpload } from "./Images";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
@@ -11,25 +12,26 @@ interface OutcomeFieldsProps {
   outcomesQuestion: string;
   removeOutcome: (i: number) => void;
   errors: FieldErrors;
-  register: UseFormRegister<OutcomesFormValues>;
+  useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-export function OutcomeFields({
+function OutcomeFields({
   outcomeIndex,
   outcomes,
   outcomesQuestion,
   removeOutcome,
   errors,
-  register,
+  useFormReturn,
 }: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
+  const image = useFormReturn.watch(`outcomes.${outcomeIndex}.image`);
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
       <div className="relative">
         <Input
           autoComplete="off"
-          {...register(`outcomes.${outcomeIndex}.value`, {
+          {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
           })}
           className="w-full"
@@ -50,12 +52,19 @@ export function OutcomeFields({
         </button>
       </div>
 
+      <ImageUpload
+        name={`outcomes.${outcomeIndex}.image`}
+        onDrop={(files) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, files[0], { shouldValidate: true })}
+        control={useFormReturn.control}
+        image={image}
+      />
+
       <div>
         {showCustomToken && (
           <div>
             <Input
               autoComplete="off"
-              {...register(`outcomes.${outcomeIndex}.token`, {
+              {...useFormReturn.register(`outcomes.${outcomeIndex}.token`, {
                 required: "This field is required.",
               })}
               className="w-full"
@@ -104,7 +113,7 @@ export function OutcomesForm({
   }, []);
 
   const addOutcome = () => {
-    return appendOutcome({ value: "", token: "" });
+    return appendOutcome({ value: "", token: "", image: "" });
   };
 
   const hasOutcomes = marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;
@@ -143,7 +152,7 @@ export function OutcomesForm({
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
                         errors={errors}
-                        register={register}
+                        useFormReturn={useFormReturn}
                         outcomesQuestion={outcomesQuestion}
                         outcomes={outcomes}
                       />

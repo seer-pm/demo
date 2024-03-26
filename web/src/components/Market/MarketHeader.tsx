@@ -25,8 +25,10 @@ import { AnswerForm } from "./AnswerForm";
 
 interface MarketHeaderProps {
   market: Market;
+  images?: { market: string; outcomes: string[] };
   chainId: SupportedChain;
   isPreview?: boolean;
+  isVerified?: boolean;
 }
 
 export const STATUS_TEXTS: Record<MarketStatus, string> = {
@@ -123,6 +125,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
 
   if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
     const marketType = getMarketType(market);
+    const isPreviewWithMultiQuestions = isPreview && market.questions.length > 1;
 
     return (
       <div className="space-y-[16px]">
@@ -133,7 +136,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
               className={clsx(
                 "flex items-center space-x-[12px]",
                 marketFinalized && "text-success-primary",
-                isPreview && "flex-wrap",
+                isPreviewWithMultiQuestions && "flex-wrap",
               )}
               key={question.id}
             >
@@ -146,7 +149,9 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
                   </>
                 )}
                 {question.finalize_ts > 0 && (
-                  <div>Answer: {getAnswerText(question, market.outcomes, market.templateId)}</div>
+                  <div className="whitespace-nowrap">
+                    Answer: {getAnswerText(question, market.outcomes, market.templateId)}
+                  </div>
                 )}
               </div>
               {!marketFinalized && question.finalize_ts === 0 && (
@@ -156,7 +161,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
               )}
               {!marketFinalized && question.finalize_ts > 0 && (
                 <>
-                  {!isPreview && <div className="text-black-medium">|</div>}
+                  {!isPreviewWithMultiQuestions && <div className="text-black-medium">|</div>}
                   <div className={clsx("text-black-secondary grow", isPreview && "w-full mt-[5px]")}>
                     <span>
                       If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on
@@ -185,7 +190,9 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
       <div className="flex items-center space-x-2">
         {marketStatus === MarketStatus.PENDING_EXECUTION && <HourGlassIcon />}
         {marketStatus === MarketStatus.CLOSED && <CheckCircleIcon />}
-        <div>Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}</div>
+        <div className="whitespace-nowrap">
+          Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}
+        </div>
       </div>
       <div className="text-black-medium">|</div>
       <div className="flex items-center space-x-2">
@@ -210,7 +217,11 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
   );
 }
 
-export function OutcomesInfo({ market, outcomesCount = 0 }: { market: Market; outcomesCount?: number }) {
+export function OutcomesInfo({
+  market,
+  outcomesCount = 0,
+  images = [],
+}: { market: Market; outcomesCount?: number; images?: string[] }) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
 
   return (
@@ -221,7 +232,11 @@ export function OutcomesInfo({ market, outcomesCount = 0 }: { market: Market; ou
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
             <div className="flex space-x-[12px]">
               <div className="w-[65px]">
-                <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
+                {images?.[i] ? (
+                  <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
+                ) : (
+                  <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
+                )}
               </div>
               <div className="space-y-1">
                 <div>
@@ -288,7 +303,7 @@ function InfoWithModal({
   );
 }
 
-export function MarketHeader({ market, chainId, isPreview = false }: MarketHeaderProps) {
+export function MarketHeader({ market, images, chainId, isPreview = false, isVerified }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
 
@@ -313,7 +328,11 @@ export function MarketHeader({ market, chainId, isPreview = false }: MarketHeade
 
       <div className={clsx("flex space-x-3 p-[24px]", market.questions.length > 1 && "pb-[16px]")}>
         <div>
-          <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+          {images?.market ? (
+            <img src={images.market} alt={market.marketName} className="w-[65px] h-[65px] rounded-full" />
+          ) : (
+            <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+          )}
         </div>
         <div className="grow">
           <div className={clsx("font-semibold mb-1 text-[16px]", !isPreview && "lg:text-[24px]")}>
@@ -354,7 +373,7 @@ export function MarketHeader({ market, chainId, isPreview = false }: MarketHeade
 
       {isPreview && (
         <div className="border-t border-[#E5E5E5] py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={3} />
+          <OutcomesInfo market={market} outcomesCount={3} images={images?.outcomes} />
         </div>
       )}
 
@@ -368,10 +387,12 @@ export function MarketHeader({ market, chainId, isPreview = false }: MarketHeade
             <div>{displayBalance(market.outcomesSupply, 18, true)} sDAI</div> <DaiLogo />
           </div>
         </div>
-        <div className="text-[#00C42B] flex items-center space-x-2">
-          <CheckCircleIcon />
-          <div className="max-lg:hidden">Verified</div>
-        </div>
+        {isVerified && (
+          <div className="text-[#00C42B] flex items-center space-x-2">
+            <CheckCircleIcon />
+            <div className="max-lg:hidden">Verified</div>
+          </div>
+        )}
       </div>
     </div>
   );

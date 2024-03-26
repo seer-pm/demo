@@ -9,6 +9,7 @@ import {
 } from ".";
 import Input from "../Form/Input";
 import Select from "../Form/Select";
+import { ImageUpload } from "./Images";
 
 export function QuestionForm({
   useFormReturn,
@@ -19,7 +20,12 @@ export function QuestionForm({
     register,
     formState: { errors, isValid },
     handleSubmit,
+    setValue,
+    control,
+    watch,
   } = useFormReturn;
+
+  const image = watch("image");
 
   return (
     <FormProvider {...useFormReturn}>
@@ -46,6 +52,15 @@ export function QuestionForm({
             options={MARKET_CATEGORIES}
             className="w-full md:w-2/3"
             errors={errors}
+          />
+        </div>
+
+        <div className="w-full md:w-2/3 mx-auto">
+          <ImageUpload
+            name="image"
+            onDrop={(files) => setValue("image", files[0], { shouldValidate: true })}
+            control={control}
+            image={image}
           />
         </div>
 
