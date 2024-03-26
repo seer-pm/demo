@@ -217,11 +217,12 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
   );
 }
 
-export function OutcomesInfo({
+function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
-}: { market: Market; outcomesCount?: number; images?: string[] }) {
+  marketType
+}: { market: Market; outcomesCount?: number; images?: string[], marketType: MarketTypes }) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
 
   return (
@@ -230,21 +231,21 @@ export function OutcomesInfo({
         {outcomes.map((outcome, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey:
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
-            <div className="flex space-x-[12px]">
-              <div className="w-[65px]">
+            <div className="flex items-center space-x-[12px]">
+              {marketType !== MarketTypes.SCALAR && <div className="w-[65px]">
                 {images?.[i] ? (
                   <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
                 ) : (
                   <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
                 )}
-              </div>
+              </div>}
               <div className="space-y-1">
                 <div>
                   <span className="text-[16px]">
                     #{i + 1} {outcome}
                   </span>
                 </div>
-                <div className="text-[12px] text-[#999999]">xM DAI</div>
+                {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
               </div>
             </div>
             <div className="flex space-x-10 items-center">
@@ -306,7 +307,7 @@ function InfoWithModal({
 export function MarketHeader({ market, images, chainId, isPreview = false, isVerified }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
-
+  const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
   return (
@@ -373,14 +374,14 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
 
       {isPreview && (
         <div className="border-t border-[#E5E5E5] py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={3} images={images?.outcomes} />
+          <OutcomesInfo market={market} outcomesCount={3} images={images?.outcomes} marketType={marketType}/>
         </div>
       )}
 
       <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto">
         <div className="flex items-center space-x-[10px] lg:space-x-6">
           <div className="flex items-center space-x-2">
-            {MARKET_TYPES_ICONS[getMarketType(market)]} <div>{MARKET_TYPES_TEXTS[getMarketType(market)]}</div>
+            {MARKET_TYPES_ICONS[marketType]} <div>{MARKET_TYPES_TEXTS[marketType]}</div>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[#999999]">Open interest:</span>{" "}
