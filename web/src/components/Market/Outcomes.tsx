@@ -1,4 +1,5 @@
 import { Market } from "@/hooks/useMarket";
+import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import clsx from "clsx";
@@ -20,6 +21,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
     market.conditionId,
     market.outcomes.length,
   );
+  const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
 
   if (wrappedAddresses.length === 0) {
     return null;
@@ -66,7 +68,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">50%</div>
+              <div className="text-[24px] font-semibold">{odds?.[i] || 0}%</div>
 
               <input
                 type="radio"

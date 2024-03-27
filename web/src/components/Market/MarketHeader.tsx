@@ -1,7 +1,9 @@
 import { Market, Question } from "@/hooks/useMarket";
+import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain } from "@/lib/chains";
+import { getRouterAddress } from "@/lib/config";
 import {
   CalendarIcon,
   CategoricalIcon,
@@ -221,8 +223,9 @@ function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
-  marketType
-}: { market: Market; outcomesCount?: number; images?: string[], marketType: MarketTypes }) {
+  marketType,
+  odds,
+}: { market: Market; outcomesCount?: number; images?: string[]; marketType: MarketTypes; odds: number[] }) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
 
   return (
@@ -232,13 +235,15 @@ function OutcomesInfo({
           // biome-ignore lint/suspicious/noArrayIndexKey:
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
             <div className="flex items-center space-x-[12px]">
-              {marketType !== MarketTypes.SCALAR && <div className="w-[65px]">
-                {images?.[i] ? (
-                  <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
-                ) : (
-                  <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
-                )}
-              </div>}
+              {marketType !== MarketTypes.SCALAR && (
+                <div className="w-[65px]">
+                  {images?.[i] ? (
+                    <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
+                  ) : (
+                    <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 <div>
                   <span className="text-[16px]">
@@ -249,7 +254,7 @@ function OutcomesInfo({
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">50%</div>
+              <div className="text-[24px] font-semibold">{odds?.[i] || 0}%</div>
             </div>
           </div>
         ))}
@@ -309,6 +314,12 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
+  const { data: odds = [] } = useMarketOdds(
+    chainId,
+    getRouterAddress(chainId),
+    market.conditionId,
+    market.outcomes.length,
+  );
 
   return (
     <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
@@ -374,7 +385,13 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
 
       {isPreview && (
         <div className="border-t border-[#E5E5E5] py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={3} images={images?.outcomes} marketType={marketType}/>
+          <OutcomesInfo
+            market={market}
+            outcomesCount={3}
+            images={images?.outcomes}
+            marketType={marketType}
+            odds={odds}
+          />
         </div>
       )}
 
