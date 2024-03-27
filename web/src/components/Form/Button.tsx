@@ -1,16 +1,17 @@
 import clsx from "clsx";
 import React from "react";
+import { Link, LinkProps } from "react-router-dom";
 
 type ButtonSize = "small" | "large";
 type ButtonVariant = "primary" | "secondary" | "tertiary";
 
-type ButtonProps = {
+type BaseProps = {
   text: string;
   icon?: React.ReactNode;
   isLoading?: boolean;
   size?: ButtonSize;
   variant?: ButtonVariant;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+};
 
 const variants: Record<ButtonVariant, string> = {
   primary: "btn-primary",
@@ -23,15 +24,30 @@ const sizes: Record<ButtonSize, string> = {
   large: "text-[16px] min-w-[140px] h-[45px] min-h-[45px] px-[32px] py-[6px]",
 };
 
-const Button = React.forwardRef<HTMLButtonElement | null, ButtonProps>((props, ref) => {
-  const { text, type, size = "large", variant = "primary", icon, isLoading, ...restProps } = props;
+const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  (props, ref) => {
+    const { text, type, size = "large", variant = "primary", icon, isLoading, ...restProps } = props;
+
+    return (
+      <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
+        {icon || ""}
+        {text} {isLoading && <span className="loading loading-spinner"></span>}
+      </button>
+    );
+  },
+);
+
+const LinkButton = (props: BaseProps & LinkProps) => {
+  const { text, size = "large", variant = "primary", icon, isLoading, className = "", ...restProps } = props;
 
   return (
-    <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
+    <Link {...restProps} className={clsx("btn", variants[variant], sizes[size], className)}>
       {icon || ""}
       {text} {isLoading && <span className="loading loading-spinner"></span>}
-    </button>
+    </Link>
   );
-});
+};
 
 export default Button;
+
+export { LinkButton };

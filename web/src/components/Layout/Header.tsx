@@ -1,9 +1,29 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { BookIcon, BugIcon, EthIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
 import { Bars3Icon } from "@heroicons/react/24/solid";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Header() {
+  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    if (!mobileMenuOpen) {
+      window.document.body.classList.add("overflow-hidden");
+    } else {
+      window.document.body.classList.remove("overflow-hidden");
+    }
+
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      toggleMenu();
+    }
+  }, [location]);
+
   return (
     <header>
       <nav className="navbar justify-between bg-blue-primary px-[24px] text-white">
@@ -13,20 +33,13 @@ export default function Header() {
           </Link>
         </div>
 
-        <div className="dropdown dropdown-end sm:hidden">
-          <button className="btn btn-ghost" type="button">
+        <div className="sm:hidden">
+          <button type="button" onClick={toggleMenu}>
             <Bars3Icon className="h-6 w-6" />
           </button>
-
-          <ul className="dropdown-content z-[1] bg-neutral p-6 rounded-box shadow w-56 gap-2">
-            <li>
-              <Link to={"/"}>Markets</Link>
-            </li>
-            <li>
-              <Link to={"/create-market"}>Create Market</Link>
-            </li>
-          </ul>
         </div>
+
+        {mobileMenuOpen && <MobileMenu />}
 
         <ul className="hidden sm:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center w-1/3">
           <li>
@@ -83,5 +96,27 @@ export default function Header() {
         </ul>
       </nav>
     </header>
+  );
+}
+
+function MobileMenu() {
+  return (
+    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] sm:hidden">
+      <div className="px-[24px] py-[48px]">
+        <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
+        <ul className="space-y-[24px]">
+          <li>
+            <Link to={"/"}>Markets</Link>
+          </li>
+          <li>
+            <Link to={"/create-market"}>Create Market</Link>
+          </li>
+        </ul>
+
+        <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px]">
+          <ConnectWallet />
+        </div>
+      </div>
+    </div>
   );
 }

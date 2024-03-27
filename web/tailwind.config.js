@@ -9,6 +9,7 @@ const COLORS = {
   'purple-medium': '#FBF8FF',
   'purple-light': '#FDFBFF',
 
+  'black': '#000000',
   'black-primary': '#333333',
   'black-secondary': '#999999',
   'black-medium': '#e5e5e5',

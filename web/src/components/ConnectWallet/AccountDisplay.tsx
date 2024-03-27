@@ -2,35 +2,10 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import clsx from "clsx";
 import React from "react";
-import Identicon from "react-identicons";
 import { Address, isAddress } from "viem";
-import { useAccount, useEnsAvatar, useEnsName } from "wagmi";
-
-interface IIdenticonOrAvatar {
-  size?: `${number}`;
-  address?: `0x${string}`;
-}
-
-export const IdenticonOrAvatar: React.FC<IIdenticonOrAvatar> = ({ size = "16", address: propAddress }) => {
-  const { address: defaultAddress } = useAccount();
-  const address = propAddress || defaultAddress;
-
-  const { data: name } = useEnsName({
-    address,
-    chainId: 1,
-  });
-  const { data: avatar } = useEnsAvatar({
-    name: name || "",
-    chainId: 1,
-  });
-
-  return avatar ? (
-    <img src={avatar} alt="avatar" width={size} height={size} />
-  ) : (
-    <Identicon size={size} string={address} />
-  );
-};
+import { useAccount, useEnsName } from "wagmi";
 
 interface IAddressOrName {
   address?: `0x${string}`;
@@ -49,15 +24,16 @@ export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }
     return null;
   }
 
-  return <label>{data ?? (isAddress(address) ? shortenAddress(address) : address)}</label>;
+  return <div>{data ?? (isAddress(address) ? shortenAddress(address) : address)}</div>;
 };
 
 export const ChainDisplay: React.FC = () => {
   const { chain } = useAccount();
-  const { open } = useWeb3Modal();
+
   return (
-    <div className="cursor-pointer" onClick={() => open({ view: "Networks" })}>
-      {chain?.name}
+    <div className="flex space-x-2 items-center">
+      <div className={clsx("w-[8px] h-[8px] rounded-full", chain ? "bg-success-primary" : "bg-error-primary")}></div>
+      <div>{chain?.name}</div>
     </div>
   );
 };
@@ -81,19 +57,22 @@ export const CollateralBalance: React.FC<{ chainId: number; address?: Address }>
   );
 };
 
-const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId }) => {
+const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId: _chainId }) => {
+  const { open } = useWeb3Modal();
   return (
-    <div className="flex space-x-2">
-      <div className="flex space-x-2 items-center">
-        <IdenticonOrAvatar size="20" />
-        <AddressOrName />
-      </div>
+    <div
+      className="flex space-x-2 text-[14px] bg-blue-light text-black rounded-[300px] px-[16px] py-[5px] cursor-pointer"
+      onClick={() => open({ view: "Account" })}
+    >
       <div>
         <ChainDisplay />
       </div>
-      <div>
-        <CollateralBalance chainId={chainId} />
+      <div className="flex space-x-2 items-center text-black-secondary">
+        <AddressOrName />
       </div>
+      {/*<div>
+        <CollateralBalance chainId={chainId} />
+  </div>*/}
     </div>
   );
 };

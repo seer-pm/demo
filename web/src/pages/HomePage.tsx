@@ -1,5 +1,5 @@
 import { Alert } from "@/components/Alert";
-import Button from "@/components/Form/Button";
+import { LinkButton } from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import Select from "@/components/Form/Select";
 import { MarketHeader, STATUS_TEXTS } from "@/components/Market/MarketHeader";
@@ -9,7 +9,6 @@ import { useMarkets } from "@/hooks/useMarkets";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { PlusIcon, SearchIcon } from "@/lib/icons";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 function MarketsFilter({
@@ -34,17 +33,15 @@ function MarketsFilter({
   };
 
   return (
-    <div className="flex space-x-[24px]">
+    <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px]">
       <div className="grow">
         <Input placeholder="Search" className="w-full" icon={<SearchIcon />} onKeyUp={marketNameCallback} />
       </div>
       <div>
-        <Select options={status} onChange={marketStatusCallback} />
+        <Select options={status} onChange={marketStatusCallback} className="w-full" />
       </div>
       <div>
-        <Link to={"/create-market"}>
-          <Button text="Create New Market" icon={<PlusIcon />} />
-        </Link>
+        <LinkButton to={"/create-market"} text="Create New Market" icon={<PlusIcon />} className="max-lg:w-full" />
       </div>
     </div>
   );
@@ -57,7 +54,7 @@ function Home() {
   const { data: markets = [], isPending } = useMarkets(chainId as SupportedChain, marketName, marketStatus);
 
   return (
-    <div className="max-w-[1184px] mx-auto py-[65px] space-y-[48px]">
+    <div className="max-w-[1184px] mx-auto py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px] px-10">
       <div className="text-[24px] font-semibold">Markets</div>
       <MarketsFilter setMarketName={setMarketName} setMarketStatus={setMarketStatus} />
 
