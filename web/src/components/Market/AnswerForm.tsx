@@ -32,17 +32,19 @@ export function AnswerForm({ market, marketStatus, question, closeModal, chainId
   const currentBond = getCurrentBond(question.bond, question.min_bond);
   const hasEnoughBalance = balance.value > currentBond;
 
-  const {
-    register,
-    reset,
-    formState: { errors, isValid },
-    handleSubmit,
-  } = useForm<AnswerFormValues>({
+  const useFormReturn = useForm<AnswerFormValues>({
     mode: "all",
     defaultValues: {
       outcome: "",
     },
   });
+
+  const {
+    register,
+    reset,
+    formState: { isValid },
+    handleSubmit,
+  } = useFormReturn;
 
   const submitAnswer = useSubmitAnswer((/*receipt: TransactionReceipt*/) => {
     reset();
@@ -121,7 +123,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, chainId
               required: "This field is required.",
             })}
             className="w-full"
-            errors={errors}
+            useFormReturn={useFormReturn}
             type="number"
           />
         </div>
@@ -135,7 +137,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, chainId
               required: "This field is required.",
             })}
             className="w-full"
-            errors={errors}
+            useFormReturn={useFormReturn}
           />
         </div>
       )}

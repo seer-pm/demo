@@ -1,7 +1,7 @@
 import { MarketTypes, OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
 import { useEffect, useState } from "react";
-import { FieldErrors, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
+import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import Input from "../Form/Input";
 import { ImageUpload } from "./Images";
@@ -11,20 +11,13 @@ interface OutcomeFieldsProps {
   outcomes: OutcomesFormValues["outcomes"];
   outcomesQuestion: string;
   removeOutcome: (i: number) => void;
-  errors: FieldErrors;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-function OutcomeFields({
-  outcomeIndex,
-  outcomes,
-  outcomesQuestion,
-  removeOutcome,
-  errors,
-  useFormReturn,
-}: OutcomeFieldsProps) {
+function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
   const image = useFormReturn.watch(`outcomes.${outcomeIndex}.image`);
+
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
@@ -35,7 +28,7 @@ function OutcomeFields({
             required: "This field is required.",
           })}
           className="w-full"
-          errors={errors}
+          useFormReturn={useFormReturn}
           helpText={
             outcomesQuestion &&
             outcomes[outcomeIndex].value &&
@@ -68,7 +61,7 @@ function OutcomeFields({
                 required: "This field is required.",
               })}
               className="w-full"
-              errors={errors}
+              useFormReturn={useFormReturn}
             />
           </div>
         )}
@@ -94,7 +87,7 @@ export function OutcomesForm({
   const {
     control,
     register,
-    formState: { errors, isValid },
+    formState: { isValid },
     handleSubmit,
     watch,
   } = useFormReturn;
@@ -135,7 +128,7 @@ export function OutcomesForm({
                   required: "This field is required.",
                 })}
                 className="w-full md:w-2/3"
-                errors={errors}
+                useFormReturn={useFormReturn}
                 helpText={`Each outcome will have their own question. Use ${OUTCOME_PLACEHOLDER} to replace the outcome value in the question.`}
               />
             </div>
@@ -151,7 +144,6 @@ export function OutcomesForm({
                         key={outcomeField.id}
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
-                        errors={errors}
                         useFormReturn={useFormReturn}
                         outcomesQuestion={outcomesQuestion}
                         outcomes={outcomes}
@@ -191,7 +183,7 @@ export function OutcomesForm({
                       },
                     })}
                     className="w-full"
-                    errors={errors}
+                    useFormReturn={useFormReturn}
                   />
                 </div>
               </div>
@@ -215,7 +207,7 @@ export function OutcomesForm({
                       },
                     })}
                     className="w-full"
-                    errors={errors}
+                    useFormReturn={useFormReturn}
                   />
                 </div>
               </div>
@@ -229,7 +221,7 @@ export function OutcomesForm({
                       required: "This field is required.",
                     })}
                     className="w-full"
-                    errors={errors}
+                    useFormReturn={useFormReturn}
                   />
                 </div>
               </div>

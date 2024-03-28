@@ -23,21 +23,23 @@ interface SplitFormProps {
 }
 
 export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCount }: SplitFormProps) {
-  const {
-    register,
-    reset,
-    formState: { errors, isValid },
-    handleSubmit,
-    watch,
-    trigger,
-    setValue,
-  } = useForm<SplitFormValues>({
+  const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
       amount: 0,
       useAltCollateral: false,
     },
   });
+
+  const {
+    register,
+    reset,
+    formState: { isValid },
+    handleSubmit,
+    watch,
+    trigger,
+    setValue,
+  } = useFormReturn;
 
   const useAltCollateral = watch("useAltCollateral");
 
@@ -102,7 +104,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
             },
           })}
           className="w-full"
-          errors={errors}
+          useFormReturn={useFormReturn}
         />
       </div>
 

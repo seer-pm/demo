@@ -26,20 +26,22 @@ interface MergeFormProps {
 export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
   const { data: positions = [] } = useUserPositions(account, chainId, router, conditionId, outcomeSlotCount);
 
-  const {
-    register,
-    reset,
-    formState: { errors, isValid },
-    handleSubmit,
-    watch,
-    trigger,
-    setValue,
-  } = useForm<MergeFormValues>({
+  const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
       amount: 0,
     },
   });
+
+  const {
+    register,
+    reset,
+    formState: { isValid },
+    handleSubmit,
+    watch,
+    trigger,
+    setValue,
+  } = useFormReturn;
 
   const useAltCollateral = watch("useAltCollateral");
 
@@ -113,7 +115,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
             },
           })}
           className="w-full"
-          errors={errors}
+          useFormReturn={useFormReturn}
         />
       </div>
 

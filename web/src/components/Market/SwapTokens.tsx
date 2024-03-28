@@ -42,15 +42,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
-  const {
-    register,
-    reset,
-    formState: { errors, isValid },
-    handleSubmit,
-    watch,
-    setValue,
-    trigger,
-  } = useForm<SwapFormValues>({
+  const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
       type: "buy",
@@ -58,6 +50,16 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
       useAltCollateral: false,
     },
   });
+
+  const {
+    register,
+    reset,
+    formState: { isValid },
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+  } = useFormReturn;
 
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
 
@@ -148,7 +150,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
             },
           })}
           className="w-full"
-          errors={errors}
+          useFormReturn={useFormReturn}
         />
       </div>
 

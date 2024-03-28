@@ -12,7 +12,7 @@ export default function FormError({ name, errors }: FormErrorProps) {
   }
 
   return (
-    <div className="mt-2 text-sm text-red-600 dark:text-red-500">
+    <div className="my-2 text-sm text-error-primary text-left">
       <ErrorMessage errors={errors} name={name} />
     </div>
   );

@@ -18,7 +18,7 @@ export function QuestionForm({
 }: FormStepProps<QuestionFormValues> & FormWithPrevStep & FormWithNextStep) {
   const {
     register,
-    formState: { errors, isValid },
+    formState: { isValid },
     handleSubmit,
     setValue,
     control,
@@ -29,7 +29,7 @@ export function QuestionForm({
 
   return (
     <FormProvider {...useFormReturn}>
-      <form onSubmit={handleSubmit(goToNextStep)} className="space-y-[32px]">
+      <form onSubmit={handleSubmit(goToNextStep)} className="space-y-[32px] md:w-2/3 mx-auto">
         <div>
           <div className="text-[24px] font-semibold mb-[32px]">Question</div>
           <Input
@@ -37,8 +37,8 @@ export function QuestionForm({
             {...register("market", {
               required: "This field is required.",
             })}
-            className="w-full md:w-2/3"
-            errors={errors}
+            className="w-full"
+            useFormReturn={useFormReturn}
           />
         </div>
 
@@ -50,12 +50,12 @@ export function QuestionForm({
               required: "This field is required.",
             })}
             options={MARKET_CATEGORIES}
-            className="w-full md:w-2/3"
-            errors={errors}
+            className="w-full"
+            useFormReturn={useFormReturn}
           />
         </div>
 
-        <div className="w-full md:w-2/3 mx-auto">
+        <div className="w-full mx-auto">
           <ImageUpload
             name="image"
             onDrop={(files) => setValue("image", files[0], { shouldValidate: true })}

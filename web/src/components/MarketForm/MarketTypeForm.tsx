@@ -9,11 +9,12 @@ export function MarketTypeForm({
 }: FormStepProps<MarketTypeFormValues> & FormWithNextStep) {
   const {
     register,
-    formState: { errors, isValid },
+    formState: { isValid },
     handleSubmit,
   } = useFormReturn;
 
   const MARKET_TYPES_OPTIONS = [
+    { value: "", text: "" },
     { value: MarketTypes.CATEGORICAL, text: "Categorical" },
     { value: MarketTypes.SCALAR, text: "Scalar" },
     { value: MarketTypes.MULTI_SCALAR, text: "Multi Scalar" },
@@ -21,7 +22,7 @@ export function MarketTypeForm({
 
   return (
     <FormProvider {...useFormReturn}>
-      <form onSubmit={handleSubmit(goToNextStep)} className="space-y-[32px]">
+      <form onSubmit={handleSubmit(goToNextStep)} className="space-y-[32px] md:w-2/3 mx-auto">
         <div>
           <div className="text-[24px] font-semibold mb-[32px]">Type</div>
           <Select
@@ -30,8 +31,8 @@ export function MarketTypeForm({
               required: "This field is required.",
               valueAsNumber: true,
             })}
-            className="w-full md:w-2/3"
-            errors={errors}
+            className="w-full"
+            useFormReturn={useFormReturn}
           />
         </div>
 

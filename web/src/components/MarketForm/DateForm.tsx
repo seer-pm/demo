@@ -9,7 +9,7 @@ export function DateForm({
 }: FormStepProps<DateFormValues> & FormWithPrevStep & FormWithNextStep) {
   const {
     register,
-    formState: { errors, isValid },
+    formState: { isValid },
     handleSubmit,
   } = useFormReturn;
 
@@ -30,7 +30,7 @@ export function DateForm({
             })}
             type="datetime-local"
             className="w-full"
-            errors={errors}
+            useFormReturn={useFormReturn}
           />
         </div>
 
