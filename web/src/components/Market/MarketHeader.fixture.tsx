@@ -41,6 +41,11 @@ function getQuestion(marketStatus: MarketStatus) {
     // opening_ts in the past, finalize_ts in the future
     question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
     question.finalize_ts = Math.round(new Date().getTime() / 1000) + 60 * 60 * 2;
+  } else if (marketStatus === MarketStatus.IN_DISPUTE) {
+    // opening_ts in the past, finalize_ts in the future, question pending arbitration
+    question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
+    question.finalize_ts = Math.round(new Date().getTime() / 1000) + 60 * 60 * 2;
+    question.is_pending_arbitration = true;
   } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
     // opening_ts in the past, finalize_ts in the past, market not solved
     question.opening_ts = Math.round(new Date().getTime() / 1000) - 60 * 60;
@@ -81,6 +86,7 @@ const FIXTURE: [string, MarketStatus][] = [
   ["Not Open", MarketStatus.NOT_OPEN],
   ["Open", MarketStatus.OPEN],
   ["Answer Not Final", MarketStatus.ANSWER_NOT_FINAL],
+  ["In Dispute", MarketStatus.IN_DISPUTE],
   ["Pending Execution", MarketStatus.PENDING_EXECUTION],
   ["Closed", MarketStatus.CLOSED],
 ];

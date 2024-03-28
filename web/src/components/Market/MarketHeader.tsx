@@ -37,6 +37,7 @@ export const STATUS_TEXTS: Record<MarketStatus, string> = {
   [MarketStatus.NOT_OPEN]: "Market not open yet",
   [MarketStatus.OPEN]: "Market open",
   [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",
+  [MarketStatus.IN_DISPUTE]: "In Dispute",
   [MarketStatus.PENDING_EXECUTION]: "Pending execution",
   [MarketStatus.CLOSED]: "Closed",
 };
@@ -72,6 +73,12 @@ export const COLORS: Record<MarketStatus, ColorConfig> = {
     bg: "bg-warning-light",
     text: "text-warning-primary",
     dot: "bg-warning-primary",
+  },
+  [MarketStatus.IN_DISPUTE]: {
+    border: "border-t-blue-secondary",
+    bg: "bg-blue-light",
+    text: "text-blue-secondary",
+    dot: "bg-blue-secondary",
   },
   [MarketStatus.PENDING_EXECUTION]: {
     border: "border-t-tint-blue-primary",
@@ -190,7 +197,9 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
   return (
     <div className="flex items-center space-x-[12px]">
       <div className="flex items-center space-x-2">
-        {marketStatus === MarketStatus.PENDING_EXECUTION && <HourGlassIcon />}
+        {(marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.IN_DISPUTE) && (
+          <HourGlassIcon />
+        )}
         {marketStatus === MarketStatus.CLOSED && <CheckCircleIcon />}
         <div className="whitespace-nowrap">
           Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}
@@ -203,7 +212,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
             Report Answer
           </div>
         )}
-        {marketStatus === MarketStatus.CLOSED && (
+        {(marketStatus === MarketStatus.CLOSED || marketStatus === MarketStatus.IN_DISPUTE) && (
           <a
             className="text-purple-primary"
             href={getRealityLink(chainId, market.questionId)}
@@ -215,6 +224,17 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
         )}
         <RightArrow />
       </div>
+      {marketStatus === MarketStatus.IN_DISPUTE && (
+        <>
+          <div className="text-black-medium">|</div>
+          <div className="flex items-center space-x-2">
+            <a className="text-purple-primary" href={"#"} target="_blank" rel="noreferrer">
+              Check the case on Kleros Court
+            </a>
+            <RightArrow />
+          </div>
+        </>
+      )}
     </div>
   );
 }

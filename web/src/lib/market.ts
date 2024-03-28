@@ -15,6 +15,12 @@ export function hasAllUnansweredQuestions(market: Market) {
   });
 }
 
+export function isInDispute(market: Market) {
+  return market.questions.some((question) => {
+    return question.is_pending_arbitration;
+  });
+}
+
 export function isWaitingResults(market: Market) {
   return market.questions.some((question) => {
     return question.finalize_ts === 0 || !isFinalized(question);
