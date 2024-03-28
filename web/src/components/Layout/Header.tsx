@@ -59,7 +59,7 @@ export default function Header() {
               <div tabIndex={0} role="button">
                 <QuestionIcon />
               </div>
-              <ul className="dropdown-content z-[1] px-[16px] py-[23px] shadow bg-base-100 rounded-[3px] w-[248px] text-black text-[16px] space-y-[23px] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary">
                 <li className="flex space-x-2 items-center">
                   <TelegramIcon />{" "}
                   <a href="#" target="_blank" rel="noopener noreferrer">

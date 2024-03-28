@@ -3,7 +3,7 @@ import { graphQLClient, mapGraphMarket } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
-import { Market_Filter, getSdk } from "./queries/generated";
+import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
 import { Market, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 
@@ -26,9 +26,14 @@ export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, m
   });
 };
 
-export const useGraphMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+export const useGraphMarkets = (
+  chainId: SupportedChain,
+  marketName: string,
+  marketStatus: MarketStatus | "",
+  orderBy: Market_OrderBy,
+) => {
   return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainId, marketName, marketStatus],
+    queryKey: ["useGraphMarkets", chainId, marketName, marketStatus, orderBy],
     queryFn: async () => {
       const client = graphQLClient(chainId);
 
@@ -54,7 +59,7 @@ export const useGraphMarkets = (chainId: SupportedChain, marketName: string, mar
           where["payoutReported"] = true;
         }
 
-        const { markets } = await getSdk(client).GetMarkets({ where });
+        const { markets } = await getSdk(client).GetMarkets({ where, orderBy, orderDirection: OrderDirection.Desc });
         return markets.map((market) => mapGraphMarket(market));
       }
 
@@ -64,9 +69,14 @@ export const useGraphMarkets = (chainId: SupportedChain, marketName: string, mar
   });
 };
 
-export const useMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+export const useMarkets = (
+  chainId: SupportedChain,
+  marketName: string,
+  marketStatus: MarketStatus | "",
+  orderBy: Market_OrderBy,
+) => {
   const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
-  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus);
+  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, orderBy);
 
   if (marketName || marketStatus) {
     // we only filter using the subgraph

@@ -16,7 +16,11 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
     <>
       <div className="relative">
         {icon && <div className="absolute left-[16px] top-0 bottom-0 flex items-center">{icon}</div>}
-        <input {...restProps} className={clsx("input input-bordered", className, icon && "pl-[40px]")} ref={ref} />
+        <input
+          {...restProps}
+          className={clsx("input input-bordered bg-white", className, icon && "pl-[40px]")}
+          ref={ref}
+        />
       </div>
       {helpText && <p className="text-accent-content text-[12px] mt-2">{helpText}</p>}
       <FormError errors={errors} name={props.name} />
