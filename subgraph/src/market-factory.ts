@@ -11,6 +11,7 @@ import {
   MarketsCount,
   Question,
 } from "../generated/schema";
+import { DEFAULT_FINALIZE_TS } from "./reality";
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");
@@ -39,7 +40,7 @@ export function handleNewMarket(event: NewMarketEvent): void {
   market.encodedQuestions = event.params.encodedQuestions;
   market.payoutReported = false;
   market.openingTs = BigInt.fromI32(0);
-  market.finalizeTs = BigInt.fromI32(0);
+  market.finalizeTs = DEFAULT_FINALIZE_TS;
   market.questionsInArbitration = BigInt.fromI32(0);
   market.hasAnswers = false;
   market.index = getNextMarketIndex();

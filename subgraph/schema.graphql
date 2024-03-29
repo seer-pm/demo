@@ -17,6 +17,7 @@ type Market @entity {
   questions: [MarketQuestion!]! @derivedFrom(field: "market")
   openingTs: BigInt!
   hasAnswers: Boolean!
+  " finalizeTs is equal to 33260976000 (random big number) if there is any unanswered question, otherwise it contains the finalizeTs value of the lattest question. This allows us to filter multi scalar markets using `finalizeTs > now` for markets with pending answers, and `finalizeTs < now` for markets with pending execution "
   finalizeTs: BigInt!
   questionsInArbitration: BigInt!
   index: BigInt!

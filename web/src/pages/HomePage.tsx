@@ -34,6 +34,7 @@ function MarketsFilter({
     { value: MarketStatus.NOT_OPEN, text: STATUS_TEXTS[MarketStatus.NOT_OPEN] },
     { value: MarketStatus.OPEN, text: STATUS_TEXTS[MarketStatus.OPEN] },
     { value: MarketStatus.ANSWER_NOT_FINAL, text: STATUS_TEXTS[MarketStatus.ANSWER_NOT_FINAL] },
+    { value: MarketStatus.IN_DISPUTE, text: STATUS_TEXTS[MarketStatus.IN_DISPUTE] },
     { value: MarketStatus.PENDING_EXECUTION, text: STATUS_TEXTS[MarketStatus.PENDING_EXECUTION] },
     { value: MarketStatus.CLOSED, text: STATUS_TEXTS[MarketStatus.CLOSED] },
   ];

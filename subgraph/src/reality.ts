@@ -8,6 +8,25 @@ import {
 } from "../generated/Reality/Reality";
 import { Question, Market } from "../generated/schema";
 
+export const DEFAULT_FINALIZE_TS = BigInt.fromI64(33260976000);
+
+function getFinalizeTs(market: Market): BigInt {
+  const questions = market.questions.load();
+  let finalizeTs = BigInt.fromI32(0)
+
+  for (let j = 0; j < questions.length; j++) {
+    const question = Question.load(questions[j].question)!;
+    if (question.finalize_ts.equals(BigInt.fromI32(0))) {
+      return DEFAULT_FINALIZE_TS;
+    }
+    if (question.finalize_ts.gt(finalizeTs)) {
+      finalizeTs = question.finalize_ts;
+    }
+  }
+
+  return finalizeTs;
+}
+
 export function handleNewAnswer(evt: LogNewAnswer): void {
   let question = Question.load(evt.params.question_id.toHexString());
   if (question === null) {
@@ -26,9 +45,7 @@ export function handleNewAnswer(evt: LogNewAnswer): void {
     const market = Market.load(markets[i].market)!;
 
     market.hasAnswers = true;
-    if (question.finalize_ts.gt(market.finalizeTs)) {
-      market.finalizeTs = question.finalize_ts;
-    }
+    market.finalizeTs = getFinalizeTs(market)
     market.save();
   }
 }

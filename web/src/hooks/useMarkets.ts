@@ -51,8 +51,9 @@ export const useGraphMarkets = (
           where["openingTs_lt"] = now;
           where["hasAnswers"] = true;
           where["finalizeTs_gt"] = now;
+        } else if (marketStatus === MarketStatus.IN_DISPUTE) {
+          where["questionsInArbitration_gt"] = '0';
         } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
-          where["finalizeTs_gt"] = "0";
           where["finalizeTs_lt"] = now;
           where["payoutReported"] = false;
         } else if (marketStatus === MarketStatus.CLOSED) {
