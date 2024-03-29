@@ -34,7 +34,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
   const {
     register,
     reset,
-    formState: { isValid },
+    formState: { isValid, dirtyFields },
     handleSubmit,
     watch,
     trigger,
@@ -51,7 +51,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   useEffect(() => {
-    trigger("amount");
+    dirtyFields['amount'] && trigger("amount");
   }, [balance]);
 
   const splitPosition = useSplitPosition((/*receipt: TransactionReceipt*/) => {

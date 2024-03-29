@@ -54,7 +54,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const {
     register,
     reset,
-    formState: { isValid },
+    formState: { isValid, dirtyFields },
     handleSubmit,
     watch,
     setValue,
@@ -70,7 +70,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const { data: balance = BigInt(0) } = useTokenBalance(account, sellToken.address);
 
   useEffect(() => {
-    trigger("amount");
+    dirtyFields['amount'] && trigger("amount");
   }, [balance]);
 
   const swapTokens = useSwapTokens((/*orderId: string*/) => {

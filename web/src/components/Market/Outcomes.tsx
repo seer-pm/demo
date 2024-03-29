@@ -49,7 +49,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
               activeOutcome === i ? "border-[#9747FF]" : "border-[#E5E5E5]",
             )}
           >
-            <div className="flex space-x-[12px]">
+            <div className="flex items-center space-x-[12px]">
               <div>
                 <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
               </div>
@@ -64,7 +64,7 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
                     #{i + 1} {market.outcomes[i]}
                   </a>
                 </div>
-                <div className="text-[12px] text-[#999999]">xM DAI</div>
+                {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
               </div>
             </div>
             <div className="flex space-x-10 items-center">
