@@ -51,8 +51,8 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   useEffect(() => {
-    dirtyFields['amount'] && trigger("amount");
-  }, [balance]);
+    dirtyFields["amount"] && trigger("amount");
+  }, [balance, useAltCollateral]);
 
   const splitPosition = useSplitPosition((/*receipt: TransactionReceipt*/) => {
     reset();
@@ -79,15 +79,19 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
           <div className="text-[14px]">Amount</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() => setValue("amount", Number(formatUnits(balance, selectedCollateral.decimals)))}
+            onClick={() =>
+              setValue("amount", Number(formatUnits(balance, selectedCollateral.decimals)), {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           >
             Max
           </div>
         </div>
         <Input
           autoComplete="off"
-          type="number"
-          step="any"
+          type="text"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,

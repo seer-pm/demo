@@ -52,7 +52,7 @@ export const useGraphMarkets = (
           where["hasAnswers"] = true;
           where["finalizeTs_gt"] = now;
         } else if (marketStatus === MarketStatus.IN_DISPUTE) {
-          where["questionsInArbitration_gt"] = '0';
+          where["questionsInArbitration_gt"] = "0";
         } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
           where["finalizeTs_lt"] = now;
           where["payoutReported"] = false;

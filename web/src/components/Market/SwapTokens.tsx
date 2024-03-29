@@ -70,7 +70,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const { data: balance = BigInt(0) } = useTokenBalance(account, sellToken.address);
 
   useEffect(() => {
-    dirtyFields['amount'] && trigger("amount");
+    dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
   const swapTokens = useSwapTokens((/*orderId: string*/) => {
@@ -125,15 +125,19 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
           <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() => setValue("amount", Number(formatUnits(balance, sellToken.decimals)))}
+            onClick={() =>
+              setValue("amount", Number(formatUnits(balance, sellToken.decimals)), {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           >
             Max
           </div>
         </div>
         <Input
           autoComplete="off"
-          type="number"
-          step="any"
+          type="text"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,

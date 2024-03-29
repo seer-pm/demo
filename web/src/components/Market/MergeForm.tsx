@@ -53,7 +53,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   useEffect(() => {
-    dirtyFields['amount'] && trigger("amount");
+    dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
   const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
@@ -90,15 +90,19 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
           <div className="text-[14px]">Amount</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() => setValue("amount", Number(formatUnits(minPositionAmount, selectedCollateral.decimals)))}
+            onClick={() =>
+              setValue("amount", Number(formatUnits(minPositionAmount, selectedCollateral.decimals)), {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           >
             Max
           </div>
         </div>
         <Input
           autoComplete="off"
-          type="number"
-          step="any"
+          type="text"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,
