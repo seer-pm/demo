@@ -15,7 +15,7 @@ export function localTimeToUtc(utcTime: Date | string | number) {
   }
 
   const tzOffset = utcTime.getTimezoneOffset() * 60000;
-  return new Date(utcTime.getTime() + tzOffset);
+  return new Date(utcTime.getTime() - tzOffset);
 }
 
 export function formatDate(timestamp: number) {
