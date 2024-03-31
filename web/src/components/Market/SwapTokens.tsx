@@ -1,4 +1,5 @@
 import { useCalculateSwap } from "@/hooks/useCalculateSwap";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { useSwapTokens } from "@/hooks/useSwapTokens";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
@@ -15,7 +16,7 @@ import AltCollateralSwitch from "./AltCollateralSwitch";
 
 interface SwapFormValues {
   type: "buy" | "sell";
-  amount: number;
+  amount: string;
   useAltCollateral: boolean;
 }
 
@@ -42,11 +43,13 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
+  const { addPendingOrder } = useGlobalState();
+
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
       type: "buy",
-      amount: 0,
+      amount: "0",
       useAltCollateral: false,
     },
   });
@@ -73,7 +76,8 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
-  const swapTokens = useSwapTokens((/*orderId: string*/) => {
+  const swapTokens = useSwapTokens(async (orderId: string) => {
+    addPendingOrder(orderId);
     reset();
   });
 
@@ -125,12 +129,12 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
           <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() =>
-              setValue("amount", Number(formatUnits(balance, sellToken.decimals)), {
+            onClick={() => {
+              setValue("amount", formatUnits(balance, sellToken.decimals), {
                 shouldValidate: true,
                 shouldDirty: true,
-              })
-            }
+              });
+            }}
           >
             Max
           </div>
@@ -140,13 +144,14 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
           type="text"
           {...register("amount", {
             required: "This field is required.",
-            valueAsNumber: true,
             validate: (v) => {
               if (Number.isNaN(Number(v)) || Number(v) <= 0) {
                 return "Amount must be greater than 0.";
               }
 
-              if (parseUnits(String(v), sellToken.decimals) > balance) {
+              const val = parseUnits(v, sellToken.decimals);
+
+              if (val > balance) {
                 return "Not enough balance.";
               }
 

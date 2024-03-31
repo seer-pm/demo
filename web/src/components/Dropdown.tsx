@@ -16,6 +16,7 @@ export function Dropdown({ options, value, onClick }: DropdownProps) {
       <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] bg-base-100 rounded-box text-left w-52">
         {options.map((option) => (
           <li
+            key={option.value}
             className={clsx(
               "px-[15px] py-[10px]",
               option.value === value && "active border-l-[3px] border-l-purple-primary",

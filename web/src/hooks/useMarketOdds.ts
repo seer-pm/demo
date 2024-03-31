@@ -1,11 +1,5 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import {
-  BuyTokenDestination,
-  OrderBookApi,
-  OrderQuoteSideKindSell,
-  PriceQuality,
-  SellTokenSource,
-} from "@cowprotocol/cow-sdk";
+import { OrderBookApi, OrderQuoteSideKindSell, PriceQuality } from "@cowprotocol/cow-sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits, parseUnits } from "viem";
 import { useWrappedAddresses } from "./useWrappedAddresses";
@@ -45,8 +39,6 @@ export const useMarketOdds = (
               receiver: "0x0000000000000000000000000000000000000000",
               priceQuality: PriceQuality.OPTIMAL,
               kind: OrderQuoteSideKindSell.SELL,
-              sellTokenBalance: SellTokenSource.ERC20,
-              buyTokenBalance: BuyTokenDestination.ERC20,
               sellAmountBeforeFee: parseUnits(String(BUY_AMOUNT), 18).toString(),
             };
 

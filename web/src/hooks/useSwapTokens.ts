@@ -1,15 +1,22 @@
+import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
-import { toastify } from "@/lib/toastify";
+import { toastify, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
-import { OrderBookApi, OrderParameters, OrderSigningUtils, SigningScheme } from "@cowprotocol/cow-sdk";
+import {
+  COW_PROTOCOL_VAULT_RELAYER_ADDRESS,
+  OrderBookApi,
+  OrderParameters,
+  OrderSigningUtils,
+  SigningScheme,
+} from "@cowprotocol/cow-sdk";
 import { useMutation } from "@tanstack/react-query";
-import { getConnectorClient } from "@wagmi/core";
+import { getConnectorClient, readContract, writeContract } from "@wagmi/core";
 import { providers } from "ethers";
-import { Account, Address, Chain, Client, Hex, Transport } from "viem";
+import { Account, Address, Chain, Client, Hex, Transport, erc20Abi } from "viem";
 
 interface SwapTokensProps {
   account: Address;
-  chainId: number;
+  chainId: SupportedChain;
   quote: OrderParameters;
 }
 
@@ -26,23 +33,61 @@ export function clientToSigner(client: Client<Transport, Chain, Account>) {
 }
 
 async function swapTokens({ account, chainId, quote }: SwapTokensProps): Promise<string> {
+  const vaultRelayer = COW_PROTOCOL_VAULT_RELAYER_ADDRESS[chainId] as `0x${string}`;
+  const sellToken = quote.sellToken as `0x${string}`;
+
+  const allowance = await readContract(config, {
+    abi: erc20Abi,
+    address: sellToken,
+    functionName: "allowance",
+    args: [account, vaultRelayer],
+  });
+
+  const neededAllowance = BigInt(quote.sellAmount) + BigInt(quote.feeAmount);
+
+  if (allowance < neededAllowance) {
+    const result = await toastifyTx(
+      () =>
+        writeContract(config, {
+          address: sellToken,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [vaultRelayer, neededAllowance],
+        }),
+      {
+        txSent: { title: "Approving token..." },
+        txSuccess: { title: "Token approved." },
+      },
+    );
+
+    if (!result.status) {
+      throw result.error;
+    }
+  }
+
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);
 
-  const orderSigningResult = await OrderSigningUtils.signOrder({ ...quote, receiver: account }, chainId, signer);
+  const order = {
+    ...quote,
+    sellAmount: (BigInt(quote.sellAmount) + BigInt(quote.feeAmount)).toString(),
+    feeAmount: "0",
+  };
+
+  const orderSigningResult = await OrderSigningUtils.signOrder({ ...order, receiver: account }, chainId, signer);
 
   const orderBookApi = new OrderBookApi({ chainId });
 
   const result = await toastify(
     () =>
       orderBookApi.sendOrder({
-        ...quote,
+        ...order,
         signature: orderSigningResult.signature,
         signingScheme: orderSigningResult.signingScheme as string as SigningScheme,
       }),
     {
-      txSent: { title: "Executing swap..." },
-      txSuccess: { title: "Tokens swapped!" },
+      txSent: { title: "Confirm order..." },
+      txSuccess: { title: "Order placed!" },
     },
   );
 
@@ -50,7 +95,7 @@ async function swapTokens({ account, chainId, quote }: SwapTokensProps): Promise
     throw result.error;
   }
 
-  return result.receipt;
+  return result.data;
 }
 
 export interface SwapConfig {

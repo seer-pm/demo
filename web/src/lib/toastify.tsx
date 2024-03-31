@@ -15,6 +15,16 @@ export const DEFAULT_TOAST_OPTIONS = {
   theme: "light" as Theme,
 };
 
+type ToastifyReturn<T> =
+  | {
+      status: true;
+      data: T;
+    }
+  | {
+      status: false;
+      error: Error;
+    };
+
 type ToastifyTxReturn =
   | {
       status: true;
@@ -41,7 +51,7 @@ type ToastifyConfig = {
   options?: ToastOptions;
 };
 
-type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Promise<T>;
+type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Promise<ToastifyReturn<T>>;
 
 type ToastifyTxFn = (contractWrite: () => Promise<`0x${string}`>, config?: ToastifyConfig) => Promise<ToastifyTxReturn>;
 
@@ -87,10 +97,12 @@ export const toastify: ToastifyFn<any> = async (execute, config) => {
 
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
 
-    return result;
+    return { status: true, data: result };
     // biome-ignore lint/suspicious/noExplicitAny:
   } catch (error: any) {
-    toastError({ title: error.shortMessage ?? error.message });
+    toastError({ title: error.shortMessage ?? error.body.description ?? error.message });
+
+    return { status: false, error };
   }
 };
 

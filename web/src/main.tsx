@@ -6,6 +6,7 @@ import ReactDOM from "react-dom/client";
 import { ToastContainer } from "react-toastify";
 import { WagmiProvider } from "wagmi";
 import App from "./App.tsx";
+import { SwapUpdater } from "./components/SwapUpdater.tsx";
 import { queryClient } from "./lib/query-client.ts";
 import { config } from "./wagmi.ts";
 
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <App />
+        <SwapUpdater />
         <ToastContainer />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
