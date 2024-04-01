@@ -1,4 +1,4 @@
-import { getNewCurateItem, getSubmissionDeposit } from "@/lib/curate";
+import { getNewCurateItem } from "@/lib/curate";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -9,17 +9,17 @@ interface VerifyMarketProps {
   marketId: `0x${string}`;
   marketImage: File;
   outcomesImages: File[];
+  submissionDeposit: bigint;
 }
 
 async function verifyMarket(props: VerifyMarketProps): Promise<TransactionReceipt> {
   const item = await getNewCurateItem(props.marketId, props.marketImage, props.outcomesImages);
-  const submissionDeposit = await getSubmissionDeposit();
 
   const result = await toastifyTx(
     async () =>
       writeLightGeneralizedTcrAddItem(config, {
         args: [item],
-        value: submissionDeposit,
+        value: props.submissionDeposit,
       }),
     {
       txSent: { title: "Submitting market to Kleros Curate..." },

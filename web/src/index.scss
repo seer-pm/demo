@@ -211,3 +211,13 @@
 .dropdown-content {
     @apply shadow bg-base-100 rounded-[3px] text-black text-[16px];
 }
+
+/* CHECKBOX */
+.checkbox {
+    width: 16px;
+    height: 16px;
+
+    &:checked {
+        --bc: var(--purple-primary);
+    }
+}
