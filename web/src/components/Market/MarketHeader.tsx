@@ -421,7 +421,7 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
             {MARKET_TYPES_ICONS[marketType]} <div>{MARKET_TYPES_TEXTS[marketType]}</div>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-[#999999]">Open interest:</span>{" "}
+            <span className="text-[#999999] max-lg:hidden">Open interest:</span>{" "}
             <div>{displayBalance(market.outcomesSupply, 18, true)} sDAI</div> <DaiLogo />
           </div>
         </div>
