@@ -36,6 +36,8 @@ interface IRealityETH_v3_0 {
     ) external view returns (bytes32);
 
     function getTimeout(bytes32 question_id) external view returns (uint32);
+
+    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
 }
 
 interface IConditionalTokens {

@@ -37,7 +37,7 @@ contract RealityProxy {
         uint256 high = market.upperBound();
 
         require(low < high, "Range invalid");
-        require(high != type(uint256).max, "Invalid high point");
+        require(high < type(uint256).max - 2, "Invalid high point");
 
         uint256[] memory payouts = new uint256[](2);
 
@@ -59,10 +59,7 @@ contract RealityProxy {
             payouts[1] = answer - low;
         }
 
-        conditionalTokens.reportPayouts(
-            keccak256(abi.encode(questionId, low, high)),
-            payouts
-        );
+        conditionalTokens.reportPayouts(questionId, payouts);
     }
 
     function resolveMultiScalarMarket(Market market) external {

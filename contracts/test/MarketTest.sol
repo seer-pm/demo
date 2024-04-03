@@ -58,18 +58,32 @@ contract MarketFactoryTest is Test {
             0
         ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no"␟technology␟en_US';
 
-        marketFactory.createCategoricalMarket(
-            MarketFactory.CreateMarketParams({
-                marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                encodedQuestions: encodedQuestions,
-                outcomes: outcomes,
-                tokenNames: outcomes,
-                minBond: 5000000000000000000,
-                openingTime: uint32(block.timestamp) + 60,
-                lowerBound: 0,
-                upperBound: 0
-            })
+        Market market = Market(
+            marketFactory.createCategoricalMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    encodedQuestions: encodedQuestions,
+                    outcomes: outcomes,
+                    tokenNames: outcomes,
+                    minBond: 5000000000000000000,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 0,
+                    upperBound: 0
+                })
+            )
         );
+
+        skip(60); // opening timestamp
+
+        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
+            market.questionId(),
+            bytes32(0),
+            0
+        );
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        market.resolve();
     }
 
     function test_createsScalarMarket() public {
@@ -86,18 +100,32 @@ contract MarketFactoryTest is Test {
             0
         ] = unicode'What will be ETH price on Feb 29, 2024?␟"2500","3500"␟technology␟en_US';
 
-        marketFactory.createScalarMarket(
-            MarketFactory.CreateMarketParams({
-                marketName: "What will be ETH price on Feb 29, 2024?",
-                encodedQuestions: encodedQuestions,
-                outcomes: outcomes,
-                tokenNames: tokenNames,
-                minBond: 5000000000000000000,
-                openingTime: uint32(block.timestamp) + 60,
-                lowerBound: 2500,
-                upperBound: 3500
-            })
+        Market market = Market(
+            marketFactory.createScalarMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "What will be ETH price on Feb 29, 2024?",
+                    encodedQuestions: encodedQuestions,
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: 5000000000000000000,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 2500,
+                    upperBound: 3500
+                })
+            )
         );
+
+        skip(60); // opening timestamp
+
+        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
+            market.questionId(),
+            bytes32(0),
+            0
+        );
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        market.resolve();
     }
 
     function test_createsMultiScalarMarket() public {
@@ -117,17 +145,36 @@ contract MarketFactoryTest is Test {
             1
         ] = unicode"How many votes will Vitalik_2 get?␟technology␟en_US";
 
-        marketFactory.createMultiScalarMarket(
-            MarketFactory.CreateMarketParams({
-                marketName: "Ethereum President Elections",
-                encodedQuestions: encodedQuestions,
-                outcomes: outcomes,
-                tokenNames: tokenNames,
-                minBond: 5000000000000000000,
-                openingTime: uint32(block.timestamp) + 60,
-                lowerBound: 2500,
-                upperBound: 3500
-            })
+        Market market = Market(
+            marketFactory.createMultiScalarMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "Ethereum President Elections",
+                    encodedQuestions: encodedQuestions,
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: 5000000000000000000,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 0,
+                    upperBound: 0
+                })
+            )
         );
+
+        skip(60); // opening timestamp
+
+        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
+            market.questionsIds(0),
+            bytes32(uint256(1)),
+            0
+        );
+        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
+            market.questionsIds(1),
+            bytes32(uint256(2)),
+            0
+        );
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        market.resolve();
     }
 }
