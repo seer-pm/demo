@@ -24,6 +24,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useModal } from "../Modal";
 import { AnswerForm } from "./AnswerForm";
+import { RaiseDisputeForm } from "./RaiseDisputeForm";
 
 interface MarketHeaderProps {
   market: Market;
@@ -290,12 +291,17 @@ function InfoWithModal({
   isPreview,
   chainId,
 }: { market: Market; marketStatus?: MarketStatus; colors?: ColorConfig; isPreview: boolean; chainId: SupportedChain }) {
-  const { Modal, openModal, closeModal } = useModal("answer-modal");
+  const { Modal: AnswerModal, openModal: openAnswerModal, closeModal: closeAnswerModal } = useModal("answer-modal");
+  const {
+    Modal: RaiseDisputeModal,
+    openModal: openRaiseDisputeModal,
+    closeModal: closeRaiseDisputeModal,
+  } = useModal("raise-dispute-modal");
   const [modalQuestion, setModalQuestion] = useState<Question | undefined>();
 
-  const openAnswerModal = (question: Question) => {
+  const showAnswerModal = (question: Question) => {
     setModalQuestion(question);
-    openModal();
+    openAnswerModal();
   };
 
   if (!market || !marketStatus) {
@@ -309,17 +315,27 @@ function InfoWithModal({
         marketStatus={marketStatus}
         isPreview={isPreview}
         chainId={chainId}
-        openAnswerModal={openAnswerModal}
+        openAnswerModal={showAnswerModal}
       />
       {modalQuestion && (
-        <Modal
+        <RaiseDisputeModal
+          title="Raise a Dispute"
+          content={<RaiseDisputeForm question={modalQuestion} closeModal={closeRaiseDisputeModal} chainId={chainId} />}
+        />
+      )}
+      {modalQuestion && (
+        <AnswerModal
           title="Report Answer"
           content={
             <AnswerForm
               market={market}
               marketStatus={marketStatus}
               question={modalQuestion}
-              closeModal={closeModal}
+              closeModal={closeAnswerModal}
+              raiseDispute={() => {
+                closeAnswerModal();
+                openRaiseDisputeModal();
+              }}
               chainId={chainId}
             />
           }

@@ -22,10 +22,11 @@ interface AnswerFormProps {
   marketStatus: MarketStatus;
   question: Question;
   closeModal: () => void;
+  raiseDispute: () => void;
   chainId: SupportedChain;
 }
 
-export function AnswerForm({ market, marketStatus, question, closeModal, chainId }: AnswerFormProps) {
+export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
   const { address } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address });
@@ -144,6 +145,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, chainId
 
       <div className="space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        {question.finalize_ts > 0 && <Button variant="primary" type="button" onClick={raiseDispute} text="Raise a Dispute" />}
         <Button
           variant="primary"
           type="submit"

@@ -7,6 +7,7 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TransactionReceipt } from "viem";
 import { parseEventLogs } from "viem/utils";
@@ -23,7 +24,6 @@ import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
 import { MarketHeader } from "../Market/MarketHeader";
 import { useModal } from "../Modal";
-import { useRef } from "react";
 
 type FormStepPreview = {
   marketTypeValues: MarketTypeFormValues;
@@ -90,7 +90,7 @@ export function PreviewForm({
 }: FormStepPreview & FormWithPrevStep) {
   const navigate = useNavigate();
 
-  const checkboxRef = useRef<HTMLInputElement>(null)
+  const checkboxRef = useRef<HTMLInputElement>(null);
 
   const images = getImages(marketTypeValues.marketType, questionValues, outcomesValues);
   const marketReadyToVerify = images !== false;
@@ -198,11 +198,14 @@ export function PreviewForm({
           <div className="text-black-secondary text-center">
             <p>
               When creating a market you are able to verify it by adding the market to the Curate List of Verified
-              Markets. It provides extra credibility to the market being created. {/*In case you prefer you can verify it
+              Markets. It provides extra credibility to the market being created.{" "}
+              {/*In case you prefer you can verify it
               later.*/}
             </p>
 
-            {!marketReadyToVerify && <p className="mt-[24px]">To verify the market, you need to add the images in the previous steps.</p>}
+            {!marketReadyToVerify && (
+              <p className="mt-[24px]">To verify the market, you need to add the images in the previous steps.</p>
+            )}
 
             <p className="mt-[24px] mb-[85px] flex space-x-2 justify-center">
               Verified Markets hold a{" "}
@@ -219,12 +222,14 @@ export function PreviewForm({
               </div>
             )}
 
-            {marketReadyToVerify && <div className="form-control mt-[58px] mb-[32px]">
-              <label className="label cursor-pointer justify-center space-x-2">
-                <input type="checkbox" defaultChecked className="checkbox" ref={checkboxRef}/>
-                <span className="label-text text-[16px] text-black-primary">Verify it now.</span>
-              </label>
-            </div>}
+            {marketReadyToVerify && (
+              <div className="form-control mt-[58px] mb-[32px]">
+                <label className="label cursor-pointer justify-center space-x-2">
+                  <input type="checkbox" defaultChecked className="checkbox" ref={checkboxRef} />
+                  <span className="label-text text-[16px] text-black-primary">Verify it now.</span>
+                </label>
+              </div>
+            )}
 
             <div className="space-x-[24px]">
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />

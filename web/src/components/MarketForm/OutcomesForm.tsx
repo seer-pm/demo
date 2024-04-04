@@ -3,6 +3,7 @@ import { PlusIcon } from "@/lib/icons";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
+import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { ImageUpload } from "./Images";
 
@@ -36,13 +37,15 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
           }
         />
 
-        <button
-          type="button"
-          onClick={() => removeOutcome(outcomeIndex)}
-          className="btn btn-sm absolute inset-y-2 right-2"
-        >
-          Remove
-        </button>
+        <div className="absolute inset-y-2 right-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="small"
+            onClick={() => removeOutcome(outcomeIndex)}
+            text="Remove"
+          />
+        </div>
       </div>
 
       <ImageUpload
