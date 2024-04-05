@@ -6,10 +6,13 @@ import Select from "@/components/Form/Select";
 import { MarketHeader, STATUS_TEXTS } from "@/components/Market/MarketHeader";
 import { Spinner } from "@/components/Spinner";
 import { Market_OrderBy } from "@/hooks/queries/generated";
+import { Market } from "@/hooks/useMarket";
+import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { PlusIcon, SearchIcon } from "@/lib/icons";
+import { isUndefined } from "@/lib/utils";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -67,6 +70,19 @@ function MarketsFilter({
   );
 }
 
+function MarketPreview({ market, chainId }: { market: Market; chainId: SupportedChain }) {
+  const { data: images } = useMarketImages(market.id, chainId);
+  return (
+    <MarketHeader
+      market={market}
+      chainId={chainId}
+      isPreview={true}
+      images={images}
+      isVerified={!isUndefined(images)}
+    />
+  );
+}
+
 function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
   const [marketName, setMarketName] = useState("");
@@ -94,7 +110,7 @@ function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
-          <MarketHeader market={market} chainId={chainId as SupportedChain} isPreview={true} key={market.id} />
+          <MarketPreview key={market.id} market={market} chainId={chainId as SupportedChain} />
         ))}
       </div>
     </div>

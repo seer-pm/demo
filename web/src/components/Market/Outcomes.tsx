@@ -10,10 +10,11 @@ interface PositionsProps {
   chainId: SupportedChain;
   router: Address;
   market: Market;
+  images?: string[];
   tradeCallback: (poolIndex: number) => void;
 }
 
-export function Outcomes({ chainId, router, market, tradeCallback }: PositionsProps) {
+export function Outcomes({ chainId, router, market, images, tradeCallback }: PositionsProps) {
   const [activeOutcome, setActiveOutcome] = useState(0);
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
@@ -51,7 +52,11 @@ export function Outcomes({ chainId, router, market, tradeCallback }: PositionsPr
           >
             <div className="flex items-center space-x-[12px]">
               <div>
-                <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
+                {images?.[i] ? (
+                  <img src={images?.[i]} alt={market.outcomes[i]} className="w-[48px] h-[48px] rounded-full mx-auto" />
+                ) : (
+                  <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
+                )}
               </div>
               <div className="space-y-1">
                 <div>

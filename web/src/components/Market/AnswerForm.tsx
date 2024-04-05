@@ -145,7 +145,9 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
 
       <div className="space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        {question.finalize_ts > 0 && <Button variant="primary" type="button" onClick={raiseDispute} text="Raise a Dispute" />}
+        {question.finalize_ts > 0 && (
+          <Button variant="primary" type="button" onClick={raiseDispute} text="Raise a Dispute" />
+        )}
         <Button
           variant="primary"
           type="submit"

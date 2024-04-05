@@ -2,7 +2,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: 'https://api.thegraph.com/subgraphs/name/xyzseer/seer-pm',
+  schema: ['https://api.thegraph.com/subgraphs/name/xyzseer/seer-pm', 'https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai'],
   documents: "./src/queries/*.graphql",
   generates: {
     'src/hooks/queries/generated.ts': {

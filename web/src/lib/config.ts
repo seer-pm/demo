@@ -60,6 +60,9 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: "https://api.thegraph.com/subgraphs/name/xyzseer/seer-pm",
 };
+export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai",
+};
 
 export const getRouterAddress = (chainId?: SupportedChain): Address => {
   const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress);

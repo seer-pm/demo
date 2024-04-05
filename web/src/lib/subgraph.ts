@@ -2,10 +2,20 @@ import { GetMarketsQuery } from "@/hooks/queries/generated";
 import { Market } from "@/hooks/useMarket";
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain } from "./chains";
-import { SUBGRAPH_URLS } from "./config";
+import { CURATE_SUBGRAPH_URLS, SUBGRAPH_URLS } from "./config";
 
 export function graphQLClient(chainId: SupportedChain) {
   const subgraphUrl = SUBGRAPH_URLS[chainId];
+
+  if (!subgraphUrl) {
+    return;
+  }
+
+  return new GraphQLClient(subgraphUrl);
+}
+
+export function curateGraphQLClient(chainId: SupportedChain) {
+  const subgraphUrl = CURATE_SUBGRAPH_URLS[chainId];
 
   if (!subgraphUrl) {
     return;
