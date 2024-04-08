@@ -209,9 +209,9 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
       <div className="text-black-medium">|</div>
       <div className="flex items-center space-x-2">
         {marketStatus === MarketStatus.PENDING_EXECUTION && (
-          <div className="text-purple-primary" onClick={resolveHandler}>
+          <button className="text-purple-primary" onClick={resolveHandler}>
             Report Answer
-          </div>
+          </button>
         )}
         {(marketStatus === MarketStatus.CLOSED || marketStatus === MarketStatus.IN_DISPUTE) && (
           <a

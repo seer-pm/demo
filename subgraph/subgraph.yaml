@@ -75,4 +75,6 @@ dataSources:
           handler: handlePositionSplit
         - event: PositionsMerge(indexed address,address,indexed bytes32,indexed bytes32,uint256[],uint256)
           handler: handlePositionMerge
+        - event: ConditionResolution(indexed bytes32,indexed address,indexed bytes32,uint256,uint256[])
+          handler: handleConditionResolution
       file: ./src/conditional-tokens.ts
