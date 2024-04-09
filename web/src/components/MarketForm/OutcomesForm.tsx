@@ -1,5 +1,6 @@
 import { MarketTypes, OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
+import { hasOutcomes } from "@/lib/market";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
@@ -112,7 +113,7 @@ export function OutcomesForm({
     return appendOutcome({ value: "", token: "", image: "" });
   };
 
-  const hasOutcomes = marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;
+  const marketHasOutcomes = hasOutcomes(marketType);
 
   const [lowerBound, outcomesQuestion, outcomes] = watch(["lowerBound", "outcomesQuestion", "outcomes"]);
 
@@ -137,7 +138,7 @@ export function OutcomesForm({
             </div>
           )}
 
-          {hasOutcomes && (
+          {marketHasOutcomes && (
             <>
               {outcomesFields.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
@@ -235,7 +236,7 @@ export function OutcomesForm({
         <ButtonsWrapper
           goToPrevStep={goToPrevStep}
           goToNextStep={goToNextStep}
-          disabled={!isValid || (hasOutcomes && outcomesFields.length < 2)}
+          disabled={!isValid || (marketHasOutcomes && outcomesFields.length < 2)}
         />
       </form>
     </FormProvider>

@@ -7,7 +7,8 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
-import { useRef } from "react";
+import { useState } from "react";
+import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { TransactionReceipt } from "viem";
 import { parseEventLogs } from "viem/utils";
@@ -22,8 +23,10 @@ import {
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
+import Toggle from "../Form/Toggle";
 import { MarketHeader } from "../Market/MarketHeader";
 import { useModal } from "../Modal";
+import { VerificationForm } from "./VerificationForm";
 
 type FormStepPreview = {
   marketTypeValues: MarketTypeFormValues;
@@ -87,10 +90,15 @@ export function PreviewForm({
   dateValues,
   goToPrevStep,
   chainId,
-}: FormStepPreview & FormWithPrevStep) {
+  useQuestionFormReturn,
+  useOutcomesFormReturn,
+}: FormStepPreview &
+  FormWithPrevStep & {
+    useQuestionFormReturn: UseFormReturn<QuestionFormValues>;
+    useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
+  }) {
+  const [verifyNow, setVerifyNow] = useState(false);
   const navigate = useNavigate();
-
-  const checkboxRef = useRef<HTMLInputElement>(null);
 
   const images = getImages(marketTypeValues.marketType, questionValues, outcomesValues);
   const marketReadyToVerify = images !== false;
@@ -109,7 +117,7 @@ export function PreviewForm({
     })?.[0]?.args?.market;
 
     if (marketId) {
-      if (marketReadyToVerify && checkboxRef.current?.checked) {
+      if (marketReadyToVerify && verifyNow) {
         await verifyMarket.mutateAsync({
           marketId,
           marketImage: images.file.market,
@@ -188,7 +196,7 @@ export function PreviewForm({
           images={images === false ? undefined : images.url}
           chainId={DEFAULT_CHAIN}
           isPreview={true}
-          isVerified={marketReadyToVerify}
+          isVerified={marketReadyToVerify && verifyNow}
         />
       </DashedBox>
 
@@ -203,11 +211,7 @@ export function PreviewForm({
               later.*/}
             </p>
 
-            {!marketReadyToVerify && (
-              <p className="mt-[24px]">To verify the market, you need to add the images in the previous steps.</p>
-            )}
-
-            <p className="mt-[24px] mb-[85px] flex space-x-2 justify-center">
+            <p className="my-[24px] flex space-x-2 justify-center">
               Verified Markets hold a{" "}
               <span className="text-[14px] text-[#00C42B] flex space-x-1 items-center mx-2">
                 <CheckCircleIcon /> <span>Verified</span>
@@ -215,19 +219,35 @@ export function PreviewForm({
               badge.
             </p>
 
-            {marketReadyToVerify && !isUndefined(submissionDeposit) && (
-              <div className="text-purple-primary flex items-center justify-center space-x-2">
-                <span>Verification cost:</span>{" "}
-                <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} DAI</span>
-              </div>
+            <div className="border border-black-medium flex justify-between items-center py-[10px] px-[30px] my-[24px]">
+              <div className="text-[16px] font-semibold text-black-primary">Verify it Now</div>
+              <Toggle
+                onChange={(event) => setVerifyNow(event.target.checked)}
+                name="verify-now"
+                value="1"
+                checked={verifyNow}
+              />
+            </div>
+
+            {verifyNow && !marketReadyToVerify && (
+              <>
+                <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
+                <div className="text-[14px] text-left">
+                  Verification requires the question and outcome images. Please, upload an 1:1 aspect ratio image with
+                  transparent background, in SVG, or PNG for each field below.
+                </div>
+
+                <VerificationForm
+                  useQuestionFormReturn={useQuestionFormReturn}
+                  useOutcomesFormReturn={useOutcomesFormReturn}
+                />
+              </>
             )}
 
-            {marketReadyToVerify && (
-              <div className="form-control mt-[58px] mb-[32px]">
-                <label className="label cursor-pointer justify-center space-x-2">
-                  <input type="checkbox" defaultChecked className="checkbox" ref={checkboxRef} />
-                  <span className="label-text text-[16px] text-black-primary">Verify it now.</span>
-                </label>
+            {marketReadyToVerify && verifyNow && !isUndefined(submissionDeposit) && (
+              <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
+                <span>Verification cost:</span>{" "}
+                <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} DAI</span>
               </div>
             )}
 
@@ -237,6 +257,7 @@ export function PreviewForm({
                 type="button"
                 text="Create Market"
                 onClick={createMarketHandler}
+                disabled={verifyNow && !marketReadyToVerify}
                 isLoading={createMarket.isPending || verifyMarket.isPending}
               />
             </div>

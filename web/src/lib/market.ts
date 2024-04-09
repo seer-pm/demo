@@ -52,3 +52,7 @@ export function getMarketType(market: Market): MarketTypes {
 
   return MarketTypes.SCALAR;
 }
+
+export function hasOutcomes(marketType: MarketTypes) {
+  return marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;
+}

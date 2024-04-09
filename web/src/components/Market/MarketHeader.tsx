@@ -209,7 +209,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
       <div className="text-black-medium">|</div>
       <div className="flex items-center space-x-2">
         {marketStatus === MarketStatus.PENDING_EXECUTION && (
-          <button className="text-purple-primary" onClick={resolveHandler}>
+          <button className="text-purple-primary" type="button" onClick={resolveHandler}>
             Report Answer
           </button>
         )}

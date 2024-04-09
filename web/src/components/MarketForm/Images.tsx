@@ -49,7 +49,14 @@ export function ImageUpload<
   control,
   onDrop,
   image,
-}: { name: TName; control: Control<TFieldValues>; onDrop: DropzoneProps["onDrop"]; image: File | "" }) {
+  showInfo = true,
+}: {
+  name: TName;
+  control: Control<TFieldValues>;
+  onDrop: DropzoneProps["onDrop"];
+  image: File | "";
+  showInfo?: boolean;
+}) {
   return (
     <Controller
       control={control}
@@ -83,15 +90,17 @@ export function ImageUpload<
                 <UploadIcon className="mx-auto" />
                 {image !== "" && <PreviewImage file={image} />}
               </DashedBox>
-              <div className="text-left text-[14px] text-black-secondary flex items-center space-x-2 mt-[16px]">
-                <div>
-                  <InfoCircleIcon width="16" height="16" />
+              {showInfo && (
+                <div className="text-left text-[14px] text-black-secondary flex items-center space-x-2 mt-[16px]">
+                  <div>
+                    <InfoCircleIcon width="16" height="16" />
+                  </div>
+                  <span>
+                    Add an image cover to illustrate the market - Upload an 1:1 aspect ratio image with transparent
+                    background, in SVG, or PNG.
+                  </span>
                 </div>
-                <span>
-                  Add an image cover to illustrate the market - Upload an 1:1 aspect ratio image with transparent
-                  background, in SVG, or PNG.
-                </span>
-              </div>
+              )}
               <FormError errors={errors} name={name} />
             </div>
           )}

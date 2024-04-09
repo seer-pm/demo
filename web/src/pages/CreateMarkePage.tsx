@@ -128,6 +128,8 @@ function CreateMarket() {
               dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}
+              useQuestionFormReturn={useQuestionFormReturn}
+              useOutcomesFormReturn={useOutcomesFormReturn}
             />
           )}
         </>
