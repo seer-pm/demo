@@ -47,7 +47,7 @@ interface GetImagesReturn {
   };
 }
 
-function getImages(
+export function getImagesForVerification(
   marketType: MarketTypes,
   questionValues: QuestionFormValues,
   outcomesValues: OutcomesFormValues,
@@ -100,7 +100,7 @@ export function PreviewForm({
   const [verifyNow, setVerifyNow] = useState(false);
   const navigate = useNavigate();
 
-  const images = getImages(marketTypeValues.marketType, questionValues, outcomesValues);
+  const images = getImagesForVerification(marketTypeValues.marketType, questionValues, outcomesValues);
   const marketReadyToVerify = images !== false;
 
   const verifyMarket = useVerifyMarket();
@@ -240,6 +240,7 @@ export function PreviewForm({
                 <VerificationForm
                   useQuestionFormReturn={useQuestionFormReturn}
                   useOutcomesFormReturn={useOutcomesFormReturn}
+                  showOnlyMissingImages={true}
                 />
               </>
             )}
