@@ -91,7 +91,7 @@ function Home() {
   const { data: markets = [], isPending } = useMarkets(chainId as SupportedChain, marketName, marketStatus, orderBy);
 
   return (
-    <div className="max-w-[1184px] mx-auto py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px] px-10">
+    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <div className="text-[24px] font-semibold">Markets</div>
       <MarketsFilter
         setMarketName={setMarketName}

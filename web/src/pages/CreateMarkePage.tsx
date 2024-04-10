@@ -86,7 +86,7 @@ function CreateMarket() {
   };
 
   return (
-    <div className="max-w-[924px] px-[24px] py-[65px] mx-auto text-center">
+    <div className="container-fluid !w-[924px] py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
       {chain && (

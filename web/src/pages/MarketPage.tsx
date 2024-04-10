@@ -49,7 +49,7 @@ function MarketPage() {
 
   if (isMarketError) {
     return (
-      <div className="py-10 px-10">
+      <div className="container py-10">
         <Alert type="error" className="mb-5">
           Market not found
         </Alert>
@@ -59,7 +59,7 @@ function MarketPage() {
 
   if (isMarketPending || !router || !market) {
     return (
-      <div className="py-10 px-10">
+      <div className="container py-10">
         <Spinner />
       </div>
     );
@@ -76,7 +76,7 @@ function MarketPage() {
   };
 
   return (
-    <div className="py-10 px-10">
+    <div className="container-fluid py-10">
       <div className="space-y-5">
         <MarketBreadcrumb />
 

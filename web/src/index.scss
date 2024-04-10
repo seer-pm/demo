@@ -27,6 +27,21 @@
     --toastify-icon-color-error: oklch(var(--white));
 }
 
+.container-fluid {
+    max-width: 100%;
+    padding-left: 18px;
+    padding-right: 18px;
+
+    @media(min-width: 1024px) {
+        & {
+            max-width: 75%;
+            margin: 0 auto;
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
+}
+
 /* BUTTONS */
 .btn.btn-disabled, .btn[disabled], .btn:disabled {
     --n: var(--black-light);
