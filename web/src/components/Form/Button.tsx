@@ -28,6 +28,10 @@ const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLA
   (props, ref) => {
     const { text, type, size = "large", variant = "primary", icon, isLoading, ...restProps } = props;
 
+    if (isLoading) {
+      restProps["disabled"] = true;
+    }
+
     return (
       <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
         {icon || ""}
