@@ -13,7 +13,7 @@ export function Dropdown({ options, value, onClick }: DropdownProps) {
       <div tabIndex={0} role="button" className="m-1 text-[14px] text-purple-primary">
         {options.find((option) => option.value === value)?.text}
       </div>
-      <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] bg-base-100 rounded-box text-left w-52">
+      <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] rounded-box text-left w-52">
         {options.map((option) => (
           <li
             key={option.value}
