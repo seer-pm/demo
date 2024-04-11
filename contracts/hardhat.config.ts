@@ -64,6 +64,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.GNOSISSCAN_API_KEY!,
+        },
+      },
     },
     goerli: {
       chainId: 5,
@@ -71,16 +76,27 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.ETHERSCAN_API_KEY!,
+        }
+      },
+    },
+    sepolia: {
+      chainId: 11155111,
+      url: process.env.SEPOLIA_RPC || "https://rpc2.sepolia.org",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.ETHERSCAN_API_KEY!,
+        }
+      },
     },
   },
   paths: {
     sources: "./src",
-  },
-  etherscan: {
-    apiKey: {
-      goerli: process.env.GOERLISCAN_API_KEY!,
-      xdai: process.env.GNOSISSCAN_API_KEY!,
-    },
   },
 };
 

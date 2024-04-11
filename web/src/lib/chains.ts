@@ -1,4 +1,4 @@
-import { Chain, gnosis, hardhat, mainnet } from "wagmi/chains";
+import { Chain, gnosis, hardhat, mainnet, sepolia } from "wagmi/chains";
 
 // used with wagmi generate
 const wagmiCliProd =
@@ -11,6 +11,7 @@ const viteProd = typeof import.meta.env?.PROD !== "undefined" && import.meta.env
 export const SUPPORTED_CHAINS = {
   [gnosis.id]: gnosis,
   [mainnet.id]: mainnet,
+  [sepolia.id]: sepolia,
   ...((!(wagmiCliProd || viteProd) ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
 } as const satisfies Record<string, Chain>;
 
