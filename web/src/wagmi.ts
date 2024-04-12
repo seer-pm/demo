@@ -1,10 +1,20 @@
 import { createWeb3Modal } from "@web3modal/wagmi/react";
-import { http, createConfig } from "wagmi";
+import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
+import { http } from "wagmi";
 import { Chain, bsc, gnosis, goerli, hardhat, mainnet, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS } from "./lib/chains";
 
-export const config = createConfig({
+const metadata = {
+  name: "Seer",
+  description: "Prediction Markets",
+  url: "https://web3modal.com",
+  icons: ["https://avatars.githubusercontent.com/u/37784886"],
+};
+
+export const config = defaultWagmiConfig({
+  metadata,
+  projectId: import.meta.env.VITE_WC_PROJECT_ID,
   chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
   connectors: [
     injected(),
