@@ -1,1 +1,1 @@
-cd web && yarn lint
+cd web && yarn lint-staged

@@ -51,6 +51,7 @@
     "autoprefixer": "^10.4.17",
     "buffer": "^6.0.3",
     "daisyui": "^4.6.0",
+    "lint-staged": "^15.2.2",
     "postcss": "^8.4.33",
     "react-cosmos": "^6.1.0",
     "react-cosmos-plugin-vite": "^6.1.0",
@@ -64,6 +65,11 @@
   "workspaces": {
     "nohoist": [
       "@web3modal/wagmi"
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "yarn lint"
     ]
   }
 }
