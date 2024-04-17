@@ -86,6 +86,50 @@ contract MarketFactoryTest is Test {
         market.resolve();
     }
 
+    function test_createsMultiCategoricalMarket() public {
+        string[] memory outcomes = new string[](3);
+        outcomes[0] = "Yes";
+        outcomes[1] = "No";
+        outcomes[2] = "Maybe";
+
+        string[] memory tokenNames = new string[](3);
+        tokenNames[0] = "YES";
+        tokenNames[1] = "NO";
+        tokenNames[2] = "MAYBE";
+
+        string[] memory encodedQuestions = new string[](1);
+        encodedQuestions[
+            0
+        ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no","maybe"␟technology␟en_US';
+
+        Market market = Market(
+            marketFactory.createMultiCategoricalMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    encodedQuestions: encodedQuestions,
+                    outcomes: outcomes,
+                    tokenNames: outcomes,
+                    minBond: 5000000000000000000,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 0,
+                    upperBound: 0
+                })
+            )
+        );
+
+        skip(60); // opening timestamp
+
+        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
+            market.questionId(),
+            bytes32(uint256(3)),
+            0
+        );
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        market.resolve();
+    }
+
     function test_createsScalarMarket() public {
         string[] memory outcomes = new string[](2);
         outcomes[0] = "Low";

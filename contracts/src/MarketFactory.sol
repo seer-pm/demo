@@ -32,6 +32,7 @@ contract MarketFactory {
 
     uint256 internal constant REALITY_UINT_TEMPLATE = 1;
     uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
     uint32 public constant QUESTION_TIMEOUT = 1.5 days;
 
@@ -130,10 +131,46 @@ contract MarketFactory {
         return marketId;
     }
 
+    function createMultiCategoricalMarket(
+        CreateMarketParams memory params
+    ) external returns (address) {
+        require(params.outcomes.length >= 2, "Invalid outcomes count");
+
+        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+            params.encodedQuestions[0],
+            REALITY_MULTI_SELECT_TEMPLATE,
+            params.openingTime,
+            params.minBond,
+            params.outcomes.length,
+            address(realityProxy)
+        );
+
+        bytes32[] memory questionsIds = new bytes32[](1);
+        questionsIds[0] = questionId;
+
+        address marketId = createMarket(
+            params,
+            InternalMarketConfig({
+                questionId: questionId,
+                questionsIds: questionsIds,
+                conditionId: conditionId,
+                outcomeSlotCount: params.outcomes.length,
+                templateId: REALITY_MULTI_SELECT_TEMPLATE
+            })
+        );
+
+        return marketId;
+    }
+
     function createScalarMarket(
         CreateMarketParams memory params
     ) external returns (address) {
         require(params.upperBound > params.lowerBound, "Invalid bounds");
+        // values reserved by Reality for INVALID and UNRESOLVED_ANSWER
+        require(
+            params.upperBound < type(uint256).max - 2,
+            "Invalid high point"
+        );
         require(params.outcomes.length == 2, "Invalid outcomes");
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(

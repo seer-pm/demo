@@ -2,8 +2,6 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./Market.sol";
-import "./RealityProxy.sol";
 
 import {Wrapped1155Factory, IERC20} from "./Interfaces.sol";
 

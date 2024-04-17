@@ -54,18 +54,6 @@ contract Market {
     }
 
     function resolve() external {
-        if (questionsIds.length > 1) {
-            realityProxy.resolveMultiScalarMarket(this);
-
-            return;
-        }
-
-        if (lowerBound == 0 && upperBound == 0) {
-            realityProxy.resolveCategoricalMarket(this);
-
-            return;
-        }
-
-        realityProxy.resolveScalarMarket(this);
+        realityProxy.resolve(this);
     }
 }

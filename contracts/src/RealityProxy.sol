@@ -8,6 +8,11 @@ contract RealityProxy {
     IConditionalTokens public conditionalTokens;
     IRealityETH_v3_0 public realitio;
 
+    uint256 internal constant REALITY_BINARY_TEMPLATE = 0;
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1;
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
+
     constructor(
         IConditionalTokens _conditionalTokens,
         IRealityETH_v3_0 _realitio
@@ -16,28 +21,58 @@ contract RealityProxy {
         realitio = _realitio;
     }
 
-    function resolveCategoricalMarket(Market market) external {
-        uint256[] memory payouts;
-
-        bytes32 questionId = market.questionId();
+    function resolve(Market market) external {
         uint256 templateId = market.templateId();
 
-        if (templateId == 0 || templateId == 2) {
-            // binary or single-select
-            payouts = getSingleSelectPayouts(questionId, market.numOutcomes());
-        } else {
-            revert("Unknown templateId");
+        if (
+            templateId == REALITY_BINARY_TEMPLATE ||
+            templateId == REALITY_SINGLE_SELECT_TEMPLATE
+        ) {
+            resolveCategoricalMarket(market);
+            return;
         }
+
+        if (templateId == REALITY_MULTI_SELECT_TEMPLATE) {
+            resolveMultiCategoricalMarket(market);
+            return;
+        }
+
+        if (market.getQuestionsCount() > 1) {
+            resolveMultiScalarMarket(market);
+            return;
+        }
+
+        resolveScalarMarket(market);
+    }
+
+    function resolveCategoricalMarket(Market market) internal {
+        bytes32 questionId = market.questionId();
+        uint256[] memory payouts = getSingleSelectPayouts(
+            questionId,
+            market.numOutcomes()
+        );
 
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    function resolveScalarMarket(Market market) external {
+    function resolveMultiCategoricalMarket(Market market) internal {
+        uint256 numOutcomes = market.numOutcomes();
+        uint256[] memory payouts = new uint256[](numOutcomes);
+
+        uint256 result = uint256(
+            realitio.resultForOnceSettled(market.questionId())
+        );
+
+        for (uint i = 0; i < numOutcomes; i++) {
+            payouts[i] = isBitSet(result, i) ? 1 : 0;
+        }
+
+        conditionalTokens.reportPayouts(market.questionId(), payouts);
+    }
+
+    function resolveScalarMarket(Market market) internal {
         uint256 low = market.lowerBound();
         uint256 high = market.upperBound();
-
-        require(low < high, "Range invalid");
-        require(high < type(uint256).max - 2, "Invalid high point");
 
         uint256[] memory payouts = new uint256[](2);
 
@@ -62,7 +97,7 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    function resolveMultiScalarMarket(Market market) external {
+    function resolveMultiScalarMarket(Market market) internal {
         uint256 numOutcomes = market.numOutcomes();
         uint256[] memory payouts = new uint256[](numOutcomes);
 
@@ -96,5 +131,9 @@ contract RealityProxy {
         }
 
         return payouts;
+    }
+
+    function isBitSet(uint256 b, uint256 pos) public pure returns (bool) {
+        return ((b >> pos) & 1) == 1;
     }
 }
