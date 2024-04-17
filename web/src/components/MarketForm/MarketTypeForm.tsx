@@ -1,4 +1,4 @@
-import { MarketTypes } from "@/hooks/useCreateMarket";
+import { MarketTypes } from "@/lib/market";
 import { FormProvider } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, MarketTypeFormValues } from ".";
 import Select from "../Form/Select";
@@ -17,6 +17,7 @@ export function MarketTypeForm({
     { value: "", text: "" },
     { value: MarketTypes.CATEGORICAL, text: "Categorical" },
     { value: MarketTypes.SCALAR, text: "Scalar" },
+    { value: MarketTypes.MULTI_CATEGORICAL, text: "Multi Categorical" },
     { value: MarketTypes.MULTI_SCALAR, text: "Multi Scalar" },
   ];
 
@@ -29,7 +30,6 @@ export function MarketTypeForm({
             options={MARKET_TYPES_OPTIONS}
             {...register("marketType", {
               required: "This field is required.",
-              valueAsNumber: true,
             })}
             className="w-full"
             useFormReturn={useFormReturn}

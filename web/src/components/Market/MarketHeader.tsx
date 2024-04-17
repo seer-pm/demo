@@ -46,12 +46,14 @@ export const STATUS_TEXTS: Record<MarketStatus, string> = {
 export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
   [MarketTypes.CATEGORICAL]: "Categorical",
   [MarketTypes.SCALAR]: "Scalar",
+  [MarketTypes.MULTI_CATEGORICAL]: "Multi Categorical",
   [MarketTypes.MULTI_SCALAR]: "Multi Scalar",
 };
 
 export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
   [MarketTypes.CATEGORICAL]: <CategoricalIcon />,
   [MarketTypes.SCALAR]: <ScalarIcon />,
+  [MarketTypes.MULTI_CATEGORICAL]: <CategoricalIcon />,
   [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
 };
 

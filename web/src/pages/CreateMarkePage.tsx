@@ -72,7 +72,7 @@ function CreateMarket() {
     },
   });
 
-  const marketType = Number(useMarketTypeFormReturn.watch("marketType"));
+  const marketType = useMarketTypeFormReturn.watch("marketType");
 
   const goToPrevStep = () => {
     if (activeStep > 1) {

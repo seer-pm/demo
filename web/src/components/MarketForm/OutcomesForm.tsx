@@ -1,6 +1,6 @@
-import { MarketTypes, OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
+import { OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
-import { hasOutcomes } from "@/lib/market";
+import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";

@@ -1,10 +1,11 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { MarketTypes, getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { Market } from "@/hooks/useMarket";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon } from "@/lib/icons";
+import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { useState } from "react";
@@ -163,7 +164,7 @@ export function PreviewForm({
     outcomesSupply: 0n,
     conditionId: "0x000",
     questionId: "0x000",
-    templateId: 2n,
+    templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
     lowerBound: BigInt(outcomesValues.lowerBound),
     upperBound: BigInt(outcomesValues.upperBound),
     payoutReported: true,

@@ -1,5 +1,10 @@
 import { Market } from "@/hooks/useMarket";
-import { isFinalized } from "./reality";
+import {
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_SINGLE_SELECT,
+  REALITY_TEMPLATE_UINT,
+  isFinalized,
+} from "./reality";
 import { formatDate } from "./utils";
 
 export function hasOpenQuestions(market: Market) {
@@ -36,23 +41,41 @@ export function getClosingTime(market: Market) {
 }
 
 export enum MarketTypes {
-  CATEGORICAL = 1,
-  SCALAR = 2,
-  MULTI_SCALAR = 3,
+  CATEGORICAL = "categorical",
+  SCALAR = "scalar",
+  MULTI_CATEGORICAL = "multi_categorical",
+  MULTI_SCALAR = "multi_scalar",
+}
+
+export function getTemplateByMarketType(marketType: MarketTypes) {
+  return {
+    [MarketTypes.CATEGORICAL]: REALITY_TEMPLATE_SINGLE_SELECT,
+    [MarketTypes.SCALAR]: REALITY_TEMPLATE_UINT,
+    [MarketTypes.MULTI_CATEGORICAL]: REALITY_TEMPLATE_MULTIPLE_SELECT,
+    [MarketTypes.MULTI_SCALAR]: REALITY_TEMPLATE_UINT,
+  }[marketType];
 }
 
 export function getMarketType(market: Market): MarketTypes {
-  if (market.questions.length > 1) {
-    return MarketTypes.MULTI_SCALAR;
+  if (market.templateId === BigInt(REALITY_TEMPLATE_SINGLE_SELECT)) {
+    return MarketTypes.CATEGORICAL;
   }
 
-  if (market.lowerBound === 0n && market.upperBound === 0n) {
-    return MarketTypes.CATEGORICAL;
+  if (market.templateId === BigInt(REALITY_TEMPLATE_MULTIPLE_SELECT)) {
+    return MarketTypes.MULTI_CATEGORICAL;
+  }
+
+  if (market.questions.length > 1) {
+    return MarketTypes.MULTI_SCALAR;
   }
 
   return MarketTypes.SCALAR;
 }
 
 export function hasOutcomes(marketType: MarketTypes) {
-  return marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR;
+  return (
+    marketType === MarketTypes.CATEGORICAL ||
+    marketType === MarketTypes.MULTI_CATEGORICAL ||
+    marketType === MarketTypes.MULTI_SCALAR
+  );
 }

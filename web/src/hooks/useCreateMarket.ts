@@ -1,16 +1,11 @@
 import { getConfigNumber } from "@/lib/config";
+import { MarketTypes } from "@/lib/market";
 import { encodeQuestionText } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 import { writeMarketFactory } from "./contracts/generated";
-
-export enum MarketTypes {
-  CATEGORICAL = 1,
-  SCALAR = 2,
-  MULTI_SCALAR = 3,
-}
 
 interface CreateMarketProps {
   marketType: MarketTypes;
@@ -28,16 +23,23 @@ interface CreateMarketProps {
 
 export const OUTCOME_PLACEHOLDER = "[PLACEHOLDER]";
 
-const MarketTypeFunction: Record<string, "createCategoricalMarket" | "createScalarMarket" | "createMultiScalarMarket"> =
-  {
-    [MarketTypes.CATEGORICAL]: "createCategoricalMarket",
-    [MarketTypes.SCALAR]: "createScalarMarket",
-    [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
-  } as const;
+const MarketTypeFunction: Record<
+  string,
+  "createCategoricalMarket" | "createScalarMarket" | "createMultiCategoricalMarket" | "createMultiScalarMarket"
+> = {
+  [MarketTypes.CATEGORICAL]: "createCategoricalMarket",
+  [MarketTypes.SCALAR]: "createScalarMarket",
+  [MarketTypes.MULTI_CATEGORICAL]: "createMultiCategoricalMarket",
+  [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
+} as const;
 
 function getEncodedQuestions(props: CreateMarketProps): string[] {
   if (props.marketType === MarketTypes.CATEGORICAL) {
     return [encodeQuestionText("single-select", props.marketName, props.outcomes, props.category, "en_US")];
+  }
+
+  if (props.marketType === MarketTypes.MULTI_CATEGORICAL) {
+    return [encodeQuestionText("multiple-select", props.marketName, props.outcomes, props.category, "en_US")];
   }
 
   if (props.marketType === MarketTypes.MULTI_SCALAR) {

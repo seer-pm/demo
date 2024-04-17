@@ -1,5 +1,5 @@
 import Button from "@/components/Form/Button";
-import { MarketTypes } from "@/hooks/useCreateMarket";
+import { MarketTypes } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 

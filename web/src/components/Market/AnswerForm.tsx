@@ -4,8 +4,15 @@ import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SupportedChain } from "@/lib/chains";
-import { REALITY_TEMPLATE_UINT, formatOutcome, getAnswerText, getCurrentBond } from "@/lib/reality";
-import { displayBalance } from "@/lib/utils";
+import {
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_SINGLE_SELECT,
+  REALITY_TEMPLATE_UINT,
+  formatOutcome,
+  getAnswerText,
+  getCurrentBond,
+} from "@/lib/reality";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
 import { parseEther } from "viem";
@@ -14,7 +21,8 @@ import { Alert } from "../Alert";
 import Input from "../Form/Input";
 
 interface AnswerFormValues {
-  outcome: string;
+  outcome: string; // single select
+  outcomes: { value: boolean }[]; // multi select
 }
 
 interface AnswerFormProps {
@@ -24,6 +32,21 @@ interface AnswerFormProps {
   closeModal: () => void;
   raiseDispute: () => void;
   chainId: SupportedChain;
+}
+
+function getOutcome(templateId: bigint, values: AnswerFormValues) {
+  if (Number(templateId) === REALITY_TEMPLATE_UINT) {
+    return parseEther(values.outcome).toString();
+  }
+
+  if (Number(templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
+    return values.outcome;
+  }
+
+  // for multi select return the index of the selected values
+  return values.outcomes
+    .map((outcome, i) => (outcome.value === true ? i : false))
+    .filter((v) => v !== false) as number[];
 }
 
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
@@ -37,27 +60,31 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     mode: "all",
     defaultValues: {
       outcome: "",
+      outcomes: [],
     },
   });
 
   const {
     register,
     reset,
-    formState: { isValid },
+    formState: { isValid: isFormStateValid },
     handleSubmit,
   } = useFormReturn;
+
+  const outcomes = useFormReturn.watch("outcomes");
+  const isValid =
+    Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT
+      ? !isUndefined(outcomes.find((o) => o.value === true))
+      : isFormStateValid;
 
   const submitAnswer = useSubmitAnswer((/*receipt: TransactionReceipt*/) => {
     reset();
   });
 
   const onSubmit = async (values: AnswerFormValues) => {
-    const outcome =
-      Number(market.templateId) === REALITY_TEMPLATE_UINT ? parseEther(values.outcome).toString() : values.outcome;
-
     await submitAnswer.mutateAsync({
       questionId: question.id,
-      outcome: formatOutcome(outcome),
+      outcome: formatOutcome(getOutcome(market.templateId, values)),
       currentBond: currentBond,
       chainId: chainId! as SupportedChain,
     });
@@ -130,7 +157,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         </div>
       )}
 
-      {Number(market.templateId) !== REALITY_TEMPLATE_UINT && (
+      {Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT && (
         <div className="space-y-2 mt-[32px]">
           <Select
             options={market.outcomes.map((outcome, i) => ({ value: i, text: outcome }))}
@@ -140,6 +167,19 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
             className="w-full"
             useFormReturn={useFormReturn}
           />
+        </div>
+      )}
+
+      {Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT && (
+        <div className="grid grid-cols-3">
+          {market.outcomes.map((outcome, i) => (
+            <div key={`${outcome}_${i}`}>
+              <label className="label cursor-pointer justify-start space-x-2">
+                <input type="checkbox" {...register(`outcomes.${i}.value`)} className="checkbox" />
+                <span className="label-text text-[16px] text-black-primary">{outcome}</span>
+              </label>
+            </div>
+          ))}
         </div>
       )}
 
