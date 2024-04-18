@@ -11,6 +11,7 @@ import {
   DaiLogo,
   EyeIcon,
   HourGlassIcon,
+  MultiCategoricalIcon,
   MultiScalarIcon,
   RightArrow,
   ScalarIcon,
@@ -53,7 +54,7 @@ export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
 export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
   [MarketTypes.CATEGORICAL]: <CategoricalIcon />,
   [MarketTypes.SCALAR]: <ScalarIcon />,
-  [MarketTypes.MULTI_CATEGORICAL]: <CategoricalIcon />,
+  [MarketTypes.MULTI_CATEGORICAL]: <MultiCategoricalIcon />,
   [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
 };
 
