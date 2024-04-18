@@ -5,6 +5,9 @@ import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SupportedChain } from "@/lib/chains";
 import {
+  ANSWERED_TOO_SOON,
+  FormEventOutcomeValue,
+  INVALID_RESULT,
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
@@ -15,7 +18,7 @@ import {
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
-import { parseEther } from "viem";
+import { hexToNumber, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -49,6 +52,28 @@ function getOutcome(templateId: bigint, values: AnswerFormValues) {
     .filter((v) => v !== false) as number[];
 }
 
+function getOutcomes(market: Market, question: Question) {
+  let outcomes: { value: FormEventOutcomeValue; text: string }[] = [];
+
+  outcomes = market.outcomes
+    // first map and then filter to keep the index of each outcome as value
+    .map((outcome, i) => ({ value: i, text: outcome }));
+
+  if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
+    outcomes = outcomes.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
+  }
+
+  if (question.best_answer !== INVALID_RESULT) {
+    outcomes.push({ value: INVALID_RESULT, text: "Invalid result" });
+  }
+
+  if (question.finalize_ts > 0 && question.best_answer !== ANSWERED_TOO_SOON) {
+    outcomes.push({ value: ANSWERED_TOO_SOON, text: "Answered too soon" });
+  }
+
+  return outcomes;
+}
+
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
   const { address } = useAccount();
   const { open } = useWeb3Modal();
@@ -69,6 +94,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     reset,
     formState: { isValid: isFormStateValid },
     handleSubmit,
+    setValue,
   } = useFormReturn;
 
   const outcomes = useFormReturn.watch("outcomes");
@@ -126,6 +152,30 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     );
   }
 
+  const outcomesOptions = getOutcomes(market, question);
+
+  const onMultiSelectClick = (index: number, value: FormEventOutcomeValue) => {
+    return () => {
+      if (value === INVALID_RESULT || value === ANSWERED_TOO_SOON) {
+        // if value is INVALID_RESULT or ANSWERED_TOO_SOON reset the other values
+        setValue(
+          "outcomes",
+          outcomes.map((_, i) => ({ value: index === i ? true : false })),
+        );
+      } else {
+        // reset INVALID_RESULT and ANSWERED_TOO_SOON
+        const invalidResultIndex = outcomesOptions.findIndex((o) => o.value === INVALID_RESULT);
+        if (invalidResultIndex > -1) {
+          setValue(`outcomes.${invalidResultIndex}.value`, false);
+        }
+        const answeredTooSoonIndex = outcomesOptions.findIndex((o) => o.value === ANSWERED_TOO_SOON);
+        if (answeredTooSoonIndex > -1) {
+          setValue(`outcomes.${answeredTooSoonIndex}.value`, false);
+        }
+      }
+    };
+  };
+
   //marketStatus === MarketStatus.OPEN || marketStatus === MarketStatus.ANSWER_NOT_FINAL;
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -160,7 +210,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       {Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT && (
         <div className="space-y-2 mt-[32px]">
           <Select
-            options={market.outcomes.map((outcome, i) => ({ value: i, text: outcome }))}
+            options={outcomesOptions}
             {...register("outcome", {
               required: "This field is required.",
             })}
@@ -172,11 +222,16 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
 
       {Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT && (
         <div className="grid grid-cols-3">
-          {market.outcomes.map((outcome, i) => (
-            <div key={`${outcome}_${i}`}>
+          {outcomesOptions.map((outcome, i) => (
+            <div key={outcome.value}>
               <label className="label cursor-pointer justify-start space-x-2">
-                <input type="checkbox" {...register(`outcomes.${i}.value`)} className="checkbox" />
-                <span className="label-text text-[16px] text-black-primary">{outcome}</span>
+                <input
+                  type="checkbox"
+                  {...register(`outcomes.${i}.value`)}
+                  className="checkbox"
+                  onClick={onMultiSelectClick(i, outcome.value)}
+                />
+                <span className="label-text text-[16px] text-black-primary">{outcome.text}</span>
               </label>
             </div>
           ))}
