@@ -1,5 +1,6 @@
 import { config as wagmiConfig } from "@/wagmi";
 import { waitForTransactionReceipt } from "@wagmi/core";
+import { ConnectorNotConnectedError } from "@wagmi/core";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
 import { TransactionReceipt } from "viem";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
@@ -122,8 +123,17 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
     return { status: true, receipt: receipt };
     // biome-ignore lint/suspicious/noExplicitAny:
   } catch (error: any) {
-    toastError({ title: error.shortMessage ?? error.message, subtitle: config?.txSent?.subtitle });
+    toastError({ title: getErrorMessage(error), subtitle: config?.txSent?.subtitle });
 
     return { status: false, error };
   }
 };
+
+// biome-ignore lint/suspicious/noExplicitAny:
+function getErrorMessage(error: any): string {
+  if (error instanceof ConnectorNotConnectedError) {
+    return "Please connect your wallet.";
+  }
+
+  return error.shortMessage ?? error.message;
+}
