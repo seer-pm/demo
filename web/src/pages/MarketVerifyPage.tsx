@@ -54,7 +54,6 @@ function MarkeVerifyPage() {
 
     if (market) {
       for (const outcome of market.outcomes) {
-        console.log(outcome);
         appendOutcome({ value: outcome, token: "", image: "" });
       }
     }

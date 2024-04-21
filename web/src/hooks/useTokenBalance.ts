@@ -16,9 +16,19 @@ export async function fetchTokenBalance(token: Address, owner: Address) {
 export const useTokenBalance = (owner?: Address, token?: Address) => {
   return useQuery<bigint | undefined, Error>({
     enabled: !!owner && !!token,
-    queryKey: ["useERC20Balance", owner, token],
+    queryKey: ["useTokenBalance", owner, token],
     queryFn: async () => {
       return await fetchTokenBalance(token!, owner!);
+    },
+  });
+};
+
+export const useTokenBalances = (owner?: Address, tokens?: Address[]) => {
+  return useQuery<bigint[] | undefined, Error>({
+    enabled: !!owner && tokens && tokens.length > 0,
+    queryKey: ["useTokenBalances", owner, tokens],
+    queryFn: async () => {
+      return await Promise.all(tokens!.map((token) => fetchTokenBalance(token, owner!)));
     },
   });
 };

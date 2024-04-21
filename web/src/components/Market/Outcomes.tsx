@@ -1,10 +1,16 @@
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
+import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { displayBalance } from "@/lib/utils";
+import { config } from "@/wagmi";
+import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
+import { watchAsset } from "viem/actions";
+import { useAccount } from "wagmi";
 
 interface PositionsProps {
   chainId: SupportedChain;
@@ -15,6 +21,7 @@ interface PositionsProps {
 }
 
 export function Outcomes({ chainId, router, market, images, tradeCallback }: PositionsProps) {
+  const { address } = useAccount();
   const [activeOutcome, setActiveOutcome] = useState(0);
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
@@ -22,6 +29,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
     market.conditionId,
     market.outcomes.length,
   );
+  const { data: balances } = useTokenBalances(address, wrappedAddresses);
   const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
 
   if (wrappedAddresses.length === 0) {
@@ -34,6 +42,20 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
     return () => {
       setActiveOutcome(i);
       tradeCallback(i);
+    };
+  };
+
+  const addToWallet = (i: number) => {
+    return async () => {
+      const walletClient = await getConnectorClient(config);
+      await watchAsset(walletClient, {
+        type: "ERC20",
+        options: {
+          address: wrappedAddresses[i],
+          decimals: 18,
+          symbol: market.outcomes[i],
+        },
+      });
     };
   };
 
@@ -69,7 +91,14 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                     #{i + 1} {market.outcomes[i]}
                   </a>
                 </div>
-                {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
+                {balances && balances[i] > 0n && (
+                  <div className="text-[12px] text-[#999999]">
+                    Balance: {displayBalance(balances[i], 18)} |{" "}
+                    <button className="text-purple-primary" type="button" onClick={addToWallet(i)}>
+                      Add to wallet
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex space-x-10 items-center">

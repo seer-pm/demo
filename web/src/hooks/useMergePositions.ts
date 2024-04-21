@@ -120,7 +120,7 @@ export const useMergePositions = (onSuccess: (data: TransactionReceipt) => unkno
     mutationFn: mergePositions,
     onSuccess: (data: TransactionReceipt) => {
       queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-      queryClient.invalidateQueries({ queryKey: ["useERC20Balance"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       onSuccess(data);
     },
   });
