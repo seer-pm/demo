@@ -441,7 +441,7 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[#999999] max-lg:hidden">Open interest:</span>{" "}
-            <div>{displayBalance(market.outcomesSupply, 18, true)} sDAI</div> <DaiLogo />
+            <div>{displayBalance(market.outcomesSupply, 18, false)} sDAI</div> <DaiLogo />
           </div>
         </div>
         {isVerified && (
