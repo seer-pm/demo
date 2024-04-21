@@ -76,7 +76,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
   };
 
   const minPositionAmount = positions.reduce((acum, curr: Position) => {
-    if (curr.balance > acum) {
+    if (acum === 0n || curr.balance < acum) {
       // biome-ignore lint/style/noParameterAssign:
       acum = curr.balance;
     }
