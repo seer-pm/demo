@@ -382,7 +382,11 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
       <div className={clsx("flex space-x-3 p-[24px]", market.questions.length > 1 && "pb-[16px]")}>
         <div>
           {images?.market ? (
-            <img src={images.market} alt={market.marketName} className="w-[65px] h-[65px] rounded-full" />
+            <img
+              src={images.market}
+              alt={market.marketName}
+              className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
+            />
           ) : (
             <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
           )}
