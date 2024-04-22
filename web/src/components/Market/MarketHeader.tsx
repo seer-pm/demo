@@ -154,7 +154,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
               )}
               key={question.id}
             >
-              <div className="flex items-center space-x-2">
+              <div className={clsx("flex items-center space-x-2", isPreview && "max-w-[50%]")}>
                 {marketFinalized ? <CheckCircleIcon className="text-success-primary" /> : <HourGlassIcon />}
                 {marketType === MarketTypes.MULTI_SCALAR && (
                   <>
@@ -163,7 +163,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
                   </>
                 )}
                 {question.finalize_ts > 0 && (
-                  <div className="whitespace-nowrap">
+                  <div className="whitespace-nowrap text-ellipsis overflow-hidden">
                     Answer: {getAnswerText(question, market.outcomes, market.templateId)}
                   </div>
                 )}
@@ -201,12 +201,12 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
   //marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.CLOSED
   return (
     <div className="flex items-center space-x-[12px]">
-      <div className="flex items-center space-x-2">
+      <div className={clsx("flex items-center space-x-2", isPreview && "max-w-[50%]")}>
         {(marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.IN_DISPUTE) && (
           <HourGlassIcon />
         )}
         {marketStatus === MarketStatus.CLOSED && <CheckCircleIcon />}
-        <div className="whitespace-nowrap">
+        <div className="whitespace-nowrap text-ellipsis overflow-hidden">
           Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}
         </div>
       </div>
@@ -387,7 +387,7 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
             <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
           )}
         </div>
-        <div className="grow">
+        <div className="grow min-w-0">
           <div className={clsx("font-semibold mb-1 text-[16px]", !isPreview && "lg:text-[24px]")}>
             {!isPreview && market.marketName}
             {isPreview && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
