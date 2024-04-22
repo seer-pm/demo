@@ -1,9 +1,8 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { getTokenInfo } from "@/hooks/useTokenInfo";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
-import { config } from "@/wagmi";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
-import { getToken } from "@wagmi/core";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
@@ -25,8 +24,8 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       }
 
       const [buyToken, sellToken] = await Promise.all([
-        getToken(config, { address: order.buyToken as `0x${string}` }),
-        getToken(config, { address: order.sellToken as `0x${string}` }),
+        getTokenInfo(order.buyToken as `0x${string}`),
+        getTokenInfo(order.sellToken as `0x${string}`),
       ]);
 
       if (order.status === OrderStatus.FULFILLED) {

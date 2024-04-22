@@ -75,7 +75,7 @@ function formatBigNumbers(amount: number) {
     }
   }
 
-  return Math.round(amount);
+  return amount.toFixed(2);
 }
 
 export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {

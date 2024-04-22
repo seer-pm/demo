@@ -16,7 +16,7 @@ export default function Footer() {
           <SecuredByKleros />
         </a>
       </div>
-      <div className="flex space-x-[16px]">
+      <div className="flex space-x-[16px] text-white">
         <a href="#" target="_blank" rel="noopener noreferrer">
           <EtherscanIcon />
         </a>

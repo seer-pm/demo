@@ -1,8 +1,10 @@
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
+import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { EtherscanIcon } from "@/lib/icons";
 import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
@@ -29,6 +31,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
     market.conditionId,
     market.outcomes.length,
   );
+  const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
   const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
 
@@ -81,24 +84,30 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                 )}
               </div>
               <div className="space-y-1">
-                <div>
+                <div className="text-[16px]">
+                  #{i + 1} {market.outcomes[i]}
+                </div>
+                <div className="text-[12px] text-[#999999] flex items-center space-x-[16px]">
+                  {balances && balances[i] > 0n && (
+                    <>
+                      <div>
+                        {displayBalance(balances[i], 18, true)} {tokensInfo[i].symbol}
+                      </div>
+                      <button className="text-purple-primary" type="button" onClick={addToWallet(i)}>
+                        Add token to wallet
+                      </button>
+                    </>
+                  )}
+
                   <a
                     href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[16px] hover:underline"
+                    className="text-purple-primary"
                   >
-                    #{i + 1} {market.outcomes[i]}
+                    <EtherscanIcon width="12" height="12" />
                   </a>
                 </div>
-                {balances && balances[i] > 0n && (
-                  <div className="text-[12px] text-[#999999]">
-                    Balance: {displayBalance(balances[i], 18)} |{" "}
-                    <button className="text-purple-primary" type="button" onClick={addToWallet(i)}>
-                      Add to wallet
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
             <div className="flex space-x-10 items-center">
