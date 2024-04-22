@@ -2,6 +2,7 @@ import { Market, Question } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
+import { useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import {
@@ -19,7 +20,7 @@ import {
 import { MarketTypes, getMarketType, getOpeningTime } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { getAnswerText, getRealityLink, isFinalized } from "@/lib/reality";
-import { displayBalance, getTimeLeft } from "@/lib/utils";
+import { displayBalance, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -350,6 +351,7 @@ function InfoWithModal({
 
 export function MarketHeader({ market, images, chainId, isPreview = false, isVerified }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
+  const { data: daiAmount } = useSDaiToDai(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
@@ -439,10 +441,12 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
           <div className="flex items-center space-x-2">
             {MARKET_TYPES_ICONS[marketType]} <div>{MARKET_TYPES_TEXTS[marketType]}</div>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-[#999999] max-lg:hidden">Open interest:</span>{" "}
-            <div>{displayBalance(market.outcomesSupply, 18, false)} sDAI</div> <DaiLogo />
-          </div>
+          {!isUndefined(daiAmount) && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[#999999] max-lg:hidden">Open interest:</span>{" "}
+              <div>{displayBalance(daiAmount, 18, false)} DAI</div> <DaiLogo />
+            </div>
+          )}
         </div>
         {isVerified && (
           <div className="text-[#00C42B] flex items-center space-x-2">
