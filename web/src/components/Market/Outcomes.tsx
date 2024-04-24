@@ -91,7 +91,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                   {balances && balances[i] > 0n && (
                     <>
                       <div>
-                        {displayBalance(balances[i], 18, true)} {tokensInfo[i].symbol}
+                        {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
                       </div>
                       <button className="text-purple-primary" type="button" onClick={addToWallet(i)}>
                         Add token to wallet
