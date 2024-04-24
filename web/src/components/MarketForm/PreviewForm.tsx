@@ -99,6 +99,7 @@ export function PreviewForm({
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [verifyNow, setVerifyNow] = useState(false);
+  const [newMarketId, setNewMarketId] = useState<`0x${string}` | "">("");
   const navigate = useNavigate();
 
   const images = getImagesForVerification(marketTypeValues.marketType, questionValues, outcomesValues);
@@ -118,16 +119,12 @@ export function PreviewForm({
     })?.[0]?.args?.market;
 
     if (marketId) {
+      setNewMarketId(marketId);
       if (marketReadyToVerify && verifyNow) {
-        await verifyMarket.mutateAsync({
-          marketId,
-          marketImage: images.file.market,
-          outcomesImages: images.file.outcomes,
-          submissionDeposit: submissionDeposit!,
-        });
+        // nothing to do here
+      } else {
+        navigate(paths.market(marketId, chainId));
       }
-
-      navigate(paths.market(marketId, chainId));
     }
   });
 
@@ -149,6 +146,18 @@ export function PreviewForm({
       openingTime,
       chainId,
     });
+  };
+
+  const verifyMarketHandler = async () => {
+    if (marketReadyToVerify && verifyNow && newMarketId !== "") {
+      await verifyMarket.mutateAsync({
+        marketId: newMarketId,
+        marketImage: images.file.market,
+        outcomesImages: images.file.outcomes,
+        submissionDeposit: submissionDeposit!,
+      });
+      navigate(paths.market(newMarketId, chainId));
+    }
   };
 
   const dummyMarket: Market = {
@@ -253,15 +262,24 @@ export function PreviewForm({
               </div>
             )}
 
-            <div className="space-x-[24px]">
+            <div className="space-x-[12px]">
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />
               <Button
                 type="button"
                 text="Create Market"
                 onClick={createMarketHandler}
-                disabled={verifyNow && !marketReadyToVerify}
-                isLoading={createMarket.isPending || verifyMarket.isPending}
+                disabled={(verifyNow && !marketReadyToVerify) || newMarketId !== ""}
+                isLoading={createMarket.isPending}
               />
+              {verifyNow && (
+                <Button
+                  type="button"
+                  text="Verify Market"
+                  onClick={verifyMarketHandler}
+                  disabled={!newMarketId}
+                  isLoading={verifyMarket.isPending}
+                />
+              )}
             </div>
           </div>
         }
