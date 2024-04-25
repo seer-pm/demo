@@ -150,6 +150,22 @@ export const RightArrow = () => (
   </svg>
 );
 
+export const DownArrow = () => (
+  <svg width={16} height={16} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g clipPath="url(#a)">
+      <path
+        d="m7.378 12.305-7.12-7.01a.856.856 0 0 1 0-1.224l.83-.817a.89.89 0 0 1 1.242-.002L8 8.807l5.67-5.555a.89.89 0 0 1 1.242.002l.83.817a.856.856 0 0 1 0 1.224l-7.12 7.01a.89.89 0 0 1-1.244 0Z"
+        fill="#fff"
+      />
+    </g>
+    <defs>
+      <clipPath id="a">
+        <path fill="#fff" d="M0 0h16v16H0z" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 export const HourGlassIcon = () => (
   <svg width={14} height={14} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_21947_128335)">
@@ -469,5 +485,14 @@ export const UploadIcon = ({ className }: SVGAttributes<SVGElement>) => (
         <rect width={24} height={24} fill="white" />
       </clipPath>
     </defs>
+  </svg>
+);
+
+export const PolicyIcon = () => (
+  <svg width={16} height={16} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M12.5 2H10c0-1.103-.897-2-2-2S6 .897 6 2H3.5A1.5 1.5 0 0 0 2 3.5v11A1.5 1.5 0 0 0 3.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 12.5 2ZM8 1.25c.416 0 .75.334.75.75s-.334.75-.75.75A.748.748 0 0 1 7.25 2c0-.416.334-.75.75-.75Zm3.787 7.244L7.32 12.925a.375.375 0 0 1-.532-.003l-2.58-2.603a.375.375 0 0 1 .002-.532l.888-.88a.375.375 0 0 1 .531.002l1.438 1.45 3.312-3.287a.375.375 0 0 1 .531.003l.882.888a.375.375 0 0 1-.004.53Z"
+      fill="#9747FF"
+    />
   </svg>
 );

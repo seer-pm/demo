@@ -1,5 +1,5 @@
 import ConnectWallet from "@/components/ConnectWallet";
-import { BookIcon, BugIcon, EthIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
+import { BookIcon, BugIcon, DownArrow, EthIcon, PolicyIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -47,6 +47,25 @@ export default function Header() {
           </li>
           <li>
             <Link to={"/create-market"}>Create Market</Link>
+          </li>
+          <li>
+            <div className="dropdown dropdown-end">
+              <div tabIndex={0} role="button" className="flex items-center space-x-2">
+                <span>Policies</span> <DownArrow />
+              </div>
+              <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary font-normal">
+                <li className="flex space-x-2 items-center">
+                  <a href="#" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2">
+                    <PolicyIcon /> <span>Verified Market Policy</span>
+                  </a>
+                </li>
+                <li className="flex space-x-2 items-center">
+                  <a href="#" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2">
+                    <PolicyIcon /> <span>Market Rules Policy</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </li>
         </ul>
 

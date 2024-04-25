@@ -4,7 +4,7 @@ import { Market } from "@/hooks/useMarket";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { CheckCircleIcon } from "@/lib/icons";
+import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
@@ -239,8 +239,26 @@ export function PreviewForm({
               />
             </div>
 
+            <div className="mt-[16px] mb-[16px] px-[20px] space-y-[8px] text-left text-[14px]">
+              <div>Before verifying it make sure you read and understand the policies.</div>
+              <div className="flex space-x-[24px] items-center">
+                <div className="flex space-x-2 items-center">
+                  <PolicyIcon />{" "}
+                  <a href="#" className="text-purple-primary">
+                    Verified Market Policy
+                  </a>
+                </div>
+                <div className="flex space-x-2 items-center">
+                  <PolicyIcon />{" "}
+                  <a href="#" className="text-purple-primary">
+                    Market Rules Policy
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {verifyNow && !marketReadyToVerify && (
-              <>
+              <div className="px-[20px]">
                 <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
                 <div className="text-[14px] text-left">
                   Verification requires the question and outcome images. Please, upload an 1:1 aspect ratio image with
@@ -252,7 +270,7 @@ export function PreviewForm({
                   useOutcomesFormReturn={useOutcomesFormReturn}
                   showOnlyMissingImages={true}
                 />
-              </>
+              </div>
             )}
 
             {marketReadyToVerify && verifyNow && !isUndefined(submissionDeposit) && (
