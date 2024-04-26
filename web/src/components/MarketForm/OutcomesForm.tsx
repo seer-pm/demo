@@ -193,7 +193,7 @@ export function OutcomesForm({
               </div>
               <div className="col-span-2">
                 <div className="space-y-2">
-                  <div className="text-[14px] mb-[10px]">Uper Range (≥ than)</div>
+                  <div className="text-[14px] mb-[10px]">Upper Range (≥ than)</div>
                   <Input
                     autoComplete="off"
                     type="number"
