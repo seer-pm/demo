@@ -1,11 +1,12 @@
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
+import { useMarketPools } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { EtherscanIcon } from "@/lib/icons";
-import { displayBalance } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -34,6 +35,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
   const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
   const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+  const { data: pools = [] } = useMarketPools(chainId, wrappedAddresses);
 
   if (wrappedAddresses.length === 0) {
     return null;
@@ -107,6 +109,17 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                   >
                     <EtherscanIcon width="12" height="12" />
                   </a>
+
+                  {!isUndefined(pools[i]) && pools[i].hasIncentives && (
+                    <a
+                      href={`https://v3.swapr.eth.limo/#/info/pools/${pools[i].id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-primary"
+                    >
+                      Add Liquidity
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

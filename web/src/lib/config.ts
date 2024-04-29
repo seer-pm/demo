@@ -69,6 +69,12 @@ export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: "https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai",
 };
+export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/swaprhq/algebra-v19",
+};
+export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/swaprhq/algebrafarming-v19",
+};
 
 export const getRouterAddress = (chainId?: SupportedChain): Address => {
   const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
