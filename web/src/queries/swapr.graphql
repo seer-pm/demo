@@ -25,6 +25,7 @@ query GetPools(
             id
             name
         }
+        fee
     }
 }
 

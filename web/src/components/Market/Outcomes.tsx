@@ -1,11 +1,11 @@
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { useMarketPools } from "@/hooks/useMarketPools";
+import { PoolInfo, useMarketPools } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { EtherscanIcon } from "@/lib/icons";
+import { EtherscanIcon, RightArrow } from "@/lib/icons";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
@@ -14,6 +14,9 @@ import { useState } from "react";
 import { Address } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
+import { Alert } from "../Alert";
+import Button from "../Form/Button";
+import { useModal } from "../Modal";
 
 interface PositionsProps {
   chainId: SupportedChain;
@@ -21,6 +24,49 @@ interface PositionsProps {
   market: Market;
   images?: string[];
   tradeCallback: (poolIndex: number) => void;
+}
+
+function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal: () => void }) {
+  return (
+    <div>
+      <Alert type="info" title="Farming Rewards">
+        Earn farming rewards (SEER) by providing liquidity to existing markets. Liquidity providers can earn up to 0.x%
+        fee on all trades proportional to their share of the pool.
+      </Alert>
+
+      <div className="mt-[32px] mb-[24px] font-semibold">Available Pools:</div>
+
+      <div className="space-y-[12px]">
+        {pools.map((pool) => (
+          <div className="border border-black-medium p-[24px] flex justify-between items-center text-[14px]">
+            <div>
+              <span className="font-semibold">Swapr</span> ~ {(pool.fee / 10000).toFixed(3)}% fee
+            </div>
+            <div>
+              <a
+                href={`https://v3.swapr.eth.limo/#/info/pools/${pool.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-primary flex items-center space-x-2"
+              >
+                <span>Open</span> <RightArrow />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-center my-[32px]">
+        <a href="#" className="text-purple-primary text-[12px]">
+          Learn more about the farming program
+        </a>
+      </div>
+
+      <div className="text-center">
+        <Button text="Return" variant="secondary" type="button" onClick={closeModal} />
+      </div>
+    </div>
+  );
 }
 
 export function Outcomes({ chainId, router, market, images, tradeCallback }: PositionsProps) {
@@ -36,6 +82,9 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
   const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
   const { data: pools = [] } = useMarketPools(chainId, wrappedAddresses);
+  const [activePool, setActivePool] = useState(0);
+
+  const { Modal, openModal, closeModal } = useModal("liquidity-modal");
 
   if (wrappedAddresses.length === 0) {
     return null;
@@ -110,15 +159,17 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                     <EtherscanIcon width="12" height="12" />
                   </a>
 
-                  {!isUndefined(pools[i]) && pools[i].hasIncentives && (
-                    <a
-                      href={`https://v3.swapr.eth.limo/#/info/pools/${pools[i].id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {!isUndefined(pools[i]) && pools[i].length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActivePool(i);
+                        openModal();
+                      }}
                       className="text-purple-primary"
                     >
                       Add Liquidity
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
@@ -136,6 +187,10 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
             </div>
           </div>
         ))}
+        <Modal
+          title="Add Liquidity"
+          content={<AddLiquidityInfo pools={pools[activePool] || []} closeModal={closeModal} />}
+        />
       </div>
     </div>
   );

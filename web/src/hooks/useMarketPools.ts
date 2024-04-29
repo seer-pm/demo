@@ -2,11 +2,12 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient } from "@/lib/subgraph";
 import { useQuery } from "@tanstack/react-query";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import { OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
 
-interface PoolInfo {
+export interface PoolInfo {
   id: Address;
+  fee: number;
   hasIncentives: boolean;
 }
 
@@ -14,7 +15,7 @@ async function getPoolInfo(
   chainId: SupportedChain,
   outcomeToken: Address,
   collateralToken: Address,
-): Promise<PoolInfo> {
+): Promise<PoolInfo[]> {
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
   const algebraFarmingClient = swaprGraphQLClient(chainId, "algebrafarming");
 
@@ -31,35 +32,32 @@ async function getPoolInfo(
     orderDirection: OrderDirection.Desc,
   });
 
-  if (pools.length === 0) {
-    throw new Error(`No pool found for outcome token ${outcomeToken}`);
-  }
+  return await Promise.all(
+    pools.map(async (pool) => {
+      const { eternalFarmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
+        where: { pool: pool.id as Address },
+      });
 
-  const mainPool = pools[0];
-
-  const { eternalFarmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
-    where: { pool: mainPool.id as Address },
-  });
-
-  return {
-    id: mainPool.id as Address,
-    hasIncentives: eternalFarmings.length > 0,
-  };
+      return {
+        id: pool.id as Address,
+        fee: Number(pool.fee),
+        hasIncentives: eternalFarmings.length > 0,
+      };
+    }),
+  );
 }
 
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
-  return useQuery<PoolInfo[] | undefined, Error>({
+  return useQuery<Array<PoolInfo[]> | undefined, Error>({
     enabled: tokens && tokens.length > 0,
     queryKey: ["useMarketPools", chainId, tokens],
     retry: false,
     queryFn: async () => {
-      return (
-        await Promise.allSettled(
-          tokens!.map(async (outcomeToken) => {
-            return getPoolInfo(chainId, outcomeToken, COLLATERAL_TOKENS[chainId].primary.address);
-          }),
-        )
-      ).map((res) => (res.status === "fulfilled" ? res.value : { id: zeroAddress, hasIncentives: false }));
+      return await Promise.all(
+        tokens!.map(async (outcomeToken) => {
+          return getPoolInfo(chainId, outcomeToken, COLLATERAL_TOKENS[chainId].primary.address);
+        }),
+      );
     },
   });
 };

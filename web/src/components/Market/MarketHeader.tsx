@@ -257,7 +257,6 @@ function OutcomesInfo({
     <div>
       <div className="space-y-3">
         {outcomes.map((outcome, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey:
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
             <div className="flex items-center space-x-[12px]">
               {marketType !== MarketTypes.SCALAR && (
