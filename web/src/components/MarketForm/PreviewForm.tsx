@@ -11,7 +11,7 @@ import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { TransactionReceipt } from "viem";
+import { Address, TransactionReceipt } from "viem";
 import { parseEventLogs } from "viem/utils";
 import {
   ButtonsWrapper,
@@ -84,6 +84,183 @@ export function getImagesForVerification(
   };
 }
 
+interface PreviewButtonProps {
+  chainId: SupportedChain;
+  createMarketHandler: () => void;
+  createMarketIsPending: boolean;
+  verifyMarketHandler: () => void;
+  verifyMarketIsPending: boolean;
+  verifyMarketIsSuccess: boolean;
+  verifyNow: boolean;
+  marketReadyToVerify: boolean;
+  newMarketId: Address | "";
+}
+
+function PreviewButton({
+  chainId,
+  createMarketHandler,
+  createMarketIsPending,
+  verifyMarketHandler,
+  verifyMarketIsPending,
+  verifyMarketIsSuccess,
+  verifyNow,
+  marketReadyToVerify,
+  newMarketId,
+}: PreviewButtonProps) {
+  const navigate = useNavigate();
+
+  if (newMarketId === "") {
+    const text = `${createMarketIsPending ? "Creating Market" : "Create Market"} ${verifyNow ? "1/2" : ""}`;
+    return (
+      <Button
+        type="button"
+        text={text}
+        onClick={createMarketHandler}
+        disabled={verifyNow && !marketReadyToVerify}
+        isLoading={createMarketIsPending}
+      />
+    );
+  }
+
+  if (verifyNow && !verifyMarketIsSuccess) {
+    return (
+      <Button
+        type="button"
+        text={verifyMarketIsPending ? "Verifying Market 2/2" : "Verify Market 2/2"}
+        onClick={verifyMarketHandler}
+        disabled={!newMarketId}
+        isLoading={verifyMarketIsPending}
+      />
+    );
+  }
+
+  return <Button type="button" text="Go to Market" onClick={() => navigate(paths.market(newMarketId, chainId))} />;
+}
+
+function getModalTitle(newMarketId: Address | "", verifyNow: boolean, verifyMarketIsPending: boolean) {
+  if (newMarketId === "") {
+    return "Create Market";
+  }
+
+  if (!verifyNow) {
+    return "Success!<br />Market Created!";
+  }
+
+  return verifyMarketIsPending ? "Create Market" : "Success!<br />Market Created and Verified!";
+}
+
+function ModalContentSucessMessage({ isVerified }: { isVerified: boolean }) {
+  return (
+    <div className="text-center mb-[32px]">
+      <div className="text-success-primary my-[50px]">
+        <CheckCircleIcon width="160" height="160" className="mx-auto" />
+      </div>
+
+      <div className="text-[16px]">
+        {isVerified ? (
+          <a href="#" className="text-purple-primary" target="_blank" rel="noopener noreferrer">
+            Open the Curate List of Verified Markets
+          </a>
+        ) : (
+          <span className="text-black-secondary">
+            You can verify it later by clicking on Verify on the market card.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface ModalContentCreateMarketProps {
+  verifyNow: boolean;
+  setVerifyNow: (verifyNow: boolean) => void;
+  marketReadyToVerify: boolean;
+  submissionDeposit: bigint | undefined;
+  useQuestionFormReturn: UseFormReturn<QuestionFormValues>;
+  useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
+}
+
+function ModalContentCreateMarket({
+  verifyNow,
+  setVerifyNow,
+  marketReadyToVerify,
+  submissionDeposit,
+  useQuestionFormReturn,
+  useOutcomesFormReturn,
+}: ModalContentCreateMarketProps) {
+  return (
+    <>
+      <p>
+        When creating a market you are able to verify it by adding the market to the Curate List of Verified Markets. It
+        provides extra credibility to the market being created.{" "}
+        {/*In case you prefer you can verify it
+              later.*/}
+      </p>
+
+      <p className="my-[24px] flex space-x-2 justify-center">
+        Verified Markets hold a{" "}
+        <span className="text-[14px] text-[#00C42B] flex space-x-1 items-center mx-2">
+          <CheckCircleIcon /> <span>Verified</span>
+        </span>{" "}
+        badge.
+      </p>
+
+      <div className="border border-black-medium flex justify-between items-center py-[10px] px-[30px] my-[24px]">
+        <div className="text-[16px] font-semibold text-black-primary">Verify it Now</div>
+        <Toggle
+          onChange={(event) => setVerifyNow(event.target.checked)}
+          name="verify-now"
+          value="1"
+          checked={verifyNow}
+        />
+      </div>
+
+      {verifyNow && (
+        <div className="mt-[16px] mb-[16px] px-[20px] space-y-[8px] text-left text-[14px]">
+          <div>Before verifying it make sure you read and understand the policies.</div>
+          <div className="flex space-x-[24px] items-center">
+            <div className="flex space-x-2 items-center">
+              <PolicyIcon />{" "}
+              <a href="#" className="text-purple-primary">
+                Verified Market Policy
+              </a>
+            </div>
+            <div className="flex space-x-2 items-center">
+              <PolicyIcon />{" "}
+              <a href="#" className="text-purple-primary">
+                Market Rules Policy
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verifyNow && !marketReadyToVerify && (
+        <div className="px-[20px]">
+          <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
+          <div className="text-[14px] text-left">
+            Verification requires the question and outcome images. Please, upload an 1:1 aspect ratio image with
+            transparent background, in SVG, or PNG for each field below.
+          </div>
+
+          <VerificationForm
+            useQuestionFormReturn={useQuestionFormReturn}
+            useOutcomesFormReturn={useOutcomesFormReturn}
+            showOnlyMissingImages={true}
+          />
+        </div>
+      )}
+
+      {marketReadyToVerify && verifyNow && !isUndefined(submissionDeposit) && (
+        <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
+          <span>Verification deposit:</span>{" "}
+          <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} DAI</span>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function PreviewForm({
   marketTypeValues,
   questionValues,
@@ -99,8 +276,7 @@ export function PreviewForm({
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [verifyNow, setVerifyNow] = useState(false);
-  const [newMarketId, setNewMarketId] = useState<`0x${string}` | "">("");
-  const navigate = useNavigate();
+  const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
   const images = getImagesForVerification(marketTypeValues.marketType, questionValues, outcomesValues);
   const marketReadyToVerify = images !== false;
@@ -120,11 +296,6 @@ export function PreviewForm({
 
     if (marketId) {
       setNewMarketId(marketId);
-      if (marketReadyToVerify && verifyNow) {
-        // nothing to do here
-      } else {
-        navigate(paths.market(marketId, chainId));
-      }
     }
   });
 
@@ -156,7 +327,6 @@ export function PreviewForm({
         outcomesImages: images.file.outcomes,
         submissionDeposit: submissionDeposit!,
       });
-      navigate(paths.market(newMarketId, chainId));
     }
   };
 
@@ -192,6 +362,8 @@ export function PreviewForm({
     ),
   };
 
+  const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
+
   return (
     <form onSubmit={openModal} className="space-y-5">
       {(createMarket.isError || verifyMarket.isError) && (
@@ -211,93 +383,35 @@ export function PreviewForm({
       </DashedBox>
 
       <Modal
-        title="Create Market"
+        title={getModalTitle(newMarketId, verifyNow, verifyMarket.isPending)}
         content={
           <div className="text-black-secondary text-center">
-            <p>
-              When creating a market you are able to verify it by adding the market to the Curate List of Verified
-              Markets. It provides extra credibility to the market being created.{" "}
-              {/*In case you prefer you can verify it
-              later.*/}
-            </p>
-
-            <p className="my-[24px] flex space-x-2 justify-center">
-              Verified Markets hold a{" "}
-              <span className="text-[14px] text-[#00C42B] flex space-x-1 items-center mx-2">
-                <CheckCircleIcon /> <span>Verified</span>
-              </span>{" "}
-              badge.
-            </p>
-
-            <div className="border border-black-medium flex justify-between items-center py-[10px] px-[30px] my-[24px]">
-              <div className="text-[16px] font-semibold text-black-primary">Verify it Now</div>
-              <Toggle
-                onChange={(event) => setVerifyNow(event.target.checked)}
-                name="verify-now"
-                value="1"
-                checked={verifyNow}
+            {showSuccessMessage ? (
+              <ModalContentSucessMessage isVerified={verifyNow} />
+            ) : (
+              <ModalContentCreateMarket
+                verifyNow={verifyNow}
+                setVerifyNow={setVerifyNow}
+                marketReadyToVerify={marketReadyToVerify}
+                submissionDeposit={submissionDeposit}
+                useQuestionFormReturn={useQuestionFormReturn}
+                useOutcomesFormReturn={useOutcomesFormReturn}
               />
-            </div>
-
-            <div className="mt-[16px] mb-[16px] px-[20px] space-y-[8px] text-left text-[14px]">
-              <div>Before verifying it make sure you read and understand the policies.</div>
-              <div className="flex space-x-[24px] items-center">
-                <div className="flex space-x-2 items-center">
-                  <PolicyIcon />{" "}
-                  <a href="#" className="text-purple-primary">
-                    Verified Market Policy
-                  </a>
-                </div>
-                <div className="flex space-x-2 items-center">
-                  <PolicyIcon />{" "}
-                  <a href="#" className="text-purple-primary">
-                    Market Rules Policy
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {verifyNow && !marketReadyToVerify && (
-              <div className="px-[20px]">
-                <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
-                <div className="text-[14px] text-left">
-                  Verification requires the question and outcome images. Please, upload an 1:1 aspect ratio image with
-                  transparent background, in SVG, or PNG for each field below.
-                </div>
-
-                <VerificationForm
-                  useQuestionFormReturn={useQuestionFormReturn}
-                  useOutcomesFormReturn={useOutcomesFormReturn}
-                  showOnlyMissingImages={true}
-                />
-              </div>
-            )}
-
-            {marketReadyToVerify && verifyNow && !isUndefined(submissionDeposit) && (
-              <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
-                <span>Verification deposit:</span>{" "}
-                <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} DAI</span>
-              </div>
             )}
 
             <div className="space-x-[12px]">
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />
-              <Button
-                type="button"
-                text="Create Market"
-                onClick={createMarketHandler}
-                disabled={(verifyNow && !marketReadyToVerify) || newMarketId !== ""}
-                isLoading={createMarket.isPending}
+              <PreviewButton
+                chainId={chainId}
+                createMarketHandler={createMarketHandler}
+                createMarketIsPending={createMarket.isPending}
+                verifyMarketHandler={verifyMarketHandler}
+                verifyMarketIsPending={verifyMarket.isPending}
+                verifyMarketIsSuccess={verifyMarket.isSuccess}
+                verifyNow={verifyNow}
+                marketReadyToVerify={marketReadyToVerify}
+                newMarketId={newMarketId}
               />
-              {verifyNow && (
-                <Button
-                  type="button"
-                  text="Verify Market"
-                  onClick={verifyMarketHandler}
-                  disabled={!newMarketId}
-                  isLoading={verifyMarket.isPending}
-                />
-              )}
             </div>
           </div>
         }

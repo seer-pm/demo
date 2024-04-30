@@ -34,8 +34,9 @@ const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLA
 
     return (
       <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
+        {isLoading && <span className="loading loading-spinner"></span>}
         {icon || ""}
-        {text} {isLoading && <span className="loading loading-spinner"></span>}
+        {text}
       </button>
     );
   },
@@ -46,8 +47,9 @@ const LinkButton = (props: BaseProps & LinkProps) => {
 
   return (
     <Link {...restProps} className={clsx("btn", variants[variant], sizes[size], className)}>
+      {isLoading && <span className="loading loading-spinner"></span>}
       {icon || ""}
-      {text} {isLoading && <span className="loading loading-spinner"></span>}
+      {text}
     </Link>
   );
 };

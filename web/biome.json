@@ -25,6 +25,9 @@
         "noSvgWithoutTitle": "off",
         "useValidAnchor": "off",
         "noNoninteractiveTabindex": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
       }
     }
   },

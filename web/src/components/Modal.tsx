@@ -22,7 +22,10 @@ function Modal({ title, content, id, open }: ModalProps) {
           aria-modal={open}
         >
           <div className="modal-box">
-            <h3 className="text-[24px] font-semibold text-center mb-[32px]">{title}</h3>
+            <h3
+              className="text-[24px] font-semibold text-center mb-[32px]"
+              dangerouslySetInnerHTML={{ __html: title }}
+            ></h3>
             <div>{content}</div>
           </div>
         </dialog>,

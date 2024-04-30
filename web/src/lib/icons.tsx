@@ -105,8 +105,8 @@ export const DaiLogo = () => (
   </svg>
 );
 
-export const CheckCircleIcon = ({ width = 14, height = 14 }: SVGAttributes<SVGElement>) => (
-  <svg width={width} height={height} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const CheckCircleIcon = ({ width = 14, height = 14, ...props }: SVGAttributes<SVGElement>) => (
+  <svg width={width} height={height} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
     <path
       fillRule="evenodd"
       clipRule="evenodd"
