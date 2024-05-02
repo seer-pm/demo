@@ -5,8 +5,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
-    "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ xyzseer/seer-pm",
+    "build:gnosis": "graph build --network gnosis",
+    "deploy:gnosis": "graph deploy --node https://api.thegraph.com/deploy/ xyzseer/seer-pm --network gnosis",
     "create-local": "graph create --node http://localhost:8020/ xyzseer/seer-pm",
     "remove-local": "graph remove --node http://localhost:8020/ xyzseer/seer-pm",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 xyzseer/seer-pm",

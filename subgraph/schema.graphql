@@ -1,5 +1,6 @@
 type Market @entity {
   id: ID!
+  creator: Bytes
   marketName: String!
   outcomes: [String!]!
   outcomesSupply: BigInt!

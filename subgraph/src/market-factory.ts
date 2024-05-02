@@ -28,6 +28,7 @@ function getNextMarketIndex(): BigInt {
 export function handleNewMarket(event: NewMarketEvent): void {
   const marketFactory = MarketFactory.bind(event.address);
   const market = new Market(event.params.market.toHexString());
+  market.creator = event.transaction.from;
   market.marketName = event.params.marketName;
   market.outcomes = event.params.outcomes;
   market.outcomesSupply = BigInt.fromI32(0);
