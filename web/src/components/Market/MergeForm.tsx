@@ -1,9 +1,13 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
+import { useApproveTokens } from "@/hooks/useApproveTokens";
 import { useMergePositions } from "@/hooks/useMergePositions";
+import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { Position, useUserPositions } from "@/hooks/useUserPositions";
+import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
+import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
@@ -17,7 +21,7 @@ export interface MergeFormValues {
 
 interface MergeFormProps {
   account?: Address;
-  chainId: number;
+  chainId: SupportedChain;
   router: Address;
   conditionId: `0x${string}`;
   outcomeSlotCount: number;
@@ -25,6 +29,8 @@ interface MergeFormProps {
 
 export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
   const { data: positions = [] } = useUserPositions(account, chainId, router, conditionId, outcomeSlotCount);
+
+  const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
 
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
@@ -43,7 +49,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
     setValue,
   } = useFormReturn;
 
-  const useAltCollateral = watch("useAltCollateral");
+  const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = (
     hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral
@@ -51,6 +57,9 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
       : COLLATERAL_TOKENS[chainId].primary
   ) as Token;
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
+
+  const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
+  const { data: missingApprovals } = useMissingApprovals(wrappedAddresses, account, router, parsedAmount);
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -60,16 +69,23 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
     reset();
   });
 
-  const onSubmit = async (values: MergeFormValues) => {
+  const approveTokens = useApproveTokens();
+
+  const approveTokensHandler = async () => {
+    await approveTokens.mutateAsync({
+      tokenAddress: missingApprovals![0],
+      spender: router,
+      amount: parsedAmount,
+    });
+  };
+
+  const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
-      account: account!,
       router,
       conditionId,
-      mainCollateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       collateralToken: selectedCollateral.address,
-      collateralDecimals: selectedCollateral.decimals,
       outcomeSlotCount,
-      amount: values.amount,
+      amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
     });
@@ -125,15 +141,28 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
 
       <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
-      <div>
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={!isValid || mergePositions.isPending || !account}
-          isLoading={mergePositions.isPending}
-          text="Merge"
-        />
-      </div>
+      {missingApprovals && (
+        <div>
+          {missingApprovals.length === 0 && (
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={!isValid || mergePositions.isPending || !account}
+              isLoading={mergePositions.isPending}
+              text="Merge"
+            />
+          )}
+          {missingApprovals.length > 0 && (
+            <Button
+              variant="primary"
+              type="button"
+              onClick={approveTokensHandler}
+              isLoading={approveTokens.isPending}
+              text={`Approve ${wrappedAddresses.length - missingApprovals.length + 1}/${wrappedAddresses.length}`}
+            />
+          )}
+        </div>
+      )}
     </form>
   );
 }

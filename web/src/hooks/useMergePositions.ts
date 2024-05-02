@@ -5,19 +5,16 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, erc20Abi, parseUnits } from "viem";
+import { writeContract } from "@wagmi/core";
+import { Address, TransactionReceipt } from "viem";
 import { writeGnosisRouterMergeToBase, writeMainnetRouterMergeToDai } from "./contracts/generated";
 
 interface MergePositionProps {
-  account: Address;
   router: Address;
   conditionId: `0x${string}`;
-  mainCollateralToken: Address;
   collateralToken: Address;
-  collateralDecimals: number;
   outcomeSlotCount: number;
-  amount: number;
+  amount: bigint;
   isMainCollateral: boolean;
   routerType: RouterTypes;
 }
@@ -52,48 +49,6 @@ async function mergeFromRouter(
 }
 
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
-  const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
-
-  const partition = generateBasicPartition(props.outcomeSlotCount);
-  let n = 1;
-  for (const indexSet of partition) {
-    const tokenAddress = await readContract(config, {
-      abi: RouterAbi,
-      address: props.router,
-      functionName: "getTokenAddress",
-      args: [props.mainCollateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, indexSet],
-    });
-
-    const allowance = await readContract(config, {
-      abi: erc20Abi,
-      address: tokenAddress,
-      functionName: "allowance",
-      args: [props.account, props.router],
-    });
-
-    if (allowance < parsedAmount) {
-      const result = await toastifyTx(
-        () =>
-          writeContract(config, {
-            address: tokenAddress,
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [props.router, parsedAmount],
-          }),
-        {
-          txSent: { title: `Approving outcome token #${n}...` },
-          txSuccess: { title: `Outcome token #${n} approved.` },
-        },
-      );
-
-      if (!result.status) {
-        throw result.status;
-      }
-    }
-
-    n++;
-  }
-
   const result = await toastifyTx(
     () =>
       mergeFromRouter(
@@ -103,7 +58,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
         props.collateralToken,
         props.conditionId,
         generateBasicPartition(props.outcomeSlotCount),
-        BigInt(parsedAmount),
+        props.amount,
       ),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
   );

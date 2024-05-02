@@ -108,7 +108,7 @@ export const useSplitPosition = (onSuccess: (data: TransactionReceipt) => unknow
     mutationFn: splitPosition,
     onSuccess: (data: TransactionReceipt) => {
       queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       onSuccess(data);
     },
   });

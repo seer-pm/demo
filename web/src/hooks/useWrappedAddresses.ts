@@ -6,6 +6,26 @@ import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 
+export const fetchWrappedAddresses = (
+  chainId: number,
+  router: Address,
+  conditionId: `0x${string}`,
+  outcomeSlotCount: number,
+) => {
+  const partitions = generateBasicPartition(outcomeSlotCount);
+
+  return readContracts(config, {
+    allowFailure: false,
+    contracts: partitions.map((indexSet) => ({
+      abi: RouterAbi,
+      address: router,
+      functionName: "getTokenAddress",
+      args: [COLLATERAL_TOKENS[chainId].primary.address, EMPTY_PARENT_COLLECTION, conditionId, indexSet],
+      chainId,
+    })),
+  });
+};
+
 export const useWrappedAddresses = (
   chainId: number,
   router: Address,
@@ -16,18 +36,7 @@ export const useWrappedAddresses = (
     enabled: !!chainId && !!router && !!conditionId && !!outcomeSlotCount,
     queryKey: ["useWrappedAddresses", chainId, router, conditionId, outcomeSlotCount],
     queryFn: async () => {
-      const partitions = generateBasicPartition(outcomeSlotCount!);
-
-      return readContracts(config, {
-        allowFailure: false,
-        contracts: partitions.map((indexSet) => ({
-          abi: RouterAbi,
-          address: router,
-          functionName: "getTokenAddress",
-          args: [COLLATERAL_TOKENS[chainId].primary.address, EMPTY_PARENT_COLLECTION, conditionId!, indexSet],
-          chainId,
-        })),
-      });
+      return fetchWrappedAddresses(chainId, router, conditionId!, outcomeSlotCount!);
     },
   });
 };
