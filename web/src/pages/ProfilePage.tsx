@@ -1,14 +1,27 @@
 import { Alert } from "@/components/Alert";
+import { MarketsFilter, ORDER_OPTIONS } from "@/components/Market/MarketsFilter";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
+import { Market_OrderBy } from "@/hooks/queries/generated";
+import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { shortenAddress } from "@/lib/utils";
+import { useState } from "react";
 import { useAccount } from "wagmi";
 
 function ProfilePage() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: markets = [], isPending } = useMarkets({ chainId: chainId as SupportedChain, creator: address });
+  const [marketName, setMarketName] = useState("");
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
+  const [orderBy, serOrderBy] = useState<Market_OrderBy>(ORDER_OPTIONS[0].value);
+  const { data: markets = [], isPending } = useMarkets({
+    chainId: chainId as SupportedChain,
+    creator: address,
+    marketName,
+    marketStatus,
+    orderBy,
+  });
 
   if (!address) {
     return (
@@ -23,6 +36,13 @@ function ProfilePage() {
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <div className="text-[24px] font-semibold">Markets created by {shortenAddress(address)}</div>
+
+      <MarketsFilter
+        setMarketName={setMarketName}
+        setMarketStatus={setMarketStatus}
+        orderBy={orderBy}
+        setOrderBy={serOrderBy}
+      />
 
       {isPending && (
         <div className="py-10 px-10">
