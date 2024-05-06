@@ -109,7 +109,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
     });
   };
 
-  const minPositionAmount = positions.reduce((acum, curr: Position) => {
+  const maxPositionAmount = positions.reduce((acum, curr: Position) => {
     if (acum === 0n || curr.balance < acum) {
       // biome-ignore lint/style/noParameterAssign:
       acum = curr.balance;
@@ -125,7 +125,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
           <div
             className="text-purple-primary cursor-pointer"
             onClick={() =>
-              setValue("amount", Number(formatUnits(minPositionAmount, selectedCollateral.decimals)), {
+              setValue("amount", Number(formatUnits(maxPositionAmount, selectedCollateral.decimals)), {
                 shouldValidate: true,
                 shouldDirty: true,
               })
@@ -145,7 +145,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
                 return "Amount must be greater than 0.";
               }
 
-              if (parseUnits(String(v), selectedCollateral.decimals) > minPositionAmount) {
+              if (parseUnits(String(v), selectedCollateral.decimals) > maxPositionAmount) {
                 return "Not enough balance.";
               }
 
@@ -170,7 +170,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
               text="Merge"
             />
           )}
-          {missingApprovals.length > 0 && (
+          {missingApprovals.length > 0 && parsedAmount <= maxPositionAmount && (
             <div className="space-y-[8px]">
               {missingApprovals.map((approval) => (
                 <ApproveButton
