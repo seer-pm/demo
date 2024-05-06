@@ -26,14 +26,19 @@ const sizes: Record<ButtonSize, string> = {
 
 const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLAttributes<HTMLButtonElement>>(
   (props, ref) => {
-    const { text, type, size = "large", variant = "primary", icon, isLoading, ...restProps } = props;
+    const { text, type, size = "large", variant = "primary", icon, isLoading, className, ...restProps } = props;
 
     if (isLoading) {
       restProps["disabled"] = true;
     }
 
     return (
-      <button {...restProps} type={type || "button"} className={clsx("btn", variants[variant], sizes[size])} ref={ref}>
+      <button
+        {...restProps}
+        type={type || "button"}
+        className={clsx("btn", variants[variant], sizes[size], className)}
+        ref={ref}
+      >
         {isLoading && <span className="loading loading-spinner"></span>}
         {icon || ""}
         {text}

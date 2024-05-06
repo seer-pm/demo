@@ -27,6 +27,34 @@ interface MergeFormProps {
   outcomeSlotCount: number;
 }
 
+function ApproveButton({
+  tokenAddress,
+  tokenName,
+  router,
+  amount,
+}: { tokenAddress: Address; tokenName: string; router: Address; amount: bigint }) {
+  const approveTokens = useApproveTokens();
+
+  const approveTokensHandler = async () => {
+    return await approveTokens.mutateAsync({
+      tokenAddress: tokenAddress,
+      spender: router,
+      amount: amount,
+    });
+  };
+
+  return (
+    <Button
+      variant="primary"
+      type="button"
+      onClick={approveTokensHandler}
+      isLoading={approveTokens.isPending}
+      text={`Approve ${tokenName}`}
+      className="w-full"
+    />
+  );
+}
+
 export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
   const { data: positions = [] } = useUserPositions(account, chainId, router, conditionId, outcomeSlotCount);
 
@@ -68,16 +96,6 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
   const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
     reset();
   });
-
-  const approveTokens = useApproveTokens();
-
-  const approveTokensHandler = async () => {
-    await approveTokens.mutateAsync({
-      tokenAddress: missingApprovals![0],
-      spender: router,
-      amount: parsedAmount,
-    });
-  };
 
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
@@ -153,13 +171,17 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
             />
           )}
           {missingApprovals.length > 0 && (
-            <Button
-              variant="primary"
-              type="button"
-              onClick={approveTokensHandler}
-              isLoading={approveTokens.isPending}
-              text={`Approve ${wrappedAddresses.length - missingApprovals.length + 1}/${wrappedAddresses.length}`}
-            />
+            <div className="space-y-[8px]">
+              {missingApprovals.map((approval) => (
+                <ApproveButton
+                  key={approval.address}
+                  tokenAddress={approval.address}
+                  tokenName={approval.name}
+                  router={router}
+                  amount={parsedAmount}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -38,7 +38,10 @@ function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal
 
       <div className="space-y-[12px]">
         {pools.map((pool) => (
-          <div className="border border-black-medium p-[24px] flex justify-between items-center text-[14px]">
+          <div
+            className="border border-black-medium p-[24px] flex justify-between items-center text-[14px]"
+            key={pool.id}
+          >
             <div>
               <span className="font-semibold">Swapr</span> ~ {(pool.fee / 10000).toFixed(3)}% fee
             </div>
