@@ -30,8 +30,7 @@ function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal
   return (
     <div>
       <Alert type="info" title="Farming Rewards">
-        Earn farming rewards (SEER) by providing liquidity to existing markets. Liquidity providers can earn up to 0.x%
-        fee on all trades proportional to their share of the pool.
+        Earn farming rewards (SEER) by providing liquidity to existing markets.
       </Alert>
 
       <div className="mt-[32px] mb-[24px] font-semibold">Available Pools:</div>
@@ -43,11 +42,11 @@ function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal
             key={pool.id}
           >
             <div>
-              <span className="font-semibold">Swapr</span> ~ {(pool.fee / 10000).toFixed(3)}% fee
+              <span className="font-semibold">Swapr</span> ~ {displayBalance(pool.reward, 17)} SEER / day
             </div>
             <div>
               <a
-                href={`https://v3.swapr.eth.limo/#/info/pools/${pool.id}`}
+                href={`https://v3.swapr.eth.limo/#/add/${pool.token0}/${pool.token1}/enter-amounts`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary flex items-center space-x-2"

@@ -8,6 +8,9 @@ import { OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
 export interface PoolInfo {
   id: Address;
   fee: number;
+  token0: Address;
+  token1: Address;
+  reward: bigint;
   hasIncentives: boolean;
 }
 
@@ -41,7 +44,10 @@ async function getPoolInfo(
       return {
         id: pool.id as Address,
         fee: Number(pool.fee),
+        token0,
+        token1,
         hasIncentives: eternalFarmings.length > 0,
+        reward: BigInt(eternalFarmings[0].reward),
       };
     }),
   );
