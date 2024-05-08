@@ -1,10 +1,12 @@
+import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { PoolInfo, useMarketPools } from "@/hooks/useMarketPools";
+import { PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, RightArrow } from "@/lib/icons";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -26,7 +28,61 @@ interface PositionsProps {
   tradeCallback: (poolIndex: number) => void;
 }
 
-function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal: () => void }) {
+function AddLiquidityInfo({
+  chainId,
+  pools,
+  closeModal,
+}: { chainId: SupportedChain; pools: PoolInfo[]; closeModal: () => void }) {
+  const { address } = useAccount();
+  const { data: deposits } = usePoolsDeposits(
+    chainId,
+    pools.map((p) => p.id),
+    address,
+  );
+
+  const enterFarming = useEnterFarming();
+  const exitFarming = useExitFarming();
+  const approveFarming = useApproveFarming();
+
+  const depositHandler = (poolInfo: PoolInfo, tokenId: string) => {
+    return async () => {
+      await enterFarming.mutateAsync({
+        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+        rewardToken: poolInfo.rewardToken,
+        bonusRewardToken: poolInfo.bonusRewardToken,
+        pool: poolInfo.id,
+        startTime: poolInfo.startTime,
+        endTime: poolInfo.endTime,
+        tokenId: BigInt(tokenId),
+      });
+    };
+  };
+
+  const withdrawHandler = (poolInfo: PoolInfo, tokenId: string) => {
+    return async () => {
+      await exitFarming.mutateAsync({
+        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+        rewardToken: poolInfo.rewardToken,
+        bonusRewardToken: poolInfo.bonusRewardToken,
+        pool: poolInfo.id,
+        startTime: poolInfo.startTime,
+        endTime: poolInfo.endTime,
+        tokenId: BigInt(tokenId),
+      });
+    };
+  };
+
+  const approveHandler = (tokenId: string) => {
+    return async () => {
+      await approveFarming.mutateAsync({
+        nonFungiblePositionManager: SWAPR_CONFIG[chainId]?.NON_FUNGIBLE_POSITION_MANAGER!,
+        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+        account: address!,
+        tokenId: BigInt(tokenId),
+      });
+    };
+  };
+
   return (
     <div>
       <Alert type="info" title="Farming Rewards">
@@ -37,23 +93,62 @@ function AddLiquidityInfo({ pools, closeModal }: { pools: PoolInfo[]; closeModal
 
       <div className="space-y-[12px]">
         {pools.map((pool) => (
-          <div
-            className="border border-black-medium p-[24px] flex justify-between items-center text-[14px]"
-            key={pool.id}
-          >
-            <div>
-              <span className="font-semibold">Swapr</span> ~ {displayBalance(pool.reward, 17)} SEER / day
+          <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="font-semibold">Swapr</span> ~ {displayBalance(pool.reward, 17)} SEER / day
+              </div>
+              <div>
+                <a
+                  href={`https://v3.swapr.eth.limo/#/add/${pool.token0}/${pool.token1}/enter-amounts`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-primary flex items-center space-x-2"
+                >
+                  <span>Open</span> <RightArrow />
+                </a>
+              </div>
             </div>
-            <div>
-              <a
-                href={`https://v3.swapr.eth.limo/#/add/${pool.token0}/${pool.token1}/enter-amounts`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-primary flex items-center space-x-2"
-              >
-                <span>Open</span> <RightArrow />
-              </a>
-            </div>
+
+            {deposits?.[pool.id] && (
+              <div className="space-y-[16px] mt-[16px]">
+                {deposits[pool.id].map((deposit) => (
+                  <div className="flex items-center justify-between items-center" key={deposit.id}>
+                    <div>
+                      <a
+                        href={`https://v3.swapr.eth.limo/#/farming/farms#${deposit.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-primary hover:underline"
+                      >
+                        Position #{deposit.id}
+                      </a>
+                    </div>
+                    <div>
+                      {!deposit.onFarmingCenter && (
+                        <Button text="Approve" size="small" variant="secondary" onClick={approveHandler(deposit.id)} />
+                      )}
+                      {deposit.onFarmingCenter &&
+                        (deposit.limitFarming === null && deposit.eternalFarming === null ? (
+                          <Button
+                            text="Deposit"
+                            size="small"
+                            variant="secondary"
+                            onClick={depositHandler(pool, deposit.id)}
+                          />
+                        ) : (
+                          <Button
+                            text="Withdraw"
+                            size="small"
+                            variant="secondary"
+                            onClick={withdrawHandler(pool, deposit.id)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -191,7 +286,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
         ))}
         <Modal
           title="Add Liquidity"
-          content={<AddLiquidityInfo pools={pools[activePool] || []} closeModal={closeModal} />}
+          content={<AddLiquidityInfo chainId={chainId} pools={pools[activePool] || []} closeModal={closeModal} />}
         />
       </div>
     </div>

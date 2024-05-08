@@ -52,6 +52,15 @@ const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   },
 };
 
+export const SWAPR_CONFIG: Partial<
+  Record<SupportedChain, { FARMING_CENTER: Address; NON_FUNGIBLE_POSITION_MANAGER: Address }>
+> = {
+  [gnosis.id]: {
+    FARMING_CENTER: "0xde51ddf1ae7d5bbd7bf1a0e40aaa1f6c12579106",
+    NON_FUNGIBLE_POSITION_MANAGER: "0x91fd594c46d8b01e62dbdebed2401dde01817834",
+  },
+};
+
 export type RouterTypes = "base" | "mainnet" | "gnosis";
 
 export const CHAIN_ROUTERS: Record<number, RouterTypes> = {

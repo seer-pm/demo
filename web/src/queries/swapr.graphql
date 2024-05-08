@@ -49,7 +49,37 @@ query GetEternalFarmings(
     ){
         id
         rewardToken
+        bonusRewardToken
         reward
         rewardRate
+        startTime
+        endTime
+    }
+}
+
+query GetDeposits(
+    $skip: Int = 0
+    $first: Int = 100
+    $orderBy: Deposit_orderBy
+    $orderDirection: OrderDirection
+    $where: Deposit_filter
+    $block: Block_height
+    $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+    deposits(
+        skip: $skip
+        first: $first
+        orderBy: $orderBy
+        orderDirection: $orderDirection
+        where: $where
+        block: $block
+        subgraphError: $subgraphError
+    ){
+        id
+        owner
+        pool
+        limitFarming
+        eternalFarming
+        onFarmingCenter
     }
 }
