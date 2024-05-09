@@ -73,7 +73,8 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 } as const;
 
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/xyzseer/seer-pm",
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: "https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai",
