@@ -31,6 +31,10 @@ async function getPoolInfo(
     throw new Error("Subgraph not available");
   }
 
+  // hardcoded
+  outcomeToken = "0x37b60f4e9a31a64ccc0024dce7d0fd07eaa0f7b3";
+  collateralToken = "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6";
+
   const [token0, token1] =
     outcomeToken > collateralToken ? [collateralToken, outcomeToken] : [outcomeToken, collateralToken];
 
