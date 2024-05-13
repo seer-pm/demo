@@ -4,50 +4,74 @@ import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 import { getTokenInfo } from "./useTokenInfo";
 
+interface ApprovalInfo {
+  tokenAddress: Address;
+  amount: bigint;
+}
+
 async function fetchNeededApprovals(
   tokensAddresses: Address[],
   account: Address,
-  router: Address,
-  parsedAmount: bigint,
-) {
+  spender: Address,
+  amounts: bigint[],
+): Promise<ApprovalInfo[]> {
+  if (tokensAddresses.length !== amounts.length) {
+    throw new Error("Invalid tokens and amounts lengths");
+  }
+
   const allowances = await readContracts(config, {
     allowFailure: false,
     contracts: tokensAddresses.map((tokenAddress) => ({
       abi: erc20Abi,
       address: tokenAddress,
       functionName: "allowance",
-      args: [account, router],
+      args: [account, spender],
     })),
   });
 
   return tokensAddresses.reduce((acumm, curr, index) => {
-    if (BigInt(allowances[index]) < parsedAmount) {
-      acumm.push(curr);
+    if (BigInt(allowances[index]) < amounts[index]) {
+      acumm.push({ tokenAddress: curr, amount: amounts[index] });
     }
 
     return acumm;
-  }, [] as Address[]);
+  }, [] as ApprovalInfo[]);
 }
 
 interface UseMissingApprovalsReturn {
   address: Address;
   name: string;
+  amount: bigint;
 }
 
 export const useMissingApprovals = (
   tokensAddresses: Address[],
   account: Address | undefined,
   router: Address,
-  parsedAmount: bigint,
+  amounts: bigint | bigint[],
 ) => {
+  let approvalAmounts: bigint[];
+  if (typeof amounts === "bigint") {
+    // approve the same amount for every token
+    approvalAmounts = new Array(tokensAddresses.length).fill(amounts);
+  } else {
+    approvalAmounts = amounts;
+  }
+
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
     enabled: tokensAddresses.length > 0 && !!account,
-    queryKey: ["useMissingApprovals", tokensAddresses, account, router, parsedAmount.toString()],
+    queryKey: ["useMissingApprovals", tokensAddresses, account, router, approvalAmounts.map((a) => a.toString())],
     queryFn: async () => {
-      const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, router, parsedAmount);
-      const tokensInfo = await Promise.all(missingApprovals.map((token) => getTokenInfo(token)));
+      const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, router, approvalAmounts);
+      const tokensInfo = await Promise.all(
+        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress)),
+      );
 
-      return missingApprovals.map((token, i) => ({ address: token, name: tokensInfo[i].name }));
+      return missingApprovals.map((missingApproval, i) => ({
+        address: missingApproval.tokenAddress,
+        name: tokensInfo[i].name,
+        amount: missingApproval.amount,
+      }));
     },
   });
 };

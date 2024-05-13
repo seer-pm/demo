@@ -1,7 +1,6 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { useApproveTokens } from "@/hooks/useApproveTokens";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
@@ -13,6 +12,7 @@ import { Token, hasAltCollateral } from "@/lib/tokens";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
+import { ApproveButton } from "../Form/ApproveButton";
 
 export interface MergeFormValues {
   amount: number;
@@ -25,34 +25,6 @@ interface MergeFormProps {
   router: Address;
   conditionId: `0x${string}`;
   outcomeSlotCount: number;
-}
-
-function ApproveButton({
-  tokenAddress,
-  tokenName,
-  router,
-  amount,
-}: { tokenAddress: Address; tokenName: string; router: Address; amount: bigint }) {
-  const approveTokens = useApproveTokens();
-
-  const approveTokensHandler = async () => {
-    return await approveTokens.mutateAsync({
-      tokenAddress: tokenAddress,
-      spender: router,
-      amount: amount,
-    });
-  };
-
-  return (
-    <Button
-      variant="primary"
-      type="button"
-      onClick={approveTokensHandler}
-      isLoading={approveTokens.isPending}
-      text={`Approve ${tokenName}`}
-      className="w-full"
-    />
-  );
 }
 
 export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {

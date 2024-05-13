@@ -16,7 +16,7 @@ export const useUserPositions = (
   const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
   return useQuery<Position[] | undefined, Error>({
     enabled: !!address && !!chainId && !!router && wrappedAddresses.length > 0,
-    queryKey: ["usePositions", address, chainId, conditionId],
+    queryKey: ["useUserPositions", address, chainId, conditionId],
     queryFn: async () => {
       const balances = (await readContracts(config, {
         contracts: wrappedAddresses!.map((wrappedAddresses) => ({

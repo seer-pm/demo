@@ -109,7 +109,7 @@ export const useSwapTokens = (onSuccess: (data: string) => unknown) => {
   return useMutation({
     mutationFn: swapTokens,
     onSuccess: (data: string) => {
-      queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useUserPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       onSuccess(data);
     },
