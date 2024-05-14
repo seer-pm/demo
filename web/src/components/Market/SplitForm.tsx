@@ -1,13 +1,16 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
+import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
+import { NATIVE_TOKEN } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
+import { ApproveButton } from "../Form/ApproveButton";
 
 export interface SplitFormValues {
   amount: number;
@@ -41,7 +44,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     setValue,
   } = useFormReturn;
 
-  const useAltCollateral = watch("useAltCollateral");
+  const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = (
     hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral
@@ -49,6 +52,14 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
       : COLLATERAL_TOKENS[chainId].primary
   ) as Token;
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
+
+  const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
+  const { data: missingApprovals = [] } = useMissingApprovals(
+    selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
+    account,
+    router,
+    parsedAmount,
+  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -114,15 +125,29 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
 
       <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
 
-      <div>
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={!isValid || splitPosition.isPending || !account}
-          isLoading={splitPosition.isPending}
-          text="Mint"
-        />
-      </div>
+      {missingApprovals && (
+        <div>
+          {missingApprovals.length === 0 && (
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={!isValid || splitPosition.isPending || !account}
+              isLoading={splitPosition.isPending}
+              text="Mint"
+            />
+          )}
+          {missingApprovals.length > 0 && (
+            <div className="space-y-[8px]">
+              <ApproveButton
+                tokenAddress={missingApprovals[0].address}
+                tokenName={missingApprovals[0].name}
+                router={router}
+                amount={parsedAmount}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </form>
   );
 }
