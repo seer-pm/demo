@@ -3,12 +3,10 @@ import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/condition
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
-import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, parseUnits } from "viem";
-import { erc20Abi } from "viem";
+import { writeContract } from "@wagmi/core";
+import { Address, TransactionReceipt } from "viem";
 import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "./contracts/generated";
 
 interface SplitPositionProps {
@@ -16,9 +14,8 @@ interface SplitPositionProps {
   router: Address;
   conditionId: `0x${string}`;
   collateralToken: Address;
-  collateralDecimals: number;
   outcomeSlotCount: number;
-  amount: number;
+  amount: bigint;
   isMainCollateral: boolean;
   routerType: RouterTypes;
 }
@@ -54,34 +51,6 @@ async function splitFromRouter(
 }
 
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
-  const parsedAmount = parseUnits(String(props.amount), props.collateralDecimals);
-
-  if (props.collateralToken !== NATIVE_TOKEN) {
-    const allowance = await readContract(config, {
-      abi: erc20Abi,
-      address: props.collateralToken,
-      functionName: "allowance",
-      args: [props.account, props.router],
-    });
-
-    if (allowance < parsedAmount) {
-      const result = await toastifyTx(
-        () =>
-          writeContract(config, {
-            address: props.collateralToken,
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [props.router, parsedAmount],
-          }),
-        { txSent: { title: "Approving tokens..." }, txSuccess: { title: "Tokens approved." } },
-      );
-
-      if (!result.status) {
-        throw result.error;
-      }
-    }
-  }
-
   const result = await toastifyTx(
     () =>
       splitFromRouter(
@@ -91,7 +60,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
         props.collateralToken,
         props.conditionId,
         generateBasicPartition(props.outcomeSlotCount),
-        BigInt(parsedAmount),
+        props.amount,
       ),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
   );

@@ -69,15 +69,14 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     reset();
   });
 
-  const onSubmit = async (values: SplitFormValues) => {
+  const onSubmit = async (/*values: SplitFormValues*/) => {
     await splitPosition.mutateAsync({
       account: account!,
       router: router,
       conditionId,
       collateralToken: selectedCollateral.address,
-      collateralDecimals: selectedCollateral.decimals,
       outcomeSlotCount,
-      amount: values.amount,
+      amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
     });
