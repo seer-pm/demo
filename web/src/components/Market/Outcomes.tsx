@@ -28,6 +28,14 @@ interface PositionsProps {
   tradeCallback: (poolIndex: number) => void;
 }
 
+function poolRewardsInfo(pool: PoolInfo) {
+  if (pool.apr === 0) {
+    return `${displayBalance(pool.reward, 17)} SEER / day`;
+  }
+
+  return `${pool.apr.toFixed(2)}% APR`;
+}
+
 function AddLiquidityInfo({
   chainId,
   pools,
@@ -96,7 +104,7 @@ function AddLiquidityInfo({
           <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
             <div className="flex justify-between items-center">
               <div>
-                <span className="font-semibold">Swapr</span> ~ {displayBalance(pool.reward, 17)} SEER / day
+                <span className="font-semibold">Swapr</span> ~ {poolRewardsInfo(pool)}
               </div>
               <div>
                 <a

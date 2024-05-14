@@ -3,7 +3,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
+import { Address, formatUnits } from "viem";
 import { GetDepositsQuery, OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
 
 export interface PoolInfo {
@@ -12,11 +12,21 @@ export interface PoolInfo {
   token0: Address;
   token1: Address;
   reward: bigint;
+  apr: number;
   rewardToken: Address;
   bonusRewardToken: Address;
   startTime: bigint;
   endTime: bigint;
   hasIncentives: boolean;
+}
+
+function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
+  /*const seerUsdPrice = 2; // TODO: get SEER price
+  const stakedTvl = 10000; // TODO: get pool TVL
+  const usdCoinsPerYear = seerRewardPerDay * 365 * seerUsdPrice
+  const yearlyAPR = usdCoinsPerYear / stakedTvl * 100;
+  return yearlyAPR;*/
+  return 0;
 }
 
 async function getPoolInfo(
@@ -53,6 +63,7 @@ async function getPoolInfo(
         token1,
         hasIncentives: eternalFarmings.length > 0,
         reward: BigInt(eternalFarmings[0].reward),
+        apr: getPoolApr(Number(formatUnits(BigInt(eternalFarmings[0].reward), 17))),
         rewardToken: eternalFarmings[0].rewardToken,
         bonusRewardToken: eternalFarmings[0].bonusRewardToken,
         startTime: BigInt(eternalFarmings[0].startTime),
