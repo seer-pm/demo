@@ -233,7 +233,7 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
         <>
           <div className="text-black-medium">|</div>
           <div className="flex items-center space-x-2">
-            <a className="text-purple-primary" href={"#"} target="_blank" rel="noreferrer">
+            <a className="text-purple-primary" href={paths.klerosDispute()} target="_blank" rel="noreferrer">
               Check the case on Kleros Court
             </a>
             <RightArrow />

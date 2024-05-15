@@ -149,7 +149,7 @@ function getModalTitle(newMarketId: Address | "", verifyNow: boolean, verifyMark
   return verifyMarketIsPending ? "Create Market" : "Success!<br />Market Created and Verified!";
 }
 
-function ModalContentSucessMessage({ isVerified }: { isVerified: boolean }) {
+function ModalContentSucessMessage({ isVerified, chainId }: { isVerified: boolean; chainId: SupportedChain }) {
   return (
     <div className="text-center mb-[32px]">
       <div className="text-success-primary my-[50px]">
@@ -158,7 +158,12 @@ function ModalContentSucessMessage({ isVerified }: { isVerified: boolean }) {
 
       <div className="text-[16px]">
         {isVerified ? (
-          <a href="#" className="text-purple-primary" target="_blank" rel="noopener noreferrer">
+          <a
+            href={paths.curateVerifiedList(chainId)}
+            className="text-purple-primary"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Open the Curate List of Verified Markets
           </a>
         ) : (
@@ -221,13 +226,13 @@ function ModalContentCreateMarket({
           <div className="flex space-x-[24px] items-center">
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
-              <a href="#" className="text-purple-primary">
+              <a href={paths.verifiedMarketPolicy()} className="text-purple-primary">
                 Verified Market Policy
               </a>
             </div>
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
-              <a href="#" className="text-purple-primary">
+              <a href={paths.marketRulesPolicy()} className="text-purple-primary">
                 Market Rules Policy
               </a>
             </div>
@@ -387,7 +392,7 @@ export function PreviewForm({
         content={
           <div className="text-black-secondary text-center">
             {showSuccessMessage ? (
-              <ModalContentSucessMessage isVerified={verifyNow} />
+              <ModalContentSucessMessage isVerified={verifyNow} chainId={chainId} />
             ) : (
               <ModalContentCreateMarket
                 verifyNow={verifyNow}

@@ -8,6 +8,7 @@ import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, RightArrow } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
@@ -162,7 +163,7 @@ function AddLiquidityInfo({
       </div>
 
       <div className="text-center my-[32px]">
-        <a href="#" className="text-purple-primary text-[12px]">
+        <a href={paths.farmingProgram()} className="text-purple-primary text-[12px]">
           Learn more about the farming program
         </a>
       </div>

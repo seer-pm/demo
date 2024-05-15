@@ -1,5 +1,6 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { BookIcon, BugIcon, DownArrow, EthIcon, PolicyIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -55,12 +56,22 @@ export default function Header() {
               </div>
               <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary font-normal">
                 <li className="flex space-x-2 items-center">
-                  <a href="#" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2">
+                  <a
+                    href={paths.verifiedMarketPolicy()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
                     <PolicyIcon /> <span>Verified Market Policy</span>
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center">
-                  <a href="#" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2">
+                  <a
+                    href={paths.marketRulesPolicy()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
                     <PolicyIcon /> <span>Market Rules Policy</span>
                   </a>
                 </li>
@@ -81,31 +92,31 @@ export default function Header() {
               <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary">
                 <li className="flex space-x-2 items-center">
                   <TelegramIcon />{" "}
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href={paths.getHelp()} target="_blank" rel="noopener noreferrer">
                     Get Help
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center">
                   <BugIcon />{" "}
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href={paths.bugReport()} target="_blank" rel="noopener noreferrer">
                     Report a Bug
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center">
                   <BookIcon />{" "}
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href={paths.dappGuide()} target="_blank" rel="noopener noreferrer">
                     DApp Guide
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center">
                   <EthIcon />{" "}
-                  <a href="https://ethereum.org/en/wallets/" target="_blank" rel="noopener noreferrer">
+                  <a href={paths.beginnerGuide()} target="_blank" rel="noopener noreferrer">
                     Crypto Beginner's Guide
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center">
                   <QuestionIcon />{" "}
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href={paths.faq()} target="_blank" rel="noopener noreferrer">
                     FAQ
                   </a>
                 </li>

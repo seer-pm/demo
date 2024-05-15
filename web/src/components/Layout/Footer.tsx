@@ -7,6 +7,7 @@ import {
   TelegramIcon,
   TwitterIcon,
 } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 
 export default function Footer() {
   return (
@@ -17,22 +18,22 @@ export default function Footer() {
         </a>
       </div>
       <div className="flex space-x-[16px] text-white">
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.etherscan()} target="_blank" rel="noopener noreferrer">
           <EtherscanIcon />
         </a>
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.github()} target="_blank" rel="noopener noreferrer">
           <GithubIcon />
         </a>
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.snapshot()} target="_blank" rel="noopener noreferrer">
           <SnapshotIcon />
         </a>
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.discord()} target="_blank" rel="noopener noreferrer">
           <DiscordIcon />
         </a>
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.twitter()} target="_blank" rel="noopener noreferrer">
           <TwitterIcon />
         </a>
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href={paths.telegram()} target="_blank" rel="noopener noreferrer">
           <TelegramIcon />
         </a>
       </div>
