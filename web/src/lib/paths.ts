@@ -27,4 +27,5 @@ export const paths = {
   discord: () => "#",
   twitter: () => "#",
   telegram: () => "#",
+  verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
 };
