@@ -77,7 +77,8 @@ export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
     "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]: "https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai",
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp",
 };
 export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: "https://api.thegraph.com/subgraphs/name/swaprhq/algebra-v19",

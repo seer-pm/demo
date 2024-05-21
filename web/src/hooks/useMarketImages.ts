@@ -2,11 +2,11 @@ import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address, getAddress } from "viem";
+import { Address } from "viem";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { Status, getSdk } from "./queries/generated";
 
-export const useMarketImages = (marketId: Address, chainId: SupportedChain) => {
+export const useMarketImages = (marketId: Address, chainId: SupportedChain, registered = true) => {
   return useQuery<{ market: string; outcomes: string[] }, Error>({
     queryKey: ["useMarketImages", marketId, chainId],
     queryFn: async () => {
@@ -17,7 +17,11 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain) => {
 
       if (client && !isUndefined(registryAddress)) {
         const { litems } = await getSdk(client).GetImages({
-          where: { status: Status.Registered, registryAddress, key0: getAddress(marketId) },
+          where: {
+            status: registered ? Status.Registered : undefined,
+            registryAddress,
+            key0_contains_nocase: marketId,
+          },
         });
 
         if (litems.length === 0) {

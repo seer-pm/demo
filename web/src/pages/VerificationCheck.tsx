@@ -23,7 +23,7 @@ interface VerificationCheckFormValues {
 function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
 
-  const { data: images } = useMarketImages(id, chainId);
+  const { data: images } = useMarketImages(id, chainId, false);
   const { data: wrappedAddresses } = useWrappedAddresses(
     chainId,
     getRouterAddress(chainId),
@@ -63,7 +63,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
         <div className="text-[24px] font-semibold mb-[16px]">Reality Questions</div>
         <div>
           {market.questions.map((question) => (
-            <div>
+            <div key={question.id}>
               <a
                 href={getRealityLink(chainId, question.id)}
                 target="_blank"
@@ -80,8 +80,8 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
       <div>
         <div className="text-[24px] font-semibold mb-[16px]">Outcomes</div>
         <div>
-          {market.outcomes.map((outcome) => (
-            <div>{outcome}</div>
+          {market.outcomes.map((outcome, i) => (
+            <div key={i}>{outcome}</div>
           ))}
         </div>
       </div>
@@ -91,7 +91,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
           <div className="text-[24px] font-semibold mb-[16px]">Tokens</div>
           <div>
             {tokens.map((token, i) => (
-              <div className="flex items-center justify-center space-x-2">
+              <div className="flex items-center justify-center space-x-2" key={i}>
                 <span>{token.name}</span>{" "}
                 <a
                   href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddresses![i]}`}
@@ -119,8 +119,8 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
           <div>
             <div className="text-[24px] font-semibold mb-[16px]">Outcomes Images</div>
             <div className="space-y-[16px]">
-              {images.outcomes.map((image) => (
-                <div>
+              {images.outcomes.map((image, i) => (
+                <div key={i}>
                   <img src={image} style={{ maxWidth: 100, margin: "0 auto" }} alt="Outcome" />
                 </div>
               ))}
