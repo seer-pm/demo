@@ -4,15 +4,18 @@ import { SupportedChain } from "./chains";
 
 export const paths = {
   market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/`,
+  verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   verifiedMarketPolicy: () => "#",
   marketRulesPolicy: () => "#",
   klerosDispute: () => "#",
   farmingProgram: () => "#",
-  curateVerifiedList: (chainId: SupportedChain) => {
+  curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
     if (chainId in lightGeneralizedTcrAddress) {
       // @ts-ignore
-      return `https://curate.kleros.io/tcr/${chainId}/${lightGeneralizedTcrAddress[chainId]}`;
+      const baseUrl = `https://curate.kleros.io/tcr/${chainId}/${lightGeneralizedTcrAddress[chainId]}`;
+
+      return itemId ? `${baseUrl}/${itemId}` : baseUrl;
     }
 
     return "#";

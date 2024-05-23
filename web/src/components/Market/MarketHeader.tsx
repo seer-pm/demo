@@ -3,13 +3,16 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { useSDaiToDai } from "@/hooks/useSDaiToDai";
+import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import {
   CalendarIcon,
   CategoricalIcon,
   CheckCircleIcon,
+  ClockIcon,
   DaiLogo,
+  ExclamationCircleIcon,
   EyeIcon,
   HourGlassIcon,
   MultiCategoricalIcon,
@@ -33,7 +36,7 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   chainId: SupportedChain;
   isPreview?: boolean;
-  isVerified?: boolean;
+  verificationStatusResult?: VerificationStatusResult;
 }
 
 export const STATUS_TEXTS: Record<MarketStatus, string> = {
@@ -348,7 +351,13 @@ function InfoWithModal({
   );
 }
 
-export function MarketHeader({ market, images, chainId, isPreview = false, isVerified }: MarketHeaderProps) {
+export function MarketHeader({
+  market,
+  images,
+  chainId,
+  isPreview = false,
+  verificationStatusResult,
+}: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useSDaiToDai(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
@@ -451,11 +460,42 @@ export function MarketHeader({ market, images, chainId, isPreview = false, isVer
             </div>
           )}
         </div>
-        {isVerified && (
-          <div className="text-[#00C42B] flex items-center space-x-2">
-            <CheckCircleIcon />
-            <div className="max-lg:hidden">Verified</div>
-          </div>
+        {!isUndefined(verificationStatusResult) && (
+          <Link
+            className={clsx(
+              "flex items-center space-x-2",
+              verificationStatusResult.status === "verified" && "text-success-primary",
+              verificationStatusResult.status === "verifying" && "text-blue-primary",
+              verificationStatusResult.status === "not_verified" && "text-purple-primary",
+            )}
+            to={
+              verificationStatusResult.status === "not_verified"
+                ? paths.verifyMarket(market.id, chainId)
+                : paths.curateVerifiedList(chainId, verificationStatusResult.itemID)
+            }
+            {...(verificationStatusResult.status === "not_verified"
+              ? {}
+              : { target: "_blank", rel: "noopener noreferrer" })}
+          >
+            {verificationStatusResult.status === "verified" && (
+              <>
+                <CheckCircleIcon />
+                <div className="max-lg:hidden">Verified</div>
+              </>
+            )}
+            {verificationStatusResult.status === "verifying" && (
+              <>
+                <ClockIcon />
+                <div className="max-lg:hidden">Verifying</div>
+              </>
+            )}
+            {verificationStatusResult.status === "not_verified" && (
+              <>
+                <ExclamationCircleIcon width="14" height="14" />
+                <div className="max-lg:hidden">Verify it</div>
+              </>
+            )}
+          </Link>
         )}
       </div>
     </div>

@@ -383,7 +383,7 @@ export function PreviewForm({
           images={images === false ? undefined : images.url}
           chainId={DEFAULT_CHAIN}
           isPreview={true}
-          isVerified={marketReadyToVerify && verifyNow}
+          verificationStatusResult={marketReadyToVerify && verifyNow ? { status: "verified" } : undefined}
         />
       </DashedBox>
 

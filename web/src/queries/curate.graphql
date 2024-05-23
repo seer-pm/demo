@@ -8,6 +8,8 @@ query GetImages(
         block: $block
         subgraphError: $subgraphError
     ) {
+        itemID
+        status
         registryAddress
         key0
         data

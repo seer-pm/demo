@@ -6,11 +6,11 @@ import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
-import { isUndefined } from "@/lib/utils";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Address } from "viem";
@@ -39,6 +39,7 @@ function MarketPage() {
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
+  const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
@@ -80,7 +81,12 @@ function MarketPage() {
       <div className="space-y-5">
         <MarketBreadcrumb />
 
-        <MarketHeader market={market} chainId={chainId} images={images} isVerified={!isUndefined(images)} />
+        <MarketHeader
+          market={market}
+          chainId={chainId}
+          images={images}
+          verificationStatusResult={verificationStatusResult}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 space-y-5">
