@@ -48,6 +48,8 @@ type MarketQuestion @entity {
   id: ID!
   market: Market!
   question: Question!
+  " a market can have the same question multiple times, we use the index to identify each one of them "
+  index: Int!
 }
 
 type Condition @entity {

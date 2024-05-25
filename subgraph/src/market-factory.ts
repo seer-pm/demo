@@ -71,10 +71,11 @@ export function handleNewMarket(event: NewMarketEvent): void {
     question.save();
 
     const marketQuestion = new MarketQuestion(
-      market.id.concat(market.questionsIds[i].toHexString())
+      market.id.concat(market.questionsIds[i].toHexString()).concat(i.toString())
     );
     marketQuestion.market = market.id;
     marketQuestion.question = question.id;
+    marketQuestion.index = i;
     marketQuestion.save();
   }
 

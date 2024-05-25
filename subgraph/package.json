@@ -6,15 +6,17 @@
   "scripts": {
     "codegen": "graph codegen",
     "build:gnosis": "graph build --network gnosis",
-    "deploy:gnosis": "graph deploy --node https://api.thegraph.com/deploy/ xyzseer/seer-pm --network gnosis",
+    "deploy:gnosis": "graph deploy --studio seer-pm --network gnosis",
     "create-local": "graph create --node http://localhost:8020/ xyzseer/seer-pm",
     "remove-local": "graph remove --node http://localhost:8020/ xyzseer/seer-pm",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 xyzseer/seer-pm",
     "test": "graph test"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.68.5",
-    "@graphprotocol/graph-ts": "0.32.0"
+    "@graphprotocol/graph-cli": "^0.72.2",
+    "@graphprotocol/graph-ts": "^0.35.1"
   },
-  "devDependencies": { "matchstick-as": "0.5.0" }
+  "devDependencies": {
+    "matchstick-as": "0.5.0"
+  }
 }
