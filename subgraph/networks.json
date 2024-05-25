@@ -1,8 +1,8 @@
 {
   "gnosis": {
     "MarketFactory": {
-      "address": "0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA",
-      "startBlock": 32986755
+      "address": "0xE619F55fa792f04D474788237FB47D802214a2e6",
+      "startBlock": 33479538
     },
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",

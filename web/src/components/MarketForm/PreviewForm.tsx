@@ -365,6 +365,9 @@ export function PreviewForm({
         min_bond: 100000000000000000n,
       }),
     ),
+    encodedQuestions: [
+      ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
+    ].map((_) => ""),
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

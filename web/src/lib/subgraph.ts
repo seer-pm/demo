@@ -64,5 +64,6 @@ export function mapGraphMarket(market: GetMarketsQuery["markets"][number]): Mark
         };
       })
       .sort((a, b) => a.index - b.index),
+    encodedQuestions: market.encodedQuestions,
   };
 }

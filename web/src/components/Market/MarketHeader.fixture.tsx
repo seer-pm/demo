@@ -14,6 +14,7 @@ const baseMarket: Market = {
   upperBound: 0n,
   payoutReported: true,
   questions: [],
+  encodedQuestions: [],
 };
 
 const baseQuestion: Question = {

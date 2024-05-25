@@ -28,6 +28,7 @@ fragment Market on Market {
             ...Question
         }
     }
+    encodedQuestions
     payoutReported
 }
 

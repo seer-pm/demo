@@ -27,6 +27,7 @@ export interface Market {
   questionId: `0x${string}`;
   templateId: bigint;
   questions: readonly Question[];
+  encodedQuestions: readonly string[];
   lowerBound: bigint;
   upperBound: bigint;
   payoutReported: boolean;

@@ -1,6 +1,7 @@
 import { Market, Question } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { useReopenQuestion } from "@/hooks/useReopenQuestion";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
@@ -22,7 +23,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getMarketType, getOpeningTime } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { getAnswerText, getRealityLink, isFinalized } from "@/lib/reality";
+import { ANSWERED_TOO_SOON, getAnswerText, getRealityLink, isFinalized } from "@/lib/reality";
 import { displayBalance, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
@@ -116,6 +117,15 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
   const resolveHandler = async () => {
     resolveMarket.mutateAsync({
       marketId: market.id,
+    });
+  };
+
+  const reopenQuestion = useReopenQuestion();
+  const reopenHandler = async () => {
+    reopenQuestion.mutateAsync({
+      question: market.questions[0],
+      templateId: market.templateId,
+      encodedQuestion: market.encodedQuestions[0],
     });
   };
 
@@ -216,9 +226,18 @@ function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal 
       <div className="text-black-medium">|</div>
       <div className="flex items-center space-x-2">
         {marketStatus === MarketStatus.PENDING_EXECUTION && (
-          <button className="text-purple-primary" type="button" onClick={resolveHandler}>
-            Report Answer
-          </button>
+          <>
+            {market.questions[0].best_answer === ANSWERED_TOO_SOON && (
+              <button className="text-purple-primary" type="button" onClick={reopenHandler}>
+                Reopen question
+              </button>
+            )}
+            {market.questions[0].best_answer !== ANSWERED_TOO_SOON && (
+              <button className="text-purple-primary" type="button" onClick={resolveHandler}>
+                Report Answer
+              </button>
+            )}
+          </>
         )}
         {(marketStatus === MarketStatus.CLOSED || marketStatus === MarketStatus.IN_DISPUTE) && (
           <a
