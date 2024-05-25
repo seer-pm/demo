@@ -62,6 +62,14 @@ interface IRealityETH_v3_0 {
     function questions(
         bytes32 question_id
     ) external view returns (Question memory);
+
+    function isFinalized(bytes32 question_id) external view returns (bool);
+
+    function isSettledTooSoon(bytes32 question_id) external view returns (bool);
+
+    function reopened_questions(
+        bytes32 question_id
+    ) external view returns (bytes32);
 }
 
 contract MarketView {
@@ -125,7 +133,10 @@ contract MarketView {
         {
             IRealityETH_v3_0 realitio = marketFactory.realitio();
             for (uint256 i = 0; i < questions.length; i++) {
-                questionsIds[i] = market.questionsIds(i);
+                questionsIds[i] = getQuestionId(
+                    market.questionsIds(i),
+                    realitio
+                );
                 questions[i] = realitio.questions(questionsIds[i]);
                 encodedQuestions[i] = market.encodedQuestions(i);
             }
@@ -181,5 +192,21 @@ contract MarketView {
         }
 
         return marketsInfo;
+    }
+
+    function getQuestionId(
+        bytes32 questionId,
+        IRealityETH_v3_0 realitio
+    ) public view returns (bytes32) {
+        if (
+            realitio.isFinalized(questionId) &&
+            realitio.isSettledTooSoon(questionId)
+        ) {
+            bytes32 replacementId = realitio.reopened_questions(questionId);
+            if (replacementId != bytes32(0)) {
+                questionId = replacementId;
+            }
+        }
+        return questionId;
     }
 }
