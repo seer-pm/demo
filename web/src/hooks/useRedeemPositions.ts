@@ -5,10 +5,9 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { readContract, writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt, erc20Abi } from "viem";
+import { writeContract } from "@wagmi/core";
+import { Address, TransactionReceipt } from "viem";
 import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
-import { fetchTokenBalance } from "./useTokenBalance";
 
 interface RedeemPositionProps {
   account: Address;
@@ -49,47 +48,6 @@ async function redeemFromRouter(
 }
 
 async function redeemPositions(props: RedeemPositionProps): Promise<TransactionReceipt> {
-  let n = 1;
-  for (const indexSet of props.indexSets) {
-    const tokenAddress = await readContract(config, {
-      abi: RouterAbi,
-      address: props.router,
-      functionName: "getTokenAddress",
-      args: [props.collateralToken, EMPTY_PARENT_COLLECTION, props.conditionId, indexSet],
-    });
-
-    const allowance = await readContract(config, {
-      abi: erc20Abi,
-      address: tokenAddress,
-      functionName: "allowance",
-      args: [props.account, props.router],
-    });
-
-    const balance = await fetchTokenBalance(tokenAddress, props.account);
-
-    if (allowance < balance) {
-      const result = await toastifyTx(
-        () =>
-          writeContract(config, {
-            address: tokenAddress,
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [props.router, balance],
-          }),
-        {
-          txSent: { title: `Approving outcome token #${n}...` },
-          txSuccess: { title: `Outcome token #${n} approved.` },
-        },
-      );
-
-      if (!result.status) {
-        throw result.error;
-      }
-    }
-
-    n++;
-  }
-
   const result = await toastifyTx(
     () =>
       redeemFromRouter(
