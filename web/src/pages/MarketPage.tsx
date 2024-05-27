@@ -1,6 +1,6 @@
 import { Alert } from "@/components/Alert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
-import { MarketHeader } from "@/components/Market/MarketHeader";
+import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";

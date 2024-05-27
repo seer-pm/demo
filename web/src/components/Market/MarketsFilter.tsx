@@ -5,7 +5,7 @@ import { Dropdown } from "../Dropdown";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
 import Select from "../Form/Select";
-import { STATUS_TEXTS } from "./MarketHeader";
+import { STATUS_TEXTS } from "./Header/MarketHeader";
 
 export const ORDER_OPTIONS = [
   { value: Market_OrderBy.OutcomesSupply, text: "Open Interest" },
@@ -38,7 +38,7 @@ export function MarketsFilter({
   };
 
   const marketStatusCallback = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setMarketStatus(Number((event.target as HTMLSelectElement).value) as MarketStatus | "");
+    setMarketStatus((event.target as HTMLSelectElement).value as MarketStatus | "");
   };
 
   return (

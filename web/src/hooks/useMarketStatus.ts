@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Market } from "./useMarket";
 
 export enum MarketStatus {
-  NOT_OPEN = 1,
-  OPEN = 2,
-  ANSWER_NOT_FINAL = 3,
-  IN_DISPUTE = 4,
-  PENDING_EXECUTION = 5,
-  CLOSED = 6,
+  NOT_OPEN = "not_open",
+  OPEN = "open",
+  ANSWER_NOT_FINAL = "answer_not_final",
+  IN_DISPUTE = "in_dispute",
+  PENDING_EXECUTION = "pending_execution",
+  CLOSED = "closed",
 }
 
 export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {

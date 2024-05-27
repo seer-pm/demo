@@ -1,5 +1,6 @@
 import { realityAddress } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
+import { MarketStatus } from "@/hooks/useMarketStatus";
 import compareAsc from "date-fns/compareAsc";
 import fromUnixTime from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
@@ -123,6 +124,44 @@ export function isFinalized(question: Question) {
   const finalizeTs = Number(question.finalize_ts);
   return !question.is_pending_arbitration && finalizeTs > 0 && compareAsc(new Date(), fromUnixTime(finalizeTs)) === 1;
 }
+
+export function isQuestionOpen(question: Question) {
+  const now = Math.round(new Date().getTime() / 1000);
+
+  return question.opening_ts < now;
+}
+
+export function isQuestionUnanswered(question: Question) {
+  return question.finalize_ts === 0;
+}
+
+export function isQuestionInDispute(question: Question) {
+  return question.is_pending_arbitration;
+}
+
+export function isQuestionPending(question: Question) {
+  return question.finalize_ts === 0 || !isFinalized(question);
+}
+
+export const getQuestionStatus = (question: Question) => {
+  if (!isQuestionOpen(question)) {
+    return MarketStatus.NOT_OPEN;
+  }
+
+  if (isQuestionUnanswered(question)) {
+    return MarketStatus.OPEN;
+  }
+
+  if (isQuestionInDispute(question)) {
+    return MarketStatus.IN_DISPUTE;
+  }
+
+  if (isQuestionPending(question)) {
+    return MarketStatus.ANSWER_NOT_FINAL;
+  }
+
+  return MarketStatus.CLOSED;
+};
 
 export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}`) {
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;

@@ -1,36 +1,28 @@
-import { Market, Question } from "@/hooks/useMarket";
+import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
-import { useReopenQuestion } from "@/hooks/useReopenQuestion";
-import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import {
-  CalendarIcon,
   CategoricalIcon,
   CheckCircleIcon,
   ClockIcon,
   DaiLogo,
   ExclamationCircleIcon,
   EyeIcon,
-  HourGlassIcon,
   MultiCategoricalIcon,
   MultiScalarIcon,
-  RightArrow,
   ScalarIcon,
 } from "@/lib/icons";
-import { MarketTypes, getMarketType, getOpeningTime } from "@/lib/market";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { ANSWERED_TOO_SOON, getAnswerText, getRealityLink, isFinalized } from "@/lib/reality";
-import { displayBalance, getTimeLeft, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useModal } from "../Modal";
-import { AnswerForm } from "./AnswerForm";
-import { RaiseDisputeForm } from "./RaiseDisputeForm";
+import { MarketInfo } from "./MarketInfo";
 
 interface MarketHeaderProps {
   market: Market;
@@ -63,7 +55,7 @@ export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
   [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
 };
 
-type ColorConfig = { border: string; bg: string; text: string; dot: string };
+export type ColorConfig = { border: string; bg: string; text: string; dot: string };
 export const COLORS: Record<MarketStatus, ColorConfig> = {
   [MarketStatus.NOT_OPEN]: {
     border: "border-t-black-secondary",
@@ -102,169 +94,6 @@ export const COLORS: Record<MarketStatus, ColorConfig> = {
     dot: "bg-success-primary",
   },
 };
-
-interface MarketInfoProps {
-  market: Market;
-  marketStatus: MarketStatus;
-  isPreview: boolean;
-  chainId: SupportedChain;
-  openAnswerModal: (question: Question) => void;
-}
-
-function MarketInfo({ market, marketStatus, isPreview, chainId, openAnswerModal }: MarketInfoProps) {
-  const resolveMarket = useResolveMarket();
-
-  const resolveHandler = async () => {
-    resolveMarket.mutateAsync({
-      marketId: market.id,
-    });
-  };
-
-  const reopenQuestion = useReopenQuestion();
-  const reopenHandler = async () => {
-    reopenQuestion.mutateAsync({
-      question: market.questions[0],
-      templateId: market.templateId,
-      encodedQuestion: market.encodedQuestions[0],
-    });
-  };
-
-  if (marketStatus === MarketStatus.NOT_OPEN) {
-    return (
-      <div className="flex items-center space-x-2">
-        <CalendarIcon /> <div>Opening at {getOpeningTime(market)}</div>
-      </div>
-    );
-  }
-
-  if (marketStatus === MarketStatus.OPEN) {
-    return (
-      <>
-        <div className="flex items-center space-x-2">
-          <button type="button" className="text-purple-primary" onClick={() => openAnswerModal(market.questions[0])}>
-            Answer on Reality.eth!
-          </button>
-          <RightArrow />
-        </div>
-      </>
-    );
-  }
-
-  if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
-    const marketType = getMarketType(market);
-    const isPreviewWithMultiQuestions = isPreview && market.questions.length > 1;
-
-    return (
-      <div className="space-y-[16px]">
-        {market.questions.map((question, i) => {
-          const marketFinalized = isFinalized(question);
-          return (
-            <div
-              className={clsx(
-                "flex items-center space-x-[12px]",
-                marketFinalized && "text-success-primary",
-                isPreviewWithMultiQuestions && "flex-wrap",
-              )}
-              key={question.id}
-            >
-              <div className={clsx("flex items-center space-x-2", isPreview && "max-w-[50%]")}>
-                {marketFinalized ? <CheckCircleIcon className="text-success-primary" /> : <HourGlassIcon />}
-                {marketType === MarketTypes.MULTI_SCALAR && (
-                  <>
-                    <div>{market.outcomes[i]}</div>
-                    <div className="text-black-medium">|</div>
-                  </>
-                )}
-                {question.finalize_ts > 0 && (
-                  <div className="whitespace-nowrap text-ellipsis overflow-hidden">
-                    Answer: {getAnswerText(question, market.outcomes, market.templateId)}
-                  </div>
-                )}
-              </div>
-              {!marketFinalized && question.finalize_ts === 0 && (
-                <button type="button" className="text-purple-primary" onClick={() => openAnswerModal(question)}>
-                  Answer on Reality.eth
-                </button>
-              )}
-              {!marketFinalized && question.finalize_ts > 0 && (
-                <>
-                  {!isPreviewWithMultiQuestions && <div className="text-black-medium">|</div>}
-                  <div className={clsx("text-black-secondary grow", isPreview && "w-full mt-[5px]")}>
-                    <span>
-                      If this is not correct, you can correct it within {getTimeLeft(question.finalize_ts)} on
-                    </span>{" "}
-                    <button
-                      type="button"
-                      className="text-purple-primary inline-flex items-center space-x-2"
-                      onClick={() => openAnswerModal(question)}
-                    >
-                      <span>Reality.eth</span>
-                      <RightArrow />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  //marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.CLOSED
-  return (
-    <div className="flex items-center space-x-[12px]">
-      <div className={clsx("flex items-center space-x-2", isPreview && "max-w-[50%]")}>
-        {(marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.IN_DISPUTE) && (
-          <HourGlassIcon />
-        )}
-        {marketStatus === MarketStatus.CLOSED && <CheckCircleIcon />}
-        <div className="whitespace-nowrap text-ellipsis overflow-hidden">
-          Answer: {getAnswerText(market.questions[0], market.outcomes, market.templateId)}
-        </div>
-      </div>
-      <div className="text-black-medium">|</div>
-      <div className="flex items-center space-x-2">
-        {marketStatus === MarketStatus.PENDING_EXECUTION && (
-          <>
-            {market.questions[0].best_answer === ANSWERED_TOO_SOON && (
-              <button className="text-purple-primary" type="button" onClick={reopenHandler}>
-                Reopen question
-              </button>
-            )}
-            {market.questions[0].best_answer !== ANSWERED_TOO_SOON && (
-              <button className="text-purple-primary" type="button" onClick={resolveHandler}>
-                Report Answer
-              </button>
-            )}
-          </>
-        )}
-        {(marketStatus === MarketStatus.CLOSED || marketStatus === MarketStatus.IN_DISPUTE) && (
-          <a
-            className="text-purple-primary"
-            href={getRealityLink(chainId, market.questionId)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Check it on Reality.eth
-          </a>
-        )}
-        <RightArrow />
-      </div>
-      {marketStatus === MarketStatus.IN_DISPUTE && (
-        <>
-          <div className="text-black-medium">|</div>
-          <div className="flex items-center space-x-2">
-            <a className="text-purple-primary" href={paths.klerosDispute()} target="_blank" rel="noreferrer">
-              Check the case on Kleros Court
-            </a>
-            <RightArrow />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function OutcomesInfo({
   market,
@@ -305,67 +134,6 @@ function OutcomesInfo({
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function InfoWithModal({
-  market,
-  marketStatus,
-  colors,
-  isPreview,
-  chainId,
-}: { market: Market; marketStatus?: MarketStatus; colors?: ColorConfig; isPreview: boolean; chainId: SupportedChain }) {
-  const { Modal: AnswerModal, openModal: openAnswerModal, closeModal: closeAnswerModal } = useModal("answer-modal");
-  const {
-    Modal: RaiseDisputeModal,
-    openModal: openRaiseDisputeModal,
-    closeModal: closeRaiseDisputeModal,
-  } = useModal("raise-dispute-modal");
-  const [modalQuestion, setModalQuestion] = useState<Question | undefined>();
-
-  const showAnswerModal = (question: Question) => {
-    setModalQuestion(question);
-    openAnswerModal();
-  };
-
-  if (!market || !marketStatus) {
-    return null;
-  }
-
-  return (
-    <div className={clsx("text-[14px]", colors?.text)}>
-      <MarketInfo
-        market={market}
-        marketStatus={marketStatus}
-        isPreview={isPreview}
-        chainId={chainId}
-        openAnswerModal={showAnswerModal}
-      />
-      {modalQuestion && (
-        <RaiseDisputeModal
-          title="Raise a Dispute"
-          content={<RaiseDisputeForm question={modalQuestion} closeModal={closeRaiseDisputeModal} chainId={chainId} />}
-        />
-      )}
-      {modalQuestion && (
-        <AnswerModal
-          title="Report Answer"
-          content={
-            <AnswerForm
-              market={market}
-              marketStatus={marketStatus}
-              question={modalQuestion}
-              closeModal={closeAnswerModal}
-              raiseDispute={() => {
-                closeAnswerModal();
-                openRaiseDisputeModal();
-              }}
-              chainId={chainId}
-            />
-          }
-        />
-      )}
     </div>
   );
 }
@@ -423,16 +191,9 @@ export function MarketHeader({
             {!isPreview && market.marketName}
             {isPreview && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
           </div>
-          {market.questions.length === 1 && (
-            <InfoWithModal
-              market={market}
-              marketStatus={marketStatus}
-              colors={colors}
-              isPreview={isPreview}
-              chainId={chainId}
-            />
-          )}
-          {market.questions.length > 1 && (
+          {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
+            <MarketInfo market={market} marketStatus={marketStatus} isPreview={isPreview} chainId={chainId} />
+          ) : (
             <div className="flex space-x-2 items-center text-[14px]">
               <EyeIcon />{" "}
               <span className="text-purple-primary cursor-pointer" onClick={() => setShowMarketInfo(!showMarketInfo)}>
@@ -443,15 +204,9 @@ export function MarketHeader({
         </div>
       </div>
 
-      {market.questions.length > 1 && showMarketInfo && (
+      {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
-          <InfoWithModal
-            market={market}
-            marketStatus={marketStatus}
-            colors={colors}
-            isPreview={isPreview}
-            chainId={chainId}
-          />
+          <MarketInfo market={market} marketStatus={marketStatus} isPreview={isPreview} chainId={chainId} />
         </div>
       )}
 

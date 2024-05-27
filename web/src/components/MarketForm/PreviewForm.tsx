@@ -25,7 +25,7 @@ import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
 import Toggle from "../Form/Toggle";
-import { MarketHeader } from "../Market/MarketHeader";
+import { MarketHeader } from "../Market/Header/MarketHeader";
 import { useModal } from "../Modal";
 import { VerificationForm } from "./VerificationForm";
 

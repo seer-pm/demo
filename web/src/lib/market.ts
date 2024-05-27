@@ -3,33 +3,28 @@ import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
-  isFinalized,
+  isQuestionInDispute,
+  isQuestionOpen,
+  isQuestionPending,
+  isQuestionUnanswered,
 } from "./reality";
 import { formatDate } from "./utils";
 
 export function hasOpenQuestions(market: Market) {
-  const now = Math.round(new Date().getTime() / 1000);
-
   // all the questions have the same opening_ts so we can use the first one to check it
-  return market.questions[0].opening_ts < now;
+  return isQuestionOpen(market.questions[0]);
 }
 
 export function hasAllUnansweredQuestions(market: Market) {
-  return market.questions.every((question) => {
-    return question.finalize_ts === 0;
-  });
+  return market.questions.every((question) => isQuestionUnanswered(question));
 }
 
 export function isInDispute(market: Market) {
-  return market.questions.some((question) => {
-    return question.is_pending_arbitration;
-  });
+  return market.questions.some((question) => isQuestionInDispute(question));
 }
 
 export function isWaitingResults(market: Market) {
-  return market.questions.some((question) => {
-    return question.finalize_ts === 0 || !isFinalized(question);
-  });
+  return market.questions.some((question) => isQuestionPending(question));
 }
 
 export function getOpeningTime(market: Market) {

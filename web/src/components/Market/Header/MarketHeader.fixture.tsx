@@ -1,5 +1,6 @@
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
+import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
 import { MarketHeader } from "./MarketHeader";
 
 const baseMarket: Market = {
@@ -29,8 +30,11 @@ const baseQuestion: Question = {
   min_bond: 100000000000000000n,
 };
 
-function getQuestion(marketStatus: MarketStatus) {
+let questionIdCounter = 1;
+function getQuestion(marketStatus: MarketStatus, bestAnswer: `0x${string}` | "" = "") {
   const question = structuredClone(baseQuestion);
+
+  question.id = `${question.id}${questionIdCounter++}`;
 
   if (marketStatus === MarketStatus.NOT_OPEN) {
     // opening_ts in the future
@@ -57,16 +61,24 @@ function getQuestion(marketStatus: MarketStatus) {
     question.finalize_ts = Math.round(new Date().getTime() / 1000) - 60 * 30;
   }
 
+  if (bestAnswer !== "") {
+    question.best_answer = bestAnswer;
+  }
+
   return question;
 }
 
-function getMarket(marketStatus: MarketStatus, isMultiScalar = false) {
+function getMarket(marketStatus: MarketStatus | "PENDING_EXECUTION_TOO_SOON", isMultiScalar = false) {
   const market = {
     ...structuredClone(baseMarket),
-    questions: [getQuestion(marketStatus)],
+    questions: [
+      marketStatus === "PENDING_EXECUTION_TOO_SOON"
+        ? getQuestion(MarketStatus.PENDING_EXECUTION, isMultiScalar ? "" : ANSWERED_TOO_SOON)
+        : getQuestion(marketStatus),
+    ],
   };
 
-  if (marketStatus === MarketStatus.PENDING_EXECUTION) {
+  if (marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === "PENDING_EXECUTION_TOO_SOON") {
     // market not solved
     market.payoutReported = false;
   } else if (marketStatus === MarketStatus.CLOSED) {
@@ -75,20 +87,43 @@ function getMarket(marketStatus: MarketStatus, isMultiScalar = false) {
   }
 
   if (isMultiScalar) {
-    market.questions.push(getQuestion(MarketStatus.OPEN));
-    market.questions.push(getQuestion(MarketStatus.CLOSED));
-    market.outcomes = ["One", "Two", "Three"];
+    if (marketStatus === MarketStatus.NOT_OPEN) {
+      market.questions.push(getQuestion(MarketStatus.NOT_OPEN));
+      market.questions.push(getQuestion(MarketStatus.NOT_OPEN));
+    } else if (marketStatus === MarketStatus.OPEN) {
+      market.questions.push(getQuestion(MarketStatus.OPEN));
+      market.questions.push(getQuestion(MarketStatus.OPEN));
+    } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
+      market.questions.push(getQuestion(MarketStatus.ANSWER_NOT_FINAL));
+      market.questions.push(getQuestion(MarketStatus.OPEN));
+    } else if (marketStatus === MarketStatus.IN_DISPUTE) {
+      market.questions.push(getQuestion(MarketStatus.CLOSED));
+      market.questions.push(getQuestion(MarketStatus.ANSWER_NOT_FINAL));
+    } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
+      market.questions.push(getQuestion(MarketStatus.PENDING_EXECUTION));
+      market.questions.push(getQuestion(MarketStatus.PENDING_EXECUTION));
+    } else if (marketStatus === "PENDING_EXECUTION_TOO_SOON") {
+      market.questions.push(getQuestion(MarketStatus.PENDING_EXECUTION, ANSWERED_TOO_SOON));
+      market.questions.push(getQuestion(MarketStatus.PENDING_EXECUTION));
+    } else if (marketStatus === MarketStatus.CLOSED) {
+      market.questions.push(getQuestion(MarketStatus.CLOSED));
+      market.questions.push(getQuestion(MarketStatus.CLOSED));
+    }
+    market.marketName = "How many votes will each party get at the 2024 elections?";
+    market.outcomes = ["Party 1", "Party 2", "Party 3"];
+    market.templateId = BigInt(REALITY_TEMPLATE_UINT);
   }
 
   return market;
 }
 
-const FIXTURE: [string, MarketStatus][] = [
+const FIXTURE: [string, MarketStatus | "PENDING_EXECUTION_TOO_SOON"][] = [
   ["Not Open", MarketStatus.NOT_OPEN],
   ["Open", MarketStatus.OPEN],
   ["Answer Not Final", MarketStatus.ANSWER_NOT_FINAL],
   ["In Dispute", MarketStatus.IN_DISPUTE],
   ["Pending Execution", MarketStatus.PENDING_EXECUTION],
+  ["Pending Execution + Answered Too Soon", "PENDING_EXECUTION_TOO_SOON"],
   ["Closed", MarketStatus.CLOSED],
 ];
 
@@ -101,14 +136,10 @@ export default Object.fromEntries(
         <MarketHeader market={getMarket(f[1])} chainId={100} isPreview={true} />
       </div>
 
-      {f[1] === MarketStatus.ANSWER_NOT_FINAL && (
-        <>
-          <MarketHeader market={getMarket(f[1], true)} chainId={100} />
-          <div className="max-w-[500px] mx-auto">
-            <MarketHeader market={getMarket(f[1], true)} chainId={100} isPreview={true} />
-          </div>
-        </>
-      )}
+      <MarketHeader market={getMarket(f[1], true)} chainId={100} />
+      <div className="max-w-[500px] mx-auto">
+        <MarketHeader market={getMarket(f[1], true)} chainId={100} isPreview={true} />
+      </div>
     </div>,
   ]),
 );
