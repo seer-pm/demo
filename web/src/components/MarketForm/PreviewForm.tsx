@@ -8,7 +8,7 @@ import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Address, TransactionReceipt } from "viem";
@@ -285,6 +285,12 @@ export function PreviewForm({
 
   const images = getImagesForVerification(marketTypeValues.marketType, questionValues, outcomesValues);
   const marketReadyToVerify = images !== false;
+
+  useEffect(() => {
+    if (marketReadyToVerify) {
+      setVerifyNow(true);
+    }
+  }, []);
 
   const verifyMarket = useVerifyMarket();
 
