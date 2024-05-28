@@ -149,7 +149,7 @@ function getModalTitle(newMarketId: Address | "", verifyNow: boolean, verifyMark
   return verifyMarketIsPending ? "Create Market" : "Success!<br />Market Created and Verified!";
 }
 
-function ModalContentSucessMessage({ isVerified, chainId }: { isVerified: boolean; chainId: SupportedChain }) {
+export function ModalContentSucessMessage({ isVerified, chainId }: { isVerified: boolean; chainId: SupportedChain }) {
   return (
     <div className="text-center mb-[32px]">
       <div className="text-success-primary my-[50px]">

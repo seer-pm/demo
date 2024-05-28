@@ -1,4 +1,5 @@
 import { getNewCurateItem } from "@/lib/curate";
+import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -34,8 +35,13 @@ async function verifyMarket(props: VerifyMarketProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-export const useVerifyMarket = () => {
+export const useVerifyMarket = (onSuccess?: (data: TransactionReceipt) => unknown) => {
   return useMutation({
     mutationFn: verifyMarket,
+    onSuccess: (data: TransactionReceipt) => {
+      queryClient.invalidateQueries({ queryKey: ["useMarket"] });
+      queryClient.invalidateQueries({ queryKey: ["useVerificationStatus"] });
+      onSuccess?.(data);
+    },
   });
 };
