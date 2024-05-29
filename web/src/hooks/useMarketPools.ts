@@ -4,20 +4,23 @@ import { swaprGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
-import { GetDepositsQuery, OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
+import { GetDepositsQuery, GetEternalFarmingsQuery, OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
 
-export interface PoolInfo {
-  id: Address;
-  fee: number;
-  token0: Address;
-  token1: Address;
+export interface PoolIncentive {
   reward: bigint;
   apr: number;
   rewardToken: Address;
   bonusRewardToken: Address;
   startTime: bigint;
   endTime: bigint;
-  hasIncentives: boolean;
+}
+
+export interface PoolInfo {
+  id: Address;
+  fee: number;
+  token0: Address;
+  token1: Address;
+  incentives: PoolIncentive[];
 }
 
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
@@ -27,6 +30,17 @@ function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
   const yearlyAPR = usdCoinsPerYear / stakedTvl * 100;
   return yearlyAPR;*/
   return 0;
+}
+
+function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmings"][0]): PoolIncentive {
+  return {
+    reward: BigInt(eternalFarming.reward),
+    apr: getPoolApr(Number(formatUnits(BigInt(eternalFarming.reward), 17))),
+    rewardToken: eternalFarming.rewardToken,
+    bonusRewardToken: eternalFarming.bonusRewardToken,
+    startTime: BigInt(eternalFarming.startTime),
+    endTime: BigInt(eternalFarming.endTime),
+  };
 }
 
 async function getPoolInfo(
@@ -45,7 +59,7 @@ async function getPoolInfo(
     outcomeToken > collateralToken ? [collateralToken, outcomeToken] : [outcomeToken, collateralToken];
 
   const { pools } = await getSdk(algebraClient).GetPools({
-    where: { token0, token1 },
+    where: { token0: token0.toLocaleLowerCase(), token1: token1.toLocaleLowerCase() },
     orderBy: Pool_OrderBy.TotalValueLockedUsd,
     orderDirection: OrderDirection.Desc,
   });
@@ -61,13 +75,7 @@ async function getPoolInfo(
         fee: Number(pool.fee),
         token0,
         token1,
-        hasIncentives: eternalFarmings.length > 0,
-        reward: BigInt(eternalFarmings[0].reward),
-        apr: getPoolApr(Number(formatUnits(BigInt(eternalFarmings[0].reward), 17))),
-        rewardToken: eternalFarmings[0].rewardToken,
-        bonusRewardToken: eternalFarmings[0].bonusRewardToken,
-        startTime: BigInt(eternalFarmings[0].startTime),
-        endTime: BigInt(eternalFarmings[0].endTime),
+        incentives: eternalFarmings.map((eternalFarming) => mapEternalFarming(eternalFarming)),
       };
     }),
   );

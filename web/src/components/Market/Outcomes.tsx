@@ -1,7 +1,7 @@
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
+import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
@@ -29,12 +29,12 @@ interface PositionsProps {
   tradeCallback: (poolIndex: number) => void;
 }
 
-function poolRewardsInfo(pool: PoolInfo) {
-  if (pool.apr === 0) {
-    return `${displayBalance(pool.reward, 17)} SEER / day`;
+function poolRewardsInfo(poolIncentive: PoolIncentive) {
+  if (poolIncentive.apr === 0) {
+    return `${displayBalance(poolIncentive.reward, 17)} SEER / day`;
   }
 
-  return `${pool.apr.toFixed(2)}% APR`;
+  return `${poolIncentive.apr.toFixed(2)}% APR`;
 }
 
 function AddLiquidityInfo({
@@ -53,29 +53,29 @@ function AddLiquidityInfo({
   const exitFarming = useExitFarming();
   const approveFarming = useApproveFarming();
 
-  const depositHandler = (poolInfo: PoolInfo, tokenId: string) => {
+  const depositHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await enterFarming.mutateAsync({
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        rewardToken: poolInfo.rewardToken,
-        bonusRewardToken: poolInfo.bonusRewardToken,
+        rewardToken: poolIncentive.rewardToken,
+        bonusRewardToken: poolIncentive.bonusRewardToken,
         pool: poolInfo.id,
-        startTime: poolInfo.startTime,
-        endTime: poolInfo.endTime,
+        startTime: poolIncentive.startTime,
+        endTime: poolIncentive.endTime,
         tokenId: BigInt(tokenId),
       });
     };
   };
 
-  const withdrawHandler = (poolInfo: PoolInfo, tokenId: string) => {
+  const withdrawHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await exitFarming.mutateAsync({
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        rewardToken: poolInfo.rewardToken,
-        bonusRewardToken: poolInfo.bonusRewardToken,
+        rewardToken: poolIncentive.rewardToken,
+        bonusRewardToken: poolIncentive.bonusRewardToken,
         pool: poolInfo.id,
-        startTime: poolInfo.startTime,
-        endTime: poolInfo.endTime,
+        startTime: poolIncentive.startTime,
+        endTime: poolIncentive.endTime,
         tokenId: BigInt(tokenId),
       });
     };
@@ -105,7 +105,8 @@ function AddLiquidityInfo({
           <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
             <div className="flex justify-between items-center">
               <div>
-                <span className="font-semibold">Swapr</span> ~ {poolRewardsInfo(pool)}
+                <span className="font-semibold">Swapr</span> ~{" "}
+                {pool.incentives.length > 0 ? poolRewardsInfo(pool.incentives[0]) : "0 SEER / day"}
               </div>
               <div>
                 <a
@@ -143,14 +144,14 @@ function AddLiquidityInfo({
                             text="Deposit"
                             size="small"
                             variant="secondary"
-                            onClick={depositHandler(pool, deposit.id)}
+                            onClick={depositHandler(pool, pool.incentives[0], deposit.id)}
                           />
                         ) : (
                           <Button
                             text="Withdraw"
                             size="small"
                             variant="secondary"
-                            onClick={withdrawHandler(pool, deposit.id)}
+                            onClick={withdrawHandler(pool, pool.incentives[0], deposit.id)}
                           />
                         ))}
                     </div>
