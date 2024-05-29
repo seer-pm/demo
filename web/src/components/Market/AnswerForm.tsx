@@ -199,6 +199,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           <Input
             {...register("outcome", {
               required: "This field is required.",
+              min: 0,
             })}
             className="w-full"
             useFormReturn={useFormReturn}
