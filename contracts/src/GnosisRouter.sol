@@ -74,6 +74,10 @@ contract GnosisRouter is Router {
         uint256 finalBalance = sDAI.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
+            sDAI.approve(
+                address(savingsXDaiAdapter),
+                finalBalance - initialBalance
+            );
             savingsXDaiAdapter.redeemXDAI(
                 finalBalance - initialBalance,
                 msg.sender
