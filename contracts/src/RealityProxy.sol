@@ -133,9 +133,7 @@ contract RealityProxy {
                 payouts[i] = maxPayout;
             }
 
-            allZeroesOrInvalid =
-                allZeroesOrInvalid &&
-                (payouts[i] == 0 || payouts[i] == uint256(INVALID_RESULT));
+            allZeroesOrInvalid = allZeroesOrInvalid && payouts[i] == 0;
 
             unchecked {
                 if (den + payouts[i] < den) {
