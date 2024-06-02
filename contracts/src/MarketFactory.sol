@@ -105,12 +105,18 @@ contract MarketFactory {
     ) external returns (address) {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
+        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
+        params.tokenNames = appendToMemoryArray(
+            params.tokenNames,
+            "SEER_INVALID_RESULT"
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
             REALITY_SINGLE_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            params.outcomes.length,
+            outcomeSlotCount,
             address(realityProxy)
         );
 
@@ -123,7 +129,7 @@ contract MarketFactory {
                 questionId: questionId,
                 questionsIds: questionsIds,
                 conditionId: conditionId,
-                outcomeSlotCount: params.outcomes.length,
+                outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_SINGLE_SELECT_TEMPLATE
             })
         );
@@ -136,12 +142,18 @@ contract MarketFactory {
     ) external returns (address) {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
+        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
+        params.tokenNames = appendToMemoryArray(
+            params.tokenNames,
+            "SEER_INVALID_RESULT"
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
             REALITY_MULTI_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            params.outcomes.length,
+            outcomeSlotCount,
             address(realityProxy)
         );
 
@@ -154,7 +166,7 @@ contract MarketFactory {
                 questionId: questionId,
                 questionsIds: questionsIds,
                 conditionId: conditionId,
-                outcomeSlotCount: params.outcomes.length,
+                outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_MULTI_SELECT_TEMPLATE
             })
         );
@@ -173,12 +185,18 @@ contract MarketFactory {
         );
         require(params.outcomes.length == 2, "Invalid outcomes");
 
+        uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
+        params.tokenNames = appendToMemoryArray(
+            params.tokenNames,
+            "SEER_INVALID_RESULT"
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
             REALITY_UINT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            params.outcomes.length,
+            outcomeSlotCount,
             address(realityProxy)
         );
 
@@ -191,7 +209,7 @@ contract MarketFactory {
                 questionId: questionId,
                 questionsIds: questionsIds,
                 conditionId: conditionId,
-                outcomeSlotCount: 2,
+                outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_UINT_TEMPLATE
             })
         );
@@ -403,5 +421,17 @@ contract MarketFactory {
 
     function marketCount() external view returns (uint256) {
         return markets.length;
+    }
+
+    function appendToMemoryArray(
+        string[] memory array,
+        string memory value
+    ) internal pure returns (string[] memory) {
+        string[] memory newArray = new string[](array.length + 1);
+        for (uint i = 0; i < array.length; i++) {
+            newArray[i] = array[i];
+        }
+        newArray[newArray.length - 1] = value;
+        return newArray;
     }
 }
