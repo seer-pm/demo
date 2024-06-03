@@ -115,12 +115,14 @@ contract RealityProxy {
 
     function resolveMultiScalarMarket(Market market) internal {
         uint256 numOutcomes = market.numOutcomes();
-        uint256[] memory payouts = new uint256[](numOutcomes);
+        uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         bool allZeroesOrInvalid = true;
 
         uint256 den = 0;
         uint256 maxPayout = 1e10;
+
+        uint256 invalidResultIndex = numOutcomes;
 
         for (uint i = 0; i < numOutcomes; i++) {
             payouts[i] = uint256(
@@ -147,9 +149,9 @@ contract RealityProxy {
         }
 
         if (allZeroesOrInvalid) {
-            // the payout vector cannot be zero
-            for (uint i = 0; i < numOutcomes; i++) {
-                payouts[i] = 1;
+            // invalid result
+            for (uint i = 0; i < payouts.length; i++) {
+                payouts[i] = i == invalidResultIndex ? 1 : 0;
             }
         }
 

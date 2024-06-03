@@ -128,7 +128,11 @@ contract MarketFactoryTest is BaseTest {
 
         vm.startPrank(msg.sender);
 
-        splitMergeAndRedeem(multiScalarMarket, getPartition(2), splitAmount);
+        splitMergeAndRedeem(
+            multiScalarMarket,
+            getPartition(2 + 1),
+            splitAmount
+        );
 
         vm.stopPrank();
     }
@@ -304,9 +308,12 @@ contract MarketFactoryTest is BaseTest {
             (answer == bytes32(0) && answer2 == bytes32(0)) ||
             (answer == INVALID_RESULT && answer2 == INVALID_RESULT)
         ) {
-            // payout vector [1, 1, ..., 1]
+            // invalid
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
-                assertEq(payoutNumerators[i], 1);
+                assertEq(
+                    payoutNumerators[i],
+                    i == multiScalarMarket.numOutcomes() ? 1 : 0
+                );
             }
         } else if (answer == INVALID_RESULT) {
             assertEq(payoutNumerators[0], 0);

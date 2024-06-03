@@ -106,10 +106,6 @@ contract MarketFactory {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
-        params.tokenNames = appendToMemoryArray(
-            params.tokenNames,
-            "SEER_INVALID_RESULT"
-        );
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
@@ -143,10 +139,6 @@ contract MarketFactory {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
-        params.tokenNames = appendToMemoryArray(
-            params.tokenNames,
-            "SEER_INVALID_RESULT"
-        );
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
@@ -186,10 +178,6 @@ contract MarketFactory {
         require(params.outcomes.length == 2, "Invalid outcomes");
 
         uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
-        params.tokenNames = appendToMemoryArray(
-            params.tokenNames,
-            "SEER_INVALID_RESULT"
-        );
 
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
             params.encodedQuestions[0],
@@ -225,6 +213,8 @@ contract MarketFactory {
             "Lenght mismatch"
         );
 
+        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
+
         bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
 
         bytes32 questionId = bytes32(0);
@@ -244,7 +234,7 @@ contract MarketFactory {
 
         bytes32 conditionId = prepareCondition(
             questionId,
-            params.outcomes.length,
+            outcomeSlotCount,
             address(realityProxy)
         );
 
@@ -254,7 +244,7 @@ contract MarketFactory {
                 questionId: questionId,
                 questionsIds: questionsIds,
                 conditionId: conditionId,
-                outcomeSlotCount: params.outcomes.length,
+                outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_UINT_TEMPLATE
             })
         );
@@ -384,6 +374,8 @@ contract MarketFactory {
         string[] memory tokenNames
     ) internal {
         uint[] memory partition = generateBasicPartition(outcomeSlotCount);
+        uint256 invalidResultIndex = partition.length - 1;
+
         for (uint j = 0; j < partition.length; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
                 bytes32(0),
@@ -395,13 +387,15 @@ contract MarketFactory {
                 collectionId
             );
 
-            require(bytes(tokenNames[j]).length != 0);
+            require(
+                j == invalidResultIndex || bytes(tokenNames[j]).length != 0
+            );
 
             wrappedERC20Factory.createWrappedToken(
                 address(conditionalTokens),
                 tokenId,
-                tokenNames[j],
-                tokenNames[j]
+                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j],
+                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]
             );
         }
     }
@@ -421,17 +415,5 @@ contract MarketFactory {
 
     function marketCount() external view returns (uint256) {
         return markets.length;
-    }
-
-    function appendToMemoryArray(
-        string[] memory array,
-        string memory value
-    ) internal pure returns (string[] memory) {
-        string[] memory newArray = new string[](array.length + 1);
-        for (uint i = 0; i < array.length; i++) {
-            newArray[i] = array[i];
-        }
-        newArray[newArray.length - 1] = value;
-        return newArray;
     }
 }
