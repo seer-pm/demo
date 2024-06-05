@@ -120,8 +120,9 @@ contract MarketView {
             )
             .totalSupply();
 
+
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
-            outcomes[i] = market.outcomes(i);
+            outcomes[i] = i == (outcomeSlotCount - 1) ? 'Invalid result' : market.outcomes(i);
         }
 
         IRealityETH_v3_0.Question[]

@@ -20,6 +20,7 @@ import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { useModal } from "../Modal";
+import { OutcomeImage } from "./OutcomeImage";
 
 interface PositionsProps {
   chainId: SupportedChain;
@@ -235,11 +236,11 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
           >
             <div className="flex items-center space-x-[12px]">
               <div>
-                {images?.[i] ? (
-                  <img src={images?.[i]} alt={market.outcomes[i]} className="w-[48px] h-[48px] rounded-full mx-auto" />
-                ) : (
-                  <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
-                )}
+                <OutcomeImage
+                  image={images?.[i]}
+                  isInvalidResult={i === wrappedAddresses.length - 1}
+                  title={market.outcomes[i]}
+                />
               </div>
               <div className="space-y-1">
                 <div className="text-[16px]">

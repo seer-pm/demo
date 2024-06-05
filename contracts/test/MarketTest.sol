@@ -1,224 +1,326 @@
 pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
+import "./BaseTest.sol";
 import "../src/MarketFactory.sol";
 import "../src/Market.sol";
 import "../src/RealityProxy.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory} from "../src/Interfaces.sol";
+import "../src/GnosisRouter.sol";
+import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import "forge-std/console.sol";
 
-contract MarketFactoryTest is Test {
-    // gnosis addresses
-    MarketFactory marketFactory;
-    address internal arbitrator =
-        address(0xe40DD83a262da3f56976038F1554Fe541Fa75ecd);
-    address internal realitio =
-        address(0xE78996A233895bE74a66F451f1019cA9734205cc);
-    address internal conditionalTokens =
-        address(0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce);
-    address internal collateralToken =
-        address(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
-    address internal wrapped1155Factory =
-        address(0xD194319D1804C1051DD21Ba1Dc931cA72410B79f);
+contract MarketFactoryTest is BaseTest {
+    uint256 constant MAX_SPLIT_AMOUNT = 100_000_000 ether;
 
-    function setUp() public {
-        Market market = new Market();
+    function fixtureAnswer() public pure returns (bytes32[] memory) {
+        bytes32[] memory answers = new bytes32[](13);
+        answers[0] = bytes32(uint256(0));
+        answers[1] = bytes32(uint256(1));
+        answers[2] = bytes32(uint256(2));
+        answers[3] = bytes32(uint256(3));
+        answers[4] = bytes32(uint256(4));
+        answers[5] = bytes32(uint256(5));
+        answers[6] = bytes32(uint256(6));
+        answers[7] = bytes32(uint256(7));
+        answers[8] = bytes32(uint256(8));
+        answers[9] = bytes32(uint256(9));
+        answers[10] = bytes32(uint256(10));
+        answers[11] = INVALID_RESULT;
+        answers[12] = ANSWERED_TOO_SOON;
 
-        WrappedERC20Factory wrappedERC20Factory = new WrappedERC20Factory(
-            Wrapped1155Factory(wrapped1155Factory)
-        );
-
-        RealityProxy realityProxy = new RealityProxy(
-            IConditionalTokens(conditionalTokens),
-            IRealityETH_v3_0(realitio)
-        );
-
-        marketFactory = new MarketFactory(
-            address(market),
-            arbitrator,
-            IRealityETH_v3_0(realitio),
-            wrappedERC20Factory,
-            IConditionalTokens(conditionalTokens),
-            collateralToken,
-            realityProxy,
-            address(0)
-        );
+        return answers;
     }
 
-    function test_createsCategoricalMarket() public {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Yes";
-        outcomes[1] = "No";
+    function test_createsCategoricalMarket(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
 
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "YES";
-        tokenNames[1] = "NO";
+        Market categoricalMarket = getCategoricalMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no"␟technology␟en_US';
-
-        Market market = Market(
-            marketFactory.createCategoricalMarket(
-                MarketFactory.CreateMarketParams({
-                    marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
-                    outcomes: outcomes,
-                    tokenNames: outcomes,
-                    minBond: 5000000000000000000,
-                    openingTime: uint32(block.timestamp) + 60,
-                    lowerBound: 0,
-                    upperBound: 0
-                })
-            )
-        );
-
-        skip(60); // opening timestamp
-
-        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
-            market.questionId(),
-            bytes32(0),
-            0
-        );
+        submitAnswer(categoricalMarket.questionsIds(0), answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
-        market.resolve();
+        categoricalMarket.resolve();
+
+        vm.startPrank(msg.sender);
+
+        splitMergeAndRedeem(
+            categoricalMarket,
+            getPartition(2 + 1),
+            splitAmount
+        );
+
+        vm.stopPrank();
     }
 
-    function test_createsMultiCategoricalMarket() public {
-        string[] memory outcomes = new string[](3);
-        outcomes[0] = "Yes";
-        outcomes[1] = "No";
-        outcomes[2] = "Maybe";
+    function test_createsMultiCategoricalMarket(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
 
-        string[] memory tokenNames = new string[](3);
-        tokenNames[0] = "YES";
-        tokenNames[1] = "NO";
-        tokenNames[2] = "MAYBE";
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no","maybe"␟technology␟en_US';
-
-        Market market = Market(
-            marketFactory.createMultiCategoricalMarket(
-                MarketFactory.CreateMarketParams({
-                    marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
-                    outcomes: outcomes,
-                    tokenNames: outcomes,
-                    minBond: 5000000000000000000,
-                    openingTime: uint32(block.timestamp) + 60,
-                    lowerBound: 0,
-                    upperBound: 0
-                })
-            )
-        );
-
-        skip(60); // opening timestamp
-
-        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
-            market.questionId(),
-            bytes32(uint256(3)),
-            0
-        );
+        submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
-        market.resolve();
+        multiCategoricalMarket.resolve();
+
+        vm.startPrank(msg.sender);
+
+        splitMergeAndRedeem(
+            multiCategoricalMarket,
+            getPartition(3 + 1),
+            splitAmount
+        );
+
+        vm.stopPrank();
     }
 
-    function test_createsScalarMarket() public {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Low";
-        outcomes[1] = "High";
+    function test_createsScalarMarket(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
 
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "LOW";
-        tokenNames[1] = "HIGH";
+        Market scalarMarket = getScalarMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'What will be ETH price on Feb 29, 2024?␟"2500","3500"␟technology␟en_US';
-
-        Market market = Market(
-            marketFactory.createScalarMarket(
-                MarketFactory.CreateMarketParams({
-                    marketName: "What will be ETH price on Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
-                    outcomes: outcomes,
-                    tokenNames: tokenNames,
-                    minBond: 5000000000000000000,
-                    openingTime: uint32(block.timestamp) + 60,
-                    lowerBound: 2500,
-                    upperBound: 3500
-                })
-            )
-        );
-
-        skip(60); // opening timestamp
-
-        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
-            market.questionId(),
-            bytes32(0),
-            0
-        );
+        submitAnswer(scalarMarket.questionsIds(0), answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
-        market.resolve();
+        scalarMarket.resolve();
+
+        vm.startPrank(msg.sender);
+
+        splitMergeAndRedeem(scalarMarket, getPartition(2 + 1), splitAmount);
+
+        vm.stopPrank();
     }
 
-    function test_createsMultiScalarMarket() public {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Vitalik_1";
-        outcomes[1] = "Vitalik_2";
+    function test_createsMultiScalarMarket(
+        uint256 splitAmount,
+        bytes32 answer,
+        bytes32 answer2
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "VITALIK_1";
-        tokenNames[1] = "VITALIK-2";
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
 
-        string[] memory encodedQuestions = new string[](2);
-        encodedQuestions[
-            0
-        ] = unicode"How many votes will Vitalik_1 get?␟technology␟en_US";
-        encodedQuestions[
-            1
-        ] = unicode"How many votes will Vitalik_2 get?␟technology␟en_US";
-
-        Market market = Market(
-            marketFactory.createMultiScalarMarket(
-                MarketFactory.CreateMarketParams({
-                    marketName: "Ethereum President Elections",
-                    encodedQuestions: encodedQuestions,
-                    outcomes: outcomes,
-                    tokenNames: tokenNames,
-                    minBond: 5000000000000000000,
-                    openingTime: uint32(block.timestamp) + 60,
-                    lowerBound: 0,
-                    upperBound: 0
-                })
-            )
-        );
-
-        skip(60); // opening timestamp
-
-        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
-            market.questionsIds(0),
-            bytes32(uint256(1)),
-            0
-        );
-        IRealityETH_v3_0(realitio).submitAnswer{value: 5000000000000000000}(
-            market.questionsIds(1),
-            bytes32(uint256(2)),
-            0
-        );
+        submitAnswer(multiScalarMarket.questionsIds(0), answer);
+        submitAnswer(multiScalarMarket.questionsIds(1), answer2);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
-        market.resolve();
+        multiScalarMarket.resolve();
+
+        vm.startPrank(msg.sender);
+
+        splitMergeAndRedeem(
+            multiScalarMarket,
+            getPartition(2 + 1),
+            splitAmount
+        );
+
+        vm.stopPrank();
+    }
+
+    function assertNotEmptyPayout(uint256[] memory payoutNumerators) internal {
+        uint256 sum = 0;
+        for (uint256 i = 0; i < payoutNumerators.length; i++) {
+            sum += payoutNumerators[i];
+        }
+        assertGt(sum, 0);
+    }
+
+    function test_categoricalMarketPayout(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
+
+        Market categoricalMarket = getCategoricalMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
+
+        submitAnswer(categoricalMarket.questionsIds(0), answer);
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        vm.recordLogs();
+
+        categoricalMarket.resolve();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
+        (, uint256[] memory payoutNumerators) = abi.decode(
+            entries[0].data,
+            (uint256, uint256[])
+        );
+
+        assertNotEmptyPayout(payoutNumerators);
+
+        if (
+            uint256(answer) >= 0 &&
+            uint256(answer) <= categoricalMarket.numOutcomes()
+        ) {
+            // valid outcomes (results between 0 and outcomeSlotCount)
+            for (uint256 i = 0; i < payoutNumerators.length; i++) {
+                assertEq(payoutNumerators[i], i == uint256(answer) ? 1 : 0);
+            }
+        } else {
+            // invalid outcomes
+            for (uint256 i = 0; i < payoutNumerators.length; i++) {
+                assertEq(
+                    payoutNumerators[i],
+                    i == categoricalMarket.numOutcomes() ? 1 : 0
+                );
+            }
+        }
+    }
+
+    function test_multiCategoricalMarketPayout(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
+
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
+
+        submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        vm.recordLogs();
+
+        multiCategoricalMarket.resolve();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
+        (, uint256[] memory payoutNumerators) = abi.decode(
+            entries[0].data,
+            (uint256, uint256[])
+        );
+
+        assertNotEmptyPayout(payoutNumerators);
+
+        if (answer == INVALID_RESULT || answer == bytes32(0)) {
+            // invalid outcomes
+            for (uint256 i = 0; i < payoutNumerators.length; i++) {
+                assertEq(
+                    payoutNumerators[i],
+                    i == multiCategoricalMarket.numOutcomes() ? 1 : 0
+                );
+            }
+        } else {
+            // TODO: valid outcomes
+        }
+    }
+
+    function test_scalarMarketPayout(
+        uint256 splitAmount,
+        bytes32 answer
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON);
+
+        Market scalarMarket = getScalarMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
+
+        submitAnswer(scalarMarket.questionsIds(0), answer);
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        vm.recordLogs();
+
+        scalarMarket.resolve();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
+        (, uint256[] memory payoutNumerators) = abi.decode(
+            entries[0].data,
+            (uint256, uint256[])
+        );
+
+        assertNotEmptyPayout(payoutNumerators);
+
+        if (answer == INVALID_RESULT) {
+            // invalid
+            for (uint256 i = 0; i < payoutNumerators.length; i++) {
+                assertEq(
+                    payoutNumerators[i],
+                    i == scalarMarket.numOutcomes() ? 1 : 0
+                );
+            }
+        } else {
+            // TODO: valid outcomes
+        }
+    }
+
+    function test_multiScalarMarketPayout(
+        uint256 splitAmount,
+        bytes32 answer,
+        bytes32 answer2
+    ) public {
+        vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
+        vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
+
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        skip(60); // skip opening timestamp
+
+        submitAnswer(multiScalarMarket.questionsIds(0), answer);
+        submitAnswer(multiScalarMarket.questionsIds(1), answer2);
+
+        skip(60 * 60 * 24 * 2); // question timeout
+
+        vm.recordLogs();
+
+        multiScalarMarket.resolve();
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
+        (, uint256[] memory payoutNumerators) = abi.decode(
+            entries[0].data,
+            (uint256, uint256[])
+        );
+
+        assertNotEmptyPayout(payoutNumerators);
+
+        if (
+            (answer == bytes32(0) && answer2 == bytes32(0)) ||
+            (answer == INVALID_RESULT && answer2 == INVALID_RESULT)
+        ) {
+            // invalid
+            for (uint256 i = 0; i < payoutNumerators.length; i++) {
+                assertEq(
+                    payoutNumerators[i],
+                    i == multiScalarMarket.numOutcomes() ? 1 : 0
+                );
+            }
+        } else if (answer == INVALID_RESULT) {
+            assertEq(payoutNumerators[0], 0);
+        } else if (answer2 == INVALID_RESULT) {
+            assertEq(payoutNumerators[1], 0);
+        } else {
+            // TODO: valid outcomes
+        }
     }
 }

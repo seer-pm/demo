@@ -22,6 +22,7 @@ import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { OutcomeImage } from "../OutcomeImage";
 import { MarketInfo } from "./MarketInfo";
 
 interface MarketHeaderProps {
@@ -29,6 +30,7 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   chainId: SupportedChain;
   isPreview?: boolean;
+  outcomesCount?: number;
   verificationStatusResult?: VerificationStatusResult;
 }
 
@@ -112,11 +114,11 @@ function OutcomesInfo({
             <div className="flex items-center space-x-[12px]">
               {marketType !== MarketTypes.SCALAR && (
                 <div className="w-[65px]">
-                  {images?.[i] ? (
-                    <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
-                  ) : (
-                    <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
-                  )}
+                  <OutcomeImage
+                    image={images?.[i]}
+                    isInvalidResult={i === market.outcomes.length - 1}
+                    title={outcome}
+                  />
                 </div>
               )}
               <div className="space-y-1">
@@ -143,6 +145,7 @@ export function MarketHeader({
   images,
   chainId,
   isPreview = false,
+  outcomesCount = 0,
   verificationStatusResult,
 }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
@@ -214,7 +217,7 @@ export function MarketHeader({
         <div className="border-t border-[#E5E5E5] py-[16px]">
           <OutcomesInfo
             market={market}
-            outcomesCount={3}
+            outcomesCount={outcomesCount}
             images={images?.outcomes}
             marketType={marketType}
             odds={odds}
