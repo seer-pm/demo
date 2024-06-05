@@ -22,6 +22,7 @@ import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { OutcomeImage } from "../OutcomeImage";
 import { MarketInfo } from "./MarketInfo";
 
 interface MarketHeaderProps {
@@ -113,11 +114,11 @@ function OutcomesInfo({
             <div className="flex items-center space-x-[12px]">
               {marketType !== MarketTypes.SCALAR && (
                 <div className="w-[65px]">
-                  {images?.[i] ? (
-                    <img src={images?.[i]} alt={outcome} className="w-[48px] h-[48px] rounded-full mx-auto" />
-                  ) : (
-                    <div className="w-[48px] h-[48px] rounded-full bg-purple-primary mx-auto"></div>
-                  )}
+                  <OutcomeImage
+                    image={images?.[i]}
+                    isInvalidResult={i === market.outcomes.length - 1}
+                    title={outcome}
+                  />
                 </div>
               )}
               <div className="space-y-1">
