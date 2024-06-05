@@ -15,7 +15,7 @@ export const ANSWERED_TOO_SOON = "0xffffffffffffffffffffffffffffffffffffffffffff
 
 export type Outcome = string;
 
-export type FormEventOutcomeValue = number | string | typeof INVALID_RESULT | typeof ANSWERED_TOO_SOON;
+export type FormEventOutcomeValue = number | string;
 
 function encodeOutcomes(outcomes: string[] | null) {
   return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");

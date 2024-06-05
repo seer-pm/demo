@@ -13,6 +13,7 @@ export function PreviewCard({ market, chainId }: { market: Market; chainId: Supp
       market={market}
       chainId={chainId}
       isPreview={true}
+      outcomesCount={3}
       images={images}
       verificationStatusResult={verificationStatusResult}
     />

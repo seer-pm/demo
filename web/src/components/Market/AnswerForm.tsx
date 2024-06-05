@@ -4,6 +4,7 @@ import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SupportedChain } from "@/lib/chains";
+import { answerFormSchema } from "@/lib/hookform-resolvers";
 import {
   ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
@@ -15,7 +16,8 @@ import {
   getAnswerText,
   getCurrentBond,
 } from "@/lib/reality";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
 import { hexToNumber, parseEther } from "viem";
@@ -24,6 +26,7 @@ import { Alert } from "../Alert";
 import Input from "../Form/Input";
 
 interface AnswerFormValues {
+  answerType: "multi" | "single" | typeof INVALID_RESULT | typeof ANSWERED_TOO_SOON | "";
   outcome: string; // single select
   outcomes: { value: boolean }[]; // multi select
 }
@@ -38,6 +41,10 @@ interface AnswerFormProps {
 }
 
 function getOutcome(templateId: bigint, values: AnswerFormValues) {
+  if (values.answerType === INVALID_RESULT || values.answerType === ANSWERED_TOO_SOON) {
+    return values.answerType;
+  }
+
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
     return parseEther(values.outcome).toString();
   }
@@ -59,16 +66,11 @@ function getOutcomes(market: Market, question: Question) {
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
+  // the last element is the Invalid Result outcome
+  outcomes.pop();
+
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
     outcomes = outcomes.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
-  }
-
-  if (question.best_answer !== INVALID_RESULT) {
-    outcomes.push({ value: INVALID_RESULT, text: "Invalid result" });
-  }
-
-  if (question.finalize_ts > 0 && question.best_answer !== ANSWERED_TOO_SOON) {
-    outcomes.push({ value: ANSWERED_TOO_SOON, text: "Answered too soon" });
   }
 
   return outcomes;
@@ -84,24 +86,22 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const useFormReturn = useForm<AnswerFormValues>({
     mode: "all",
     defaultValues: {
+      answerType: "",
       outcome: "",
       outcomes: [],
     },
+    resolver: zodResolver(answerFormSchema),
   });
 
   const {
     register,
     reset,
-    formState: { isValid: isFormStateValid },
+    formState: { isValid },
     handleSubmit,
     setValue,
   } = useFormReturn;
 
-  const outcomes = useFormReturn.watch("outcomes");
-  const isValid =
-    Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT
-      ? !isUndefined(outcomes.find((o) => o.value === true))
-      : isFormStateValid;
+  const [outcomes, answerType] = useFormReturn.watch(["outcomes", "answerType"]);
 
   const submitAnswer = useSubmitAnswer((/*receipt: TransactionReceipt*/) => {
     reset();
@@ -194,52 +194,80 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
 
       {!hasEnoughBalance && <Alert type="warning">You don't have enough balance to submit the answer.</Alert>}
 
-      {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
-        <div className="space-y-2 mt-[32px]">
-          <Input
-            {...register("outcome", {
-              required: "This field is required.",
-              min: 0,
-            })}
-            className="w-full"
-            useFormReturn={useFormReturn}
-            type="number"
-          />
-        </div>
-      )}
-
-      {Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT && (
-        <div className="space-y-2 mt-[32px]">
-          <Select
-            options={outcomesOptions}
-            {...register("outcome", {
-              required: "This field is required.",
-            })}
-            className="w-full"
-            useFormReturn={useFormReturn}
-          />
-        </div>
-      )}
-
-      {Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT && (
-        <div className="grid grid-cols-3">
-          {outcomesOptions.map((outcome, i) => (
-            <div key={outcome.value}>
-              <label className="label cursor-pointer justify-start space-x-2">
-                <input
-                  type="checkbox"
-                  {...register(`outcomes.${i}.value`)}
-                  className="checkbox"
-                  onClick={onMultiSelectClick(i, outcome.value)}
-                />
-                <span className="label-text text-[16px] text-black-primary">{outcome.text}</span>
-              </label>
+      <label className="label cursor-pointer justify-start space-x-2">
+        <input
+          type="radio"
+          {...register("answerType")}
+          value={Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT ? "multi" : "single"}
+          className="radio"
+        />
+        <span className="label-text text-[16px] text-black-primary">
+          {Number(market.templateId) === REALITY_TEMPLATE_UINT ? "Type an answer" : "Choose an answer"}
+        </span>
+      </label>
+      {(answerType === "single" || answerType === "multi") && (
+        <div className="my-[16px] px-[32px]">
+          {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
+            <div className="space-y-2">
+              <Input
+                {...register("outcome", {
+                  required: "This field is required.",
+                })}
+                className="w-full"
+                useFormReturn={useFormReturn}
+                type="number"
+              />
             </div>
-          ))}
+          )}
+
+          {Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT && (
+            <div className="space-y-2">
+              <Select
+                options={outcomesOptions}
+                {...register("outcome", {
+                  required: "This field is required.",
+                })}
+                className="w-full"
+                useFormReturn={useFormReturn}
+              />
+            </div>
+          )}
+
+          {Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT && (
+            <div className="grid grid-cols-3">
+              {outcomesOptions.map((outcome, i) => (
+                <div key={outcome.value}>
+                  <label className="label cursor-pointer justify-start space-x-2">
+                    <input
+                      type="checkbox"
+                      {...register(`outcomes.${i}.value`)}
+                      className="checkbox"
+                      onClick={onMultiSelectClick(i, outcome.value)}
+                    />
+                    <span className="label-text text-[16px] text-black-primary">{outcome.text}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      <div className="space-x-[24px] text-center mt-[32px]">
+      {question.best_answer !== INVALID_RESULT && (
+        <label className="label cursor-pointer justify-start space-x-2">
+          <input type="radio" {...register("answerType")} value={INVALID_RESULT} className="radio" />
+          <span className="label-text text-[16px] text-black-primary">Mark this question invalid</span>
+        </label>
+      )}
+
+      {question.finalize_ts > 0 && question.best_answer !== ANSWERED_TOO_SOON && (
+        <label className="label cursor-pointer justify-start space-x-2">
+          <input type="radio" {...register("answerType")} value={ANSWERED_TOO_SOON} className="radio" />
+          <span className="label-text text-[16px] text-black-primary">Mark this question answered too soon</span>
+        </label>
+      )}
+
+      <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
         {question.finalize_ts > 0 && (
           <Button variant="primary" type="button" onClick={raiseDispute} text="Raise a Dispute" />

@@ -29,6 +29,7 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   chainId: SupportedChain;
   isPreview?: boolean;
+  outcomesCount?: number;
   verificationStatusResult?: VerificationStatusResult;
 }
 
@@ -143,6 +144,7 @@ export function MarketHeader({
   images,
   chainId,
   isPreview = false,
+  outcomesCount = 0,
   verificationStatusResult,
 }: MarketHeaderProps) {
   const { data: marketStatus } = useMarketStatus(market, chainId);
@@ -214,7 +216,7 @@ export function MarketHeader({
         <div className="border-t border-[#E5E5E5] py-[16px]">
           <OutcomesInfo
             market={market}
-            outcomesCount={3}
+            outcomesCount={outcomesCount}
             images={images?.outcomes}
             marketType={marketType}
             odds={odds}

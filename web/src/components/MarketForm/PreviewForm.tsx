@@ -350,7 +350,7 @@ export function PreviewForm({
       outcomesValues.upperBound,
       outcomesValues.unit,
       marketTypeValues.marketType,
-    ),
+    ).concat("Invalid result"),
     outcomesSupply: 0n,
     conditionId: "0x000",
     questionId: "0x000",
