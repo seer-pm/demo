@@ -119,7 +119,6 @@ contract RealityProxy {
 
         bool allZeroesOrInvalid = true;
 
-        uint256 den = 0;
         uint256 maxPayout = 1e10;
 
         uint256 invalidResultIndex = numOutcomes;
@@ -136,16 +135,6 @@ contract RealityProxy {
             }
 
             allZeroesOrInvalid = allZeroesOrInvalid && payouts[i] == 0;
-
-            unchecked {
-                if (den + payouts[i] < den) {
-                    // the payouts denominator will overflow, it's not possible to execute reportPayouts() so the market is invalid
-                    allZeroesOrInvalid = true;
-                    break;
-                }
-            }
-
-            den += payouts[i];
         }
 
         if (allZeroesOrInvalid) {
