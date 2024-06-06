@@ -13,23 +13,6 @@ fragment Question on Question {
 
 fragment Market on Market {
     id
-    marketName
-    outcomes
-    outcomesSupply
-    conditionId
-    questionId
-    templateId
-    questionsIds
-    lowerBound
-    upperBound
-    index
-    questions {
-        question {
-            ...Question
-        }
-    }
-    encodedQuestions
-    payoutReported
 }
 
 query GetMarkets(

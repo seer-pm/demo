@@ -1,9 +1,15 @@
 import { SupportedChain } from "@/lib/chains";
-import { graphQLClient, mapGraphMarket } from "@/lib/subgraph";
+import { graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
+import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
-import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
+import {
+  marketFactoryAddress,
+  marketViewAbi,
+  marketViewAddress,
+  readMarketViewGetMarkets,
+} from "./contracts/generated";
 import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
 import { Market, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
@@ -67,7 +73,16 @@ export const useGraphMarkets = (
         }
 
         const { markets } = await getSdk(client).GetMarkets({ where, orderBy, orderDirection: OrderDirection.Desc });
-        return markets.map((market) => mapGraphMarket(market));
+
+        return await readContracts(config, {
+          allowFailure: false,
+          contracts: markets.map((market) => ({
+            abi: marketViewAbi,
+            address: marketViewAddress[chainId],
+            functionName: "getMarket",
+            args: [marketFactoryAddress[chainId], market.id],
+          })),
+        });
       }
 
       throw new Error("Subgraph not available");
