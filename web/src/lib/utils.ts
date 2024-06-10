@@ -1,8 +1,8 @@
 import { intervalToDuration } from "date-fns";
-import compareAsc from "date-fns/compareAsc";
-import format from "date-fns/format";
-import formatDuration from "date-fns/formatDuration";
-import fromUnixTime from "date-fns/fromUnixTime";
+import { formatInTimeZone } from "date-fns-tz";
+import { compareAsc } from "date-fns/compareAsc";
+import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
+import { fromUnixTime } from "date-fns/fromUnixTime";
 import { formatUnits, getAddress } from "viem";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -20,7 +20,7 @@ export function localTimeToUtc(utcTime: Date | string | number) {
 
 export function formatDate(timestamp: number) {
   const date = fromUnixTime(timestamp);
-  return format(date, "MMMM d yyyy, HH:mm");
+  return formatInTimeZone(date, "UTC", "MMMM d yyyy, HH:mm");
 }
 
 export function getTimeLeft(endDate: Date | string | number, withSeconds = false): string | false {
@@ -37,7 +37,7 @@ export function getTimeLeft(endDate: Date | string | number, withSeconds = false
 
   const duration = intervalToDuration({ start: startDate, end: endDate });
 
-  const format = ["years", "months", "weeks", "days", "hours"];
+  const format: FormatDurationOptions["format"] = ["years", "months", "weeks", "days", "hours"];
 
   if (withSeconds) {
     format.push("minutes", "seconds");

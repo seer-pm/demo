@@ -1,8 +1,8 @@
 import { realityAddress } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import compareAsc from "date-fns/compareAsc";
-import fromUnixTime from "date-fns/fromUnixTime";
+import { compareAsc } from "date-fns/compareAsc";
+import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 

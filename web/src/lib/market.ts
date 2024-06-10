@@ -28,7 +28,7 @@ export function isWaitingResults(market: Market) {
 }
 
 export function getOpeningTime(market: Market) {
-  return formatDate(market.questions[0].opening_ts);
+  return `${formatDate(market.questions[0].opening_ts)} UTC`;
 }
 
 export function getClosingTime(market: Market) {

@@ -19,7 +19,7 @@ export function DateForm({
         <div className="max-w-[450px] mx-auto">
           <div className="text-[24px] font-semibold mb-[32px]">Dates</div>
 
-          <div className="text-[14px] mb-[10px]">Opening Date</div>
+          <div className="text-[14px] mb-[10px]">Opening Date (UTC Time)</div>
           <Input
             autoComplete="off"
             {...register("openingTime", {
