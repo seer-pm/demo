@@ -17,8 +17,5 @@
   },
   "engines": {
     "node": ">=18.13.0"
-  },
-  "resolutions": {
-    "zod": "3.23.8"
   }
 }

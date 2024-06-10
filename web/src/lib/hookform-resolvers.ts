@@ -1,15 +1,18 @@
-import * as z from "zod";
+import * as v from "valibot";
 import { ANSWERED_TOO_SOON, INVALID_RESULT } from "./reality";
 
-export const answerFormSchema = z.discriminatedUnion("answerType", [
-  z.object({ answerType: z.literal(INVALID_RESULT) }),
-  z.object({ answerType: z.literal(ANSWERED_TOO_SOON) }),
-  z.object({
-    answerType: z.literal("multi"),
-    outcomes: z.array(z.object({ value: z.boolean() })).refine((val) => val.some((o) => o.value === true)),
+export const answerFormSchema = v.variant("answerType", [
+  v.object({ answerType: v.literal(INVALID_RESULT) }),
+  v.object({ answerType: v.literal(ANSWERED_TOO_SOON) }),
+  v.object({
+    answerType: v.literal("multi"),
+    outcomes: v.pipe(
+      v.array(v.object({ value: v.boolean() })),
+      v.check((val) => val.some((o) => o.value === true)),
+    ),
   }),
-  z.object({
-    answerType: z.literal("single"),
-    outcome: z.coerce.number().min(0),
+  v.object({
+    answerType: v.literal("single"),
+    outcome: v.pipe(v.unknown(), v.transform(Number), v.number("Invalid number"), v.minValue(0)),
   }),
 ]);

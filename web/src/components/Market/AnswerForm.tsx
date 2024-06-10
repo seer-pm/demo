@@ -17,7 +17,7 @@ import {
   getCurrentBond,
 } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
 import { hexToNumber, parseEther } from "viem";
@@ -27,7 +27,7 @@ import Input from "../Form/Input";
 
 interface AnswerFormValues {
   answerType: "multi" | "single" | typeof INVALID_RESULT | typeof ANSWERED_TOO_SOON | "";
-  outcome: string; // single select
+  outcome: string | number; // single select
   outcomes: { value: boolean }[]; // multi select
 }
 
@@ -46,7 +46,7 @@ function getOutcome(templateId: bigint, values: AnswerFormValues) {
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return parseEther(values.outcome).toString();
+    return parseEther(String(values.outcome)).toString();
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
@@ -90,7 +90,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       outcome: "",
       outcomes: [],
     },
-    resolver: zodResolver(answerFormSchema),
+    resolver: valibotResolver(answerFormSchema),
   });
 
   const {
@@ -212,6 +212,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
               <Input
                 {...register("outcome", {
                   required: "This field is required.",
+                  valueAsNumber: true,
                 })}
                 className="w-full"
                 useFormReturn={useFormReturn}
