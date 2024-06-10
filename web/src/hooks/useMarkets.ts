@@ -74,15 +74,17 @@ export const useGraphMarkets = (
 
         const { markets } = await getSdk(client).GetMarkets({ where, orderBy, orderDirection: OrderDirection.Desc });
 
-        return await readContracts(config, {
-          allowFailure: false,
-          contracts: markets.map((market) => ({
-            abi: marketViewAbi,
-            address: marketViewAddress[chainId],
-            functionName: "getMarket",
-            args: [marketFactoryAddress[chainId], market.id],
-          })),
-        });
+        return (
+          await readContracts(config, {
+            allowFailure: false,
+            contracts: markets.map((market) => ({
+              abi: marketViewAbi,
+              address: marketViewAddress[chainId],
+              functionName: "getMarket",
+              args: [marketFactoryAddress[chainId], market.id],
+            })),
+          })
+        ).map(mapOnChainMarket);
       }
 
       throw new Error("Subgraph not available");
