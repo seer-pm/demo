@@ -1,9 +1,13 @@
+import getCroppedImg from "@/lib/crop-image";
 import { InfoCircleIcon, UploadIcon } from "@/lib/icons";
-import { useEffect, useState } from "react";
-import Dropzone, { DropzoneProps } from "react-dropzone";
+import { useEffect, useMemo, useState } from "react";
+import Dropzone from "react-dropzone";
+import Cropper, { Area } from "react-easy-crop";
 import { Control, Controller, FieldPath, FieldValues } from "react-hook-form";
 import { DashedBox } from "../DashedBox";
+import Button from "../Form/Button";
 import FormError from "../Form/FormError";
+import { useModal } from "../Modal";
 
 async function getHeightAndWidthFromDataUrl(dataURL: string): Promise<{ height: number; width: number }> {
   return new Promise((resolve) => {
@@ -38,7 +42,59 @@ export function PreviewImage({ file }: { file: File | undefined }) {
     return null;
   }
 
-  return <img src={preview} className="max-w-full mx-auto" alt="Preview" />;
+  return <img src={preview} className="h-[90px] mx-auto" alt="Preview" />;
+}
+
+function EditImageModal({
+  image,
+  setFile,
+  closeModal,
+}: { image: File; setFile: (file: File) => void; closeModal: () => void }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  const onCropComplete = (_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const objectUrl = useMemo(() => URL.createObjectURL(image), [image]);
+
+  const showCroppedImage = async () => {
+    try {
+      const croppedImage = await getCroppedImg(objectUrl, croppedAreaPixels!, rotation);
+      setFile(croppedImage);
+      closeModal();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-center">
+        <div style={{ height: 300 }} className="relative">
+          <Cropper
+            image={objectUrl}
+            crop={crop}
+            rotation={rotation}
+            zoom={zoom}
+            aspect={1}
+            onCropChange={setCrop}
+            onRotationChange={setRotation}
+            onCropComplete={onCropComplete}
+            onZoomChange={setZoom}
+          />
+        </div>
+
+        <div className="space-x-[24px] mt-[32px]">
+          <Button text="Return" variant="secondary" type="button" onClick={closeModal} />
+          <Button text="Save" variant="primary" type="button" onClick={showCroppedImage} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ImageUpload<
@@ -47,16 +103,18 @@ export function ImageUpload<
 >({
   name,
   control,
-  onDrop,
+  setFile,
   image,
   showInfo = true,
 }: {
   name: TName;
   control: Control<TFieldValues>;
-  onDrop: DropzoneProps["onDrop"];
-  image: File | "";
+  setFile: (file: File) => void;
+  image: File | "" | undefined;
   showInfo?: boolean;
 }) {
+  const { Modal, openModal, closeModal } = useModal("edit-image-modal");
+
   return (
     <Controller
       control={control}
@@ -78,33 +136,53 @@ export function ImageUpload<
         },
       }}
       render={({ formState: { errors } }) => (
-        <Dropzone onDrop={onDrop} onError={(error: Error) => console.log(error)} accept={{ "image/*": ["svg", "png"] }}>
-          {({ getRootProps, getInputProps }) => (
-            <div
-              {...getRootProps({
-                className: "dropzone",
-              })}
+        <div>
+          <DashedBox className="p-[20px] text-center">
+            <Dropzone
+              onDrop={(files) => setFile(files[0])}
+              onError={(error: Error) => console.log(error)}
+              accept={{ "image/*": ["svg", "png"] }}
             >
-              <input {...getInputProps()} />
-              <DashedBox className="p-[20px] text-center space-y-4">
-                <UploadIcon className="mx-auto" />
-                {image !== "" && <PreviewImage file={image} />}
-              </DashedBox>
-              {showInfo && (
-                <div className="text-left text-[14px] text-black-secondary flex items-center space-x-2 mt-[16px]">
-                  <div>
-                    <InfoCircleIcon width="16" height="16" />
-                  </div>
-                  <span>
-                    Add an image cover to illustrate the market - Upload an 1:1 aspect ratio image with transparent
-                    background, in SVG, or PNG.
-                  </span>
+              {({ getRootProps, getInputProps }) => (
+                <div
+                  {...getRootProps({
+                    className: "dropzone",
+                  })}
+                >
+                  <input {...getInputProps()} />
+                  <UploadIcon className="mx-auto" />
+                  {!!image && (
+                    <div className="my-[16px]">
+                      <PreviewImage file={image} />
+                    </div>
+                  )}
                 </div>
               )}
-              <FormError errors={errors} name={name} />
+            </Dropzone>
+
+            {!!image && (
+              <>
+                <Button text="Edit image" onClick={openModal} size="small" />
+                <Modal
+                  title="Edit Image"
+                  content={<EditImageModal image={image} setFile={setFile} closeModal={closeModal} />}
+                />
+              </>
+            )}
+          </DashedBox>
+          {showInfo && (
+            <div className="text-left text-[14px] text-black-secondary flex items-center space-x-2 mt-[16px]">
+              <div>
+                <InfoCircleIcon width="16" height="16" />
+              </div>
+              <span>
+                Add an image cover to illustrate the market - Upload an 1:1 aspect ratio image with transparent
+                background, in SVG, or PNG.
+              </span>
             </div>
           )}
-        </Dropzone>
+          <FormError errors={errors} name={name} />
+        </div>
       )}
     />
   );

@@ -20,7 +20,7 @@ function OutcomeImage({ outcomeIndex, useFormReturn, showOnlyMissingImages }: Ou
       <div className="text-[14px] mb-[10px] text-black-primary">Outcome {outcomeIndex + 1}</div>
       <ImageUpload
         name={`outcomes.${outcomeIndex}.image`}
-        onDrop={(files) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, files[0], { shouldValidate: true })}
+        setFile={(file) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, file, { shouldValidate: true })}
         control={useFormReturn.control}
         image={image}
         showInfo={false}
@@ -48,7 +48,7 @@ export function VerificationForm({
           <div className="text-[14px] mb-[10px] text-black-primary">Market</div>
           <ImageUpload
             name="image"
-            onDrop={(files) => useQuestionFormReturn.setValue("image", files[0], { shouldValidate: true })}
+            setFile={(file) => useQuestionFormReturn.setValue("image", file, { shouldValidate: true })}
             control={useQuestionFormReturn.control}
             image={marketImage}
             showInfo={false}

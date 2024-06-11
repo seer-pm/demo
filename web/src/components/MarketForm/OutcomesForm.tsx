@@ -51,7 +51,7 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
 
       <ImageUpload
         name={`outcomes.${outcomeIndex}.image`}
-        onDrop={(files) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, files[0], { shouldValidate: true })}
+        setFile={(file) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, file, { shouldValidate: true })}
         control={useFormReturn.control}
         image={image}
       />

@@ -58,7 +58,7 @@ export function QuestionForm({
         <div className="w-full mx-auto">
           <ImageUpload
             name="image"
-            onDrop={(files) => setValue("image", files[0], { shouldValidate: true })}
+            setFile={(file) => setValue("image", file, { shouldValidate: true })}
             control={control}
             image={image}
           />
