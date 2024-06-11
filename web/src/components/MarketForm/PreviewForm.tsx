@@ -223,6 +223,7 @@ function ModalContentCreateMarket({
       {verifyNow && (
         <div className="mt-[16px] mb-[16px] px-[20px] space-y-[8px] text-left text-[14px]">
           <div>Before verifying it make sure you read and understand the policies.</div>
+          <div className="font-medium">Images won't appear unless the market is verified</div>
           <div className="flex space-x-[24px] items-center">
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
