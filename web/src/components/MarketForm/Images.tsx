@@ -162,7 +162,7 @@ export function ImageUpload<
 
             {!!image && (
               <>
-                <Button text="Edit image" onClick={openModal} size="small" />
+                <Button text="Edit image" className="!px-[10px]" onClick={openModal} size="small" />
                 <Modal
                   title="Edit Image"
                   content={<EditImageModal image={image} setFile={setFile} closeModal={closeModal} />}

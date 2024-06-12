@@ -86,6 +86,7 @@ export function getImagesForVerification(
 
 interface PreviewButtonProps {
   chainId: SupportedChain;
+  areFormsValid: boolean;
   createMarketHandler: () => void;
   createMarketIsPending: boolean;
   verifyMarketHandler: () => void;
@@ -98,6 +99,7 @@ interface PreviewButtonProps {
 
 function PreviewButton({
   chainId,
+  areFormsValid,
   createMarketHandler,
   createMarketIsPending,
   verifyMarketHandler,
@@ -116,7 +118,7 @@ function PreviewButton({
         type="button"
         text={text}
         onClick={createMarketHandler}
-        disabled={verifyNow && !marketReadyToVerify}
+        disabled={!areFormsValid || (verifyNow && !marketReadyToVerify)}
         isLoading={createMarketIsPending}
       />
     );
@@ -223,7 +225,6 @@ function ModalContentCreateMarket({
       {verifyNow && (
         <div className="mt-[16px] mb-[16px] px-[20px] space-y-[8px] text-left text-[14px]">
           <div>Before verifying it make sure you read and understand the policies.</div>
-          <div className="font-medium">Images won't appear unless the market is verified</div>
           <div className="flex space-x-[24px] items-center">
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
@@ -241,7 +242,7 @@ function ModalContentCreateMarket({
         </div>
       )}
 
-      {verifyNow && !marketReadyToVerify && (
+      {verifyNow && (
         <div className="px-[20px]">
           <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
           <div className="text-[14px] text-left">
@@ -252,7 +253,7 @@ function ModalContentCreateMarket({
           <VerificationForm
             useQuestionFormReturn={useQuestionFormReturn}
             useOutcomesFormReturn={useOutcomesFormReturn}
-            showOnlyMissingImages={true}
+            showOnlyMissingImages={false}
           />
         </div>
       )}
@@ -418,6 +419,7 @@ export function PreviewForm({
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />
               <PreviewButton
                 chainId={chainId}
+                areFormsValid={useQuestionFormReturn.formState.isValid && useOutcomesFormReturn.formState.isValid}
                 createMarketHandler={createMarketHandler}
                 createMarketIsPending={createMarket.isPending}
                 verifyMarketHandler={verifyMarketHandler}

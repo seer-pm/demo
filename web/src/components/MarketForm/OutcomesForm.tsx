@@ -6,7 +6,6 @@ import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
-import { ImageUpload } from "./Images";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
@@ -18,7 +17,6 @@ interface OutcomeFieldsProps {
 
 function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
-  const image = useFormReturn.watch(`outcomes.${outcomeIndex}.image`);
 
   return (
     <div className="text-left">
@@ -48,13 +46,6 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
           />
         </div>
       </div>
-
-      <ImageUpload
-        name={`outcomes.${outcomeIndex}.image`}
-        setFile={(file) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, file, { shouldValidate: true })}
-        control={useFormReturn.control}
-        image={image}
-      />
 
       <div>
         {showCustomToken && (
