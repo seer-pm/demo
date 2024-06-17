@@ -77,7 +77,7 @@ contract RealityProxy {
             bool allZeroes = true;
 
             for (uint i = 0; i < numOutcomes; i++) {
-                payouts[i] = isBitSet(answer, i) ? 1 : 0;
+                payouts[i] = (answer >> i) & 1;
                 allZeroes = allZeroes && payouts[i] == 0;
             }
 
@@ -145,9 +145,5 @@ contract RealityProxy {
         }
 
         conditionalTokens.reportPayouts(market.questionId(), payouts);
-    }
-
-    function isBitSet(uint256 b, uint256 pos) public pure returns (bool) {
-        return ((b >> pos) & 1) == 1;
     }
 }
