@@ -112,8 +112,7 @@ contract MarketFactory {
             REALITY_SINGLE_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            outcomeSlotCount,
-            address(realityProxy)
+            outcomeSlotCount
         );
 
         bytes32[] memory questionsIds = new bytes32[](1);
@@ -145,8 +144,7 @@ contract MarketFactory {
             REALITY_MULTI_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            outcomeSlotCount,
-            address(realityProxy)
+            outcomeSlotCount
         );
 
         bytes32[] memory questionsIds = new bytes32[](1);
@@ -184,8 +182,7 @@ contract MarketFactory {
             REALITY_UINT_TEMPLATE,
             params.openingTime,
             params.minBond,
-            outcomeSlotCount,
-            address(realityProxy)
+            outcomeSlotCount
         );
 
         bytes32[] memory questionsIds = new bytes32[](1);
@@ -232,11 +229,7 @@ contract MarketFactory {
             );
         }
 
-        bytes32 conditionId = prepareCondition(
-            questionId,
-            outcomeSlotCount,
-            address(realityProxy)
-        );
+        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
         address marketId = createMarket(
             params,
@@ -257,8 +250,7 @@ contract MarketFactory {
         uint256 templateId,
         uint32 openingTime,
         uint256 minBond,
-        uint256 outcomeSlotCount,
-        address oracle
+        uint256 outcomeSlotCount
     ) internal returns (bytes32 questionId, bytes32 conditionId) {
         questionId = askRealityQuestion(
             question,
@@ -267,7 +259,7 @@ contract MarketFactory {
             minBond
         );
 
-        conditionId = prepareCondition(questionId, outcomeSlotCount, oracle);
+        conditionId = prepareCondition(questionId, outcomeSlotCount);
     }
 
     function createMarket(
@@ -351,18 +343,17 @@ contract MarketFactory {
 
     function prepareCondition(
         bytes32 questionId,
-        uint outcomeSlotCount,
-        address oracle
+        uint outcomeSlotCount
     ) internal returns (bytes32) {
         conditionalTokens.prepareCondition(
-            oracle,
+            address(realityProxy),
             questionId,
             outcomeSlotCount
         );
 
         return
             conditionalTokens.getConditionId(
-                oracle,
+                address(realityProxy),
                 questionId,
                 outcomeSlotCount
             );
