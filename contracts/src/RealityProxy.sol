@@ -119,7 +119,7 @@ contract RealityProxy {
 
         bool allZeroesOrInvalid = true;
 
-        uint256 maxPayout = 1e10;
+        uint256 maxPayout = 2 ** (256 / 2) - 1;
 
         uint256 invalidResultIndex = numOutcomes;
 
