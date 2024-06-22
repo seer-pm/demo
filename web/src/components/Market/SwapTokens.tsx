@@ -1,15 +1,15 @@
-import { useCalculateSwap } from "@/hooks/useCalculateSwap";
-import { useGlobalState } from "@/hooks/useGlobalState";
-import { useSwapTokens } from "@/hooks/useSwapTokens";
+import { useMissingTradeApproval, useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import { Trade } from "@swapr/sdk";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../Alert";
+import { ApproveButton } from "../Form/ApproveButton";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import AltCollateralSwitch from "./AltCollateralSwitch";
@@ -39,11 +39,50 @@ function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolea
   return COLLATERAL_TOKENS[chainId].primary;
 }
 
+function SwapButtons({
+  account,
+  trade,
+  swapType,
+  isDisabled,
+  isLoading,
+}: { account?: Address; trade: Trade; swapType: "buy" | "sell"; isDisabled: boolean; isLoading: boolean }) {
+  const missingApprovals = useMissingTradeApproval(account!, trade);
+
+  if (!missingApprovals) {
+    return null;
+  }
+
+  return (
+    <div>
+      {missingApprovals.length === 0 && (
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={isDisabled}
+          isLoading={isLoading}
+          text={swapType === "buy" ? "Buy" : "Sell"}
+        />
+      )}
+      {missingApprovals.length > 0 && (
+        <div className="space-y-[8px]">
+          {missingApprovals.map((approval) => (
+            <ApproveButton
+              key={approval.address}
+              tokenAddress={approval.address}
+              tokenName={approval.name}
+              spender={approval.spender}
+              amount={approval.amount}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
-
-  const { addPendingOrder } = useGlobalState();
 
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
@@ -76,24 +115,21 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
-  const swapTokens = useSwapTokens(async (orderId: string) => {
-    addPendingOrder(orderId);
+  const {
+    data: quoteData,
+    isPending: quoteIsPending,
+    isError: quoteIsError,
+  } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
+
+  const tradeTokens = useTrade(async () => {
     reset();
   });
 
-  const {
-    data: swapData,
-    isPending: calculateIsPending,
-    isError: calculateIsError,
-  } = useCalculateSwap(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
-
   const onSubmit = async (_values: SwapFormValues) => {
-    const orderId = await swapTokens.mutateAsync({
+    await tradeTokens.mutateAsync({
+      trade: quoteData?.trade!,
       account: account!,
-      chainId,
-      quote: swapData?.quote!,
     });
-    console.log(`https://explorer.cow.fi/gc/orders/${orderId}?tab=overview`);
   };
 
   return (
@@ -165,29 +201,31 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
 
       <div className="flex space-x-2 text-purple-primary">
         {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-        {swapData ? displayBalance(swapData.value, swapData.decimals) : 0}
+        {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
       </div>
 
-      {calculateIsError && <Alert type="error">Not enough liquidity</Alert>}
+      {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
       <div className="flex justify-between">
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
         <div className="text-[12px] text-[#999999]">Max slippage: 0.1%</div>
       </div>
 
-      <div>
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={
-            isUndefined(swapData?.value) || swapData?.value === 0n || !account || !isValid || swapTokens.isPending
+      {quoteData?.trade ? (
+        <SwapButtons
+          account={account}
+          trade={quoteData.trade}
+          swapType={swapType}
+          isDisabled={
+            isUndefined(quoteData?.value) || quoteData?.value === 0n || !account || !isValid || tradeTokens.isPending
           }
           isLoading={
-            swapTokens.isPending || (!isUndefined(swapData?.value) && swapData.value > 0n && calculateIsPending)
+            tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
           }
-          text={swapType === "buy" ? "Buy" : "Sell"}
         />
-      </div>
+      ) : quoteIsPending ? (
+        <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
+      ) : null}
     </form>
   );
 }

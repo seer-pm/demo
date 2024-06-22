@@ -149,7 +149,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
                   key={approval.address}
                   tokenAddress={approval.address}
                   tokenName={approval.name}
-                  router={router}
+                  spender={approval.spender}
                   amount={parsedAmount}
                 />
               ))}
