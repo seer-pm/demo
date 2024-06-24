@@ -6,8 +6,8 @@ import "./WrappedERC20Factory.sol";
 import {IConditionalTokens, IERC20} from "./Interfaces.sol";
 
 contract Router is ERC1155Holder {
-    IConditionalTokens public conditionalTokens;
-    WrappedERC20Factory public wrappedERC20Factory;
+    IConditionalTokens public immutable conditionalTokens;
+    WrappedERC20Factory public immutable wrappedERC20Factory;
 
     constructor(
         IConditionalTokens _conditionalTokens,
@@ -18,6 +18,7 @@ contract Router is ERC1155Holder {
     }
 
     // @notice Transfers the collateral to the Router and then splits the position.
+    // @dev Only works with tokens created by the wrappedERC20Factory
     function splitPosition(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
@@ -25,7 +26,7 @@ contract Router is ERC1155Holder {
         uint[] calldata partition,
         uint amount
     ) public {
-        IERC20(collateralToken).transferFrom(msg.sender, address(this), amount);
+        collateralToken.transferFrom(msg.sender, address(this), amount);
         _splitPosition(
             collateralToken,
             parentCollectionId,
@@ -43,7 +44,7 @@ contract Router is ERC1155Holder {
         uint[] calldata partition,
         uint amount
     ) internal {
-        IERC20(collateralToken).approve(address(conditionalTokens), amount);
+        collateralToken.approve(address(conditionalTokens), amount);
 
         conditionalTokens.splitPosition(
             address(collateralToken),
@@ -78,6 +79,7 @@ contract Router is ERC1155Holder {
     }
 
     // @notice Merges positions and sends the collateral tokens to the user.
+    // @dev Only works with tokens created by the wrappedERC20Factory
     function mergePositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
@@ -96,7 +98,7 @@ contract Router is ERC1155Holder {
     }
 
     // @notice Merges positions and receives the collateral tokens.
-    // @dev callers to this function must send the collateral to the user.
+    // @dev Callers to this function must send the collateral to the user.
     function _mergePositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
@@ -139,6 +141,7 @@ contract Router is ERC1155Holder {
     }
 
     // @notice Redeems positions and sends the collateral tokens to the user.
+    // @dev Only works with tokens created by the wrappedERC20Factory
     function redeemPositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,

@@ -6,16 +6,16 @@ import "./RealityProxy.sol";
 contract Market {
     bool public initialized;
 
-    string public marketName;
-    string[] public outcomes;
-    uint256 public lowerBound;
-    uint256 public upperBound;
-    bytes32 public conditionId;
-    bytes32 public questionId; // conditional tokens questionId
-    bytes32[] public questionsIds; // reality questionId's
-    uint256 public templateId;
-    string[] public encodedQuestions;
-    RealityProxy public realityProxy;
+    string public marketName; // The name of the market
+    string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
+    uint256 public lowerBound; // Lower bound, only used for scalar markets
+    uint256 public upperBound; // Upper bound, only user for scalar markets
+    bytes32 public conditionId; // Conditional Tokens conditionId
+    bytes32 public questionId; // Conditional Tokens questionId
+    bytes32[] public questionsIds; // Reality questions ids
+    uint256 public templateId; // Reality templateId
+    string[] public encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
+    RealityProxy public realityProxy; // Oracle contract
 
     function initialize(
         string memory _marketName,
