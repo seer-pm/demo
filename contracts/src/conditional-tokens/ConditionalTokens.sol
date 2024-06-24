@@ -1,3 +1,11 @@
+/**
+ *  @authors: []
+ *  @reviewers: [@nvm1410]
+ *  @auditors: []
+ *  @bounties: []
+ *  @deployments: []
+ */
+
 pragma solidity ^0.5.1;
 import { IERC20 } from "openzeppelin-solidity-conditional-tokens/contracts/token/ERC20/IERC20.sol";
 import { ERC1155 } from "./ERC1155/ERC1155.sol";

@@ -1,7 +1,11 @@
 import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@typechain/hardhat";
 import "hardhat-deploy";
+import "hardhat-gas-reporter";
 
 dotenv.config();
 
@@ -10,6 +14,9 @@ const config: HardhatUserConfig = {
     compilers: [
       {
         version: "0.5.12",
+      },
+      {
+        version: "0.7.6",
       },
       {
         version: "0.6.12",
@@ -31,14 +38,15 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
-      forking: {
-        url: "https://rpc.gnosischain.com",
-      },
+      // forking: {
+      //   url: "https://rpc.gnosischain.com",
+      // },
       mining: {
         auto: false,
         interval: 100,
       },
       saveDeployments: true,
+      // gas: "auto",
     },
     localhost: {
       chainId: 31337,
@@ -79,7 +87,7 @@ const config: HardhatUserConfig = {
       verify: {
         etherscan: {
           apiKey: process.env.ETHERSCAN_API_KEY!,
-        }
+        },
       },
     },
     sepolia: {
@@ -91,12 +99,18 @@ const config: HardhatUserConfig = {
       verify: {
         etherscan: {
           apiKey: process.env.ETHERSCAN_API_KEY!,
-        }
+        },
       },
     },
   },
   paths: {
     sources: "./src",
+  },
+  mocha: {
+    timeout: 100000000,
+  },
+  gasReporter: {
+    // enabled: true,
   },
 };
 
