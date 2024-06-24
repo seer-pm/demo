@@ -16,7 +16,7 @@ import {
   OPENING_TS,
   PARENT_COLLECTION_ID,
   POSITION_AMOUNT,
-  TIMEOUT,
+  QUESTION_TIMEOUT,
   categoricalMarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
@@ -203,7 +203,7 @@ describe("Router", function () {
       );
 
       // past finalized_ts
-      await time.increase(TIMEOUT);
+      await time.increase(QUESTION_TIMEOUT);
 
       await realityProxy.resolve(market);
 
@@ -284,7 +284,7 @@ describe("Router", function () {
       );
 
       // past finalized_ts
-      await time.increase(TIMEOUT);
+      await time.increase(QUESTION_TIMEOUT);
 
       await realityProxy.resolve(market);
 

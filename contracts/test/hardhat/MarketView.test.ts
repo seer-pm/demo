@@ -10,7 +10,7 @@ import {
   ANSWERED_TOO_SOON,
   MIN_BOND,
   OPENING_TS,
-  TIMEOUT,
+  QUESTION_TIMEOUT,
   categoricalMarketParams,
   multiCategoricalMarketParams,
   scalarMarketParams,
@@ -141,7 +141,7 @@ describe("MarketView", function () {
         });
 
         // past finalized_ts
-        await time.increase(TIMEOUT);
+        await time.increase(QUESTION_TIMEOUT);
       });
       it("returns the orignial question id if not reopened", async function () {
         expect(await marketView.getQuestionId(questionId, realitio)).to.equal(
@@ -155,7 +155,7 @@ describe("MarketView", function () {
           templateId.toString(),
           categoricalMarketParams.encodedQuestions[0],
           arbitrator,
-          TIMEOUT,
+          QUESTION_TIMEOUT,
           openingTime,
           NONCE,
           ethers.parseEther(MIN_BOND),

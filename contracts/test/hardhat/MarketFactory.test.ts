@@ -6,7 +6,7 @@ import {
   ETH_BALANCE,
   MIN_BOND,
   REALITY_SINGLE_SELECT_TEMPLATE,
-  TIMEOUT,
+  QUESTION_TIMEOUT,
   categoricalMarketParams,
   multiCategoricalMarketParams,
   multiScalarMarketParams,
@@ -66,7 +66,7 @@ describe("MarketFactory", function () {
           REALITY_SINGLE_SELECT_TEMPLATE,
           categoricalMarketParams.encodedQuestions[0],
           arbitrator,
-          TIMEOUT,
+          QUESTION_TIMEOUT,
           categoricalMarketParams.openingTime,
           0,
           ethers.parseEther(MIN_BOND)
@@ -203,7 +203,7 @@ describe("MarketFactory", function () {
           outcomes: ["1", "2", "3"],
           encodedQuestions: ["1", "2"],
         })
-      ).to.be.revertedWith("Lenght mismatch");
+      ).to.be.revertedWith("Length mismatch");
     });
     it("creates a multi-scalar market", async function () {
       await expect(

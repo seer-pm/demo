@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import { IERC20 } from "../../../typechain-types";
+import { QUESTION_TIMEOUT } from "./constants";
 
 export async function marketFactoryDeployFixture(
   customCollateralToken?: IERC20
@@ -46,7 +47,8 @@ export async function marketFactoryDeployFixture(
     conditionalTokens,
     await collateralToken.getAddress(),
     realityProxy,
-    governor
+    governor,
+    QUESTION_TIMEOUT
   );
   return {
     marketFactory,
@@ -59,4 +61,3 @@ export async function marketFactoryDeployFixture(
     wrappedERC20Factory,
   };
 }
-

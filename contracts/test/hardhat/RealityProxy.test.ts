@@ -11,7 +11,7 @@ import {
   INVALID_RESULT,
   MIN_BOND,
   OPENING_TS,
-  TIMEOUT,
+  QUESTION_TIMEOUT,
   categoricalMarketParams,
   multiCategoricalMarketParams,
   multiScalarMarketParams,
@@ -71,7 +71,7 @@ describe("RealityProxy", function () {
         );
 
         // past finalized_ts
-        await time.increase(TIMEOUT);
+        await time.increase(QUESTION_TIMEOUT);
 
         const trx = await realityProxy.resolve(market);
         const receipt = await trx.wait(1);
@@ -152,7 +152,7 @@ describe("RealityProxy", function () {
         );
 
         // past finalized_ts
-        await time.increase(TIMEOUT);
+        await time.increase(QUESTION_TIMEOUT);
 
         const trx = await realityProxy.resolve(market);
         const receipt = await trx.wait(1);
@@ -244,7 +244,7 @@ describe("RealityProxy", function () {
         );
 
         // past finalized_ts
-        await time.increase(TIMEOUT);
+        await time.increase(QUESTION_TIMEOUT);
 
         const trx = await realityProxy.resolve(market);
         const receipt = await trx.wait(1);
@@ -338,7 +338,7 @@ describe("RealityProxy", function () {
         }
 
         // past finalized_ts
-        await time.increase(TIMEOUT);
+        await time.increase(QUESTION_TIMEOUT);
 
         const trx = await realityProxy.resolve(market);
         const receipt = await trx.wait(1);
