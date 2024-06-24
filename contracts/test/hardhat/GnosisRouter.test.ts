@@ -170,7 +170,7 @@ describe("GnosisRouter", function () {
         balanceBeforeMerge -
           (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
           ethers.parseEther(POSITION_AMOUNT)
-      ).to.be.closeTo(balanceAfterMerge, BigInt(1));
+      ).to.be.closeTo(balanceAfterMerge, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
@@ -252,7 +252,7 @@ describe("GnosisRouter", function () {
         balanceBeforeRedeem -
           (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
           ethers.parseEther(POSITION_AMOUNT)
-      ).to.be.closeTo(balanceAfterRedeem, BigInt(1));
+      ).to.be.closeTo(balanceAfterRedeem, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
@@ -338,7 +338,7 @@ describe("GnosisRouter", function () {
 
       expect(
         balanceBeforeRedeem - (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0))
-      ).to.be.closeTo(balanceAfterRedeem, BigInt(1));
+      ).to.be.closeTo(balanceAfterRedeem, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(

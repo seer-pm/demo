@@ -266,6 +266,39 @@ describe("MarketFactory", function () {
     });
   });
 
+  describe("changeRealityProxy", function () {
+    it("reverts if not the governor", async function () {
+      const [_, addr1] = await ethers.getSigners();
+      const newRealityProxy = ethers.Wallet.createRandom().address;
+
+      await expect(
+        marketFactory.connect(addr1).changeRealityProxy(newRealityProxy)
+      ).to.be.revertedWith("Not authorized");
+    });
+    it("changes reality proxy", async function () {
+      const newRealityProxy = ethers.Wallet.createRandom().address;
+
+      await marketFactory.changeRealityProxy(newRealityProxy);
+
+      expect(await marketFactory.realityProxy()).to.equal(newRealityProxy);
+    });
+  });
+
+  describe("changeQuestionTimeout", function () {
+    it("reverts if not the governor", async function () {
+      const [_, addr1] = await ethers.getSigners();
+      const newTimeout = 60;
+      await expect(
+        marketFactory.connect(addr1).changeQuestionTimeout(newTimeout)
+      ).to.be.revertedWith("Not authorized");
+    });
+    it("changes the question timeout", async function () {
+      const newTimeout = 60;
+      await marketFactory.changeQuestionTimeout(newTimeout);
+      expect(await marketFactory.questionTimeout()).to.equal(newTimeout);
+    });
+  });
+
   describe("allMarkets", function () {
     it("returns all markets", async function () {
       await marketFactory.createCategoricalMarket(categoricalMarketParams);

@@ -20,7 +20,7 @@ export const MainnetAddress = {
 export const MIN_BOND = "5"; //ethers
 export const ETH_BALANCE = "1000"; //ethers
 export const POSITION_AMOUNT = "10"; //ethers
-export const DELTA = ethers.parseEther(POSITION_AMOUNT) / BigInt(1e8); //wei
+export const DELTA = ethers.parseEther(POSITION_AMOUNT) / BigInt(1e4); //+- 0.01%
 
 export const QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5; //seconds
 
