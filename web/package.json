@@ -24,7 +24,7 @@
     "@heroicons/react": "^2.1.1",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.4.2",
-    "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#feat/fix-dual-package",
+    "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#fork-with-postinstall",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
     "@web3modal/wagmi": "^4.1.7",

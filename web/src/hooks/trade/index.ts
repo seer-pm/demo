@@ -2,9 +2,20 @@ import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { CoWTrade, Percent, SwaprV3Trade, Token as SwaprToken, TokenAmount, Trade, TradeType } from "@swapr/sdk";
+import {
+  CoWTrade,
+  Currency,
+  Percent,
+  SwaprV3Trade,
+  Token as SwaprToken,
+  TokenAmount,
+  Trade,
+  TradeType,
+  WXDAI,
+} from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
+import { gnosis } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 
@@ -16,6 +27,40 @@ interface QuoteTradeResult {
   sellAmount: string;
   swapType: "buy" | "sell";
   trade: CoWTrade | SwaprV3Trade;
+}
+
+function getSwaprTrade(
+  currencyIn: SwaprToken,
+  currencyOut: SwaprToken,
+  currencyAmountIn: TokenAmount,
+  maximumSlippage: Percent,
+  account: Address | undefined,
+  chainId: number,
+): Promise<SwaprV3Trade | null> {
+  if (
+    chainId === gnosis.id &&
+    (currencyIn.address === WXDAI[chainId].address || currencyOut.address === WXDAI[chainId].address)
+  ) {
+    // build the route using the intermediate WXDAI<>sDAI pool
+    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
+    const path: Currency[] = [currencyIn, SDAI, currencyOut];
+
+    return SwaprV3Trade.getQuoteWithPath({
+      amount: currencyAmountIn,
+      path,
+      maximumSlippage,
+      recipient: account || zeroAddress,
+      tradeType: TradeType.EXACT_INPUT,
+    });
+  }
+
+  return SwaprV3Trade.getQuote({
+    amount: currencyAmountIn,
+    quoteCurrency: currencyOut,
+    maximumSlippage,
+    recipient: account || zeroAddress,
+    tradeType: TradeType.EXACT_INPUT,
+  });
 }
 
 export function useQuoteTrade(
@@ -32,7 +77,7 @@ export function useQuoteTrade(
   const sellAmount = parseUnits(String(amount), sellToken.decimals);
 
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useCalculateTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: ["useQuoteTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
     enabled: sellAmount > 0n,
     retry: false,
     queryFn: async () => {
@@ -51,13 +96,14 @@ export function useQuoteTrade(
         receiver: account || zeroAddress,
       });
 
-      const swaprTradePromise = SwaprV3Trade.getQuote({
-        amount: currencyAmountIn,
-        quoteCurrency: currencyOut,
+      const swaprTradePromise = getSwaprTrade(
+        currencyIn,
+        currencyOut,
+        currencyAmountIn,
         maximumSlippage,
-        recipient: account || zeroAddress,
-        tradeType: TradeType.EXACT_INPUT,
-      });
+        account,
+        chainId,
+      );
 
       const [cow, swapr] = await Promise.allSettled([cowTradePromise, swaprTradePromise]);
 

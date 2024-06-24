@@ -118,6 +118,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
   const {
     data: quoteData,
     isPending: quoteIsPending,
+    fetchStatus: quoteFetchStatus,
     isError: quoteIsError,
   } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
 
@@ -223,7 +224,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
             tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
           }
         />
-      ) : quoteIsPending ? (
+      ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
         <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
       ) : null}
     </form>
