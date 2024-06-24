@@ -38,7 +38,9 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market categoricalMarket = getCategoricalMarket(MIN_BOND);
+        uint256 numOutcomes = 20;
+
+        Market categoricalMarket = getCategoricalMarket(MIN_BOND, numOutcomes);
         skip(60); // skip opening timestamp
 
         submitAnswer(categoricalMarket.questionsIds(0), answer);
@@ -51,7 +53,7 @@ contract MarketFactoryTest is BaseTest {
 
         splitMergeAndRedeem(
             categoricalMarket,
-            getPartition(2 + 1),
+            getPartition(numOutcomes + 1),
             splitAmount
         );
 
@@ -152,7 +154,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market categoricalMarket = getCategoricalMarket(MIN_BOND);
+        Market categoricalMarket = getCategoricalMarket(MIN_BOND, 40);
         skip(60); // skip opening timestamp
 
         submitAnswer(categoricalMarket.questionsIds(0), answer);

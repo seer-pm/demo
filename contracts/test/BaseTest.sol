@@ -55,7 +55,8 @@ contract BaseTest is Test {
             IConditionalTokens(conditionalTokens),
             collateralToken,
             realityProxy,
-            address(0)
+            address(0),
+            1.5 days
         );
 
         gnosisRouter = new GnosisRouter(
@@ -64,14 +65,28 @@ contract BaseTest is Test {
         );
     }
 
-    function getCategoricalMarket(uint256 minBond) public returns (Market) {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Yes";
-        outcomes[1] = "No";
+    function getOutcomesAndTokens(
+        uint256 numOutcomes
+    ) internal pure returns (string[] memory, string[] memory) {
+        string[] memory outcomes = new string[](numOutcomes);
+        string[] memory tokenNames = new string[](numOutcomes);
 
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "YES";
-        tokenNames[1] = "NO";
+        for (uint256 i = 0; i < numOutcomes; i++) {
+            outcomes[i] = "OUTCOME";
+            tokenNames[i] = "OUTCOME";
+        }
+
+        return (outcomes, tokenNames);
+    }
+
+    function getCategoricalMarket(
+        uint256 minBond,
+        uint256 numOutcomes
+    ) public returns (Market) {
+        (
+            string[] memory outcomes,
+            string[] memory tokenNames
+        ) = getOutcomesAndTokens(numOutcomes);
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[
@@ -84,7 +99,7 @@ contract BaseTest is Test {
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
                     encodedQuestions: encodedQuestions,
                     outcomes: outcomes,
-                    tokenNames: outcomes,
+                    tokenNames: tokenNames,
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
@@ -343,15 +358,8 @@ contract BaseTest is Test {
     function getPartition(uint256 size) public pure returns (uint256[] memory) {
         uint256[] memory partition = new uint256[](size);
 
-        partition[0] = 1;
-        partition[1] = 2;
-
-        if (size >= 3) {
-            partition[2] = 4;
-        }
-
-        if (size == 4) {
-            partition[3] = 8;
+        for (uint i = 0; i < size; i++) {
+            partition[i] = 1 << i;
         }
 
         return partition;

@@ -2,7 +2,6 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "./Market.sol";
 import "./RealityProxy.sol";
 import "./WrappedERC20Factory.sol";
@@ -11,40 +10,42 @@ import {IRealityETH_v3_0, IConditionalTokens} from "./Interfaces.sol";
 contract MarketFactory {
     using Clones for address;
 
+    // Workaround "stack too deep" errors
     struct CreateMarketParams {
-        string marketName;
-        string[] encodedQuestions;
-        string[] outcomes;
-        uint256 lowerBound;
-        uint256 upperBound;
-        uint256 minBond;
-        uint32 openingTime;
-        string[] tokenNames;
+        string marketName; // The name of the market
+        string[] encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
+        string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
+        uint256 lowerBound; // Lower bound, only used for scalar markets
+        uint256 upperBound; // Upper bound, only user for scalar markets
+        uint256 minBond; // Min bond to use on Reality
+        uint32 openingTime; // Reality question opening time
+        string[] tokenNames; // Name of the ERC20 tokens associated to each outcome
     }
 
+    // Workaround "stack too deep" errors
     struct InternalMarketConfig {
-        bytes32 questionId;
-        bytes32[] questionsIds;
-        bytes32 conditionId;
-        uint256 outcomeSlotCount;
-        uint256 templateId;
+        bytes32 questionId; // Conditional Tokens questionId
+        bytes32[] questionsIds; // Reality questions ids
+        bytes32 conditionId; // Conditional Tokens conditionId
+        uint256 outcomeSlotCount; // Conditional Tokens outcomeSlotCount
+        uint256 templateId; // Reality templateId
     }
 
-    uint256 internal constant REALITY_UINT_TEMPLATE = 1;
-    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
-    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
 
-    uint32 public constant QUESTION_TIMEOUT = 1.5 days;
+    uint32 public questionTimeout; // Reality question timeout
 
-    address public immutable arbitrator;
-    IRealityETH_v3_0 public immutable realitio;
-    WrappedERC20Factory public immutable wrappedERC20Factory;
-    IConditionalTokens public immutable conditionalTokens;
-    address public immutable collateralToken;
-    RealityProxy public immutable realityProxy;
-    address public governor;
-    address[] public markets;
-    address public market;
+    address public immutable arbitrator; // Arbitrator contract
+    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract
+    WrappedERC20Factory public immutable wrappedERC20Factory; // 1155 to 20 factory contract
+    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
+    address public immutable collateralToken; // Conditional Tokens collateral token contract
+    RealityProxy public realityProxy; // Oracle contract
+    address public governor; // Governor of the contract
+    address[] public markets; // Markets created by this factory
+    address public market; // Market contract
 
     event NewMarket(
         address indexed market,
@@ -78,7 +79,8 @@ contract MarketFactory {
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         RealityProxy _realityProxy,
-        address _governor
+        address _governor,
+        uint32 _questionTimeout
     ) {
         market = _market;
         arbitrator = _arbitrator;
@@ -88,6 +90,7 @@ contract MarketFactory {
         collateralToken = _collateralToken;
         realityProxy = _realityProxy;
         governor = _governor;
+        questionTimeout = _questionTimeout;
     }
 
     function changeGovernor(address _governor) external {
@@ -100,8 +103,18 @@ contract MarketFactory {
         market = _market;
     }
 
+    function changeRealityProxy(RealityProxy _realityProxy) external {
+        require(msg.sender == governor, "Not authorized");
+        realityProxy = _realityProxy;
+    }
+
+    function changeQuestionTimeout(uint32 _questionTimeout) external {
+        require(msg.sender == governor, "Not authorized");
+        questionTimeout = _questionTimeout;
+    }
+
     function createCategoricalMarket(
-        CreateMarketParams memory params
+        CreateMarketParams calldata params
     ) external returns (address) {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
@@ -133,7 +146,7 @@ contract MarketFactory {
     }
 
     function createMultiCategoricalMarket(
-        CreateMarketParams memory params
+        CreateMarketParams calldata params
     ) external returns (address) {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
 
@@ -165,7 +178,7 @@ contract MarketFactory {
     }
 
     function createScalarMarket(
-        CreateMarketParams memory params
+        CreateMarketParams calldata params
     ) external returns (address) {
         require(params.upperBound > params.lowerBound, "Invalid bounds");
         // values reserved by Reality for INVALID and UNRESOLVED_ANSWER
@@ -203,18 +216,18 @@ contract MarketFactory {
     }
 
     function createMultiScalarMarket(
-        CreateMarketParams memory params
+        CreateMarketParams calldata params
     ) external returns (address) {
         require(
             params.outcomes.length == params.encodedQuestions.length,
-            "Lenght mismatch"
+            "Length mismatch"
         );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
         bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
 
-        bytes32 questionId = bytes32(0);
+        bytes32 questionId = keccak256(abi.encode(questionsIds));
 
         for (uint256 i = 0; i < params.outcomes.length; i++) {
             questionsIds[i] = askRealityQuestion(
@@ -222,10 +235,6 @@ contract MarketFactory {
                 REALITY_UINT_TEMPLATE,
                 params.openingTime,
                 params.minBond
-            );
-
-            questionId = keccak256(
-                abi.encodePacked(questionId, questionsIds[i])
             );
         }
 
@@ -317,7 +326,7 @@ contract MarketFactory {
             abi.encodePacked(
                 content_hash,
                 arbitrator,
-                QUESTION_TIMEOUT,
+                questionTimeout,
                 minBond,
                 address(realitio),
                 address(this),
@@ -334,7 +343,7 @@ contract MarketFactory {
                 templateId,
                 question,
                 arbitrator,
-                QUESTION_TIMEOUT,
+                questionTimeout,
                 openingTime,
                 0,
                 minBond
@@ -364,14 +373,13 @@ contract MarketFactory {
         uint256 outcomeSlotCount,
         string[] memory tokenNames
     ) internal {
-        uint[] memory partition = generateBasicPartition(outcomeSlotCount);
-        uint256 invalidResultIndex = partition.length - 1;
+        uint256 invalidResultIndex = outcomeSlotCount - 1;
 
-        for (uint j = 0; j < partition.length; j++) {
+        for (uint j = 0; j < outcomeSlotCount; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
                 bytes32(0),
                 conditionId,
-                partition[j]
+                1 << j
             );
             uint256 tokenId = conditionalTokens.getPositionId(
                 collateralToken,
@@ -379,7 +387,8 @@ contract MarketFactory {
             );
 
             require(
-                j == invalidResultIndex || bytes(tokenNames[j]).length != 0
+                j == invalidResultIndex || bytes(tokenNames[j]).length != 0,
+                "Missing token name"
             );
 
             wrappedERC20Factory.createWrappedToken(
@@ -388,15 +397,6 @@ contract MarketFactory {
                 j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j],
                 j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]
             );
-        }
-    }
-
-    function generateBasicPartition(
-        uint outcomeSlotCount
-    ) private pure returns (uint[] memory partition) {
-        partition = new uint[](outcomeSlotCount);
-        for (uint i = 0; i < outcomeSlotCount; i++) {
-            partition[i] = 1 << i;
         }
     }
 
