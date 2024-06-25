@@ -78,6 +78,7 @@ contract MarketFactory {
      *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
      *  @param _governor Address of the governor of this contract.
+     *  @param _questionTimeout Reality question timeout.
      */
     constructor(
         address _market,
@@ -235,8 +236,6 @@ contract MarketFactory {
 
         bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
 
-        bytes32 questionId = keccak256(abi.encode(questionsIds));
-
         for (uint256 i = 0; i < params.outcomes.length; i++) {
             questionsIds[i] = askRealityQuestion(
                 params.encodedQuestions[i],
@@ -245,6 +244,7 @@ contract MarketFactory {
                 params.minBond
             );
         }
+        bytes32 questionId = keccak256(abi.encode(questionsIds));
 
         bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
