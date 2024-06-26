@@ -1,3 +1,4 @@
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
@@ -105,15 +106,18 @@ function OutcomesInfo({
   marketType,
 }: { market: Market; chainId: SupportedChain; outcomesCount?: number; images?: string[]; marketType: MarketTypes }) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
+  const { isIntersecting, ref } = useIntersectionObserver({
+    threshold: 0.5,
+  });
   const { data: odds = [], isPending: oddsPending } = useMarketOdds(
     chainId,
     getRouterAddress(chainId),
     market.conditionId,
-    market.outcomes.length,
+    isIntersecting ? market.outcomes.length : 0,
   );
 
   return (
-    <div>
+    <div ref={ref}>
       <div className="space-y-3">
         {outcomes.map((outcome, i) => (
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>

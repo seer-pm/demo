@@ -34,12 +34,12 @@ async function getTokenPrice(wrappedAddress: Address, chainId: SupportedChain, b
 export const useMarketOdds = (
   chainId: SupportedChain,
   router: Address,
-  conditionId?: `0x${string}`,
-  outcomeSlotCount?: number,
+  conditionId: `0x${string}`,
+  outcomeSlotCount: number,
 ) => {
   const { data: wrappedAddresses } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
   return useQuery<number[] | undefined, Error>({
-    enabled: !!wrappedAddresses,
+    enabled: !!wrappedAddresses && outcomeSlotCount > 0,
     queryKey: ["useMarketOdds", chainId, router, conditionId, outcomeSlotCount],
     queryFn: async () => {
       const BUY_AMOUNT = 1000;
