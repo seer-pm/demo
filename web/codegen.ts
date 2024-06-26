@@ -1,12 +1,18 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-
+import { gnosis } from "viem/chains";
+import {
+  CURATE_SUBGRAPH_URLS,
+  SUBGRAPH_URLS,
+  SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS,
+  SWAPR_ALGEBRA_SUBGRAPH_URLS,
+} from "./src/lib/subgraph";
 const config: CodegenConfig = {
   overwrite: true,
   schema: [
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
-    "https://api.thegraph.com/subgraphs/name/kleros/legacy-curate-xdai",
-    "https://api.thegraph.com/subgraphs/name/swaprhq/algebra-v19",
-    "https://api.thegraph.com/subgraphs/name/swaprhq/algebrafarming-v19",
+    SUBGRAPH_URLS[gnosis.id]!,
+    CURATE_SUBGRAPH_URLS[gnosis.id]!,
+    SWAPR_ALGEBRA_SUBGRAPH_URLS[gnosis.id]!,
+    SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS[gnosis.id]!,
   ],
   documents: "./src/queries/*.graphql",
   generates: {

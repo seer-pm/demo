@@ -1,11 +1,23 @@
 import { GraphQLClient } from "graphql-request";
+import { gnosis } from "viem/chains";
 import { SupportedChain } from "./chains";
-import {
-  CURATE_SUBGRAPH_URLS,
-  SUBGRAPH_URLS,
-  SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS,
-  SWAPR_ALGEBRA_SUBGRAPH_URLS,
-} from "./config";
+
+export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
+};
+export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp",
+};
+export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR",
+};
+export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]:
+    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT",
+};
 
 export function graphQLClient(chainId: SupportedChain) {
   const subgraphUrl = SUBGRAPH_URLS[chainId];
