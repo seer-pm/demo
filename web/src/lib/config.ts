@@ -1,6 +1,6 @@
 import { gnosisRouterAddress, mainnetRouterAddress, routerAddress } from "@/hooks/contracts/generated";
 import { Address, parseUnits } from "viem";
-import { bsc, gnosis, goerli, hardhat, mainnet, sepolia } from "viem/chains";
+import { gnosis, hardhat, mainnet, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain } from "./chains";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
@@ -27,10 +27,6 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     primary: { address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA", symbol: "sDAI", decimals: 18 },
     secondary: { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI", decimals: 18 },
   },
-  [bsc.id]: {
-    primary: { address: "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3", symbol: "DAI", decimals: 18 },
-    secondary: undefined,
-  },
   [sepolia.id]: {
     primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
     secondary: undefined,
@@ -45,9 +41,7 @@ const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
     [gnosis.id]: parseUnits("0.1", 18),
     [mainnet.id]: parseUnits("5", 18),
-    [goerli.id]: parseUnits("0.000001", 18),
     [sepolia.id]: parseUnits("0.000001", 18),
-    [bsc.id]: parseUnits("0.001", 18),
     [hardhat.id]: parseUnits("5", 18),
   },
 };
@@ -67,9 +61,7 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [gnosis.id]: "gnosis",
   [hardhat.id]: "gnosis",
   [mainnet.id]: "mainnet",
-  [bsc.id]: "base",
   [sepolia.id]: "base",
-  [goerli.id]: "base",
 } as const;
 
 export const getRouterAddress = (chainId?: SupportedChain): Address => {
