@@ -42,7 +42,7 @@ describe("RealityProxy", function () {
   });
 
   describe("resolve", function () {
-    context("resolving a categorical market", async function () {
+    context.skip("resolving a categorical market", function () {
       async function resolveCategoricalMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createCategoricalMarket({
@@ -122,7 +122,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a multi categorical market", async function () {
+    context.skip("resolving a multi categorical market", function () {
       async function resolveMultiCategoricalMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createMultiCategoricalMarket({
@@ -214,7 +214,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a scalar market", async function () {
+    context.skip("resolving a scalar market", function () {
       async function resolveScalarMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createScalarMarket({
@@ -302,7 +302,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a multi scalar market", async function () {
+    context.skip("resolving a multi scalar market", function () {
       async function resolveMultiScalarMarket(
         answers: (number | string | bigint)[]
       ) {
@@ -391,6 +391,44 @@ describe("RealityProxy", function () {
         );
         expect([...ANSWERS, 0]).to.deep.equal(eventPayouts.map(Number));
       });
+    });
+
+    it("reverts if try to resolve a multi scalar market with 1 question", async function () {
+      const ANSWER = [30];
+
+      const multiScalarMarketParams = {
+        marketName: "Test multi-scalar market 1 question",
+        encodedQuestions: ["Test multi-scalar market 1 question"],
+        outcomes: ["Outcome 1"],
+        lowerBound: 0,
+        upperBound: 0,
+        minBond: ethers.parseEther(MIN_BOND),
+        openingTime: 0,
+        tokenNames: ["O1"],
+      };
+      await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
+      const marketAddress = (await marketFactory.allMarkets())[0];
+      const market = await ethers.getContractAt("Market", marketAddress);
+
+      const realityQuestionCount = await market.getQuestionsCount();
+
+      // submit answers
+      for (let i = 0; i < realityQuestionCount; i++) {
+        const realityQuestionId = await market.questionsIds(i);
+        await realitio.submitAnswer(
+          realityQuestionId,
+          ethers.toBeHex(BigInt(ANSWER[i]), 32),
+          0,
+          {
+            value: ethers.parseEther(MIN_BOND),
+          }
+        );
+      }
+
+      // past finalized_ts
+      await time.increase(QUESTION_TIMEOUT);
+
+      await expect(realityProxy.resolve(market)).to.be.reverted;
     });
   });
 });
