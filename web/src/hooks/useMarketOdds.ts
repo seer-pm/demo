@@ -1,7 +1,8 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { OrderBookApi, OrderQuoteSideKindSell, PriceQuality } from "@cowprotocol/cow-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits } from "viem";
+import { getCowQuote, getSwaprQuote } from "./trade";
 import { useWrappedAddresses } from "./useWrappedAddresses";
 
 function normalizeOdds(prices: number[]) {
@@ -12,8 +13,26 @@ function normalizeOdds(prices: number[]) {
   return prices.map((price) => Math.round((price / sum) * 100));
 }
 
+async function getTokenPrice(wrappedAddress: Address, chainId: SupportedChain, buyAmount: string): Promise<bigint> {
+  const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
+  const [swaprQuote, cowQuote] = await Promise.allSettled([
+    getSwaprQuote(chainId, undefined, buyAmount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, "buy"),
+    getCowQuote(chainId, undefined, buyAmount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, "buy"),
+  ]);
+
+  if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
+    return cowQuote.value.value;
+  }
+
+  if (swaprQuote.status === "fulfilled" && swaprQuote?.value?.value && swaprQuote.value.value > 0n) {
+    return swaprQuote.value.value;
+  }
+
+  return 0n;
+}
+
 export const useMarketOdds = (
-  chainId: number,
+  chainId: SupportedChain,
   router: Address,
   conditionId?: `0x${string}`,
   outcomeSlotCount?: number,
@@ -23,28 +42,14 @@ export const useMarketOdds = (
     enabled: !!wrappedAddresses,
     queryKey: ["useMarketOdds", chainId, router, conditionId, outcomeSlotCount],
     queryFn: async () => {
-      const orderBookApi = new OrderBookApi({ chainId });
-
       const BUY_AMOUNT = 1000;
 
       const prices = await Promise.all(
         wrappedAddresses!.map(async (wrappedAddress) => {
           try {
-            const quoteRequest = {
-              buyToken: wrappedAddress,
-              sellToken: COLLATERAL_TOKENS[chainId].primary.address,
-              validTo: Math.round(Date.now() / 1000) + 60 * 10,
-              partiallyFillable: false,
-              from: "0x0000000000000000000000000000000000000000",
-              receiver: "0x0000000000000000000000000000000000000000",
-              priceQuality: PriceQuality.OPTIMAL,
-              kind: OrderQuoteSideKindSell.SELL,
-              sellAmountBeforeFee: parseUnits(String(BUY_AMOUNT), 18).toString(),
-            };
+            const price = await getTokenPrice(wrappedAddress, chainId, String(BUY_AMOUNT));
 
-            const { quote } = await orderBookApi.getQuote(quoteRequest);
-
-            return BUY_AMOUNT / Number(formatUnits(BigInt(quote.buyAmount), 18));
+            return Number(formatUnits(price, 18)) / BUY_AMOUNT;
           } catch {
             return 0;
           }

@@ -63,9 +63,84 @@ function getSwaprTrade(
   });
 }
 
-export function useQuoteTrade(
+type QuoteTradeFn = (
   chainId: number,
   account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) => Promise<QuoteTradeResult>;
+
+export const getSwaprQuote: QuoteTradeFn = async (
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) => {
+  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+
+  const trade = await getSwaprTrade(
+    args.currencyIn,
+    args.currencyOut,
+    args.currencyAmountIn,
+    args.maximumSlippage,
+    account,
+    chainId,
+  );
+
+  if (!trade) {
+    throw new Error("No route found");
+  }
+
+  return {
+    value: BigInt(trade.outputAmount.raw.toString()),
+    decimals: args.sellToken.decimals,
+    trade,
+    buyToken: args.buyToken.address,
+    sellToken: args.sellToken.address,
+    sellAmount: args.sellAmount.toString(),
+    swapType,
+  };
+};
+
+export const getCowQuote: QuoteTradeFn = async (
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) => {
+  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+
+  const trade = await CoWTrade.bestTradeExactIn({
+    currencyAmountIn: args.currencyAmountIn,
+    currencyOut: args.currencyOut,
+    maximumSlippage: args.maximumSlippage,
+    user: account || zeroAddress,
+    receiver: account || zeroAddress,
+  });
+
+  if (!trade) {
+    throw new Error("No route found");
+  }
+
+  return {
+    value: BigInt(trade.outputAmount.raw.toString()),
+    decimals: args.sellToken.decimals,
+    trade,
+    buyToken: args.buyToken.address,
+    sellToken: args.sellToken.address,
+    sellAmount: args.sellAmount.toString(),
+    swapType,
+  };
+};
+
+function getTradeArgs(
+  chainId: number,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
@@ -76,54 +151,72 @@ export function useQuoteTrade(
 
   const sellAmount = parseUnits(String(amount), sellToken.decimals);
 
+  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
+  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
+
+  const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
+
+  const maximumSlippage = new Percent("1", "100");
+
+  return {
+    buyToken,
+    sellToken,
+    sellAmount,
+    currencyIn,
+    currencyOut,
+    currencyAmountIn,
+    maximumSlippage,
+  };
+}
+
+export function useSwaprQuote(
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useQuoteTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: sellAmount > 0n,
+    enabled: Number(amount) > 0,
     retry: false,
-    queryFn: async () => {
-      const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-      const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
-
-      const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
-
-      const maximumSlippage = new Percent("1", "100");
-
-      const cowTradePromise = CoWTrade.bestTradeExactIn({
-        currencyAmountIn,
-        currencyOut,
-        maximumSlippage,
-        user: account || zeroAddress,
-        receiver: account || zeroAddress,
-      });
-
-      const swaprTradePromise = getSwaprTrade(
-        currencyIn,
-        currencyOut,
-        currencyAmountIn,
-        maximumSlippage,
-        account,
-        chainId,
-      );
-
-      const [cow, swapr] = await Promise.allSettled([cowTradePromise, swaprTradePromise]);
-
-      if (cow.status === "rejected" || swapr.status === "rejected") {
-        throw new Error("No route found");
-      }
-
-      const trade = (cow?.value || swapr?.value)!;
-
-      return {
-        value: BigInt(trade.outputAmount.raw.toString()),
-        decimals: sellToken.decimals,
-        trade,
-        buyToken: buyToken.address,
-        sellToken: sellToken.address,
-        sellAmount: sellAmount.toString(),
-        swapType,
-      };
-    },
+    queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
   });
+}
+
+export function useCowQuote(
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) {
+  return useQuery<QuoteTradeResult | undefined, Error>({
+    queryKey: ["useQuoteTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    enabled: Number(amount) > 0,
+    retry: false,
+    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+  });
+}
+
+export function useQuoteTrade(
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) {
+  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+
+  if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
+    return cowResult;
+  }
+
+  return swaprResult;
 }
 
 export function useMissingTradeApproval(account: Address, trade: Trade) {
