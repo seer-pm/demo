@@ -195,7 +195,7 @@ contract MarketFactory {
             params.upperBound < type(uint256).max - 2,
             "Invalid high point"
         );
-        require(params.outcomes.length == 2, "Invalid outcomes");
+        require(params.outcomes.length == 2, "Invalid outcomes count");
 
         uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
 
@@ -227,6 +227,7 @@ contract MarketFactory {
     function createMultiScalarMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
+        require(params.outcomes.length >= 2, "Invalid outcomes count");
         require(
             params.outcomes.length == params.encodedQuestions.length,
             "Length mismatch"
