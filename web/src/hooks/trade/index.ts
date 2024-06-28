@@ -178,7 +178,7 @@ export function useSwaprQuote(
   swapType: "buy" | "sell",
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useQuoteTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
     enabled: Number(amount) > 0,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
@@ -194,7 +194,7 @@ export function useCowQuote(
   swapType: "buy" | "sell",
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useQuoteTrade", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: ["useCowQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
     enabled: Number(amount) > 0,
     retry: false,
     queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
