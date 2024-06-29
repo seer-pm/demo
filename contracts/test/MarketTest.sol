@@ -67,7 +67,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
@@ -94,7 +94,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market scalarMarket = getScalarMarket(MIN_BOND);
+        Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(scalarMarket.questionsIds(0), answer);
@@ -118,7 +118,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
-        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiScalarMarket.questionsIds(0), answer);
@@ -201,7 +201,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
@@ -242,7 +242,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market scalarMarket = getScalarMarket(MIN_BOND);
+        Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(scalarMarket.questionsIds(0), answer);
@@ -284,7 +284,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
-        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiScalarMarket.questionsIds(0), answer);
@@ -324,5 +324,31 @@ contract MarketFactoryTest is BaseTest {
         } else {
             // TODO: valid outcomes
         }
+    }
+
+    function test_revertsIfCreatesCategoricalMarketWithOneQuestion() public {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getCategoricalMarket(MIN_BOND, 1);
+    }
+
+    function test_revertsIfCreatesMultiCategoricalMarketWithOneQuestion()
+        public
+    {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getMultiCategoricalMarket(MIN_BOND, 1);
+    }
+
+    function test_revertsIfCreatesScalarMarketWithOtherThanTwoQuestions(
+        uint8 numOutcomes
+    ) public {
+        if (numOutcomes != 2) {
+            vm.expectRevert(bytes("Invalid outcomes count"));
+        }
+        getScalarMarket(MIN_BOND, uint256(numOutcomes));
+    }
+
+    function test_revertsIfCreatesMultiScalarMarketWithOneQuestion() public {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getMultiScalarMarket(MIN_BOND, 1);
     }
 }
