@@ -89,5 +89,5 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
     return String(number);
   }
 
-  return number.toFixed(2);
+  return number.toFixed(number < 0.1 ? 4 : 2);
 }

@@ -83,7 +83,7 @@ export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotC
                   key={approval.address}
                   tokenAddress={approval.address}
                   tokenName={approval.name}
-                  router={router}
+                  spender={approval.spender}
                   amount={approval.amount}
                 />
               ))}
