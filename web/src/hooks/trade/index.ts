@@ -252,6 +252,7 @@ export function useTrade(onSuccess: () => unknown) {
       }
       queryClient.invalidateQueries({ queryKey: ["useUserPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       onSuccess();
     },
   });
