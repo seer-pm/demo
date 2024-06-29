@@ -49,7 +49,11 @@ export const useMarketOdds = (
           try {
             const price = await getTokenPrice(wrappedAddress, chainId, String(BUY_AMOUNT));
 
-            return Number(formatUnits(price, 18)) / BUY_AMOUNT;
+            if (price === 0n) {
+              return 0;
+            }
+
+            return BUY_AMOUNT / Number(formatUnits(price, 18));
           } catch {
             return 0;
           }
