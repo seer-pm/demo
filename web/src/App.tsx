@@ -4,6 +4,7 @@ import CreateMarketPage from "./pages/CreateMarkePage";
 import HomePage from "./pages/HomePage";
 import MarketPage from "./pages/MarketPage";
 import MarketVerifyPage from "./pages/MarketVerifyPage";
+import MergePage from "./pages/MergePage";
 import ProfilePage from "./pages/ProfilePage";
 import VerificationCheckPage from "./pages/VerificationCheck";
 
@@ -19,6 +20,7 @@ function App() {
           <Route path="verification-check/:chainId/:id" element={<VerificationCheckPage />} />
           <Route path="markets/:chainId/:id" element={<MarketPage />} />
           <Route path="markets/:chainId/:id/verify" element={<MarketVerifyPage />} />
+          <Route path="merge" element={<MergePage />} />
         </Route>
       </Routes>
     </HashRouter>

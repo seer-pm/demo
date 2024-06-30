@@ -6,7 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 
-const fetchWrappedAddresses = (chainId: number, router: Address, conditionId: `0x${string}`, partitions: bigint[]) => {
+export const fetchWrappedAddresses = (
+  chainId: number,
+  router: Address,
+  conditionId: `0x${string}`,
+  partitions: bigint[],
+) => {
   return readContracts(config, {
     allowFailure: false,
     contracts: partitions.map((indexSet) => ({
