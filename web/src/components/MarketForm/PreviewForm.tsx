@@ -415,7 +415,7 @@ export function PreviewForm({
               />
             )}
 
-            <div className="space-x-[12px]">
+            <div className="flex justify-center space-x-[12px]">
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />
               <PreviewButton
                 chainId={chainId}
