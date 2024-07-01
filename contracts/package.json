@@ -10,7 +10,7 @@
     "dotenv": "^16.4.1",
     "ethers": "^6.13.1",
     "hardhat": "^2.19.4",
-    "hardhat-deploy": "^0.12.1",
+    "hardhat-deploy": "^0.12.4",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.3.3"
