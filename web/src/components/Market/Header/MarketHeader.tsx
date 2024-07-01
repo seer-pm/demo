@@ -1,3 +1,4 @@
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
@@ -99,15 +100,24 @@ export const COLORS: Record<MarketStatus, ColorConfig> = {
 
 function OutcomesInfo({
   market,
+  chainId,
   outcomesCount = 0,
   images = [],
   marketType,
-  odds,
-}: { market: Market; outcomesCount?: number; images?: string[]; marketType: MarketTypes; odds: number[] }) {
+}: { market: Market; chainId: SupportedChain; outcomesCount?: number; images?: string[]; marketType: MarketTypes }) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
+  const { isIntersecting, ref } = useIntersectionObserver({
+    threshold: 0.5,
+  });
+  const { data: odds = [], isPending: oddsPending } = useMarketOdds(
+    chainId,
+    getRouterAddress(chainId),
+    market.conditionId,
+    isIntersecting ? market.outcomes.length : 0,
+  );
 
   return (
-    <div>
+    <div ref={ref}>
       <div className="space-y-3">
         {outcomes.map((outcome, i) => (
           <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
@@ -131,7 +141,7 @@ function OutcomesInfo({
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{odds?.[i] || 0}%</div>
+              <div className="text-[24px] font-semibold">{oddsPending ? "" : `${odds?.[i] || 0}%`}</div>
             </div>
           </div>
         ))}
@@ -153,12 +163,6 @@ export function MarketHeader({
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
-  const { data: odds = [] } = useMarketOdds(
-    chainId,
-    getRouterAddress(chainId),
-    market.conditionId,
-    market.outcomes.length,
-  );
 
   return (
     <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
@@ -217,10 +221,10 @@ export function MarketHeader({
         <div className="border-t border-[#E5E5E5] py-[16px]">
           <OutcomesInfo
             market={market}
+            chainId={chainId}
             outcomesCount={outcomesCount}
             images={images?.outcomes}
             marketType={marketType}
-            odds={odds}
           />
         </div>
       )}

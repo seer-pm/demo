@@ -1,7 +1,7 @@
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
 import { http } from "wagmi";
-import { Chain, bsc, gnosis, goerli, hardhat, mainnet, sepolia } from "wagmi/chains";
+import { Chain, gnosis, hardhat, mainnet, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS } from "./lib/chains";
 
@@ -24,8 +24,6 @@ export const config = defaultWagmiConfig({
   transports: {
     [gnosis.id]: http(),
     [mainnet.id]: http(),
-    [bsc.id]: http(),
-    [goerli.id]: http(),
     [sepolia.id]: http(),
     [hardhat.id]: http(),
   },

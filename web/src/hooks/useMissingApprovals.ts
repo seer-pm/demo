@@ -41,13 +41,14 @@ async function fetchNeededApprovals(
 interface UseMissingApprovalsReturn {
   address: Address;
   name: string;
+  spender: Address;
   amount: bigint;
 }
 
 export const useMissingApprovals = (
   tokensAddresses: Address[],
   account: Address | undefined,
-  router: Address,
+  spender: Address,
   amounts: bigint | bigint[],
 ) => {
   let approvalAmounts: bigint[];
@@ -60,9 +61,9 @@ export const useMissingApprovals = (
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
     enabled: tokensAddresses.length > 0 && !!account,
-    queryKey: ["useMissingApprovals", tokensAddresses, account, router, approvalAmounts.map((a) => a.toString())],
+    queryKey: ["useMissingApprovals", tokensAddresses, account, spender, approvalAmounts.map((a) => a.toString())],
     queryFn: async () => {
-      const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, router, approvalAmounts);
+      const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, spender, approvalAmounts);
       const tokensInfo = await Promise.all(
         missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress)),
       );
@@ -70,6 +71,7 @@ export const useMissingApprovals = (
       return missingApprovals.map((missingApproval, i) => ({
         address: missingApproval.tokenAddress,
         name: tokensInfo[i].name,
+        spender: spender,
         amount: missingApproval.amount,
       }));
     },

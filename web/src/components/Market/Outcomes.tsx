@@ -188,7 +188,12 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
   );
   const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
-  const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+  const { data: odds = [], isPending: oddsPending } = useMarketOdds(
+    chainId,
+    router,
+    market.conditionId,
+    market.outcomes.length,
+  );
   const { data: pools = [] } = useMarketPools(chainId, wrappedAddresses);
   const [activePool, setActivePool] = useState(0);
 
@@ -283,7 +288,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{odds?.[i] || 0}%</div>
+              <div className="text-[24px] font-semibold">{oddsPending ? "" : `${odds?.[i] || 0}%`}</div>
 
               <input
                 type="radio"

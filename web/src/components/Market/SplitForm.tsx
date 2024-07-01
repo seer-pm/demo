@@ -140,7 +140,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
               <ApproveButton
                 tokenAddress={missingApprovals[0].address}
                 tokenName={missingApprovals[0].name}
-                router={router}
+                spender={missingApprovals[0].spender}
                 amount={parsedAmount}
               />
             </div>
