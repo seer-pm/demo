@@ -8,9 +8,9 @@ dataSources:
     name: MarketFactory
     network: gnosis
     source:
-      address: "0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA"
       abi: MarketFactory
-      startBlock: 32986755
+      address: "0xA8457b25e99f44fa3Eb72Fe7B15C1C15FfF61E4b"
+      startBlock: 34736228
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -23,16 +23,17 @@ dataSources:
         - name: Reality
           file: ./abis/Realitiy.json
       eventHandlers:
-        - event: NewMarket(indexed address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
+        - event: NewMarket(indexed
+            address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
           handler: handleNewMarket
       file: ./src/market-factory.ts
   - kind: ethereum
     name: Reality
     network: gnosis
     source:
-      address: "0xE78996A233895bE74a66F451f1019cA9734205cc"
       abi: Reality
-      startBlock: 32986755
+      address: "0xE78996A233895bE74a66F451f1019cA9734205cc"
+      startBlock: 34736228
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -43,7 +44,8 @@ dataSources:
       entities:
         - Market
       eventHandlers:
-        - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed address,uint256,uint256,bool)
+        - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed
+            address,uint256,uint256,bool)
           handler: handleNewAnswer
         - event: LogFinalize(indexed bytes32,indexed bytes32)
           handler: handleFinalize
@@ -58,9 +60,9 @@ dataSources:
     name: ConditionalTokens
     network: gnosis
     source:
-      address: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce"
       abi: ConditionalTokens
-      startBlock: 32986755
+      address: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce"
+      startBlock: 34736228
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -71,10 +73,13 @@ dataSources:
       entities:
         - Market
       eventHandlers:
-        - event: PositionSplit(indexed address,address,indexed bytes32,indexed bytes32,uint256[],uint256)
+        - event: PositionSplit(indexed address,address,indexed bytes32,indexed
+            bytes32,uint256[],uint256)
           handler: handlePositionSplit
-        - event: PositionsMerge(indexed address,address,indexed bytes32,indexed bytes32,uint256[],uint256)
+        - event: PositionsMerge(indexed address,address,indexed bytes32,indexed
+            bytes32,uint256[],uint256)
           handler: handlePositionMerge
-        - event: ConditionResolution(indexed bytes32,indexed address,indexed bytes32,uint256,uint256[])
+        - event: ConditionResolution(indexed bytes32,indexed address,indexed
+            bytes32,uint256,uint256[])
           handler: handleConditionResolution
       file: ./src/conditional-tokens.ts
