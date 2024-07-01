@@ -164,7 +164,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes");
+      ).to.be.revertedWith("Invalid outcomes count");
     });
     it("reverts if more than 2 outcomes", async function () {
       await expect(
@@ -172,7 +172,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1", "2", "3"],
         })
-      ).to.be.revertedWith("Invalid outcomes");
+      ).to.be.revertedWith("Invalid outcomes count");
     });
     it("creates a scalar market", async function () {
       await expect(marketFactory.createScalarMarket(scalarMarketParams))
