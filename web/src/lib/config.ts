@@ -1,4 +1,6 @@
-import { gnosisRouterAddress, mainnetRouterAddress, routerAddress } from "@/hooks/contracts/generated";
+import * as generatedHooks from "@/hooks/contracts/generated";
+// to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
+const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 import { Address, parseUnits } from "viem";
 import { gnosis, hardhat, mainnet, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain } from "./chains";
@@ -65,7 +67,13 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 } as const;
 
 export const getRouterAddress = (chainId?: SupportedChain): Address => {
-  const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
+  const addresses = Object.assign(
+    {},
+    gnosisRouterAddress,
+    mainnetRouterAddress,
+    // biome-ignore lint/suspicious/noExplicitAny:
+    (restGeneratedHooks as any)?.routerAddress || {},
+  );
   return addresses[chainId || DEFAULT_CHAIN];
 };
 
