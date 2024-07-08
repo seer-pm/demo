@@ -6,8 +6,10 @@ export const paths = {
   market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/`,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
-  verifiedMarketPolicy: () => "#",
-  marketRulesPolicy: () => "#",
+  verifiedMarketPolicy: () =>
+    "https://cdn.kleros.link/ipfs/QmfGcodBzG53DBxS2Uxu5jug9YiHUpJ5tKFqhP6Z2HjscU/Seer%20-%20Verified%20Markets.pdf",
+  marketRulesPolicy: () =>
+    "https://cdn.kleros.link/ipfs/QmW6npv4J3jvF87WVCEaQQ6f2PK1T9ytX2eYg86XkT9ScK/Seer%20-%20Markets%20Policy.pdf",
   klerosDispute: () => "#",
   farmingProgram: () => "#",
   curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
