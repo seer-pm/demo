@@ -61,10 +61,10 @@ export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
 export type ColorConfig = { border: string; bg: string; text: string; dot: string };
 export const COLORS: Record<MarketStatus, ColorConfig> = {
   [MarketStatus.NOT_OPEN]: {
-    border: "border-t-black-secondary",
+    border: "border-t-[#25cdfe]",
     bg: "bg-black-light",
-    text: "text-black-secondary",
-    dot: "bg-black-secondary",
+    text: "text-[#25cdfe]",
+    dot: "bg-[#25cdfe]",
   },
   [MarketStatus.OPEN]: {
     border: "border-t-purple-primary",
