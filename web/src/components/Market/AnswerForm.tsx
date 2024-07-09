@@ -121,7 +121,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   if (!address) {
     return (
       <>
-        <Alert type="error">Connect your wallet to submit an answer.</Alert>;
+        <Alert type="error">Connect your wallet to submit an answer.</Alert>
         <div className="space-x-[24px] text-center">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button variant="primary" type="button" onClick={async () => open({ view: "Connect" })} text="Connect" />
