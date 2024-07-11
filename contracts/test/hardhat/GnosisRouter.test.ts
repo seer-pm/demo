@@ -15,9 +15,10 @@ import {
   MIN_BOND,
   OPENING_TS,
   PARENT_COLLECTION_ID,
-  POSITION_AMOUNT,
+  SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
+  MERGE_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal } from "./helpers/utils";
@@ -53,14 +54,14 @@ describe("GnosisRouter", function () {
       .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount));
 
     // approve gnosisRouter to transfer user token to the contract
-    await sDAI.approve(gnosisRouter, ethers.parseEther(POSITION_AMOUNT));
+    await sDAI.approve(gnosisRouter, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
     await gnosisRouter.splitFromBase(
       PARENT_COLLECTION_ID,
       conditionId,
       partition,
-      { value: ethers.parseEther(POSITION_AMOUNT) }
+      { value: ethers.parseEther(SPLIT_AMOUNT) }
     );
     return { outcomeSlotCount, conditionId, questionId, market };
   }
@@ -105,7 +106,7 @@ describe("GnosisRouter", function () {
     it("splits position and send outcome tokens to user", async function () {
       const [owner] = await ethers.getSigners();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       const { outcomeSlotCount, conditionId } =
         await createMarketAndSplitPosition();
@@ -128,8 +129,11 @@ describe("GnosisRouter", function () {
   describe("mergePositions", function () {
     it("merges positions and send collateral tokens to user", async function () {
       const [owner] = await ethers.getSigners();
-      const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+      const splitAmountInSDai = await sDAI.convertToShares(
+        ethers.parseEther(SPLIT_AMOUNT)
+      );
+      const mergeAmountInSDai = await sDAI.convertToShares(
+        ethers.parseEther(MERGE_AMOUNT)
       );
       // split first
       const { outcomeSlotCount, conditionId } =
@@ -148,7 +152,7 @@ describe("GnosisRouter", function () {
           await wrappedERC20Factory.tokens(tokenId)
         );
 
-        await token.approve(gnosisRouter, amountInSDai);
+        await token.approve(gnosisRouter, mergeAmountInSDai);
       }
       const balanceBeforeMerge = await ethers.provider.getBalance(owner);
       // merge positions
@@ -158,7 +162,7 @@ describe("GnosisRouter", function () {
         Array(outcomeSlotCount)
           .fill(0)
           .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
-        amountInSDai
+        mergeAmountInSDai
       );
 
       const receipt = await trx.wait(1);
@@ -169,7 +173,7 @@ describe("GnosisRouter", function () {
       expect(
         balanceBeforeMerge -
           (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
-          ethers.parseEther(POSITION_AMOUNT)
+          ethers.parseEther(MERGE_AMOUNT)
       ).to.be.closeTo(balanceAfterMerge, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
@@ -183,9 +187,13 @@ describe("GnosisRouter", function () {
           "Wrapped1155",
           await wrappedERC20Factory.tokens(tokenId)
         );
-        expect(await token.balanceOf(owner)).to.equal("0");
+        expect(await token.balanceOf(owner)).to.equal(
+          splitAmountInSDai - mergeAmountInSDai
+        );
       }
-      expect(await sDAI.balanceOf(conditionalTokens)).to.equal("0");
+      expect(await sDAI.balanceOf(conditionalTokens)).to.equal(
+        splitAmountInSDai - mergeAmountInSDai
+      );
     });
   });
 
@@ -195,7 +203,7 @@ describe("GnosisRouter", function () {
       const REDEEMED_POSITION = 1;
       const [owner] = await ethers.getSigners();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       // split first
       const { outcomeSlotCount, conditionId, questionId, market } =
@@ -251,7 +259,7 @@ describe("GnosisRouter", function () {
       expect(
         balanceBeforeRedeem -
           (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
-          ethers.parseEther(POSITION_AMOUNT)
+          ethers.parseEther(SPLIT_AMOUNT)
       ).to.be.closeTo(balanceAfterRedeem, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
@@ -283,7 +291,7 @@ describe("GnosisRouter", function () {
       const REDEEMED_POSITION = 0;
       const [owner] = await ethers.getSigners();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       // split first
       const { outcomeSlotCount, conditionId, questionId, market } =
