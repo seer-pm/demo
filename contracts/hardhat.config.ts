@@ -110,7 +110,7 @@ const config: HardhatUserConfig = {
     timeout: 100000000,
   },
   gasReporter: {
-    enabled: true,
+    // enabled: true,
   },
 };
 
