@@ -197,6 +197,15 @@ describe("MarketFactory", function () {
   });
 
   describe("createMultiScalarMarket", function () {
+    it("reverts if outcomes length is less than 2", async function () {
+      await expect(
+        marketFactory.createMultiScalarMarket({
+          ...multiScalarMarketParams,
+          outcomes: ["1"],
+          encodedQuestions: ["1"],
+        })
+      ).to.be.revertedWith("Invalid outcomes count");
+    });
     it("reverts if outcomes length is different from encodedQuestions length", async function () {
       await expect(
         marketFactory.createMultiScalarMarket({
