@@ -9,6 +9,10 @@ import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "
 import "solmate/src/utils/LibString.sol";
 import "forge-std/console.sol";
 
+interface ISavingsXDai is IERC20 {
+    function convertToShares(uint256 assets) external view returns (uint256);
+}
+
 contract BaseTest is Test {
     using LibString for uint256;
 
@@ -311,8 +315,14 @@ contract BaseTest is Test {
             partition
         );
 
-        // TODO: calculate xDAI => sDAI conversion rate
-        //assertOutcomesBalances(msg.sender, market.conditionId(), partition, splitAmount);
+        // calculate xDAI => sDAI conversion rate
+        uint256 splitAmountInSDai = ISavingsXDai(collateralToken).convertToShares(splitAmount);
+        assertOutcomesBalances(
+            msg.sender,
+            market.conditionId(),
+            partition,
+            splitAmountInSDai
+        );
 
         approveWrappedTokens(
             address(gnosisRouter),
@@ -327,9 +337,16 @@ contract BaseTest is Test {
             partition,
             amountToMerge
         );
+        
+        // amountToMerge is understood as sDai, not xDai
+        uint256 amountToRedeemInSDai = splitAmountInSDai - amountToMerge;
 
-        // TODO: calculate xDAI => sDAI conversion rate
-        //assertOutcomesBalances(msg.sender, market.conditionId(), partition, amountToRedeem);
+        assertOutcomesBalances(
+            msg.sender,
+            market.conditionId(),
+            partition,
+            amountToRedeemInSDai
+        );
 
         gnosisRouter.redeemToBase(bytes32(0), market.conditionId(), partition);
 

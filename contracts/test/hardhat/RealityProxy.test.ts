@@ -42,7 +42,7 @@ describe("RealityProxy", function () {
   });
 
   describe("resolve", function () {
-    context("resolving a categorical market", async function () {
+    context("resolving a categorical market", function () {
       async function resolveCategoricalMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createCategoricalMarket({
@@ -122,7 +122,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a multi categorical market", async function () {
+    context("resolving a multi categorical market", function () {
       async function resolveMultiCategoricalMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createMultiCategoricalMarket({
@@ -214,7 +214,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a scalar market", async function () {
+    context("resolving a scalar market", function () {
       async function resolveScalarMarket(answer: number | string) {
         const currentBlockTime = await time.latest();
         await marketFactory.createScalarMarket({
@@ -302,7 +302,7 @@ describe("RealityProxy", function () {
       });
     });
 
-    context("resolving a multi scalar market", async function () {
+    context("resolving a multi scalar market", function () {
       async function resolveMultiScalarMarket(
         answers: (number | string | bigint)[]
       ) {

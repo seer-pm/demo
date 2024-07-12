@@ -16,11 +16,12 @@ import {
   MIN_BOND,
   OPENING_TS,
   PARENT_COLLECTION_ID,
-  POSITION_AMOUNT,
+  SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
   DELTA,
   ETH_BALANCE,
+  MERGE_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal } from "./helpers/utils";
@@ -59,13 +60,13 @@ describe("MainnetRouter", function () {
       .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount));
 
     // approve mainnetRouter to transfer user token to the contract
-    await DAI.approve(mainnetRouter, ethers.parseEther(POSITION_AMOUNT));
+    await DAI.approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
     // split collateral token to outcome tokens
     await mainnetRouter.splitFromDai(
       PARENT_COLLECTION_ID,
       conditionId,
       partition,
-      ethers.parseEther(POSITION_AMOUNT)
+      ethers.parseEther(SPLIT_AMOUNT)
     );
     return { outcomeSlotCount, conditionId, questionId, market };
   }
@@ -143,7 +144,7 @@ describe("MainnetRouter", function () {
       const { outcomeSlotCount, conditionId } =
         await createMarketAndSplitPosition();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
@@ -170,9 +171,13 @@ describe("MainnetRouter", function () {
       // split first
       const { outcomeSlotCount, conditionId } =
         await createMarketAndSplitPosition();
-      const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+      const splitAmountInSDai = await sDAI.convertToShares(
+        ethers.parseEther(SPLIT_AMOUNT)
       );
+      const mergeAmountInSDai = await sDAI.convertToShares(
+        ethers.parseEther(MERGE_AMOUNT)
+      );
+
       // allow mainnetRouter to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
@@ -189,7 +194,7 @@ describe("MainnetRouter", function () {
         // approve some more for the fluctuation of exchange rate
         await token
           .connect(owner)
-          .approve(mainnetRouter, ethers.parseEther(POSITION_AMOUNT));
+          .approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
       }
       const balanceBeforeMerge = await DAI.balanceOf(owner);
 
@@ -200,13 +205,13 @@ describe("MainnetRouter", function () {
         Array(outcomeSlotCount)
           .fill(0)
           .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
-        amountInSDai
+        mergeAmountInSDai
       );
 
       const balanceAfterMerge = await DAI.balanceOf(owner);
 
       expect(
-        balanceBeforeMerge + (await sDAI.convertToAssets(amountInSDai))
+        balanceBeforeMerge + (await sDAI.convertToAssets(mergeAmountInSDai))
       ).to.be.closeTo(balanceAfterMerge, DELTA);
 
       for (let i = 0; i < outcomeSlotCount; i++) {
@@ -220,9 +225,15 @@ describe("MainnetRouter", function () {
           "Wrapped1155",
           await wrappedERC20Factory.tokens(tokenId)
         );
-        expect(await token.balanceOf(owner)).to.be.closeTo("0", DELTA);
+        expect(await token.balanceOf(owner)).to.be.closeTo(
+          splitAmountInSDai - mergeAmountInSDai,
+          DELTA
+        );
       }
-      expect(await sDAI.balanceOf(conditionalTokens)).to.be.closeTo("0", DELTA);
+      expect(await sDAI.balanceOf(conditionalTokens)).to.be.closeTo(
+        splitAmountInSDai - mergeAmountInSDai,
+        DELTA
+      );
     });
   });
 
@@ -234,7 +245,7 @@ describe("MainnetRouter", function () {
       const { outcomeSlotCount, conditionId, questionId, market } =
         await createMarketAndSplitPosition();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       // answer the question and resolve the market
       // past opening_ts
@@ -270,7 +281,7 @@ describe("MainnetRouter", function () {
 
         await token
           .connect(owner)
-          .approve(mainnetRouter, ethers.parseEther(POSITION_AMOUNT));
+          .approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
       }
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem winning position
@@ -319,7 +330,7 @@ describe("MainnetRouter", function () {
       const { outcomeSlotCount, conditionId, questionId, market } =
         await createMarketAndSplitPosition();
       const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       // answer the question and resolve the market
       // past opening_ts
@@ -354,7 +365,7 @@ describe("MainnetRouter", function () {
 
         await token
           .connect(owner)
-          .approve(mainnetRouter, ethers.parseEther(POSITION_AMOUNT));
+          .approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       const balanceBeforeRedeem = await DAI.balanceOf(owner);

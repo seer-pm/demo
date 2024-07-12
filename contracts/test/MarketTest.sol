@@ -231,7 +231,17 @@ contract MarketFactoryTest is BaseTest {
                 );
             }
         } else {
-            // TODO: valid outcomes
+            // valid outcomes
+            bool allZeroes = true;
+            for (uint256 i = 0; i < payoutNumerators.length - 1; i++) {
+                uint256 currentPayout = (uint256(answer) >> i) & 1;
+                allZeroes = allZeroes && currentPayout == 0;
+                if (i == multiCategoricalMarket.numOutcomes()) {
+                    assertEq(payoutNumerators[i], allZeroes ? 1 : 0);
+                } else {
+                    assertEq(payoutNumerators[i], currentPayout);
+                }
+            }
         }
     }
 
@@ -272,7 +282,20 @@ contract MarketFactoryTest is BaseTest {
                 );
             }
         } else {
-            // TODO: valid outcomes
+            uint256 low = scalarMarket.lowerBound();
+            uint256 high = scalarMarket.upperBound();
+            uint256[] memory expectedPayouts = new uint256[](3);
+
+            // valid outcomes
+            if (uint256(answer) <= low) {
+                expectedPayouts[0] = 1;
+            } else if (uint256(answer) >= high) {
+                expectedPayouts[1] = 1;
+            } else {
+                expectedPayouts[0] = high - uint256(answer);
+                expectedPayouts[1] = uint256(answer) - low;
+            }
+            assertEq(payoutNumerators, expectedPayouts);
         }
     }
 
@@ -322,7 +345,16 @@ contract MarketFactoryTest is BaseTest {
         } else if (answer2 == INVALID_RESULT) {
             assertEq(payoutNumerators[1], 0);
         } else {
-            // TODO: valid outcomes
+            // valid outcomes
+            uint256 maxPayout = 2 ** (256 / 2) - 1;
+            assertEq(
+                payoutNumerators[0],
+                uint256(answer) > maxPayout ? maxPayout : uint256(answer)
+            );
+            assertEq(
+                payoutNumerators[1],
+                uint256(answer2) > maxPayout ? maxPayout : uint256(answer2)
+            );
         }
     }
 
