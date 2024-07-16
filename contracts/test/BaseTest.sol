@@ -6,9 +6,16 @@ import "../src/Market.sol";
 import "../src/RealityProxy.sol";
 import "../src/GnosisRouter.sol";
 import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import "solmate/src/utils/LibString.sol";
 import "forge-std/console.sol";
 
+interface ISavingsXDai is IERC20 {
+    function convertToShares(uint256 assets) external view returns (uint256);
+}
+
 contract BaseTest is Test {
+    using LibString for uint256;
+
     MarketFactory marketFactory;
 
     GnosisRouter gnosisRouter;
@@ -72,8 +79,8 @@ contract BaseTest is Test {
         string[] memory tokenNames = new string[](numOutcomes);
 
         for (uint256 i = 0; i < numOutcomes; i++) {
-            outcomes[i] = "OUTCOME";
-            tokenNames[i] = "OUTCOME";
+            outcomes[i] = string.concat("OUTCOME_", i.toString());
+            tokenNames[i] = string.concat("OUTCOME_", i.toString());
         }
 
         return (outcomes, tokenNames);
@@ -112,17 +119,13 @@ contract BaseTest is Test {
     }
 
     function getMultiCategoricalMarket(
-        uint256 minBond
+        uint256 minBond,
+        uint256 numOutcomes
     ) public returns (Market) {
-        string[] memory outcomes = new string[](3);
-        outcomes[0] = "Yes";
-        outcomes[1] = "No";
-        outcomes[2] = "Maybe";
-
-        string[] memory tokenNames = new string[](3);
-        tokenNames[0] = "YES";
-        tokenNames[1] = "NO";
-        tokenNames[2] = "MAYBE";
+        (
+            string[] memory outcomes,
+            string[] memory tokenNames
+        ) = getOutcomesAndTokens(numOutcomes);
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[
@@ -135,7 +138,7 @@ contract BaseTest is Test {
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
                     encodedQuestions: encodedQuestions,
                     outcomes: outcomes,
-                    tokenNames: outcomes,
+                    tokenNames: tokenNames,
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
@@ -147,14 +150,14 @@ contract BaseTest is Test {
         return market;
     }
 
-    function getScalarMarket(uint256 minBond) public returns (Market) {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Low";
-        outcomes[1] = "High";
-
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "LOW";
-        tokenNames[1] = "HIGH";
+    function getScalarMarket(
+        uint256 minBond,
+        uint256 numOutcomes
+    ) public returns (Market) {
+        (
+            string[] memory outcomes,
+            string[] memory tokenNames
+        ) = getOutcomesAndTokens(numOutcomes);
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[
@@ -179,22 +182,23 @@ contract BaseTest is Test {
         return market;
     }
 
-    function getMultiScalarMarket(uint256 minBond) public returns (Market) {
-        string[] memory outcomes = new string[](2);
-        outcomes[0] = "Vitalik_1";
-        outcomes[1] = "Vitalik_2";
+    function getMultiScalarMarket(
+        uint256 minBond,
+        uint256 numOutcomes
+    ) public returns (Market) {
+        (
+            string[] memory outcomes,
+            string[] memory tokenNames
+        ) = getOutcomesAndTokens(numOutcomes);
 
-        string[] memory tokenNames = new string[](2);
-        tokenNames[0] = "VITALIK_1";
-        tokenNames[1] = "VITALIK-2";
-
-        string[] memory encodedQuestions = new string[](2);
-        encodedQuestions[
-            0
-        ] = unicode"How many votes will Vitalik_1 get?␟technology␟en_US";
-        encodedQuestions[
-            1
-        ] = unicode"How many votes will Vitalik_2 get?␟technology␟en_US";
+        string[] memory encodedQuestions = new string[](numOutcomes);
+        for (uint256 i = 0; i < numOutcomes; i++) {
+            encodedQuestions[i] = string.concat(
+                unicode"How many votes will Vitalik_",
+                i.toString(),
+                unicode" get?␟technology␟en_US"
+            );
+        }
 
         Market market = Market(
             marketFactory.createMultiScalarMarket(
@@ -311,8 +315,14 @@ contract BaseTest is Test {
             partition
         );
 
-        // TODO: calculate xDAI => sDAI conversion rate
-        //assertOutcomesBalances(msg.sender, market.conditionId(), partition, splitAmount);
+        // calculate xDAI => sDAI conversion rate
+        uint256 splitAmountInSDai = ISavingsXDai(collateralToken).convertToShares(splitAmount);
+        assertOutcomesBalances(
+            msg.sender,
+            market.conditionId(),
+            partition,
+            splitAmountInSDai
+        );
 
         approveWrappedTokens(
             address(gnosisRouter),
@@ -327,9 +337,16 @@ contract BaseTest is Test {
             partition,
             amountToMerge
         );
+        
+        // amountToMerge is understood as sDai, not xDai
+        uint256 amountToRedeemInSDai = splitAmountInSDai - amountToMerge;
 
-        // TODO: calculate xDAI => sDAI conversion rate
-        //assertOutcomesBalances(msg.sender, market.conditionId(), partition, amountToRedeem);
+        assertOutcomesBalances(
+            msg.sender,
+            market.conditionId(),
+            partition,
+            amountToRedeemInSDai
+        );
 
         gnosisRouter.redeemToBase(bytes32(0), market.conditionId(), partition);
 

@@ -1,18 +1,13 @@
-import { Chain, gnosis, hardhat, mainnet, sepolia } from "wagmi/chains";
-
-// used with wagmi generate
-const wagmiCliProd =
-  typeof process !== "undefined" &&
-  typeof process.env.WAGMI_CLI_PROD !== "undefined" &&
-  process.env.WAGMI_CLI_PROD === "true";
-// used with yarn build / yarn dev
-const viteProd = typeof import.meta.env?.PROD !== "undefined" && import.meta.env.PROD;
+import { Chain, gnosis, hardhat /*mainnet, sepolia*/ } from "wagmi/chains";
 
 export const SUPPORTED_CHAINS = {
   [gnosis.id]: gnosis,
-  [mainnet.id]: mainnet,
-  [sepolia.id]: sepolia,
-  ...((!(wagmiCliProd || viteProd) ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
+  //[mainnet.id]: mainnet,
+  //[sepolia.id]: sepolia,
+  ...((import.meta.env.VITE_ADD_HARDHAT_NETWORK === "1" ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<
+    number,
+    Chain
+  >),
 } as const satisfies Record<string, Chain>;
 
 export type SupportedChain = keyof typeof SUPPORTED_CHAINS;

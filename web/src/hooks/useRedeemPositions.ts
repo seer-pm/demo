@@ -76,6 +76,7 @@ export const useRedeemPositions = () => {
     mutationFn: redeemPositions,
     onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useUserPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
     },
   });

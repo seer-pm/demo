@@ -5,15 +5,15 @@ import Button from "./Button";
 export function ApproveButton({
   tokenAddress,
   tokenName,
-  router,
+  spender,
   amount,
-}: { tokenAddress: Address; tokenName: string; router: Address; amount: bigint }) {
+}: { tokenAddress: Address; tokenName: string; spender: Address; amount: bigint }) {
   const approveTokens = useApproveTokens();
 
   const approveTokensHandler = async () => {
     return await approveTokens.mutateAsync({
       tokenAddress: tokenAddress,
-      spender: router,
+      spender: spender,
       amount: amount,
     });
   };

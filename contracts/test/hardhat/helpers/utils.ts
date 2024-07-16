@@ -43,3 +43,31 @@ export function getConditionId(
     )
   );
 }
+
+export function generateWords(wordCount: number, wordLength: number) {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  const result = [];
+
+  for (let i = 0; i < wordCount; i++) {
+    let word = "";
+    for (let j = 0; j < wordLength; j++) {
+      const randomIndex = Math.floor(Math.random() * alphabet.length);
+      word += alphabet[randomIndex];
+    }
+    result.push(word);
+  }
+
+  return result;
+}
+
+export function generateSentences(sentenceCount: number, wordCount: number) {
+  const sentences = [];
+  const wordLength = 5;
+  for (let i = 0; i < sentenceCount; i++) {
+    const words = generateWords(wordCount, wordLength);
+    const sentence = words.join(" ") + " .";
+    sentences.push(sentence);
+  }
+
+  return sentences;
+}

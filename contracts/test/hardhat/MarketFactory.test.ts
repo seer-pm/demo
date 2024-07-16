@@ -1,12 +1,13 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { MarketFactory, RealityETH_v3_0 } from "../../typechain-types";
 import {
   ETH_BALANCE,
   MIN_BOND,
-  REALITY_SINGLE_SELECT_TEMPLATE,
+  OPENING_TS,
   QUESTION_TIMEOUT,
+  REALITY_SINGLE_SELECT_TEMPLATE,
   categoricalMarketParams,
   multiCategoricalMarketParams,
   multiScalarMarketParams,
@@ -164,7 +165,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes");
+      ).to.be.revertedWith("Invalid outcomes count");
     });
     it("reverts if more than 2 outcomes", async function () {
       await expect(
@@ -172,7 +173,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1", "2", "3"],
         })
-      ).to.be.revertedWith("Invalid outcomes");
+      ).to.be.revertedWith("Invalid outcomes count");
     });
     it("creates a scalar market", async function () {
       await expect(marketFactory.createScalarMarket(scalarMarketParams))
@@ -196,6 +197,15 @@ describe("MarketFactory", function () {
   });
 
   describe("createMultiScalarMarket", function () {
+    it("reverts if outcomes length is less than 2", async function () {
+      await expect(
+        marketFactory.createMultiScalarMarket({
+          ...multiScalarMarketParams,
+          outcomes: ["1"],
+          encodedQuestions: ["1"],
+        })
+      ).to.be.revertedWith("Invalid outcomes count");
+    });
     it("reverts if outcomes length is different from encodedQuestions length", async function () {
       await expect(
         marketFactory.createMultiScalarMarket({
@@ -227,6 +237,22 @@ describe("MarketFactory", function () {
 
       const marketCount = Number(await marketFactory.marketCount());
       expect(marketCount).to.equal(1);
+    });
+    it("creates multiple multi-scalar markets", async function () {
+      const MARKET_COUNT = 3;
+      for (let i = 0; i < MARKET_COUNT; i++) {
+        await marketFactory.createMultiScalarMarket({
+          ...multiScalarMarketParams,
+          openingTime: (await time.latest()) + OPENING_TS,
+        });
+      }
+      expect(await marketFactory.marketCount()).to.equal(MARKET_COUNT);
+    });
+    it("reverts if try to create multiple multi-scalar markets with same params", async function () {
+      await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
+      await expect(
+        marketFactory.createMultiScalarMarket(multiScalarMarketParams)
+      ).to.be.reverted;
     });
   });
 

@@ -67,7 +67,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
@@ -94,7 +94,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market scalarMarket = getScalarMarket(MIN_BOND);
+        Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(scalarMarket.questionsIds(0), answer);
@@ -118,7 +118,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
-        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiScalarMarket.questionsIds(0), answer);
@@ -201,7 +201,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND);
+        Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
@@ -231,7 +231,17 @@ contract MarketFactoryTest is BaseTest {
                 );
             }
         } else {
-            // TODO: valid outcomes
+            // valid outcomes
+            bool allZeroes = true;
+            for (uint256 i = 0; i < payoutNumerators.length - 1; i++) {
+                uint256 currentPayout = (uint256(answer) >> i) & 1;
+                allZeroes = allZeroes && currentPayout == 0;
+                if (i == multiCategoricalMarket.numOutcomes()) {
+                    assertEq(payoutNumerators[i], allZeroes ? 1 : 0);
+                } else {
+                    assertEq(payoutNumerators[i], currentPayout);
+                }
+            }
         }
     }
 
@@ -242,7 +252,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        Market scalarMarket = getScalarMarket(MIN_BOND);
+        Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(scalarMarket.questionsIds(0), answer);
@@ -272,7 +282,20 @@ contract MarketFactoryTest is BaseTest {
                 );
             }
         } else {
-            // TODO: valid outcomes
+            uint256 low = scalarMarket.lowerBound();
+            uint256 high = scalarMarket.upperBound();
+            uint256[] memory expectedPayouts = new uint256[](3);
+
+            // valid outcomes
+            if (uint256(answer) <= low) {
+                expectedPayouts[0] = 1;
+            } else if (uint256(answer) >= high) {
+                expectedPayouts[1] = 1;
+            } else {
+                expectedPayouts[0] = high - uint256(answer);
+                expectedPayouts[1] = uint256(answer) - low;
+            }
+            assertEq(payoutNumerators, expectedPayouts);
         }
     }
 
@@ -284,7 +307,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
-        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND);
+        Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
         submitAnswer(multiScalarMarket.questionsIds(0), answer);
@@ -322,7 +345,42 @@ contract MarketFactoryTest is BaseTest {
         } else if (answer2 == INVALID_RESULT) {
             assertEq(payoutNumerators[1], 0);
         } else {
-            // TODO: valid outcomes
+            // valid outcomes
+            uint256 maxPayout = 2 ** (256 / 2) - 1;
+            assertEq(
+                payoutNumerators[0],
+                uint256(answer) > maxPayout ? maxPayout : uint256(answer)
+            );
+            assertEq(
+                payoutNumerators[1],
+                uint256(answer2) > maxPayout ? maxPayout : uint256(answer2)
+            );
         }
+    }
+
+    function test_revertsIfCreatesCategoricalMarketWithOneQuestion() public {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getCategoricalMarket(MIN_BOND, 1);
+    }
+
+    function test_revertsIfCreatesMultiCategoricalMarketWithOneQuestion()
+        public
+    {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getMultiCategoricalMarket(MIN_BOND, 1);
+    }
+
+    function test_revertsIfCreatesScalarMarketWithOtherThanTwoQuestions(
+        uint8 numOutcomes
+    ) public {
+        if (numOutcomes != 2) {
+            vm.expectRevert(bytes("Invalid outcomes count"));
+        }
+        getScalarMarket(MIN_BOND, uint256(numOutcomes));
+    }
+
+    function test_revertsIfCreatesMultiScalarMarketWithOneQuestion() public {
+        vm.expectRevert(bytes("Invalid outcomes count"));
+        getMultiScalarMarket(MIN_BOND, 1);
     }
 }

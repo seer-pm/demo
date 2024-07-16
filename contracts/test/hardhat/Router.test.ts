@@ -15,9 +15,10 @@ import {
   MIN_BOND,
   OPENING_TS,
   PARENT_COLLECTION_ID,
-  POSITION_AMOUNT,
+  SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
+  MERGE_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal } from "./helpers/utils";
@@ -51,7 +52,7 @@ describe("Router", function () {
     );
 
     // approve router to transfer user token to the contract
-    await collateralToken.approve(router, ethers.parseEther(POSITION_AMOUNT));
+    await collateralToken.approve(router, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
     await router.splitPosition(
@@ -61,7 +62,7 @@ describe("Router", function () {
       Array(outcomeSlotCount)
         .fill(0)
         .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
-      ethers.parseEther(POSITION_AMOUNT)
+      ethers.parseEther(SPLIT_AMOUNT)
     );
     return { outcomeSlotCount, conditionId, questionId, market };
   }
@@ -88,7 +89,7 @@ describe("Router", function () {
 
     const [owner] = await ethers.getSigners();
     // mint some collateral token
-    collateralToken.mint(owner, ethers.parseEther(POSITION_AMOUNT));
+    collateralToken.mint(owner, ethers.parseEther(SPLIT_AMOUNT));
   });
 
   describe("splitPosition", function () {
@@ -111,14 +112,14 @@ describe("Router", function () {
           await wrappedERC20Factory.tokens(tokenId)
         );
         expect(await token.balanceOf(owner)).to.equal(
-          ethers.parseEther(POSITION_AMOUNT)
+          ethers.parseEther(SPLIT_AMOUNT)
         );
       }
       expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        previousCollateralTokenBalance - ethers.parseEther(POSITION_AMOUNT)
+        previousCollateralTokenBalance - ethers.parseEther(SPLIT_AMOUNT)
       );
     });
   });
@@ -146,7 +147,7 @@ describe("Router", function () {
           await wrappedERC20Factory.tokens(tokenId)
         );
 
-        await token.approve(router, ethers.parseEther(POSITION_AMOUNT));
+        await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       // merge positions
@@ -157,7 +158,7 @@ describe("Router", function () {
         Array(outcomeSlotCount)
           .fill(0)
           .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(MERGE_AMOUNT)
       );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
@@ -171,11 +172,15 @@ describe("Router", function () {
           "Wrapped1155",
           await wrappedERC20Factory.tokens(tokenId)
         );
-        expect(await token.balanceOf(owner)).to.equal("0");
+        expect(await token.balanceOf(owner)).to.equal(
+          ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT)
+        );
       }
-      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal("0");
+      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
+        ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT)
+      );
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        collateralTokenBalanceAfterSplit + ethers.parseEther(POSITION_AMOUNT)
+        collateralTokenBalanceAfterSplit + ethers.parseEther(MERGE_AMOUNT)
       );
     });
   });
@@ -223,7 +228,7 @@ describe("Router", function () {
           await wrappedERC20Factory.tokens(tokenId)
         );
 
-        await token.approve(router, ethers.parseEther(POSITION_AMOUNT));
+        await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       // redeem winning position
@@ -249,13 +254,13 @@ describe("Router", function () {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {
           expect(await token.balanceOf(owner)).to.equal(
-            ethers.parseEther(POSITION_AMOUNT)
+            ethers.parseEther(SPLIT_AMOUNT)
           );
         }
       }
       expect(await collateralToken.balanceOf(conditionalTokens)).to.equal("0");
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        collateralTokenBalanceAfterSplit + ethers.parseEther(POSITION_AMOUNT)
+        collateralTokenBalanceAfterSplit + ethers.parseEther(SPLIT_AMOUNT)
       );
       // check winning outcomes
       const winningOutcomes = await router.getWinningOutcomes(conditionId);
@@ -304,7 +309,7 @@ describe("Router", function () {
           await wrappedERC20Factory.tokens(tokenId)
         );
 
-        await token.approve(router, ethers.parseEther(POSITION_AMOUNT));
+        await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       // redeem losing position
@@ -330,12 +335,12 @@ describe("Router", function () {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {
           expect(await token.balanceOf(owner)).to.equal(
-            ethers.parseEther(POSITION_AMOUNT)
+            ethers.parseEther(SPLIT_AMOUNT)
           );
         }
       }
       expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
-        ethers.parseEther(POSITION_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT)
       );
       expect(await collateralToken.balanceOf(owner)).to.equal(
         collateralTokenBalanceAfterSplit

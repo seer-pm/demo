@@ -6,7 +6,7 @@ import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG } from "@/lib/config";
+import { COLLATERAL_TOKENS, SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
@@ -188,7 +188,12 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
   );
   const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
-  const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+  const { data: odds = [], isPending: oddsPending } = useMarketOdds(
+    chainId,
+    router,
+    market.conditionId,
+    market.outcomes.length,
+  );
   const { data: pools = [] } = useMarketPools(chainId, wrappedAddresses);
   const [activePool, setActivePool] = useState(0);
 
@@ -267,7 +272,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                     <EtherscanIcon width="12" height="12" />
                   </a>
 
-                  {!isUndefined(pools[i]) && pools[i].length > 0 && (
+                  {!isUndefined(pools[i]) && pools[i].length > 0 ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -278,12 +283,21 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                     >
                       Add Liquidity
                     </button>
+                  ) : (
+                    <a
+                      href={`https://v3.swapr.eth.limo/#/add/${wrappedAddress}/${COLLATERAL_TOKENS[chainId].primary.address}/enter-amounts`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-primary flex items-center space-x-2"
+                    >
+                      <span>Add Liquidity</span>
+                    </a>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{odds?.[i] || 0}%</div>
+              <div className="text-[24px] font-semibold">{oddsPending ? "" : `${odds?.[i] || 0}%`}</div>
 
               <input
                 type="radio"

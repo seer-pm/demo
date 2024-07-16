@@ -1,20 +1,23 @@
-import dotenv from "dotenv";
-dotenv.config()
+import fs from "fs";
+import { join, parse } from "path";
+import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
+import { actions, react } from "@wagmi/cli/plugins";
+import { readFile, readdir } from "fs/promises";
+import { Chain, mainnet } from "wagmi/chains";
 
-import { type Config, type ContractConfig, defineConfig } from "@wagmi/cli";
-import { react, actions } from "@wagmi/cli/plugins";
-import { readdir, readFile } from "fs/promises";
-import { parse, join } from "path";
-import { SUPPORTED_CHAINS } from "./src/lib/chains";
-
-const readArtifacts = async () => {
+const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
   const results: Record<string, ContractConfig> = {};
 
-  for(let chainId in SUPPORTED_CHAINS) {
+  for (const chainId in SUPPORTED_CHAINS) {
     const chainName = SUPPORTED_CHAINS[chainId].name.toLocaleLowerCase();
     const directoryPath = `../contracts/deployments/${chainName}`;
+
+    if (chainName === "hardhat" && !fs.existsSync(directoryPath)) {
+      throw new Error("Hardhat deployment not found");
+    }
+
     const files = await readdir(directoryPath);
-  
+
     for (const file of files) {
       const { name, ext } = parse(file);
       if (ext === ".json") {
@@ -22,8 +25,8 @@ const readArtifacts = async () => {
         const fileContent = await readFile(filePath, "utf-8");
         const jsonContent = JSON.parse(fileContent);
 
-        const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {}
-        addresses[chainId] = jsonContent.address as `0x{string}`
+        const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {};
+        addresses[chainId] = jsonContent.address as `0x{string}`;
         results[name] = {
           name,
           address: addresses,
@@ -37,9 +40,21 @@ const readArtifacts = async () => {
 };
 
 const getConfig = async (): Promise<Config> => {
+  import.meta.env = loadEnv({
+    mode: process.env.NODE_ENV,
+    envDir: process.cwd(),
+  });
+
+  const { SUPPORTED_CHAINS } = await import("./src/lib/chains");
+
+  if (!SUPPORTED_CHAINS[mainnet.id]) {
+    // we need it to have access to the RealitioForeignArbitrationProxy
+    SUPPORTED_CHAINS[mainnet.id] = mainnet;
+  }
+
   return {
     out: "src/hooks/contracts/generated.ts",
-    contracts: Object.values(await readArtifacts()),
+    contracts: Object.values(await readArtifacts(SUPPORTED_CHAINS)),
     plugins: [react(), actions()],
   };
 };
