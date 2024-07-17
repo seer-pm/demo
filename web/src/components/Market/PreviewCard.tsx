@@ -4,16 +4,10 @@ import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { MarketHeader } from "./Header/MarketHeader";
 
-export function PreviewCard({
-  market,
-  chainId,
-}: {
-  market: Market;
-  chainId: SupportedChain;
-}) {
-  const { data, error } = useMarketImages(market.id, chainId);
-  const images = error ? undefined : data;
+export function PreviewCard({ market, chainId }: { market: Market; chainId: SupportedChain }) {
+  const { data: images } = useMarketImages(market.id, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(market.id, chainId);
+
   return (
     <MarketHeader
       market={market}

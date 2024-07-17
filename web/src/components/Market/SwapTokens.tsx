@@ -25,7 +25,7 @@ interface SwapTokensProps {
   chainId: SupportedChain;
   outcomeText: string;
   outcomeToken: Token;
-  isEnoughLiquidity?: boolean;
+  hasEnoughLiquidity?: boolean;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, useWrappedToken: boolean): Token {
@@ -87,7 +87,7 @@ function SwapButtons({
   );
 }
 
-export function SwapTokens({ account, chainId, outcomeText, outcomeToken, isEnoughLiquidity }: SwapTokensProps) {
+export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEnoughLiquidity }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
@@ -212,7 +212,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, isEnou
         {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
       </div>
 
-      {(quoteIsError || !isEnoughLiquidity) && <Alert type="error">Not enough liquidity</Alert>}
+      {(quoteIsError || !hasEnoughLiquidity) && <Alert type="error">Not enough liquidity</Alert>}
 
       <div className="flex justify-between">
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />

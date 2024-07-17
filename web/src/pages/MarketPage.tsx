@@ -39,8 +39,7 @@ function MarketPage() {
   const router = getRouterAddress(chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
-  const { data, error } = useMarketImages(id as Address, chainId);
-  const images = error ? undefined : data;
+  const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
@@ -115,7 +114,7 @@ function MarketPage() {
               chainId={chainId}
               outcomeText={market.outcomes[outcomeIndex]}
               outcomeToken={outcomeToken}
-              isEnoughLiquidity={odds[outcomeIndex] > 0}
+              hasEnoughLiquidity={odds[outcomeIndex] > 0}
             />
 
             <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />

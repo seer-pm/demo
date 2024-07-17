@@ -1,9 +1,8 @@
 import Button from "@/components/Form/Button";
 import { DEFAULT_CHAIN } from "@/lib/chains";
-import { queryClient } from "@/lib/query-client";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
-import { useAccount, useAccountEffect } from "wagmi";
+import { useAccount } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 
 export const SwitchChainButton: React.FC = () => {
@@ -28,14 +27,6 @@ const ConnectButton = () => {
 };
 
 const ConnectWallet = () => {
-  useAccountEffect({
-    onConnect() {
-      queryClient.invalidateQueries({ queryKey: ["useMarketImages"] });
-    },
-    onDisconnect() {
-      queryClient.invalidateQueries({ queryKey: ["useMarketImages"] });
-    },
-  });
   const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
   if (isConnected) {
     if (!chain) {

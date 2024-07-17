@@ -20,17 +20,10 @@ interface VerificationCheckFormValues {
   address: Address | "";
 }
 
-function MarketCheck({
-  id,
-  chainId,
-}: {
-  id: Address;
-  chainId: SupportedChain;
-}) {
+function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
 
-  const { data, error } = useMarketImages(id, chainId, false);
-  const images = error ? undefined : data;
+  const { data: images } = useMarketImages(id, chainId, false);
   const { data: wrappedAddresses } = useWrappedAddresses(
     chainId,
     getRouterAddress(chainId),

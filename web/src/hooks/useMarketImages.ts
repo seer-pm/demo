@@ -2,7 +2,6 @@ import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
@@ -10,12 +9,9 @@ import { Status, getSdk } from "./queries/generated";
 
 export const useMarketImages = (marketId: Address, chainId: SupportedChain, registered = true) => {
   const { address: currentUserAddress } = useAccount();
-  const addressRef = useRef(currentUserAddress);
-  useEffect(() => {
-    addressRef.current = currentUserAddress;
-  }, [currentUserAddress]);
+
   return useQuery<{ market: string; outcomes: string[] }, Error>({
-    queryKey: ["useMarketImages", marketId, chainId],
+    queryKey: ["useMarketImages", marketId, chainId, currentUserAddress],
     queryFn: async () => {
       const client = curateGraphQLClient(chainId);
 
@@ -31,7 +27,7 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain, regi
           },
         });
         litems = litems.filter((item) => {
-          if (item.latestRequester && item.latestRequester.toLowerCase() === addressRef.current?.toLowerCase()) {
+          if (item.latestRequester && item.latestRequester.toLowerCase() === currentUserAddress?.toLowerCase()) {
             return true;
           }
           return registered ? item.status === Status.Registered : true;
