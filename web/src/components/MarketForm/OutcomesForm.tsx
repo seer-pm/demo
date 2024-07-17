@@ -63,10 +63,18 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
         <div
           className="text-purple-primary text-[12px] cursor-pointer mb-[5px]"
           onClick={() => {
-            setShowCustomToken(!showCustomToken);
+            const _showCustomToken = !showCustomToken;
+            setShowCustomToken(_showCustomToken);
+
+            if (!_showCustomToken) {
+              useFormReturn.setValue(`outcomes.${outcomeIndex}.token`, "", {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+            }
           }}
         >
-          {showCustomToken ? "Hide custom token name" : "Show custom token name"}
+          {showCustomToken ? "Use default token name" : "Set custom token name"}
         </div>
       </div>
     </div>
