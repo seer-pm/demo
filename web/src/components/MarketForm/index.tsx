@@ -3,12 +3,7 @@ import { MarketTypes } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 
-export const MARKET_CATEGORIES: { value: string; text: string }[] = [
-  { value: "sports", text: "Sports" },
-  { value: "technology", text: "Technology" },
-  { value: "politics", text: "Politics" },
-  { value: "misc", text: "Miscellaneous" },
-];
+export const MISC_CATEGORY = "misc";
 
 export function ButtonsWrapper({
   goToPrevStep,
@@ -52,7 +47,6 @@ export type MarketTypeFormValues = {
 
 export type QuestionFormValues = {
   market: string;
-  category: string;
   image: File;
 };
 

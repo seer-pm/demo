@@ -39,7 +39,6 @@ function MarkeVerifyPage() {
     mode: "all",
     defaultValues: {
       market: "",
-      category: "",
     },
   });
 

@@ -17,6 +17,7 @@ import {
   ButtonsWrapper,
   DateFormValues,
   FormWithPrevStep,
+  MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
   QuestionFormValues,
@@ -326,7 +327,7 @@ export function PreviewForm({
       lowerBound: outcomesValues.lowerBound,
       upperBound: outcomesValues.upperBound,
       unit: outcomesValues.unit,
-      category: questionValues.category,
+      category: MISC_CATEGORY,
       openingTime,
       chainId,
     });

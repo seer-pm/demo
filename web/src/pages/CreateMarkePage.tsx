@@ -50,7 +50,6 @@ function CreateMarket() {
     mode: "all",
     defaultValues: {
       market: "",
-      category: "",
     },
   });
 

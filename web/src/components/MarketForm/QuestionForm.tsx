@@ -1,14 +1,6 @@
 import { FormProvider } from "react-hook-form";
-import {
-  ButtonsWrapper,
-  FormStepProps,
-  FormWithNextStep,
-  FormWithPrevStep,
-  MARKET_CATEGORIES,
-  QuestionFormValues,
-} from ".";
+import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, QuestionFormValues } from ".";
 import Input from "../Form/Input";
-import Select from "../Form/Select";
 
 export function QuestionForm({
   useFormReturn,
@@ -31,19 +23,6 @@ export function QuestionForm({
             {...register("market", {
               required: "This field is required.",
             })}
-            className="w-full"
-            useFormReturn={useFormReturn}
-          />
-        </div>
-
-        <div>
-          <div className="text-[24px] font-semibold mb-[32px]">Category</div>
-          <Select
-            autoComplete="off"
-            {...register("category", {
-              required: "This field is required.",
-            })}
-            options={MARKET_CATEGORIES}
             className="w-full"
             useFormReturn={useFormReturn}
           />
