@@ -4,7 +4,7 @@ import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
-import { useMarket } from "@/hooks/useMarket";
+import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
@@ -27,6 +27,39 @@ function MarketBreadcrumb() {
   );
 }
 
+function SwapWidget({
+  chainId,
+  router,
+  market,
+  account,
+  outcomeIndex,
+}: { chainId: SupportedChain; router: Address; market: Market; account?: Address; outcomeIndex: number }) {
+  const { data: wrappedAddresses = [] } = useWrappedAddresses(
+    chainId,
+    router,
+    market?.conditionId,
+    market?.outcomes?.length,
+  );
+
+  const outcomeToken = {
+    address: wrappedAddresses[outcomeIndex],
+    decimals: 18,
+    symbol: "SEER_OUTCOME", // it's not used
+  };
+
+  const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+
+  return (
+    <SwapTokens
+      account={account}
+      chainId={chainId}
+      outcomeText={market.outcomes[outcomeIndex]}
+      outcomeToken={outcomeToken}
+      hasEnoughLiquidity={odds[outcomeIndex] > 0}
+    />
+  );
+}
+
 function MarketPage() {
   const { address: account } = useAccount();
 
@@ -41,20 +74,6 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
-
-  const { data: wrappedAddresses = [] } = useWrappedAddresses(
-    chainId,
-    router,
-    market?.conditionId,
-    market?.outcomes?.length,
-  );
-
-  const { data: odds = [] } = useMarketOdds(
-    chainId,
-    router,
-    market?.conditionId ?? "0x",
-    market?.outcomes?.length ?? 0,
-  );
 
   if (isMarketError) {
     return (
@@ -76,12 +95,6 @@ function MarketPage() {
 
   const tradeCallback = (poolIndex: number) => {
     setOutcomeIndex(poolIndex);
-  };
-
-  const outcomeToken = {
-    address: wrappedAddresses[outcomeIndex],
-    decimals: 18,
-    symbol: "SEER_OUTCOME", // it's not used
   };
 
   return (
@@ -109,12 +122,12 @@ function MarketPage() {
             )}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">
-            <SwapTokens
-              account={account}
+            <SwapWidget
               chainId={chainId}
-              outcomeText={market.outcomes[outcomeIndex]}
-              outcomeToken={outcomeToken}
-              hasEnoughLiquidity={odds[outcomeIndex] > 0}
+              router={router}
+              market={market}
+              account={account}
+              outcomeIndex={outcomeIndex}
             />
 
             <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />
