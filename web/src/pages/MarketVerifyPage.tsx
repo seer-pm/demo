@@ -124,7 +124,7 @@ function MarkeVerifyPage() {
       )}
 
       <Modal
-        title="Market Verified!"
+        title="Submitted for verification!"
         content={
           <div className="text-black-secondary text-center">
             <ModalContentSucessMessage isVerified={true} chainId={chainId} />
