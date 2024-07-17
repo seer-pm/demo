@@ -1,3 +1,4 @@
+import { localTimeToUtc } from "@/lib/utils";
 import { FormProvider } from "react-hook-form";
 import { ButtonsWrapper, DateFormValues, FormStepProps, FormWithNextStep, FormWithPrevStep } from ".";
 import Input from "../Form/Input";
@@ -25,7 +26,7 @@ export function DateForm({
             {...register("openingTime", {
               required: "This field is required.",
               validate: (v) => {
-                return (v && new Date(v) > new Date()) || "End date must be in the future";
+                return (v && localTimeToUtc(v) > new Date()) || "End date must be in the future";
               },
             })}
             type="datetime-local"

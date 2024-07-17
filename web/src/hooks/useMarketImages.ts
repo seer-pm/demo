@@ -3,12 +3,15 @@ import { curateGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
+import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { Status, getSdk } from "./queries/generated";
 
 export const useMarketImages = (marketId: Address, chainId: SupportedChain, registered = true) => {
+  const { address: currentUserAddress } = useAccount();
+
   return useQuery<{ market: string; outcomes: string[] }, Error>({
-    queryKey: ["useMarketImages", marketId, chainId],
+    queryKey: ["useMarketImages", marketId, chainId, currentUserAddress],
     queryFn: async () => {
       const client = curateGraphQLClient(chainId);
 
@@ -16,14 +19,19 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain, regi
       const registryAddress = lightGeneralizedTcrAddress[chainId];
 
       if (client && !isUndefined(registryAddress)) {
-        const { litems } = await getSdk(client).GetImages({
+        let { litems } = await getSdk(client).GetImages({
           where: {
-            status: registered ? Status.Registered : undefined,
+            // status: registered ? Status.Registered : undefined,
             registryAddress,
             key0_contains_nocase: marketId,
           },
         });
-
+        litems = litems.filter((item) => {
+          if (item.latestRequester && item.latestRequester.toLowerCase() === currentUserAddress?.toLowerCase()) {
+            return true;
+          }
+          return registered ? item.status === Status.Registered : true;
+        });
         if (litems.length === 0) {
           throw new Error("Market images not found");
         }

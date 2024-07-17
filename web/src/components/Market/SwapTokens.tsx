@@ -25,6 +25,7 @@ interface SwapTokensProps {
   chainId: SupportedChain;
   outcomeText: string;
   outcomeToken: Token;
+  hasEnoughLiquidity?: boolean;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, useWrappedToken: boolean): Token {
@@ -45,7 +46,13 @@ function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
-}: { account?: Address; trade: Trade; swapType: "buy" | "sell"; isDisabled: boolean; isLoading: boolean }) {
+}: {
+  account?: Address;
+  trade: Trade;
+  swapType: "buy" | "sell";
+  isDisabled: boolean;
+  isLoading: boolean;
+}) {
   const missingApprovals = useMissingTradeApproval(account!, trade);
 
   if (!missingApprovals) {
@@ -80,7 +87,7 @@ function SwapButtons({
   );
 }
 
-export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: SwapTokensProps) {
+export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEnoughLiquidity }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
@@ -205,7 +212,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken }: Swap
         {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
       </div>
 
-      {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
+      {(quoteIsError || !hasEnoughLiquidity) && <Alert type="error">Not enough liquidity</Alert>}
 
       <div className="flex justify-between">
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
