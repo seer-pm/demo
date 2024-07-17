@@ -37,7 +37,7 @@ interface MarketHeaderProps {
 
 export const STATUS_TEXTS: Record<MarketStatus, string> = {
   [MarketStatus.NOT_OPEN]: "Reports not open yet",
-  [MarketStatus.OPEN]: "Market open",
+  [MarketStatus.OPEN]: "Reports open",
   [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",
   [MarketStatus.IN_DISPUTE]: "In Dispute",
   [MarketStatus.PENDING_EXECUTION]: "Pending execution",
