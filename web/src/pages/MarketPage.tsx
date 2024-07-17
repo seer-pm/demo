@@ -6,6 +6,7 @@ import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
+import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SupportedChain } from "@/lib/chains";
@@ -38,14 +39,22 @@ function MarketPage() {
   const router = getRouterAddress(chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
-  const { data: images } = useMarketImages(id as Address, chainId);
+  const { data, error } = useMarketImages(id as Address, chainId);
+  const images = error ? undefined : data;
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
     router,
     market?.conditionId,
-    market?.outcomes.length,
+    market?.outcomes?.length,
+  );
+
+  const { data: odds = [] } = useMarketOdds(
+    chainId,
+    router,
+    market?.conditionId ?? "0x",
+    market?.outcomes?.length ?? 0,
   );
 
   if (isMarketError) {
@@ -106,6 +115,7 @@ function MarketPage() {
               chainId={chainId}
               outcomeText={market.outcomes[outcomeIndex]}
               outcomeToken={outcomeToken}
+              isEnoughLiquidity={odds[outcomeIndex] > 0}
             />
 
             <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />

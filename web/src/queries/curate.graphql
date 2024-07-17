@@ -13,5 +13,6 @@ query GetImages(
         registryAddress
         key0
         data
+        latestRequester
   }
 }

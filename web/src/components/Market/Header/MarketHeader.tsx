@@ -37,7 +37,7 @@ interface MarketHeaderProps {
 
 export const STATUS_TEXTS: Record<MarketStatus, string> = {
   [MarketStatus.NOT_OPEN]: "Reports not open yet",
-  [MarketStatus.OPEN]: "Market open",
+  [MarketStatus.OPEN]: "Reports open",
   [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",
   [MarketStatus.IN_DISPUTE]: "In Dispute",
   [MarketStatus.PENDING_EXECUTION]: "Pending execution",
@@ -58,7 +58,12 @@ export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
   [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
 };
 
-export type ColorConfig = { border: string; bg: string; text: string; dot: string };
+export type ColorConfig = {
+  border: string;
+  bg: string;
+  text: string;
+  dot: string;
+};
 export const COLORS: Record<MarketStatus, ColorConfig> = {
   [MarketStatus.NOT_OPEN]: {
     border: "border-t-[#25cdfe]",
@@ -104,7 +109,13 @@ function OutcomesInfo({
   outcomesCount = 0,
   images = [],
   marketType,
-}: { market: Market; chainId: SupportedChain; outcomesCount?: number; images?: string[]; marketType: MarketTypes }) {
+}: {
+  market: Market;
+  chainId: SupportedChain;
+  outcomesCount?: number;
+  images?: string[];
+  marketType: MarketTypes;
+}) {
   const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
