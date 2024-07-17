@@ -148,7 +148,7 @@ function getModalTitle(newMarketId: Address | "", verifyNow: boolean, verifyMark
     return "Success!<br />Market Created!";
   }
 
-  return verifyMarketIsPending ? "Create Market" : "Success!<br />Market Created and Verified!";
+  return verifyMarketIsPending ? "Create Market" : "Success!<br />Market Created and Submitted for verification!";
 }
 
 export function ModalContentSucessMessage({ isVerified, chainId }: { isVerified: boolean; chainId: SupportedChain }) {
