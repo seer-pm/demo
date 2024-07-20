@@ -144,7 +144,38 @@ export default function Header() {
           </li>
         </ul>
       </nav>
+      <BetaWarning />
     </header>
+  );
+}
+
+function BetaWarning() {
+  const [betaWarningClosed, setBetaWarningClosed] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("beta-warning-closed") === "1") {
+      setBetaWarningClosed(true);
+    }
+  }, []);
+
+  if (betaWarningClosed) {
+    return null;
+  }
+
+  const closeWarning = () => {
+    window.localStorage.setItem("beta-warning-closed", "1");
+    setBetaWarningClosed(true);
+  };
+
+  return (
+    <div className="bg-warning-light text-warning-primary text-[14px] text-center py-[10px] px-[30px] font-medium border-b-[2px] border-t-[2px] border-warning-primary relative">
+      <div>Note that this is a Beta version and can still be unstable</div>
+      <div className="font-bold text-[14px] absolute top-0 right-[20px] w-[10px] h-full flex items-center">
+        <span className="cursor-pointer" onClick={closeWarning}>
+          x
+        </span>
+      </div>
+    </div>
   );
 }
 
