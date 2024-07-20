@@ -3,7 +3,7 @@ import { join, parse } from "path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
 import { readFile, readdir } from "fs/promises";
-import { Chain, mainnet } from "wagmi/chains";
+import { Chain } from "wagmi/chains";
 
 const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
   const results: Record<string, ContractConfig> = {};
@@ -46,11 +46,6 @@ const getConfig = async (): Promise<Config> => {
   });
 
   const { SUPPORTED_CHAINS } = await import("./src/lib/chains");
-
-  if (!SUPPORTED_CHAINS[mainnet.id]) {
-    // we need it to have access to the RealitioForeignArbitrationProxy
-    SUPPORTED_CHAINS[mainnet.id] = mainnet;
-  }
 
   return {
     out: "src/hooks/contracts/generated.ts",

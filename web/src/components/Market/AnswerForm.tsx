@@ -1,5 +1,6 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
+import { useReadRealitioForeignArbitrationProxyWithAppealsArbitrationRequests } from "@/hooks/contracts/generated";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
@@ -20,7 +21,7 @@ import { displayBalance } from "@/lib/utils";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
-import { hexToNumber, parseEther } from "viem";
+import { hexToNumber, parseEther, zeroAddress } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -83,6 +84,10 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const currentBond = getCurrentBond(question.bond, question.min_bond);
   const hasEnoughBalance = balance.value > currentBond;
 
+  const { data: arbitrationRequest } = useReadRealitioForeignArbitrationProxyWithAppealsArbitrationRequests({
+    args: [BigInt(question.id), address || zeroAddress],
+  });
+
   const useFormReturn = useForm<AnswerFormValues>({
     mode: "all",
     defaultValues: {
@@ -114,7 +119,6 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       currentBond: currentBond,
       chainId: chainId! as SupportedChain,
     });
-
     closeModal();
   };
 
@@ -122,7 +126,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     return (
       <>
         <Alert type="error">Connect your wallet to submit an answer.</Alert>
-        <div className="space-x-[24px] text-center">
+        <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button variant="primary" type="button" onClick={async () => open({ view: "Connect" })} text="Connect" />
         </div>
@@ -130,25 +134,44 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     );
   }
 
-  if (question.is_pending_arbitration) {
-    return <Alert type="info">This question is in arbitration process.</Alert>;
+  if (question.is_pending_arbitration || arbitrationRequest?.[0] === 1) {
+    return (
+      <>
+        <Alert type="info">This question is in arbitration process.</Alert>
+        <div className="text-center mt-[24px]">
+          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        </div>
+      </>
+    );
   }
 
   if (marketStatus === MarketStatus.NOT_OPEN) {
-    return <Alert type="info">This market is not open yet.</Alert>;
+    return (
+      <>
+        <Alert type="info">This market is not open yet.</Alert>
+        <div className="text-center mt-[24px]">
+          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        </div>
+      </>
+    );
   }
 
   if (marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.CLOSED) {
     return (
-      <div className="text-black-secondary text-[16px] space-y-[15px] text-center">
-        <div>This market is already resolved.</div>
-        <div>
-          Final answer:{" "}
-          <span className="text-purple-primary font-semibold">
-            {getAnswerText(question, market.outcomes, market.templateId)}
-          </span>
+      <>
+        <div className="text-black-secondary text-[16px] space-y-[15px] text-center">
+          <div>This market is already resolved.</div>
+          <div>
+            Final answer:{" "}
+            <span className="text-purple-primary font-semibold">
+              {getAnswerText(question, market.outcomes, market.templateId)}
+            </span>
+          </div>
         </div>
-      </div>
+        <div className="text-center mt-[24px]">
+          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        </div>
+      </>
     );
   }
 

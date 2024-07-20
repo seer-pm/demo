@@ -1,6 +1,5 @@
 import { GraphQLClient } from "graphql-request";
-import { gnosis } from "viem/chains";
-import { SupportedChain } from "./chains";
+import { SupportedChain, gnosis } from "./chains";
 
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]:

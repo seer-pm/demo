@@ -27,7 +27,7 @@
     "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#fork-with-postinstall",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
-    "@web3modal/wagmi": "^4.1.7",
+    "@web3modal/wagmi": "^5.0.7",
     "clsx": "^2.1.0",
     "date-fns": "^3.0.0",
     "date-fns-tz": "^3.1.3",
@@ -44,9 +44,9 @@
     "react-hook-form": "^7.49.3",
     "react-toastify": "^10.0.4",
     "valibot": "^0.31.1",
-    "viem": "2.0.0",
+    "viem": "2.17.5",
     "vite-plugin-checker": "^0.6.4",
-    "wagmi": "2.2.1",
+    "wagmi": "2.11.2",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

@@ -1,17 +1,17 @@
 import { ArbitratorAbi } from "@/abi/ArbitratorAbi";
+import { mainnet } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { mainnet } from "viem/chains";
 import {
-  readRealitioForeignArbitrationProxyArbitrator,
-  readRealitioForeignArbitrationProxyArbitratorExtraData,
+  readRealitioForeignArbitrationProxyWithAppealsArbitrator,
+  readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData,
 } from "./contracts/generated";
 
 async function getArbitrationCost(): Promise<bigint> {
   const [arbitrator, arbitratorExtraData] = await Promise.all([
-    await readRealitioForeignArbitrationProxyArbitrator(config, { chainId: mainnet.id }),
-    await readRealitioForeignArbitrationProxyArbitratorExtraData(config, { chainId: mainnet.id }),
+    await readRealitioForeignArbitrationProxyWithAppealsArbitrator(config, { chainId: mainnet.id }),
+    await readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData(config, { chainId: mainnet.id }),
   ]);
 
   return await readContract(config, {

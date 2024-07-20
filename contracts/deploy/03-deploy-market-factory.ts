@@ -13,7 +13,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const market = await deployments.get("Market");
-  const realitioArbitrator = await deployments.get("RealitioArbitrator");
+  const realitioArbitrator = await deployments.get("RealitioHomeArbitrationProxy");
   const reality = await deployments.get("Reality");
   const wrappedERC20Factory = await deployments.get("WrappedERC20Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");

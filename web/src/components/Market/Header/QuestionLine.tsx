@@ -1,3 +1,4 @@
+import { useArbitrationDisputeId } from "@/hooks/useArbitrationDisputeId";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
@@ -62,11 +63,16 @@ function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questio
   );
 }
 
-function DisputeLink() {
-  // TODO: add link to dispute
+function DisputeLink({ questionId }: { questionId: `0x${string}` }) {
+  const { data: disputeId } = useArbitrationDisputeId(questionId);
+
+  if (!disputeId) {
+    return null;
+  }
+
   return (
     <div className="flex items-center space-x-2">
-      <a className="text-purple-primary" href={paths.klerosDispute()} target="_blank" rel="noreferrer">
+      <a className="text-purple-primary" href={paths.klerosDispute(disputeId)} target="_blank" rel="noreferrer">
         Check the case on Kleros Court
       </a>
       <RightArrow />
@@ -182,7 +188,7 @@ export function QuestionLine({
           <RealityLink chainId={chainId} questionId={market.questionId} />
         </div>
         <div className="text-black-medium">|</div>
-        <DisputeLink />
+        <DisputeLink questionId={question.id} />
       </div>
     );
   }

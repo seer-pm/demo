@@ -2,8 +2,8 @@ import * as generatedHooks from "@/hooks/contracts/generated";
 // to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
 const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 import { Address, parseUnits } from "viem";
-import { gnosis, hardhat, mainnet, sepolia } from "viem/chains";
-import { DEFAULT_CHAIN, SupportedChain } from "./chains";
+import { hardhat, sepolia } from "viem/chains";
+import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
 
