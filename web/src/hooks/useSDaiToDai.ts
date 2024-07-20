@@ -1,10 +1,9 @@
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
-import { gnosis, mainnet } from "wagmi/chains";
 
 const SDAI_ADDRESSES: Record<number, Address> = {
   [mainnet.id]: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",

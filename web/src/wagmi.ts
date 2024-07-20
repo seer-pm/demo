@@ -1,9 +1,9 @@
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
 import { http } from "wagmi";
-import { Chain, gnosis, hardhat, mainnet, sepolia } from "wagmi/chains";
+import { Chain, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
-import { SUPPORTED_CHAINS } from "./lib/chains";
+import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 
 const metadata = {
   name: "Seer",

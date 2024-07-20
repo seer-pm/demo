@@ -115,7 +115,7 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
 
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash,
-      confirmations: 2,
+      confirmations: import.meta.env.VITE_TX_CONFIRMATIONS || 2,
     });
 
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });

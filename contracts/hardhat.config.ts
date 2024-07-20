@@ -68,7 +68,7 @@ const config: HardhatUserConfig = {
     },
     gnosis: {
       chainId: 100,
-      url: "https://rpc.gnosischain.com",
+      url: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
