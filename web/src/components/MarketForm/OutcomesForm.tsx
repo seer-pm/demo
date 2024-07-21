@@ -18,6 +18,15 @@ interface OutcomeFieldsProps {
 function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
 
+  useEffect(() => {
+    if (!showCustomToken) {
+      useFormReturn.setValue(`outcomes.${outcomeIndex}.token`, "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [showCustomToken]);
+
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
@@ -63,15 +72,7 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
         <div
           className="text-purple-primary text-[12px] cursor-pointer mb-[5px]"
           onClick={() => {
-            const _showCustomToken = !showCustomToken;
-            setShowCustomToken(_showCustomToken);
-
-            if (!_showCustomToken) {
-              useFormReturn.setValue(`outcomes.${outcomeIndex}.token`, "", {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-            }
+            setShowCustomToken(!showCustomToken);
           }}
         >
           {showCustomToken ? "Use default token name" : "Set custom token name"}
