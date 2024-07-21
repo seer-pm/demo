@@ -108,12 +108,13 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
         </div>
         <Input
           autoComplete="off"
-          type="text"
+          type="number"
+          min="0"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,
             validate: (v) => {
-              if (Number.isNaN(Number(v)) || Number(v) <= 0) {
+              if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";
               }
 
@@ -137,7 +138,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
             <Button
               variant="primary"
               type="submit"
-              disabled={!isValid || mergePositions.isPending || !account}
+              disabled={!isValid || parsedAmount === 0n || mergePositions.isPending || !account}
               isLoading={mergePositions.isPending}
               text="Merge"
             />

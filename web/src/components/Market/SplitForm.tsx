@@ -101,12 +101,13 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
         </div>
         <Input
           autoComplete="off"
-          type="text"
+          type="number"
+          min="0"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,
             validate: (v) => {
-              if (Number.isNaN(Number(v)) || Number(v) <= 0) {
+              if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";
               }
 
@@ -126,24 +127,21 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
 
       {missingApprovals && (
         <div>
-          {missingApprovals.length === 0 && (
+          {missingApprovals.length === 0 || !isValid ? (
             <Button
               variant="primary"
               type="submit"
-              disabled={!isValid || splitPosition.isPending || !account}
+              disabled={!isValid || parsedAmount === 0n || splitPosition.isPending || !account}
               isLoading={splitPosition.isPending}
               text="Mint"
             />
-          )}
-          {missingApprovals.length > 0 && (
-            <div className="space-y-[8px]">
-              <ApproveButton
-                tokenAddress={missingApprovals[0].address}
-                tokenName={missingApprovals[0].name}
-                spender={missingApprovals[0].spender}
-                amount={parsedAmount}
-              />
-            </div>
+          ) : (
+            <ApproveButton
+              tokenAddress={missingApprovals[0].address}
+              tokenName={missingApprovals[0].name}
+              spender={missingApprovals[0].spender}
+              amount={parsedAmount}
+            />
           )}
         </div>
       )}

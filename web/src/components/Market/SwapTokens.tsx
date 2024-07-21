@@ -201,11 +201,12 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
           </div>
           <Input
             autoComplete="off"
-            type="text"
+            type="number"
+            min="0"
             {...register("amount", {
               required: "This field is required.",
               validate: (v) => {
-                if (Number.isNaN(Number(v)) || Number(v) <= 0) {
+                if (Number.isNaN(Number(v)) || Number(v) < 0) {
                   return "Amount must be greater than 0.";
                 }
 
