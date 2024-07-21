@@ -35,13 +35,19 @@ interface MarketHeaderProps {
   verificationStatusResult?: VerificationStatusResult;
 }
 
-export const STATUS_TEXTS: Record<MarketStatus, string> = {
-  [MarketStatus.NOT_OPEN]: "Reports not open yet",
-  [MarketStatus.OPEN]: "Reports open",
-  [MarketStatus.ANSWER_NOT_FINAL]: "Waiting for answer",
-  [MarketStatus.IN_DISPUTE]: "In Dispute",
-  [MarketStatus.PENDING_EXECUTION]: "Pending execution",
-  [MarketStatus.CLOSED]: "Closed",
+export const STATUS_TEXTS: Record<MarketStatus, (hasLiquidity?: boolean) => string> = {
+  [MarketStatus.NOT_OPEN]: (hasLiquidity?: boolean) => {
+    if (isUndefined(hasLiquidity)) {
+      return "Reports not open yet";
+    }
+
+    return hasLiquidity ? "Trading Open" : "Liquidity Required";
+  },
+  [MarketStatus.OPEN]: () => "Reports open",
+  [MarketStatus.ANSWER_NOT_FINAL]: () => "Waiting for answer",
+  [MarketStatus.IN_DISPUTE]: () => "In Dispute",
+  [MarketStatus.PENDING_EXECUTION]: () => "Pending execution",
+  [MarketStatus.CLOSED]: () => "Closed",
 };
 
 export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
@@ -175,6 +181,16 @@ export function MarketHeader({
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
+  const router = getRouterAddress(chainId);
+  const { data: odds = [], isPending: isPendingOdds } = useMarketOdds(
+    chainId,
+    router,
+    market.conditionId,
+    market.outcomes.length,
+  );
+
+  const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
+
   return (
     <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
       <div
@@ -187,7 +203,7 @@ export function MarketHeader({
       >
         <div className="flex items-center space-x-2">
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
-          {marketStatus && <div>{STATUS_TEXTS[marketStatus]}</div>}
+          {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
         </div>
         <div>{market.index && `#${market.index}`}</div>
       </div>
