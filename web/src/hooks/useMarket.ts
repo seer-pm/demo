@@ -1,4 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -32,17 +33,27 @@ export interface Market {
   index?: number;
 }
 
-export function mapOnChainMarket(market: Awaited<ReturnType<typeof readMarketViewGetMarket>>) {
-  return {
-    ...market,
-    questions: market.questions.map(
+export function mapOnChainMarket(onChainMarket: Awaited<ReturnType<typeof readMarketViewGetMarket>>): Market {
+  const market: Market = {
+    ...onChainMarket,
+    questions: onChainMarket.questions.map(
       (question, i) =>
         ({
-          id: market.questionsIds[i],
+          id: onChainMarket.questionsIds[i],
           ...question,
         }) as Question,
     ),
   };
+
+  if (getMarketType(market) === MarketTypes.SCALAR) {
+    const outcomes: string[] = market.outcomes.slice();
+    outcomes[0] = `DOWN [${Number(market.lowerBound)},${Number(market.upperBound)}]`;
+    outcomes[1] = `UP [${Number(market.lowerBound)},${Number(market.upperBound)}]`;
+
+    market.outcomes = outcomes;
+  }
+
+  return market;
 }
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
