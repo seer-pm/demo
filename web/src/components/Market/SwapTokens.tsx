@@ -5,6 +5,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
@@ -149,91 +150,107 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
         <div className="text-[16px]">{outcomeText}</div>
       </div>
 
-      <div role="tablist" className="tabs tabs-bordered">
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${swapType === "buy" && "tab-active"}`}
-          onClick={tabClick("buy")}
-        >
-          Buy
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${swapType === "sell" && "tab-active"}`}
-          onClick={tabClick("sell")}
-        >
-          Sell
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
-          <div
-            className="text-purple-primary cursor-pointer"
-            onClick={() => {
-              setValue("amount", formatUnits(balance, sellToken.decimals), {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-            }}
+      {hasEnoughLiquidity === false && (
+        <Alert type="warning">
+          This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
+          <a
+            href={`https://v3.swapr.eth.limo/#/add/${outcomeToken.address}/${COLLATERAL_TOKENS[chainId].primary.address}/enter-amounts`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-primary"
           >
-            Max
-          </div>
+            provide liquidity.
+          </a>
+        </Alert>
+      )}
+
+      <div className={clsx("space-y-5", hasEnoughLiquidity === false && "grayscale pointer-events-none")}>
+        <div role="tablist" className="tabs tabs-bordered">
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${swapType === "buy" && "tab-active"}`}
+            onClick={tabClick("buy")}
+          >
+            Buy
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${swapType === "sell" && "tab-active"}`}
+            onClick={tabClick("sell")}
+          >
+            Sell
+          </button>
         </div>
-        <Input
-          autoComplete="off"
-          type="text"
-          {...register("amount", {
-            required: "This field is required.",
-            validate: (v) => {
-              if (Number.isNaN(Number(v)) || Number(v) <= 0) {
-                return "Amount must be greater than 0.";
-              }
 
-              const val = parseUnits(v, sellToken.decimals);
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
+            <div
+              className="text-purple-primary cursor-pointer"
+              onClick={() => {
+                setValue("amount", formatUnits(balance, sellToken.decimals), {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }}
+            >
+              Max
+            </div>
+          </div>
+          <Input
+            autoComplete="off"
+            type="text"
+            {...register("amount", {
+              required: "This field is required.",
+              validate: (v) => {
+                if (Number.isNaN(Number(v)) || Number(v) <= 0) {
+                  return "Amount must be greater than 0.";
+                }
 
-              if (val > balance) {
-                return "Not enough balance.";
-              }
+                const val = parseUnits(v, sellToken.decimals);
 
-              return true;
-            },
-          })}
-          className="w-full"
-          useFormReturn={useFormReturn}
-        />
+                if (val > balance) {
+                  return "Not enough balance.";
+                }
+
+                return true;
+              },
+            })}
+            className="w-full"
+            useFormReturn={useFormReturn}
+          />
+        </div>
+
+        <div className="flex space-x-2 text-purple-primary">
+          {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
+          {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
+        </div>
+
+        {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
+
+        <div className="flex justify-between">
+          <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
+          <div className="text-[12px] text-[#999999]">Max slippage: 0.1%</div>
+        </div>
+
+        {quoteData?.trade ? (
+          <SwapButtons
+            account={account}
+            trade={quoteData.trade}
+            swapType={swapType}
+            isDisabled={
+              isUndefined(quoteData?.value) || quoteData?.value === 0n || !account || !isValid || tradeTokens.isPending
+            }
+            isLoading={
+              tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
+            }
+          />
+        ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
+          <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
+        ) : null}
       </div>
-
-      <div className="flex space-x-2 text-purple-primary">
-        {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-        {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
-      </div>
-
-      {(quoteIsError || !hasEnoughLiquidity) && <Alert type="error">Not enough liquidity</Alert>}
-
-      <div className="flex justify-between">
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
-        <div className="text-[12px] text-[#999999]">Max slippage: 0.1%</div>
-      </div>
-
-      {quoteData?.trade ? (
-        <SwapButtons
-          account={account}
-          trade={quoteData.trade}
-          swapType={swapType}
-          isDisabled={
-            isUndefined(quoteData?.value) || quoteData?.value === 0n || !account || !isValid || tradeTokens.isPending
-          }
-          isLoading={
-            tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
-          }
-        />
-      ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
-        <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
-      ) : null}
     </form>
   );
 }

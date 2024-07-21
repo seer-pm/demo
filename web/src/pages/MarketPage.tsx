@@ -47,7 +47,7 @@ function SwapWidget({
     symbol: "SEER_OUTCOME", // it's not used
   };
 
-  const { data: odds = [] } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+  const { data: odds = [], isPending } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
 
   return (
     <SwapTokens
@@ -55,7 +55,7 @@ function SwapWidget({
       chainId={chainId}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
-      hasEnoughLiquidity={odds[outcomeIndex] > 0}
+      hasEnoughLiquidity={isPending ? undefined : odds[outcomeIndex] > 0}
     />
   );
 }
