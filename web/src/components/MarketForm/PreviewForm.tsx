@@ -8,7 +8,7 @@ import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Address, TransactionReceipt } from "viem";
@@ -344,6 +344,11 @@ export function PreviewForm({
     }
   };
 
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    openModal();
+  };
+
   const dummyMarket: Market = {
     id: "0x000",
     marketName: questionValues.market,
@@ -382,7 +387,7 @@ export function PreviewForm({
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
 
   return (
-    <form onSubmit={openModal} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5">
       {(createMarket.isError || verifyMarket.isError) && (
         <Alert type="error" className="mb-5">
           There was an error while submitting the transaction.
