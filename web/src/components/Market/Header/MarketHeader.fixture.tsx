@@ -1,5 +1,6 @@
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
+import { gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
 import { MarketHeader } from "./MarketHeader";
 
@@ -131,14 +132,14 @@ export default Object.fromEntries(
   FIXTURE.map((f) => [
     f[0],
     <div className="space-y-5">
-      <MarketHeader market={getMarket(f[1])} chainId={100} />
+      <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} />
       <div className="max-w-[500px] mx-auto">
-        <MarketHeader market={getMarket(f[1])} chainId={100} isPreview={true} />
+        <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} isPreview={true} />
       </div>
 
-      <MarketHeader market={getMarket(f[1], true)} chainId={100} />
+      <MarketHeader market={getMarket(f[1], true)} chainId={gnosis.id} />
       <div className="max-w-[500px] mx-auto">
-        <MarketHeader market={getMarket(f[1], true)} chainId={100} isPreview={true} />
+        <MarketHeader market={getMarket(f[1], true)} chainId={gnosis.id} isPreview={true} />
       </div>
     </div>,
   ]),

@@ -1,8 +1,9 @@
 import Button from "@/components/Form/Button";
+import { realitioHomeArbitrationProxyAddress } from "@/hooks/contracts/generated";
 import { useArbitrationCost } from "@/hooks/useArbitrationCost";
 import { Question } from "@/hooks/useMarket";
 import { useRaiseDispute } from "@/hooks/useRaiseDispute";
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { getCurrentBond } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -25,7 +26,6 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationCost } = useArbitrationCost();
-
   const raiseDispute = useRaiseDispute((/*receipt: TransactionReceipt*/) => {});
 
   const onRaiseDispute = async () => {
@@ -44,8 +44,7 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   };
 
   const switchToMainnet = async () => await switchChain(config, { chainId: mainnet.id });
-
-  if (question.arbitrator !== "0x2F0895732bfacdCF2fdB19962fE609D0dA695F21") {
+  if (question.arbitrator !== realitioHomeArbitrationProxyAddress[gnosis.id]) {
     // disallow disputes for other arbitrators
     // TODO: remove this block of code once a new MarketFactory is deployed with the correct arbitrator
     return (
