@@ -383,4 +383,53 @@ contract MarketFactoryTest is BaseTest {
         vm.expectRevert(bytes("Invalid outcomes count"));
         getMultiScalarMarket(MIN_BOND, 1);
     }
+
+    function test_encodedQuestions() public {
+        Vm.Log[] memory entries;
+
+        // categorical market
+        vm.recordLogs();
+        getCategoricalMarket(MIN_BOND, 2);
+        entries = vm.getRecordedLogs();
+
+        assertEq(
+            getEncodedQuestion(entries, 0),
+            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1"␟technology␟en_US'
+        );
+
+        // multi categorical market
+        vm.recordLogs();
+        getMultiCategoricalMarket(MIN_BOND, 3);
+        entries = vm.getRecordedLogs();
+
+        assertEq(
+            getEncodedQuestion(entries, 0),
+            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1","OUTCOME_2"␟misc␟en_US'
+        );
+
+        // scalar market
+        vm.recordLogs();
+        getScalarMarket(MIN_BOND, 2);
+        entries = vm.getRecordedLogs();
+
+        assertEq(
+            getEncodedQuestion(entries, 0),
+            unicode"What will be ETH price on Feb 29, 2024?␟misc␟en_US"
+        );
+
+        // multi scalar market
+        vm.recordLogs();
+        getMultiScalarMarket(MIN_BOND, 2);
+        entries = vm.getRecordedLogs();
+
+        assertEq(
+            getEncodedQuestion(entries, 0),
+            unicode"How many votes will OUTCOME_0 get?␟misc␟en_US"
+        );
+
+        assertEq(
+            getEncodedQuestion(entries, 1),
+            unicode"How many votes will OUTCOME_1 get?␟misc␟en_US"
+        );
+    }
 }

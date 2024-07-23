@@ -38,8 +38,12 @@ export const ANSWERED_TOO_SOON =
 export const REALITY_SINGLE_SELECT_TEMPLATE = 2;
 
 export const categoricalMarketParams = {
-  marketName: "Test Categorical Market",
-  encodedQuestions: ["Will it rain tomorrow?"],
+  marketName: "Will it rain tomorrow?",
+  encodedQuestions: ['Will it rain tomorrow?␟"Yes","No"␟misc␟en_US'],
+  questionStart: "",
+  questionFinish: "",
+  category: "misc",
+  lang: "en_US",
   outcomes: ["Yes", "No"],
   lowerBound: 0,
   upperBound: 0,
@@ -49,8 +53,12 @@ export const categoricalMarketParams = {
 };
 
 export const multiCategoricalMarketParams = {
-  marketName: "Test Multi-Categorical Market",
-  encodedQuestions: ["Which color will win?"],
+  marketName: "Which color will win?",
+  encodedQuestions: ['Which color will win?␟"Red","Blue","Green"␟misc␟en_US'],
+  questionStart: "",
+  questionFinish: "",
+  category: "misc",
+  lang: "en_US",
   outcomes: ["Red", "Blue", "Green"],
   lowerBound: 0,
   upperBound: 0,
@@ -60,8 +68,12 @@ export const multiCategoricalMarketParams = {
 };
 
 export const scalarMarketParams = {
-  marketName: "Test Scalar Market",
-  encodedQuestions: ["What will the temperature be tomorrow?"],
+  marketName: "What will the temperature be tomorrow?",
+  encodedQuestions: ['What will the temperature be tomorrow?␟misc␟en_US'],
+  questionStart: "",
+  questionFinish: "",
+  category: "misc",
+  lang: "en_US",
   outcomes: ["Lower", "Higher"],
   lowerBound: 20,
   upperBound: 100,
@@ -73,9 +85,13 @@ export const scalarMarketParams = {
 export const multiScalarMarketParams = {
   marketName: "Test Multi-Scalar Market",
   encodedQuestions: [
-    "What will the temperature be in New York?",
-    "What will the temperature be in London?",
+    'What will the temperature be in New York ?␟misc␟en_US',
+    'What will the temperature be in London ?␟misc␟en_US',
   ],
+  questionStart: "What will the temperature be in",
+  questionFinish: "?",
+  category: "misc",
+  lang: "en_US",
   outcomes: ["New York", "London"],
   lowerBound: 0,
   upperBound: 0,

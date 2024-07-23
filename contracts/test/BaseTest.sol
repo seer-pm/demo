@@ -95,16 +95,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no"␟technology␟en_US';
+        string memory questionStart;
+        string memory questionFinish;
 
         Market market = Market(
             marketFactory.createCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
+                    questionStart: questionStart,
+                    questionFinish: questionFinish,
+                    category: "technology",
+                    lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
                     minBond: minBond,
@@ -127,16 +128,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"yes","no","maybe"␟technology␟en_US';
+        string memory questionStart;
+        string memory questionFinish;
 
         Market market = Market(
             marketFactory.createMultiCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
+                    questionStart: questionStart,
+                    questionFinish: questionFinish,
+                    category: "misc",
+                    lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
                     minBond: minBond,
@@ -159,16 +161,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[
-            0
-        ] = unicode'What will be ETH price on Feb 29, 2024?␟"2500","3500"␟technology␟en_US';
+        string memory questionStart;
+        string memory questionFinish;
 
         Market market = Market(
             marketFactory.createScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "What will be ETH price on Feb 29, 2024?",
-                    encodedQuestions: encodedQuestions,
+                    questionStart: questionStart,
+                    questionFinish: questionFinish,
+                    category: "misc",
+                    lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
                     minBond: minBond,
@@ -191,20 +194,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
-        string[] memory encodedQuestions = new string[](numOutcomes);
-        for (uint256 i = 0; i < numOutcomes; i++) {
-            encodedQuestions[i] = string.concat(
-                unicode"How many votes will Vitalik_",
-                i.toString(),
-                unicode" get?␟technology␟en_US"
-            );
-        }
+        string memory questionStart = "How many votes will";
+        string memory questionFinish = "get?";
 
         Market market = Market(
             marketFactory.createMultiScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Ethereum President Elections",
-                    encodedQuestions: encodedQuestions,
+                    questionStart: questionStart,
+                    questionFinish: questionFinish,
+                    category: "misc",
+                    lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
                     minBond: minBond,
@@ -316,7 +316,8 @@ contract BaseTest is Test {
         );
 
         // calculate xDAI => sDAI conversion rate
-        uint256 splitAmountInSDai = ISavingsXDai(collateralToken).convertToShares(splitAmount);
+        uint256 splitAmountInSDai = ISavingsXDai(collateralToken)
+            .convertToShares(splitAmount);
         assertOutcomesBalances(
             msg.sender,
             market.conditionId(),
@@ -337,7 +338,7 @@ contract BaseTest is Test {
             partition,
             amountToMerge
         );
-        
+
         // amountToMerge is understood as sDai, not xDai
         uint256 amountToRedeemInSDai = splitAmountInSDai - amountToMerge;
 
@@ -380,5 +381,34 @@ contract BaseTest is Test {
         }
 
         return partition;
+    }
+
+    function getEncodedQuestion(
+        Vm.Log[] memory entries,
+        uint256 index
+    ) public view returns (string memory) {
+        uint256 tmpIndex = 0;
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (
+                entries[i].topics[0] ==
+                keccak256(
+                    "LogNewQuestion(bytes32,address,uint256,string,bytes32,address,uint32,uint32,uint256,uint256)"
+                )
+            ) {
+                if (index != tmpIndex) {
+                    tmpIndex++;
+                    continue;
+                }
+
+                (, string memory question, , , , , ) = abi.decode(
+                    entries[i].data,
+                    (uint256, string, address, uint32, uint32, uint256, uint256)
+                );
+
+                return question;
+            }
+        }
+
+        revert("Question not found");
     }
 }
