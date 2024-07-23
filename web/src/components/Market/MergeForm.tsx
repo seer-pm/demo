@@ -110,6 +110,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
           autoComplete="off"
           type="number"
           min="0"
+          step="any"
           {...register("amount", {
             required: "This field is required.",
             valueAsNumber: true,

@@ -203,6 +203,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
             autoComplete="off"
             type="number"
             min="0"
+            step="any"
             {...register("amount", {
               required: "This field is required.",
               validate: (v) => {

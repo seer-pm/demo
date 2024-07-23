@@ -173,8 +173,8 @@ export function OutcomesForm({
                   <Input
                     autoComplete="off"
                     type="number"
-                    step="any"
                     min="0"
+                    step="any"
                     {...register("lowerBound", {
                       required: "This field is required.",
                       valueAsNumber: true,
