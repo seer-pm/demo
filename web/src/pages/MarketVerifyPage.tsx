@@ -12,6 +12,7 @@ import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -24,7 +25,7 @@ function MarkeVerifyPage() {
   const id = params.id as Address;
   const chainId = Number(params.chainId) as SupportedChain;
   const navigate = useNavigate();
-  const { chain } = useAccount();
+  const { chain, address: currentUserAddress } = useAccount();
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
   const { data: submissionDeposit } = useSubmissionDeposit();
@@ -128,7 +129,14 @@ function MarkeVerifyPage() {
             <ModalContentSucessMessage isVerified={true} chainId={chainId} />
 
             <div className="space-x-[12px]">
-              <Button type="button" text="Go to Market" onClick={() => navigate(paths.market(id, chainId))} />
+              <Button
+                type="button"
+                text="Go to Market"
+                onClick={() => {
+                  navigate(paths.market(id, chainId));
+                  queryClient.invalidateQueries({ queryKey: ["useMarketImages", id, chainId, currentUserAddress] });
+                }}
+              />
             </div>
           </div>
         }

@@ -33,7 +33,15 @@ function SwapWidget({
   market,
   account,
   outcomeIndex,
-}: { chainId: SupportedChain; router: Address; market: Market; account?: Address; outcomeIndex: number }) {
+  images,
+}: {
+  chainId: SupportedChain;
+  router: Address;
+  market: Market;
+  account?: Address;
+  outcomeIndex: number;
+  images?: string[];
+}) {
   const { data: wrappedAddresses = [] } = useWrappedAddresses(
     chainId,
     router,
@@ -48,13 +56,14 @@ function SwapWidget({
   };
 
   const { data: odds = [], isPending } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
-
   return (
     <SwapTokens
       account={account}
       chainId={chainId}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
+      outcomeImage={images?.[outcomeIndex]}
+      isInvalidResult={outcomeIndex === wrappedAddresses.length - 1}
       hasEnoughLiquidity={isPending ? undefined : odds[outcomeIndex] > 0}
     />
   );
@@ -128,6 +137,7 @@ function MarketPage() {
               market={market}
               account={account}
               outcomeIndex={outcomeIndex}
+              images={images?.outcomes}
             />
 
             <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />

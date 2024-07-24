@@ -17,6 +17,7 @@ import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { useModal } from "../Modal";
 import AltCollateralSwitch from "./AltCollateralSwitch";
+import { OutcomeImage } from "./OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 
 interface SwapFormValues {
@@ -31,6 +32,8 @@ interface SwapTokensProps {
   outcomeText: string;
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
+  outcomeImage?: string;
+  isInvalidResult: boolean;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, useWrappedToken: boolean): Token {
@@ -92,7 +95,15 @@ function SwapButtons({
   );
 }
 
-export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEnoughLiquidity }: SwapTokensProps) {
+export function SwapTokens({
+  account,
+  chainId,
+  outcomeText,
+  outcomeToken,
+  hasEnoughLiquidity,
+  outcomeImage,
+  isInvalidResult,
+}: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
 
@@ -178,7 +189,7 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
       />
       <div className="flex items-center space-x-[12px]">
         <div>
-          <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
+          <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />
         </div>
         <div className="text-[16px]">{outcomeText}</div>
       </div>
