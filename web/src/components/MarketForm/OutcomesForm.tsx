@@ -92,17 +92,21 @@ export function OutcomesForm({
     fields: outcomesFields,
     append: appendOutcome,
     remove: removeOutcome,
+    prepend: prependOutcome,
   } = useFieldArray({ control, name: "outcomes" });
 
   useEffect(() => {
     if (outcomesFields.length === 0) {
-      addOutcome();
-      addOutcome();
+      addToStartOutcome();
+      addToStartOutcome();
     }
   }, []);
 
   const addOutcome = () => {
     return appendOutcome({ value: "", token: "", image: "" });
+  };
+  const addToStartOutcome = () => {
+    return prependOutcome({ value: "", token: "", image: "" });
   };
 
   const marketHasOutcomes = hasOutcomes(marketType);

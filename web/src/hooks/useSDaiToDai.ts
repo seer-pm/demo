@@ -18,6 +18,13 @@ const SDAI_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [{ internalType: "uint256", name: "assets", type: "uint256" }],
+    name: "previewWithdraw",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 export const useSDaiToDai = (sDaiAmount: bigint, chainId: SupportedChain) => {
@@ -35,6 +42,26 @@ export const useSDaiToDai = (sDaiAmount: bigint, chainId: SupportedChain) => {
       }
 
       return sDaiAmount;
+    },
+  });
+};
+
+export const useDaiToSDai = (DaiAmount: bigint, chainId: SupportedChain, enabled = true) => {
+  return useQuery<bigint | undefined, Error>({
+    enabled,
+    queryKey: ["useDaiToSDai", DaiAmount.toString(), chainId],
+    queryFn: async () => {
+      if (!isUndefined(SDAI_ADDRESSES[chainId!])) {
+        return readContract(config, {
+          address: SDAI_ADDRESSES[chainId!],
+          abi: SDAI_ABI,
+          functionName: "previewWithdraw",
+          args: [DaiAmount],
+          chainId: chainId,
+        });
+      }
+
+      return DaiAmount;
     },
   });
 };

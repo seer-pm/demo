@@ -19,7 +19,7 @@ import { gnosis } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 
-interface QuoteTradeResult {
+export interface QuoteTradeResult {
   value: bigint;
   decimals: number;
   buyToken: Address;

@@ -1,4 +1,6 @@
 import { useMissingTradeApproval, useQuoteTrade, useTrade } from "@/hooks/trade";
+import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { useDaiToSDai } from "@/hooks/useSDaiToDai";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
@@ -13,7 +15,9 @@ import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
+import { useModal } from "../Modal";
 import AltCollateralSwitch from "./AltCollateralSwitch";
+import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -112,7 +116,11 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
   } = useFormReturn;
 
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
-
+  const {
+    Modal: ConfirmSwapModel,
+    openModal: openConfirmSwapModel,
+    closeModal: closeConfirmSwapModel,
+  } = useModal("confirm-swap-modal");
   const useWrappedToken = true;
 
   const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, useWrappedToken);
@@ -132,17 +140,42 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
 
   const tradeTokens = useTrade(async () => {
     reset();
+    closeConfirmSwapModel();
   });
 
-  const onSubmit = async (_values: SwapFormValues) => {
+  const onSubmit = async () => {
     await tradeTokens.mutateAsync({
       trade: quoteData?.trade!,
       account: account!,
     });
   };
 
+  const { data: sDaiAmount } = useDaiToSDai(
+    parseUnits(amount, selectedCollateral.decimals),
+    chainId,
+    selectedCollateral.symbol !== "sDAI",
+  );
+  const tradeInfo = useGetTradeInfo(quoteData?.trade);
+  const shares = quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0;
+  const sDaiPerShare =
+    selectedCollateral.symbol === "sDAI"
+      ? Number(amount) / Number(shares)
+      : Number(formatUnits(sDaiAmount ?? 0n, selectedCollateral.decimals)) / Number(shares);
+  const isPriceTooHigh = Number(shares) > 0 && sDaiPerShare > 1 && swapType === "buy";
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-white p-[24px] drop-shadow">
+    <form onSubmit={handleSubmit(openConfirmSwapModel)} className="space-y-5 bg-white p-[24px] drop-shadow">
+      <ConfirmSwapModel
+        title="Confirm Swap"
+        content={
+          <SwapTokensConfirmation
+            trade={quoteData?.trade}
+            closeConfirmSwapModel={closeConfirmSwapModel}
+            isLoading={tradeTokens.isPending}
+            onSubmit={onSubmit}
+          />
+        }
+      />
       <div className="flex items-center space-x-[12px]">
         <div>
           <div className="w-[48px] h-[48px] rounded-full bg-purple-primary"></div>
@@ -202,8 +235,8 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
           <Input
             autoComplete="off"
             type="number"
-            min="0"
             step="any"
+            min="0"
             {...register("amount", {
               required: "This field is required.",
               validate: (v) => {
@@ -226,15 +259,14 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
         </div>
 
         <div className="flex space-x-2 text-purple-primary">
-          {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-          {quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0}
+          {swapType === "buy" ? "Expected shares" : "Expected amount"} = {shares}
         </div>
-
+        {isPriceTooHigh && <Alert type="error">Orders cannot be placed for shares priced higher than 1</Alert>}
         {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
         <div className="flex justify-between">
           <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
-          <div className="text-[12px] text-[#999999]">Max slippage: 0.1%</div>
+          <div className="text-[12px] text-[#999999]">Max slippage: {tradeInfo?.maximumSlippage ?? 0}%</div>
         </div>
 
         {quoteData?.trade ? (
@@ -243,7 +275,12 @@ export function SwapTokens({ account, chainId, outcomeText, outcomeToken, hasEno
             trade={quoteData.trade}
             swapType={swapType}
             isDisabled={
-              isUndefined(quoteData?.value) || quoteData?.value === 0n || !account || !isValid || tradeTokens.isPending
+              isUndefined(quoteData?.value) ||
+              quoteData?.value === 0n ||
+              !account ||
+              !isValid ||
+              tradeTokens.isPending ||
+              isPriceTooHigh
             }
             isLoading={
               tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
