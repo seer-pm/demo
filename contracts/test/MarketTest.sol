@@ -424,12 +424,12 @@ contract MarketFactoryTest is BaseTest {
 
         assertEq(
             getEncodedQuestion(entries, 0),
-            unicode"How many votes will OUTCOME_0 get?␟misc␟en_US"
+            unicode'For the market \\"How many votes will each candidate get?\\", what will be the value for \\"OUTCOME_0\\"?␟misc␟en_US'
         );
 
         assertEq(
             getEncodedQuestion(entries, 1),
-            unicode"How many votes will OUTCOME_1 get?␟misc␟en_US"
+            unicode'For the market \\"How many votes will each candidate get?\\", what will be the value for \\"OUTCOME_1\\"?␟misc␟en_US'
         );
     }
 }

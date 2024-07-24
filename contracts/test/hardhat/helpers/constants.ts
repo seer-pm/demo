@@ -40,8 +40,6 @@ export const REALITY_SINGLE_SELECT_TEMPLATE = 2;
 export const categoricalMarketParams = {
   marketName: "Will it rain tomorrow?",
   encodedQuestions: ['Will it rain tomorrow?␟"Yes","No"␟misc␟en_US'],
-  questionStart: "",
-  questionFinish: "",
   category: "misc",
   lang: "en_US",
   outcomes: ["Yes", "No"],
@@ -55,8 +53,6 @@ export const categoricalMarketParams = {
 export const multiCategoricalMarketParams = {
   marketName: "Which color will win?",
   encodedQuestions: ['Which color will win?␟"Red","Blue","Green"␟misc␟en_US'],
-  questionStart: "",
-  questionFinish: "",
   category: "misc",
   lang: "en_US",
   outcomes: ["Red", "Blue", "Green"],
@@ -70,8 +66,6 @@ export const multiCategoricalMarketParams = {
 export const scalarMarketParams = {
   marketName: "What will the temperature be tomorrow?",
   encodedQuestions: ['What will the temperature be tomorrow?␟misc␟en_US'],
-  questionStart: "",
-  questionFinish: "",
   category: "misc",
   lang: "en_US",
   outcomes: ["Lower", "Higher"],
@@ -83,13 +77,11 @@ export const scalarMarketParams = {
 };
 
 export const multiScalarMarketParams = {
-  marketName: "Test Multi-Scalar Market",
+  marketName: "What will be the hottest city?",
   encodedQuestions: [
-    'What will the temperature be in New York ?␟misc␟en_US',
-    'What will the temperature be in London ?␟misc␟en_US',
+    'For the market \\"What will be the hottest city?\\", what will be the value for \\"New York\\"?␟misc␟en_US',
+    'For the market \\"What will be the hottest city?\\", what will be the value for \\"London\\"?␟misc␟en_US',
   ],
-  questionStart: "What will the temperature be in",
-  questionFinish: "?",
   category: "misc",
   lang: "en_US",
   outcomes: ["New York", "London"],

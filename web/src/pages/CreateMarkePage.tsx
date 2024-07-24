@@ -57,8 +57,6 @@ function CreateMarket() {
     mode: "all",
     defaultValues: {
       outcomes: [],
-      questionStart: "",
-      questionFinish: "",
       lowerBound: 0,
       upperBound: 0,
       unit: "",

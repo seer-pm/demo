@@ -9,8 +9,6 @@ import { writeMarketFactory } from "./contracts/generated";
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
-  questionStart: string;
-  questionFinish: string;
   outcomes: string[];
   tokenNames: string[];
   lowerBound: number;
@@ -63,8 +61,6 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         args: [
           {
             marketName: props.marketName,
-            questionStart: props.questionStart,
-            questionFinish: props.questionFinish,
             lang: "en_US",
             category: "misc",
             outcomes,
