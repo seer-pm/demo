@@ -323,6 +323,8 @@ export function PreviewForm({
       marketName: questionValues.market,
       outcomes: outcomes,
       tokenNames: outcomesValues.outcomes.map((o) => o.token),
+      questionStart: outcomesValues.questionStart,
+      questionFinish: outcomesValues.questionFinish,
       lowerBound: outcomesValues.lowerBound,
       upperBound: outcomesValues.upperBound,
       unit: outcomesValues.unit,

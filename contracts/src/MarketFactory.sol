@@ -22,6 +22,8 @@ contract MarketFactory {
     struct CreateMarketParams {
         string marketName; // The name of the market
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
+        string questionStart; // Used to build the Reality question on multi scalar markets
+        string questionFinish; // Used to build the Reality question on multi scalar markets
         string category; // Reality question category
         string lang; // Reality question language
         uint256 lowerBound; // Lower bound, only used for scalar markets
@@ -266,11 +268,11 @@ contract MarketFactory {
             encodedQuestions[i] = encodeRealityQuestionWithoutOutcomes(
                 string(
                     abi.encodePacked(
-                        'For the market \\"',
-                        params.marketName,
-                        '\\", what will be the value for \\"',
+                        params.questionStart,
+                        " ",
                         params.outcomes[i],
-                        '\\"?'
+                        " ",
+                        params.questionFinish
                     )
                 ),
                 params.category,

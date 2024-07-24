@@ -3,16 +3,27 @@ import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
+import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
+  outcomes: OutcomesFormValues["outcomes"];
+  questionStart: string;
+  questionFinish: string;
   removeOutcome: (i: number) => void;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-function OutcomeFields({ outcomeIndex, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
+function OutcomeFields({
+  outcomeIndex,
+  outcomes,
+  questionStart,
+  questionFinish,
+  removeOutcome,
+  useFormReturn,
+}: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
 
   useEffect(() => {
@@ -35,6 +46,12 @@ function OutcomeFields({ outcomeIndex, removeOutcome, useFormReturn }: OutcomeFi
           })}
           className="w-full"
           useFormReturn={useFormReturn}
+          helpText={
+            questionStart &&
+            questionFinish &&
+            outcomes[outcomeIndex].value &&
+            `Outcome question: ${questionStart} ${outcomes[outcomeIndex].value} ${questionFinish}`
+          }
         />
 
         <div className="absolute inset-y-2 right-2">
@@ -111,13 +128,54 @@ export function OutcomesForm({
 
   const marketHasOutcomes = hasOutcomes(marketType);
 
-  const [lowerBound] = watch(["lowerBound"]);
+  const [lowerBound, questionStart, questionFinish, outcomes] = watch([
+    "lowerBound",
+    "questionStart",
+    "questionFinish",
+    "outcomes",
+  ]);
 
   return (
     <FormProvider {...useFormReturn}>
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-5">
         <div className="space-y-[32px]">
           <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
+
+          {marketType === MarketTypes.MULTI_SCALAR && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
+              <div className="space-y-2">
+                <div className="text-[14px] mb-[10px]">Question start</div>
+                <Input
+                  autoComplete="off"
+                  {...register("questionStart", {
+                    required: "This field is required.",
+                  })}
+                  className="w-full"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="text-[14px] mb-[10px]">Question finish</div>
+                <Input
+                  autoComplete="off"
+                  {...register("questionFinish", {
+                    required: "This field is required.",
+                  })}
+                  className="w-full"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              <div className="col-span-2">
+                <Alert type="info">
+                  <div className="space-y-[5px]">
+                    <p>Each outcome question will be formed by combining the following strings:</p>
+                    <p className="font-medium">[QUESTION_START] [OUTCOME] [QUESTION_FINISH]</p>
+                    <p>You can review the resulting question for each outcome below.</p>
+                  </div>
+                </Alert>
+              </div>
+            </div>
+          )}
 
           {marketHasOutcomes && (
             <>
@@ -130,6 +188,9 @@ export function OutcomesForm({
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
                         useFormReturn={useFormReturn}
+                        questionStart={questionStart}
+                        questionFinish={questionFinish}
+                        outcomes={outcomes}
                       />
                     );
                   })}

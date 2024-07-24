@@ -52,6 +52,8 @@ export type QuestionFormValues = {
 
 export type OutcomesFormValues = {
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
+  questionStart: string; // for multi scalar markets
+  questionFinish: string; // for multi scalar markets
   lowerBound: number; // for scalar markets
   upperBound: number; // for scalar markets
   unit: string; // for scalar markets
