@@ -1,21 +1,29 @@
-import { OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
+import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
   outcomes: OutcomesFormValues["outcomes"];
-  outcomesQuestion: string;
+  questionStart: string;
+  questionFinish: string;
   removeOutcome: (i: number) => void;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
+function OutcomeFields({
+  outcomeIndex,
+  outcomes,
+  questionStart,
+  questionFinish,
+  removeOutcome,
+  useFormReturn,
+}: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
 
   useEffect(() => {
@@ -39,9 +47,10 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
           className="w-full"
           useFormReturn={useFormReturn}
           helpText={
-            outcomesQuestion &&
+            questionStart &&
+            questionFinish &&
             outcomes[outcomeIndex].value &&
-            `Outcome question: ${outcomesQuestion.replace(OUTCOME_PLACEHOLDER, outcomes[outcomeIndex].value)}`
+            `Outcome question: ${questionStart} ${outcomes[outcomeIndex].value} ${questionFinish}`
           }
         />
 
@@ -115,7 +124,12 @@ export function OutcomesForm({
 
   const marketHasOutcomes = hasOutcomes(marketType);
 
-  const [lowerBound, outcomesQuestion, outcomes] = watch(["lowerBound", "outcomesQuestion", "outcomes"]);
+  const [lowerBound, questionStart, questionFinish, outcomes] = watch([
+    "lowerBound",
+    "questionStart",
+    "questionFinish",
+    "outcomes",
+  ]);
 
   return (
     <FormProvider {...useFormReturn}>
@@ -124,17 +138,38 @@ export function OutcomesForm({
           <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
 
           {marketType === MarketTypes.MULTI_SCALAR && (
-            <div className="space-y-2">
-              <div className="text-[14px] mb-[10px]">Outcomes question template</div>
-              <Input
-                autoComplete="off"
-                {...register("outcomesQuestion", {
-                  required: "This field is required.",
-                })}
-                className="w-full md:w-2/3"
-                useFormReturn={useFormReturn}
-                helpText={`Each outcome will have their own question. Use ${OUTCOME_PLACEHOLDER} to replace the outcome value in the question.`}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
+              <div className="space-y-2">
+                <div className="text-[14px] mb-[10px]">Question start</div>
+                <Input
+                  autoComplete="off"
+                  {...register("questionStart", {
+                    required: "This field is required.",
+                  })}
+                  className="w-full"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="text-[14px] mb-[10px]">Question finish</div>
+                <Input
+                  autoComplete="off"
+                  {...register("questionFinish", {
+                    required: "This field is required.",
+                  })}
+                  className="w-full"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              <div className="col-span-2">
+                <Alert type="info">
+                  <div className="space-y-[5px]">
+                    <p>Each outcome question will be formed by combining the following strings:</p>
+                    <p className="font-medium">[QUESTION_START] [OUTCOME] [QUESTION_FINISH]</p>
+                    <p>You can review the resulting question for each outcome below.</p>
+                  </div>
+                </Alert>
+              </div>
             </div>
           )}
 
@@ -149,7 +184,8 @@ export function OutcomesForm({
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
                         useFormReturn={useFormReturn}
-                        outcomesQuestion={outcomesQuestion}
+                        questionStart={questionStart}
+                        questionFinish={questionFinish}
                         outcomes={outcomes}
                       />
                     );

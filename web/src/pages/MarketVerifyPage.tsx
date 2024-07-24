@@ -46,7 +46,8 @@ function MarkeVerifyPage() {
     mode: "all",
     defaultValues: {
       outcomes: [],
-      outcomesQuestion: "",
+      questionStart: "",
+      questionFinish: "",
       lowerBound: 0,
       upperBound: 0,
       unit: "",
