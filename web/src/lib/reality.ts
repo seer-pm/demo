@@ -17,27 +17,6 @@ export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string;
 
-function encodeOutcomes(outcomes: string[] | null) {
-  return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
-}
-
-export function encodeQuestionText(
-  qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
-  txt: string,
-  outcomes: string[] | null,
-  category: string,
-  lang?: string,
-): string {
-  let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
-  const delim = "\u241f";
-
-  if (qtype === "single-select" || qtype === "multiple-select") {
-    qText = qText + delim + encodeOutcomes(outcomes);
-  }
-  qText = qText + delim + category + delim + (lang || "en_US");
-  return qText;
-}
-
 export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeValue[] | ""): Hex {
   if (outcome === "") {
     throw Error("Invalid outcome");

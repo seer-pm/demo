@@ -1,4 +1,3 @@
-import { OUTCOME_PLACEHOLDER } from "@/hooks/useCreateMarket";
 import { PlusIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { useEffect, useState } from "react";
@@ -9,13 +8,11 @@ import Input from "../Form/Input";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
-  outcomes: OutcomesFormValues["outcomes"];
-  outcomesQuestion: string;
   removeOutcome: (i: number) => void;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
+function OutcomeFields({ outcomeIndex, removeOutcome, useFormReturn }: OutcomeFieldsProps) {
   const [showCustomToken, setShowCustomToken] = useState(false);
 
   useEffect(() => {
@@ -38,11 +35,6 @@ function OutcomeFields({ outcomeIndex, outcomes, outcomesQuestion, removeOutcome
           })}
           className="w-full"
           useFormReturn={useFormReturn}
-          helpText={
-            outcomesQuestion &&
-            outcomes[outcomeIndex].value &&
-            `Outcome question: ${outcomesQuestion.replace(OUTCOME_PLACEHOLDER, outcomes[outcomeIndex].value)}`
-          }
         />
 
         <div className="absolute inset-y-2 right-2">
@@ -115,28 +107,13 @@ export function OutcomesForm({
 
   const marketHasOutcomes = hasOutcomes(marketType);
 
-  const [lowerBound, outcomesQuestion, outcomes] = watch(["lowerBound", "outcomesQuestion", "outcomes"]);
+  const [lowerBound] = watch(["lowerBound"]);
 
   return (
     <FormProvider {...useFormReturn}>
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-5">
         <div className="space-y-[32px]">
           <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
-
-          {marketType === MarketTypes.MULTI_SCALAR && (
-            <div className="space-y-2">
-              <div className="text-[14px] mb-[10px]">Outcomes question template</div>
-              <Input
-                autoComplete="off"
-                {...register("outcomesQuestion", {
-                  required: "This field is required.",
-                })}
-                className="w-full md:w-2/3"
-                useFormReturn={useFormReturn}
-                helpText={`Each outcome will have their own question. Use ${OUTCOME_PLACEHOLDER} to replace the outcome value in the question.`}
-              />
-            </div>
-          )}
 
           {marketHasOutcomes && (
             <>
@@ -149,8 +126,6 @@ export function OutcomesForm({
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
                         useFormReturn={useFormReturn}
-                        outcomesQuestion={outcomesQuestion}
-                        outcomes={outcomes}
                       />
                     );
                   })}

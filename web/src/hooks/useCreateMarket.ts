@@ -1,6 +1,5 @@
 import { getConfigNumber } from "@/lib/config";
 import { MarketTypes } from "@/lib/market";
-import { encodeQuestionText } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -12,7 +11,6 @@ interface CreateMarketProps {
   marketName: string;
   outcomes: string[];
   tokenNames: string[];
-  outcomesQuestion: string;
   lowerBound: number;
   upperBound: number;
   unit: string;
@@ -20,8 +18,6 @@ interface CreateMarketProps {
   openingTime: number;
   chainId?: number;
 }
-
-export const OUTCOME_PLACEHOLDER = "[PLACEHOLDER]";
 
 const MarketTypeFunction: Record<
   string,
@@ -32,31 +28,6 @@ const MarketTypeFunction: Record<
   [MarketTypes.MULTI_CATEGORICAL]: "createMultiCategoricalMarket",
   [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
 } as const;
-
-function getEncodedQuestions(props: CreateMarketProps): string[] {
-  if (props.marketType === MarketTypes.CATEGORICAL) {
-    return [encodeQuestionText("single-select", props.marketName, props.outcomes, props.category, "en_US")];
-  }
-
-  if (props.marketType === MarketTypes.MULTI_CATEGORICAL) {
-    return [encodeQuestionText("multiple-select", props.marketName, props.outcomes, props.category, "en_US")];
-  }
-
-  if (props.marketType === MarketTypes.MULTI_SCALAR) {
-    return props.outcomes.map((outcome) => {
-      return encodeQuestionText(
-        "uint",
-        props.outcomesQuestion.replace(OUTCOME_PLACEHOLDER, outcome),
-        null,
-        props.category,
-        "en_US",
-      );
-    });
-  }
-
-  // MarketTypes.SCALAR
-  return [encodeQuestionText("uint", `${props.marketName} [${props.unit}]`, null, props.category, "en_US")];
-}
 
 export function getOutcomes(
   outcomes: string[],
@@ -90,7 +61,8 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         args: [
           {
             marketName: props.marketName,
-            encodedQuestions: getEncodedQuestions(props),
+            lang: "en_US",
+            category: "misc",
             outcomes,
             tokenNames: getTokenNames(props.tokenNames, outcomes),
             lowerBound: BigInt(props.lowerBound),

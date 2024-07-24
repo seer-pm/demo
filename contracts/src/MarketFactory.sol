@@ -21,8 +21,9 @@ contract MarketFactory {
     // Workaround "stack too deep" errors
     struct CreateMarketParams {
         string marketName; // The name of the market
-        string[] encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
+        string category; // Reality question category
+        string lang; // Reality question language
         uint256 lowerBound; // Lower bound, only used for scalar markets
         uint256 upperBound; // Upper bound, only user for scalar markets
         uint256 minBond; // Min bond to use on Reality
@@ -39,9 +40,9 @@ contract MarketFactory {
         uint256 templateId; // Reality templateId
     }
 
-    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets
-    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
-    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
+    uint8 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets
+    uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
+    uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
 
     uint32 public questionTimeout; // Reality question timeout
 
@@ -129,8 +130,16 @@ contract MarketFactory {
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
+        string[] memory encodedQuestions = new string[](1);
+        encodedQuestions[0] = encodeRealityQuestionWithOutcomes(
+            params.marketName,
+            params.outcomes,
+            params.category,
+            params.lang
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
-            params.encodedQuestions[0],
+            encodedQuestions[0],
             REALITY_SINGLE_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
@@ -142,6 +151,7 @@ contract MarketFactory {
 
         address marketId = createMarket(
             params,
+            encodedQuestions,
             InternalMarketConfig({
                 questionId: questionId,
                 questionsIds: questionsIds,
@@ -161,8 +171,16 @@ contract MarketFactory {
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
+        string[] memory encodedQuestions = new string[](1);
+        encodedQuestions[0] = encodeRealityQuestionWithOutcomes(
+            params.marketName,
+            params.outcomes,
+            params.category,
+            params.lang
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
-            params.encodedQuestions[0],
+            encodedQuestions[0],
             REALITY_MULTI_SELECT_TEMPLATE,
             params.openingTime,
             params.minBond,
@@ -174,6 +192,7 @@ contract MarketFactory {
 
         address marketId = createMarket(
             params,
+            encodedQuestions,
             InternalMarketConfig({
                 questionId: questionId,
                 questionsIds: questionsIds,
@@ -199,8 +218,15 @@ contract MarketFactory {
 
         uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
 
+        string[] memory encodedQuestions = new string[](1);
+        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(
+            params.marketName,
+            params.category,
+            params.lang
+        );
+
         (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
-            params.encodedQuestions[0],
+            encodedQuestions[0],
             REALITY_UINT_TEMPLATE,
             params.openingTime,
             params.minBond,
@@ -212,6 +238,7 @@ contract MarketFactory {
 
         address marketId = createMarket(
             params,
+            encodedQuestions,
             InternalMarketConfig({
                 questionId: questionId,
                 questionsIds: questionsIds,
@@ -228,18 +255,30 @@ contract MarketFactory {
         CreateMarketParams calldata params
     ) external returns (address) {
         require(params.outcomes.length >= 2, "Invalid outcomes count");
-        require(
-            params.outcomes.length == params.encodedQuestions.length,
-            "Length mismatch"
-        );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
         bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
 
+        string[] memory encodedQuestions = new string[](params.outcomes.length);
+
         for (uint256 i = 0; i < params.outcomes.length; i++) {
+            encodedQuestions[i] = encodeRealityQuestionWithoutOutcomes(
+                string(
+                    abi.encodePacked(
+                        'For the market \\"',
+                        params.marketName,
+                        '\\", what will be the value for \\"',
+                        params.outcomes[i],
+                        '\\"?'
+                    )
+                ),
+                params.category,
+                params.lang
+            );
+
             questionsIds[i] = askRealityQuestion(
-                params.encodedQuestions[i],
+                encodedQuestions[i],
                 REALITY_UINT_TEMPLATE,
                 params.openingTime,
                 params.minBond
@@ -251,6 +290,7 @@ contract MarketFactory {
 
         address marketId = createMarket(
             params,
+            encodedQuestions,
             InternalMarketConfig({
                 questionId: questionId,
                 questionsIds: questionsIds,
@@ -282,6 +322,7 @@ contract MarketFactory {
 
     function createMarket(
         CreateMarketParams memory params,
+        string[] memory encodedQuestions,
         InternalMarketConfig memory config
     ) internal returns (address) {
         Market instance = Market(market.clone());
@@ -300,7 +341,7 @@ contract MarketFactory {
             config.questionId,
             config.questionsIds,
             config.templateId,
-            params.encodedQuestions,
+            encodedQuestions,
             realityProxy
         );
 
@@ -314,11 +355,57 @@ contract MarketFactory {
             config.questionId,
             config.questionsIds,
             config.templateId,
-            params.encodedQuestions
+            encodedQuestions
         );
         markets.push(address(instance));
 
         return address(instance);
+    }
+
+    function encodeRealityQuestionWithOutcomes(
+        string memory question,
+        string[] calldata outcomes,
+        string memory category,
+        string memory lang
+    ) internal pure returns (string memory) {
+        bytes memory separator = abi.encodePacked(unicode"\u241f");
+
+        bytes memory encodedOutcomes = abi.encodePacked('"', outcomes[0], '"');
+
+        for (uint256 i = 1; i < outcomes.length; i++) {
+            encodedOutcomes = abi.encodePacked(
+                encodedOutcomes,
+                ',"',
+                outcomes[i],
+                '"'
+            );
+        }
+
+        return
+            string(
+                abi.encodePacked(
+                    question,
+                    separator,
+                    encodedOutcomes,
+                    separator,
+                    category,
+                    separator,
+                    lang
+                )
+            );
+    }
+
+    function encodeRealityQuestionWithoutOutcomes(
+        string memory question,
+        string memory category,
+        string memory lang
+    ) internal pure returns (string memory) {
+        bytes memory separator = abi.encodePacked(unicode"\u241f");
+
+        return
+            string(
+                abi.encodePacked(question, separator, category, separator, lang)
+            );
     }
 
     function askRealityQuestion(
