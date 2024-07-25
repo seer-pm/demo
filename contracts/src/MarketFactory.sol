@@ -1,5 +1,5 @@
 /**
- *  @authors: []
+ *  @authors: [@xyzseer]
  *  @reviewers: [@nvm1410]
  *  @auditors: []
  *  @bounties: []
@@ -51,13 +51,14 @@ contract MarketFactory {
 
     address public immutable arbitrator; // Arbitrator contract
     IRealityETH_v3_0 public immutable realitio; // Reality.eth contract
-    WrappedERC20Factory public immutable wrappedERC20Factory; // 1155 to 20 factory contract
+    WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
     address public immutable collateralToken; // Conditional Tokens collateral token contract
     RealityProxy public realityProxy; // Oracle contract
     address[] public markets; // Markets created by this factory
     address public market; // Market contract
 
+    /// @dev To be emitted when a new market is created
     event NewMarket(
         address indexed market,
         string marketName,
@@ -102,6 +103,8 @@ contract MarketFactory {
         questionTimeout = _questionTimeout;
     }
 
+    /// @dev Creates a Categorical market. Reverts if a market with the same question already exists.
+    /// @notice Categorical markets are associated with a Reality question that has only one answer
     function createCategoricalMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
@@ -145,6 +148,8 @@ contract MarketFactory {
         return marketId;
     }
 
+    /// @dev Creates a Multi Categorical market. Reverts if a market with the same question already exists.
+    /// @notice Multi Categorical markets are associated with a Reality question that has one or more answers
     function createMultiCategoricalMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
@@ -188,6 +193,8 @@ contract MarketFactory {
         return marketId;
     }
 
+    /// @dev Creates a Scalar market. Reverts if a market with the same question already exists.
+    /// @notice Scalar markets are associated with a Reality question that resolves to a numeric value
     function createScalarMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
@@ -236,6 +243,8 @@ contract MarketFactory {
         return marketId;
     }
 
+    /// @dev Creates a Multi Scalar market
+    /// @notice Multi Scalar markets are associated with two or more Reality questions, and each one of them resolves to a numeric value
     function createMultiScalarMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
@@ -293,6 +302,7 @@ contract MarketFactory {
         return marketId;
     }
 
+    /// @dev Creates the Market and deploys the wrapped ERC20 tokens
     function createMarket(
         CreateMarketParams memory params,
         string memory marketName,
@@ -336,6 +346,13 @@ contract MarketFactory {
         return address(instance);
     }
 
+    /// @dev Encodes the question, outcomes, category and language following the Reality structure
+    /// If any parameter has a special character like quotes, it must be properly escaped
+    /// @param question The question text
+    /// @param outcomes[] The question outcomes
+    /// @param category The question category
+    /// @param lang The question language
+    /// @return The encoded question
     function encodeRealityQuestionWithOutcomes(
         string memory question,
         string[] calldata outcomes,
@@ -369,6 +386,12 @@ contract MarketFactory {
             );
     }
 
+    /// @dev Encodes the question, category and language following the Reality structure
+    /// If any parameter has a special character like quotes, it must be properly escaped
+    /// @param question The question text
+    /// @param category The question category
+    /// @param lang The question language
+    /// @return The encoded question
     function encodeRealityQuestionWithoutOutcomes(
         string memory question,
         string memory category,
@@ -382,6 +405,15 @@ contract MarketFactory {
             );
     }
 
+    /// @dev Asks a question on reality.
+    /// Duplicated markets are not allowed, so for Categorical, Multi Categorical, and Scalar markets the same question can be asked only once.
+    /// If the same question is asked again, it will not revert here but on ConditionalTokens.prepareCondition().
+    /// We allow here to share a question between a Scalar and a Multi Scalar market or between Multi Scalar markets with different number of questions.
+    /// @param encodedQuestion The encoded question containing the Reality parameters
+    /// @param templateId The Reality template id
+    /// @param openingTime The question opening time
+    /// @param minBond The question min bond
+    /// @return The question id
     function askRealityQuestion(
         string memory encodedQuestion,
         uint256 templateId,
@@ -405,6 +437,20 @@ contract MarketFactory {
         );
 
         if (realitio.getTimeout(question_id) != 0) {
+            /* This allows to share a question between a scalar and a multi scalar market, or between multi scalar markets.
+             *
+             * Example 1:
+             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
+             * Scalar market with the question: "How many votes will Alice receive?"
+             *
+             * Both markets will use the same question for Alice.
+             *
+             * Example 2:
+             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
+             * Multi Scalar market with three questions: "How many votes will Alice receive?", "How many votes will Bob receive?" and "How many votes will David receive?"
+             *
+             * Both markets will use the same question for Alice and Bob.
+             */
             return question_id;
         }
 
@@ -420,6 +466,9 @@ contract MarketFactory {
             );
     }
 
+    /// @dev Prepares the CTF condition and returns the conditionId
+    /// @param questionId An identifier for the question to be answered by the oracle.
+    /// @param outcomeSlotCount The number of outcome slots which should be used for this condition. Must not exceed 256.
     function prepareCondition(
         bytes32 questionId,
         uint outcomeSlotCount
@@ -438,6 +487,10 @@ contract MarketFactory {
             );
     }
 
+    /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.
+    /// @param conditionId The conditionId
+    /// @param outcomeSlotCount The amount of outcomes
+    /// @param tokenNames The name of each outcome token
     function deployERC20Positions(
         bytes32 conditionId,
         uint256 outcomeSlotCount,
@@ -470,10 +523,14 @@ contract MarketFactory {
         }
     }
 
+    /// @dev Returns all the markets created by this factory
+    /// @return The addresses of the markets
     function allMarkets() external view returns (address[] memory) {
         return markets;
     }
 
+    /// @notice Returns the amount of markets created by this factory
+    /// @return The amount of markets
     function marketCount() external view returns (uint256) {
         return markets.length;
     }

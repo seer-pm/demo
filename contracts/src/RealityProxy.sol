@@ -1,5 +1,5 @@
 /**
- *  @authors: []
+ *  @authors: [@xyzseer]
  *  @reviewers: [@nvm1410]
  *  @auditors: []
  *  @bounties: []
@@ -23,6 +23,9 @@ contract RealityProxy {
     uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
     uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
 
+    /// @dev Constructor
+    /// @param _conditionalTokens Conditional Tokens contract address
+    /// @param _realitio Reality.eth contract address
     constructor(
         IConditionalTokens _conditionalTokens,
         IRealityETH_v3_0 _realitio
@@ -31,6 +34,8 @@ contract RealityProxy {
         realitio = _realitio;
     }
 
+    /// @dev Resolves the specified market
+    /// @param market Market to resolve
     function resolve(Market market) external {
         uint256 templateId = market.templateId();
 
@@ -52,7 +57,8 @@ contract RealityProxy {
         resolveScalarMarket(market);
     }
 
-    // @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes
+    /// @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes
+    /// @param market Market to resolve
     function resolveCategoricalMarket(Market market) internal {
         bytes32 questionId = market.questionId();
         uint256 answer = uint256(realitio.resultForOnceSettled(questionId));
@@ -69,7 +75,8 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    // @dev Resolves to invalid if the answer is invalid or all the results are zero
+    /// @dev Resolves to invalid if the answer is invalid or all the results are zero
+    /// @param market Market to resolve
     function resolveMultiCategoricalMarket(Market market) internal {
         bytes32 questionId = market.questionId();
         uint256 answer = uint256(realitio.resultForOnceSettled(questionId));
@@ -96,7 +103,8 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    // @dev Resolves to invalid if the answer is invalid
+    /// @dev Resolves to invalid if the answer is invalid
+    /// @param market Market to resolve
     function resolveScalarMarket(Market market) internal {
         bytes32 questionId = market.questionId();
         uint256 answer = uint256(realitio.resultForOnceSettled(questionId));
@@ -120,14 +128,20 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    // @dev If any individual result is invalid then the corresponding payout element is set to 0
-    // @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid
+    /// @dev If any individual result is invalid then the corresponding payout element is set to 0
+    /// @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid
+    /// @param market Market to resolve
     function resolveMultiScalarMarket(Market market) internal {
         uint256 numOutcomes = market.numOutcomes();
         uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         bool allZeroesOrInvalid = true;
 
+        /*
+         * We set maxPayout to a sufficiently large number for most possible outcomes that also avoids overflows in the following places:
+         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L89
+         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L242
+         */
         uint256 maxPayout = 2 ** (256 / 2) - 1;
 
         for (uint i = 0; i < numOutcomes; i++) {
