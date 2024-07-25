@@ -383,13 +383,13 @@ contract MarketFactory {
     }
 
     function askRealityQuestion(
-        string memory question,
+        string memory encodedQuestion,
         uint256 templateId,
         uint32 openingTime,
         uint256 minBond
     ) internal returns (bytes32) {
         bytes32 content_hash = keccak256(
-            abi.encodePacked(templateId, openingTime, question)
+            abi.encodePacked(templateId, openingTime, encodedQuestion)
         );
 
         bytes32 question_id = keccak256(
@@ -411,7 +411,7 @@ contract MarketFactory {
         return
             realitio.askQuestionWithMinBond(
                 templateId,
-                question,
+                encodedQuestion,
                 arbitrator,
                 questionTimeout,
                 openingTime,
