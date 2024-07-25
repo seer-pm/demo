@@ -263,7 +263,6 @@ export function PreviewForm({
 
   const createMarketHandler = async () => {
     const questionParts = getQuestionParts(outcomesValues.market, marketTypeValues.marketType);
-
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
@@ -271,7 +270,7 @@ export function PreviewForm({
       tokenNames: outcomesValues.outcomes.map((o) => o.token),
       questionStart: questionParts?.questionStart || "",
       questionEnd: questionParts?.questionEnd || "",
-      outcomeType: questionParts?.outcomeType || "",
+      outcomeType: `[${questionParts?.outcomeType ?? ""}]`,
       lowerBound: outcomesValues.lowerBound,
       upperBound: outcomesValues.upperBound,
       unit: outcomesValues.unit,

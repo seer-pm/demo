@@ -155,7 +155,7 @@ export function OutcomesForm({
                   }
 
                   if (isUndefined(getQuestionParts(v, marketType))) {
-                    return "Invalid question format. The question must contain exactly one pair of brackets [ ] at the start or in the middle of the question.";
+                    return "Invalid question format. The question must include one [outcome type] at the beginning or within the question body.";
                   }
 
                   return true;

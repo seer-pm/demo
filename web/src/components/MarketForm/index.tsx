@@ -41,11 +41,21 @@ export function getQuestionParts(
   // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
   const parts = marketName.split(/\[|\]/);
 
-  if (parts.length !== 3 || !parts[2]?.trim()) {
+  if (parts.length !== 3) {
     return;
   }
 
-  return { questionStart: parts[0], questionEnd: parts[2], outcomeType: parts[1] };
+  // prevent this case ]outcome type[
+  if (marketName.indexOf("[") > marketName.indexOf("]")) {
+    return;
+  }
+
+  const [questionStart, outcomeType, questionEnd] = parts;
+  if (!questionEnd?.trim() || !outcomeType.trim()) {
+    return;
+  }
+
+  return { questionStart, questionEnd, outcomeType };
 }
 
 interface GetImagesReturn {
