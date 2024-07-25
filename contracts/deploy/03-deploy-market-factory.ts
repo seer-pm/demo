@@ -8,7 +8,6 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   // fallback to hardhat node signers on local network
   const namedAccounts = await getNamedAccounts()
   const deployer = namedAccounts.deployer ?? (await hre.viem.getWalletClients())[0].account.address;
-  const governor = namedAccounts.governor ?? (await hre.viem.getWalletClients())[0].account.address;
   const chainId = Number(await getChainId());
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
@@ -30,7 +29,6 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
       conditionalTokens.address,
       collateralToken.address,
       realityProxy.address,
-      governor,
       60 * 60 * 24 * 3.5, // 3.5 days
     ],
     log: true,

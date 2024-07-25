@@ -55,7 +55,6 @@ contract MarketFactory {
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
     address public immutable collateralToken; // Conditional Tokens collateral token contract
     RealityProxy public realityProxy; // Oracle contract
-    address public governor; // Governor of the contract
     address[] public markets; // Markets created by this factory
     address public market; // Market contract
 
@@ -81,7 +80,6 @@ contract MarketFactory {
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
-     *  @param _governor Address of the governor of this contract.
      *  @param _questionTimeout Reality question timeout.
      */
     constructor(
@@ -92,7 +90,6 @@ contract MarketFactory {
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         RealityProxy _realityProxy,
-        address _governor,
         uint32 _questionTimeout
     ) {
         market = _market;
@@ -102,27 +99,6 @@ contract MarketFactory {
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
         realityProxy = _realityProxy;
-        governor = _governor;
-        questionTimeout = _questionTimeout;
-    }
-
-    function changeGovernor(address _governor) external {
-        require(msg.sender == governor, "Not authorized");
-        governor = _governor;
-    }
-
-    function changeMarket(address _market) external {
-        require(msg.sender == governor, "Not authorized");
-        market = _market;
-    }
-
-    function changeRealityProxy(RealityProxy _realityProxy) external {
-        require(msg.sender == governor, "Not authorized");
-        realityProxy = _realityProxy;
-    }
-
-    function changeQuestionTimeout(uint32 _questionTimeout) external {
-        require(msg.sender == governor, "Not authorized");
         questionTimeout = _questionTimeout;
     }
 

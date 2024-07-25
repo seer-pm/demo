@@ -62,7 +62,6 @@ contract BaseTest is Test {
             IConditionalTokens(conditionalTokens),
             collateralToken,
             realityProxy,
-            address(0),
             1.5 days
         );
 

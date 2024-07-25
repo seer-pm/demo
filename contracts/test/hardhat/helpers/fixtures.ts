@@ -34,8 +34,6 @@ export async function marketFactoryDeployFixture(
     await ethers.getContractFactory("Router")
   ).deploy(conditionalTokens, wrappedERC20Factory);
 
-  const [owner] = await ethers.getSigners();
-  const governor = owner.address;
   // Deploy MarketFactory
   const marketFactory = await (
     await ethers.getContractFactory("MarketFactory")
@@ -47,7 +45,6 @@ export async function marketFactoryDeployFixture(
     conditionalTokens,
     await collateralToken.getAddress(),
     realityProxy,
-    governor,
     QUESTION_TIMEOUT
   );
   return {
