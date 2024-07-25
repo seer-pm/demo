@@ -17,6 +17,14 @@ export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string;
 
+export function escapeJson(txt: string) {
+  return JSON.stringify(txt).replace(/^"|"$/g, "");
+}
+
+export function unescapeJson(txt: string) {
+  return txt.replace(/\\"/g, '"');
+}
+
 export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeValue[] | ""): Hex {
   if (outcome === "") {
     throw Error("Invalid outcome");

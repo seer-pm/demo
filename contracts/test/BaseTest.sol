@@ -95,10 +95,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
+        string memory questionStart;
+        string memory questionEnd;
+        string memory outcomeType;
+
         Market market = Market(
             marketFactory.createCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    questionStart: questionStart,
+                    questionEnd: questionEnd,
+                    outcomeType: outcomeType,
                     category: "technology",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -123,10 +130,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
+        string memory questionStart;
+        string memory questionEnd;
+        string memory outcomeType;
+
         Market market = Market(
             marketFactory.createMultiCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    questionStart: questionStart,
+                    questionEnd: questionEnd,
+                    outcomeType: outcomeType,
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -151,10 +165,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
+        string memory questionStart;
+        string memory questionEnd;
+        string memory outcomeType;
+
         Market market = Market(
             marketFactory.createScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "What will be ETH price on Feb 29, 2024?",
+                    questionStart: questionStart,
+                    questionEnd: questionEnd,
+                    outcomeType: outcomeType,
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -179,10 +200,17 @@ contract BaseTest is Test {
             string[] memory tokenNames
         ) = getOutcomesAndTokens(numOutcomes);
 
+        string memory questionStart = "How many votes will ";
+        string memory questionEnd = " get?";
+        string memory outcomeType = "[candidate]";
+
         Market market = Market(
             marketFactory.createMultiScalarMarket(
                 MarketFactory.CreateMarketParams({
-                    marketName: "How many votes will each candidate get?",
+                    marketName: "Ethereum President Elections",
+                    questionStart: questionStart,
+                    questionEnd: questionEnd,
+                    outcomeType: outcomeType,
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,

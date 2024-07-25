@@ -1,7 +1,7 @@
 import { Alert } from "@/components/Alert";
 import Button from "@/components/Form/Button";
-import { OutcomesFormValues, QuestionFormValues } from "@/components/MarketForm";
-import { ModalContentSucessMessage, getImagesForVerification } from "@/components/MarketForm/PreviewForm";
+import { OutcomesFormValues, getImagesForVerification } from "@/components/MarketForm";
+import { ModalContentSucessMessage } from "@/components/MarketForm/PreviewForm";
 import { VerificationForm } from "@/components/MarketForm/VerificationForm";
 import { useModal } from "@/components/Modal";
 import { Spinner } from "@/components/Spinner";
@@ -34,13 +34,6 @@ function MarkeVerifyPage() {
   const verifyMarket = useVerifyMarket(() => {
     setHideForm(true);
     openModal();
-  });
-
-  const useQuestionFormReturn = useForm<QuestionFormValues>({
-    mode: "all",
-    defaultValues: {
-      market: "",
-    },
   });
 
   const useOutcomesFormReturn = useForm<OutcomesFormValues>({
@@ -86,10 +79,9 @@ function MarkeVerifyPage() {
     );
   }
 
-  const questionValues = useQuestionFormReturn.watch();
   const outcomesValues = useOutcomesFormReturn.watch();
 
-  const images = getImagesForVerification(getMarketType(market), questionValues, outcomesValues);
+  const images = getImagesForVerification(getMarketType(market), outcomesValues);
   const marketReadyToVerify = images !== false;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -153,11 +145,7 @@ function MarkeVerifyPage() {
             transparent background, in SVG, or PNG for each field below.
           </div>
 
-          <VerificationForm
-            useQuestionFormReturn={useQuestionFormReturn}
-            useOutcomesFormReturn={useOutcomesFormReturn}
-            showOnlyMissingImages={false}
-          />
+          <VerificationForm useOutcomesFormReturn={useOutcomesFormReturn} showOnlyMissingImages={false} />
 
           {marketReadyToVerify && !isUndefined(submissionDeposit) && (
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">

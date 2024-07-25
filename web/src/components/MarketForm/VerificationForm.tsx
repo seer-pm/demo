@@ -1,5 +1,5 @@
 import { UseFormReturn } from "react-hook-form";
-import { OutcomesFormValues, QuestionFormValues } from ".";
+import { OutcomesFormValues } from ".";
 import { ImageUpload } from "./Images";
 
 interface OutcomeImageProps {
@@ -30,15 +30,13 @@ function OutcomeImage({ outcomeIndex, useFormReturn, showOnlyMissingImages }: Ou
 }
 
 export function VerificationForm({
-  useQuestionFormReturn,
   useOutcomesFormReturn,
   showOnlyMissingImages,
 }: {
-  useQuestionFormReturn: UseFormReturn<QuestionFormValues>;
   useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   showOnlyMissingImages: boolean;
 }) {
-  const marketImage = useQuestionFormReturn.watch("image");
+  const marketImage = useOutcomesFormReturn.watch("image");
   const outcomes = useOutcomesFormReturn.watch("outcomes");
 
   return (
@@ -48,8 +46,8 @@ export function VerificationForm({
           <div className="text-[14px] mb-[10px] text-black-primary">Market</div>
           <ImageUpload
             name="image"
-            setFile={(file) => useQuestionFormReturn.setValue("image", file, { shouldValidate: true })}
-            control={useQuestionFormReturn.control}
+            setFile={(file) => useOutcomesFormReturn.setValue("image", file, { shouldValidate: true })}
+            control={useOutcomesFormReturn.control}
             image={marketImage}
             showInfo={false}
           />

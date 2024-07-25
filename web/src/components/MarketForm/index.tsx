@@ -29,6 +29,71 @@ export function ButtonsWrapper({
   );
 }
 
+export function getQuestionParts(
+  marketName: string,
+  marketType: MarketTypes,
+): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
+  if (marketType !== MarketTypes.MULTI_SCALAR) {
+    return { questionStart: "", questionEnd: "", outcomeType: "" };
+  }
+
+  // splits the question, for example
+  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
+  const parts = marketName.split(/\[|\]/);
+
+  if (parts.length !== 3) {
+    return;
+  }
+
+  return { questionStart: parts[0], questionEnd: parts[2], outcomeType: parts[1] };
+}
+
+interface GetImagesReturn {
+  url: {
+    market: string;
+    outcomes: string[];
+  };
+  file: {
+    market: File;
+    outcomes: File[];
+  };
+}
+
+export function getImagesForVerification(
+  marketType: MarketTypes,
+  outcomesValues: OutcomesFormValues,
+): GetImagesReturn | false {
+  if (!outcomesValues.image) {
+    return false;
+  }
+
+  let outcomesFiles: File[] = [];
+
+  if (marketType === MarketTypes.SCALAR) {
+    // there are no images for outcomes in scalar markets
+  } else {
+    // CATEGORICAL & MULTI_SCALAR
+    const allOutcomesWithImages = outcomesValues.outcomes.every((o) => o.image instanceof File);
+
+    if (!allOutcomesWithImages) {
+      return false;
+    }
+
+    outcomesFiles = outcomesValues.outcomes.map((i) => i.image as File);
+  }
+
+  return {
+    url: {
+      market: URL.createObjectURL(outcomesValues.image),
+      outcomes: outcomesFiles.map((f) => URL.createObjectURL(f)),
+    },
+    file: {
+      market: outcomesValues.image,
+      outcomes: outcomesFiles,
+    },
+  };
+}
+
 export interface FormStepProps<T extends FieldValues> {
   useFormReturn: UseFormReturn<T>;
 }
@@ -45,12 +110,9 @@ export type MarketTypeFormValues = {
   marketType: MarketTypes;
 };
 
-export type QuestionFormValues = {
+export type OutcomesFormValues = {
   market: string;
   image: File;
-};
-
-export type OutcomesFormValues = {
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
   lowerBound: number; // for scalar markets
   upperBound: number; // for scalar markets
