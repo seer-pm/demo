@@ -41,7 +41,7 @@ export function getQuestionParts(
   // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
   const parts = marketName.split(/\[|\]/);
 
-  if (parts.length !== 3) {
+  if (parts.length !== 3 || !parts[2]?.trim()) {
     return;
   }
 

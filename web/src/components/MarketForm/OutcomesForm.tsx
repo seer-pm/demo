@@ -56,8 +56,7 @@ function OutcomeFields({
           className="w-full"
           useFormReturn={useFormReturn}
           helpText={
-            questionStart &&
-            questionEnd &&
+            questionEnd?.trim() &&
             outcomes[outcomeIndex].value &&
             `Outcome question: ${questionStart}${outcomes[outcomeIndex].value}${questionEnd}`
           }
@@ -156,7 +155,7 @@ export function OutcomesForm({
                   }
 
                   if (isUndefined(getQuestionParts(v, marketType))) {
-                    return "Invalid question format. Please add the [outcome type] between brackets.";
+                    return "Invalid question format. The question must contain exactly one pair of brackets [ ] at the start or in the middle of the question.";
                   }
 
                   return true;

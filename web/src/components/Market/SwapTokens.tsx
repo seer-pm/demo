@@ -1,6 +1,6 @@
 import { useMissingTradeApproval, useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
-import { useDaiToSDai } from "@/hooks/useSDaiToDai";
+import { useDaiToSDai, useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
@@ -166,12 +166,15 @@ export function SwapTokens({
     chainId,
     selectedCollateral.symbol !== "sDAI",
   );
+  const { data: daiAmount } = useSDaiToDai(parseUnits("1", selectedCollateral.decimals), chainId);
   const tradeInfo = useGetTradeInfo(quoteData?.trade);
   const shares = quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0;
   const sDaiPerShare =
     selectedCollateral.symbol === "sDAI"
       ? Number(amount) / Number(shares)
       : Number(formatUnits(sDaiAmount ?? 0n, selectedCollateral.decimals)) / Number(shares);
+  const maxCollateralPerShare =
+    selectedCollateral.symbol === "sDAI" ? 1 : Number(formatUnits(daiAmount ?? 0n, selectedCollateral.decimals));
   const isPriceTooHigh = Number(shares) > 0 && sDaiPerShare > 1 && swapType === "buy";
 
   return (
@@ -272,7 +275,12 @@ export function SwapTokens({
         <div className="flex space-x-2 text-purple-primary">
           {swapType === "buy" ? "Expected shares" : "Expected amount"} = {shares}
         </div>
-        {isPriceTooHigh && <Alert type="error">Orders cannot be placed for shares priced higher than 1</Alert>}
+
+        {isPriceTooHigh && (
+          <Alert type="warning">
+            Current price exceeds {maxCollateralPerShare.toFixed(2)} {selectedCollateral.symbol} per share.
+          </Alert>
+        )}
         {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
         <div className="flex justify-between">
