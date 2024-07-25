@@ -117,13 +117,14 @@ contract MarketFactory {
             params.lang
         );
 
-        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+        bytes32 questionId = askRealityQuestion(
             encodedQuestions[0],
             REALITY_SINGLE_SELECT_TEMPLATE,
             params.openingTime,
-            params.minBond,
-            outcomeSlotCount
+            params.minBond
         );
+
+        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
         bytes32[] memory questionsIds = new bytes32[](1);
         questionsIds[0] = questionId;
@@ -159,13 +160,14 @@ contract MarketFactory {
             params.lang
         );
 
-        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+        bytes32 questionId = askRealityQuestion(
             encodedQuestions[0],
             REALITY_MULTI_SELECT_TEMPLATE,
             params.openingTime,
-            params.minBond,
-            outcomeSlotCount
+            params.minBond
         );
+
+        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
         bytes32[] memory questionsIds = new bytes32[](1);
         questionsIds[0] = questionId;
@@ -206,13 +208,14 @@ contract MarketFactory {
             params.lang
         );
 
-        (bytes32 questionId, bytes32 conditionId) = setUpQuestionAndCondition(
+        bytes32 questionId = askRealityQuestion(
             encodedQuestions[0],
             REALITY_UINT_TEMPLATE,
             params.openingTime,
-            params.minBond,
-            outcomeSlotCount
+            params.minBond
         );
+
+        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
         bytes32[] memory questionsIds = new bytes32[](1);
         questionsIds[0] = questionId;
@@ -288,23 +291,6 @@ contract MarketFactory {
         );
 
         return marketId;
-    }
-
-    function setUpQuestionAndCondition(
-        string memory question,
-        uint256 templateId,
-        uint32 openingTime,
-        uint256 minBond,
-        uint256 outcomeSlotCount
-    ) internal returns (bytes32 questionId, bytes32 conditionId) {
-        questionId = askRealityQuestion(
-            question,
-            templateId,
-            openingTime,
-            minBond
-        );
-
-        conditionId = prepareCondition(questionId, outcomeSlotCount);
     }
 
     function createMarket(
