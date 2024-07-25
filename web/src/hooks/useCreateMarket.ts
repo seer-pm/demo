@@ -1,5 +1,6 @@
 import { getConfigNumber } from "@/lib/config";
 import { MarketTypes } from "@/lib/market";
+import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
@@ -10,7 +11,8 @@ interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
   questionStart: string;
-  questionFinish: string;
+  questionEnd: string;
+  outcomeType: string;
   outcomes: string[];
   tokenNames: string[];
   lowerBound: number;
@@ -46,10 +48,13 @@ export function getOutcomes(
 }
 
 function getTokenNames(tokenNames: string[], outcomes: string[]) {
-  // we loop over `outcomes` because it's the return valut of getOutcomes(),
+  // we loop over `outcomes` because it's the return value of getOutcomes(),
   // that already has the correct outcomes for scalar markets
   return outcomes.map((outcome, i) =>
-    tokenNames[i].trim() !== "" ? tokenNames[i].trim() : outcome.toLocaleUpperCase().replaceAll(" ", "_"),
+    (tokenNames[i].trim() !== "" ? tokenNames[i].trim() : outcome.toLocaleUpperCase().replaceAll(" ", "_")).slice(
+      0,
+      31,
+    ),
   );
 }
 
@@ -62,12 +67,13 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         functionName: MarketTypeFunction[props.marketType],
         args: [
           {
-            marketName: props.marketName,
-            questionStart: props.questionStart,
-            questionFinish: props.questionFinish,
+            marketName: escapeJson(props.marketName),
+            questionStart: escapeJson(props.questionStart),
+            questionEnd: escapeJson(props.questionEnd),
+            outcomeType: escapeJson(props.outcomeType),
             lang: "en_US",
             category: "misc",
-            outcomes,
+            outcomes: outcomes.map(escapeJson),
             tokenNames: getTokenNames(props.tokenNames, outcomes),
             lowerBound: BigInt(props.lowerBound),
             upperBound: BigInt(props.upperBound),

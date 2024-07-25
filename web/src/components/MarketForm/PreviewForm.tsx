@@ -20,7 +20,8 @@ import {
   MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
-  QuestionFormValues,
+  getImagesForVerification,
+  getQuestionParts,
 } from ".";
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
@@ -32,58 +33,10 @@ import { VerificationForm } from "./VerificationForm";
 
 type FormStepPreview = {
   marketTypeValues: MarketTypeFormValues;
-  questionValues: QuestionFormValues;
   outcomesValues: OutcomesFormValues;
   dateValues: DateFormValues;
   chainId: SupportedChain;
 };
-
-interface GetImagesReturn {
-  url: {
-    market: string;
-    outcomes: string[];
-  };
-  file: {
-    market: File;
-    outcomes: File[];
-  };
-}
-
-export function getImagesForVerification(
-  marketType: MarketTypes,
-  questionValues: QuestionFormValues,
-  outcomesValues: OutcomesFormValues,
-): GetImagesReturn | false {
-  if (!questionValues.image) {
-    return false;
-  }
-
-  let outcomesFiles: File[] = [];
-
-  if (marketType === MarketTypes.SCALAR) {
-    // there are no images for outcomes in scalar markets
-  } else {
-    // CATEGORICAL & MULTI_SCALAR
-    const allOutcomesWithImages = outcomesValues.outcomes.every((o) => o.image instanceof File);
-
-    if (!allOutcomesWithImages) {
-      return false;
-    }
-
-    outcomesFiles = outcomesValues.outcomes.map((i) => i.image as File);
-  }
-
-  return {
-    url: {
-      market: URL.createObjectURL(questionValues.image),
-      outcomes: outcomesFiles.map((f) => URL.createObjectURL(f)),
-    },
-    file: {
-      market: questionValues.image,
-      outcomes: outcomesFiles,
-    },
-  };
-}
 
 interface PreviewButtonProps {
   chainId: SupportedChain;
@@ -184,7 +137,6 @@ interface ModalContentCreateMarketProps {
   setVerifyNow: (verifyNow: boolean) => void;
   marketReadyToVerify: boolean;
   submissionDeposit: bigint | undefined;
-  useQuestionFormReturn: UseFormReturn<QuestionFormValues>;
   useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
@@ -193,7 +145,6 @@ function ModalContentCreateMarket({
   setVerifyNow,
   marketReadyToVerify,
   submissionDeposit,
-  useQuestionFormReturn,
   useOutcomesFormReturn,
 }: ModalContentCreateMarketProps) {
   return (
@@ -251,11 +202,7 @@ function ModalContentCreateMarket({
             transparent background, in SVG, or PNG for each field below.
           </div>
 
-          <VerificationForm
-            useQuestionFormReturn={useQuestionFormReturn}
-            useOutcomesFormReturn={useOutcomesFormReturn}
-            showOnlyMissingImages={false}
-          />
+          <VerificationForm useOutcomesFormReturn={useOutcomesFormReturn} showOnlyMissingImages={false} />
         </div>
       )}
 
@@ -271,22 +218,19 @@ function ModalContentCreateMarket({
 
 export function PreviewForm({
   marketTypeValues,
-  questionValues,
   outcomesValues,
   dateValues,
   goToPrevStep,
   chainId,
-  useQuestionFormReturn,
   useOutcomesFormReturn,
 }: FormStepPreview &
   FormWithPrevStep & {
-    useQuestionFormReturn: UseFormReturn<QuestionFormValues>;
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
-  const images = getImagesForVerification(marketTypeValues.marketType, questionValues, outcomesValues);
+  const images = getImagesForVerification(marketTypeValues.marketType, outcomesValues);
   const marketReadyToVerify = images !== false;
 
   useEffect(() => {
@@ -318,13 +262,16 @@ export function PreviewForm({
   const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
 
   const createMarketHandler = async () => {
+    const questionParts = getQuestionParts(outcomesValues.market, marketTypeValues.marketType);
+
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
-      marketName: questionValues.market,
+      marketName: outcomesValues.market,
       outcomes: outcomes,
       tokenNames: outcomesValues.outcomes.map((o) => o.token),
-      questionStart: outcomesValues.questionStart,
-      questionFinish: outcomesValues.questionFinish,
+      questionStart: questionParts?.questionStart || "",
+      questionEnd: questionParts?.questionEnd || "",
+      outcomeType: questionParts?.outcomeType || "",
       lowerBound: outcomesValues.lowerBound,
       upperBound: outcomesValues.upperBound,
       unit: outcomesValues.unit,
@@ -352,7 +299,7 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
-    marketName: questionValues.market,
+    marketName: outcomesValues.market,
     outcomes: getOutcomes(
       outcomes,
       outcomesValues.lowerBound,
@@ -417,7 +364,6 @@ export function PreviewForm({
                 setVerifyNow={setVerifyNow}
                 marketReadyToVerify={marketReadyToVerify}
                 submissionDeposit={submissionDeposit}
-                useQuestionFormReturn={useQuestionFormReturn}
                 useOutcomesFormReturn={useOutcomesFormReturn}
               />
             )}
@@ -426,7 +372,7 @@ export function PreviewForm({
               <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />
               <PreviewButton
                 chainId={chainId}
-                areFormsValid={useQuestionFormReturn.formState.isValid && useOutcomesFormReturn.formState.isValid}
+                areFormsValid={useOutcomesFormReturn.formState.isValid}
                 createMarketHandler={createMarketHandler}
                 createMarketIsPending={createMarket.isPending}
                 verifyMarketHandler={verifyMarketHandler}

@@ -1,8 +1,17 @@
-import { PlusIcon } from "@/lib/icons";
+import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
+import { paths } from "@/lib/paths";
+import { isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
-import { ButtonsWrapper, FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
+import {
+  ButtonsWrapper,
+  FormStepProps,
+  FormWithNextStep,
+  FormWithPrevStep,
+  OutcomesFormValues,
+  getQuestionParts,
+} from ".";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
@@ -11,7 +20,7 @@ interface OutcomeFieldsProps {
   outcomeIndex: number;
   outcomes: OutcomesFormValues["outcomes"];
   questionStart: string;
-  questionFinish: string;
+  questionEnd: string;
   removeOutcome: (i: number) => void;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
@@ -20,7 +29,7 @@ function OutcomeFields({
   outcomeIndex,
   outcomes,
   questionStart,
-  questionFinish,
+  questionEnd,
   removeOutcome,
   useFormReturn,
 }: OutcomeFieldsProps) {
@@ -48,21 +57,23 @@ function OutcomeFields({
           useFormReturn={useFormReturn}
           helpText={
             questionStart &&
-            questionFinish &&
+            questionEnd &&
             outcomes[outcomeIndex].value &&
-            `Outcome question: ${questionStart} ${outcomes[outcomeIndex].value} ${questionFinish}`
+            `Outcome question: ${questionStart}${outcomes[outcomeIndex].value}${questionEnd}`
           }
         />
 
-        <div className="absolute inset-y-2 right-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="small"
-            onClick={() => removeOutcome(outcomeIndex)}
-            text="Remove"
-          />
-        </div>
+        {outcomeIndex > 1 && (
+          <div className="absolute inset-y-2 right-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="small"
+              onClick={() => removeOutcome(outcomeIndex)}
+              text="Remove"
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -102,6 +113,7 @@ export function OutcomesForm({
     register,
     formState: { isValid },
     handleSubmit,
+    trigger,
     watch,
   } = useFormReturn;
 
@@ -109,73 +121,91 @@ export function OutcomesForm({
     fields: outcomesFields,
     append: appendOutcome,
     remove: removeOutcome,
-    prepend: prependOutcome,
   } = useFieldArray({ control, name: "outcomes" });
 
+  const [lowerBound, outcomes, marketName] = watch(["lowerBound", "outcomes", "market"]);
+
   useEffect(() => {
-    if (outcomesFields.length === 0) {
-      addToStartOutcome();
-      addToStartOutcome();
+    if (marketName !== "") {
+      // revalidate in case we went go to the previous step and changed the market type
+      trigger("market");
     }
   }, []);
 
   const addOutcome = () => {
-    return appendOutcome({ value: "", token: "", image: "" });
-  };
-  const addToStartOutcome = () => {
-    return prependOutcome({ value: "", token: "", image: "" });
+    return appendOutcome({ value: "", token: "", image: "" }, { shouldFocus: false });
   };
 
   const marketHasOutcomes = hasOutcomes(marketType);
 
-  const [lowerBound, questionStart, questionFinish, outcomes] = watch([
-    "lowerBound",
-    "questionStart",
-    "questionFinish",
-    "outcomes",
-  ]);
+  const questionParts = getQuestionParts(marketName, marketType);
 
   return (
     <FormProvider {...useFormReturn}>
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-5">
         <div className="space-y-[32px]">
-          <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
+          <div>
+            <div className="text-[24px] font-semibold mb-[32px]">Question</div>
+            <Input
+              autoComplete="off"
+              {...register("market", {
+                required: "This field is required.",
+                validate: (v) => {
+                  if (marketType !== MarketTypes.MULTI_SCALAR) {
+                    return true;
+                  }
 
-          {marketType === MarketTypes.MULTI_SCALAR && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
-              <div className="space-y-2">
-                <div className="text-[14px] mb-[10px]">Question start</div>
-                <Input
-                  autoComplete="off"
-                  {...register("questionStart", {
-                    required: "This field is required.",
-                  })}
-                  className="w-full"
-                  useFormReturn={useFormReturn}
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="text-[14px] mb-[10px]">Question finish</div>
-                <Input
-                  autoComplete="off"
-                  {...register("questionFinish", {
-                    required: "This field is required.",
-                  })}
-                  className="w-full"
-                  useFormReturn={useFormReturn}
-                />
-              </div>
-              <div className="col-span-2">
-                <Alert type="info">
-                  <div className="space-y-[5px]">
-                    <p>Each outcome question will be formed by combining the following strings:</p>
-                    <p className="font-medium">[QUESTION_START] [OUTCOME] [QUESTION_FINISH]</p>
-                    <p>You can review the resulting question for each outcome below.</p>
-                  </div>
-                </Alert>
-              </div>
+                  if (isUndefined(getQuestionParts(v, marketType))) {
+                    return "Invalid question format. Please add the [outcome type] between brackets.";
+                  }
+
+                  return true;
+                },
+              })}
+              className="w-full"
+              useFormReturn={useFormReturn}
+              helpText={
+                marketType === MarketTypes.MULTI_SCALAR
+                  ? "Each outcome will have its own question. Place the outcome type in brackets to replace the outcome value in the question. <br />For example: How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?"
+                  : ""
+              }
+            />
+          </div>
+
+          <Alert type="info">
+            <div className="space-y-[10px]">
+              <p>
+                A good question is clear, specific, and unambiguous. For example, instead of asking "Will the economy
+                improve?", a better question would be "Will the US GDP growth rate exceed 2.5% in Q4 2024?".
+              </p>
+              <p>
+                Ambiguity is the enemy of effective prediction markets, so strive to eliminate any potential for
+                multiple interpretations.
+              </p>
+              <p>
+                Verifiability is crucial for resolving predictions fairly. The question should rely on publicly
+                available, trustworthy data sources for resolution. Specify these sources in advance if possible. For
+                instance, "According to the Bureau of Labor Statistics' official report, will the US unemployment rate
+                be below 4% in December 2024?"
+              </p>
+              <p>
+                This approach ensures that when the resolution date arrives, there's a clear, indisputable way to
+                determine the outcome.
+              </p>
+              <p className="font-medium">
+                <a
+                  href={paths.marketRulesPolicy()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2"
+                >
+                  <PolicyIcon /> <span>Read the Market Rules Policy</span>
+                </a>
+              </p>
             </div>
-          )}
+          </Alert>
+
+          <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
 
           {marketHasOutcomes && (
             <>
@@ -188,8 +218,8 @@ export function OutcomesForm({
                         outcomeIndex={i}
                         removeOutcome={removeOutcome}
                         useFormReturn={useFormReturn}
-                        questionStart={questionStart}
-                        questionFinish={questionFinish}
+                        questionStart={questionParts?.questionStart || ""}
+                        questionEnd={questionParts?.questionEnd || ""}
                         outcomes={outcomes}
                       />
                     );

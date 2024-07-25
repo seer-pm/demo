@@ -1,5 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
+import { unescapeJson } from "@/lib/reality";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -36,6 +37,8 @@ export interface Market {
 export function mapOnChainMarket(onChainMarket: Awaited<ReturnType<typeof readMarketViewGetMarket>>): Market {
   const market: Market = {
     ...onChainMarket,
+    marketName: unescapeJson(onChainMarket.marketName),
+    outcomes: onChainMarket.outcomes.map(unescapeJson),
     questions: onChainMarket.questions.map(
       (question, i) =>
         ({
