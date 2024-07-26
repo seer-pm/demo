@@ -94,7 +94,7 @@ function SwapButtons({
             <div className="mt-2">
               <Button variant="primary" type="button" text="Wrap XDAI" className="mb-2" onClick={openWrapXDAIModal} />
               <Alert type="info">
-                You can buy outcome tokens with wxDAI once you have 5 or more wxDAI.
+                You can buy outcome tokens with wxDAI once you have {VALID_WXDAI_BALANCE} or more wxDAI.
                 <br />
                 Benefit of using wxDAI instead of xDAI:
                 <br />
