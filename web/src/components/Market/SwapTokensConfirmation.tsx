@@ -1,5 +1,6 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { RightArrow } from "@/lib/icons";
+import { NATIVE_TOKEN } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
 import { Alert } from "../Alert";
@@ -7,18 +8,13 @@ import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 
 interface SwapTokensConfirmationProps {
-  closeConfirmSwapModel: () => void;
+  closeModal: () => void;
   trade: Trade | undefined;
   isLoading: boolean;
   onSubmit: () => Promise<void>;
 }
 
-export function SwapTokensConfirmation({
-  closeConfirmSwapModel,
-  trade,
-  isLoading,
-  onSubmit,
-}: SwapTokensConfirmationProps) {
+export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
   if (!tradeInfo) {
@@ -29,7 +25,7 @@ export function SwapTokensConfirmation({
         </div>
 
         <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-          <Button type="button" variant="secondary" text="Return" onClick={closeConfirmSwapModel} />
+          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
         </div>
       </div>
     );
@@ -44,6 +40,7 @@ export function SwapTokensConfirmation({
     fee,
     maximumSlippage,
     invertedPrice,
+    outputAddress,
   } = tradeInfo;
   return (
     <div className="flex flex-col justify-center items-center">
@@ -104,9 +101,25 @@ export function SwapTokensConfirmation({
           {minimumReceive} {outputToken}
         </span>{" "}
         or the transaction will revert.
+        {outputAddress?.toLowerCase() === NATIVE_TOKEN && <div></div>}
       </Alert>
+      {outputAddress?.toLowerCase() === NATIVE_TOKEN && (
+        <div className="mt-2 w-full">
+          <Alert type="warning">
+            <p>
+              <span className="font-bold">Swapping to XDAI</span> involves two steps:
+              <br />
+              1. Swap to wxDAI
+              <br />
+              2. Unwrap wxDAI to XDAI
+            </p>
+
+            <p>You can choose to reject the second transaction and keep wxDAI.</p>
+          </Alert>
+        </div>
+      )}
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-        <Button type="button" variant="secondary" text="Return" onClick={closeConfirmSwapModel} />
+        <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
         <Button variant="primary" type="submit" isLoading={isLoading} text="Continue" onClick={onSubmit} />
       </div>
     </div>

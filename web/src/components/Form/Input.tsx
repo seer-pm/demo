@@ -13,10 +13,10 @@ type InputProps = {
 const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref) => {
   const { className, helpText, icon, useFormReturn, ...restProps } = props;
   const {
-    formState: { errors, dirtyFields, touchedFields },
+    formState: { errors, dirtyFields },
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined } };
 
-  const hasError = !!get(errors, restProps.name) && !!get(touchedFields, restProps.name);
+  const hasError = !!get(errors, restProps.name);
   const isValid = !!get(dirtyFields, restProps.name) && !hasError;
   return (
     <>
@@ -38,8 +38,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
         <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
-      {/* only show error on touched */}
-      {hasError && <FormError errors={errors} name={props.name} />}
+      <FormError errors={errors} name={props.name} />
     </>
   );
 });

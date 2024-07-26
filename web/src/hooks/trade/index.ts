@@ -2,9 +2,11 @@ import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
+import { NATIVE_TOKEN } from "@/lib/utils";
 import {
   CoWTrade,
   Currency,
+  CurrencyAmount,
   Percent,
   SwaprV3Trade,
   Token as SwaprToken,
@@ -51,6 +53,40 @@ function getSwaprTrade(
       maximumSlippage,
       recipient: account || zeroAddress,
       tradeType: TradeType.EXACT_INPUT,
+    });
+  }
+  if (
+    chainId === gnosis.id &&
+    (currencyIn.address.toLowerCase() === NATIVE_TOKEN || currencyOut.address.toLowerCase() === NATIVE_TOKEN)
+  ) {
+    // build the route using the intermediate WXDAI<>sDAI pool
+    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
+    const pathBuy: Currency[] = [WXDAI[chainId], SDAI, currencyOut];
+    const pathSell: Currency[] = [currencyIn, SDAI, WXDAI[chainId]];
+
+    return SwaprV3Trade.getQuoteWithPath({
+      amount:
+        currencyIn.address.toLowerCase() === NATIVE_TOKEN
+          ? CurrencyAmount.nativeCurrency(BigInt(currencyAmountIn.raw.toString()), chainId)
+          : currencyAmountIn,
+      path: currencyIn.address.toLowerCase() === NATIVE_TOKEN ? pathBuy : pathSell,
+      maximumSlippage,
+      recipient: account || zeroAddress,
+      tradeType: TradeType.EXACT_INPUT,
+    }).then((trade) => {
+      if (trade && currencyOut.address.toLowerCase() === NATIVE_TOKEN) {
+        // change outputAmount to XDAI instead of WXDAI
+        return new SwaprV3Trade({
+          maximumSlippage: trade.maximumSlippage,
+          inputAmount: trade.inputAmount,
+          outputAmount: CurrencyAmount.nativeCurrency(BigInt(trade.outputAmount.raw.toString()), chainId),
+          tradeType: TradeType.EXACT_INPUT,
+          chainId,
+          priceImpact: trade.priceImpact,
+          fee: trade.fee,
+        });
+      }
+      return trade;
     });
   }
 
@@ -233,7 +269,10 @@ export function useMissingTradeApproval(account: Address, trade: Trade) {
 async function tradeTokens({
   trade,
   account,
-}: { trade: CoWTrade | SwaprV3Trade; account: Address }): Promise<string | TransactionReceipt> {
+}: {
+  trade: CoWTrade | SwaprV3Trade;
+  account: Address;
+}): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }

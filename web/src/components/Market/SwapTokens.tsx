@@ -5,8 +5,8 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { displayBalance, isUndefined } from "@/lib/utils";
-import { Trade } from "@swapr/sdk";
+import { NATIVE_TOKEN, VALID_WXDAI_BALANCE, displayBalance, isUndefined } from "@/lib/utils";
+import { ChainId, Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import { useModal } from "../Modal";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 import { OutcomeImage } from "./OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
+import { WrapXDAIModalContent } from "./WrapXDAIModalContent";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -54,31 +55,60 @@ function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
+  chainId,
 }: {
   account?: Address;
   trade: Trade;
   swapType: "buy" | "sell";
   isDisabled: boolean;
   isLoading: boolean;
+  chainId: ChainId;
 }) {
+  const {
+    Modal: WrapXDAIModal,
+    openModal: openWrapXDAIModal,
+    closeModal: closeWrapXDAIModal,
+  } = useModal("wrap-xdai-modal");
   const missingApprovals = useMissingTradeApproval(account!, trade);
-
-  if (!missingApprovals) {
+  const isBuyWithNative = trade.inputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN;
+  if (!missingApprovals && !isBuyWithNative) {
     return null;
   }
 
   return (
     <div>
-      {missingApprovals.length === 0 && (
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={isDisabled}
-          isLoading={isLoading}
-          text={swapType === "buy" ? "Buy" : "Sell"}
-        />
+      {!missingApprovals?.length && (
+        <>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={isDisabled}
+            isLoading={isLoading}
+            text={swapType === "buy" ? "Buy" : "Sell"}
+          />
+          <WrapXDAIModal
+            title="Wrap xDAI"
+            content={<WrapXDAIModalContent closeModal={closeWrapXDAIModal} chainId={chainId} />}
+          />
+          {isBuyWithNative && (
+            <div className="mt-2">
+              <Button variant="primary" type="button" text="Wrap XDAI" className="mb-2" onClick={openWrapXDAIModal} />
+              <Alert type="info">
+                You can buy outcome tokens with wxDAI once you have 5 or more wxDAI.
+                <br />
+                Benefit of using wxDAI instead of xDAI:
+                <br />
+                <ul className="list-disc">
+                  <li>Lower overall network costs</li>
+                  <li>Lower Slippage</li>
+                  <li>Protection against failed transactions</li>
+                </ul>
+              </Alert>
+            </div>
+          )}
+        </>
       )}
-      {missingApprovals.length > 0 && (
+      {!!missingApprovals?.length && missingApprovals.length > 0 && (
         <div className="space-y-[8px]">
           {missingApprovals.map((approval) => (
             <ApproveButton
@@ -128,11 +158,12 @@ export function SwapTokens({
 
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
   const {
-    Modal: ConfirmSwapModel,
-    openModal: openConfirmSwapModel,
-    closeModal: closeConfirmSwapModel,
+    Modal: ConfirmSwapModal,
+    openModal: openConfirmSwapModal,
+    closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
-  const useWrappedToken = true;
+  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId].address as `0x${string}`);
+  const useWrappedToken = wxDAIBalance > parseUnits(VALID_WXDAI_BALANCE, WXDAI[chainId].decimals);
 
   const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, useWrappedToken);
   const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
@@ -151,7 +182,7 @@ export function SwapTokens({
 
   const tradeTokens = useTrade(async () => {
     reset();
-    closeConfirmSwapModel();
+    closeConfirmSwapModal();
   });
 
   const onSubmit = async () => {
@@ -176,15 +207,14 @@ export function SwapTokens({
   const maxCollateralPerShare =
     selectedCollateral.symbol === "sDAI" ? 1 : Number(formatUnits(daiAmount ?? 0n, selectedCollateral.decimals));
   const isPriceTooHigh = Number(shares) > 0 && sDaiPerShare > 1 && swapType === "buy";
-
   return (
-    <form onSubmit={handleSubmit(openConfirmSwapModel)} className="space-y-5 bg-white p-[24px] drop-shadow">
-      <ConfirmSwapModel
+    <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
+      <ConfirmSwapModal
         title="Confirm Swap"
         content={
           <SwapTokensConfirmation
             trade={quoteData?.trade}
-            closeConfirmSwapModel={closeConfirmSwapModel}
+            closeModal={closeConfirmSwapModal}
             isLoading={tradeTokens.isPending}
             onSubmit={onSubmit}
           />
@@ -304,6 +334,7 @@ export function SwapTokens({
             isLoading={
               tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
             }
+            chainId={chainId}
           />
         ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
           <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
