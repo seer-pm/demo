@@ -21,6 +21,8 @@ export function useGetTradeInfo(trade: Trade | undefined) {
         ? data[0].symbol
         : trade.outputAmount.currency.symbol,
     inputAmount: trade.inputAmount.toFixed(6),
+    inputAddress: trade.inputAmount.currency.address,
+    outputAddress: trade.outputAmount.currency.address,
     outputAmount: trade.outputAmount.toFixed(6),
     price: trade.executionPrice.toFixed(6),
     invertedPrice: trade.executionPrice.invert().toFixed(6),

@@ -8,7 +8,7 @@ export async function fetchTokenBalance(token: Address, owner: Address) {
   return (
     await getBalance(config, {
       address: owner,
-      token: token === NATIVE_TOKEN ? undefined : token,
+      token: token.toLowerCase() === NATIVE_TOKEN ? undefined : token,
     })
   ).value;
 }
