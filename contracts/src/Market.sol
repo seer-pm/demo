@@ -1,5 +1,5 @@
 /**
- *  @authors: []
+ *  @authors: [@xyzseer]
  *  @reviewers: [@nvm1410]
  *  @auditors: []
  *  @bounties: []
@@ -12,7 +12,7 @@ pragma solidity 0.8.20;
 import "./RealityProxy.sol";
 
 contract Market {
-    bool public initialized;
+    bool public initialized; // Flag to initialize the market only once
 
     string public marketName; // The name of the market
     string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
@@ -25,6 +25,17 @@ contract Market {
     string[] public encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
     RealityProxy public realityProxy; // Oracle contract
 
+    /// @dev Initializer
+    /// @param _marketName The name of the market
+    /// @param _outcomes The market outcomes, doesn't include the INVALID_RESULT outcome
+    /// @param _lowerBound Lower bound, only used for scalar markets
+    /// @param _upperBound Upper bound, only user for scalar markets
+    /// @param _conditionId Conditional Tokens conditionId
+    /// @param _questionId Conditional Tokens questionId
+    /// @param _questionsIds Reality questions ids
+    /// @param _templateId Reality templateId
+    /// @param _encodedQuestions Encoded questions parameters, needed to create and reopen a question
+    /// @param _realityProxy Oracle contract
     function initialize(
         string memory _marketName,
         string[] memory _outcomes,
@@ -53,14 +64,20 @@ contract Market {
         initialized = true;
     }
 
+    /// @dev Multi Scalar markets have one question for each outcome, while any other market has only one question.
+    /// @return questionsCount The number of Reality questions of this market
     function getQuestionsCount() external view returns (uint256) {
         return questionsIds.length;
     }
 
+    /// @dev Returns the number of outcomes.
+    /// Doesn't include the INVALID_RESULT outcome.
+    /// @return numOutcomes The number of outcomes
     function numOutcomes() external view returns (uint256) {
         return outcomes.length;
     }
 
+    /// @dev Helper function to resolve the market
     function resolve() external {
         realityProxy.resolve(this);
     }
