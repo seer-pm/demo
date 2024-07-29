@@ -30,7 +30,7 @@ contract Router is ERC1155Holder {
     }
 
     /// @notice Transfers the collateral to the Router, splits the position and sends the ERC20 outcome tokens back to the user
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
@@ -54,7 +54,7 @@ contract Router is ERC1155Holder {
     }
 
     /// @notice Splits a position and sends the ERC20 outcome tokens to the user
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
@@ -102,11 +102,11 @@ contract Router is ERC1155Holder {
     }
 
     /// @notice Merges positions and sends the collateral tokens to the user
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the position
+    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function mergePositions(
         IERC20 collateralToken,
@@ -130,7 +130,7 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the position
+    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function _mergePositions(
         IERC20 collateralToken,
@@ -174,7 +174,7 @@ contract Router is ERC1155Holder {
     }
 
     /// @notice Redeems positions and sends the collateral tokens to the user.
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition used to redeem

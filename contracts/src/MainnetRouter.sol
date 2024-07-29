@@ -32,7 +32,7 @@ contract MainnetRouter is Router {
     ) Router(_conditionalTokens, _wrappedERC20Factory) {}
 
     /// @notice Splits a position using DAI and sends the ERC20 outcome tokens back to the user
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
     /// @param partition An array of disjoint index sets used to split the position
@@ -56,11 +56,11 @@ contract MainnetRouter is Router {
         );
     }
 
-    /// @notice Merges the position and sends DAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory
+    /// @notice Merges positions and sends DAI to the user.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the position
+    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function mergeToDai(
         bytes32 parentCollectionId,
@@ -79,7 +79,7 @@ contract MainnetRouter is Router {
     }
 
     /// @notice Redeems positions and sends DAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previosly created on the wrappedERC20Factory.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition used to redeem
     /// @param indexSets The index sets of the outcomes to redeem
