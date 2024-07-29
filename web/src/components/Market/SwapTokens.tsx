@@ -5,8 +5,8 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, VALID_WXDAI_BALANCE, displayBalance, isUndefined } from "@/lib/utils";
-import { ChainId, Trade, WXDAI } from "@swapr/sdk";
+import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
+import { Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,6 @@ import { useModal } from "../Modal";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 import { OutcomeImage } from "./OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
-import { WrapXDAIModalContent } from "./WrapXDAIModalContent";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -55,20 +54,13 @@ function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
-  chainId,
 }: {
   account?: Address;
   trade: Trade;
   swapType: "buy" | "sell";
   isDisabled: boolean;
   isLoading: boolean;
-  chainId: ChainId;
 }) {
-  const {
-    Modal: WrapXDAIModal,
-    openModal: openWrapXDAIModal,
-    closeModal: closeWrapXDAIModal,
-  } = useModal("wrap-xdai-modal");
   const missingApprovals = useMissingTradeApproval(account!, trade);
   const isBuyWithNative = trade.inputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN;
   if (!missingApprovals && !isBuyWithNative) {
@@ -86,26 +78,6 @@ function SwapButtons({
             isLoading={isLoading}
             text={swapType === "buy" ? "Buy" : "Sell"}
           />
-          <WrapXDAIModal
-            title="Wrap xDAI"
-            content={<WrapXDAIModalContent closeModal={closeWrapXDAIModal} chainId={chainId} />}
-          />
-          {isBuyWithNative && (
-            <div className="mt-2">
-              <Button variant="primary" type="button" text="Wrap XDAI" className="mb-2" onClick={openWrapXDAIModal} />
-              <Alert type="info">
-                You can buy outcome tokens with wxDAI once you have {VALID_WXDAI_BALANCE} or more wxDAI.
-                <br />
-                Benefit of using wxDAI instead of xDAI:
-                <br />
-                <ul className="list-disc">
-                  <li>Lower overall network costs</li>
-                  <li>Lower Slippage</li>
-                  <li>Protection against failed transactions</li>
-                </ul>
-              </Alert>
-            </div>
-          )}
         </>
       )}
       {!!missingApprovals?.length && missingApprovals.length > 0 && (
@@ -163,7 +135,8 @@ export function SwapTokens({
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
   const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId].address as `0x${string}`);
-  const useWrappedToken = wxDAIBalance > parseUnits(VALID_WXDAI_BALANCE, WXDAI[chainId].decimals);
+  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
+  const useWrappedToken = wxDAIBalance > xDAIBalance;
 
   const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, useWrappedToken);
   const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
@@ -334,7 +307,6 @@ export function SwapTokens({
             isLoading={
               tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
             }
-            chainId={chainId}
           />
         ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
           <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
