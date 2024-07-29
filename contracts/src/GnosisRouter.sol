@@ -12,18 +12,26 @@ interface SavingsXDaiAdapter {
     ) external payable returns (uint256);
 }
 
+/// @dev Router implementation with functions to interact with xDAI on Gnosis Chain.
 contract GnosisRouter is Router {
     IERC20 public constant sDAI =
-        IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
+        IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701); // sDAI address
     SavingsXDaiAdapter public constant savingsXDaiAdapter =
-        SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94);
+        SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94); // SavingsXDaiAdapter address
 
+    /// @dev Constructor
+    /// @param _conditionalTokens Conditional Tokens contract
+    /// @param _wrappedERC20Factory WrappedERC20Factory contract
     constructor(
         IConditionalTokens _conditionalTokens,
         WrappedERC20Factory _wrappedERC20Factory
     ) Router(_conditionalTokens, _wrappedERC20Factory) {}
 
-    /// @notice Splits a position using xDAI.
+    /// @notice Splits a position using xDAI and sends the ERC20 outcome tokens back to the user
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
+    /// @param parentCollectionId The Conditional Tokens parent collection id
+    /// @param conditionId The id of the condition to split
+    /// @param partition An array of disjoint index sets used to split the position
     function splitFromBase(
         bytes32 parentCollectionId,
         bytes32 conditionId,
@@ -42,7 +50,12 @@ contract GnosisRouter is Router {
         );
     }
 
-    /// @notice Merges the position and sends xDAI to the user.
+    /// @notice Merges positions and sends xDAI to the user.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
+    /// @param parentCollectionId The Conditional Tokens parent collection id
+    /// @param conditionId The id of the condition to merge
+    /// @param partition An array of disjoint index sets used to merge the positions
+    /// @param amount The amount of outcome tokens to merge
     function mergeToBase(
         bytes32 parentCollectionId,
         bytes32 conditionId,
@@ -61,7 +74,11 @@ contract GnosisRouter is Router {
         savingsXDaiAdapter.redeemXDAI(amount, msg.sender);
     }
 
-    // @notice The user sends the outcome tokens and receives xDAI in exchange.
+    /// @notice Redeems positions and sends xDAI to the user.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
+    /// @param parentCollectionId The Conditional Tokens parent collection id
+    /// @param conditionId The id of the condition used to redeem
+    /// @param indexSets The index sets of the outcomes to redeem
     function redeemToBase(
         bytes32 parentCollectionId,
         bytes32 conditionId,

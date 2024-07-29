@@ -384,6 +384,85 @@ contract MarketFactoryTest is BaseTest {
         getMultiScalarMarket(MIN_BOND, 1);
     }
 
+    function test_revertsIfTriesToCreateTheSameMarket() public {
+        getCategoricalMarket(MIN_BOND, 2);
+        vm.expectRevert(bytes("condition already prepared"));
+        getCategoricalMarket(MIN_BOND, 2);
+
+        getMultiCategoricalMarket(MIN_BOND, 2);
+        vm.expectRevert(bytes("condition already prepared"));
+        getMultiCategoricalMarket(MIN_BOND, 2);
+
+        getScalarMarket(MIN_BOND, 2);
+        vm.expectRevert(bytes("condition already prepared"));
+        getScalarMarket(MIN_BOND, 2);
+
+        getMultiScalarMarket(MIN_BOND, 2);
+        vm.expectRevert(bytes("condition already prepared"));
+        getMultiScalarMarket(MIN_BOND, 2);
+    }
+
+    function test_reusesQuestionBetweenMultiScalarMarkets() public {
+        // multiscalar market with 2 questions
+        Market multiScalar1 = getMultiScalarMarket(MIN_BOND, 2);
+
+        // multiscalar market with 3 questions
+        Market multiScalar2 = getMultiScalarMarket(MIN_BOND, 3);
+
+        assertEq(multiScalar1.questionsIds(0), multiScalar2.questionsIds(0));
+        assertEq(multiScalar1.questionsIds(1), multiScalar2.questionsIds(1));
+    }
+
+    function test_reusesQuestionBetweenScalarAndMultiScalarMarkets() public {
+        uint256 numOutcomes = 2;
+        (
+            string[] memory outcomes,
+            string[] memory tokenNames
+        ) = getOutcomesAndTokens(numOutcomes);
+
+        // scalar market
+        Market scalar = Market(
+            marketFactory.createScalarMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "How many votes will OUTCOME_0 get?",
+                    questionStart: "",
+                    questionEnd: "",
+                    outcomeType: "",
+                    category: "misc",
+                    lang: "en_US",
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: MIN_BOND,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 2500,
+                    upperBound: 3500
+                })
+            )
+        );
+
+        // multi scalar market
+        Market multiScalar = Market(
+            marketFactory.createMultiScalarMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "",
+                    questionStart: "How many votes will ",
+                    questionEnd: " get?",
+                    outcomeType: "[candidate]",
+                    category: "misc",
+                    lang: "en_US",
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: MIN_BOND,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 0,
+                    upperBound: 0
+                })
+            )
+        );
+
+        assertEq(scalar.questionsIds(0), multiScalar.questionsIds(0));
+    }
+
     function test_encodedQuestions() public {
         Vm.Log[] memory entries;
 
