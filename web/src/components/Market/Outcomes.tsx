@@ -7,13 +7,15 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, SWAPR_CONFIG } from "@/lib/config";
-import { EtherscanIcon, RightArrow } from "@/lib/icons";
+import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined, splitScalarOutcome } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
+import { Tooltip } from "react-tooltip";
 import { Address } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -42,7 +44,11 @@ function AddLiquidityInfo({
   chainId,
   pools,
   closeModal,
-}: { chainId: SupportedChain; pools: PoolInfo[]; closeModal: () => void }) {
+}: {
+  chainId: SupportedChain;
+  pools: PoolInfo[];
+  closeModal: () => void;
+}) {
   const { address } = useAccount();
   const { data: deposits } = usePoolsDeposits(
     chainId,
@@ -226,6 +232,17 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
     };
   };
 
+  const getTooltipContent = (outcome: string) => {
+    const { type, lowerBound, upperBound } = splitScalarOutcome(outcome) ?? {};
+    if (type === "UP") {
+      return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
+    }
+    if (type === "DOWN") {
+      return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 0\nAnswer within [${lowerBound}-${upperBound}]: (${upperBound}-answer)/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 1`;
+    }
+    return "";
+  };
+
   return (
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
@@ -248,8 +265,20 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
                 />
               </div>
               <div className="space-y-1">
-                <div className="text-[16px]">
-                  #{i + 1} {market.outcomes[i]}
+                <div className="text-[16px] flex items-center gap-1">
+                  <p>
+                    #{i + 1} {market.outcomes[i]}{" "}
+                  </p>
+                  {getMarketType(market) === MarketTypes.SCALAR && market.outcomes[i] !== "Invalid result" && (
+                    <>
+                      <span data-tooltip-id={market.outcomes[i]}>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                      <Tooltip id={market.outcomes[i]}>
+                        <p className="whitespace-break-spaces	">{getTooltipContent(market.outcomes[i])}</p>
+                      </Tooltip>
+                    </>
+                  )}
                 </div>
                 <div className="text-[12px] text-[#999999] flex items-center space-x-[16px]">
                   {balances && balances[i] > 0n && (

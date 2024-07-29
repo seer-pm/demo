@@ -44,6 +44,7 @@
     "react-easy-crop": "^5.0.7",
     "react-hook-form": "^7.49.3",
     "react-toastify": "^10.0.4",
+    "react-tooltip": "^5.27.1",
     "valibot": "^0.31.1",
     "viem": "2.17.5",
     "vite-plugin-checker": "^0.6.4",

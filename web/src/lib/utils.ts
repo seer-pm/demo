@@ -91,3 +91,16 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
 
   return number.toFixed(number < 0.1 ? 4 : 2);
 }
+
+export function splitScalarOutcome(outcome: string) {
+  const regex = /^(DOWN|UP) \[(\d+),(\d+)\]$/;
+  const match = outcome.match(regex);
+
+  if (match) {
+    return {
+      type: match[1], // DOWN or UP
+      lowerBound: parseInt(match[2], 10),
+      upperBound: parseInt(match[3], 10), // Second dynamic number
+    };
+  }
+}
