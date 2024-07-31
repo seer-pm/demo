@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
-    "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts"
+    "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
+    "verify:gnosis": "npx hardhat --network gnosis etherscan-verify --api-url https://api.gnosisscan.io"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
