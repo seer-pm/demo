@@ -2,11 +2,11 @@ pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
 import "./BaseTest.sol";
-import "../src/MarketFactory.sol";
-import "../src/Market.sol";
-import "../src/RealityProxy.sol";
-import "../src/GnosisRouter.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import "../src/interaction/MarketFactory.sol";
+import "../src/interaction/Market.sol";
+import "../src/interaction/RealityProxy.sol";
+import "../src/interaction/GnosisRouter.sol";
+import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/interaction/Interfaces.sol";
 import "forge-std/console.sol";
 
 contract MarketFactoryTest is BaseTest {

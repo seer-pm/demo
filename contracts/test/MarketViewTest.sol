@@ -2,8 +2,8 @@ pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
 import "./BaseTest.sol";
-import "../src/Market.sol";
-import {MarketView, IMarketFactory} from "../src/MarketView.sol";
+import "../src/interaction/Market.sol";
+import {MarketView, IMarketFactory} from "../src/interaction/MarketView.sol";
 import "forge-std/console.sol";
 
 contract MarketViewTest is BaseTest {
