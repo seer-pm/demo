@@ -23,6 +23,27 @@ export interface PoolInfo {
   incentives: PoolIncentive[];
 }
 
+export interface OutcomePoolInfo {
+  __typename: "Pool";
+  id: string;
+  fee: string;
+  liquidity: string;
+  sqrtPrice: string;
+  tick: string;
+  token0Price: string;
+  token1Price: string;
+  volumeUSD: string;
+  txCount: string;
+  totalValueLockedToken0: string;
+  totalValueLockedToken1: string;
+  totalValueLockedUSD: string;
+  totalValueLockedUSDUntracked: string;
+  untrackedVolumeUSD: string;
+  feesUSD: string;
+  token0: { __typename: "Token"; id: string; symbol: string; name: string; decimals: string };
+  token1: { __typename: "Token"; id: string; symbol: string; name: string; decimals: string };
+}
+
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
   /*const seerUsdPrice = 2; // TODO: get SEER price
   const stakedTvl = 10000; // TODO: get pool TVL
@@ -81,6 +102,22 @@ async function getPoolInfo(
   );
 }
 
+export async function getAllOutcomePools(chainId: SupportedChain) {
+  const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+  if (!algebraClient) {
+    throw new Error("Subgraph not available");
+  }
+  try {
+    const { pools } = await getSdk(algebraClient).GetPools({
+      where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
+    });
+    return pools;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
     enabled: tokens && tokens.length > 0,
@@ -93,6 +130,14 @@ export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
         }),
       );
     },
+  });
+};
+
+export const useAllOutcomePools = (chainId: SupportedChain) => {
+  return useQuery<Array<OutcomePoolInfo> | undefined, Error>({
+    queryKey: ["useAllOutcomePools", chainId],
+    retry: false,
+    queryFn: async () => getAllOutcomePools(chainId),
   });
 };
 

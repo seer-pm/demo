@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/Spinner";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -126,7 +127,7 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isPending: oddsPending } = useMarketOdds(
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(
     chainId,
     getRouterAddress(chainId),
     market.conditionId,
@@ -158,7 +159,7 @@ function OutcomesInfo({
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{oddsPending ? "" : `${odds?.[i] || 0}%`}</div>
+              <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
             </div>
           </div>
         ))}
@@ -182,7 +183,7 @@ export function MarketHeader({
   const colors = marketStatus && COLORS[marketStatus];
 
   const router = getRouterAddress(chainId);
-  const { data: odds = [], isPending: isPendingOdds } = useMarketOdds(
+  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(
     chainId,
     router,
     market.conditionId,

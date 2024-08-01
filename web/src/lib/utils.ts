@@ -104,3 +104,7 @@ export function splitScalarOutcome(outcome: string) {
     };
   }
 }
+export function bigIntMax(...args: bigint[]): bigint {
+  if (!args.length) return 0n;
+  return args.reduce((m, e) => (e > m ? e : m));
+}

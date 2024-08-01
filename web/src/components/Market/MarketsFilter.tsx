@@ -20,7 +20,7 @@ export function MarketsFilter({
 }: {
   setMarketName: (marketName: string) => void;
   setMarketStatus: (status: MarketStatus | "") => void;
-  orderBy: Market_OrderBy;
+  orderBy: Market_OrderBy | undefined;
   setOrderBy: (value: Market_OrderBy) => void;
 }) {
   const status = [

@@ -44,3 +44,46 @@ export const useVerificationStatus = (marketId: Address, chainId: SupportedChain
     retry: false,
   });
 };
+
+export const useVerificationStatusList = (chainId: SupportedChain) => {
+  return useQuery<{ [key: string]: VerificationStatusResult } | undefined, Error>({
+    queryKey: ["useVerificationStatus", chainId],
+    queryFn: async () => {
+      const client = curateGraphQLClient(chainId);
+
+      // @ts-ignore
+      const registryAddress = lightGeneralizedTcrAddress[chainId];
+
+      if (client && !isUndefined(registryAddress)) {
+        const { litems } = await getSdk(client).GetImages({
+          where: {
+            registryAddress,
+          },
+        });
+        return litems.reduce(
+          (obj, item) => {
+            if (!item.key0) {
+              return obj;
+            }
+            if (item.status === "Registered") {
+              obj[item.key0.toLowerCase()] = { status: "verified", itemID: item.itemID };
+              return obj;
+            }
+            if (item.status === "RegistrationRequested") {
+              obj[item.key0.toLowerCase()] = { status: "verifying", itemID: item.itemID };
+              return obj;
+            }
+            obj[item.key0.toLowerCase()] = { status: "not_verified" };
+            return obj;
+          },
+          {} as { [key: string]: VerificationStatusResult },
+        );
+      }
+
+      throw new Error("Subgraph not available");
+    },
+    retry: false,
+  });
+};
+
+export const defaultStatus = { status: "not_verified" as VerificationStatus };
