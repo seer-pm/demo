@@ -81,7 +81,7 @@ export const useGraphMarkets = (
               abi: marketViewAbi,
               address: marketViewAddress[chainId],
               functionName: "getMarket",
-              args: [marketFactoryAddress[chainId], market.id],
+              args: [market.factory, market.id],
             })),
           })
         ).map(mapOnChainMarket);

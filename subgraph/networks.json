@@ -4,6 +4,10 @@
       "address": "0xA8457b25e99f44fa3Eb72Fe7B15C1C15FfF61E4b",
       "startBlock": 34736228
     },
+    "MarketFactoryV2": {
+      "address": "0xEb021407F8B7fBaE4FEb90F1DaC5Aa0b2Fc20e6D",
+      "startBlock": 35247707
+    },
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
       "startBlock": 34736228

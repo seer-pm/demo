@@ -13,6 +13,7 @@ fragment Question on Question {
 
 fragment Market on Market {
     id
+    factory
 }
 
 query GetMarkets(

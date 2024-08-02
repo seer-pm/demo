@@ -28,6 +28,29 @@ dataSources:
           handler: handleNewMarket
       file: ./src/market-factory.ts
   - kind: ethereum
+    name: MarketFactoryV2
+    network: gnosis
+    source:
+      abi: MarketFactory
+      address: "0xEb021407F8B7fBaE4FEb90F1DaC5Aa0b2Fc20e6D"
+      startBlock: 35247707
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Market
+      abis:
+        - name: MarketFactory
+          file: ./abis/MarketFactory.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+      eventHandlers:
+        - event: NewMarket(indexed
+            address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
+          handler: handleNewMarket
+      file: ./src/market-factory.ts
+  - kind: ethereum
     name: Reality
     network: gnosis
     source:
