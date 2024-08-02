@@ -157,7 +157,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
 
     function setUp() public {
         forkSeer = vm.createFork("https://rpc.ankr.com/gnosis", 35257225);
-        vm.selectFork(forkSwapr);
+        forkSwapr = vm.createFork("https://rpc.ankr.com/gnosis", 35257225);
 
         swaprSXDaiRouter = new SwaprSavingsXDaiRouter();
         vm.makePersistent(address(swaprSXDaiRouter));
@@ -237,11 +237,29 @@ contract SwaprSavingsXDaiRouterTest is Test {
     function swaprRouterExactInput(
         uint256 amountIn,
         address tokenIn,
-        bytes memory path
+        address tokenOut
     ) internal {
+        if (tokenIn == address(sDAI) || tokenOut == address(sDAI)) {
+            ISwapRouter.ExactInputSingleParams
+                memory inputSingleParams = ISwapRouter.ExactInputSingleParams({
+                    tokenIn: tokenIn,
+                    tokenOut: tokenOut,
+                    recipient: address(this),
+                    deadline: block.timestamp + 120,
+                    amountIn: amountIn,
+                    amountOutMinimum: 0,
+                    limitSqrtPrice: 0
+                });
+
+            IERC20(tokenIn).approve(address(swaprRouter), amountIn);
+            swaprRouter.exactInputSingle(inputSingleParams);
+
+            return;
+        }
+
         ISwapRouter.ExactInputParams memory inputParams = ISwapRouter
             .ExactInputParams({
-                path: path,
+                path: abi.encodePacked(tokenIn, sDAI, tokenOut),
                 recipient: address(this),
                 deadline: block.timestamp + 120,
                 amountIn: amountIn,
@@ -255,11 +273,28 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 amountOut,
         uint256 amountInMaximum,
         address tokenIn,
-        bytes memory path
+        address tokenOut
     ) internal returns (uint256) {
+        if (tokenIn == address(sDAI) || tokenOut == address(sDAI)) {
+            ISwapRouter.ExactOutputSingleParams
+                memory outputSingleParams = ISwapRouter
+                    .ExactOutputSingleParams({
+                        tokenIn: tokenIn,
+                        tokenOut: tokenOut,
+                        fee: 0,
+                        recipient: address(this),
+                        deadline: block.timestamp + 120,
+                        amountOut: amountOut,
+                        amountInMaximum: amountInMaximum,
+                        limitSqrtPrice: 0
+                    });
+            IERC20(tokenIn).approve(address(swaprRouter), amountInMaximum);
+            return swaprRouter.exactOutputSingle(outputSingleParams);
+        }
+
         ISwapRouter.ExactOutputParams memory outputParams = ISwapRouter
             .ExactOutputParams({
-                path: path,
+                path: abi.encodePacked(tokenOut, sDAI, tokenIn),
                 recipient: address(this),
                 deadline: block.timestamp + 120,
                 amountOut: amountOut,
@@ -302,9 +337,17 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 tokenOutBalanceChange1 = getBalance(tokenOut, address(this)) -
             tokenOutBalanceStart1;
 
-        assertEq(address(swaprSXDaiRouter).balance, 0);
-        assertEq(getBalance(tokenIn, address(swaprSXDaiRouter)), 0);
-        assertEq(getBalance(tokenOut, address(swaprSXDaiRouter)), 0);
+        assertEq(address(swaprSXDaiRouter).balance, 0, "Router native balance");
+        assertEq(
+            getBalance(tokenIn, address(swaprSXDaiRouter)),
+            0,
+            "Router tokenIn balance"
+        );
+        assertEq(
+            getBalance(tokenOut, address(swaprSXDaiRouter)),
+            0,
+            "Router tokenOut balance"
+        );
 
         // swap using swapr router
         vm.selectFork(forkSwapr);
@@ -320,7 +363,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
         swaprRouterExactInput(
             amountIn,
             address(swaprTokenIn),
-            abi.encodePacked(swaprTokenIn, sDAI, swaprTokenOut)
+            address(swaprTokenOut)
         );
         uint256 tokenInBalanceChange2 = tokenInBalanceStart2 -
             getBalance(swaprTokenIn, address(this));
@@ -329,46 +372,65 @@ contract SwaprSavingsXDaiRouterTest is Test {
             address(this)
         ) - tokenOutBalanceStart2;
 
-        assertEq(address(swaprSXDaiRouter).balance, 0);
-        assertEq(getBalance(tokenIn, address(swaprSXDaiRouter)), 0);
-        assertEq(getBalance(tokenOut, address(swaprSXDaiRouter)), 0);
-
         assertEq(tokenInBalanceChange1, amountIn, "Assert spent all tokenIn 1");
         assertEq(tokenInBalanceChange2, amountIn, "Assert spent all tokenIn 2");
-        // seer router should have more tokens because it has less slippage
-        assertGt(
-            tokenOutBalanceChange1,
-            tokenOutBalanceChange2,
-            "Assert tokenOut balances"
-        );
+
+        if (
+            address(tokenIn) == address(sDAI) ||
+            address(tokenOut) == address(sDAI)
+        ) {
+            // a sDAI<>OUTCOME swap produce the same output in both routers
+            assertEq(tokenOutBalanceChange1, tokenOutBalanceChange2);
+        } else {
+            // seer router should have more tokens because it has less slippage
+            assertGt(
+                tokenOutBalanceChange1,
+                tokenOutBalanceChange2,
+                "Assert tokenOut balances"
+            );
+        }
     }
 
-    function test_quoteExactInputSingle_TokenIn_wxDai() external {
+    function test_exactInputSingle_TokenIn_wxDai() external {
         // swap wxDAI->OUTCOME
-        uint256 amountInXDAI = 2 ether;
+        uint256 amountIn = 2 ether;
 
-        assertSwapExactInputSingle(amountInXDAI, wxDAI, outcomeToken);
+        assertSwapExactInputSingle(amountIn, wxDAI, outcomeToken);
     }
 
-    function test_quoteExactInputSingle_TokenIn_xDai() external {
+    function test_exactInputSingle_TokenIn_sDai() external {
+        // swap sDAI->OUTCOME
+        uint256 amountIn = 2 ether;
+
+        assertSwapExactInputSingle(amountIn, sDAI, outcomeToken);
+    }
+
+    function test_exactInputSingle_TokenIn_xDai() external {
         // swap xDAI->OUTCOME
-        uint256 amountInXDAI = 2 ether;
+        uint256 amountIn = 2 ether;
 
-        assertSwapExactInputSingle(amountInXDAI, IERC20(xDAI), outcomeToken);
+        assertSwapExactInputSingle(amountIn, IERC20(xDAI), outcomeToken);
     }
 
-    function test_quoteExactInputSingle_TokenOut_wxDai() external {
+    function test_exactInputSingle_TokenOut_wxDai() external {
         // swap OUTCOME->wxDAI
-        uint256 amountInOutcome = 2 ether;
+        uint256 amountIn = 2 ether;
 
-        assertSwapExactInputSingle(amountInOutcome, outcomeToken, wxDAI);
+        assertSwapExactInputSingle(amountIn, outcomeToken, wxDAI);
     }
 
-    function test_quoteExactInputSingle_TokenOut_xDai() external {
-        // swap OUTCOME->xDAI
-        uint256 amountInOutcome = 2 ether;
+    function test_exactInputSingle_TokenOut_sDai() external {
+        // swap OUTCOME->sDAI
+        uint256 amountIn = 2 ether;
 
-        assertSwapExactInputSingle(amountInOutcome, outcomeToken, IERC20(xDAI));
+        assertSwapExactInputSingle(amountIn, outcomeToken, sDAI);
+    }
+
+    function test_exactInputSingle_TokenOut_xDai() external {
+        // swap OUTCOME->xDAI
+        uint256 amountIn = 2 ether;
+
+        assertSwapExactInputSingle(amountIn, outcomeToken, IERC20(xDAI));
     }
 
     // Test Exact Output
@@ -395,9 +457,17 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 tokenOutBalanceChange1 = getBalance(tokenOut, address(this)) -
             tokenOutBalanceStart1;
 
-        assertEq(address(swaprSXDaiRouter).balance, 0);
-        assertEq(getBalance(tokenIn, address(swaprSXDaiRouter)), 0);
-        assertEq(getBalance(tokenOut, address(swaprSXDaiRouter)), 0);
+        assertEq(address(swaprSXDaiRouter).balance, 0, "Router native balance");
+        assertEq(
+            getBalance(tokenIn, address(swaprSXDaiRouter)),
+            0,
+            "Router tokenIn balance"
+        );
+        assertEq(
+            getBalance(tokenOut, address(swaprSXDaiRouter)),
+            0,
+            "Router tokenOut balance"
+        );
 
         // swap using swapr router
         vm.selectFork(forkSwapr);
@@ -414,7 +484,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
             amountOut,
             amountInMaximum,
             address(swaprTokenIn),
-            abi.encodePacked(swaprTokenOut, sDAI, swaprTokenIn)
+            address(swaprTokenOut)
         );
         uint256 tokenInBalanceChange2 = tokenInBalanceStart2 -
             getBalance(swaprTokenIn, address(this));
@@ -423,74 +493,113 @@ contract SwaprSavingsXDaiRouterTest is Test {
             address(this)
         ) - tokenOutBalanceStart2;
 
-        assertEq(address(swaprSXDaiRouter).balance, 0);
-        assertEq(getBalance(tokenIn, address(swaprSXDaiRouter)), 0);
-        assertEq(getBalance(tokenOut, address(swaprSXDaiRouter)), 0);
+        if (
+            address(tokenIn) == address(sDAI) ||
+            address(tokenOut) == address(sDAI)
+        ) {
+            // a sDAI<>OUTCOME swap produce the same output in both routers
+            assertEq(
+                tokenInBalanceChange1,
+                tokenInBalanceChange2,
+                "Assert same tokenIn change"
+            );
+            assertEq(
+                tokenOutBalanceChange1,
+                tokenOutBalanceChange2,
+                "Assert same tokenOut change"
+            );
+        } else {
+            assertLt(amountIn1, amountIn2, "Assert amountIn");
 
-        assertLt(amountIn1, amountIn2);
-        // seer router should spend less tokens
-        assertLt(
-            tokenInBalanceChange1,
-            tokenInBalanceChange2,
-            "Assert tokenIn balances"
-        );
-        // seer router should receive more tokens (we allow a small difference because of the intermediate sDAI.previewDeposit())
-        assertApproxEqAbs(
-            tokenOutBalanceChange1,
-            tokenOutBalanceChange2,
-            1,
-            "Assert tokenOut balances"
-        );
-        
+            // seer router should spend less tokens
+            assertLt(
+                tokenInBalanceChange1,
+                tokenInBalanceChange2,
+                "Assert tokenIn balances"
+            );
+            // seer router should receive more tokens (we allow a small difference because of the intermediate sDAI.previewDeposit())
+            assertApproxEqAbs(
+                tokenOutBalanceChange1,
+                tokenOutBalanceChange2,
+                1,
+                "Assert tokenOut balances"
+            );
+        }
     }
 
-    function test_quoteExactOutputSingle_TokenIn_wxDai() external {
+    function test_exactOutputSingle_TokenIn_wxDai() external {
         // swap wxDAI->OUTCOME
-        uint256 amountOutOutcome = 0.5 ether;
+        uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 2 ether;
 
         assertSwapExactOutputSingle(
             amountInMaximum,
-            amountOutOutcome,
+            amountOut,
             wxDAI,
             outcomeToken
         );
     }
 
-    function test_quoteExactOutputSingle_TokenIn_xDai() external {
-        // swap xDAI->OUTCOME
-        uint256 amountOutOutcome = 0.5 ether;
+    function test_exactOutputSingle_TokenIn_sDai() external {
+        // swap sDAI->OUTCOME
+        uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 2 ether;
 
         assertSwapExactOutputSingle(
             amountInMaximum,
-            amountOutOutcome,
+            amountOut,
+            sDAI,
+            outcomeToken
+        );
+    }
+
+    function test_exactOutputSingle_TokenIn_xDai() external {
+        // swap xDAI->OUTCOME
+        uint256 amountOut = 0.5 ether;
+        uint256 amountInMaximum = 2 ether;
+
+        assertSwapExactOutputSingle(
+            amountInMaximum,
+            amountOut,
             IERC20(xDAI),
             outcomeToken
         );
     }
 
-    function test_quoteExactOutputSingle_TokenOut_wxDai() external {
+    function test_exactOutputSingle_TokenOut_wxDai() external {
         // swap OUTCOME->wxDAI
-        uint256 amountOutWXDai = 0.8 ether;
+        uint256 amountOut = 0.8 ether;
         uint256 amountInMaximum = 3 ether;
 
         assertSwapExactOutputSingle(
             amountInMaximum,
-            amountOutWXDai,
+            amountOut,
             outcomeToken,
             wxDAI
         );
     }
 
-    function test_quoteExactOutputSingle_TokenOut_xDai() external {
-        // swap OUTCOME->xDAI
-        uint256 amountOutXDai = 0.5 ether;
+    function test_exactOutputSingle_TokenOut_sDai() external {
+        // swap OUTCOME->sDAI
+        uint256 amountOut = 0.8 ether;
         uint256 amountInMaximum = 3 ether;
 
         assertSwapExactOutputSingle(
             amountInMaximum,
-            amountOutXDai,
+            amountOut,
+            outcomeToken,
+            sDAI
+        );
+    }
+
+    function test_exactOutputSingle_TokenOut_xDai() external {
+        // swap OUTCOME->xDAI
+        uint256 amountOut = 0.5 ether;
+        uint256 amountInMaximum = 3 ether;
+
+        assertSwapExactOutputSingle(
+            amountInMaximum,
+            amountOut,
             outcomeToken,
             IERC20(xDAI)
         );

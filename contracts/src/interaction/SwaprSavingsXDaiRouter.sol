@@ -97,14 +97,10 @@ interface SavingsXDaiAdapter {
     ) external payable returns (uint256);
 }
 
-interface IERC4626 {
-    function approve(address guy, uint256 wad) external returns (bool);
-
+interface IERC4626 is IERC20 {
     function previewDeposit(uint256 assets) external view returns (uint256);
 
     function previewRedeem(uint256 shares) external view returns (uint256);
-
-    function balanceOf(address owner) external returns (uint256);
 }
 
 /// @dev Swap Router specialized in swapping tokens with sDAI, xDAI and wxDAI.
@@ -158,7 +154,13 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             return (sDAI.previewRedeem(quotedAmountOut), quotedFee);
         }
 
-        revert("Not OUTCOME<>(s|w|wx)DAI swap");
+        return
+            swaprQuoter.quoteExactInputSingle(
+                tokenIn,
+                tokenOut,
+                amountIn,
+                limitSqrtPrice
+            );
     }
 
     /// @dev Function to bypass the wxDAI<>sDAI swapr pool.
@@ -226,7 +228,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                     : savingsXDaiAdapter.redeem(sDAIAmountOut, _recipient);
         }
 
-        revert("Not OUTCOME<>(s|w|wx)DAI swap");
+        return swaprRouter.exactInputSingle(params);
     }
 
     function quoteExactOutputSingle(
@@ -260,12 +262,18 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             return (sDAI.previewRedeem(quotedAmountOut), quotedFee);
         }
 
-        revert("Not OUTCOME<>(s|w|wx)DAI swap");
+        return
+            swaprQuoter.quoteExactOutputSingle(
+                tokenIn,
+                tokenOut,
+                amountOut,
+                limitSqrtPrice
+            );
     }
 
     function exactOutputSingle(
         ExactOutputSingleParams memory params
-    ) external payable override returns (uint256 /*amountIn*/) {
+    ) external payable override returns (uint256 amountIn) {
         if (msg.value == 0) {
             // tokenIn == wxDAI or OUTCOME_TOKEN
             IERC20(params.tokenIn).transferFrom(
@@ -304,7 +312,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             params.amountInMaximum = shares;
 
             sDAI.approve(address(swaprRouter), params.amountInMaximum);
-            uint256 amountIn = swaprRouter.exactOutputSingle(params);
+            amountIn = swaprRouter.exactOutputSingle(params);
 
             if (amountIn < shares) {
                 // refund excess (w)xDAI
@@ -334,7 +342,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             params.tokenOut = address(sDAI);
             params.amountOut = sDAI.previewDeposit(params.amountOut);
 
-            uint256 amountIn = swaprRouter.exactOutputSingle(params);
+            amountIn = swaprRouter.exactOutputSingle(params);
 
             // 2) redeem sDAI to (w)xDAI
             sDAI.approve(address(savingsXDaiAdapter), params.amountOut);
@@ -357,6 +365,16 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             return amountIn;
         }
 
-        revert("Not OUTCOME<>(s|w|wx)DAI swap");
+        amountIn = swaprRouter.exactOutputSingle(params);
+
+        // transfer back unused tokenIn tokens
+        if (params.amountInMaximum > amountIn) {
+            IERC20(params.tokenIn).transfer(
+                msg.sender,
+                params.amountInMaximum - amountIn
+            );
+        }
+
+        return amountIn;
     }
 }
