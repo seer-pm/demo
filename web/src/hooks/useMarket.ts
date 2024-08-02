@@ -2,10 +2,11 @@ import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
+import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
+import { readMarketViewGetMarket } from "./contracts/generated";
 import { GetMarketQuery, getSdk } from "./queries/generated";
 
 export interface Question {
@@ -84,13 +85,13 @@ const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const { data: graphMarket } = useGraphMarket(marketId, chainId);
-  const factory = graphMarket?.factory || marketFactoryAddress[chainId];
   return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", "useOnChainMarket", marketId, chainId],
+    enabled: !isUndefined(graphMarket),
     queryFn: async () => {
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {
-          args: [factory, marketId],
+          args: [graphMarket!.factory, marketId],
           chainId,
         }),
       );

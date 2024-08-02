@@ -35,4 +35,6 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   });
 };
 
+deployMarketFactory.tags = ['MarketFactory'];
+
 export default deployMarketFactory;
