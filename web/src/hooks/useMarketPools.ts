@@ -4,7 +4,14 @@ import { swaprGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
-import { GetDepositsQuery, GetEternalFarmingsQuery, OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
+import {
+  GetDepositsQuery,
+  GetEternalFarmingsQuery,
+  GetPoolsQuery,
+  OrderDirection,
+  Pool_OrderBy,
+  getSdk,
+} from "./queries/generated";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -21,27 +28,6 @@ export interface PoolInfo {
   token0: Address;
   token1: Address;
   incentives: PoolIncentive[];
-}
-
-export interface OutcomePoolInfo {
-  __typename: "Pool";
-  id: string;
-  fee: string;
-  liquidity: string;
-  sqrtPrice: string;
-  tick: string;
-  token0Price: string;
-  token1Price: string;
-  volumeUSD: string;
-  txCount: string;
-  totalValueLockedToken0: string;
-  totalValueLockedToken1: string;
-  totalValueLockedUSD: string;
-  totalValueLockedUSDUntracked: string;
-  untrackedVolumeUSD: string;
-  feesUSD: string;
-  token0: { __typename: "Token"; id: string; symbol: string; name: string; decimals: string };
-  token1: { __typename: "Token"; id: string; symbol: string; name: string; decimals: string };
 }
 
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
@@ -102,7 +88,7 @@ async function getPoolInfo(
   );
 }
 
-export async function getAllOutcomePools(chainId: SupportedChain) {
+export async function getAllOutcomePools(chainId: SupportedChain): Promise<GetPoolsQuery["pools"] | undefined> {
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!algebraClient) {
@@ -134,10 +120,10 @@ export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
 };
 
 export const useAllOutcomePools = (chainId: SupportedChain) => {
-  return useQuery<Array<OutcomePoolInfo> | undefined, Error>({
+  return useQuery<Awaited<ReturnType<typeof getAllOutcomePools>>, Error>({
     queryKey: ["useAllOutcomePools", chainId],
     retry: false,
-    queryFn: async () => getAllOutcomePools(chainId),
+    queryFn: async () => await getAllOutcomePools(chainId),
   });
 };
 
