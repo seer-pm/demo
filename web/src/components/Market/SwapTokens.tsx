@@ -10,7 +10,7 @@ import { Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, isAddressEqual, parseUnits } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import Button from "../Form/Button";
@@ -62,7 +62,8 @@ function SwapButtons({
   isLoading: boolean;
 }) {
   const missingApprovals = useMissingTradeApproval(account!, trade);
-  const isBuyWithNative = trade.inputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN;
+  const isBuyWithNative =
+    trade.inputAmount.currency.address && isAddressEqual(trade.inputAmount.currency.address as Address, NATIVE_TOKEN);
   if (!missingApprovals && !isBuyWithNative) {
     return null;
   }

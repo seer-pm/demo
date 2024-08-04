@@ -2,13 +2,13 @@ import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
-import { Address } from "viem";
+import { Address, isAddressEqual } from "viem";
 
 export async function fetchTokenBalance(token: Address, owner: Address) {
   return (
     await getBalance(config, {
       address: owner,
-      token: token.toLowerCase() === NATIVE_TOKEN ? undefined : token,
+      token: isAddressEqual(token, NATIVE_TOKEN) ? undefined : token,
     })
   ).value;
 }

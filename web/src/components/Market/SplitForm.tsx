@@ -9,7 +9,7 @@ import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, isAddressEqual, parseUnits } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
 
 export interface SplitFormValues {
@@ -55,7 +55,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
   const { data: missingApprovals = [] } = useMissingApprovals(
-    selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
+    !isAddressEqual(selectedCollateral.address, NATIVE_TOKEN) ? [selectedCollateral.address] : [],
     account,
     router,
     parsedAmount,

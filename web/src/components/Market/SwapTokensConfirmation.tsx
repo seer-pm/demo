@@ -3,6 +3,7 @@ import { RightArrow } from "@/lib/icons";
 import { NATIVE_TOKEN } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
+import { Address, isAddressEqual } from "viem";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
@@ -101,7 +102,7 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
           {minimumReceive} {outputToken}
         </span>{" "}
         or the transaction will revert.
-        {outputAddress?.toLowerCase() === NATIVE_TOKEN && <div></div>}
+        {outputAddress && isAddressEqual(outputAddress as Address, NATIVE_TOKEN) && <div></div>}
       </Alert>
       {outputAddress?.toLowerCase() === NATIVE_TOKEN && (
         <div className="mt-2 w-full">

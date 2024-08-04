@@ -13,11 +13,9 @@ import {
   TokenAmount,
   Trade,
   TradeType,
-  WXDAI,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
-import { gnosis } from "viem/chains";
+import { Address, TransactionReceipt, isAddressEqual, parseUnits, zeroAddress } from "viem";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 
@@ -29,74 +27,6 @@ export interface QuoteTradeResult {
   sellAmount: string;
   swapType: "buy" | "sell";
   trade: CoWTrade | SwaprV3Trade;
-}
-
-function getSwaprTrade(
-  currencyIn: SwaprToken,
-  currencyOut: SwaprToken,
-  currencyAmountIn: TokenAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  chainId: number,
-): Promise<SwaprV3Trade | null> {
-  if (
-    chainId === gnosis.id &&
-    (currencyIn.address === WXDAI[chainId].address || currencyOut.address === WXDAI[chainId].address)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const path: Currency[] = [currencyIn, SDAI, currencyOut];
-
-    return SwaprV3Trade.getQuoteWithPath({
-      amount: currencyAmountIn,
-      path,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    });
-  }
-  if (
-    chainId === gnosis.id &&
-    (currencyIn.address.toLowerCase() === NATIVE_TOKEN || currencyOut.address.toLowerCase() === NATIVE_TOKEN)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const pathBuy: Currency[] = [WXDAI[chainId], SDAI, currencyOut];
-    const pathSell: Currency[] = [currencyIn, SDAI, WXDAI[chainId]];
-
-    return SwaprV3Trade.getQuoteWithPath({
-      amount:
-        currencyIn.address.toLowerCase() === NATIVE_TOKEN
-          ? CurrencyAmount.nativeCurrency(BigInt(currencyAmountIn.raw.toString()), chainId)
-          : currencyAmountIn,
-      path: currencyIn.address.toLowerCase() === NATIVE_TOKEN ? pathBuy : pathSell,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    }).then((trade) => {
-      if (trade && currencyOut.address.toLowerCase() === NATIVE_TOKEN) {
-        // change outputAmount to XDAI instead of WXDAI
-        return new SwaprV3Trade({
-          maximumSlippage: trade.maximumSlippage,
-          inputAmount: trade.inputAmount,
-          outputAmount: CurrencyAmount.nativeCurrency(BigInt(trade.outputAmount.raw.toString()), chainId),
-          tradeType: TradeType.EXACT_INPUT,
-          chainId,
-          priceImpact: trade.priceImpact,
-          fee: trade.fee,
-        });
-      }
-      return trade;
-    });
-  }
-
-  return SwaprV3Trade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
 }
 
 type QuoteTradeFn = (
@@ -118,14 +48,13 @@ export const getSwaprQuote: QuoteTradeFn = async (
 ) => {
   const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
-  const trade = await getSwaprTrade(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountIn,
-    args.maximumSlippage,
-    account,
-    chainId,
-  );
+  const trade = await SwaprV3Trade.getQuote({
+    amount: args.currencyAmountIn,
+    quoteCurrency: args.currencyOut,
+    maximumSlippage: args.maximumSlippage,
+    recipient: account || zeroAddress,
+    tradeType: TradeType.EXACT_INPUT,
+  });
 
   if (!trade) {
     throw new Error("No route found");
@@ -175,6 +104,26 @@ export const getCowQuote: QuoteTradeFn = async (
   };
 };
 
+function getCurrencyOrTokenIn(
+  sellToken: Token,
+  amount: string,
+  chainId: number,
+): { currencyIn: Currency; currencyAmountIn: CurrencyAmount } | { currencyIn: Token; currencyAmountIn: TokenAmount } {
+  if (isAddressEqual(sellToken.address, NATIVE_TOKEN)) {
+    const currencyIn = Currency.getNative(chainId);
+    return {
+      currencyIn: currencyIn,
+      currencyAmountIn: CurrencyAmount.nativeCurrency(parseUnits(String(amount), currencyIn.decimals), chainId),
+    };
+  }
+
+  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
+  return {
+    currencyIn,
+    currencyAmountIn: new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals)),
+  };
+}
+
 function getTradeArgs(
   chainId: number,
   amount: string,
@@ -187,10 +136,9 @@ function getTradeArgs(
 
   const sellAmount = parseUnits(String(amount), sellToken.decimals);
 
-  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
+  const { currencyIn, currencyAmountIn } = getCurrencyOrTokenIn(sellToken, amount, chainId);
 
-  const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
+  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
 
   const maximumSlippage = new Percent("1", "100");
 

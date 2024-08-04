@@ -5,7 +5,7 @@ import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { formatUnits, getAddress } from "viem";
 
-export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+export const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 // https://stackoverflow.com/a/72190364
 export function localTimeToUtc(utcTime: Date | string | number) {

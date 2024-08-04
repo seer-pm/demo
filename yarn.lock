@@ -3429,9 +3429,9 @@
   dependencies:
     "@swapr/core" "^0.3.17"
 
-"@swapr/sdk@https://github.com/rodsouto/swapr-sdk#fork-with-postinstall":
+"@swapr/sdk@https://github.com/rodsouto/swapr-sdk#feat/new-router":
   version "1.11.4"
-  resolved "https://github.com/rodsouto/swapr-sdk#e0a6eb653413bb4d5d8bc69fb902e3a7a05a59a6"
+  resolved "https://github.com/rodsouto/swapr-sdk#c21fc026095770002e8f78d78f80242d4b3ee777"
   dependencies:
     "@cowprotocol/cow-sdk" "^1.0.2-RC.0"
     "@ethersproject/abi" "^5.6.4"
