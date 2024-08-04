@@ -15,6 +15,7 @@ import {
 import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
+import useSortMarket from "./useSortMarket";
 import { fetchWrappedAddresses } from "./useWrappedAddresses";
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
@@ -154,4 +155,17 @@ export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creato
 
   // if the subgraph is slow return first the onChain data, and update with the subgraph data once it's available
   return graphMarkets.data ? graphMarkets : onChainMarkets;
+};
+
+export const useSortedMarkets = (params: UseMarketsProps) => {
+  const result = useMarkets(params);
+  const markets = result.data || [];
+
+  const defaultSortedMarkets = useSortMarket(markets);
+  const data = params.orderBy ? markets : defaultSortedMarkets;
+
+  return {
+    ...result,
+    data,
+  };
 };

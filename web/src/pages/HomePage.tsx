@@ -4,8 +4,7 @@ import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
 import { Market_OrderBy } from "@/hooks/queries/generated";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { useMarkets } from "@/hooks/useMarkets";
-import useSortMarket from "@/hooks/useSortMarket";
+import { useSortedMarkets } from "@/hooks/useMarkets";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { useState } from "react";
@@ -16,15 +15,13 @@ function Home() {
   const [marketName, setMarketName] = useState("");
   const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
   const [orderBy, setOrderBy] = useState<Market_OrderBy>();
-  const { data: markets = [], isPending } = useMarkets({
+  const { data: markets = [], isPending } = useSortedMarkets({
     chainId: chainId as SupportedChain,
     marketName,
     marketStatus,
     orderBy,
   });
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
-  const defaultSortedMarkets = useSortMarket(markets);
-  const sortedMarkets = orderBy ? markets : defaultSortedMarkets;
 
   const toggleOrderBy = (newOrderBy: Market_OrderBy) => {
     setOrderBy(newOrderBy === orderBy ? undefined : newOrderBy);
@@ -45,10 +42,10 @@ function Home() {
         </div>
       )}
 
-      {!isPending && sortedMarkets.length === 0 && <Alert type="warning">No markets found.</Alert>}
+      {!isPending && markets.length === 0 && <Alert type="warning">No markets found.</Alert>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {sortedMarkets.map((market) => (
+        {markets.map((market) => (
           <PreviewCard
             key={market.id}
             market={market}
