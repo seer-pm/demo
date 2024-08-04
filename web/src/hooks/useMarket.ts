@@ -37,7 +37,12 @@ export interface Market {
   index?: number;
 }
 
-export function mapOnChainMarket(onChainMarket: Awaited<ReturnType<typeof readMarketViewGetMarket>>): Market {
+export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>> & {
+  creator?: string | null;
+  outcomeAddresses?: `0x${string}`[];
+};
+
+export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
   const market: Market = {
     ...onChainMarket,
     marketName: unescapeJson(onChainMarket.marketName),
@@ -58,7 +63,6 @@ export function mapOnChainMarket(onChainMarket: Awaited<ReturnType<typeof readMa
 
     market.outcomes = outcomes;
   }
-
   return market;
 }
 

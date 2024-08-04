@@ -4,7 +4,14 @@ import { swaprGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
-import { GetDepositsQuery, GetEternalFarmingsQuery, OrderDirection, Pool_OrderBy, getSdk } from "./queries/generated";
+import {
+  GetDepositsQuery,
+  GetEternalFarmingsQuery,
+  GetPoolsQuery,
+  OrderDirection,
+  Pool_OrderBy,
+  getSdk,
+} from "./queries/generated";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -81,6 +88,22 @@ async function getPoolInfo(
   );
 }
 
+export async function getAllOutcomePools(chainId: SupportedChain): Promise<GetPoolsQuery["pools"] | undefined> {
+  const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+  if (!algebraClient) {
+    throw new Error("Subgraph not available");
+  }
+  try {
+    const { pools } = await getSdk(algebraClient).GetPools({
+      where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
+    });
+    return pools;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
     enabled: tokens && tokens.length > 0,
@@ -93,6 +116,14 @@ export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
         }),
       );
     },
+  });
+};
+
+export const useAllOutcomePools = (chainId: SupportedChain) => {
+  return useQuery<Awaited<ReturnType<typeof getAllOutcomePools>>, Error>({
+    queryKey: ["useAllOutcomePools", chainId],
+    retry: false,
+    queryFn: async () => await getAllOutcomePools(chainId),
   });
 };
 

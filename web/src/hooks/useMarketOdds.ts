@@ -3,6 +3,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote } from "./trade";
+import useMarketHasLiquidity from "./useMarketHasLiquidity";
 import { useWrappedAddresses } from "./useWrappedAddresses";
 
 function normalizeOdds(prices: number[]) {
@@ -38,9 +39,10 @@ export const useMarketOdds = (
   outcomeSlotCount: number,
 ) => {
   const { data: wrappedAddresses } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
+  const hasLiquidity = useMarketHasLiquidity(chainId, wrappedAddresses);
   return useQuery<number[] | undefined, Error>({
-    enabled: !!wrappedAddresses && outcomeSlotCount > 0,
-    queryKey: ["useMarketOdds", chainId, router, conditionId, outcomeSlotCount],
+    enabled: !!wrappedAddresses && outcomeSlotCount > 0 && hasLiquidity,
+    queryKey: ["useMarketOdds", chainId, router, conditionId, outcomeSlotCount, hasLiquidity],
     queryFn: async () => {
       const BUY_AMOUNT = 1000;
 

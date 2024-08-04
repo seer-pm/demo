@@ -22,6 +22,7 @@ import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { useModal } from "../Modal";
+import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
 
 interface PositionsProps {
@@ -194,7 +195,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
   );
   const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
   const { data: balances } = useTokenBalances(address, wrappedAddresses);
-  const { data: odds = [], isPending: oddsPending } = useMarketOdds(
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(
     chainId,
     router,
     market.conditionId,
@@ -326,7 +327,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
               </div>
             </div>
             <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{oddsPending ? "" : `${odds?.[i] || 0}%`}</div>
+              <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
 
               <input
                 type="radio"

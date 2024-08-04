@@ -1,10 +1,11 @@
 import { Alert } from "@/components/Alert";
-import { MarketsFilter, ORDER_OPTIONS } from "@/components/Market/MarketsFilter";
+import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
 import { Market_OrderBy } from "@/hooks/queries/generated";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { useMarkets } from "@/hooks/useMarkets";
+import { useSortedMarkets } from "@/hooks/useMarkets";
+import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { shortenAddress } from "@/lib/utils";
 import { useState } from "react";
@@ -14,14 +15,19 @@ function ProfilePage() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
   const [marketName, setMarketName] = useState("");
   const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
-  const [orderBy, serOrderBy] = useState<Market_OrderBy>(ORDER_OPTIONS[0].value);
-  const { data: markets = [], isPending } = useMarkets({
+  const [orderBy, setOrderBy] = useState<Market_OrderBy>();
+  const { data: markets = [], isPending } = useSortedMarkets({
     chainId: chainId as SupportedChain,
     creator: address,
     marketName,
     marketStatus,
     orderBy,
   });
+
+  const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
+  const toggleOrderBy = (newOrderBy: Market_OrderBy) => {
+    setOrderBy(newOrderBy === orderBy ? undefined : newOrderBy);
+  };
 
   if (!address) {
     return (
@@ -41,7 +47,7 @@ function ProfilePage() {
         setMarketName={setMarketName}
         setMarketStatus={setMarketStatus}
         orderBy={orderBy}
-        setOrderBy={serOrderBy}
+        setOrderBy={toggleOrderBy}
       />
 
       {isPending && (
@@ -54,7 +60,12 @@ function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
-          <PreviewCard key={market.id} market={market} chainId={chainId as SupportedChain} />
+          <PreviewCard
+            key={market.id}
+            market={market}
+            chainId={chainId as SupportedChain}
+            verificationStatusResult={verificationStatusResultList?.[market.id] ?? defaultStatus}
+          />
         ))}
       </div>
     </div>
