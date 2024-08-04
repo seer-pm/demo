@@ -486,7 +486,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
             address(tokenIn) == address(sDAI) ||
             address(tokenOut) == address(sDAI)
         ) {
-            // a sDAI<>OUTCOME swap produce the same output in both routers
+            // a sDAI<>OUTCOME_TOKEN swap produce the same output in both routers
             assertEq(
                 quotedAmountOut1,
                 quotedAmountOut2,
@@ -511,42 +511,42 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactInputSingle_TokenIn_wxDai() external {
-        // swap wxDAI->OUTCOME
+        // swap wxDAI->OUTCOME_TOKEN
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, wxDAI, outcomeToken);
     }
 
     function test_exactInputSingle_TokenIn_sDai() external {
-        // swap sDAI->OUTCOME
+        // swap sDAI->OUTCOME_TOKEN
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, sDAI, outcomeToken);
     }
 
     function test_exactInputSingle_TokenIn_xDai() external {
-        // swap xDAI->OUTCOME
+        // swap xDAI->OUTCOME_TOKEN
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, IERC20(xDAI), outcomeToken);
     }
 
     function test_exactInputSingle_TokenOut_wxDai() external {
-        // swap OUTCOME->wxDAI
+        // swap OUTCOME_TOKEN->wxDAI
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, outcomeToken, wxDAI);
     }
 
     function test_exactInputSingle_TokenOut_sDai() external {
-        // swap OUTCOME->sDAI
+        // swap OUTCOME_TOKEN->sDAI
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, outcomeToken, sDAI);
     }
 
     function test_exactInputSingle_TokenOut_xDai() external {
-        // swap OUTCOME->xDAI
+        // swap OUTCOME_TOKEN->xDAI
         uint256 amountIn = 2 ether;
 
         assertSwapExactInputSingle(amountIn, outcomeToken, IERC20(xDAI));
@@ -635,7 +635,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
             address(tokenIn) == address(sDAI) ||
             address(tokenOut) == address(sDAI)
         ) {
-            // a sDAI<>OUTCOME swap produce the same output in both routers
+            // a sDAI<>OUTCOME_TOKEN swap produce the same output in both routers
             assertEq(quotedAmountIn1, quotedAmountIn2, "Assert same quote in");
             assertEq(amountIn1, amountIn2, "Assert amountIn");
             assertEq(
@@ -672,7 +672,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenIn_wxDai() external {
-        // swap wxDAI->OUTCOME
+        // swap wxDAI->OUTCOME_TOKEN
         uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 2 ether;
 
@@ -685,7 +685,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenIn_sDai() external {
-        // swap sDAI->OUTCOME
+        // swap sDAI->OUTCOME_TOKEN
         uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 2 ether;
 
@@ -698,7 +698,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenIn_xDai() external {
-        // swap xDAI->OUTCOME
+        // swap xDAI->OUTCOME_TOKEN
         uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 2 ether;
 
@@ -711,7 +711,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenOut_wxDai() external {
-        // swap OUTCOME->wxDAI
+        // swap OUTCOME_TOKEN->wxDAI
         uint256 amountOut = 0.8 ether;
         uint256 amountInMaximum = 3 ether;
 
@@ -724,7 +724,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenOut_sDai() external {
-        // swap OUTCOME->sDAI
+        // swap OUTCOME_TOKEN->sDAI
         uint256 amountOut = 0.8 ether;
         uint256 amountInMaximum = 3 ether;
 
@@ -737,7 +737,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
     }
 
     function test_exactOutputSingle_TokenOut_xDai() external {
-        // swap OUTCOME->xDAI
+        // swap OUTCOME_TOKEN->xDAI
         uint256 amountOut = 0.5 ether;
         uint256 amountInMaximum = 3 ether;
 
