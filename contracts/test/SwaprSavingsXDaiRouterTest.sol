@@ -661,7 +661,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
                 balancesChange2.tokenIn,
                 "Assert tokenIn balances"
             );
-            // seer router should receive more tokens (we allow a small difference because of the intermediate sDAI.deposit(amountInMaximum))
+            // we allow a small difference because of the intermediate sDAI.deposit(amountInMaximum)
             assertApproxEqAbs(
                 balancesChange1.tokenOut,
                 balancesChange2.tokenOut,
