@@ -2,7 +2,6 @@ pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
 import "../src/interaction/SwaprSavingsXDaiRouter.sol";
-import "forge-std/console.sol";
 
 /// @title Quoter Interface
 /// @notice Supports quoting the calculated amounts from exact input or exact output swaps
@@ -175,7 +174,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 amountIn,
         address tokenIn,
         address tokenOut
-    ) internal {
+    ) internal returns (uint256 quotedAmountOut, uint256 amountOut) {
         ISingleSwapRouter.ExactInputSingleParams
             memory inputParams = ISingleSwapRouter.ExactInputSingleParams({
                 tokenIn: tokenIn,
@@ -187,11 +186,24 @@ contract SwaprSavingsXDaiRouterTest is Test {
                 limitSqrtPrice: 0
             });
 
+        (quotedAmountOut, ) = swaprSXDaiRouter.quoteExactInputSingle(
+            tokenIn,
+            tokenOut,
+            amountIn,
+            0
+        );
+
         if (tokenIn == xDAI) {
-            swaprSXDaiRouter.exactInputSingle{value: amountIn}(inputParams);
+            return (
+                quotedAmountOut,
+                swaprSXDaiRouter.exactInputSingle{value: amountIn}(inputParams)
+            );
         } else {
             IERC20(tokenIn).approve(address(swaprSXDaiRouter), amountIn);
-            swaprSXDaiRouter.exactInputSingle(inputParams);
+            return (
+                quotedAmountOut,
+                swaprSXDaiRouter.exactInputSingle(inputParams)
+            );
         }
     }
 
@@ -211,7 +223,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 amountInMaximum,
         address tokenIn,
         address tokenOut
-    ) internal returns (uint256) {
+    ) internal returns (uint256 quotedAmountIn, uint256 amountIn) {
         ISingleSwapRouter.ExactOutputSingleParams
             memory outputParams = ISingleSwapRouter.ExactOutputSingleParams({
                 tokenIn: tokenIn,
@@ -223,14 +235,26 @@ contract SwaprSavingsXDaiRouterTest is Test {
                 amountInMaximum: amountInMaximum,
                 limitSqrtPrice: 0
             });
+
+        (quotedAmountIn, ) = swaprSXDaiRouter.quoteExactOutputSingle(
+            tokenIn,
+            tokenOut,
+            amountOut,
+            0
+        );
         if (tokenIn == xDAI) {
-            return
+            return (
+                quotedAmountIn,
                 swaprSXDaiRouter.exactOutputSingle{value: amountInMaximum}(
                     outputParams
-                );
+                )
+            );
         } else {
             IERC20(tokenIn).approve(address(swaprSXDaiRouter), amountInMaximum);
-            return swaprSXDaiRouter.exactOutputSingle(outputParams);
+            return (
+                quotedAmountIn,
+                swaprSXDaiRouter.exactOutputSingle(outputParams)
+            );
         }
     }
 
@@ -238,7 +262,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 amountIn,
         address tokenIn,
         address tokenOut
-    ) internal {
+    ) internal returns (uint256 quotedAmountOut, uint256 amountOut) {
         if (tokenIn == address(sDAI) || tokenOut == address(sDAI)) {
             ISwapRouter.ExactInputSingleParams
                 memory inputSingleParams = ISwapRouter.ExactInputSingleParams({
@@ -250,11 +274,17 @@ contract SwaprSavingsXDaiRouterTest is Test {
                     amountOutMinimum: 0,
                     limitSqrtPrice: 0
                 });
-
             IERC20(tokenIn).approve(address(swaprRouter), amountIn);
-            swaprRouter.exactInputSingle(inputSingleParams);
-
-            return;
+            (quotedAmountOut, ) = swaprQuoter.quoteExactInputSingle(
+                tokenIn,
+                tokenOut,
+                amountIn,
+                0
+            );
+            return (
+                quotedAmountOut,
+                swaprRouter.exactInputSingle(inputSingleParams)
+            );
         }
 
         ISwapRouter.ExactInputParams memory inputParams = ISwapRouter
@@ -266,7 +296,11 @@ contract SwaprSavingsXDaiRouterTest is Test {
                 amountOutMinimum: 0
             });
         IERC20(tokenIn).approve(address(swaprRouter), amountIn);
-        swaprRouter.exactInput(inputParams);
+        (quotedAmountOut, ) = swaprQuoter.quoteExactInput(
+            abi.encodePacked(tokenIn, sDAI, tokenOut),
+            amountIn
+        );
+        return (quotedAmountOut, swaprRouter.exactInput(inputParams));
     }
 
     function swaprRouterExactOutput(
@@ -274,7 +308,7 @@ contract SwaprSavingsXDaiRouterTest is Test {
         uint256 amountInMaximum,
         address tokenIn,
         address tokenOut
-    ) internal returns (uint256) {
+    ) internal returns (uint256 quotedAmountIn, uint256 amountIn) {
         if (tokenIn == address(sDAI) || tokenOut == address(sDAI)) {
             ISwapRouter.ExactOutputSingleParams
                 memory outputSingleParams = ISwapRouter
@@ -289,7 +323,16 @@ contract SwaprSavingsXDaiRouterTest is Test {
                         limitSqrtPrice: 0
                     });
             IERC20(tokenIn).approve(address(swaprRouter), amountInMaximum);
-            return swaprRouter.exactOutputSingle(outputSingleParams);
+            (quotedAmountIn, ) = swaprQuoter.quoteExactOutputSingle(
+                tokenIn,
+                tokenOut,
+                amountOut,
+                0
+            );
+            return (
+                quotedAmountIn,
+                swaprRouter.exactOutputSingle(outputSingleParams)
+            );
         }
 
         ISwapRouter.ExactOutputParams memory outputParams = ISwapRouter
@@ -301,7 +344,11 @@ contract SwaprSavingsXDaiRouterTest is Test {
                 amountInMaximum: amountInMaximum
             });
         IERC20(tokenIn).approve(address(swaprRouter), amountInMaximum);
-        return swaprRouter.exactOutput(outputParams);
+        (quotedAmountIn, ) = swaprQuoter.quoteExactOutput(
+            abi.encodePacked(tokenOut, sDAI, tokenIn),
+            amountOut
+        );
+        return (quotedAmountIn, swaprRouter.exactOutput(outputParams));
     }
 
     function getBalance(
@@ -315,6 +362,37 @@ contract SwaprSavingsXDaiRouterTest is Test {
         return token.balanceOf(owner);
     }
 
+    struct TokenBalances {
+        uint256 tokenIn;
+        uint256 tokenOut;
+    }
+
+    function getBalances(
+        IERC20 tokenIn,
+        IERC20 tokenOut,
+        address owner
+    ) internal returns (TokenBalances memory) {
+        return
+            TokenBalances(
+                getBalance(tokenIn, owner),
+                getBalance(tokenOut, owner)
+            );
+    }
+
+    function getBalancesChange(
+        IERC20 tokenIn,
+        uint256 tokenInInitialBalance,
+        IERC20 tokenOut,
+        uint256 tokenOutInitialBalance,
+        address owner
+    ) internal returns (TokenBalances memory) {
+        return
+            TokenBalances(
+                tokenInInitialBalance - getBalance(tokenIn, owner),
+                getBalance(tokenOut, owner) - tokenOutInitialBalance
+            );
+    }
+
     // Test Exact Input
 
     function assertSwapExactInputSingle(
@@ -325,17 +403,26 @@ contract SwaprSavingsXDaiRouterTest is Test {
         // swap using seer router
         vm.selectFork(forkSeer);
         swapExactInputSetup(address(tokenIn), amountIn);
-        uint256 tokenInBalanceStart1 = getBalance(tokenIn, address(this));
-        uint256 tokenOutBalanceStart1 = getBalance(tokenOut, address(this));
-        swaprSXDaiRouterExactInputSingle(
-            amountIn,
-            address(tokenIn),
-            address(tokenOut)
+        TokenBalances memory initialBalances1 = getBalances(
+            tokenIn,
+            tokenOut,
+            address(this)
         );
-        uint256 tokenInBalanceChange1 = tokenInBalanceStart1 -
-            getBalance(tokenIn, address(this));
-        uint256 tokenOutBalanceChange1 = getBalance(tokenOut, address(this)) -
-            tokenOutBalanceStart1;
+        (
+            uint256 quotedAmountOut1,
+            uint256 amountOut1
+        ) = swaprSXDaiRouterExactInputSingle(
+                amountIn,
+                address(tokenIn),
+                address(tokenOut)
+            );
+        TokenBalances memory balancesChange1 = getBalancesChange(
+            tokenIn,
+            initialBalances1.tokenIn,
+            tokenOut,
+            initialBalances1.tokenOut,
+            address(this)
+        );
 
         assertEq(address(swaprSXDaiRouter).balance, 0, "Router native balance");
         assertEq(
@@ -355,37 +442,69 @@ contract SwaprSavingsXDaiRouterTest is Test {
         IERC20 swaprTokenOut = address(tokenOut) == xDAI ? wxDAI : tokenOut;
 
         swapExactInputSetup(address(swaprTokenIn), amountIn);
-        uint256 tokenInBalanceStart2 = getBalance(swaprTokenIn, address(this));
-        uint256 tokenOutBalanceStart2 = getBalance(
+        TokenBalances memory initialBalances2 = getBalances(
+            swaprTokenIn,
             swaprTokenOut,
             address(this)
         );
-        swaprRouterExactInput(
+        (uint256 quotedAmountOut2, uint256 amountOut2) = swaprRouterExactInput(
             amountIn,
             address(swaprTokenIn),
             address(swaprTokenOut)
         );
-        uint256 tokenInBalanceChange2 = tokenInBalanceStart2 -
-            getBalance(swaprTokenIn, address(this));
-        uint256 tokenOutBalanceChange2 = getBalance(
+        TokenBalances memory balancesChange2 = getBalancesChange(
+            swaprTokenIn,
+            initialBalances2.tokenIn,
             swaprTokenOut,
+            initialBalances2.tokenOut,
             address(this)
-        ) - tokenOutBalanceStart2;
+        );
 
-        assertEq(tokenInBalanceChange1, amountIn, "Assert spent all tokenIn 1");
-        assertEq(tokenInBalanceChange2, amountIn, "Assert spent all tokenIn 2");
+        assertEq(
+            balancesChange1.tokenIn,
+            amountIn,
+            "Assert spent all tokenIn 1"
+        );
+        assertEq(
+            balancesChange2.tokenIn,
+            amountIn,
+            "Assert spent all tokenIn 2"
+        );
+
+        assertEq(
+            quotedAmountOut1,
+            amountOut1,
+            "Assert same quote and amountOut1"
+        );
+        assertEq(
+            quotedAmountOut2,
+            amountOut2,
+            "Assert same quote and amountOut2"
+        );
 
         if (
             address(tokenIn) == address(sDAI) ||
             address(tokenOut) == address(sDAI)
         ) {
             // a sDAI<>OUTCOME swap produce the same output in both routers
-            assertEq(tokenOutBalanceChange1, tokenOutBalanceChange2);
+            assertEq(
+                quotedAmountOut1,
+                quotedAmountOut2,
+                "Assert same quote out"
+            );
+            assertEq(amountOut1, amountOut2, "Assert amountOut");
+            assertEq(balancesChange1.tokenOut, balancesChange2.tokenOut);
         } else {
             // seer router should have more tokens because it has less slippage
             assertGt(
-                tokenOutBalanceChange1,
-                tokenOutBalanceChange2,
+                quotedAmountOut1,
+                quotedAmountOut2,
+                "Assert better quote out"
+            );
+            assertGt(amountOut1, amountOut2, "Assert amountOut");
+            assertGt(
+                balancesChange1.tokenOut,
+                balancesChange2.tokenOut,
                 "Assert tokenOut balances"
             );
         }
@@ -444,18 +563,27 @@ contract SwaprSavingsXDaiRouterTest is Test {
         // swap using seer router
         vm.selectFork(forkSeer);
         swapExactOutputSetup(address(tokenIn), amountInMaximum);
-        uint256 tokenInBalanceStart1 = getBalance(tokenIn, address(this));
-        uint256 tokenOutBalanceStart1 = getBalance(tokenOut, address(this));
-        uint256 amountIn1 = swaprSXDaiRouterExactOutputSingle(
-            amountOut,
-            amountInMaximum,
-            address(tokenIn),
-            address(tokenOut)
+        TokenBalances memory initialBalances1 = getBalances(
+            tokenIn,
+            tokenOut,
+            address(this)
         );
-        uint256 tokenInBalanceChange1 = tokenInBalanceStart1 -
-            getBalance(tokenIn, address(this));
-        uint256 tokenOutBalanceChange1 = getBalance(tokenOut, address(this)) -
-            tokenOutBalanceStart1;
+        (
+            uint256 quotedAmountIn1,
+            uint256 amountIn1
+        ) = swaprSXDaiRouterExactOutputSingle(
+                amountOut,
+                amountInMaximum,
+                address(tokenIn),
+                address(tokenOut)
+            );
+        TokenBalances memory balancesChange1 = getBalancesChange(
+            tokenIn,
+            initialBalances1.tokenIn,
+            tokenOut,
+            initialBalances1.tokenOut,
+            address(this)
+        );
 
         assertEq(address(swaprSXDaiRouter).balance, 0, "Router native balance");
         assertEq(
@@ -475,53 +603,69 @@ contract SwaprSavingsXDaiRouterTest is Test {
         IERC20 swaprTokenOut = address(tokenOut) == xDAI ? wxDAI : tokenOut;
 
         swapExactInputSetup(address(swaprTokenIn), amountInMaximum);
-        uint256 tokenInBalanceStart2 = getBalance(swaprTokenIn, address(this));
-        uint256 tokenOutBalanceStart2 = getBalance(
+        TokenBalances memory initialBalances2 = getBalances(
+            swaprTokenIn,
             swaprTokenOut,
             address(this)
         );
-        uint256 amountIn2 = swaprRouterExactOutput(
+        (uint256 quotedAmountIn2, uint256 amountIn2) = swaprRouterExactOutput(
             amountOut,
             amountInMaximum,
             address(swaprTokenIn),
             address(swaprTokenOut)
         );
-        uint256 tokenInBalanceChange2 = tokenInBalanceStart2 -
-            getBalance(swaprTokenIn, address(this));
-        uint256 tokenOutBalanceChange2 = getBalance(
+        TokenBalances memory balancesChange2 = getBalancesChange(
+            swaprTokenIn,
+            initialBalances2.tokenIn,
             swaprTokenOut,
+            initialBalances2.tokenOut,
             address(this)
-        ) - tokenOutBalanceStart2;
+        );
+
+        // we allow a small difference because of the intermediate sDAI.deposit(amountInMaximum)
+        assertApproxEqAbs(
+            quotedAmountIn1,
+            amountIn1,
+            10,
+            "Assert same quote and amountIn1"
+        );
+        assertEq(quotedAmountIn2, amountIn2, "Assert same quote and amountIn2");
 
         if (
             address(tokenIn) == address(sDAI) ||
             address(tokenOut) == address(sDAI)
         ) {
             // a sDAI<>OUTCOME swap produce the same output in both routers
+            assertEq(quotedAmountIn1, quotedAmountIn2, "Assert same quote in");
+            assertEq(amountIn1, amountIn2, "Assert amountIn");
             assertEq(
-                tokenInBalanceChange1,
-                tokenInBalanceChange2,
+                balancesChange1.tokenIn,
+                balancesChange2.tokenIn,
                 "Assert same tokenIn change"
             );
             assertEq(
-                tokenOutBalanceChange1,
-                tokenOutBalanceChange2,
+                balancesChange1.tokenOut,
+                balancesChange2.tokenOut,
                 "Assert same tokenOut change"
             );
         } else {
+            assertLt(
+                quotedAmountIn1,
+                quotedAmountIn2,
+                "Assert better quote in"
+            );
             assertLt(amountIn1, amountIn2, "Assert amountIn");
-
             // seer router should spend less tokens
             assertLt(
-                tokenInBalanceChange1,
-                tokenInBalanceChange2,
+                balancesChange1.tokenIn,
+                balancesChange2.tokenIn,
                 "Assert tokenIn balances"
             );
-            // seer router should receive more tokens (we allow a small difference because of the intermediate sDAI.previewDeposit())
+            // seer router should receive more tokens (we allow a small difference because of the intermediate sDAI.deposit(amountInMaximum))
             assertApproxEqAbs(
-                tokenOutBalanceChange1,
-                tokenOutBalanceChange2,
-                1,
+                balancesChange1.tokenOut,
+                balancesChange2.tokenOut,
+                10,
                 "Assert tokenOut balances"
             );
         }

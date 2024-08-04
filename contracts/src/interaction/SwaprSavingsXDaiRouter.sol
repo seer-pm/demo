@@ -239,27 +239,27 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
     ) public override returns (uint256 amountIn, uint16 fee) {
         if (tokenIn == xDAI || tokenIn == wxDAI) {
             // (w)xDAI<>OUTCOME_TOKEN
-            // deposit (w)xDAI to sDAI and quote sDAI<>OUTCOME_TOKEN
-            return
-                swaprQuoter.quoteExactOutputSingle(
+            // quote sDAI<>OUTCOME_TOKEN and redeem sDAI for (w)xDAI
+            (uint256 quotedAmountIn, uint16 quotedFee) = swaprQuoter
+                .quoteExactOutputSingle(
                     address(sDAI),
                     tokenOut,
                     amountOut,
                     limitSqrtPrice
                 );
+            return (sDAI.previewRedeem(quotedAmountIn), quotedFee);
         }
 
         if (tokenOut == xDAI || tokenOut == wxDAI) {
             // OUTCOME_TOKEN<>(w)xDAI
-            // quote OUTCOME_TOKEN<>sDAI and redeem sDAI for xDAI
-            (uint256 quotedAmountOut, uint16 quotedFee) = swaprQuoter
-                .quoteExactInputSingle(
+            // quote OUTCOME_TOKEN<>sDAI and redeem sDAI for (w)xDAI
+            return
+                swaprQuoter.quoteExactOutputSingle(
                     tokenIn,
                     address(sDAI),
-                    amountIn,
+                    sDAI.previewDeposit(amountOut),
                     limitSqrtPrice
                 );
-            return (sDAI.previewRedeem(quotedAmountOut), quotedFee);
         }
 
         return
@@ -308,17 +308,19 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             }
 
             // 2) swap sDAI<>OUTCOME_TOKEN
+            uint256 _amountInMaximum = params.amountInMaximum;
             params.tokenIn = address(sDAI);
             params.amountInMaximum = shares;
 
             sDAI.approve(address(swaprRouter), params.amountInMaximum);
             amountIn = swaprRouter.exactOutputSingle(params);
 
+            uint256 tokenInExcess = 0;
             if (amountIn < shares) {
                 // refund excess (w)xDAI
                 sDAI.approve(address(savingsXDaiAdapter), shares - amountIn);
 
-                msg.value > 0
+                tokenInExcess = msg.value > 0
                     ? savingsXDaiAdapter.redeemXDAI(
                         shares - amountIn,
                         params.recipient
@@ -329,7 +331,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                     );
             }
 
-            return amountIn;
+            return _amountInMaximum - tokenInExcess;
         }
 
         if (params.tokenOut == xDAI || params.tokenOut == wxDAI) {
