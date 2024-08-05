@@ -132,7 +132,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
         address tokenOut,
         uint256 amountIn,
         uint160 limitSqrtPrice
-    ) public override returns (uint256 amountOut, uint16 fee) {
+    ) external override returns (uint256 amountOut, uint16 fee) {
         if (tokenIn == xDAI || tokenIn == wxDAI) {
             // (w)xDAI->OUTCOME_TOKEN
             // deposit (w)xDAI to sDAI and quote sDAI<>OUTCOME_TOKEN
@@ -244,7 +244,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
         address tokenOut,
         uint256 amountOut,
         uint160 limitSqrtPrice
-    ) public override returns (uint256 amountIn, uint16 fee) {
+    ) external override returns (uint256 amountIn, uint16 fee) {
         if (tokenIn == xDAI || tokenIn == wxDAI) {
             // (w)xDAI->OUTCOME_TOKEN
             // quote sDAI<>OUTCOME_TOKEN and redeem sDAI for (w)xDAI
