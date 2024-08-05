@@ -172,7 +172,6 @@ export default class ArbitrationFlow {
         "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
         "0xaf204776c7245bF4147c2612BF6e5972Ee483701",
         "0x5BE39c00fB89688E8C38732Fb204B084ca5f8965",
-        "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
         QUESTION_TIMEOUT,
       );
     const realitio = new ethers.Contract("0xE78996A233895bE74a66F451f1019cA9734205cc", realitioAbi, this.homeSigner);

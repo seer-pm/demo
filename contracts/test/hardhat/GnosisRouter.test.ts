@@ -44,11 +44,7 @@ describe("GnosisRouter", function () {
     const market = await ethers.getContractAt("Market", marketAddress);
     const questionId = await market.questionId();
     const oracleAddress = await realityProxy.getAddress();
-    const conditionId = await conditionalTokens.getConditionId(
-      oracleAddress,
-      questionId,
-      outcomeSlotCount
-    );
+    const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
     const partition = Array(outcomeSlotCount)
       .fill(0)
       .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount));
@@ -57,12 +53,9 @@ describe("GnosisRouter", function () {
     await sDAI.approve(gnosisRouter, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
-    await gnosisRouter.splitFromBase(
-      PARENT_COLLECTION_ID,
-      conditionId,
-      partition,
-      { value: ethers.parseEther(SPLIT_AMOUNT) }
-    );
+    await gnosisRouter.splitFromBase(PARENT_COLLECTION_ID, conditionId, partition, {
+      value: ethers.parseEther(SPLIT_AMOUNT),
+    });
     return { outcomeSlotCount, conditionId, questionId, market };
   }
 
@@ -73,6 +66,7 @@ describe("GnosisRouter", function () {
         {
           forking: {
             jsonRpcUrl: GnosisAddress.RPC_URL,
+            blockNumber: 35329197
           },
         },
       ],
@@ -81,8 +75,7 @@ describe("GnosisRouter", function () {
 
     sDAI = await ethers.getContractAt("ISavingsXDai", GnosisAddress.S_DAI);
 
-    const sDAIMarketFactoryDeployFixture = async () =>
-      marketFactoryDeployFixture(sDAI);
+    const sDAIMarketFactoryDeployFixture = async () => marketFactoryDeployFixture(sDAI);
     const {
       marketFactory: _marketFactory,
       conditionalTokens: _conditionalTokens,
@@ -105,22 +98,16 @@ describe("GnosisRouter", function () {
   describe("splitPosition", function () {
     it("splits position and send outcome tokens to user", async function () {
       const [owner] = await ethers.getSigners();
-      const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(SPLIT_AMOUNT)
-      );
-      const { outcomeSlotCount, conditionId } =
-        await createMarketAndSplitPosition();
+      const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
+      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         expect(await token.balanceOf(owner)).to.equal(amountInSDai);
       }
       expect(await sDAI.balanceOf(conditionalTokens)).to.equal(amountInSDai);
@@ -129,15 +116,10 @@ describe("GnosisRouter", function () {
   describe("mergePositions", function () {
     it("merges positions and send collateral tokens to user", async function () {
       const [owner] = await ethers.getSigners();
-      const splitAmountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(SPLIT_AMOUNT)
-      );
-      const mergeAmountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(MERGE_AMOUNT)
-      );
+      const splitAmountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
+      const mergeAmountInSDai = await sDAI.convertToShares(ethers.parseEther(MERGE_AMOUNT));
       // split first
-      const { outcomeSlotCount, conditionId } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
 
       // allow gnosisRouter to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
@@ -145,12 +127,9 @@ describe("GnosisRouter", function () {
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(gnosisRouter, mergeAmountInSDai);
       }
@@ -162,38 +141,30 @@ describe("GnosisRouter", function () {
         Array(outcomeSlotCount)
           .fill(0)
           .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
-        mergeAmountInSDai
+        mergeAmountInSDai,
       );
 
       const receipt = await trx.wait(1);
-      const { gasPrice, gasUsed } = receipt ?? {};
+      const { gasPrice = 0n, gasUsed = 0n } = receipt ?? {};
 
       const balanceAfterMerge = await ethers.provider.getBalance(owner);
 
-      expect(
-        balanceBeforeMerge -
-          (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
-          ethers.parseEther(MERGE_AMOUNT)
-      ).to.be.closeTo(balanceAfterMerge, BigInt(10));
+      expect(balanceBeforeMerge - gasPrice * gasUsed + ethers.parseEther(MERGE_AMOUNT)).to.be.closeTo(
+        balanceAfterMerge,
+        BigInt(10),
+      );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
-        expect(await token.balanceOf(owner)).to.equal(
-          splitAmountInSDai - mergeAmountInSDai
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        expect(await token.balanceOf(owner)).to.equal(splitAmountInSDai - mergeAmountInSDai);
       }
-      expect(await sDAI.balanceOf(conditionalTokens)).to.equal(
-        splitAmountInSDai - mergeAmountInSDai
-      );
+      expect(await sDAI.balanceOf(conditionalTokens)).to.equal(splitAmountInSDai - mergeAmountInSDai);
     });
   });
 
@@ -202,26 +173,18 @@ describe("GnosisRouter", function () {
       const ANSWER = 1;
       const REDEEMED_POSITION = 1;
       const [owner] = await ethers.getSigners();
-      const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(SPLIT_AMOUNT)
-      );
+      const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionId, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
 
       // submit answer
-      await realitio.submitAnswer(
-        questionId,
-        ethers.toBeHex(BigInt(ANSWER), 32),
-        0,
-        {
-          value: ethers.parseEther(MIN_BOND),
-        }
-      );
+      await realitio.submitAnswer(questionId, ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+        value: ethers.parseEther(MIN_BOND),
+      });
 
       // past finalized_ts
       await time.increase(QUESTION_TIMEOUT);
@@ -234,45 +197,36 @@ describe("GnosisRouter", function () {
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(gnosisRouter, amountInSDai);
       }
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem winning position
-      const trx = await gnosisRouter.redeemToBase(
-        PARENT_COLLECTION_ID,
-        conditionId,
-        [getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount)]
-      );
+      const trx = await gnosisRouter.redeemToBase(PARENT_COLLECTION_ID, conditionId, [
+        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
+      ]);
 
       const receipt = await trx.wait(1);
-      const { gasPrice, gasUsed } = receipt ?? {};
+      const { gasPrice = 0n, gasUsed = 0n } = receipt ?? {};
 
       const balanceAfterRedeem = await ethers.provider.getBalance(owner);
 
-      expect(
-        balanceBeforeRedeem -
-          (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0)) +
-          ethers.parseEther(SPLIT_AMOUNT)
-      ).to.be.closeTo(balanceAfterRedeem, BigInt(10));
+      expect(balanceBeforeRedeem - gasPrice * gasUsed + ethers.parseEther(SPLIT_AMOUNT)).to.be.closeTo(
+        balanceAfterRedeem,
+        BigInt(10),
+      );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {
@@ -281,8 +235,7 @@ describe("GnosisRouter", function () {
       }
       expect(await sDAI.balanceOf(conditionalTokens)).to.equal("0");
 
-      const winningOutcomes =
-        await gnosisRouter.getWinningOutcomes(conditionId);
+      const winningOutcomes = await gnosisRouter.getWinningOutcomes(conditionId);
       expect(winningOutcomes[ANSWER]).to.equal(true);
     });
 
@@ -290,25 +243,17 @@ describe("GnosisRouter", function () {
       const ANSWER = 1;
       const REDEEMED_POSITION = 0;
       const [owner] = await ethers.getSigners();
-      const amountInSDai = await sDAI.convertToShares(
-        ethers.parseEther(SPLIT_AMOUNT)
-      );
+      const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionId, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
       // submit answer
-      await realitio.submitAnswer(
-        questionId,
-        ethers.toBeHex(BigInt(ANSWER), 32),
-        0,
-        {
-          value: ethers.parseEther(MIN_BOND),
-        }
-      );
+      await realitio.submitAnswer(questionId, ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+        value: ethers.parseEther(MIN_BOND),
+      });
 
       // past finalized_ts
       await time.increase(QUESTION_TIMEOUT);
@@ -321,44 +266,34 @@ describe("GnosisRouter", function () {
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(gnosisRouter, amountInSDai);
       }
 
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem losing position
-      const trx = await gnosisRouter.redeemToBase(
-        PARENT_COLLECTION_ID,
-        conditionId,
-        [getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount)]
-      );
+      const trx = await gnosisRouter.redeemToBase(PARENT_COLLECTION_ID, conditionId, [
+        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
+      ]);
 
       const receipt = await trx.wait(1);
-      const { gasPrice, gasUsed } = receipt ?? {};
+      const { gasPrice = 0n, gasUsed = 0n } = receipt ?? {};
 
       const balanceAfterRedeem = await ethers.provider.getBalance(owner);
 
-      expect(
-        balanceBeforeRedeem - (gasPrice ?? BigInt(0)) * (gasUsed ?? BigInt(0))
-      ).to.be.closeTo(balanceAfterRedeem, BigInt(10));
+      expect(balanceBeforeRedeem - gasPrice * gasUsed).to.be.closeTo(balanceAfterRedeem, BigInt(10));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
           PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {

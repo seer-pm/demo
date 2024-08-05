@@ -764,6 +764,27 @@
     graphql-request "^4.3.0"
     limiter "^2.1.0"
 
+"@cryptoalgebra/core@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@cryptoalgebra/core/-/core-3.0.0.tgz#fda8e6c0beb01d243bdab96df1c68c4b2fc3cf9a"
+  integrity sha512-yTWD8yYHlnSQ22BIH15fCb1OfAUMKseykQvr3Y3CGuy5akqzjjTHn4C7FGfiQJkTxrUxzrXhBqjaisNj9QzAEg==
+
+"@cryptoalgebra/integral-core@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@cryptoalgebra/integral-core/-/integral-core-1.0.0.tgz#88d67e6ac71399b9fcc4f5b3c1f32a378897a965"
+  integrity sha512-1cUooKmmeNDdubiTcosXQ0vQ7qszgBiFxkJFue4rqSzNQs47wrCHnyA0tC86D+mOQFssZ1DDaK7ghNFb5+OPzA==
+  dependencies:
+    "@openzeppelin/contracts" "4.9.3"
+
+"@cryptoalgebra/integral-periphery@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@cryptoalgebra/integral-periphery/-/integral-periphery-1.0.2.tgz#dad145df18bc027892bee5b9e8551e31aa63f413"
+  integrity sha512-mh7mpKrxTYE7p177Cmh9dBRV2MclJj8+ISoZ6uPjU0KaPUp0HIzeFnrwMyFscaQu6Y7OM54jWxvwIbOIn8xA5g==
+  dependencies:
+    "@cryptoalgebra/integral-core" "1.0.0"
+    "@openzeppelin/contracts" "4.9.3"
+    "@uniswap/v2-core" "1.0.1"
+
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
   resolved "https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz"
@@ -2885,6 +2906,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.2-solc-0.7.tgz#38f4dbab672631034076ccdf2f3201fab1726635"
   integrity sha512-W6QmqgkADuFcTLzHL8vVoNBtkwjvQRpYIAom7KiUNoLKghyx3FgH0GBjt8NRvigV1ZmMOBllvE1By1C+bi8WpA==
 
+"@openzeppelin/contracts@4.9.3":
+  version "4.9.3"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.3.tgz#00d7a8cf35a475b160b3f0293a6403c511099364"
+  integrity sha512-He3LieZ1pP2TNt5JbkPA4PNT9WC3gOTOlDcFGJW4Le4QKqwmiNJCRt44APfxMxvq7OugU/cqYuPcSBzOw38DAg==
+
 "@openzeppelin/contracts@^5.0.1":
   version "5.0.1"
   resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-5.0.1.tgz"
@@ -3937,7 +3963,7 @@
   resolved "https://registry.yarnpkg.com/@uniswap/token-lists/-/token-lists-1.0.0-beta.34.tgz#879461f5d4009327a24259bbab797e0f22db58c8"
   integrity sha512-Hc3TfrFaupg0M84e/Zv7BoF+fmMWDV15mZ5s8ZQt2qZxUcNw2GQW+L6L/2k74who31G+p1m3GRYbJpAo7d1pqA==
 
-"@uniswap/v2-core@^1.0.1":
+"@uniswap/v2-core@1.0.1", "@uniswap/v2-core@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@uniswap/v2-core/-/v2-core-1.0.1.tgz#af8f508bf183204779938969e2e54043e147d425"
   integrity sha512-MtybtkUPSyysqLY2U210NBDeCHX+ltHt3oADGdjqoThZaFRDKwM6k1Nb3F0A3hk5hwuQvytFWhrWHOEq6nVJ8Q==

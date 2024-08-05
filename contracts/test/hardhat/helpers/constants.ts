@@ -8,6 +8,11 @@ export const GnosisAddress = {
   WRAPPED_1155_FACTORY: "0xD194319D1804C1051DD21Ba1Dc931cA72410B79f",
   S_DAI: "0xaf204776c7245bF4147c2612BF6e5972Ee483701",
   S_DAI_ADAPTER: "0xD499b51fcFc66bd31248ef4b28d656d67E591A94",
+  X_DAI: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+  W_X_DAI: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
+  SWAPR_QUOTER: "0xcBaD9FDf0D2814659Eb26f600EFDeAF005Eda0F7",
+  SWAPR_ROUTER: "0xfFB643E73f280B97809A8b41f7232AB401a04ee1",
+  WXDAI_SDAI_WHALE: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 };
 
 export const MainnetAddress = {
@@ -27,13 +32,10 @@ export const QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5; //seconds
 
 export const OPENING_TS = 60 * 60; // seconds
 
-export const PARENT_COLLECTION_ID =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
+export const PARENT_COLLECTION_ID = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-export const INVALID_RESULT =
-  "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-export const ANSWERED_TOO_SOON =
-  "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
+export const INVALID_RESULT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+export const ANSWERED_TOO_SOON = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
 
 export const REALITY_SINGLE_SELECT_TEMPLATE = 2;
 
@@ -71,7 +73,7 @@ export const multiCategoricalMarketParams = {
 
 export const scalarMarketParams = {
   marketName: "What will the temperature be tomorrow?",
-  encodedQuestions: ['What will the temperature be tomorrow?␟misc␟en_US'],
+  encodedQuestions: ["What will the temperature be tomorrow?␟misc␟en_US"],
   questionStart: "",
   questionEnd: "",
   outcomeType: "",
@@ -88,8 +90,8 @@ export const scalarMarketParams = {
 export const multiScalarMarketParams = {
   marketName: "What will the temperature be in [city]?",
   encodedQuestions: [
-    'What will the temperature be in New York?␟misc␟en_US',
-    'What will the temperature be in London?␟misc␟en_US',
+    "What will the temperature be in New York?␟misc␟en_US",
+    "What will the temperature be in London?␟misc␟en_US",
   ],
   questionStart: "What will the temperature be in ",
   questionEnd: "?",
