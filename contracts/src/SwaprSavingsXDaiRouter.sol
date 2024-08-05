@@ -184,6 +184,8 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 address(swaprRouter),
                 params.amountIn
             );
+        } else {
+            require(msg.value == params.amountIn, "msg.value != amountIn");
         }
 
         if (params.tokenIn == xDAI || params.tokenIn == wxDAI) {
@@ -209,6 +211,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             // 2) swap sDAI<>OUTCOME_TOKEN
             params.tokenIn = address(sDAI);
             params.amountIn = shares;
+            params.amountOutMinimum = sDAI.previewDeposit(params.amountOutMinimum);
 
             sDAI.approve(address(swaprRouter), params.amountIn);
             return swaprRouter.exactInputSingle(params);
@@ -295,6 +298,8 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 address(swaprRouter),
                 params.amountInMaximum
             );
+        } else {
+            require(msg.value == params.amountInMaximum, "msg.value != amountInMaximum");
         }
 
         if (params.tokenIn == xDAI || params.tokenIn == wxDAI) {
