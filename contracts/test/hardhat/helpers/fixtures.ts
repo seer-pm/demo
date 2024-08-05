@@ -14,7 +14,7 @@ export async function marketFactoryDeployFixture(
   const realitio = await ethers.deployContract("RealityETH_v3_0");
 
   const wrapped1155Factory = await ethers.deployContract(
-    "src/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
+    "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
   );
 
   const wrappedERC20Factory = await (

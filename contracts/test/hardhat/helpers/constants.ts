@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 export const GnosisAddress = {
-  RPC_URL: "https://gnosis-pokt.nodies.app",
+  RPC_URL: process.env.GNOSIS_RPC || "https://gnosis-pokt.nodies.app",
   ARBITRATOR: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
   REALITIO: "0xE78996A233895bE74a66F451f1019cA9734205cc",
   CONDITIONAL_TOKENS: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",

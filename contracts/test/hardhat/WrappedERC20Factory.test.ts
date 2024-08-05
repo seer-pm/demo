@@ -15,7 +15,7 @@ describe("WrappedERC20Factory", function () {
     await network.provider.send("evm_setAutomine", [true]);
     conditionalTokens = await ethers.deployContract("ConditionalTokens");
     wrapped1155Factory = (await ethers.deployContract(
-      "src/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
+      "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
     )) as unknown as Wrapped1155Factory;
     wrappedERC20Factory = await (
       await ethers.getContractFactory("WrappedERC20Factory")

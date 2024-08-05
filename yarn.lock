@@ -2159,6 +2159,23 @@
   resolved "https://registry.npmjs.org/@kamilkisiela/fast-url-parser/-/fast-url-parser-1.1.4.tgz"
   integrity sha512-gbkePEBupNydxCelHCESvFSFM8XPh1Zs/OAVRW/rKpEqPAl5PbOM90Si8mv9bvnR53uPD2s/FiRxdvSejpRJew==
 
+"@kleros/dispute-resolver-interface-contract@2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@kleros/dispute-resolver-interface-contract/-/dispute-resolver-interface-contract-2.0.0.tgz#c4ba2b1ca10ad666104d117cf3b0dc3b96f5ec99"
+  integrity sha512-Mf6xyMoq5AOOU1h34O7i65peP+tosqTQRN+F88Vr8seVWBSxsF3S+J8I1jAJ9ASFjqeLX6EofKIPH/WymSuKtg==
+  dependencies:
+    "@kleros/erc-792" "7.0.0"
+
+"@kleros/erc-792@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@kleros/erc-792/-/erc-792-7.0.0.tgz#dcd3efeebf04813f1be3edcb9a8d151b907ca171"
+  integrity sha512-TAPGILx/sXwfXH0tiHjgfPa4PCTIyiqmUYXzHBlyTcRRKiSTUmXR13Er2PUiHeHhV7njZrSR1oav+rKasexdSQ==
+
+"@kleros/ethereum-libraries@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@kleros/ethereum-libraries/-/ethereum-libraries-7.0.1.tgz#57210d536e178311a4287a0da746075bd743ab6a"
+  integrity sha512-N2u1+5svZWicVjEp7w7O8xjZH8/HjHUKEBdSpOTcrF8oXUY3+Nb22vIesnmo5p3ZJqnXm4oRjEKgHXqL39PnFw==
+
 "@lit-labs/ssr-dom-shim@^1.0.0", "@lit-labs/ssr-dom-shim@^1.1.0", "@lit-labs/ssr-dom-shim@^1.1.2":
   version "1.1.2"
   resolved "https://registry.npmjs.org/@lit-labs/ssr-dom-shim/-/ssr-dom-shim-1.1.2.tgz"
