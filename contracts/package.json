@@ -23,6 +23,9 @@
   "dependencies": {
     "@cryptoalgebra/core": "^3.0.0",
     "@cryptoalgebra/integral-periphery": "^1.0.2",
+    "@kleros/dispute-resolver-interface-contract": "2.0.0",
+    "@kleros/erc-792": "7.0.0",
+    "@kleros/ethereum-libraries": "7.0.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
@@ -34,6 +37,7 @@
     "chai": "^4.2.0",
     "hardhat-gas-reporter": "^1.0.8",
     "openzeppelin-contracts-1155-to-20": "npm:@openzeppelin/contracts@3.4.0",
+    "openzeppelin-contracts-sdai-on-gnosis": "npm:@openzeppelin/contracts@5.0.2",
     "openzeppelin-solidity-conditional-tokens": "npm:openzeppelin-solidity@2.3.0",
     "solidity-coverage": "^0.8.1",
     "solmate": "^6.2.0",

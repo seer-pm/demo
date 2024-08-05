@@ -1,7 +1,7 @@
 pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
-import "../src/interaction/SwaprSavingsXDaiRouter.sol";
+import "../src/SwaprSavingsXDaiRouter.sol";
 
 /// @title Quoter Interface
 /// @notice Supports quoting the calculated amounts from exact input or exact output swaps

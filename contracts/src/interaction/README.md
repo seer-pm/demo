@@ -1,17 +1,11 @@
-# @seer-pm/contracts
+# @seer-pm/contracts interactions
 
-Smart contracts for Seer
-
-## Deployments
-
-Refresh the list of deployed contracts by running `../../scripts/generate-deployments-markdown.sh`.
+Smart contracts Seer interacts with
 
 ### Gnosis
 
-- [GnosisRouter](https://gnosisscan.io/address/0x1c676107eEE61Cc2B400df92aE0Fe08EA818EA9A)
-- [Market](https://gnosisscan.io/address/0xaB903CdAf1068E86018F098c369B0A645c3F98Ac)
-- [MarketFactory](https://gnosisscan.io/address/0xa9912171C79200F9572fe0ABd209532a0712Ce33)
-- [MarketView](https://gnosisscan.io/address/0x783B4Bc2CBD5221dD95F7fdd9505D276F02244AE)
-- [RealityProxy](https://gnosisscan.io/address/0xee30cb9D605E04B4068fc09b30e182CF03503490)
-- [SwaprSavingsXDaiRouter](https://gnosisscan.io/address/0x4f774E1dBddbf03351204F1F53f160Ce108a09Aa)
-- [WrappedERC20Factory](https://gnosisscan.io/address/0x5bc8ddE5D07C6bf24911240AA6F9B0190ae3b557)
+- [ConditionalTokens](https://gnosisscan.io/address/0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce)
+- [RealitioHomeArbitrationProxy](https://gnosisscan.io/address/0x29F39dE98D750eb77b5FAfb31B2837f079FcE222)
+- [RealityETH_v3_0](https://gnosisscan.io/address/0xE78996A233895bE74a66F451f1019cA9734205cc)
+- [SavingsXDaiAdapter](https://gnosisscan.io/address/0xD499b51fcFc66bd31248ef4b28d656d67E591A94)
+- [Wrapped1155Factory](https://gnosisscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f)

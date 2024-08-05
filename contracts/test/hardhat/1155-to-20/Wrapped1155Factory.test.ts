@@ -42,7 +42,7 @@ describe("Wrapped1155Factory", function () {
     [owner] = await ethers.getSigners();
 
     wrapped1155Factory = (await ethers.deployContract(
-      "src/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
+      "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
     )) as unknown as Wrapped1155Factory;
     minimalERC1155 = await ethers.deployContract("MinimalERC1155");
   });
@@ -278,7 +278,7 @@ describe("Wrapped1155", function () {
     await network.provider.send("evm_setAutomine", [true]);
     addr1 = (await ethers.getSigners())[1];
     wrapped1155Factory = (await ethers.deployContract(
-      "src/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
+      "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
     )) as unknown as Wrapped1155Factory;
     minimalERC1155 = await ethers.deployContract("MinimalERC1155");
     // create a wrapped1155

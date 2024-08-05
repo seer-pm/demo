@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.5.0;
 
-import "../conditional-tokens/ERC1155/ERC1155.sol";
+import "../interaction/conditional-tokens/ERC1155/ERC1155.sol";
 
 contract MinimalERC1155 is ERC1155 {
     function mint(
