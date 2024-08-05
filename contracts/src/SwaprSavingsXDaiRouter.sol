@@ -132,7 +132,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
         address tokenOut,
         uint256 amountIn,
         uint160 limitSqrtPrice
-    ) public override returns (uint256 amountOut, uint16 fee) {
+    ) external override returns (uint256 amountOut, uint16 fee) {
         if (tokenIn == xDAI || tokenIn == wxDAI) {
             // (w)xDAI->OUTCOME_TOKEN
             // deposit (w)xDAI to sDAI and quote sDAI<>OUTCOME_TOKEN
@@ -184,6 +184,8 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 address(swaprRouter),
                 params.amountIn
             );
+        } else {
+            require(msg.value == params.amountIn, "msg.value != amountIn");
         }
 
         if (params.tokenIn == xDAI || params.tokenIn == wxDAI) {
@@ -209,6 +211,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
             // 2) swap sDAI<>OUTCOME_TOKEN
             params.tokenIn = address(sDAI);
             params.amountIn = shares;
+            params.amountOutMinimum = sDAI.previewDeposit(params.amountOutMinimum);
 
             sDAI.approve(address(swaprRouter), params.amountIn);
             return swaprRouter.exactInputSingle(params);
@@ -244,7 +247,7 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
         address tokenOut,
         uint256 amountOut,
         uint160 limitSqrtPrice
-    ) public override returns (uint256 amountIn, uint16 fee) {
+    ) external override returns (uint256 amountIn, uint16 fee) {
         if (tokenIn == xDAI || tokenIn == wxDAI) {
             // (w)xDAI->OUTCOME_TOKEN
             // quote sDAI<>OUTCOME_TOKEN and redeem sDAI for (w)xDAI
@@ -295,6 +298,8 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 address(swaprRouter),
                 params.amountInMaximum
             );
+        } else {
+            require(msg.value == params.amountInMaximum, "msg.value != amountInMaximum");
         }
 
         if (params.tokenIn == xDAI || params.tokenIn == wxDAI) {
@@ -333,12 +338,9 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 tokenInSurplus = msg.value > 0
                     ? savingsXDaiAdapter.redeemXDAI(
                         shares - amountIn,
-                        params.recipient
+                        msg.sender
                     )
-                    : savingsXDaiAdapter.redeem(
-                        shares - amountIn,
-                        params.recipient
-                    );
+                    : savingsXDaiAdapter.redeem(shares - amountIn, msg.sender);
             }
 
             return _amountInMaximum - tokenInSurplus;
