@@ -333,12 +333,9 @@ contract SwaprSavingsXDaiRouter is ISingleSwapRouter, ISingleQuoter {
                 tokenInSurplus = msg.value > 0
                     ? savingsXDaiAdapter.redeemXDAI(
                         shares - amountIn,
-                        params.recipient
+                        msg.sender
                     )
-                    : savingsXDaiAdapter.redeem(
-                        shares - amountIn,
-                        params.recipient
-                    );
+                    : savingsXDaiAdapter.redeem(shares - amountIn, msg.sender);
             }
 
             return _amountInMaximum - tokenInSurplus;
