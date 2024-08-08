@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /** Interface of https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio_v2_1.sol original contract is to be reviewed.
- *  @reviewers: [@hbarcelos, @fnanni-0, @nix1g, @unknownunknown1, @ferittuncer]
+ *  @reviewers: [@hbarcelos, @fnanni-0, @nix1g, @unknownunknown1, @ferittuncer, @madhurMongia]
  *  @auditors: []
  *  @bounties: []
  *  @deployments: []
