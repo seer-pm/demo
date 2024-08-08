@@ -91,12 +91,13 @@ const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const { data: graphMarket } = useGraphMarket(marketId, chainId);
+  const factory = graphMarket?.factory || marketFactoryAddress[chainId];
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId],
+    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId, factory],
     queryFn: async () => {
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {
-          args: [graphMarket?.factory || marketFactoryAddress[chainId], marketId],
+          args: [factory, marketId],
           chainId,
         }),
       );
