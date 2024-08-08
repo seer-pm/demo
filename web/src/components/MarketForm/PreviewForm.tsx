@@ -303,7 +303,6 @@ export function PreviewForm({
       outcomes,
       outcomesValues.lowerBound,
       outcomesValues.upperBound,
-      outcomesValues.unit,
       marketTypeValues.marketType,
     ).concat("Invalid result"),
     outcomesSupply: 0n,

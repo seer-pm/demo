@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { readMarketViewGetMarket } from "./contracts/generated";
 import { GetMarketQuery, getSdk } from "./queries/generated";
+import { getOutcomes } from "./useCreateMarket";
 
 export interface Question {
   id: `0x${string}`;
@@ -57,11 +58,12 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
   };
 
   if (getMarketType(market) === MarketTypes.SCALAR) {
-    const outcomes: string[] = market.outcomes.slice();
-    outcomes[0] = `DOWN [${Number(market.lowerBound)},${Number(market.upperBound)}]`;
-    outcomes[1] = `UP [${Number(market.lowerBound)},${Number(market.upperBound)}]`;
-
-    market.outcomes = outcomes;
+    market.outcomes = getOutcomes(
+      market.outcomes.slice(),
+      Number(market.lowerBound),
+      Number(market.upperBound),
+      getMarketType(market),
+    );
   }
   return market;
 }

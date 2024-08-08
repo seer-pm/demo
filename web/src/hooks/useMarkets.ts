@@ -153,8 +153,8 @@ export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creato
     return graphMarkets;
   }
 
-  // if the subgraph is slow return first the onChain data, and update with the subgraph data once it's available
-  return graphMarkets.data ? graphMarkets : onChainMarkets;
+  // if the subgraph is error we return on chain markets, otherwise we return subgraph
+  return graphMarkets.isError ? onChainMarkets : graphMarkets;
 };
 
 export const useSortedMarkets = (params: UseMarketsProps) => {

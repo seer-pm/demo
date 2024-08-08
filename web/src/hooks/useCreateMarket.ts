@@ -33,15 +33,13 @@ const MarketTypeFunction: Record<
   [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
 } as const;
 
-export function getOutcomes(
-  outcomes: string[],
-  lowerBound: number,
-  upperBound: number,
-  unit: string,
-  marketType: MarketTypes,
-) {
+export function getOutcomes(outcomes: string[], lowerBound: number, upperBound: number, marketType: MarketTypes) {
   if (marketType === MarketTypes.SCALAR) {
-    return [`Lower than ${lowerBound} ${unit}`, `Higher than ${upperBound} ${unit}`];
+    return [
+      `DOWN [${Number(lowerBound)},${Number(upperBound)}]`,
+      `UP [${Number(lowerBound)},${Number(upperBound)}]`,
+      ...outcomes.slice(2),
+    ];
   }
 
   return outcomes;
@@ -59,7 +57,7 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
 }
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
-  const outcomes = getOutcomes(props.outcomes, props.lowerBound, props.upperBound, props.unit, props.marketType);
+  const outcomes = getOutcomes(props.outcomes, props.lowerBound, props.upperBound, props.marketType);
 
   const result = await toastifyTx(
     () =>
