@@ -305,6 +305,7 @@ export function PreviewForm({
       outcomesValues.upperBound,
       marketTypeValues.marketType,
     ).concat("Invalid result"),
+    wrappedTokens: ["0x000", "0x000"],
     outcomesSupply: 0n,
     conditionId: "0x000",
     questionId: "0x000",

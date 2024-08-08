@@ -6,7 +6,6 @@ import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import {
   CategoricalIcon,
   CheckCircleIcon,
@@ -127,12 +126,7 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(
-    chainId,
-    getRouterAddress(chainId),
-    market.conditionId,
-    isIntersecting ? market.outcomes.length : 0,
-  );
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, isIntersecting);
 
   return (
     <div ref={ref}>
@@ -182,13 +176,7 @@ export function MarketHeader({
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const router = getRouterAddress(chainId);
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(
-    chainId,
-    router,
-    market.conditionId,
-    market.outcomes.length,
-  );
+  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, chainId, true);
 
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
 

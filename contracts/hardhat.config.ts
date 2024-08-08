@@ -54,7 +54,7 @@ const config: HardhatUserConfig = {
     localhost: {
       chainId: 31337,
       forking: {
-        url: "https://rpc.gnosischain.com",
+        url: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
       },
       mining: {
         auto: false,

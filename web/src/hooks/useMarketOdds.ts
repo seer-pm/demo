@@ -3,8 +3,8 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote } from "./trade";
+import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
-import { useWrappedAddresses } from "./useWrappedAddresses";
 
 function normalizeOdds(prices: number[]) {
   const sum = prices.reduce((acc, curr) => {
@@ -32,22 +32,16 @@ async function getTokenPrice(wrappedAddress: Address, chainId: SupportedChain, b
   return 0n;
 }
 
-export const useMarketOdds = (
-  chainId: SupportedChain,
-  router: Address,
-  conditionId: `0x${string}`,
-  outcomeSlotCount: number,
-) => {
-  const { data: wrappedAddresses } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
-  const hasLiquidity = useMarketHasLiquidity(chainId, wrappedAddresses);
+export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
+  const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens);
   return useQuery<number[] | undefined, Error>({
-    enabled: !!wrappedAddresses && outcomeSlotCount > 0 && hasLiquidity,
-    queryKey: ["useMarketOdds", chainId, router, conditionId, outcomeSlotCount, hasLiquidity],
+    enabled: hasLiquidity && enabled,
+    queryKey: ["useMarketOdds", market.id, chainId, hasLiquidity],
     queryFn: async () => {
       const BUY_AMOUNT = 1000;
 
       const prices = await Promise.all(
-        wrappedAddresses!.map(async (wrappedAddress) => {
+        market.wrappedTokens.map(async (wrappedAddress) => {
           try {
             const price = await getTokenPrice(wrappedAddress, chainId, String(BUY_AMOUNT));
 

@@ -8,7 +8,6 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
-import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
@@ -29,7 +28,6 @@ function MarketBreadcrumb() {
 
 function SwapWidget({
   chainId,
-  router,
   market,
   account,
   outcomeIndex,
@@ -42,20 +40,13 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
-  const { data: wrappedAddresses = [] } = useWrappedAddresses(
-    chainId,
-    router,
-    market?.conditionId,
-    market?.outcomes?.length,
-  );
-
   const outcomeToken = {
-    address: wrappedAddresses[outcomeIndex],
+    address: market.wrappedTokens[outcomeIndex],
     decimals: 18,
     symbol: "SEER_OUTCOME", // it's not used
   };
 
-  const { data: odds = [], isLoading } = useMarketOdds(chainId, router, market.conditionId, market.outcomes.length);
+  const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
   return (
     <SwapTokens
       account={account}
@@ -63,7 +54,7 @@ function SwapWidget({
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
       outcomeImage={images?.[outcomeIndex]}
-      isInvalidResult={outcomeIndex === wrappedAddresses.length - 1}
+      isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
       hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
     />
   );

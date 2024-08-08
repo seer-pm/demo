@@ -77,6 +77,7 @@ contract MarketView {
         address id;
         string marketName;
         string[] outcomes;
+        address[] wrappedTokens;
         uint256 outcomesSupply;
         uint256 lowerBound;
         uint256 upperBound;
@@ -105,24 +106,29 @@ contract MarketView {
         );
 
         string[] memory outcomes = new string[](outcomeSlotCount);
-
-        uint256 outcomesSupply = marketFactory
-            .wrappedERC20Factory()
-            .tokens(
-                conditionalTokens.getPositionId(
-                    marketFactory.collateralToken(),
-                    conditionalTokens.getCollectionId(
-                        bytes32(0),
-                        conditionId,
-                        1
-                    )
-                )
-            )
-            .totalSupply();
-
+        address[] memory wrappedTokens = new address[](outcomeSlotCount);
+        uint256 outcomesSupply = 0;
 
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
-            outcomes[i] = i == (outcomeSlotCount - 1) ? 'Invalid result' : market.outcomes(i);
+            outcomes[i] = i == (outcomeSlotCount - 1)
+                ? "Invalid result"
+                : market.outcomes(i);
+            wrappedTokens[i] = address(
+                marketFactory.wrappedERC20Factory().tokens(
+                    conditionalTokens.getPositionId(
+                        marketFactory.collateralToken(),
+                        conditionalTokens.getCollectionId(
+                            bytes32(0),
+                            conditionId,
+                            1 << i
+                        )
+                    )
+                )
+            );
+
+            if (i == 0) {
+                outcomesSupply = IERC20(wrappedTokens[i]).totalSupply();
+            }
         }
 
         IRealityETH_v3_0.Question[]
@@ -148,6 +154,7 @@ contract MarketView {
                 id: marketId,
                 marketName: market.marketName(),
                 outcomes: outcomes,
+                wrappedTokens: wrappedTokens,
                 outcomesSupply: outcomesSupply,
                 lowerBound: market.lowerBound(),
                 upperBound: market.upperBound(),

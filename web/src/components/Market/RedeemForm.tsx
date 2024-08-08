@@ -1,4 +1,5 @@
 import Button from "@/components/Form/Button";
+import { Market } from "@/hooks/useMarket";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
@@ -16,13 +17,13 @@ export interface RedeemFormValues {
 
 interface RedeemFormProps {
   account?: Address;
+  market: Market;
   chainId: number;
   router: Address;
   conditionId: `0x${string}`;
-  outcomeSlotCount: number;
 }
 
-export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotCount }: RedeemFormProps) {
+export function RedeemForm({ account, market, chainId, router, conditionId }: RedeemFormProps) {
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -30,7 +31,7 @@ export function RedeemForm({ account, chainId, router, conditionId, outcomeSlotC
     },
   });
 
-  const { data: winningPositions = [] } = useWinningPositions(account, chainId, router, conditionId, outcomeSlotCount);
+  const { data: winningPositions = [] } = useWinningPositions(account, market, router, conditionId);
 
   const winningIndexSet = generateWinningIndexSet(winningPositions);
 

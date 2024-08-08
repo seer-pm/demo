@@ -8,6 +8,7 @@ const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",
   marketName: "Ethereum ETF approved by May 31?",
   outcomes: ["Yes", "No"],
+  wrappedTokens: ["0x000", "0x000"],
   outcomesSupply: 0n,
   conditionId: "0xd3c1c8744ecba93ec3a56144403d49d53624c9dee645ea37ee61a3073cab2d26",
   questionId: "0x253f7f4d66cf1024ea65a7badf48aa36821354bec09f8e73aec3f83e4935e311",
