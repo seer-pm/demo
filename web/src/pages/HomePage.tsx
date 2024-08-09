@@ -1,10 +1,12 @@
 import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
+import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
-import { Market_OrderBy } from "@/hooks/queries/generated";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { useSortedMarkets } from "@/hooks/useMarkets";
+import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
+import useMarketsPagination from "@/hooks/useMarketsPagination";
+import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { useState } from "react";
@@ -14,18 +16,17 @@ function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
   const [marketName, setMarketName] = useState("");
   const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
-  const [orderBy, setOrderBy] = useState<Market_OrderBy>();
-  const { data: markets = [], isPending } = useSortedMarkets({
+  const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus } = useMarketsSearchParams();
+  const { data: markets = [], isPending } = useSortAndFilterMarkets({
     chainId: chainId as SupportedChain,
     marketName,
     marketStatus,
     orderBy,
+    verificationStatus,
   });
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
 
-  const toggleOrderBy = (newOrderBy: Market_OrderBy) => {
-    setOrderBy(newOrderBy === orderBy ? undefined : newOrderBy);
-  };
+  const { currentMarkets } = useMarketsPagination(markets);
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <div className="text-[24px] font-semibold">Markets</div>
@@ -34,6 +35,8 @@ function Home() {
         setMarketStatus={setMarketStatus}
         orderBy={orderBy}
         setOrderBy={toggleOrderBy}
+        verificationStatus={verificationStatus}
+        setVerificationStatus={toggleVerificationStatus}
       />
 
       {isPending && (
@@ -45,7 +48,7 @@ function Home() {
       {!isPending && markets.length === 0 && <Alert type="warning">No markets found.</Alert>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {markets.map((market) => (
+        {currentMarkets.map((market) => (
           <PreviewCard
             key={market.id}
             market={market}
@@ -54,6 +57,7 @@ function Home() {
           />
         ))}
       </div>
+      <MarketsPagination markets={markets} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market } from "@/hooks/useMarket";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
@@ -13,6 +14,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Address, TransactionReceipt } from "viem";
 import { parseEventLogs } from "viem/utils";
+import { useAccount } from "wagmi";
 import {
   ButtonsWrapper,
   DateFormValues,
@@ -227,6 +229,7 @@ export function PreviewForm({
   FormWithPrevStep & {
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
+  const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
@@ -244,6 +247,7 @@ export function PreviewForm({
   const { data: submissionDeposit } = useSubmissionDeposit();
 
   const { Modal, openModal } = useModal("answer-modal");
+  const { toggleFavorite } = useGlobalState();
 
   const createMarket = useCreateMarket(async (receipt: TransactionReceipt) => {
     const marketId = parseEventLogs({
@@ -254,6 +258,7 @@ export function PreviewForm({
 
     if (marketId) {
       setNewMarketId(marketId);
+      toggleFavorite(address, marketId);
     }
   });
 

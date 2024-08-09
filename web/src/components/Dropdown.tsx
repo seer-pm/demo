@@ -5,13 +5,14 @@ interface DropdownProps {
   value: number | string | undefined;
   // biome-ignore lint/suspicious/noExplicitAny:
   onClick: (value: any) => void;
+  defaultLabel?: string;
 }
 
-export function Dropdown({ options, value, onClick }: DropdownProps) {
+export function Dropdown({ options, value, onClick, defaultLabel = "Order By" }: DropdownProps) {
   return (
     <div className="dropdown simple-dropdown">
       <div tabIndex={0} role="button" className="m-1 text-[14px] text-purple-primary">
-        {options.find((option) => option.value === value)?.text ?? "Order By"}
+        {options.find((option) => option.value === value)?.text ?? defaultLabel}
       </div>
       <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] rounded-box text-left w-52">
         {options.map((option) => (

@@ -16,7 +16,7 @@ type ExtendedMarket = Market & {
   liquidity?: bigint;
 };
 
-function useSortMarket(markets: Market[]) {
+function useDefaultSortMarket(markets: Market[]) {
   const { address: currentUserAddress, chainId = DEFAULT_CHAIN } = useAccount();
   const { data: pools = [] } = useAllOutcomePools(chainId as SupportedChain);
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
@@ -60,4 +60,4 @@ function useSortMarket(markets: Market[]) {
   });
 }
 
-export default useSortMarket;
+export default useDefaultSortMarket;
