@@ -1,4 +1,5 @@
 import { Spinner } from "@/components/Spinner";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -17,6 +18,8 @@ import {
   MultiCategoricalIcon,
   MultiScalarIcon,
   ScalarIcon,
+  StarFilled,
+  StarOutlined,
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -24,6 +27,8 @@ import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
+import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import { MarketInfo } from "./MarketInfo";
 
@@ -176,6 +181,7 @@ export function MarketHeader({
   outcomesCount = 0,
   verificationStatusResult,
 }: MarketHeaderProps) {
+  const { address = "" } = useAccount();
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useSDaiToDai(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(!isPreview);
@@ -191,7 +197,12 @@ export function MarketHeader({
   );
 
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-
+  const favorites = useGlobalState((state) => state.favorites);
+  const toggleFavorite = useGlobalState((state) => state.toggleFavorite);
+  const isFavorite = favorites[address]?.find((x) => x === market.id);
+  const setFavorite = () => {
+    toggleFavorite(address, market.id);
+  };
   return (
     <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
       <div
@@ -202,9 +213,19 @@ export function MarketHeader({
           colors?.text,
         )}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full">
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
+          <Tooltip id="favorite-tooltip">Connect your wallet to add to favorite.</Tooltip>
+          <div onClick={address ? setFavorite : () => {}} className="cursor-pointer !ml-auto">
+            {isFavorite ? (
+              <StarFilled />
+            ) : (
+              <div className={colors?.text} data-tooltip-id={address ? "" : "favorite-tooltip"}>
+                <StarOutlined fill="currentColor" />
+              </div>
+            )}
+          </div>
         </div>
         <div>{market.index && `#${market.index}`}</div>
       </div>

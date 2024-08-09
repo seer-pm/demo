@@ -1,5 +1,6 @@
 import { Market_OrderBy } from "@/hooks/queries/generated";
 import { MarketStatus } from "@/hooks/useMarketStatus";
+import { VerificationStatus } from "@/hooks/useVerificationStatus";
 import { PlusIcon, SearchIcon } from "@/lib/icons";
 import { Dropdown } from "../Dropdown";
 import { LinkButton } from "../Form/Button";
@@ -12,16 +13,26 @@ export const ORDER_OPTIONS = [
   { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
 ];
 
+export const VERIFY_STATUS_OPTIONS: { value: VerificationStatus; text: string }[] = [
+  { value: "verified", text: "Verified" },
+  { value: "verifying", text: "Verifying" },
+  { value: "not_verified", text: "Not Verified" },
+];
+
 export function MarketsFilter({
   setMarketName,
   setMarketStatus,
   orderBy,
   setOrderBy,
+  verificationStatus,
+  setVerificationStatus,
 }: {
   setMarketName: (marketName: string) => void;
   setMarketStatus: (status: MarketStatus | "") => void;
   orderBy: Market_OrderBy | undefined;
+  verificationStatus: VerificationStatus | undefined;
   setOrderBy: (value: Market_OrderBy) => void;
+  setVerificationStatus: (value: VerificationStatus) => void;
 }) {
   const status = [
     { value: "", text: "All status" },
@@ -54,7 +65,13 @@ export function MarketsFilter({
           <LinkButton to={"/create-market"} text="Create New Market" icon={<PlusIcon />} className="max-lg:w-full" />
         </div>
       </div>
-      <div className="text-right">
+      <div className="flex items-center justify-end gap-4">
+        <Dropdown
+          options={VERIFY_STATUS_OPTIONS}
+          value={verificationStatus}
+          onClick={setVerificationStatus}
+          defaultLabel="Verification Status"
+        />
         <Dropdown options={ORDER_OPTIONS} value={orderBy} onClick={setOrderBy} />
       </div>
     </div>

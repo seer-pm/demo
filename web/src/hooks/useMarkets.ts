@@ -6,6 +6,7 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
+import { useAccount } from "wagmi";
 import {
   marketFactoryAddress,
   marketViewAbi,
@@ -13,9 +14,11 @@ import {
   readMarketViewGetMarkets,
 } from "./contracts/generated";
 import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
+import useDefaultSortMarket from "./useDefaultSortMarket";
+import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
-import useSortMarket from "./useSortMarket";
+import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
 import { fetchWrappedAddresses } from "./useWrappedAddresses";
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
@@ -142,6 +145,7 @@ interface UseMarketsProps {
   marketStatus?: MarketStatus | "";
   creator?: Address | "";
   orderBy?: Market_OrderBy;
+  verificationStatus?: VerificationStatus;
 }
 
 export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creator = "", orderBy }: UseMarketsProps) => {
@@ -157,13 +161,39 @@ export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creato
   return graphMarkets.isError ? onChainMarkets : graphMarkets;
 };
 
-export const useSortedMarkets = (params: UseMarketsProps) => {
+export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const result = useMarkets(params);
+  const { address = "" } = useAccount();
+  const favorites = useGlobalState((state) => state.favorites);
+  const { data: verificationStatusResultList } = useVerificationStatusList(params.chainId as SupportedChain);
   const markets = result.data || [];
 
-  const defaultSortedMarkets = useSortMarket(markets);
-  const data = params.orderBy ? markets : defaultSortedMarkets;
+  // if not orderBy, default sort by your markets-> verification status -> liquidity
+  const defaultSortedMarkets = useDefaultSortMarket(markets);
+  let data = params.orderBy ? markets : defaultSortedMarkets;
 
+  // filter by verification status
+  if (params.verificationStatus) {
+    data = data.filter((market) => {
+      const verificationStatus =
+        verificationStatusResultList?.[market.id.toLowerCase()]?.status ?? defaultStatus.status;
+      return verificationStatus === params.verificationStatus;
+    });
+  }
+
+  // favorite markets on top, we use reduce to keep the current sort order
+  const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
+    (total, market) => {
+      if (favorites[address]?.find((x) => x === market.id)) {
+        total[0].push(market);
+      } else {
+        total[1].push(market);
+      }
+      return total;
+    },
+    [[], []] as Market[][],
+  );
+  data = favoriteMarkets.concat(nonFavoriteMarkets);
   return {
     ...result,
     data,
