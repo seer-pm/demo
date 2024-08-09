@@ -1,4 +1,4 @@
-import ipfsPublish, { getIpfsPublishPath } from "./ipfs-publish";
+import ipfsPublish from "./ipfs-publish";
 
 const CURATE_COLUMNS = [
   { label: "Market", description: "Address of the market", type: "address", isIdentifier: true },
@@ -10,7 +10,7 @@ export async function getNewCurateItem(marketId: `0x${string}`, marketImage: Fil
     [marketImage].concat(outcomesImages).map(async (file, i) => {
       const extension = file.name.split(".").pop();
       const data = await new Response(new Blob([file])).arrayBuffer();
-      return getIpfsPublishPath(await ipfsPublish(`seer_${marketId}_${i}.${extension}`, data));
+      return await ipfsPublish(`seer_${marketId}_${i}.${extension}`, data);
     }),
   );
 
@@ -21,11 +21,10 @@ export async function getNewCurateItem(marketId: `0x${string}`, marketImage: Fil
 
   const values = {
     Market: marketId,
-    Images: getIpfsPublishPath(await ipfsPublish("images.json", new TextEncoder().encode(JSON.stringify(jsonImages)))),
+    Images: await ipfsPublish("images.json", new TextEncoder().encode(JSON.stringify(jsonImages))),
   };
 
   const encoder = new TextEncoder();
   const fileData = encoder.encode(JSON.stringify({ columns: CURATE_COLUMNS, values }));
-  const ipfsEvidencePath = getIpfsPublishPath(await ipfsPublish("item.json", fileData));
-  return ipfsEvidencePath;
+  return await ipfsPublish("item.json", fileData);
 }
