@@ -5,9 +5,7 @@ import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import { EtherscanIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { getRealityLink } from "@/lib/reality";
@@ -24,13 +22,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
 
   const { data: images } = useMarketImages(id, chainId, false);
-  const { data: wrappedAddresses } = useWrappedAddresses(
-    chainId,
-    getRouterAddress(chainId),
-    market?.conditionId,
-    market?.outcomes.length,
-  );
-  const { data: tokens } = useTokensInfo(wrappedAddresses);
+  const { data: tokens } = useTokensInfo(market?.wrappedTokens || []);
 
   if (isMarketError) {
     return (
@@ -94,7 +86,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
               <div className="flex items-center justify-center space-x-2" key={i}>
                 <span>{token.name}</span>{" "}
                 <a
-                  href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddresses![i]}`}
+                  href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[i]}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-purple-primary"

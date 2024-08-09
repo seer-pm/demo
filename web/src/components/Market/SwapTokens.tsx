@@ -134,7 +134,7 @@ export function SwapTokens({
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
-  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId].address as `0x${string}`);
+  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId]?.address as `0x${string}`);
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
   const useWrappedToken = wxDAIBalance > xDAIBalance;
 

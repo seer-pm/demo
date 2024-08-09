@@ -13,7 +13,6 @@ const statusPriority = {
 
 type ExtendedMarket = Market & {
   creator?: string | null;
-  outcomeAddresses?: `0x${string}`[];
   liquidity?: bigint;
 };
 
@@ -34,7 +33,7 @@ function useDefaultSortMarket(markets: Market[]) {
       return {
         ...market,
         liquidity: bigIntMax(
-          ...(market.outcomeAddresses?.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? []),
+          ...(market.wrappedTokens.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? []),
         ),
       };
     }),

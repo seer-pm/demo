@@ -68,6 +68,7 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
       {activeTab === "merge" && (
         <MergeForm
           account={account}
+          market={market}
           chainId={chainId}
           router={router}
           conditionId={market.conditionId}
@@ -79,10 +80,10 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
         (marketStatus === MarketStatus.CLOSED ? (
           <RedeemForm
             account={account}
+            market={market}
             chainId={chainId}
             router={router}
             conditionId={market.conditionId}
-            outcomeSlotCount={market.outcomes.length}
           />
         ) : (
           "Redemptions are not available yet."

@@ -1,6 +1,4 @@
 import { SupportedChain } from "@/lib/chains";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
-import { getRouterAddress } from "@/lib/config";
 import { graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +17,6 @@ import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
-import { fetchWrappedAddresses } from "./useWrappedAddresses";
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
@@ -100,35 +97,12 @@ export const useGraphMarkets = (
             args: [market.factory, market.id],
           })),
         })) as OnChainMarket[];
-        const router = getRouterAddress(chainId);
 
-        // add outcomeAddresses field to market to sort by liquidity
-        // get all possible outcome token addresses
-        const outcomeAddresses = await Promise.all(
-          onChainMarkets.map((market) => {
-            return fetchWrappedAddresses(
-              chainId,
-              router,
-              market.conditionId,
-              generateBasicPartition(market.outcomes.length),
-            );
-          }),
-        );
-        // create marketId - outcomeAddresses mapping for quick add to market
-        const outcomeAddressMapping = onChainMarkets.reduce(
-          (obj, item, index) => {
-            obj[item.id.toLowerCase()] = outcomeAddresses[index];
-            return obj;
-          },
-          {} as { [key: string]: `0x${string}`[] },
-        );
-
-        // add creator and outcome addresses to each market
+        // add creator to each market
         return onChainMarkets.map((market) => {
           return mapOnChainMarket({
             ...market,
             creator: creatorMapping[market.id.toLowerCase()],
-            outcomeAddresses: outcomeAddressMapping[market.id.toLowerCase()],
           });
         });
       }

@@ -4,7 +4,6 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
@@ -184,31 +183,16 @@ function AddLiquidityInfo({
   );
 }
 
-export function Outcomes({ chainId, router, market, images, tradeCallback }: PositionsProps) {
+export function Outcomes({ chainId, market, images, tradeCallback }: PositionsProps) {
   const { address } = useAccount();
   const [activeOutcome, setActiveOutcome] = useState(0);
-  const { data: wrappedAddresses = [] } = useWrappedAddresses(
-    chainId,
-    router,
-    market.conditionId,
-    market.outcomes.length,
-  );
-  const { data: tokensInfo = [] } = useTokensInfo(wrappedAddresses);
-  const { data: balances } = useTokenBalances(address, wrappedAddresses);
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(
-    chainId,
-    router,
-    market.conditionId,
-    market.outcomes.length,
-  );
-  const { data: pools = [] } = useMarketPools(chainId, wrappedAddresses);
+  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens);
+  const { data: balances } = useTokenBalances(address, market.wrappedTokens);
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
+  const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
   const [activePool, setActivePool] = useState(0);
 
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
-
-  if (wrappedAddresses.length === 0) {
-    return null;
-  }
 
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
@@ -225,7 +209,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
       await watchAsset(walletClient, {
         type: "ERC20",
         options: {
-          address: wrappedAddresses[i],
+          address: market.wrappedTokens[i],
           decimals: 18,
           symbol: market.outcomes[i],
         },
@@ -248,7 +232,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {wrappedAddresses.map((wrappedAddress, i) => (
+        {market.wrappedTokens.map((wrappedAddress, i) => (
           <div
             key={wrappedAddress}
             onClick={outcomeClick(i)}
@@ -261,7 +245,7 @@ export function Outcomes({ chainId, router, market, images, tradeCallback }: Pos
               <div>
                 <OutcomeImage
                   image={images?.[i]}
-                  isInvalidResult={i === wrappedAddresses.length - 1}
+                  isInvalidResult={i === market.wrappedTokens.length - 1}
                   title={market.outcomes[i]}
                 />
               </div>

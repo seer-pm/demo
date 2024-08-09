@@ -1,25 +1,18 @@
-import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
+import { Market } from "./useMarket";
 
 export type Position = { tokenId: Address; balance: bigint };
 
-export const useUserPositions = (
-  address: Address | undefined,
-  chainId: number,
-  router: Address,
-  conditionId: `0x${string}`,
-  outcomeSlotCount: number,
-) => {
-  const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
+export const useUserPositions = (address: Address | undefined, market: Market) => {
   return useQuery<Position[] | undefined, Error>({
-    enabled: !!address && !!chainId && !!router && wrappedAddresses.length > 0,
-    queryKey: ["useUserPositions", address, chainId, conditionId],
+    enabled: !!address,
+    queryKey: ["useUserPositions", address, market.id],
     queryFn: async () => {
       const balances = (await readContracts(config, {
-        contracts: wrappedAddresses!.map((wrappedAddresses) => ({
+        contracts: market.wrappedTokens!.map((wrappedAddresses) => ({
           abi: erc20Abi,
           address: wrappedAddresses,
           functionName: "balanceOf",
@@ -28,7 +21,7 @@ export const useUserPositions = (
         allowFailure: false,
       })) as bigint[];
 
-      return wrappedAddresses!.map((wrappedAddress, i) => ({
+      return market.wrappedTokens!.map((wrappedAddress, i) => ({
         tokenId: wrappedAddress,
         balance: balances[i],
       }));

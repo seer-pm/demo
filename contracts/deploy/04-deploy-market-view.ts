@@ -18,4 +18,6 @@ const deployMarketView: DeployFunction = async (hre: HardhatRuntimeEnvironment) 
   });
 };
 
+deployMarketView.tags = ['MarketView'];
+
 export default deployMarketView;

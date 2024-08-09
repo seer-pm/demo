@@ -16,6 +16,7 @@ import {
   formatOutcome,
   getAnswerText,
   getCurrentBond,
+  getRealityLink,
 } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
 import { valibotResolver } from "@hookform/resolvers/valibot";
@@ -204,7 +205,16 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="text-black-secondary text-[16px] space-y-[15px] text-center mb-[48px]">
         <div>
-          This market is not resolved yet. You can provide an answer below, depositing a bond of{" "}
+          This market is not resolved yet. You can provide an answer to the{" "}
+          <a
+            className="text-purple-primary"
+            href={getRealityLink(chainId, question.id)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Reality question
+          </a>{" "}
+          by depositing a bond of{" "}
           <span className="text-purple-primary font-semibold">{displayBalance(currentBond, 18)} DAI</span>.
         </div>
         <div>

@@ -2,11 +2,10 @@ import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
-import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { readMarketViewGetMarket } from "./contracts/generated";
+import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
 import { GetMarketQuery, getSdk } from "./queries/generated";
 import { getOutcomes } from "./useCreateMarket";
 
@@ -26,6 +25,7 @@ export interface Market {
   id: Address;
   marketName: string;
   outcomes: readonly string[];
+  wrappedTokens: Address[];
   outcomesSupply: bigint;
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
@@ -40,12 +40,12 @@ export interface Market {
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>> & {
   creator?: string | null;
-  outcomeAddresses?: `0x${string}`[];
 };
 
 export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
   const market: Market = {
     ...onChainMarket,
+    wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
     outcomes: onChainMarket.outcomes.map(unescapeJson),
     questions: onChainMarket.questions.map(
@@ -91,13 +91,13 @@ const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const { data: graphMarket } = useGraphMarket(marketId, chainId);
+  const factory = graphMarket?.factory || marketFactoryAddress[chainId];
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId],
-    enabled: !isUndefined(graphMarket),
+    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId, factory],
     queryFn: async () => {
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {
-          args: [graphMarket!.factory, marketId],
+          args: [factory, marketId],
           chainId,
         }),
       );

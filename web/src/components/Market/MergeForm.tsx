@@ -1,11 +1,11 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
+import { Market } from "@/hooks/useMarket";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { Position, useUserPositions } from "@/hooks/useUserPositions";
-import { useWrappedAddresses } from "@/hooks/useWrappedAddresses";
 import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
@@ -21,16 +21,15 @@ export interface MergeFormValues {
 
 interface MergeFormProps {
   account?: Address;
+  market: Market;
   chainId: SupportedChain;
   router: Address;
   conditionId: `0x${string}`;
   outcomeSlotCount: number;
 }
 
-export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
-  const { data: positions = [] } = useUserPositions(account, chainId, router, conditionId, outcomeSlotCount);
-
-  const { data: wrappedAddresses = [] } = useWrappedAddresses(chainId, router, conditionId, outcomeSlotCount);
+export function MergeForm({ account, market, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
+  const { data: positions = [] } = useUserPositions(account, market);
 
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
@@ -59,7 +58,7 @@ export function MergeForm({ account, chainId, router, conditionId, outcomeSlotCo
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
-  const { data: missingApprovals } = useMissingApprovals(wrappedAddresses, account, router, parsedAmount);
+  const { data: missingApprovals } = useMissingApprovals(market.wrappedTokens, account, router, parsedAmount);
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
