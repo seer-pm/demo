@@ -19,31 +19,33 @@ export const VERIFY_STATUS_OPTIONS: { value: VerificationStatus; text: string }[
   { value: "not_verified", text: "Not Verified" },
 ];
 
+const MARKET_STATUS_OPTIONS = [
+  { value: "", text: "All status" },
+  { value: MarketStatus.NOT_OPEN, text: STATUS_TEXTS[MarketStatus.NOT_OPEN]() },
+  { value: MarketStatus.OPEN, text: STATUS_TEXTS[MarketStatus.OPEN]() },
+  { value: MarketStatus.ANSWER_NOT_FINAL, text: STATUS_TEXTS[MarketStatus.ANSWER_NOT_FINAL]() },
+  { value: MarketStatus.IN_DISPUTE, text: STATUS_TEXTS[MarketStatus.IN_DISPUTE]() },
+  { value: MarketStatus.PENDING_EXECUTION, text: STATUS_TEXTS[MarketStatus.PENDING_EXECUTION]() },
+  { value: MarketStatus.CLOSED, text: STATUS_TEXTS[MarketStatus.CLOSED]() },
+];
+
 export function MarketsFilter({
+  marketStatus,
+  orderBy,
+  verificationStatus,
   setMarketName,
   setMarketStatus,
-  orderBy,
   setOrderBy,
-  verificationStatus,
   setVerificationStatus,
 }: {
-  setMarketName: (marketName: string) => void;
-  setMarketStatus: (status: MarketStatus | "") => void;
+  marketStatus: MarketStatus | "";
   orderBy: Market_OrderBy | undefined;
   verificationStatus: VerificationStatus | undefined;
+  setMarketName: (marketName: string) => void;
+  setMarketStatus: (status: MarketStatus | "") => void;
   setOrderBy: (value: Market_OrderBy) => void;
   setVerificationStatus: (value: VerificationStatus) => void;
 }) {
-  const status = [
-    { value: "", text: "All status" },
-    { value: MarketStatus.NOT_OPEN, text: STATUS_TEXTS[MarketStatus.NOT_OPEN]() },
-    { value: MarketStatus.OPEN, text: STATUS_TEXTS[MarketStatus.OPEN]() },
-    { value: MarketStatus.ANSWER_NOT_FINAL, text: STATUS_TEXTS[MarketStatus.ANSWER_NOT_FINAL]() },
-    { value: MarketStatus.IN_DISPUTE, text: STATUS_TEXTS[MarketStatus.IN_DISPUTE]() },
-    { value: MarketStatus.PENDING_EXECUTION, text: STATUS_TEXTS[MarketStatus.PENDING_EXECUTION]() },
-    { value: MarketStatus.CLOSED, text: STATUS_TEXTS[MarketStatus.CLOSED]() },
-  ];
-
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setMarketName((event.target as HTMLInputElement).value);
   };
@@ -59,7 +61,12 @@ export function MarketsFilter({
           <Input placeholder="Search" className="w-full" icon={<SearchIcon />} onKeyUp={marketNameCallback} />
         </div>
         <div>
-          <Select options={status} onChange={marketStatusCallback} className="w-full" />
+          <Select
+            value={marketStatus ?? ""}
+            options={MARKET_STATUS_OPTIONS}
+            onChange={marketStatusCallback}
+            className="w-full"
+          />
         </div>
         <div>
           <LinkButton to={"/create-market"} text="Create New Market" icon={<PlusIcon />} className="max-lg:w-full" />

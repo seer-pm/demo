@@ -1,11 +1,13 @@
 import { useSearchParams } from "react-router-dom";
 import { Market_OrderBy } from "./queries/generated";
+import { MarketStatus } from "./useMarketStatus";
 import { VerificationStatus } from "./useVerificationStatus";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
   const verificationStatus = searchParams.get("verificationStatus") as VerificationStatus;
   const orderBy = searchParams.get("orderBy") as Market_OrderBy;
+  const marketStatus = searchParams.get("marketStatus") as MarketStatus;
   const page = Number(searchParams.get("page") ?? 1);
   // useEffect(() => {
   //   const verificationStatus = searchParams.get("verificationStatus");
@@ -45,7 +47,28 @@ function useMarketsSearchParams() {
       return params;
     });
   };
-  return { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus, page, setPage };
+
+  const setMarketStatus = (status: MarketStatus | "") => {
+    setSearchParams((params) => {
+      if (status === "") {
+        params.delete("marketStatus");
+      } else {
+        params.set("marketStatus", status);
+      }
+
+      return params;
+    });
+  };
+  return {
+    verificationStatus,
+    orderBy,
+    toggleOrderBy,
+    toggleVerificationStatus,
+    page,
+    setPage,
+    marketStatus,
+    setMarketStatus,
+  };
 }
 
 export default useMarketsSearchParams;

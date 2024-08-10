@@ -3,7 +3,6 @@ import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
@@ -14,8 +13,8 @@ import { useAccount } from "wagmi";
 function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
   const [marketName, setMarketName] = useState("");
-  const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
-  const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus } = useMarketsSearchParams();
+  const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus, marketStatus, setMarketStatus } =
+    useMarketsSearchParams();
   const {
     data: markets = [],
     isPending,
@@ -34,6 +33,7 @@ function Home() {
       <div className="text-[24px] font-semibold">Markets</div>
       <MarketsFilter
         setMarketName={setMarketName}
+        marketStatus={marketStatus}
         setMarketStatus={setMarketStatus}
         orderBy={orderBy}
         setOrderBy={toggleOrderBy}

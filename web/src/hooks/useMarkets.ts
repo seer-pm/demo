@@ -20,7 +20,7 @@ import useMarketsSearchParams from "./useMarketsSearchParams";
 import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
 
 const itemsPerPage = 10;
-const marketsCountPerQuery = 5;
+const marketsCountPerQuery = 1000;
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
