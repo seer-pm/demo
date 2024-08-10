@@ -82,7 +82,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const { address } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address });
-  const currentBond = getCurrentBond(question.bond, question.min_bond);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationRequest } = useReadRealitioForeignArbitrationProxyWithAppealsArbitrationRequests({

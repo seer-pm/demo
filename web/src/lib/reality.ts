@@ -5,6 +5,7 @@ import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
+import { getConfigNumber } from "./config";
 
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
@@ -103,8 +104,9 @@ export function getAnswerText(
   return outcomes[outcomeIndex] || noAnswerText;
 }
 
-export function getCurrentBond(currentBond: bigint, minBond: bigint) {
-  return currentBond === 0n ? minBond : currentBond * 2n;
+export function getCurrentBond(currentBond: bigint, minBond: bigint, chainId: SupportedChain) {
+  const newBond = currentBond === 0n ? minBond : currentBond * 2n;
+  return newBond > 0n ? newBond : getConfigNumber("MIN_BOND", chainId);
 }
 
 export function isFinalized(question: Question) {

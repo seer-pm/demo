@@ -22,7 +22,7 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   const { address, chainId: connectedChainId } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address, config: config, chainId: mainnet.id });
-  const currentBond = getCurrentBond(question.bond, question.min_bond);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationCost } = useArbitrationCost();
