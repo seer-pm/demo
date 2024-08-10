@@ -102,6 +102,12 @@ function MarketPage() {
       <div className="space-y-5">
         <MarketBreadcrumb />
 
+        {verificationStatusResult?.status === "not_verified" && (
+          <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
+            It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
+          </Alert>
+        )}
+
         <MarketHeader
           market={market}
           chainId={chainId}
