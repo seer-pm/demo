@@ -72,7 +72,7 @@ export function MarketsFilter({
           onClick={setVerificationStatus}
           defaultLabel="Verification Status"
         />
-        <Dropdown options={ORDER_OPTIONS} value={orderBy} onClick={setOrderBy} />
+        <Dropdown options={ORDER_OPTIONS} value={orderBy} onClick={setOrderBy} defaultLabel="Order By" />
       </div>
     </div>
   );

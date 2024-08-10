@@ -1,10 +1,15 @@
-import { Market } from "@/hooks/useMarket";
-import useMarketsPagination from "@/hooks/useMarketsPagination";
 import { ChevronLeft, ChevronRight } from "@/lib/icons";
 import ReactPaginate from "react-paginate";
 
-function MarketsPagination({ markets }: { markets: Market[] }) {
-  const { pageCount, handlePageClick, page } = useMarketsPagination(markets);
+function MarketsPagination({
+  pageCount,
+  handlePageClick,
+  page,
+}: {
+  pageCount: number;
+  handlePageClick: ({ selected }: { selected: number }) => void;
+  page: number;
+}) {
   return (
     <ReactPaginate
       breakLabel="..."

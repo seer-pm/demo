@@ -5,10 +5,10 @@ interface DropdownProps {
   value: number | string | undefined;
   // biome-ignore lint/suspicious/noExplicitAny:
   onClick: (value: any) => void;
-  defaultLabel?: string;
+  defaultLabel: string;
 }
 
-export function Dropdown({ options, value, onClick, defaultLabel = "Order By" }: DropdownProps) {
+export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProps) {
   return (
     <div className="dropdown simple-dropdown">
       <div tabIndex={0} role="button" className="m-1 text-[14px] text-purple-primary">

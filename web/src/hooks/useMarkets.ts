@@ -16,7 +16,11 @@ import useDefaultSortMarket from "./useDefaultSortMarket";
 import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
+import useMarketsSearchParams from "./useMarketsSearchParams";
 import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
+
+const itemsPerPage = 10;
+const marketsCountPerQuery = 5;
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
@@ -76,8 +80,32 @@ export const useGraphMarkets = (
           where["creator"] = creator;
         }
 
-        const { markets } = await getSdk(client).GetMarkets({ where, orderBy, orderDirection: OrderDirection.Desc });
+        let markets: {
+          __typename?: "Market";
+          id: string;
+          factory: `0x${string}`;
+          creator: `0x${string}`;
+        }[] = [];
 
+        let lastId = null;
+
+        // try to fetch all markets on subgraph
+        while (true) {
+          const { markets: currentMarkets } = await getSdk(client).GetMarkets({
+            where: { ...where, ...(lastId && { id_gt: lastId }) },
+            orderBy,
+            orderDirection: OrderDirection.Desc,
+            first: marketsCountPerQuery,
+          });
+
+          markets = markets.concat(currentMarkets);
+
+          if (currentMarkets.length < marketsCountPerQuery) {
+            break; // We've fetched all markets
+          }
+
+          lastId = currentMarkets[currentMarkets.length - 1].id;
+        }
         // add creator field to market to sort
         // create marketId-creator mapping for quick add to market
         const creatorMapping = markets.reduce(
@@ -140,6 +168,8 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const { address = "" } = useAccount();
   const favorites = useGlobalState((state) => state.favorites);
   const { data: verificationStatusResultList } = useVerificationStatusList(params.chainId as SupportedChain);
+  const { page, setPage } = useMarketsSearchParams();
+
   const markets = result.data || [];
 
   // if not orderBy, default sort by your markets-> verification status -> liquidity
@@ -168,8 +198,21 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
     [[], []] as Market[][],
   );
   data = favoriteMarkets.concat(nonFavoriteMarkets);
+
+  //pagination
+  const itemOffset = (page - 1) * itemsPerPage;
+  const endOffset = itemOffset + itemsPerPage;
+
+  const currentMarkets = data.slice(itemOffset, endOffset) as Market[];
+  const pageCount = Math.ceil(markets.length / itemsPerPage);
+
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    setPage(selected + 1);
+  };
+
   return {
     ...result,
     data,
+    pagination: { currentMarkets, pageCount, handlePageClick, page: Number(page ?? "") },
   };
 };
