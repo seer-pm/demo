@@ -124,8 +124,8 @@ export type OutcomesFormValues = {
   market: string;
   image: File;
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
-  lowerBound: number; // for scalar markets
-  upperBound: number; // for scalar markets
+  lowerBound: { value: number; token: string }; // for scalar markets
+  upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
 };
 

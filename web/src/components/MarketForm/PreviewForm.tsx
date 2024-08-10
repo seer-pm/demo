@@ -267,12 +267,15 @@ export function PreviewForm({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
       outcomes: outcomes,
-      tokenNames: outcomesValues.outcomes.map((o) => o.token),
+      tokenNames:
+        marketTypeValues.marketType === MarketTypes.SCALAR
+          ? [outcomesValues.lowerBound.token, outcomesValues.upperBound.token]
+          : outcomesValues.outcomes.map((o) => o.token),
       questionStart: questionParts?.questionStart || "",
       questionEnd: questionParts?.questionEnd || "",
       outcomeType: `[${questionParts?.outcomeType ?? ""}]`,
-      lowerBound: outcomesValues.lowerBound,
-      upperBound: outcomesValues.upperBound,
+      lowerBound: outcomesValues.lowerBound.value,
+      upperBound: outcomesValues.upperBound.value,
       unit: outcomesValues.unit,
       category: MISC_CATEGORY,
       openingTime,
@@ -301,8 +304,8 @@ export function PreviewForm({
     marketName: outcomesValues.market,
     outcomes: getOutcomes(
       outcomes,
-      outcomesValues.lowerBound,
-      outcomesValues.upperBound,
+      outcomesValues.lowerBound.value,
+      outcomesValues.upperBound.value,
       marketTypeValues.marketType,
     ).concat("Invalid result"),
     wrappedTokens: ["0x000", "0x000"],
@@ -310,8 +313,8 @@ export function PreviewForm({
     conditionId: "0x000",
     questionId: "0x000",
     templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
-    lowerBound: BigInt(outcomesValues.lowerBound),
-    upperBound: BigInt(outcomesValues.upperBound),
+    lowerBound: BigInt(outcomesValues.lowerBound.value),
+    upperBound: BigInt(outcomesValues.upperBound.value),
     payoutReported: true,
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
       (_) => ({

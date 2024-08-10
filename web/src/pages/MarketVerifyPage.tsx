@@ -40,8 +40,8 @@ function MarkeVerifyPage() {
     mode: "all",
     defaultValues: {
       outcomes: [],
-      lowerBound: 0,
-      upperBound: 0,
+      lowerBound: { value: 0, token: "" },
+      upperBound: { value: 0, token: "" },
       unit: "",
     },
   });

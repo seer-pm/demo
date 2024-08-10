@@ -3,7 +3,7 @@ import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
+import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import {
   ButtonsWrapper,
   FormStepProps,
@@ -33,17 +33,6 @@ function OutcomeFields({
   removeOutcome,
   useFormReturn,
 }: OutcomeFieldsProps) {
-  const [showCustomToken, setShowCustomToken] = useState(false);
-
-  useEffect(() => {
-    if (!showCustomToken) {
-      useFormReturn.setValue(`outcomes.${outcomeIndex}.token`, "", {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    }
-  }, [showCustomToken]);
-
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
@@ -75,27 +64,47 @@ function OutcomeFields({
         )}
       </div>
 
-      <div>
-        {showCustomToken && (
-          <div>
-            <Input
-              autoComplete="off"
-              {...useFormReturn.register(`outcomes.${outcomeIndex}.token`, {
-                required: "This field is required.",
-              })}
-              className="w-full"
-              useFormReturn={useFormReturn}
-            />
-          </div>
-        )}
-        <div
-          className="text-purple-primary text-[12px] cursor-pointer mb-[5px]"
-          onClick={() => {
-            setShowCustomToken(!showCustomToken);
-          }}
-        >
-          {showCustomToken ? "Use default token name" : "Set custom token name"}
+      <TokenNameField useFormReturn={useFormReturn} fieldName={`outcomes.${outcomeIndex}.token`} />
+    </div>
+  );
+}
+
+function TokenNameField({
+  useFormReturn,
+  fieldName,
+}: { useFormReturn: UseFormReturn<OutcomesFormValues>; fieldName: FieldPath<OutcomesFormValues> }) {
+  const [showCustomToken, setShowCustomToken] = useState(false);
+
+  useEffect(() => {
+    if (!showCustomToken) {
+      useFormReturn.setValue(fieldName, "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [showCustomToken]);
+
+  return (
+    <div>
+      {showCustomToken && (
+        <div>
+          <Input
+            autoComplete="off"
+            {...useFormReturn.register(fieldName, {
+              required: "This field is required.",
+            })}
+            className="w-full"
+            useFormReturn={useFormReturn}
+          />
         </div>
+      )}
+      <div
+        className="text-purple-primary text-[12px] cursor-pointer mb-[5px]"
+        onClick={() => {
+          setShowCustomToken(!showCustomToken);
+        }}
+      >
+        {showCustomToken ? "Use default token name" : "Set custom token name"}
       </div>
     </div>
   );
@@ -244,7 +253,7 @@ export function OutcomesForm({
                     type="number"
                     min="0"
                     step="any"
-                    {...register("lowerBound", {
+                    {...register("lowerBound.value", {
                       required: "This field is required.",
                       valueAsNumber: true,
                       validate: (v) => {
@@ -258,6 +267,7 @@ export function OutcomesForm({
                     className="w-full"
                     useFormReturn={useFormReturn}
                   />
+                  <TokenNameField useFormReturn={useFormReturn} fieldName="lowerBound.token" />
                 </div>
               </div>
               <div className="col-span-2">
@@ -268,12 +278,12 @@ export function OutcomesForm({
                     type="number"
                     min="0"
                     step="any"
-                    {...register("upperBound", {
+                    {...register("upperBound.value", {
                       required: "This field is required.",
                       valueAsNumber: true,
                       validate: (v) => {
-                        if (v <= lowerBound) {
-                          return `Value must be greater than ${lowerBound}.`;
+                        if (v <= lowerBound.value) {
+                          return `Value must be greater than ${lowerBound.value}.`;
                         }
 
                         return true;
@@ -282,6 +292,7 @@ export function OutcomesForm({
                     className="w-full"
                     useFormReturn={useFormReturn}
                   />
+                  <TokenNameField useFormReturn={useFormReturn} fieldName="upperBound.token" />
                 </div>
               </div>
               <div className="col-span-1">
