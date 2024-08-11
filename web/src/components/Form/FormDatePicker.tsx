@@ -51,8 +51,9 @@ const FormDatePicker = (props: InputProps) => {
                 hasError && "border-error-primary",
                 isValid && "border-success-primary",
               )}
-              dateFormat={"YYYY-MM-dd hh:mm a"}
-              placeholderText="YYYY-MM-DD hh:mm A"
+              dateFormat="YYYY-MM-dd HH:mm"
+              timeFormat="HH:mm"
+              placeholderText="YYYY-MM-DD HH:mm"
             />
           )}
         />
