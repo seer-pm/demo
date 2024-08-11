@@ -153,7 +153,6 @@ interface UseMarketsProps {
 export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creator = "", orderBy }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
   const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, orderBy);
-  console.log(graphMarkets.error);
   if (marketName || marketStatus) {
     // we only filter using the subgraph
     return graphMarkets;
