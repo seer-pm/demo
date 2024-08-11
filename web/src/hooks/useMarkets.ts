@@ -203,7 +203,7 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const endOffset = itemOffset + itemsPerPage;
 
   const currentMarkets = data.slice(itemOffset, endOffset) as Market[];
-  const pageCount = Math.ceil(markets.length / itemsPerPage);
+  const pageCount = Math.ceil(data.length / itemsPerPage);
 
   const handlePageClick = ({ selected }: { selected: number }) => {
     setPage(selected + 1);
