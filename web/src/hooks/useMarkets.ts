@@ -87,24 +87,24 @@ export const useGraphMarkets = (
           creator: `0x${string}`;
         }[] = [];
 
-        let lastId = null;
-
+        let skip = 0;
         // try to fetch all markets on subgraph
-        while (true) {
+        // skip cannot be higher than 5000
+        while (skip <= 5000) {
           const { markets: currentMarkets } = await getSdk(client).GetMarkets({
-            where: { ...where, ...(lastId && { id_gt: lastId }) },
+            where,
             orderBy,
             orderDirection: OrderDirection.Desc,
             first: marketsCountPerQuery,
+            skip,
           });
-
           markets = markets.concat(currentMarkets);
 
           if (currentMarkets.length < marketsCountPerQuery) {
             break; // We've fetched all markets
           }
 
-          lastId = currentMarkets[currentMarkets.length - 1].id;
+          skip += marketsCountPerQuery;
         }
         // add creator field to market to sort
         // create marketId-creator mapping for quick add to market
@@ -153,7 +153,7 @@ interface UseMarketsProps {
 export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creator = "", orderBy }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
   const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, orderBy);
-
+  console.log(graphMarkets.error);
   if (marketName || marketStatus) {
     // we only filter using the subgraph
     return graphMarkets;
@@ -212,7 +212,7 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
 
   return {
     ...result,
-    data,
-    pagination: { currentMarkets, pageCount, handlePageClick, page: Number(page ?? "") },
+    data: currentMarkets,
+    pagination: { pageCount, handlePageClick, page: Number(page ?? "") },
   };
 };

@@ -19,7 +19,7 @@ function ProfilePage() {
   const {
     data: markets = [],
     isPending,
-    pagination: { currentMarkets, pageCount, handlePageClick, page },
+    pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterMarkets({
     chainId: chainId as SupportedChain,
     creator: address,
@@ -63,7 +63,7 @@ function ProfilePage() {
       {!isPending && markets.length === 0 && <Alert type="warning">No markets found.</Alert>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {currentMarkets.map((market) => (
+        {markets.map((market) => (
           <PreviewCard
             key={market.id}
             market={market}
