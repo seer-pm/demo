@@ -4,6 +4,7 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
+import { useAccount } from "wagmi";
 import {
   marketFactoryAddress,
   marketViewAbi,
@@ -11,9 +12,15 @@ import {
   readMarketViewGetMarkets,
 } from "./contracts/generated";
 import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
+import useDefaultSortMarket from "./useDefaultSortMarket";
+import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
-import useSortMarket from "./useSortMarket";
+import useMarketsSearchParams from "./useMarketsSearchParams";
+import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
+
+const itemsPerPage = 10;
+const marketsCountPerQuery = 1000;
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
@@ -73,8 +80,32 @@ export const useGraphMarkets = (
           where["creator"] = creator;
         }
 
-        const { markets } = await getSdk(client).GetMarkets({ where, orderBy, orderDirection: OrderDirection.Desc });
+        let markets: {
+          __typename?: "Market";
+          id: string;
+          factory: `0x${string}`;
+          creator: `0x${string}`;
+        }[] = [];
 
+        let skip = 0;
+        // try to fetch all markets on subgraph
+        // skip cannot be higher than 5000
+        while (skip <= 5000) {
+          const { markets: currentMarkets } = await getSdk(client).GetMarkets({
+            where,
+            orderBy,
+            orderDirection: OrderDirection.Desc,
+            first: marketsCountPerQuery,
+            skip,
+          });
+          markets = markets.concat(currentMarkets);
+
+          if (currentMarkets.length < marketsCountPerQuery) {
+            break; // We've fetched all markets
+          }
+
+          skip += marketsCountPerQuery;
+        }
         // add creator field to market to sort
         // create marketId-creator mapping for quick add to market
         const creatorMapping = markets.reduce(
@@ -116,12 +147,12 @@ interface UseMarketsProps {
   marketStatus?: MarketStatus | "";
   creator?: Address | "";
   orderBy?: Market_OrderBy;
+  verificationStatus?: VerificationStatus;
 }
 
 export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creator = "", orderBy }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
   const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, orderBy);
-
   if (marketName || marketStatus) {
     // we only filter using the subgraph
     return graphMarkets;
@@ -131,15 +162,56 @@ export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creato
   return graphMarkets.isError ? onChainMarkets : graphMarkets;
 };
 
-export const useSortedMarkets = (params: UseMarketsProps) => {
+export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const result = useMarkets(params);
+  const { address = "" } = useAccount();
+  const favorites = useGlobalState((state) => state.favorites);
+  const { data: verificationStatusResultList } = useVerificationStatusList(params.chainId as SupportedChain);
+  const { page, setPage } = useMarketsSearchParams();
+
   const markets = result.data || [];
 
-  const defaultSortedMarkets = useSortMarket(markets);
-  const data = params.orderBy ? markets : defaultSortedMarkets;
+  // if not orderBy, default sort by your markets-> verification status -> liquidity
+  const defaultSortedMarkets = useDefaultSortMarket(markets);
+  let data = params.orderBy ? markets : defaultSortedMarkets;
+
+  // filter by verification status
+  if (params.verificationStatus) {
+    data = data.filter((market) => {
+      const verificationStatus =
+        verificationStatusResultList?.[market.id.toLowerCase()]?.status ?? defaultStatus.status;
+      return verificationStatus === params.verificationStatus;
+    });
+  }
+
+  // favorite markets on top, we use reduce to keep the current sort order
+  const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
+    (total, market) => {
+      if (favorites[address]?.find((x) => x === market.id)) {
+        total[0].push(market);
+      } else {
+        total[1].push(market);
+      }
+      return total;
+    },
+    [[], []] as Market[][],
+  );
+  data = favoriteMarkets.concat(nonFavoriteMarkets);
+
+  //pagination
+  const itemOffset = (page - 1) * itemsPerPage;
+  const endOffset = itemOffset + itemsPerPage;
+
+  const currentMarkets = data.slice(itemOffset, endOffset) as Market[];
+  const pageCount = Math.ceil(data.length / itemsPerPage);
+
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    setPage(selected + 1);
+  };
 
   return {
     ...result,
-    data,
+    data: currentMarkets,
+    pagination: { pageCount, handlePageClick, page: Number(page ?? "") },
   };
 };

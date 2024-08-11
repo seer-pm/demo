@@ -1,10 +1,10 @@
 import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
+import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { Spinner } from "@/components/Spinner";
-import { Market_OrderBy } from "@/hooks/queries/generated";
-import { MarketStatus } from "@/hooks/useMarketStatus";
-import { useSortedMarkets } from "@/hooks/useMarkets";
+import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
+import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { useState } from "react";
@@ -13,27 +13,32 @@ import { useAccount } from "wagmi";
 function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
   const [marketName, setMarketName] = useState("");
-  const [marketStatus, setMarketStatus] = useState<MarketStatus | "">("");
-  const [orderBy, setOrderBy] = useState<Market_OrderBy>();
-  const { data: markets = [], isPending } = useSortedMarkets({
+  const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus, marketStatus, setMarketStatus } =
+    useMarketsSearchParams();
+  const {
+    data: markets = [],
+    isPending,
+    pagination: { pageCount, handlePageClick, page },
+  } = useSortAndFilterMarkets({
     chainId: chainId as SupportedChain,
     marketName,
     marketStatus,
     orderBy,
+    verificationStatus,
   });
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
 
-  const toggleOrderBy = (newOrderBy: Market_OrderBy) => {
-    setOrderBy(newOrderBy === orderBy ? undefined : newOrderBy);
-  };
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <div className="text-[24px] font-semibold">Markets</div>
       <MarketsFilter
         setMarketName={setMarketName}
+        marketStatus={marketStatus}
         setMarketStatus={setMarketStatus}
         orderBy={orderBy}
         setOrderBy={toggleOrderBy}
+        verificationStatus={verificationStatus}
+        setVerificationStatus={toggleVerificationStatus}
       />
 
       {isPending && (
@@ -54,6 +59,7 @@ function Home() {
           />
         ))}
       </div>
+      <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
     </div>
   );
 }

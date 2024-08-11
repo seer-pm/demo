@@ -24,6 +24,7 @@ import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { OutcomeImage } from "../OutcomeImage";
+import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
 
 interface MarketHeaderProps {
@@ -190,9 +191,10 @@ export function MarketHeader({
           colors?.text,
         )}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full">
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
+          <MarketFavorite market={market} colorClassName={colors?.text} />
         </div>
         <div>{market.index && `#${market.index}`}</div>
       </div>
