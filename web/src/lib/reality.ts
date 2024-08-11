@@ -155,3 +155,37 @@ export const getQuestionStatus = (question: Question) => {
 export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}`) {
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;
 }
+
+export function decodeQuestion(encodedQuestion: string): {
+  question: string;
+  outcomes: string[] | undefined;
+  category: string;
+  lang: string;
+} {
+  const delim = "\u241f";
+  const parts = encodedQuestion.split(delim);
+
+  let question: string;
+  let outcomes: string[] | undefined;
+  let _outcomes: string;
+  let category: string;
+  let lang: string;
+
+  if (parts.length === 4) {
+    [question, _outcomes, category, lang] = parts;
+    try {
+      outcomes = JSON.parse(`[${unescapeJson(_outcomes)}]`);
+    } catch {
+      outcomes = undefined;
+    }
+  } else {
+    [question, category, lang] = parts;
+  }
+
+  return {
+    question,
+    outcomes,
+    category,
+    lang,
+  };
+}

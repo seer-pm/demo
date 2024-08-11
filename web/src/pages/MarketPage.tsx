@@ -11,6 +11,7 @@ import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
+import { isMarketReliable } from "@/lib/market";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Address } from "viem";
@@ -97,6 +98,8 @@ function MarketPage() {
     setOutcomeIndex(poolIndex);
   };
 
+  const reliableMarket = isMarketReliable(market);
+
   return (
     <div className="container-fluid py-10">
       <div className="space-y-5">
@@ -114,6 +117,15 @@ function MarketPage() {
           images={images}
           verificationStatusResult={verificationStatusResult}
         />
+
+        {!reliableMarket && (
+          <Alert
+            type="warning"
+            title="There is a discrepancy between the market information and the Reality.eth questions"
+          >
+            It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 space-y-5">
