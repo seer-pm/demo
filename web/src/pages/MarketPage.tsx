@@ -120,7 +120,7 @@ function MarketPage() {
 
         {!reliableMarket && (
           <Alert
-            type="warning"
+            type="error"
             title="There is a discrepancy between the market information and the Reality.eth questions"
           >
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
