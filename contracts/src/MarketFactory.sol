@@ -20,7 +20,7 @@ contract MarketFactory {
 
     // Workaround "stack too deep" errors
     struct CreateMarketParams {
-        string marketName; // It is used only in categorical, multi categorical, and scalar markets. In multi categorical markets, the market name is formed using questionStart + outcomeType + questionEnd.
+        string marketName; // Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
         string questionStart; // Used to build the Reality question on multi scalar markets
         string questionEnd; // Used to build the Reality question on multi scalar markets
