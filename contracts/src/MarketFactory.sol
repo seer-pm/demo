@@ -20,7 +20,7 @@ contract MarketFactory {
 
     // Workaround "stack too deep" errors
     struct CreateMarketParams {
-        string marketName; // The name of the market
+        string marketName; // It is used only in categorical, multi categorical, and scalar markets. In multi categorical markets, the market name is formed using questionStart + outcomeType + questionEnd.
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
         string questionStart; // Used to build the Reality question on multi scalar markets
         string questionEnd; // Used to build the Reality question on multi scalar markets
@@ -108,7 +108,10 @@ contract MarketFactory {
     function createCategoricalMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
-        require(params.outcomes.length >= 2, "Invalid outcomes count");
+        require(
+            params.outcomes.length >= 2,
+            "Outcomes count should be 2 or more"
+        );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
@@ -153,7 +156,10 @@ contract MarketFactory {
     function createMultiCategoricalMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
-        require(params.outcomes.length >= 2, "Invalid outcomes count");
+        require(
+            params.outcomes.length >= 2,
+            "Outcomes count should be 2 or more"
+        );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
@@ -198,13 +204,16 @@ contract MarketFactory {
     function createScalarMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
-        require(params.upperBound > params.lowerBound, "Invalid bounds");
+        require(
+            params.upperBound > params.lowerBound,
+            "upperBound must be higher than lowerBound"
+        );
         // values reserved by Reality for INVALID and UNRESOLVED_ANSWER
         require(
             params.upperBound < type(uint256).max - 2,
-            "Invalid high point"
+            "upperBound must be less than uint256.max - 2"
         );
-        require(params.outcomes.length == 2, "Invalid outcomes count");
+        require(params.outcomes.length == 2, "Outcomes count should be 2");
 
         uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
 
@@ -248,7 +257,10 @@ contract MarketFactory {
     function createMultiScalarMarket(
         CreateMarketParams calldata params
     ) external returns (address) {
-        require(params.outcomes.length >= 2, "Invalid outcomes count");
+        require(
+            params.outcomes.length >= 2,
+            "Outcomes count should be 2 or more"
+        );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 

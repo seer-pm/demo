@@ -40,7 +40,7 @@ describe("MarketFactory", function () {
           ...categoricalMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes count");
+      ).to.be.revertedWith("Outcomes count should be 2 or more");
     });
     it("reverts if some tokenName is empty", async function () {
       await expect(
@@ -116,7 +116,7 @@ describe("MarketFactory", function () {
           ...multiCategoricalMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes count");
+      ).to.be.revertedWith("Outcomes count should be 2 or more");
     });
     it("creates a multi-categorical market", async function () {
       await expect(
@@ -149,7 +149,7 @@ describe("MarketFactory", function () {
           upperBound: 0,
           lowerBound: 10,
         })
-      ).to.be.revertedWith("Invalid bounds");
+      ).to.be.revertedWith("upperBound must be higher than lowerBound");
     });
     it("reverts if upper bound is higher than type(uint256).max - 2", async function () {
       await expect(
@@ -157,7 +157,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           upperBound: ethers.MaxUint256,
         })
-      ).to.be.revertedWith("Invalid high point");
+      ).to.be.revertedWith("upperBound must be less than uint256.max - 2");
     });
     it("reverts if less than 2 outcomes", async function () {
       await expect(
@@ -165,7 +165,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes count");
+      ).to.be.revertedWith("Outcomes count should be 2");
     });
     it("reverts if more than 2 outcomes", async function () {
       await expect(
@@ -173,7 +173,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1", "2", "3"],
         })
-      ).to.be.revertedWith("Invalid outcomes count");
+      ).to.be.revertedWith("Outcomes count should be 2");
     });
     it("creates a scalar market", async function () {
       await expect(marketFactory.createScalarMarket(scalarMarketParams))
@@ -203,7 +203,7 @@ describe("MarketFactory", function () {
           ...multiScalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Invalid outcomes count");
+      ).to.be.revertedWith("Outcomes count should be 2 or more");
     });
     it("creates a multi-scalar market", async function () {
       await expect(

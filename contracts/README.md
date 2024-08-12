@@ -2,6 +2,20 @@
 
 Smart contracts for Seer
 
+## Files
+
+```
+└── contracts
+    ├── deploy: hardhat-deploy scripts
+    ├── deployments: hardhat-deploy json files
+    ├── scripts: utilities
+    ├── src
+    │   ├── interaction: third party smart contracts used by Seer
+    │   ├── mocks: hardhat tests mocks
+    │   └── token: Seer ERC20 token
+    ├── test: hardhat & foundy tests
+```
+
 ## Deployments
 
 Refresh the list of deployed contracts by running `./scripts/generate-deployments-markdown.sh`.
