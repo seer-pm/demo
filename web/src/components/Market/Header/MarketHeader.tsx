@@ -194,7 +194,7 @@ export function MarketHeader({
         <div className="flex items-center space-x-2 w-full">
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
-          <MarketFavorite market={market} colorClassName={colors?.text} />
+          {!isPreview && <MarketFavorite market={market} colorClassName={colors?.text} />}
         </div>
         <div>{market.index && `#${market.index}`}</div>
       </div>
