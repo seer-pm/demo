@@ -102,6 +102,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
         }),
       );
     },
+    refetchOnWindowFocus: true,
   });
 };
 
