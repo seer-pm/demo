@@ -2,6 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -47,7 +48,12 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
     ...onChainMarket,
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
-    outcomes: onChainMarket.outcomes.map(unescapeJson),
+    outcomes: onChainMarket.outcomes.map((outcome) => {
+      if (outcome === INVALID_RESULT_OUTCOME) {
+        return INVALID_RESULT_OUTCOME_TEXT;
+      }
+      return unescapeJson(outcome);
+    }),
     questions: onChainMarket.questions.map(
       (question, i) =>
         ({

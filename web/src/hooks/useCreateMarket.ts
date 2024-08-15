@@ -65,7 +65,10 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         functionName: MarketTypeFunction[props.marketType],
         args: [
           {
-            marketName: escapeJson(props.marketName),
+            marketName:
+              props.marketType === MarketTypes.SCALAR
+                ? `${escapeJson(props.marketName)} [${escapeJson(props.unit)}]`
+                : escapeJson(props.marketName),
             questionStart: escapeJson(props.questionStart),
             questionEnd: escapeJson(props.questionEnd),
             outcomeType: escapeJson(props.outcomeType),

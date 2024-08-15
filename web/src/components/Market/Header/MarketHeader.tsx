@@ -19,7 +19,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -123,7 +123,8 @@ function OutcomesInfo({
   images?: string[];
   marketType: MarketTypes;
 }) {
-  const outcomes = outcomesCount > 0 ? market.outcomes.slice(0, outcomesCount) : market.outcomes;
+  const validOutcomes = market.outcomes.filter((outcome) => outcome !== INVALID_RESULT_OUTCOME_TEXT);
+  const outcomes = outcomesCount > 0 ? validOutcomes.slice(0, outcomesCount) : validOutcomes;
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });

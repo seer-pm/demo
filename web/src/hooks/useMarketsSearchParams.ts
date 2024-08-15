@@ -26,6 +26,9 @@ function useMarketsSearchParams() {
       } else {
         params.set("orderBy", newOrderBy);
       }
+      if (page > 1) {
+        params.set("page", "1");
+      }
       return params;
     });
   };
@@ -36,6 +39,9 @@ function useMarketsSearchParams() {
         params.delete("verificationStatus");
       } else {
         params.set("verificationStatus", newVerificationStatus);
+      }
+      if (page > 1) {
+        params.set("page", "1");
       }
       return params;
     });
@@ -55,7 +61,9 @@ function useMarketsSearchParams() {
       } else {
         params.set("marketStatus", status);
       }
-
+      if (page > 1) {
+        params.set("page", "1");
+      }
       return params;
     });
   };

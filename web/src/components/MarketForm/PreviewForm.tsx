@@ -8,7 +8,7 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -306,13 +306,16 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
-    marketName: outcomesValues.market,
+    marketName:
+      marketTypeValues.marketType === MarketTypes.SCALAR
+        ? `${outcomesValues.market} [${outcomesValues.unit}]`
+        : outcomesValues.market,
     outcomes: getOutcomes(
       outcomes,
       outcomesValues.lowerBound.value,
       outcomesValues.upperBound.value,
       marketTypeValues.marketType,
-    ).concat("Invalid result"),
+    ).concat(INVALID_RESULT_OUTCOME_TEXT),
     wrappedTokens: ["0x000", "0x000"],
     outcomesSupply: 0n,
     conditionId: "0x000",

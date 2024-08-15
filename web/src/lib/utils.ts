@@ -7,6 +7,12 @@ import { formatUnits, getAddress } from "viem";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
+// outcome get from MarketView
+export const INVALID_RESULT_OUTCOME = "Invalid result";
+
+// display text for invalid outcome
+export const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
+
 // https://stackoverflow.com/a/72190364
 export function localTimeToUtc(utcTime: Date | string | number) {
   if (typeof utcTime === "string" || typeof utcTime === "number") {

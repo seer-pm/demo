@@ -9,7 +9,7 @@ import { COLLATERAL_TOKENS, SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined, splitScalarOutcome } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, splitScalarOutcome } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -254,16 +254,17 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                   <p>
                     #{i + 1} {market.outcomes[i]}{" "}
                   </p>
-                  {getMarketType(market) === MarketTypes.SCALAR && market.outcomes[i] !== "Invalid result" && (
-                    <>
-                      <span data-tooltip-id={market.outcomes[i]}>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                      <Tooltip id={market.outcomes[i]}>
-                        <p className="whitespace-break-spaces	">{getTooltipContent(market.outcomes[i])}</p>
-                      </Tooltip>
-                    </>
-                  )}
+                  {getMarketType(market) === MarketTypes.SCALAR &&
+                    market.outcomes[i] !== INVALID_RESULT_OUTCOME_TEXT && (
+                      <>
+                        <span data-tooltip-id={market.outcomes[i]}>
+                          <QuestionIcon fill="#9747FF" />
+                        </span>
+                        <Tooltip id={market.outcomes[i]}>
+                          <p className="whitespace-break-spaces	">{getTooltipContent(market.outcomes[i])}</p>
+                        </Tooltip>
+                      </>
+                    )}
                 </div>
                 <div className="text-[12px] text-[#999999] flex items-center space-x-[16px]">
                   {balances && balances[i] > 0n && (
