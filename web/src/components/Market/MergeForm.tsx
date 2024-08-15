@@ -2,10 +2,10 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { Market } from "@/hooks/useMarket";
+import { Position, useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { Position, useUserPositions } from "@/hooks/useUserPositions";
 import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
@@ -29,7 +29,7 @@ interface MergeFormProps {
 }
 
 export function MergeForm({ account, market, chainId, router, conditionId, outcomeSlotCount }: MergeFormProps) {
-  const { data: positions = [] } = useUserPositions(account, market);
+  const { data: positions = [] } = useMarketPositions(account, market);
 
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",

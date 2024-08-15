@@ -289,7 +289,7 @@ export function useTrade(onSuccess: () => unknown) {
         // cowswap order id
         addPendingOrder(result);
       }
-      queryClient.invalidateQueries({ queryKey: ["useUserPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       onSuccess();

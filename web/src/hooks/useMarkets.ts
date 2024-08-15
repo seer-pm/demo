@@ -11,16 +11,17 @@ import {
   marketViewAddress,
   readMarketViewGetMarkets,
 } from "./contracts/generated";
-import { Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
+import { GetMarketsQuery, Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
 import useDefaultSortMarket from "./useDefaultSortMarket";
 import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
+import { fetchMarketsWithPositions } from "./useMarketsWithPositions";
 import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
 
-const itemsPerPage = 10;
-const marketsCountPerQuery = 1000;
+const ITEMS_PER_PAGE = 10;
+const MARKETS_COUNT_PER_QUERY = 1000;
 
 export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
   return useQuery<Market[] | undefined, Error>({
@@ -41,101 +42,121 @@ export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, m
   });
 };
 
+export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filter, orderBy?: Market_OrderBy) => {
+  const client = graphQLClient(chainId);
+
+  if (!client) {
+    throw new Error("Subgraph not available");
+  }
+
+  let markets: GetMarketsQuery["markets"] = [];
+
+  let skip = 0;
+  // try to fetch all markets on subgraph
+  // skip cannot be higher than 5000
+  while (skip <= 5000) {
+    const { markets: currentMarkets } = await getSdk(client).GetMarkets({
+      where,
+      orderBy,
+      orderDirection: OrderDirection.Desc,
+      first: MARKETS_COUNT_PER_QUERY,
+      skip,
+    });
+    markets = markets.concat(currentMarkets);
+
+    if (currentMarkets.length < MARKETS_COUNT_PER_QUERY) {
+      break; // We've fetched all markets
+    }
+
+    skip += MARKETS_COUNT_PER_QUERY;
+  }
+
+  // add creator field to market to sort
+  // create marketId-creator mapping for quick add to market
+  const creatorMapping = markets.reduce(
+    (obj, item) => {
+      obj[item.id.toLowerCase()] = item.creator;
+      return obj;
+    },
+    {} as { [key: string]: string | null | undefined },
+  );
+
+  const onChainMarkets = (await readContracts(config, {
+    allowFailure: false,
+    contracts: markets.map((market) => ({
+      abi: marketViewAbi,
+      address: marketViewAddress[chainId],
+      functionName: "getMarket",
+      args: [market.factory, market.id],
+    })),
+  })) as OnChainMarket[];
+
+  // add creator to each market
+  return onChainMarkets.map((market) => {
+    return mapOnChainMarket({
+      ...market,
+      creator: creatorMapping[market.id.toLowerCase()],
+    });
+  });
+};
+
 export const useGraphMarkets = (
   chainId: SupportedChain,
   marketName: string,
   marketStatus: MarketStatus | "",
   creator: Address | "",
+  participant: Address | "",
   orderBy: Market_OrderBy | undefined,
 ) => {
   return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainId, marketName, marketStatus, creator, orderBy],
     queryFn: async () => {
-      const client = graphQLClient(chainId);
+      const now = String(Math.round(new Date().getTime() / 1000));
 
-      if (client) {
-        const now = String(Math.round(new Date().getTime() / 1000));
+      let where: Market_Filter = { marketName_contains_nocase: marketName };
 
-        const where: Market_Filter = { marketName_contains_nocase: marketName };
-
-        if (marketStatus === MarketStatus.NOT_OPEN) {
-          where["openingTs_gt"] = now;
-        } else if (marketStatus === MarketStatus.OPEN) {
-          where["openingTs_lt"] = now;
-          where["hasAnswers"] = false;
-        } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
-          where["openingTs_lt"] = now;
-          where["hasAnswers"] = true;
-          where["finalizeTs_gt"] = now;
-        } else if (marketStatus === MarketStatus.IN_DISPUTE) {
-          where["questionsInArbitration_gt"] = "0";
-        } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
-          where["finalizeTs_lt"] = now;
-          where["payoutReported"] = false;
-        } else if (marketStatus === MarketStatus.CLOSED) {
-          where["payoutReported"] = true;
-        }
-
-        if (creator !== "") {
-          where["creator"] = creator;
-        }
-
-        let markets: {
-          __typename?: "Market";
-          id: string;
-          factory: `0x${string}`;
-          creator: `0x${string}`;
-        }[] = [];
-
-        let skip = 0;
-        // try to fetch all markets on subgraph
-        // skip cannot be higher than 5000
-        while (skip <= 5000) {
-          const { markets: currentMarkets } = await getSdk(client).GetMarkets({
-            where,
-            orderBy,
-            orderDirection: OrderDirection.Desc,
-            first: marketsCountPerQuery,
-            skip,
-          });
-          markets = markets.concat(currentMarkets);
-
-          if (currentMarkets.length < marketsCountPerQuery) {
-            break; // We've fetched all markets
-          }
-
-          skip += marketsCountPerQuery;
-        }
-        // add creator field to market to sort
-        // create marketId-creator mapping for quick add to market
-        const creatorMapping = markets.reduce(
-          (obj, item) => {
-            obj[item.id.toLowerCase()] = item.creator;
-            return obj;
-          },
-          {} as { [key: string]: string | null | undefined },
-        );
-
-        const onChainMarkets = (await readContracts(config, {
-          allowFailure: false,
-          contracts: markets.map((market) => ({
-            abi: marketViewAbi,
-            address: marketViewAddress[chainId],
-            functionName: "getMarket",
-            args: [market.factory, market.id],
-          })),
-        })) as OnChainMarket[];
-
-        // add creator to each market
-        return onChainMarkets.map((market) => {
-          return mapOnChainMarket({
-            ...market,
-            creator: creatorMapping[market.id.toLowerCase()],
-          });
-        });
+      if (marketStatus === MarketStatus.NOT_OPEN) {
+        where["openingTs_gt"] = now;
+      } else if (marketStatus === MarketStatus.OPEN) {
+        where["openingTs_lt"] = now;
+        where["hasAnswers"] = false;
+      } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
+        where["openingTs_lt"] = now;
+        where["hasAnswers"] = true;
+        where["finalizeTs_gt"] = now;
+      } else if (marketStatus === MarketStatus.IN_DISPUTE) {
+        where["questionsInArbitration_gt"] = "0";
+      } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
+        where["finalizeTs_lt"] = now;
+        where["payoutReported"] = false;
+      } else if (marketStatus === MarketStatus.CLOSED) {
+        where["payoutReported"] = true;
       }
 
-      throw new Error("Subgraph not available");
+      if (participant) {
+        // markets this user is a participant in (participant = creator or trader)
+        const marketsWithUserPositions = (await fetchMarketsWithPositions(participant, chainId)).map((a) =>
+          a.toLocaleLowerCase(),
+        );
+        if (marketsWithUserPositions.length > 0) {
+          // the user is an active trader in some market
+          where = {
+            and: [
+              where,
+              {
+                or: [{ id_in: marketsWithUserPositions }, { creator: participant }],
+              },
+            ],
+          };
+        } else {
+          // the user is not trading, search only created markets
+          where["creator"] = participant;
+        }
+      } else if (creator !== "") {
+        where["creator"] = creator;
+      }
+
+      return await fetchMarkets(chainId, where, orderBy);
     },
     retry: false,
   });
@@ -146,13 +167,21 @@ interface UseMarketsProps {
   marketName?: string;
   marketStatus?: MarketStatus | "";
   creator?: Address | "";
+  participant?: Address | "";
   orderBy?: Market_OrderBy;
   verificationStatus?: VerificationStatus;
 }
 
-export const useMarkets = ({ chainId, marketName = "", marketStatus = "", creator = "", orderBy }: UseMarketsProps) => {
+export const useMarkets = ({
+  chainId,
+  marketName = "",
+  marketStatus = "",
+  creator = "",
+  participant = "",
+  orderBy,
+}: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
-  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, orderBy);
+  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, participant, orderBy);
   if (marketName || marketStatus) {
     // we only filter using the subgraph
     return graphMarkets;
@@ -199,11 +228,11 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   data = favoriteMarkets.concat(nonFavoriteMarkets);
 
   //pagination
-  const itemOffset = (page - 1) * itemsPerPage;
-  const endOffset = itemOffset + itemsPerPage;
+  const itemOffset = (page - 1) * ITEMS_PER_PAGE;
+  const endOffset = itemOffset + ITEMS_PER_PAGE;
 
   const currentMarkets = data.slice(itemOffset, endOffset) as Market[];
-  const pageCount = Math.ceil(data.length / itemsPerPage);
+  const pageCount = Math.ceil(data.length / ITEMS_PER_PAGE);
 
   const handlePageClick = ({ selected }: { selected: number }) => {
     setPage(selected + 1);

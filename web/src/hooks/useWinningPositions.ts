@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
 import { Market } from "./useMarket";
-import { Position, useUserPositions } from "./useUserPositions";
+import { Position, useMarketPositions } from "./useMarketPositions";
 
 export const useWinningPositions = (
   account: Address | undefined,
@@ -12,7 +12,7 @@ export const useWinningPositions = (
   router: Address,
   conditionId: `0x${string}`,
 ) => {
-  const { data: positions = [] } = useUserPositions(account, market);
+  const { data: positions = [] } = useMarketPositions(account, market);
 
   return useQuery<Position[] | undefined, Error>({
     enabled: !!router && !!conditionId && positions.length > 0,

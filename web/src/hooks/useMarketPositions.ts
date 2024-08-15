@@ -6,10 +6,10 @@ import { Market } from "./useMarket";
 
 export type Position = { tokenId: Address; balance: bigint };
 
-export const useUserPositions = (address: Address | undefined, market: Market) => {
+export const useMarketPositions = (address: Address | undefined, market: Market) => {
   return useQuery<Position[] | undefined, Error>({
     enabled: !!address,
-    queryKey: ["useUserPositions", address, market.id],
+    queryKey: ["useMarketPositions", address, market.id],
     queryFn: async () => {
       const balances = (await readContracts(config, {
         contracts: market.wrappedTokens!.map((wrappedAddresses) => ({

@@ -16,13 +16,14 @@ function ProfilePage() {
   const [marketName, setMarketName] = useState("");
   const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus, marketStatus, setMarketStatus } =
     useMarketsSearchParams();
+
   const {
     data: markets = [],
     isPending,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterMarkets({
     chainId: chainId as SupportedChain,
-    creator: address,
+    participant: address,
     marketName,
     marketStatus,
     orderBy,
@@ -42,7 +43,7 @@ function ProfilePage() {
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
-      <div className="text-[24px] font-semibold">Markets created by {shortenAddress(address)}</div>
+      <div className="text-[24px] font-semibold">Markets of {shortenAddress(address)}</div>
 
       <MarketsFilter
         setMarketName={setMarketName}
