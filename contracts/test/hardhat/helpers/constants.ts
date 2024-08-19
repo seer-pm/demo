@@ -95,7 +95,7 @@ export const multiScalarMarketParams = {
   ],
   questionStart: "What will the temperature be in ",
   questionEnd: "?",
-  outcomeType: "[city]",
+  outcomeType: "city",
   category: "misc",
   lang: "en_US",
   outcomes: ["New York", "London"],

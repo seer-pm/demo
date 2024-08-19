@@ -278,7 +278,7 @@ export function PreviewForm({
           : outcomesValues.outcomes.map((o) => o.token),
       questionStart: questionParts?.questionStart || "",
       questionEnd: questionParts?.questionEnd || "",
-      outcomeType: `[${questionParts?.outcomeType ?? ""}]`,
+      outcomeType: questionParts?.outcomeType || "",
       lowerBound: outcomesValues.lowerBound.value,
       upperBound: outcomesValues.upperBound.value,
       unit: outcomesValues.unit,
