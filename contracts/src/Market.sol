@@ -1,6 +1,6 @@
 /**
  *  @authors: [@xyzseer]
- *  @reviewers: [@nvm1410, @madhurMongia, @unknownunknown1]
+ *  @reviewers: [@nvm1410, @madhurMongia, @unknownunknown1, @mani99brar]
  *  @auditors: []
  *  @bounties: []
  *  @deployments: []
