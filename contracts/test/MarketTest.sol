@@ -359,14 +359,14 @@ contract MarketFactoryTest is BaseTest {
     }
 
     function test_revertsIfCreatesCategoricalMarketWithOneQuestion() public {
-        vm.expectRevert(bytes("Outcomes count should be 2 or more"));
+        vm.expectRevert(bytes("Outcomes count must be 2 or more"));
         getCategoricalMarket(MIN_BOND, 1);
     }
 
     function test_revertsIfCreatesMultiCategoricalMarketWithOneQuestion()
         public
     {
-        vm.expectRevert(bytes("Outcomes count should be 2 or more"));
+        vm.expectRevert(bytes("Outcomes count must be 2 or more"));
         getMultiCategoricalMarket(MIN_BOND, 1);
     }
 
@@ -374,13 +374,13 @@ contract MarketFactoryTest is BaseTest {
         uint8 numOutcomes
     ) public {
         if (numOutcomes != 2) {
-            vm.expectRevert(bytes("Outcomes count should be 2"));
+            vm.expectRevert(bytes("Outcomes count must be 2"));
         }
         getScalarMarket(MIN_BOND, uint256(numOutcomes));
     }
 
     function test_revertsIfCreatesMultiScalarMarketWithOneQuestion() public {
-        vm.expectRevert(bytes("Outcomes count should be 2 or more"));
+        vm.expectRevert(bytes("Outcomes count must be 2 or more"));
         getMultiScalarMarket(MIN_BOND, 1);
     }
 
@@ -447,7 +447,7 @@ contract MarketFactoryTest is BaseTest {
                     marketName: "",
                     questionStart: "How many votes will ",
                     questionEnd: " get?",
-                    outcomeType: "[candidate]",
+                    outcomeType: "candidate",
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,

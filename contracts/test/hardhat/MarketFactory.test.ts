@@ -40,7 +40,7 @@ describe("MarketFactory", function () {
           ...categoricalMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Outcomes count should be 2 or more");
+      ).to.be.revertedWith("Outcomes count must be 2 or more");
     });
     it("reverts if some tokenName is empty", async function () {
       await expect(
@@ -116,7 +116,7 @@ describe("MarketFactory", function () {
           ...multiCategoricalMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Outcomes count should be 2 or more");
+      ).to.be.revertedWith("Outcomes count must be 2 or more");
     });
     it("creates a multi-categorical market", async function () {
       await expect(
@@ -165,7 +165,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Outcomes count should be 2");
+      ).to.be.revertedWith("Outcomes count must be 2");
     });
     it("reverts if more than 2 outcomes", async function () {
       await expect(
@@ -173,7 +173,7 @@ describe("MarketFactory", function () {
           ...scalarMarketParams,
           outcomes: ["1", "2", "3"],
         })
-      ).to.be.revertedWith("Outcomes count should be 2");
+      ).to.be.revertedWith("Outcomes count must be 2");
     });
     it("creates a scalar market", async function () {
       await expect(marketFactory.createScalarMarket(scalarMarketParams))
@@ -203,7 +203,7 @@ describe("MarketFactory", function () {
           ...multiScalarMarketParams,
           outcomes: ["1"],
         })
-      ).to.be.revertedWith("Outcomes count should be 2 or more");
+      ).to.be.revertedWith("Outcomes count must be 2 or more");
     });
     it("creates a multi-scalar market", async function () {
       await expect(

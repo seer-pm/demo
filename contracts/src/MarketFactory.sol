@@ -110,7 +110,7 @@ contract MarketFactory {
     ) external returns (address) {
         require(
             params.outcomes.length >= 2,
-            "Outcomes count should be 2 or more"
+            "Outcomes count must be 2 or more"
         );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
@@ -158,7 +158,7 @@ contract MarketFactory {
     ) external returns (address) {
         require(
             params.outcomes.length >= 2,
-            "Outcomes count should be 2 or more"
+            "Outcomes count must be 2 or more"
         );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
@@ -213,7 +213,7 @@ contract MarketFactory {
             params.upperBound < type(uint256).max - 2,
             "upperBound must be less than uint256.max - 2"
         );
-        require(params.outcomes.length == 2, "Outcomes count should be 2");
+        require(params.outcomes.length == 2, "Outcomes count must be 2");
 
         uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
 
@@ -259,7 +259,7 @@ contract MarketFactory {
     ) external returns (address) {
         require(
             params.outcomes.length >= 2,
-            "Outcomes count should be 2 or more"
+            "Outcomes count must be 2 or more"
         );
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
@@ -297,7 +297,9 @@ contract MarketFactory {
             string(
                 abi.encodePacked(
                     params.questionStart,
+                    '[',
                     params.outcomeType,
+                    ']',
                     params.questionEnd
                 )
             ),
@@ -480,7 +482,7 @@ contract MarketFactory {
 
     /// @dev Prepares the CTF condition and returns the conditionId
     /// @param questionId An identifier for the question to be answered by the oracle.
-    /// @param outcomeSlotCount The number of outcome slots which should be used for this condition. Must not exceed 256.
+    /// @param outcomeSlotCount The number of outcome slots which must be used for this condition. Must not exceed 256.
     function prepareCondition(
         bytes32 questionId,
         uint outcomeSlotCount

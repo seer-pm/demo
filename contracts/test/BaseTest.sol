@@ -201,7 +201,7 @@ contract BaseTest is Test {
 
         string memory questionStart = "How many votes will ";
         string memory questionEnd = " get?";
-        string memory outcomeType = "[candidate]";
+        string memory outcomeType = "candidate";
 
         Market market = Market(
             marketFactory.createMultiScalarMarket(
