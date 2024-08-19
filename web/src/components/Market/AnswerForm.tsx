@@ -81,7 +81,7 @@ function getOutcomes(market: Market, question: Question) {
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
   const { address } = useAccount();
   const { open } = useWeb3Modal();
-  const { data: balance = { value: 0n } } = useBalance({ address });
+  const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
@@ -201,6 +201,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   };
 
   //marketStatus === MarketStatus.OPEN || marketStatus === MarketStatus.ANSWER_NOT_FINAL;
+  console.log(Number(market.templateId));
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="text-black-secondary text-[16px] space-y-[15px] text-center mb-[48px]">
@@ -225,8 +226,19 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         </div>
       </div>
 
-      {!hasEnoughBalance && <Alert type="warning">You don't have enough balance to submit the answer.</Alert>}
-
+      {!hasEnoughBalance && !isLoading && (
+        <div className="mb-[24px]">
+          <Alert type="warning">You don't have enough balance to submit the answer.</Alert>
+        </div>
+      )}
+      {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
+        <div className="mb-[24px]">
+          <Alert type="info">
+            Answers will be rounded to the nearest integer. If you want more precision, you can use smaller units (ex:
+            for “What will be the inflation in the US in 2025?”, you can use the unit ‰ to allow an answer of 54‰=5.4%).
+          </Alert>
+        </div>
+      )}
       <label className="label cursor-pointer justify-start space-x-2">
         <input
           type="radio"

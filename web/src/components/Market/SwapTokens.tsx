@@ -281,7 +281,8 @@ export function SwapTokens({
 
         {isPriceTooHigh && (
           <Alert type="warning">
-            Current price exceeds {maxCollateralPerShare.toFixed(2)} {selectedCollateral.symbol} per share.
+            Price exceeds {maxCollateralPerShare.toFixed(2)} {selectedCollateral.symbol} per share. Try to reduce the
+            input amount.
           </Alert>
         )}
         {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
