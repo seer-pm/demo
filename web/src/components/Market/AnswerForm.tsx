@@ -201,7 +201,6 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   };
 
   //marketStatus === MarketStatus.OPEN || marketStatus === MarketStatus.ANSWER_NOT_FINAL;
-  console.log(Number(market.templateId));
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="text-black-secondary text-[16px] space-y-[15px] text-center mb-[48px]">
