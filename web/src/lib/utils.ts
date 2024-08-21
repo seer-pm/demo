@@ -47,8 +47,12 @@ export function getTimeLeft(endDate: Date | string | number, withSeconds = false
 
   if (withSeconds) {
     format.push("minutes", "seconds");
-  } else if (Number(duration.days) < 1) {
-    format.push("minutes");
+  } else if (Number(duration.days || 0) < 1) {
+    if (Number(duration.minutes || 0) < 2) {
+      format.push("seconds");
+    } else {
+      format.push("minutes");
+    }
   }
 
   return formatDuration(duration, { format });
