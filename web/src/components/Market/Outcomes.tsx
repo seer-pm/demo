@@ -211,7 +211,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
         options: {
           address: market.wrappedTokens[i],
           decimals: 18,
-          symbol: market.outcomes[i],
+          symbol: tokensInfo[i].symbol,
         },
       });
     };
