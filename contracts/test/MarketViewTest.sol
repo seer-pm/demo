@@ -11,7 +11,7 @@ contract MarketViewTest is BaseTest {
     function test_marketView() public {
         Market categoricalMarket = getCategoricalMarket(MIN_BOND, 10);
         MarketView marketView = new MarketView();
-        MarketView.MarketInfo memory marketInfo = marketView.getMarket(IMarketFactory(address(marketFactory)), address(categoricalMarket));
+        MarketView.MarketInfo memory marketInfo = marketView.getMarket(IMarketFactory(address(marketFactory)), categoricalMarket);
         assertEq(marketInfo.marketName, categoricalMarket.marketName());
     }
 }

@@ -7,7 +7,7 @@
  */
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 
 import {IConditionalTokens, IRealityETH_v3_0} from "./Interfaces.sol";
 import "./Market.sol";

@@ -92,10 +92,8 @@ contract MarketView {
 
     function getMarket(
         IMarketFactory marketFactory,
-        address marketId
+        Market market
     ) public view returns (MarketInfo memory) {
-        Market market = Market(marketId);
-
         bytes32 conditionId = market.conditionId();
 
         IConditionalTokens conditionalTokens = marketFactory
@@ -151,7 +149,7 @@ contract MarketView {
 
         return
             MarketInfo({
-                id: marketId,
+                id: address(market),
                 marketName: market.marketName(),
                 outcomes: outcomes,
                 wrappedTokens: wrappedTokens,
@@ -191,7 +189,7 @@ contract MarketView {
         for (uint256 j = lastIndex; j >= startIndex; j--) {
             marketsInfo[currentIndex++] = getMarket(
                 marketFactory,
-                allMarkets[j]
+                Market(allMarkets[j])
             );
 
             if (j == 0) {
