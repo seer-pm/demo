@@ -20,6 +20,7 @@ export const useTokenBalance = (owner?: Address, token?: Address) => {
     queryFn: async () => {
       return await fetchTokenBalance(token!, owner!);
     },
+    refetchOnWindowFocus: true,
   });
 };
 
