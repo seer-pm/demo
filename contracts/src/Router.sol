@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "./WrappedERC20Factory.sol";
 import {IConditionalTokens, IERC20} from "./Interfaces.sol";
 
-/// @dev The Router contract replicates the main Conditional Tokens funtions, but allowing to work with ERC20 outcomes instead of the ERC1155
+/// @dev The Router contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155
 contract Router is ERC1155Holder {
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
     WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract
