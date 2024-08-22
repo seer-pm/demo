@@ -34,7 +34,7 @@ const FormDatePicker = (props: InputProps) => {
           rules={{
             required: "This field is required.",
             validate: (v) => {
-              return (v && localTimeToUtc(v) > new Date()) || "End date must be in the future";
+              return (v && localTimeToUtc(v) > new Date()) || "Opening date must be in the future";
             },
           }}
           render={({ field }) => (

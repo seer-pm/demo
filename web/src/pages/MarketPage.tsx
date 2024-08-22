@@ -13,14 +13,16 @@ import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
 import { isMarketReliable } from "@/lib/market";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 function MarketBreadcrumb() {
   return (
     <div className="flex items-center space-x-2 text-[#B38FFF] text-[14px]">
-      <HomeIcon />
+      <Link to="/">
+        <HomeIcon />
+      </Link>
       <div>/</div>
       <div className="font-semibold">Market</div>
     </div>

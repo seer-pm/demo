@@ -3,236 +3,281 @@
 @tailwind utilities;
 
 :root {
-    --rounded-btn: 3px;
+  --rounded-btn: 3px;
 
-    --white: 100% 0 0;
-    --black: 0% 0 0;
-    --purple-primary: 59.81% 0.254 298.01;
-    --purple-secondary: 72.91% 0.16070787426161062 297.0607660474308;
-    --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
-    --blue-primary: 78.99% 0.143 224.17;
-    --blue-secondary: 37.3% 0.234 269.89;
-    --black-medium: 92.19% 0 0;
-    --black-light: 98.81% 0 0;
-    --warning-primary: 77.2% 0.17381536485188528 64.55196581322063;
-    --success-primary: 71.22% 0.23 144.12;
-    --error-primary: 61.65% 0.245 22.93;
+  --white: 100% 0 0;
+  --black: 0% 0 0;
+  --purple-primary: 59.81% 0.254 298.01;
+  --purple-secondary: 72.91% 0.16070787426161062 297.0607660474308;
+  --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
+  --blue-primary: 78.99% 0.143 224.17;
+  --blue-secondary: 37.3% 0.234 269.89;
+  --black-medium: 92.19% 0 0;
+  --black-light: 98.81% 0 0;
+  --warning-primary: 77.2% 0.17381536485188528 64.55196581322063;
+  --success-primary: 71.22% 0.23 144.12;
+  --error-primary: 61.65% 0.245 22.93;
 
-    --toastify-toast-width: 422px;
-    --toastify-color-light: oklch(var(--purple-primary));
-    --toastify-text-color-light: oklch(var(--white));
-    --toastify-icon-color-info: oklch(var(--white));
-    --toastify-icon-color-success: oklch(var(--white));
-    --toastify-icon-color-warning: oklch(var(--white));
-    --toastify-icon-color-error: oklch(var(--white));
+  --toastify-toast-width: 422px;
+  --toastify-color-light: oklch(var(--purple-primary));
+  --toastify-text-color-light: oklch(var(--white));
+  --toastify-icon-color-info: oklch(var(--white));
+  --toastify-icon-color-success: oklch(var(--white));
+  --toastify-icon-color-warning: oklch(var(--white));
+  --toastify-icon-color-error: oklch(var(--white));
 }
 
 .container-fluid {
-    max-width: 100%;
-    padding-left: 18px;
-    padding-right: 18px;
+  max-width: 100%;
+  padding-left: 18px;
+  padding-right: 18px;
 
-    @media(min-width: 1024px) {
-        & {
-            max-width: 75%;
-            margin: 0 auto;
-            padding-left: 0;
-            padding-right: 0;
-        }
+  @media (min-width: 1024px) {
+    & {
+      max-width: 75%;
+      margin: 0 auto;
+      padding-left: 0;
+      padding-right: 0;
     }
+  }
 }
 
 /* BUTTONS */
-.btn.btn-disabled, .btn[disabled], .btn:disabled {
-    --n: var(--black-light);
-    --tw-bg-opacity: 1;
-    border-color: transparent;
+.btn.btn-disabled,
+.btn[disabled],
+.btn:disabled {
+  --n: var(--black-light);
+  --tw-bg-opacity: 1;
+  border-color: transparent;
 }
 .btn.btn-primary {
-    --pc: var(--white);
-    --btn-color: var(--purple-primary);
+  --pc: var(--white);
+  --btn-color: var(--purple-primary);
 
-    &:hover {
-        background-color: oklch(var(--purple-secondary));
-        border-color: oklch(var(--purple-secondary));
-    }
+  &:hover {
+    background-color: oklch(var(--purple-secondary));
+    border-color: oklch(var(--purple-secondary));
+  }
 }
 .btn.btn-secondary {
-    --sc: var(--purple-primary);
-    --btn-color: var(--white);
-    border-color: oklch(var(--purple-primary));
+  --sc: var(--purple-primary);
+  --btn-color: var(--white);
+  border-color: oklch(var(--purple-primary));
 
-    &:hover {
-        background-color: #FBF8FF;
-    }
+  &:hover {
+    background-color: #fbf8ff;
+  }
 }
 .btn.btn-accent {
-    --ac: var(--white);
-    --btn-color: var(--blue-secondary);
+  --ac: var(--white);
+  --btn-color: var(--blue-secondary);
 
-    &:hover {
-        --btn-color: var(--blue-primary);
-    }
+  &:hover {
+    --btn-color: var(--blue-primary);
+  }
 }
 
 /* RADIO */
-.radio:checked, .radio[aria-checked="true"] {
-    --bc: var(--purple-primary);
+.radio:checked,
+.radio[aria-checked="true"] {
+  --bc: var(--purple-primary);
 }
 
 /* TABS */
 .tab {
-    --tab-border: 0px;
-    --tab-color: var(--black);
-    font-weight: 600;
+  --tab-border: 0px;
+  --tab-color: var(--black);
+  font-weight: 600;
 
-    &.tab-active:not(.tab-disabled):not([disabled]), &:is(input:checked) {
-        --bc: var(--purple-primary);
-        color: oklch(var(--purple-primary));
-        border-bottom-width: 3px;
-    }
+  &.tab-active:not(.tab-disabled):not([disabled]),
+  &:is(input:checked) {
+    --bc: var(--purple-primary);
+    color: oklch(var(--purple-primary));
+    border-bottom-width: 3px;
+  }
 }
 
 /* TOASTIFY */
 .Toastify__toast-body {
-    padding-top: 13px;
-    padding-bottom: 13px;
+  padding-top: 13px;
+  padding-bottom: 13px;
 }
 .Toastify__toast-icon {
-    width: 32px;
-    margin-left: 10px;
-    margin-right: 16px;
+  width: 32px;
+  margin-left: 10px;
+  margin-right: 16px;
 }
 .Toastify__close-button--light {
-    color: #FFF;
+  color: #fff;
 }
 
 /* ALERT */
 .alert {
-    --rounded-box: 3px;
-    --alert-bg: transparent;
+  --rounded-box: 3px;
+  --alert-bg: transparent;
 
-    font-size: 14px;
+  font-size: 14px;
 
-    &.alert-info {
-        --fallback-in: oklch(var(--purple-primary));
-        &>svg, .alert-title {
-            color: var(--fallback-in);
-        }
+  &.alert-info {
+    --fallback-in: oklch(var(--purple-primary));
+    & > svg,
+    .alert-title {
+      color: var(--fallback-in);
     }
+  }
 
-    &.alert-success {
-        --fallback-su: oklch(var(--success-primary));
-        &>svg, .alert-title {
-            color: var(--fallback-su);
-        }
+  &.alert-success {
+    --fallback-su: oklch(var(--success-primary));
+    & > svg,
+    .alert-title {
+      color: var(--fallback-su);
     }
+  }
 
-    &.alert-warning {
-        --fallback-wa: oklch(var(--warning-primary));
-        &>svg, .alert-title {
-            color: var(--fallback-wa);
-        }
+  &.alert-warning {
+    --fallback-wa: oklch(var(--warning-primary));
+    & > svg,
+    .alert-title {
+      color: var(--fallback-wa);
     }
+  }
 
-    &.alert-error {
-        --fallback-er: oklch(var(--error-primary));
-        &>svg, .alert-title {
-            color: var(--fallback-er);
-        }
+  &.alert-error {
+    --fallback-er: oklch(var(--error-primary));
+    & > svg,
+    .alert-title {
+      color: var(--fallback-er);
     }
+  }
 }
 
 /* STEPS */
 .steps {
-    font-size: 12px;
+  font-size: 12px;
 
-    .step:after {
-        --b3: var(--white);
-        --bc: var(--black-medium);
-        width: 24px;
-        height: 24px;
+  .step:after {
+    --b3: var(--white);
+    --bc: var(--black-medium);
+    width: 24px;
+    height: 24px;
+  }
+  .step:not(.step-primary) {
+    &:after {
+      border: 1px solid oklch(var(--black-medium));
     }
-    .step:not(.step-primary) {
-        &:after {
-            border: 1px solid oklch(var(--black-medium));
-        }
+  }
+  .step-primary[data-content] {
+    &:after {
+      --p: var(--white);
+      --pc: var(--purple-primary);
+      border: 1px solid oklch(var(--purple-primary));
     }
-    .step-primary[data-content] {
-        &:after {
-            --p: var(--white);
-            --pc: var(--purple-primary);
-            border: 1px solid oklch(var(--purple-primary));
-        }
-    }
+  }
 
-    .step-primary:after {
-        --p: var(--purple-primary);
-        --pc: var(--white);
-    }
+  .step-primary:after {
+    --p: var(--purple-primary);
+    --pc: var(--white);
+  }
 
-    &.steps-horizontal .step:before {
-        --b3: var(--black-medium);
-        --p: var(--black-medium);
-        width: 50%;
-        height: 1px;
-    }
+  &.steps-horizontal .step:before {
+    --b3: var(--black-medium);
+    --p: var(--black-medium);
+    width: 50%;
+    height: 1px;
+  }
 }
 
 /* MODAL */
 .modal {
-    &:not(dialog:not(.modal-open)),
-    &::backdrop {
-      background-color: #0006;
-      animation: modal-pop 0.2s ease-out;
-    }
-    .modal-box {
-        --rounded-box: 0;
-        max-width: 620px;
-    }
+  &:not(dialog:not(.modal-open)),
+  &::backdrop {
+    background-color: #0006;
+    animation: modal-pop 0.2s ease-out;
   }
+  .modal-box {
+    --rounded-box: 0;
+    max-width: 620px;
+  }
+}
 
 /* DROPDOWN */
 .dropdown {
-    &.simple-dropdown {
-        div[role=button] {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
+  &.simple-dropdown {
+    div[role="button"] {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
 
-            &::marker {
-                content: none;
-            }
+      &::marker {
+        content: none;
+      }
 
-            &::after {
-                content: "";
-                margin-left: 7px;
-                width: 0px;
-                height: 0px;
-                border-style: solid;
-                border-width: 4px 4px 0 4px;
-                border-color: #9747FF transparent transparent transparent;
-                transform: rotate(0deg);
-            }
-        }
-        .menu {
-            .active, .active span {
-                @apply bg-purple-light;
-            }
-        }
+      &::after {
+        content: "";
+        margin-left: 7px;
+        width: 0px;
+        height: 0px;
+        border-style: solid;
+        border-width: 4px 4px 0 4px;
+        border-color: #9747ff transparent transparent transparent;
+        transform: rotate(0deg);
+      }
     }
+    .menu {
+      .active,
+      .active span {
+        @apply bg-purple-light;
+      }
+    }
+  }
 }
 
 .dropdown-content {
-    @apply shadow bg-white rounded-[3px] text-black text-[16px];
+  @apply shadow bg-white rounded-[3px] text-black text-[16px];
 }
 
 /* CHECKBOX */
 .checkbox {
-    width: 16px;
-    height: 16px;
+  width: 16px;
+  height: 16px;
 
-    &:checked {
-        --bc: var(--purple-primary);
-    }
+  &:checked {
+    --bc: var(--purple-primary);
+  }
+}
+
+/* SIMPLE TOOLTIP */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  bottom: 150%;
+  left: 50%;
+  margin-left: -60px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+}
+.tooltip .tooltiptext::after {
+  content: " ";
+  position: absolute;
+  top: 100%; /* At the bottom of the tooltip */
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: black transparent transparent transparent;
+}
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }

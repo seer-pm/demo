@@ -232,10 +232,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       )}
       {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
         <div className="mb-[24px]">
-          <Alert type="info">
-            Answers will be rounded to the nearest integer. If you want more precision, you can use smaller units (ex:
-            for “What will be the inflation in the US in 2025?”, you can use the unit ‰ to allow an answer of 54‰=5.4%).
-          </Alert>
+          <Alert type="info">Round your answers to the nearest integer, half toward 0.</Alert>
         </div>
       )}
       <label className="label cursor-pointer justify-start space-x-2">

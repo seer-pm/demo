@@ -9,13 +9,14 @@ import { COLLATERAL_TOKENS, SWAPR_CONFIG } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { toastError } from "@/lib/toastify";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, splitScalarOutcome } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
 import { Tooltip } from "react-tooltip";
-import { Address } from "viem";
+import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -206,14 +207,19 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const addToWallet = (i: number) => {
     return async () => {
       const walletClient = await getConnectorClient(config);
-      await watchAsset(walletClient, {
-        type: "ERC20",
-        options: {
-          address: market.wrappedTokens[i],
-          decimals: 18,
-          symbol: tokensInfo[i].symbol,
-        },
-      });
+      try {
+        await watchAsset(walletClient, {
+          type: "ERC20",
+          options: {
+            address: market.wrappedTokens[i],
+            decimals: 18,
+            symbol: tokensInfo[i].symbol,
+          },
+        });
+      } catch (e) {
+        const error = e as RpcError;
+        toastError({ title: error.details || error.message });
+      }
     };
   };
 
@@ -227,7 +233,6 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     }
     return "";
   };
-
   return (
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
@@ -272,7 +277,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <div>
                         {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
                       </div>
-                      <button className="text-purple-primary" type="button" onClick={addToWallet(i)}>
+                      <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
                         Add token to wallet
                       </button>
                     </>
@@ -282,8 +287,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-primary"
+                    className="text-purple-primary tooltip"
                   >
+                    <p className="tooltiptext">View on Gnosis</p>
                     <EtherscanIcon width="12" height="12" />
                   </a>
 
@@ -294,7 +300,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                         setActivePool(i);
                         openModal();
                       }}
-                      className="text-purple-primary"
+                      className="text-purple-primary hover:underline"
                     >
                       Add Liquidity
                     </button>
@@ -303,7 +309,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       href={`https://v3.swapr.eth.limo/#/add/${wrappedAddress}/${COLLATERAL_TOKENS[chainId].primary.address}/enter-amounts`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-primary flex items-center space-x-2"
+                      className="text-purple-primary flex items-center space-x-2 hover:underline"
                     >
                       <span>Add Liquidity</span>
                     </a>

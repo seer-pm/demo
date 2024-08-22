@@ -147,9 +147,9 @@ function OutcomesInfo({
               )}
               <div className="space-y-1">
                 <div>
-                  <span className="text-[16px]">
+                  <Link className="hover:underline text-[16px]" to={paths.market(market.id, chainId)}>
                     #{i + 1} {outcome}
-                  </span>
+                  </Link>
                 </div>
                 {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
               </div>
@@ -215,7 +215,11 @@ export function MarketHeader({
         <div className="grow min-w-0">
           <div className={clsx("font-semibold mb-1 text-[16px]", !isPreview && "lg:text-[24px]")}>
             {!isPreview && market.marketName}
-            {isPreview && <Link to={paths.market(market.id, chainId)}>{market.marketName}</Link>}
+            {isPreview && (
+              <Link className="hover:underline" to={paths.market(market.id, chainId)}>
+                {market.marketName}
+              </Link>
+            )}
           </div>
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={isPreview} chainId={chainId} />
