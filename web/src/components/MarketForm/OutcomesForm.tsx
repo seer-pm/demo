@@ -1,7 +1,7 @@
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { isUndefined } from "@/lib/utils";
+import { isTwoStringsDuplicated, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import {
@@ -33,6 +33,15 @@ function OutcomeFields({
   removeOutcome,
   useFormReturn,
 }: OutcomeFieldsProps) {
+  const outcomeName = outcomes[outcomeIndex].value;
+  useEffect(() => {
+    // trigger validate duplicate outcome names
+    if (!outcomeName) return;
+    const toTriggerFields = outcomes
+      .filter((outcome) => !!outcome.value)
+      .map((_, index) => `outcomes.${index}.value`) as `outcomes.${number}.value`[];
+    useFormReturn.trigger(toTriggerFields);
+  }, [outcomeName]);
   return (
     <div className="text-left">
       <div className="text-[14px] mb-[10px]">Outcome {outcomeIndex + 1}</div>
@@ -41,6 +50,14 @@ function OutcomeFields({
           autoComplete="off"
           {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
+            validate: (v) => {
+              if (
+                outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsDuplicated(v, outcome.value))
+              ) {
+                return "Duplicated outcome.";
+              }
+              return true;
+            },
           })}
           className="w-full"
           useFormReturn={useFormReturn}
@@ -76,8 +93,9 @@ function TokenNameField({
   useFormReturn: UseFormReturn<OutcomesFormValues>;
   fieldName: FieldPath<OutcomesFormValues>;
 }) {
-  const [showCustomToken, setShowCustomToken] = useState(false);
-
+  const [showCustomToken, setShowCustomToken] = useState(!!useFormReturn.getValues(fieldName));
+  const token = useFormReturn.watch(fieldName);
+  const outcomes = useFormReturn.getValues("outcomes");
   useEffect(() => {
     if (!showCustomToken) {
       useFormReturn.setValue(fieldName, "", {
@@ -86,7 +104,25 @@ function TokenNameField({
       });
     }
   }, [showCustomToken]);
-
+  useEffect(() => {
+    // trigger validate duplicate token names
+    if (!token) return;
+    if (fieldName.includes("outcomes")) {
+      const toTriggerFields = outcomes
+        .filter((outcome) => !!outcome.token)
+        .map((_, index) => `outcomes.${index}.token`) as `outcomes.${number}.token`[];
+      useFormReturn.trigger(toTriggerFields);
+      return;
+    }
+    if (fieldName === "upperBound.token") {
+      useFormReturn.trigger("lowerBound.token");
+      return;
+    }
+    if (fieldName === "lowerBound.token") {
+      useFormReturn.trigger("upperBound.token");
+      return;
+    }
+  }, [token]);
   return (
     <div>
       {showCustomToken && (
@@ -95,6 +131,27 @@ function TokenNameField({
             autoComplete="off"
             {...useFormReturn.register(fieldName, {
               required: "This field is required.",
+              validate: (v, formValues) => {
+                if (
+                  (fieldName === "lowerBound.token" &&
+                    isTwoStringsDuplicated(v as string, formValues.upperBound.token)) ||
+                  (fieldName === "upperBound.token" && isTwoStringsDuplicated(v as string, formValues.lowerBound.token))
+                ) {
+                  return "Duplicated token name.";
+                }
+                if (fieldName.includes("outcomes")) {
+                  const outcomeIndex = Number(fieldName.split(".")[1]);
+                  if (
+                    !Number.isNaN(outcomeIndex) &&
+                    formValues.outcomes.some(
+                      (outcome, index) => index !== outcomeIndex && isTwoStringsDuplicated(v as string, outcome.token),
+                    )
+                  ) {
+                    return "Duplicated token name.";
+                  }
+                }
+                return true;
+              },
             })}
             className="w-full"
             useFormReturn={useFormReturn}
