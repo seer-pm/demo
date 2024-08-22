@@ -15,6 +15,7 @@ import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
 import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
@@ -186,13 +187,14 @@ function AddLiquidityInfo({
 
 export function Outcomes({ chainId, market, images, tradeCallback }: PositionsProps) {
   const { address } = useAccount();
-  const [activeOutcome, setActiveOutcome] = useState(0);
+  const [searchParams] = useSearchParams();
+  const outcomeIndexFromSearch = Number(searchParams.get("outcome"));
+  const [activeOutcome, setActiveOutcome] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
-  const [activePool, setActivePool] = useState(0);
-
+  const [activePool, setActivePool] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
 
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;

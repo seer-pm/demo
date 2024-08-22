@@ -147,7 +147,7 @@ function OutcomesInfo({
               )}
               <div className="space-y-1">
                 <div>
-                  <Link className="hover:underline text-[16px]" to={paths.market(market.id, chainId)}>
+                  <Link className="hover:underline text-[16px]" to={`${paths.market(market.id, chainId)}?outcome=${i}`}>
                     #{i + 1} {outcome}
                   </Link>
                 </div>

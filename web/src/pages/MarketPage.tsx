@@ -13,7 +13,7 @@ import { getRouterAddress } from "@/lib/config";
 import { HomeIcon } from "@/lib/icons";
 import { isMarketReliable } from "@/lib/market";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 
@@ -65,8 +65,10 @@ function SwapWidget({
 
 function MarketPage() {
   const { address: account } = useAccount();
+  const [searchParams] = useSearchParams();
 
-  const [outcomeIndex, setOutcomeIndex] = useState(0);
+  const outcomeIndexFromSearch = Number(searchParams.get("outcome"));
+  const [outcomeIndex, setOutcomeIndex] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
 
   const params = useParams();
   const id = params.id as Address;
