@@ -134,7 +134,11 @@ function OutcomesInfo({
     <div ref={ref}>
       <div className="space-y-3">
         {outcomes.map((outcome, i) => (
-          <div key={`${outcome}_${i}`} className={clsx("flex justify-between px-[24px] py-[8px]")}>
+          <Link
+            key={`${outcome}_${i}`}
+            className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-[#F0F0F0] cursor-pointer group")}
+            to={`${paths.market(market.id, chainId)}?outcome=${i}`}
+          >
             <div className="flex items-center space-x-[12px]">
               {marketType !== MarketTypes.SCALAR && (
                 <div className="w-[65px]">
@@ -146,10 +150,8 @@ function OutcomesInfo({
                 </div>
               )}
               <div className="space-y-1">
-                <div>
-                  <Link className="hover:underline text-[16px]" to={`${paths.market(market.id, chainId)}?outcome=${i}`}>
-                    #{i + 1} {outcome}
-                  </Link>
+                <div className="group-hover:underline">
+                  #{i + 1} {outcome}
                 </div>
                 {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
               </div>
@@ -157,7 +159,7 @@ function OutcomesInfo({
             <div className="flex space-x-10 items-center">
               <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
