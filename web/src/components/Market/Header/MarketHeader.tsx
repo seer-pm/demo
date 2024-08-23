@@ -185,7 +185,12 @@ export function MarketHeader({
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
 
   return (
-    <div className="bg-white rounded-[3px] drop-shadow text-left flex flex-col">
+    <div
+      className={clsx(
+        "bg-white rounded-[3px] drop-shadow text-left flex flex-col",
+        market.id === "0x000" ? "pointer-events-none" : "",
+      )}
+    >
       <div
         className={clsx(
           "flex justify-between border-t border-t-[5px] text-[14px] px-[25px] h-[45px] items-center",

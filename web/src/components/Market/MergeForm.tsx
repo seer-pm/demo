@@ -87,7 +87,6 @@ export function MergeForm({ account, market, chainId, router, conditionId, outco
     }
     return acum;
   }, BigInt(0));
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="space-y-2">
@@ -95,12 +94,19 @@ export function MergeForm({ account, market, chainId, router, conditionId, outco
           <div className="text-[14px]">Amount</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() =>
-              setValue("amount", Number(formatUnits(maxPositionAmount, selectedCollateral.decimals)), {
+            onClick={() => {
+              // round down maxPositionAmount
+              const maxJsDecimals = 16;
+              const roundTo =
+                selectedCollateral.decimals > maxJsDecimals
+                  ? BigInt(10 ** (selectedCollateral.decimals - maxJsDecimals))
+                  : 1n;
+              const max = Number(formatUnits((maxPositionAmount / roundTo) * roundTo, selectedCollateral.decimals));
+              setValue("amount", max, {
                 shouldValidate: true,
                 shouldDirty: true,
-              })
-            }
+              });
+            }}
           >
             Max
           </div>
@@ -117,7 +123,6 @@ export function MergeForm({ account, market, chainId, router, conditionId, outco
               if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";
               }
-
               if (parseUnits(String(v), selectedCollateral.decimals) > maxPositionAmount) {
                 return "Not enough balance.";
               }
