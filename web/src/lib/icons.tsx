@@ -598,3 +598,26 @@ export const StarFilled = ({ fill = "#FABB36" }) => (
     </defs>
   </svg>
 );
+
+export const Union = ({ fill = "white" }) => (
+  <svg width="41" height="29" viewBox="0 0 41 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M40 0L31.8025 2.79292L34.4968 5.15045L22.5631 18.7889L16.5655 10.2922L9.00237 18.8638L5.56669 14.9373L0.501735 19.4394C0.192148 19.7146 0.164263 20.1887 0.439451 20.4983C0.71464 20.8079 1.18869 20.8357 1.49828 20.5606L5.43333 17.0627L8.99765 21.1362L16.4345 12.7078L22.4369 21.2111L35.6257 6.1382L38.32 8.49573L40 0ZM1 27.25C0.585786 27.25 0.25 27.5858 0.25 28C0.25 28.4142 0.585786 28.75 1 28.75H40C40.4142 28.75 40.75 28.4142 40.75 28C40.75 27.5858 40.4142 27.25 40 27.25H1Z"
+      fill={fill}
+    />
+  </svg>
+);
+
+export const ArrowDropUp = ({ fill = "#5f6368" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" width="24px" viewBox="0 -960 960 960" fill={fill}>
+    <path d="m280-400 200-200 200 200H280Z" />
+  </svg>
+);
+
+export const ArrowDropDown = ({ fill = "#5f6368" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill={fill}>
+    <path d="M480-360 280-560h400L480-360Z" />
+  </svg>
+);

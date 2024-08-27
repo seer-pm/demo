@@ -14,11 +14,16 @@ function normalizeOdds(prices: number[]) {
   return prices.map((price) => Math.round((price / sum) * 100));
 }
 
-async function getTokenPrice(wrappedAddress: Address, chainId: SupportedChain, buyAmount: string): Promise<bigint> {
+export async function getTokenPrice(
+  wrappedAddress: Address,
+  chainId: SupportedChain,
+  amount: string,
+  swapType?: "buy" | "sell",
+): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
   const [swaprQuote, cowQuote] = await Promise.allSettled([
-    getSwaprQuote(chainId, undefined, buyAmount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, "buy"),
-    getCowQuote(chainId, undefined, buyAmount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, "buy"),
+    getSwaprQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
+    getCowQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
   ]);
 
   if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {

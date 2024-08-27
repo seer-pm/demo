@@ -27,6 +27,7 @@
     "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#fork-with-postinstall",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
+    "@tanstack/react-table": "^8.20.5",
     "@web3modal/wagmi": "^5.0.7",
     "@yornaath/batshit": "^0.10.1",
     "clsx": "^2.1.0",

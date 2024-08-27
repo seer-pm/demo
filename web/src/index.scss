@@ -262,6 +262,7 @@
   background-color: black;
   color: #fff;
   text-align: center;
+  font-weight: normal;
   padding: 5px 0;
   border-radius: 6px;
   position: absolute;
@@ -280,4 +281,28 @@
 /* Show the tooltip text when you mouse over the tooltip container */
 .tooltip:hover .tooltiptext {
   visibility: visible;
+}
+
+/* SIMPLE TABLE */
+.simple-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.simple-table td,
+.simple-table th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.simple-table tr:hover {
+  background-color: #f0f0f0;
+}
+
+.simple-table th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #9747ff;
+  color: white;
 }

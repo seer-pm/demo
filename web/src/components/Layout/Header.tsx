@@ -90,6 +90,9 @@ export default function Header() {
               </ul>
             </div>
           </li>
+          <li>
+            <Link to={"/portfolio"}>Portfolio</Link>
+          </li>
         </ul>
 
         <ul className="hidden sm:menu-horizontal gap-[16px] justify-end w-1/3">
