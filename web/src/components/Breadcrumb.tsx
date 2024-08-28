@@ -8,7 +8,7 @@ interface BreadcrumbProps {
 
 export default function Breadcrumb({ links }: BreadcrumbProps) {
   return (
-    <div className="flex items-center space-x-2 text-[#9747FF] text-[14px]">
+    <div className="flex items-center space-x-2 text-purple-primary text-[14px]">
       <Link to="/">
         <HomeIcon />
       </Link>

@@ -58,7 +58,7 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
   return numberToHex(BigInt(outcome), { size: 32 });
 }
 
-function getMultiSelectAnswers(value: number): number[] {
+export function getMultiSelectAnswers(value: number): number[] {
   const answers = value.toString(2);
   const indexes = [];
 

@@ -4,7 +4,7 @@ import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { PortfolioPosition } from "@/hooks/usePortfolioPositions";
 import { SupportedChain } from "@/lib/chains";
-import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import clsx from "clsx";
@@ -46,7 +46,7 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center text-[14px]">
               <MarketImage
                 marketAddress={position.marketAddress as Address}
                 marketName={position.marketName}
@@ -61,23 +61,32 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
       {
         accessorFn: (position) => `${position.tokenBalance.toFixed(2)} ${position.tokenName}`,
         id: "position",
-        cell: (info) => info.getValue(),
+        cell: (info) => <p className="text-purple-primary font-semibold text-[14px]">{info.getValue<string>()}</p>,
         header: "Position",
         enableSorting: false,
       },
       {
         accessorKey: "tokenPrice",
-        cell: (info) => info.getValue<number>()?.toFixed(2) ?? "-",
+        cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
         header: "Current Token Price (per sDAI)",
       },
       {
         accessorKey: "tokenValue",
-        cell: (info) => info.getValue<number>()?.toFixed(2) ?? "-",
+        cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
         header: "Position Value (sDAI)",
       },
       {
-        accessorFn: (position) => (position.marketStatus === MarketStatus.CLOSED ? "Redeemable" : "Not redeemable yet"),
-        cell: (info) => info.getValue(),
+        accessorFn: (position) => (position.marketStatus === MarketStatus.CLOSED ? "Redeemable" : "Not yet"),
+        cell: (info) => (
+          <p
+            className={clsx(
+              "text-[14px]",
+              info.row.original.marketStatus === MarketStatus.CLOSED ? "text-success-primary" : "text-black-secondary",
+            )}
+          >
+            {info.getValue<string>()}
+          </p>
+        ),
         header: "Redeem Status",
       },
     ],
@@ -103,7 +112,7 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
                     <div
                       className={clsx(
                         header.column.getCanSort() ? "cursor-pointer select-none" : "",
-                        "flex items-center",
+                        "flex items-center gap-2",
                       )}
                       onClick={header.column.getToggleSortingHandler()}
                       title={
@@ -118,8 +127,9 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {{
-                        asc: <ArrowDropUp fill="white" />,
-                        desc: <ArrowDropDown fill="white" />,
+                        asc: <ArrowDropUp fill="currentColor" />,
+                        desc: <ArrowDropDown fill="currentColor" />,
+                        false: header.column.getCanSort() && <ArrowSwap />,
                       }[header.column.getIsSorted() as string] ?? null}
                     </div>
                   )}
@@ -133,7 +143,7 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
         {table.getRowModel().rows.map((row) => {
           return (
             <tr
-              className="cursor-pointer"
+              className="cursor-pointer hover:bg-white"
               key={row.id}
               onClick={() => {
                 const position = row.original;

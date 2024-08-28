@@ -153,7 +153,7 @@ function OutcomesInfo({
                 <div className="group-hover:underline">
                   #{i + 1} {outcome}
                 </div>
-                {/*<div className="text-[12px] text-[#999999]">xM DAI</div>*/}
+                {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
               </div>
             </div>
             <div className="flex space-x-10 items-center">
@@ -248,7 +248,7 @@ export function MarketHeader({
       )}
 
       {isPreview && (
-        <div className="border-t border-[#E5E5E5] py-[16px]">
+        <div className="border-t border-black-medium py-[16px]">
           <OutcomesInfo
             market={market}
             chainId={chainId}
@@ -259,14 +259,14 @@ export function MarketHeader({
         </div>
       )}
 
-      <div className="border-t border-[#E5E5E5] px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto">
+      <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto">
         <div className="flex items-center space-x-[10px] lg:space-x-6">
           <div className="flex items-center space-x-2">
             {MARKET_TYPES_ICONS[marketType]} <div>{MARKET_TYPES_TEXTS[marketType]}</div>
           </div>
           {!isUndefined(daiAmount) && (
             <div className="flex items-center space-x-2">
-              <span className="text-[#999999] max-lg:hidden">Open interest:</span>{" "}
+              <span className="text-black-secondary max-lg:hidden">Open interest:</span>{" "}
               <div>{displayBalance(daiAmount, 18, false)} DAI</div> <DaiLogo />
             </div>
           )}

@@ -39,7 +39,7 @@ export default function Header() {
 
   return (
     <header>
-      <nav className="navbar justify-between bg-blue-primary px-[24px] text-white">
+      <nav className="navbar justify-between bg-purple-dark px-[24px] text-white">
         <div className="w-1/3">
           <Link className="text-white" to="/">
             Seer

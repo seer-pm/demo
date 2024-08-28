@@ -3,7 +3,9 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, formatUnits } from "viem";
-import { getMarketStatus } from "./useMarketStatus";
+import { readConditionalTokensPayoutNumerators } from "./contracts/generated";
+import { Market } from "./useMarket";
+import { MarketStatus, getMarketStatus } from "./useMarketStatus";
 import { fetchMarkets } from "./useMarkets";
 
 export interface PortfolioPosition {
@@ -20,16 +22,15 @@ export interface PortfolioPosition {
 export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
   const markets = await fetchMarkets(chainId);
-
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
       acum[market.id] = {
-        marketName: market.marketName,
+        ...market,
         marketStatus: getMarketStatus(market),
       };
       return acum;
     },
-    {} as Record<Address, { marketName: string; marketStatus: string }>,
+    {} as Record<Address, Market & { marketStatus: string }>,
   );
 
   const tokenToMarket = markets.reduce(
@@ -43,11 +44,11 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
       }
       return acum;
     },
-    {} as Record<`0x${string}`, { marketAddress: Address; tokenIndex: number }>,
+    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
   );
 
   // [tokenId, ..., ...]
-  const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];
+  const allTokensIds = Object.keys(tokenToMarket) as Address[];
 
   // [tokenBalance, ..., ...]
   const balances = (await readContracts(config, {
@@ -97,7 +98,37 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
     }
     return acumm;
   }, [] as PortfolioPosition[]);
-  return positions;
+
+  const marketsWithPositions = [...new Set(positions.map((position) => position.marketAddress))] as Address[];
+  const marketsPayouts = await Promise.all(
+    marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress], chainId)),
+  );
+  const marketToMarketPayouts = marketsWithPositions.reduce(
+    (acc, marketAddress, index) => {
+      acc[marketAddress] = marketsPayouts[index];
+      return acc;
+    },
+    {} as { [key: Address]: bigint[] },
+  );
+  return positions.filter((position) => {
+    const payouts = marketToMarketPayouts[position.marketAddress as Address];
+    if (position.marketStatus === MarketStatus.CLOSED) {
+      return payouts[position.tokenIndex] > 0;
+    }
+    return true;
+  });
+};
+
+export const fetchMarketPayouts = async (market: Market | undefined, chainId: SupportedChain) => {
+  if (!market) return [];
+  return await Promise.all(
+    market.outcomes.map((_, index) =>
+      readConditionalTokensPayoutNumerators(config, {
+        args: [market.conditionId, BigInt(index)],
+        chainId,
+      }),
+    ),
+  );
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {

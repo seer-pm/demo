@@ -291,18 +291,13 @@
 
 .simple-table td,
 .simple-table th {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.simple-table tr:hover {
-  background-color: #f0f0f0;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 16px 24px;
 }
 
 .simple-table th {
-  padding-top: 12px;
-  padding-bottom: 12px;
   text-align: left;
-  background-color: #9747ff;
-  color: white;
+  font-size: 14px;
+  font-weight: normal;
+  color: #9747ff;
 }
