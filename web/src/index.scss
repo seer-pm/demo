@@ -337,6 +337,15 @@
   & .react-datepicker__day {
     color: #999999;
     font-weight: 600;
+
+    &--today {
+      background-color: transparent;
+      color: #9747ff;
+      &:hover {
+        border-radius: 0.3rem;
+        background-color: #f0f0f0;
+      }
+    }
     &--selected {
       background-color: #9747ff;
       color: white;
