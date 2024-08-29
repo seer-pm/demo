@@ -53,7 +53,7 @@ function PortfolioPage() {
             </p>
           )}
           {!isCalculating &&
-            (delta > 0 ? (
+            (delta >= 0 ? (
               <p className="text-[#00C42B] flex gap-2">
                 <span>
                   <ArrowDropUp fill="#00C42B" />

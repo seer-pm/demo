@@ -54,6 +54,7 @@ const FormDatePicker = (props: InputProps) => {
               dateFormat="YYYY-MM-dd HH:mm"
               timeFormat="HH:mm"
               placeholderText="YYYY-MM-DD HH:mm"
+              calendarClassName="custom-date-picker"
             />
           )}
         />
