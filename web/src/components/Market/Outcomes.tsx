@@ -245,7 +245,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
             onClick={outcomeClick(i)}
             className={clsx(
               "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
-              activeOutcome === i ? "border-[#9747FF]" : "border-[#E5E5E5]",
+              activeOutcome === i ? "border-purple-primary" : "border-black-medium",
             )}
           >
             <div className="flex items-center space-x-[12px]">
@@ -285,7 +285,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </>
                   )}
                 </div>
-                <div className="text-[12px] text-[#999999] flex items-center space-x-[16px]">
+                <div className="text-[12px] text-black-secondary flex items-center space-x-[16px]">
                   {balances && balances[i] > 0n && (
                     <>
                       <div>

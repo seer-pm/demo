@@ -39,7 +39,7 @@ export default function Header() {
 
   return (
     <header>
-      <nav className="navbar justify-between bg-blue-primary px-[24px] text-white">
+      <nav className="navbar justify-between bg-purple-dark px-[24px] text-white">
         <div className="w-1/3">
           <Link className="text-white" to="/">
             Seer
@@ -66,8 +66,8 @@ export default function Header() {
               <div tabIndex={0} role="button" className="flex items-center space-x-2">
                 <span>Policies</span> <DownArrow />
               </div>
-              <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary font-normal">
-                <li className="flex space-x-2 items-center">
+              <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary font-normal">
+                <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <a
                     href={paths.verifiedMarketPolicy()}
                     target="_blank"
@@ -77,7 +77,7 @@ export default function Header() {
                     <PolicyIcon /> <span>Verified Market Policy</span>
                   </a>
                 </li>
-                <li className="flex space-x-2 items-center">
+                <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <a
                     href={paths.marketRulesPolicy()}
                     target="_blank"
@@ -89,6 +89,9 @@ export default function Header() {
                 </li>
               </ul>
             </div>
+          </li>
+          <li>
+            <Link to={"/portfolio"}>Portfolio</Link>
           </li>
         </ul>
 
@@ -108,36 +111,61 @@ export default function Header() {
               <div tabIndex={0} role="button">
                 <QuestionIcon />
               </div>
-              <ul className="dropdown-content z-[1] px-[16px] py-[23px] w-[248px] space-y-[23px] [&_svg]:text-purple-primary">
-                <li className="flex space-x-2 items-center">
-                  <TelegramIcon />{" "}
-                  <a href={paths.getHelp()} target="_blank" rel="noopener noreferrer">
+              <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary">
+                <li>
+                  <Link
+                    to={paths.getHelp()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <TelegramIcon />
                     Get Help
-                  </a>
+                  </Link>
                 </li>
-                <li className="flex space-x-2 items-center">
-                  <BugIcon />{" "}
-                  <a href={paths.bugReport()} target="_blank" rel="noopener noreferrer">
+                <li>
+                  <Link
+                    to={paths.bugReport()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <BugIcon />
                     Report a Bug
-                  </a>
+                  </Link>
                 </li>
-                <li className="flex space-x-2 items-center">
-                  <BookIcon />{" "}
-                  <a href={paths.dappGuide()} target="_blank" rel="noopener noreferrer">
+                <li>
+                  <Link
+                    to={paths.dappGuide()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <BookIcon />
                     DApp Guide
-                  </a>
+                  </Link>
                 </li>
-                <li className="flex space-x-2 items-center">
-                  <EthIcon />{" "}
-                  <a href={paths.beginnerGuide()} target="_blank" rel="noopener noreferrer">
+                <li>
+                  <Link
+                    to={paths.beginnerGuide()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <EthIcon />
                     Crypto Beginner's Guide
-                  </a>
+                  </Link>
                 </li>
-                <li className="flex space-x-2 items-center">
-                  <QuestionIcon />{" "}
-                  <a href={paths.faq()} target="_blank" rel="noopener noreferrer">
+                <li>
+                  <Link
+                    to={paths.faq()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <QuestionIcon />
                     FAQ
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

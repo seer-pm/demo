@@ -8,6 +8,7 @@ const COLORS = {
   'purple-secondary': '#B38FFF',
   'purple-medium': '#FBF8FF',
   'purple-light': '#FDFBFF',
+  'purple-dark': '#59097E',
 
   'black': '#000000',
   'black-primary': '#333333',
@@ -26,6 +27,8 @@ const COLORS = {
 
   'tint-blue-primary': '#13C0CB',
   'tint-blue-light': '#E5FDFF',
+
+  'gray-light': '#F0F0F0'
 }
 
 /** @type {import('tailwindcss').Config} */

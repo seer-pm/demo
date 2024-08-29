@@ -289,7 +289,7 @@ export function SwapTokens({
 
         <div className="flex justify-between">
           <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} useWrappedToken={useWrappedToken} />
-          <div className="text-[12px] text-[#999999]">Max slippage: {tradeInfo?.maximumSlippage ?? 0}%</div>
+          <div className="text-[12px] text-black-secondary">Max slippage: {tradeInfo?.maximumSlippage ?? 0}%</div>
         </div>
 
         {quoteData?.trade ? (

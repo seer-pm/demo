@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import Breadcrumb from "@/components/Breadcrumb";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
@@ -10,24 +11,11 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
-import { HomeIcon } from "@/lib/icons";
 import { isMarketReliable } from "@/lib/market";
 import { useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-
-function MarketBreadcrumb() {
-  return (
-    <div className="flex items-center space-x-2 text-[#B38FFF] text-[14px]">
-      <Link to="/">
-        <HomeIcon />
-      </Link>
-      <div>/</div>
-      <div className="font-semibold">Market</div>
-    </div>
-  );
-}
 
 function SwapWidget({
   chainId,
@@ -79,7 +67,7 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
-
+  console.log(market);
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -107,7 +95,7 @@ function MarketPage() {
   return (
     <div className="container-fluid py-10">
       <div className="space-y-5">
-        <MarketBreadcrumb />
+        <Breadcrumb links={[{ title: "Market" }]} />
 
         {verificationStatusResult?.status === "not_verified" && (
           <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
