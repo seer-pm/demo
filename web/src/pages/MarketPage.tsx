@@ -67,7 +67,7 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
-
+  console.log(market);
   if (isMarketError) {
     return (
       <div className="container py-10">

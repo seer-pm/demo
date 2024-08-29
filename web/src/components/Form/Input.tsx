@@ -20,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
   const isValid = !!get(dirtyFields, restProps.name) && !hasError;
   return (
     <>
-      <div className="relative">
+      <div className="relative ">
         {icon && <div className="absolute left-[16px] top-0 bottom-0 flex items-center">{icon}</div>}
         <input
           {...restProps}

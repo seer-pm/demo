@@ -5,7 +5,6 @@ import { PlusIcon, SearchIcon } from "@/lib/icons";
 import { Dropdown } from "../Dropdown";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
-import Select from "../Form/Select";
 import { STATUS_TEXTS } from "./Header/MarketHeader";
 
 export const ORDER_OPTIONS = [
@@ -20,13 +19,37 @@ export const VERIFY_STATUS_OPTIONS: { value: VerificationStatus; text: string }[
 ];
 
 const MARKET_STATUS_OPTIONS = [
-  { value: "", text: "All status" },
-  { value: MarketStatus.NOT_OPEN, text: STATUS_TEXTS[MarketStatus.NOT_OPEN]() },
-  { value: MarketStatus.OPEN, text: STATUS_TEXTS[MarketStatus.OPEN]() },
-  { value: MarketStatus.ANSWER_NOT_FINAL, text: STATUS_TEXTS[MarketStatus.ANSWER_NOT_FINAL]() },
-  { value: MarketStatus.IN_DISPUTE, text: STATUS_TEXTS[MarketStatus.IN_DISPUTE]() },
-  { value: MarketStatus.PENDING_EXECUTION, text: STATUS_TEXTS[MarketStatus.PENDING_EXECUTION]() },
-  { value: MarketStatus.CLOSED, text: STATUS_TEXTS[MarketStatus.CLOSED]() },
+  { value: "", text: "All status", icon: <div className="w-2 h-2 rounded-full	bg-black-primary" /> },
+  {
+    value: MarketStatus.NOT_OPEN,
+    text: STATUS_TEXTS[MarketStatus.NOT_OPEN](),
+    icon: <div className="w-2 h-2 rounded-full	bg-blue-primary" />,
+  },
+  {
+    value: MarketStatus.OPEN,
+    text: STATUS_TEXTS[MarketStatus.OPEN](),
+    icon: <div className="w-2 h-2 rounded-full	bg-purple-primary" />,
+  },
+  {
+    value: MarketStatus.ANSWER_NOT_FINAL,
+    text: STATUS_TEXTS[MarketStatus.ANSWER_NOT_FINAL](),
+    icon: <div className="w-2 h-2 rounded-full	bg-warning-primary" />,
+  },
+  {
+    value: MarketStatus.IN_DISPUTE,
+    text: STATUS_TEXTS[MarketStatus.IN_DISPUTE](),
+    icon: <div className="w-2 h-2 rounded-full	bg-blue-secondary" />,
+  },
+  {
+    value: MarketStatus.PENDING_EXECUTION,
+    text: STATUS_TEXTS[MarketStatus.PENDING_EXECUTION](),
+    icon: <div className="w-2 h-2 rounded-full	bg-tint-blue-primary" />,
+  },
+  {
+    value: MarketStatus.CLOSED,
+    text: STATUS_TEXTS[MarketStatus.CLOSED](),
+    icon: <div className="w-2 h-2 rounded-full	bg-success-primary" />,
+  },
 ];
 
 export function MarketsFilter({
@@ -50,10 +73,6 @@ export function MarketsFilter({
     setMarketName((event.target as HTMLInputElement).value);
   };
 
-  const marketStatusCallback = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setMarketStatus((event.target as HTMLSelectElement).value as MarketStatus | "");
-  };
-
   return (
     <div>
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px]">
@@ -61,11 +80,12 @@ export function MarketsFilter({
           <Input placeholder="Search" className="w-full" icon={<SearchIcon />} onKeyUp={marketNameCallback} />
         </div>
         <div>
-          <Select
+          <Dropdown
             value={marketStatus ?? ""}
             options={MARKET_STATUS_OPTIONS}
-            onChange={marketStatusCallback}
-            className="w-full"
+            onClick={setMarketStatus}
+            defaultLabel="Market Status"
+            btnClassName="select select-bordered bg-white focus:outline-purple-primary w-[210px]"
           />
         </div>
         <div>

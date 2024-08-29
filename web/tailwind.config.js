@@ -27,6 +27,8 @@ const COLORS = {
 
   'tint-blue-primary': '#13C0CB',
   'tint-blue-light': '#E5FDFF',
+
+  'gray-light': '#F0F0F0'
 }
 
 /** @type {import('tailwindcss').Config} */

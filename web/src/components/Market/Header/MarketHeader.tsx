@@ -136,7 +136,7 @@ function OutcomesInfo({
         {outcomes.map((outcome, i) => (
           <Link
             key={`${outcome}_${i}`}
-            className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-[#F0F0F0] cursor-pointer group")}
+            className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
             to={`${paths.market(market.id, chainId)}?outcome=${i}`}
           >
             <div className="flex items-center space-x-[12px]">

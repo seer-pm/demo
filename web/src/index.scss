@@ -212,7 +212,7 @@
         content: none;
       }
 
-      &::after {
+      &.dropdown-arrow::after {
         content: "";
         margin-left: 7px;
         width: 0px;
