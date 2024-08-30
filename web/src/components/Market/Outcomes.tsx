@@ -279,7 +279,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <Tooltip id={market.outcomes[i]}>
                         <p className="break-words w-[300px]">
                           Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
-                          to invalid or answered too soon.
+                          to invalid.
                         </p>
                       </Tooltip>
                     </>
