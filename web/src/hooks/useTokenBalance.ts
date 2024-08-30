@@ -31,5 +31,6 @@ export const useTokenBalances = (owner?: Address, tokens?: Address[]) => {
     queryFn: async () => {
       return await Promise.all(tokens!.map((token) => fetchTokenBalance(token, owner!)));
     },
+    refetchOnWindowFocus: true,
   });
 };

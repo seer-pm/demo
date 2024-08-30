@@ -1,5 +1,5 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
+import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -12,6 +12,7 @@ import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "
 interface SplitPositionProps {
   account: Address;
   router: Address;
+  parentCollectionId: `0x${string}`;
   conditionId: `0x${string}`;
   collateralToken: Address;
   outcomeSlotCount: number;
@@ -25,6 +26,7 @@ async function splitFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
+  parentCollectionId: `0x${string}`,
   conditionId: `0x${string}`,
   partition: bigint[],
   amount: bigint,
@@ -34,18 +36,18 @@ async function splitFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "splitPosition",
-      args: [collateralToken, EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+      args: [collateralToken, parentCollectionId, conditionId, partition, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterSplitFromDai(config, {
-      args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+      args: [parentCollectionId, conditionId, partition, amount],
     });
   }
 
   return await writeGnosisRouterSplitFromBase(config, {
-    args: [EMPTY_PARENT_COLLECTION, conditionId, partition],
+    args: [parentCollectionId, conditionId, partition],
     value: amount,
   });
 }
@@ -58,6 +60,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
         props.routerType,
         props.router,
         props.collateralToken,
+        props.parentCollectionId,
         props.conditionId,
         generateBasicPartition(props.outcomeSlotCount),
         props.amount,

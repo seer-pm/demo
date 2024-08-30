@@ -1,5 +1,5 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { EMPTY_PARENT_COLLECTION, generateBasicPartition } from "@/lib/conditional-tokens";
+import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -11,6 +11,7 @@ import { writeGnosisRouterMergeToBase, writeMainnetRouterMergeToDai } from "./co
 
 interface MergePositionProps {
   router: Address;
+  parentCollectionId: `0x${string}`;
   conditionId: `0x${string}`;
   collateralToken: Address;
   outcomeSlotCount: number;
@@ -24,6 +25,7 @@ async function mergeFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
+  parentCollectionId: `0x${string}`,
   conditionId: `0x${string}`,
   partition: bigint[],
   amount: bigint,
@@ -33,18 +35,18 @@ async function mergeFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "mergePositions",
-      args: [collateralToken, EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+      args: [collateralToken, parentCollectionId, conditionId, partition, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterMergeToDai(config, {
-      args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+      args: [parentCollectionId, conditionId, partition, amount],
     });
   }
 
   return await writeGnosisRouterMergeToBase(config, {
-    args: [EMPTY_PARENT_COLLECTION, conditionId, partition, amount],
+    args: [parentCollectionId, conditionId, partition, amount],
   });
 }
 
@@ -56,6 +58,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
         props.routerType,
         props.router,
         props.collateralToken,
+        props.parentCollectionId,
         props.conditionId,
         generateBasicPartition(props.outcomeSlotCount),
         props.amount,

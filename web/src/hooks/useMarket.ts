@@ -5,7 +5,7 @@ import { graphQLClient } from "@/lib/subgraph";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
 import { GetMarketQuery, getSdk } from "./queries/generated";
 import { getOutcomes } from "./useCreateMarket";
@@ -27,7 +27,10 @@ export interface Market {
   marketName: string;
   outcomes: readonly string[];
   wrappedTokens: Address[];
+  parentMarket: Address;
+  parentOutcome: bigint;
   outcomesSupply: bigint;
+  parentCollectionId: `0x${string}`;
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
@@ -74,9 +77,10 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
   return market;
 }
 
-const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
+export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<GetMarketQuery["market"] | undefined, Error>({
     queryKey: ["useMarket", "useGraphMarket", marketId],
+    enabled: marketId !== zeroAddress,
     queryFn: async () => {
       const client = graphQLClient(chainId);
 
@@ -100,6 +104,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const factory = graphMarket?.factory || marketFactoryAddress[chainId];
   return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", "useOnChainMarket", marketId, chainId, factory],
+    enabled: marketId !== zeroAddress,
     queryFn: async () => {
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {

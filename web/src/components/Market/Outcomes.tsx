@@ -17,7 +17,7 @@ import clsx from "clsx";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
-import { Address, RpcError } from "viem";
+import { RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -28,7 +28,6 @@ import { OutcomeImage } from "./OutcomeImage";
 
 interface PositionsProps {
   chainId: SupportedChain;
-  router: Address;
   market: Market;
   images?: string[];
   tradeCallback: (poolIndex: number) => void;

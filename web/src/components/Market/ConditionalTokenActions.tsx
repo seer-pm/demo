@@ -55,26 +55,9 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
         </button>
       </div>
 
-      {activeTab === "mint" && (
-        <SplitForm
-          account={account}
-          chainId={chainId}
-          router={router}
-          conditionId={market.conditionId}
-          outcomeSlotCount={market.outcomes.length}
-        />
-      )}
+      {activeTab === "mint" && <SplitForm account={account} chainId={chainId} router={router} market={market} />}
 
-      {activeTab === "merge" && (
-        <MergeForm
-          account={account}
-          market={market}
-          chainId={chainId}
-          router={router}
-          conditionId={market.conditionId}
-          outcomeSlotCount={market.outcomes.length}
-        />
-      )}
+      {activeTab === "merge" && <MergeForm account={account} market={market} chainId={chainId} router={router} />}
 
       {activeTab === "redeem" &&
         (marketStatus === MarketStatus.CLOSED ? (

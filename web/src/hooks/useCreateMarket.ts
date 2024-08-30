@@ -4,15 +4,18 @@ import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { TransactionReceipt } from "viem";
+import { Address, TransactionReceipt } from "viem";
 import { writeMarketFactory } from "./contracts/generated";
 
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
+  rules: string;
   questionStart: string;
   questionEnd: string;
   outcomeType: string;
+  parentMarket: Address;
+  parentOutcome: bigint;
   outcomes: string[];
   tokenNames: string[];
   lowerBound: number;

@@ -1,8 +1,11 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
+import { MarketRules } from "@/components/Market/MarketRules";
 import { Outcomes } from "@/components/Market/Outcomes";
+import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
@@ -67,7 +70,7 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
-  console.log(market);
+
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -103,6 +106,12 @@ function MarketPage() {
           </Alert>
         )}
 
+        <ConditionalMarketAlert
+          parentMarket={market.parentMarket}
+          parentOutcome={market.parentOutcome}
+          chainId={chainId}
+        />
+
         <MarketHeader
           market={market}
           chainId={chainId}
@@ -120,15 +129,13 @@ function MarketPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="col-span-1 lg:col-span-8 space-y-5">
+          <div className="col-span-1 lg:col-span-8 space-y-16">
             {market && (
-              <Outcomes
-                chainId={chainId}
-                router={router}
-                market={market}
-                images={images?.outcomes}
-                tradeCallback={tradeCallback}
-              />
+              <>
+                <Outcomes chainId={chainId} market={market} images={images?.outcomes} tradeCallback={tradeCallback} />
+                <MarketRules chainId={chainId} market={market} />
+                <RelatedMarkets chainId={chainId} market={market} />
+              </>
             )}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">

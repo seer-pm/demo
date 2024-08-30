@@ -1,5 +1,4 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { EMPTY_PARENT_COLLECTION } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -10,8 +9,8 @@ import { Address, TransactionReceipt } from "viem";
 import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
 
 interface RedeemPositionProps {
-  account: Address;
   router: Address;
+  parentCollectionId: `0x${string}`;
   conditionId: `0x${string}`;
   collateralToken: Address;
   indexSets: bigint[];
@@ -24,6 +23,7 @@ async function redeemFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
+  parentCollectionId: `0x${string}`,
   conditionId: `0x${string}`,
   indexSets: bigint[],
 ) {
@@ -32,18 +32,18 @@ async function redeemFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "redeemPositions",
-      args: [collateralToken, EMPTY_PARENT_COLLECTION, conditionId, indexSets],
+      args: [collateralToken, parentCollectionId, conditionId, indexSets],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterRedeemToDai(config, {
-      args: [EMPTY_PARENT_COLLECTION, conditionId, indexSets],
+      args: [parentCollectionId, conditionId, indexSets],
     });
   }
 
   return await writeGnosisRouterRedeemToBase(config, {
-    args: [EMPTY_PARENT_COLLECTION, conditionId, indexSets],
+    args: [parentCollectionId, conditionId, indexSets],
   });
 }
 
@@ -55,6 +55,7 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
         props.routerType,
         props.router,
         props.collateralToken,
+        props.parentCollectionId,
         props.conditionId,
         props.indexSets,
       ),
