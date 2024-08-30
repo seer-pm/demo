@@ -3,10 +3,14 @@ type Market @entity {
   factory: Bytes!
   creator: Bytes!
   marketName: String!
+  rules: String!
   outcomes: [String!]!
   outcomesSupply: BigInt!
   lowerBound: BigInt!
   upperBound: BigInt!
+  parentConditionId: Bytes!
+  parentOutcome: BigInt!
+  parentMarket: Bytes!
   conditionId: Bytes!
   questionId: Bytes!
   questionsIds: [Bytes!]!

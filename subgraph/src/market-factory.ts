@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   MarketFactory,
   NewMarket as NewMarketEvent,
@@ -31,10 +31,14 @@ export function handleNewMarket(event: NewMarketEvent): void {
   market.factory = event.address;
   market.creator = event.transaction.from;
   market.marketName = event.params.marketName;
+  market.rules = "";
   market.outcomes = event.params.outcomes;
   market.outcomesSupply = BigInt.fromI32(0);
   market.lowerBound = event.params.lowerBound;
   market.upperBound = event.params.upperBound;
+  market.parentConditionId = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  market.parentOutcome = BigInt.fromI32(0);
+  market.parentMarket = Address.zero();
   market.conditionId = event.params.conditionId;
   market.questionId = event.params.questionId;
   market.questionsIds = event.params.questionsIds;
