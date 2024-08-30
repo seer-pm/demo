@@ -102,8 +102,9 @@ export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const { data: graphMarket } = useGraphMarket(marketId, chainId);
   const factory = graphMarket?.factory || marketFactoryAddress[chainId];
+
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useOnChainMarket", marketId, chainId, factory],
+    queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId, factory.toLocaleLowerCase()],
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
       return mapOnChainMarket({

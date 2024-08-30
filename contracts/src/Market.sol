@@ -22,6 +22,9 @@ contract Market {
 
     struct ConditionalTokensParams {
         bytes32 conditionId; // Conditional Tokens conditionId
+        bytes32 parentCollectionId; // Conditional Tokens parentCollectionId
+        uint256 parentOutcome; // conditional outcome to use (optional)
+        address parentMarket; // conditional market to use (optional)
         bytes32 questionId; // Conditional Tokens questionId
     }
 
@@ -94,6 +97,27 @@ contract Market {
     /// @dev Conditional Tokens conditionId
     function conditionId() external view returns (bytes32) {
         return conditionalTokensParams.conditionId;
+    }
+
+    /// @dev Conditional Tokens parentCollectionId
+    function parentCollectionId() external view returns (bytes32) {
+        return conditionalTokensParams.parentCollectionId;
+    }
+
+    /// @dev The parent market (optional). This market redeems to an outcome token of the parent market.
+    function parentMarket() external view returns (address) {
+        return conditionalTokensParams.parentMarket;
+    }
+
+    /// @dev The parent outcome (optional). The parent market's outcome token this market redeems for.
+    function parentOutcome() external view returns (uint256) {
+        return conditionalTokensParams.parentOutcome;
+    }
+
+    /// @dev Multi Scalar markets have one question for each outcome, while any other market has only one question.
+    /// @return questionsCount The number of Reality questions of this market
+    function getQuestionsCount() external view returns (uint256) {
+        return realityParams.questionsIds.length;
     }
 
     /// @dev Returns the number of outcomes.

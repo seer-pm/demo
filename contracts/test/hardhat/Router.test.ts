@@ -60,9 +60,6 @@ describe("Router", function () {
       collateralToken,
       PARENT_COLLECTION_ID,
       conditionId,
-      Array(outcomeSlotCount)
-        .fill(0)
-        .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
       ethers.parseEther(SPLIT_AMOUNT)
     );
     return { outcomeSlotCount, conditionId, questionsIds, market };
@@ -156,9 +153,6 @@ describe("Router", function () {
         collateralToken,
         PARENT_COLLECTION_ID,
         conditionId,
-        Array(outcomeSlotCount)
-          .fill(0)
-          .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
         ethers.parseEther(MERGE_AMOUNT)
       );
 

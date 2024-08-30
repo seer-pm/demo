@@ -52,14 +52,11 @@ describe("MainnetRouter", function () {
     const questionsIds = await market.getQuestionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
-    const partition = Array(outcomeSlotCount)
-      .fill(0)
-      .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount));
 
     // approve mainnetRouter to transfer user token to the contract
     await DAI.approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
     // split collateral token to outcome tokens
-    await mainnetRouter.splitFromDai(PARENT_COLLECTION_ID, conditionId, partition, ethers.parseEther(SPLIT_AMOUNT));
+    await mainnetRouter.splitFromDai(PARENT_COLLECTION_ID, conditionId, ethers.parseEther(SPLIT_AMOUNT));
     return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
@@ -175,9 +172,6 @@ describe("MainnetRouter", function () {
       await mainnetRouter.mergeToDai(
         PARENT_COLLECTION_ID,
         conditionId,
-        Array(outcomeSlotCount)
-          .fill(0)
-          .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
         mergeAmountInSDai,
       );
 

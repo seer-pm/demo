@@ -103,7 +103,7 @@ contract MarketView {
         IConditionalTokens conditionalTokens = marketFactory
             .conditionalTokens();
 
-        bytes32 parentCollectionId = bytes32(0);
+        bytes32 parentCollectionId = market.parentCollectionId();
 
         (
             string[] memory outcomes,
@@ -127,8 +127,8 @@ contract MarketView {
                 id: address(market),
                 marketName: market.marketName(),
                 outcomes: outcomes,
-                parentMarket: address(0),
-                parentOutcome: 0,
+                parentMarket: market.parentMarket(),
+                parentOutcome: market.parentOutcome(),
                 wrappedTokens: wrappedTokens,
                 outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
                 lowerBound: market.lowerBound(),

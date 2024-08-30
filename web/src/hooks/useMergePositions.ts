@@ -1,5 +1,4 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -27,7 +26,6 @@ async function mergeFromRouter(
   collateralToken: Address,
   parentCollectionId: `0x${string}`,
   conditionId: `0x${string}`,
-  partition: bigint[],
   amount: bigint,
 ) {
   if (isMainCollateral) {
@@ -35,18 +33,18 @@ async function mergeFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "mergePositions",
-      args: [collateralToken, parentCollectionId, conditionId, partition, amount],
+      args: [collateralToken, parentCollectionId, conditionId, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterMergeToDai(config, {
-      args: [parentCollectionId, conditionId, partition, amount],
+      args: [parentCollectionId, conditionId, amount],
     });
   }
 
   return await writeGnosisRouterMergeToBase(config, {
-    args: [parentCollectionId, conditionId, partition, amount],
+    args: [parentCollectionId, conditionId, amount],
   });
 }
 
@@ -60,7 +58,6 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
         props.collateralToken,
         props.parentCollectionId,
         props.conditionId,
-        generateBasicPartition(props.outcomeSlotCount),
         props.amount,
       ),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },

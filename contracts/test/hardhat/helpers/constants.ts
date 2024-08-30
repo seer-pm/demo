@@ -41,10 +41,13 @@ export const REALITY_SINGLE_SELECT_TEMPLATE = 2;
 
 export const categoricalMarketParams = {
   marketName: "Will it rain tomorrow?",
+  rules: "",
   encodedQuestions: ['Will it rain tomorrow?␟"Yes","No"␟misc␟en_US'],
   questionStart: "",
   questionEnd: "",
   outcomeType: "",
+  parentOutcome: 0,
+  parentMarket: ethers.ZeroAddress,
   category: "misc",
   lang: "en_US",
   outcomes: ["Yes", "No"],
@@ -57,10 +60,13 @@ export const categoricalMarketParams = {
 
 export const multiCategoricalMarketParams = {
   marketName: "Which color will win?",
+  rules: "",
   encodedQuestions: ['Which color will win?␟"Red","Blue","Green"␟misc␟en_US'],
   questionStart: "",
   questionEnd: "",
   outcomeType: "",
+  parentOutcome: 0,
+  parentMarket: ethers.ZeroAddress,
   category: "misc",
   lang: "en_US",
   outcomes: ["Red", "Blue", "Green"],
@@ -73,10 +79,13 @@ export const multiCategoricalMarketParams = {
 
 export const scalarMarketParams = {
   marketName: "What will the temperature be tomorrow?",
+  rules: "",
   encodedQuestions: ["What will the temperature be tomorrow?␟misc␟en_US"],
   questionStart: "",
   questionEnd: "",
   outcomeType: "",
+  parentOutcome: 0,
+  parentMarket: ethers.ZeroAddress,
   category: "misc",
   lang: "en_US",
   outcomes: ["Lower", "Higher"],
@@ -89,6 +98,7 @@ export const scalarMarketParams = {
 
 export const multiScalarMarketParams = {
   marketName: "What will the temperature be in [city]?",
+  rules: "",
   encodedQuestions: [
     "What will the temperature be in New York?␟misc␟en_US",
     "What will the temperature be in London?␟misc␟en_US",
@@ -96,6 +106,8 @@ export const multiScalarMarketParams = {
   questionStart: "What will the temperature be in ",
   questionEnd: "?",
   outcomeType: "city",
+  parentOutcome: 0,
+  parentMarket: ethers.ZeroAddress,
   category: "misc",
   lang: "en_US",
   outcomes: ["New York", "London"],

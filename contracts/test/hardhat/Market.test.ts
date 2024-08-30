@@ -44,6 +44,9 @@ describe("Market", function () {
         upperBound,
         {
           conditionId,
+          parentCollectionId: ethers.hexlify(ethers.randomBytes(32)),
+          parentOutcome: 0,
+          parentMarket: ethers.ZeroAddress,
           questionId,
         },
         {
@@ -78,6 +81,9 @@ describe("Market", function () {
         100,
         {
           conditionId: ethers.hexlify(ethers.randomBytes(32)),
+          parentCollectionId: ethers.hexlify(ethers.randomBytes(32)),
+          parentOutcome: 0,
+          parentMarket: ethers.ZeroAddress,
           questionId: ethers.hexlify(ethers.randomBytes(32)),
         },
         {
@@ -98,6 +104,9 @@ describe("Market", function () {
           100,
           {
             conditionId: ethers.hexlify(ethers.randomBytes(32)),
+            parentCollectionId: ethers.hexlify(ethers.randomBytes(32)),
+            parentOutcome: 0,
+            parentMarket: ethers.ZeroAddress,
             questionId: ethers.hexlify(ethers.randomBytes(32)),
           },
           {
@@ -122,6 +131,9 @@ describe("Market", function () {
         100,
         {
           conditionId: ethers.hexlify(ethers.randomBytes(32)),
+          parentCollectionId: ethers.hexlify(ethers.randomBytes(32)),
+          parentOutcome: 0,
+          parentMarket: ethers.ZeroAddress,
           questionId: ethers.hexlify(ethers.randomBytes(32)),
         },
         {

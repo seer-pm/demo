@@ -46,15 +46,12 @@ describe("GnosisRouter", function () {
     const questionsIds = await market.getQuestionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
-    const partition = Array(outcomeSlotCount)
-      .fill(0)
-      .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount));
 
     // approve gnosisRouter to transfer user token to the contract
     await sDAI.approve(gnosisRouter, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
-    await gnosisRouter.splitFromBase(PARENT_COLLECTION_ID, conditionId, partition, {
+    await gnosisRouter.splitFromBase(PARENT_COLLECTION_ID, conditionId, {
       value: ethers.parseEther(SPLIT_AMOUNT),
     });
     return { outcomeSlotCount, conditionId, questionsIds, market };
@@ -139,9 +136,6 @@ describe("GnosisRouter", function () {
       const trx = await gnosisRouter.mergeToBase(
         PARENT_COLLECTION_ID,
         conditionId,
-        Array(outcomeSlotCount)
-          .fill(0)
-          .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
         mergeAmountInSDai,
       );
 

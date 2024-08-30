@@ -21,10 +21,13 @@ contract MarketFactory {
     // Workaround "stack too deep" errors
     struct CreateMarketParams {
         string marketName; // Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
+        string rules; // IPFS uri of the market rules
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
         string questionStart; // Used to build the Reality question on multi scalar markets
         string questionEnd; // Used to build the Reality question on multi scalar markets
         string outcomeType; // Used to build the Reality question on multi scalar markets
+        uint256 parentOutcome; // conditional outcome to use (optional)
+        address parentMarket; // conditional market to use (optional)
         string category; // Reality question category
         string lang; // Reality question language
         uint256 lowerBound; // Lower bound, only used for scalar markets
@@ -60,6 +63,8 @@ contract MarketFactory {
     event NewMarket(
         address indexed market,
         string marketName,
+        address parentMarket,
+        string rules,
         bytes32 conditionId,
         bytes32 questionId,
         bytes32[] questionsIds
@@ -106,8 +111,6 @@ contract MarketFactory {
             "Outcomes count must be 2 or more"
         );
 
-        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
-
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] = encodeRealityQuestionWithOutcomes(
             params.marketName,
@@ -116,17 +119,16 @@ contract MarketFactory {
             params.lang
         );
 
-        address marketId = createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: outcomeSlotCount,
-                templateId: REALITY_SINGLE_SELECT_TEMPLATE
-            })
-        );
-
-        return marketId;
+        return
+            createMarket(
+                params,
+                params.marketName,
+                InternalMarketConfig({
+                    encodedQuestions: encodedQuestions,
+                    outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result
+                    templateId: REALITY_SINGLE_SELECT_TEMPLATE
+                })
+            );
     }
 
     /// @dev Creates a Multi Categorical market.
@@ -139,8 +141,6 @@ contract MarketFactory {
             "Outcomes count must be 2 or more"
         );
 
-        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
-
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] = encodeRealityQuestionWithOutcomes(
             params.marketName,
@@ -149,17 +149,16 @@ contract MarketFactory {
             params.lang
         );
 
-        address marketId = createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: outcomeSlotCount,
-                templateId: REALITY_MULTI_SELECT_TEMPLATE
-            })
-        );
-
-        return marketId;
+        return
+            createMarket(
+                params,
+                params.marketName,
+                InternalMarketConfig({
+                    encodedQuestions: encodedQuestions,
+                    outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result
+                    templateId: REALITY_MULTI_SELECT_TEMPLATE
+                })
+            );
     }
 
     /// @dev Creates a Scalar market.
@@ -178,8 +177,6 @@ contract MarketFactory {
         );
         require(params.outcomes.length == 2, "Outcomes count must be 2");
 
-        uint256 outcomeSlotCount = 3; // additional outcome for Invalid Result
-
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(
             params.marketName,
@@ -187,17 +184,16 @@ contract MarketFactory {
             params.lang
         );
 
-        address marketId = createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: outcomeSlotCount,
-                templateId: REALITY_UINT_TEMPLATE
-            })
-        );
-
-        return marketId;
+        return
+            createMarket(
+                params,
+                params.marketName,
+                InternalMarketConfig({
+                    encodedQuestions: encodedQuestions,
+                    outcomeSlotCount: 3, // additional outcome for Invalid Result
+                    templateId: REALITY_UINT_TEMPLATE
+                })
+            );
     }
 
     /// @dev Creates a Multi Scalar market
@@ -209,8 +205,6 @@ contract MarketFactory {
             params.outcomes.length >= 2,
             "Outcomes count must be 2 or more"
         );
-
-        uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
         string[] memory encodedQuestions = new string[](params.outcomes.length);
 
@@ -228,25 +222,24 @@ contract MarketFactory {
             );
         }
 
-        address marketId = createMarket(
-            params,
-            string(
-                abi.encodePacked(
-                    params.questionStart,
-                    "[",
-                    params.outcomeType,
-                    "]",
-                    params.questionEnd
-                )
-            ),
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: outcomeSlotCount,
-                templateId: REALITY_UINT_TEMPLATE
-            })
-        );
-
-        return marketId;
+        return
+            createMarket(
+                params,
+                string(
+                    abi.encodePacked(
+                        params.questionStart,
+                        "[",
+                        params.outcomeType,
+                        "]",
+                        params.questionEnd
+                    )
+                ),
+                InternalMarketConfig({
+                    encodedQuestions: encodedQuestions,
+                    outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result
+                    templateId: REALITY_UINT_TEMPLATE
+                })
+            );
     }
 
     /// @dev Creates the Market and deploys the wrapped ERC20 tokens
@@ -255,7 +248,63 @@ contract MarketFactory {
         string memory marketName,
         InternalMarketConfig memory config
     ) internal returns (address) {
+        (
+            Market.ConditionalTokensParams memory conditionalTokensParams,
+            Market.RealityParams memory realityParams
+        ) = getNewMarketParams(params, config);
+
+        deployERC20Positions(
+            conditionalTokensParams.parentCollectionId,
+            conditionalTokensParams.conditionId,
+            config.outcomeSlotCount,
+            params.tokenNames
+        );
+
         Market instance = Market(market.clone());
+
+        instance.initialize(
+            marketName,
+            params.outcomes,
+            params.lowerBound,
+            params.upperBound,
+            conditionalTokensParams,
+            realityParams,
+            realityProxy
+        );
+
+        emit NewMarket(
+            address(instance),
+            marketName,
+            params.parentMarket,
+            params.rules,
+            conditionalTokensParams.conditionId,
+            conditionalTokensParams.questionId,
+            realityParams.questionsIds
+        );
+
+        markets.push(address(instance));
+
+        return address(instance);
+    }
+
+    /// @dev Creates the structures needed to initialize the new market
+    function getNewMarketParams(
+        CreateMarketParams memory params,
+        InternalMarketConfig memory config
+    )
+        internal
+        returns (
+            Market.ConditionalTokensParams memory,
+            Market.RealityParams memory
+        )
+    {
+        bytes32 parentCollectionId = params.parentMarket == address(0)
+            ? bytes32(0)
+            : conditionalTokens.getCollectionId(
+                Market(params.parentMarket).parentCollectionId(),
+                Market(params.parentMarket).conditionId(),
+                1 << params.parentOutcome
+            );
 
         bytes32[] memory questionsIds = new bytes32[](
             config.encodedQuestions.length
@@ -287,38 +336,20 @@ contract MarketFactory {
             config.outcomeSlotCount
         );
 
-        deployERC20Positions(
-            conditionId,
-            config.outcomeSlotCount,
-            params.tokenNames
-        );
-        instance.initialize(
-            marketName,
-            params.outcomes,
-            params.lowerBound,
-            params.upperBound,
+        return (
             Market.ConditionalTokensParams({
                 conditionId: conditionId,
-                questionId: questionId
+                questionId: questionId,
+                parentCollectionId: parentCollectionId,
+                parentOutcome: params.parentOutcome,
+                parentMarket: params.parentMarket
             }),
             Market.RealityParams({
                 questionsIds: questionsIds,
                 templateId: config.templateId,
                 encodedQuestions: config.encodedQuestions
-            }),
-            realityProxy
+            })
         );
-
-        emit NewMarket(
-            address(instance),
-            marketName,
-            conditionId,
-            questionId,
-            questionsIds
-        );
-        markets.push(address(instance));
-
-        return address(instance);
     }
 
     /// @dev Encodes the question, outcomes, category and language following the Reality structure
@@ -449,10 +480,12 @@ contract MarketFactory {
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.
+    /// @param parentCollectionId The parentCollectionId
     /// @param conditionId The conditionId
     /// @param outcomeSlotCount The amount of outcomes
     /// @param tokenNames The name of each outcome token
     function deployERC20Positions(
+        bytes32 parentCollectionId,
         bytes32 conditionId,
         uint256 outcomeSlotCount,
         string[] memory tokenNames
@@ -461,7 +494,7 @@ contract MarketFactory {
 
         for (uint j = 0; j < outcomeSlotCount; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
-                bytes32(0),
+                parentCollectionId,
                 conditionId,
                 1 << j
             );

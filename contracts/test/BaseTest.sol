@@ -89,6 +89,15 @@ contract BaseTest is Test {
         uint256 minBond,
         uint256 numOutcomes
     ) public returns (Market) {
+        return getCategoricalMarket(minBond, numOutcomes, 0, address(0));
+    }
+
+    function getCategoricalMarket(
+        uint256 minBond,
+        uint256 numOutcomes,
+        uint256 parentOutcome,
+        address parentMarket
+    ) public returns (Market) {
         (
             string[] memory outcomes,
             string[] memory tokenNames
@@ -102,9 +111,12 @@ contract BaseTest is Test {
             marketFactory.createCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
+                    parentOutcome: parentOutcome,
+                    parentMarket: parentMarket,
                     category: "technology",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -137,9 +149,12 @@ contract BaseTest is Test {
             marketFactory.createMultiCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
+                    parentOutcome: 0,
+                    parentMarket: address(0),
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -159,6 +174,15 @@ contract BaseTest is Test {
         uint256 minBond,
         uint256 numOutcomes
     ) public returns (Market) {
+        return getScalarMarket(minBond, numOutcomes, 0, address(0));
+    }
+
+    function getScalarMarket(
+        uint256 minBond,
+        uint256 numOutcomes,
+        uint256 parentOutcome,
+        address parentMarket
+    ) public returns (Market) {
         (
             string[] memory outcomes,
             string[] memory tokenNames
@@ -172,9 +196,12 @@ contract BaseTest is Test {
             marketFactory.createScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "What will be ETH price on Feb 29, 2024?",
+                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
+                    parentOutcome: parentOutcome,
+                    parentMarket: parentMarket,
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -207,9 +234,12 @@ contract BaseTest is Test {
             marketFactory.createMultiScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Ethereum President Elections",
+                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
+                    parentOutcome: 0,
+                    parentMarket: address(0),
                     category: "misc",
                     lang: "en_US",
                     outcomes: outcomes,
@@ -239,12 +269,29 @@ contract BaseTest is Test {
         uint256[] memory partition,
         uint256 amount
     ) public {
+        return
+            assertOutcomesBalances(
+                owner,
+                conditionId,
+                bytes32(0),
+                partition,
+                amount
+            );
+    }
+
+    function assertOutcomesBalances(
+        address owner,
+        bytes32 conditionId,
+        bytes32 parentCollectionId,
+        uint256[] memory partition,
+        uint256 amount
+    ) public {
         for (uint256 i = 0; i < partition.length; i++) {
             assertEq(
                 IERC20(
                     gnosisRouter.getTokenAddress(
                         IERC20(collateralToken),
-                        bytes32(0),
+                        parentCollectionId,
                         conditionId,
                         partition[i]
                     )
@@ -271,7 +318,6 @@ contract BaseTest is Test {
             IERC20(collateralToken),
             bytes32(0),
             market.conditionId(),
-            partition,
             splitAmount
         );
 
@@ -286,6 +332,7 @@ contract BaseTest is Test {
             address(gnosisRouter),
             splitAmount,
             market.conditionId(),
+            market.parentCollectionId(),
             partition
         );
 
@@ -293,7 +340,6 @@ contract BaseTest is Test {
             IERC20(collateralToken),
             bytes32(0),
             market.conditionId(),
-            partition,
             amountToMerge
         );
 
@@ -318,8 +364,7 @@ contract BaseTest is Test {
 
         gnosisRouter.splitFromBase{value: splitAmount}(
             bytes32(0),
-            market.conditionId(),
-            partition
+            market.conditionId()
         );
 
         // calculate xDAI => sDAI conversion rate
@@ -336,13 +381,13 @@ contract BaseTest is Test {
             address(gnosisRouter),
             splitAmount,
             market.conditionId(),
+            market.parentCollectionId(),
             partition
         );
 
         gnosisRouter.mergeToBase(
             bytes32(0),
             market.conditionId(),
-            partition,
             amountToMerge
         );
 
@@ -365,13 +410,14 @@ contract BaseTest is Test {
         address spender,
         uint256 amount,
         bytes32 conditionId,
+        bytes32 parentCollectionId,
         uint256[] memory partition
     ) public {
         for (uint256 i = 0; i < partition.length; i++) {
             IERC20 token = IERC20(
                 gnosisRouter.getTokenAddress(
                     IERC20(collateralToken),
-                    bytes32(0),
+                    parentCollectionId,
                     conditionId,
                     partition[i]
                 )

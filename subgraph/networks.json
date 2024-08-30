@@ -1,24 +1,16 @@
 {
   "gnosis": {
     "MarketFactory": {
-      "address": "0xA8457b25e99f44fa3Eb72Fe7B15C1C15FfF61E4b",
-      "startBlock": 34736228
-    },
-    "MarketFactoryV2": {
-      "address": "0xa9912171C79200F9572fe0ABd209532a0712Ce33",
-      "startBlock": 35273404
-    },
-    "MarketFactoryV3": {
-      "address": "0xe61F8ca04D3c92313a22257706Cef7d8ed13A788",
-      "startBlock": 35554760
+      "address": "0x5759c084E284b0C6F34405e5Ae4b421910099735",
+      "startBlock": 35756308
     },
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
-      "startBlock": 34736228
+      "startBlock": 35756308
     },
     "ConditionalTokens": {
       "address": "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
-      "startBlock": 34736228
+      "startBlock": 35756308
     }
   }
 }

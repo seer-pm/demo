@@ -95,9 +95,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           categoricalMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
       const marketCount = Number(await marketFactory.marketCount());
       expect(marketCount).to.equal(1);
@@ -121,9 +123,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiCategoricalMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -171,9 +175,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           scalarMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -198,11 +204,13 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiScalarMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
           multiScalarMarketParams.encodedQuestions.map(
             () => ethers.isHexString
-          ),
+          )
         );
 
       const marketCount = Number(await marketFactory.marketCount());

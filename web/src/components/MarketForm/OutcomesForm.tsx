@@ -15,6 +15,7 @@ import {
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
+import Textarea from "../Form/Textarea";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
@@ -272,6 +273,18 @@ export function OutcomesForm({
               </p>
             </div>
           </Alert>
+
+          <div>
+            <div className="text-[24px] font-semibold mb-[32px]">Rules</div>
+            <Textarea
+              autoComplete="off"
+              {...register("rules")}
+              className="w-full"
+              rows={4}
+              useFormReturn={useFormReturn}
+              helpText="You can use this section to clarify how the market should be resolved, the resolution source, and any details that could minimize ambiguities and interpretation issues in the event of a dispute."
+            />
+          </div>
 
           <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
 

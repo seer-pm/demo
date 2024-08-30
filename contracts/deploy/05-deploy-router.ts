@@ -40,4 +40,6 @@ const deployRouter: DeployFunction = async (
   }
 };
 
+deployRouter.tags = ['Router'];
+
 export default deployRouter;

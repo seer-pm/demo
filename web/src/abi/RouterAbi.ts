@@ -133,11 +133,6 @@ export const RouterAbi = [
         type: "bytes32",
       },
       {
-        internalType: "uint256[]",
-        name: "partition",
-        type: "uint256[]",
-      },
-      {
         internalType: "uint256",
         name: "amount",
         type: "uint256",
@@ -270,11 +265,6 @@ export const RouterAbi = [
         internalType: "bytes32",
         name: "conditionId",
         type: "bytes32",
-      },
-      {
-        internalType: "uint256[]",
-        name: "partition",
-        type: "uint256[]",
       },
       {
         internalType: "uint256",

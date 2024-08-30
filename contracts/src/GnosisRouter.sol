@@ -31,44 +31,28 @@ contract GnosisRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
-    /// @param partition An array of disjoint index sets used to split the position
     function splitFromBase(
         bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint[] calldata partition
+        bytes32 conditionId
     ) external payable {
         uint256 shares = savingsXDaiAdapter.depositXDAI{value: msg.value}(
             address(this)
         );
 
-        _splitPosition(
-            sDAI,
-            parentCollectionId,
-            conditionId,
-            partition,
-            shares
-        );
+        _splitPosition(sDAI, parentCollectionId, conditionId, shares);
     }
 
     /// @notice Merges positions and sends xDAI to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function mergeToBase(
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) external {
-        _mergePositions(
-            sDAI,
-            parentCollectionId,
-            conditionId,
-            partition,
-            amount
-        );
+        _mergePositions(sDAI, parentCollectionId, conditionId, amount);
 
         sDAI.approve(address(savingsXDaiAdapter), amount);
         savingsXDaiAdapter.redeemXDAI(amount, msg.sender);
