@@ -11,8 +11,8 @@ import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { Address, TransactionReceipt } from "viem";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { useAccount } from "wagmi";
 import {
@@ -29,6 +29,7 @@ import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
 import Toggle from "../Form/Toggle";
+import { ConditionalMarketAlert } from "../Market/ConditionalMarketAlert";
 import { MarketHeader } from "../Market/Header/MarketHeader";
 import { useModal } from "../Modal";
 import { VerificationForm } from "./VerificationForm";
@@ -229,6 +230,11 @@ export function PreviewForm({
   FormWithPrevStep & {
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
+  const [searchParams] = useSearchParams();
+  const shMarket = searchParams.get("shMarket") || "";
+  const parentMarket = isAddress(shMarket) ? shMarket : zeroAddress;
+  const parentOutcome = BigInt(searchParams.get("shOutcome") || 0);
+
   const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
@@ -271,6 +277,7 @@ export function PreviewForm({
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
+      rules: outcomesValues.rules,
       outcomes: outcomes,
       tokenNames:
         marketTypeValues.marketType === MarketTypes.SCALAR
@@ -279,6 +286,8 @@ export function PreviewForm({
       questionStart: questionParts?.questionStart || "",
       questionEnd: questionParts?.questionEnd || "",
       outcomeType: questionParts?.outcomeType || "",
+      parentMarket,
+      parentOutcome,
       lowerBound: outcomesValues.lowerBound.value,
       upperBound: outcomesValues.upperBound.value,
       unit: outcomesValues.unit,
@@ -316,8 +325,11 @@ export function PreviewForm({
       outcomesValues.upperBound.value,
       marketTypeValues.marketType,
     ).concat(INVALID_RESULT_OUTCOME_TEXT),
+    parentMarket,
+    parentOutcome,
     wrappedTokens: ["0x000", "0x000"],
     outcomesSupply: 0n,
+    parentCollectionId: "0x000",
     conditionId: "0x000",
     questionId: "0x000",
     templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
@@ -352,14 +364,21 @@ export function PreviewForm({
         </Alert>
       )}
 
-      <DashedBox className="max-w-[644px] p-[32px] mx-auto">
+      <DashedBox className="max-w-[644px] p-[32px] mx-auto space-y-[24px]">
+        <ConditionalMarketAlert parentMarket={parentMarket} parentOutcome={parentOutcome} chainId={chainId} />
         <MarketHeader
           market={dummyMarket}
           images={images === false ? undefined : images.url}
           chainId={DEFAULT_CHAIN}
-          isPreview={true}
+          type="preview"
           verificationStatusResult={marketReadyToVerify && verifyNow ? { status: "verified" } : undefined}
         />
+        {outcomesValues.rules.trim().length > 0 && (
+          <div className="text-left">
+            <div className="text-[14px] font-semibold mb-[12px]">Rules</div>
+            <div className="text-[14px] whitespace-break-spaces">{outcomesValues.rules}</div>
+          </div>
+        )}
       </DashedBox>
 
       <Modal

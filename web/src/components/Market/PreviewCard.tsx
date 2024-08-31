@@ -19,7 +19,7 @@ export function PreviewCard({
     <MarketHeader
       market={market}
       chainId={chainId}
-      isPreview={true}
+      type="preview"
       outcomesCount={3}
       images={images}
       verificationStatusResult={verificationStatusResult}

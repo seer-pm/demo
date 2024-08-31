@@ -72,15 +72,19 @@ interface IRealityETH_v3_0 {
     ) external view returns (bytes32);
 }
 
+/// @dev Contract used as a frontend helper. It doesn't have any state-changing function.
 contract MarketView {
     struct MarketInfo {
         address id;
         string marketName;
         string[] outcomes;
+        address parentMarket;
+        uint256 parentOutcome;
         address[] wrappedTokens;
         uint256 outcomesSupply;
         uint256 lowerBound;
         uint256 upperBound;
+        bytes32 parentCollectionId;
         bytes32 conditionId;
         bytes32 questionId;
         uint256 templateId;
@@ -99,42 +103,105 @@ contract MarketView {
         IConditionalTokens conditionalTokens = marketFactory
             .conditionalTokens();
 
+        bytes32 parentCollectionId = bytes32(0);
+
+        (
+            string[] memory outcomes,
+            address[] memory wrappedTokens
+        ) = getOutcomesAndTokens(
+                marketFactory,
+                conditionalTokens,
+                market,
+                conditionId,
+                parentCollectionId
+            );
+
+        (
+            IRealityETH_v3_0.Question[] memory questions,
+            string[] memory encodedQuestions,
+            bytes32[] memory questionsIds
+        ) = getQuestions(market, marketFactory);
+
+        return
+            MarketInfo({
+                id: address(market),
+                marketName: market.marketName(),
+                outcomes: outcomes,
+                parentMarket: address(0),
+                parentOutcome: 0,
+                wrappedTokens: wrappedTokens,
+                outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
+                lowerBound: market.lowerBound(),
+                upperBound: market.upperBound(),
+                parentCollectionId: parentCollectionId,
+                conditionId: conditionId,
+                questionId: market.questionId(),
+                templateId: market.templateId(),
+                questions: questions,
+                questionsIds: questionsIds,
+                encodedQuestions: encodedQuestions,
+                payoutReported: conditionalTokens.payoutDenominator(
+                    conditionId
+                ) > 0
+            });
+    }
+
+    function getOutcomesAndTokens(
+        IMarketFactory marketFactory,
+        IConditionalTokens conditionalTokens,
+        Market market,
+        bytes32 conditionId,
+        bytes32 parentCollectionId
+    )
+        internal
+        view
+        returns (string[] memory outcomes, address[] memory wrappedTokens)
+    {
         uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(
             conditionId
         );
 
-        string[] memory outcomes = new string[](outcomeSlotCount);
-        address[] memory wrappedTokens = new address[](outcomeSlotCount);
-        uint256 outcomesSupply = 0;
+        outcomes = new string[](outcomeSlotCount);
+
+        wrappedTokens = new address[](outcomeSlotCount);
 
         for (uint256 i = 0; i < outcomeSlotCount; i++) {
             outcomes[i] = i == (outcomeSlotCount - 1)
                 ? "Invalid result"
                 : market.outcomes(i);
+
             wrappedTokens[i] = address(
                 marketFactory.wrappedERC20Factory().tokens(
                     conditionalTokens.getPositionId(
                         marketFactory.collateralToken(),
                         conditionalTokens.getCollectionId(
-                            bytes32(0),
+                            parentCollectionId,
                             conditionId,
                             1 << i
                         )
                     )
                 )
             );
-
-            if (i == 0) {
-                outcomesSupply = IERC20(wrappedTokens[i]).totalSupply();
-            }
         }
 
-        IRealityETH_v3_0.Question[]
-            memory questions = new IRealityETH_v3_0.Question[](
-                market.getQuestionsCount()
-            );
-        string[] memory encodedQuestions = new string[](questions.length);
-        bytes32[] memory questionsIds = new bytes32[](questions.length);
+        return (outcomes, wrappedTokens);
+    }
+
+    function getQuestions(
+        Market market,
+        IMarketFactory marketFactory
+    )
+        internal
+        view
+        returns (
+            IRealityETH_v3_0.Question[] memory questions,
+            string[] memory encodedQuestions,
+            bytes32[] memory questionsIds
+        )
+    {
+        questions = new IRealityETH_v3_0.Question[](market.getQuestionsCount());
+        encodedQuestions = new string[](questions.length);
+        questionsIds = new bytes32[](questions.length);
         {
             IRealityETH_v3_0 realitio = marketFactory.realitio();
             for (uint256 i = 0; i < questions.length; i++) {
@@ -147,25 +214,7 @@ contract MarketView {
             }
         }
 
-        return
-            MarketInfo({
-                id: address(market),
-                marketName: market.marketName(),
-                outcomes: outcomes,
-                wrappedTokens: wrappedTokens,
-                outcomesSupply: outcomesSupply,
-                lowerBound: market.lowerBound(),
-                upperBound: market.upperBound(),
-                conditionId: conditionId,
-                questionId: market.questionId(),
-                templateId: market.templateId(),
-                questions: questions,
-                questionsIds: questionsIds,
-                encodedQuestions: encodedQuestions,
-                payoutReported: conditionalTokens.payoutDenominator(
-                    conditionId
-                ) > 0
-            });
+        return (questions, encodedQuestions, questionsIds);
     }
 
     function getMarkets(

@@ -1,15 +1,17 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
+import { Market } from "@/hooks/useMarket";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
+import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
-import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
 
 export interface SplitFormValues {
@@ -19,13 +21,12 @@ export interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
-  chainId: number;
+  chainId: SupportedChain;
   router: Address;
-  conditionId: `0x${string}`;
-  outcomeSlotCount: number;
+  market: Market;
 }
 
-export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCount }: SplitFormProps) {
+export function SplitForm({ account, chainId, router, market }: SplitFormProps) {
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
@@ -46,11 +47,7 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
-  const selectedCollateral = (
-    hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral
-      ? COLLATERAL_TOKENS[chainId].secondary
-      : COLLATERAL_TOKENS[chainId].primary
-  ) as Token;
+  const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
@@ -73,9 +70,10 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
     await splitPosition.mutateAsync({
       account: account!,
       router: router,
-      conditionId,
-      collateralToken: selectedCollateral.address,
-      outcomeSlotCount,
+      parentCollectionId: market.parentCollectionId,
+      conditionId: market.conditionId,
+      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
@@ -124,7 +122,9 @@ export function SplitForm({ account, chainId, router, conditionId, outcomeSlotCo
         />
       </div>
 
-      <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+      {market.parentMarket === zeroAddress && (
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+      )}
 
       {missingApprovals && (
         <div>

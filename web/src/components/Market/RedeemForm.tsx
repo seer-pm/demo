@@ -6,7 +6,7 @@ import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { generateWinningIndexSet } from "@/lib/conditional-tokens";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import AltCollateralSwitch from "./AltCollateralSwitch";
@@ -52,8 +52,8 @@ export function RedeemForm({ account, market, chainId, router, conditionId }: Re
 
   const onSubmit = async (values: RedeemFormValues) => {
     await redeemPositions.mutateAsync({
-      account: account!,
       router,
+      parentCollectionId: market.parentCollectionId,
       conditionId,
       collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       indexSets: winningIndexSet,
@@ -64,7 +64,9 @@ export function RedeemForm({ account, market, chainId, router, conditionId }: Re
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+      {market.parentMarket === zeroAddress && (
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+      )}
 
       {missingApprovals && (
         <div>

@@ -15,6 +15,7 @@ fragment Market on Market {
     id
     factory
     creator
+    rules
 }
 
 query GetMarkets(

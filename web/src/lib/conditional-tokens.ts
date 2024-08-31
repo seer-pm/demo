@@ -1,7 +1,5 @@
 import { Position } from "@/hooks/useMarketPositions";
-import { Address, encodePacked, hexToBigInt, keccak256, stringToHex } from "viem";
-
-export const EMPTY_PARENT_COLLECTION = stringToHex("", { size: 32 });
+import { Address, encodePacked, hexToBigInt, keccak256 } from "viem";
 
 export function generateBasicPartition(outcomeSlotCount: number) {
   const partition = [];

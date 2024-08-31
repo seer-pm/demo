@@ -41,5 +41,6 @@ export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
     enabled: !!market && !!chainId,
     queryKey: ["useMarketStatus", market?.id, chainId],
     queryFn: async () => getMarketStatus(market),
+    refetchOnWindowFocus: true,
   });
 };
