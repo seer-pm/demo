@@ -199,14 +199,15 @@ contract MarketView {
             bytes32[] memory questionsIds
         )
     {
-        questions = new IRealityETH_v3_0.Question[](market.getQuestionsCount());
+        bytes32[] memory initialQuestionsIds = market.getQuestionsIds();
+        questions = new IRealityETH_v3_0.Question[](initialQuestionsIds.length);
         encodedQuestions = new string[](questions.length);
         questionsIds = new bytes32[](questions.length);
         {
             IRealityETH_v3_0 realitio = marketFactory.realitio();
             for (uint256 i = 0; i < questions.length; i++) {
                 questionsIds[i] = getQuestionId(
-                    market.questionsIds(i),
+                    initialQuestionsIds[i],
                     realitio
                 );
                 questions[i] = realitio.questions(questionsIds[i]);

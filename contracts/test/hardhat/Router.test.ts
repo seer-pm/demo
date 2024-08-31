@@ -44,6 +44,7 @@ describe("Router", function () {
     const marketAddress = (await marketFactory.allMarkets())[0];
     const market = await ethers.getContractAt("Market", marketAddress);
     const questionId = await market.questionId();
+    const questionsIds = await market.getQuestionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(
       oracleAddress,
@@ -64,7 +65,7 @@ describe("Router", function () {
         .map((_, index) => getBitMaskDecimal([index], outcomeSlotCount)),
       ethers.parseEther(SPLIT_AMOUNT)
     );
-    return { outcomeSlotCount, conditionId, questionId, market };
+    return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
   beforeEach(async function () {
@@ -191,7 +192,7 @@ describe("Router", function () {
       const REDEEMED_POSITION = 1;
       const [owner] = await ethers.getSigners();
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } =
+      const { outcomeSlotCount, conditionId, questionsIds, market } =
         await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
@@ -199,7 +200,7 @@ describe("Router", function () {
       await time.increase(OPENING_TS);
       // submit answer
       await realitio.submitAnswer(
-        questionId,
+        questionsIds[0],
         ethers.toBeHex(BigInt(ANSWER), 32),
         0,
         {
@@ -272,7 +273,7 @@ describe("Router", function () {
       const REDEEMED_POSITION = 0;
       const [owner] = await ethers.getSigners();
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } =
+      const { outcomeSlotCount, conditionId, questionsIds, market } =
         await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
@@ -280,7 +281,7 @@ describe("Router", function () {
       await time.increase(OPENING_TS);
       // submit answer
       await realitio.submitAnswer(
-        questionId,
+        questionsIds[0],
         ethers.toBeHex(BigInt(ANSWER), 32),
         0,
         {

@@ -43,6 +43,7 @@ describe("GnosisRouter", function () {
     const marketAddress = (await marketFactory.allMarkets())[0];
     const market = await ethers.getContractAt("Market", marketAddress);
     const questionId = await market.questionId();
+    const questionsIds = await market.getQuestionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
     const partition = Array(outcomeSlotCount)
@@ -56,7 +57,7 @@ describe("GnosisRouter", function () {
     await gnosisRouter.splitFromBase(PARENT_COLLECTION_ID, conditionId, partition, {
       value: ethers.parseEther(SPLIT_AMOUNT),
     });
-    return { outcomeSlotCount, conditionId, questionId, market };
+    return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
   beforeEach(async function () {
@@ -175,14 +176,14 @@ describe("GnosisRouter", function () {
       const [owner] = await ethers.getSigners();
       const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionsIds, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
 
       // submit answer
-      await realitio.submitAnswer(questionId, ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+      await realitio.submitAnswer(questionsIds[0], ethers.toBeHex(BigInt(ANSWER), 32), 0, {
         value: ethers.parseEther(MIN_BOND),
       });
 
@@ -245,13 +246,13 @@ describe("GnosisRouter", function () {
       const [owner] = await ethers.getSigners();
       const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       // split first
-      const { outcomeSlotCount, conditionId, questionId, market } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionsIds, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
       // submit answer
-      await realitio.submitAnswer(questionId, ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+      await realitio.submitAnswer(questionsIds[0], ethers.toBeHex(BigInt(ANSWER), 32), 0, {
         value: ethers.parseEther(MIN_BOND),
       });
 

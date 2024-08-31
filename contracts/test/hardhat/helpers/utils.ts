@@ -71,3 +71,12 @@ export function generateSentences(sentenceCount: number, wordCount: number) {
 
   return sentences;
 }
+
+export function getQuestionId(questionsIds: string[], outcomeSlotCount: number, templateId: number, lowerBound: number, upperBound: number) {
+  return ethers.keccak256(
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ['bytes32[]', 'uint256', 'uint256', 'uint256', 'uint256'],
+      [questionsIds, outcomeSlotCount, templateId, lowerBound, upperBound]
+    )
+  );
+}

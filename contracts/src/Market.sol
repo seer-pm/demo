@@ -14,15 +14,23 @@ import "./RealityProxy.sol";
 contract Market {
     bool public initialized; // Flag to initialize the market only once
 
+    struct RealityParams {
+        bytes32[] questionsIds; // Reality questions ids
+        uint256 templateId; // Reality templateId
+        string[] encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
+    }
+
+    struct ConditionalTokensParams {
+        bytes32 conditionId; // Conditional Tokens conditionId
+        bytes32 questionId; // Conditional Tokens questionId
+    }
+
     string public marketName; // The name of the market
     string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
     uint256 public lowerBound; // Lower bound, only used for scalar markets
     uint256 public upperBound; // Upper bound, only user for scalar markets
-    bytes32 public conditionId; // Conditional Tokens conditionId
-    bytes32 public questionId; // Conditional Tokens questionId
-    bytes32[] public questionsIds; // Reality questions ids
-    uint256 public templateId; // Reality templateId
-    string[] public encodedQuestions; // Encoded questions parameters, needed to create and reopen a question
+    ConditionalTokensParams public conditionalTokensParams; // Conditional Tokens parameters
+    RealityParams public realityParams; // Reality parameters
     RealityProxy public realityProxy; // Oracle contract
 
     /// @dev Initializer
@@ -30,22 +38,16 @@ contract Market {
     /// @param _outcomes The market outcomes, doesn't include the INVALID_RESULT outcome
     /// @param _lowerBound Lower bound, only used for scalar markets
     /// @param _upperBound Upper bound, only user for scalar markets
-    /// @param _conditionId Conditional Tokens conditionId
-    /// @param _questionId Conditional Tokens questionId
-    /// @param _questionsIds Reality questions ids
-    /// @param _templateId Reality templateId
-    /// @param _encodedQuestions Encoded questions parameters, needed to create and reopen a question
+    /// @param _conditionalTokensParams Conditional Tokens params
+    /// @param _realityParams Reality params
     /// @param _realityProxy Oracle contract
     function initialize(
         string memory _marketName,
         string[] memory _outcomes,
         uint256 _lowerBound,
         uint256 _upperBound,
-        bytes32 _conditionId,
-        bytes32 _questionId,
-        bytes32[] memory _questionsIds,
-        uint256 _templateId,
-        string[] memory _encodedQuestions,
+        ConditionalTokensParams memory _conditionalTokensParams,
+        RealityParams memory _realityParams,
         RealityProxy _realityProxy
     ) external {
         require(!initialized, "Already initialized.");
@@ -54,20 +56,44 @@ contract Market {
         outcomes = _outcomes;
         lowerBound = _lowerBound;
         upperBound = _upperBound;
-        conditionId = _conditionId;
-        questionId = _questionId;
-        questionsIds = _questionsIds;
-        templateId = _templateId;
-        encodedQuestions = _encodedQuestions;
+        conditionalTokensParams = _conditionalTokensParams;
+        realityParams = _realityParams;
         realityProxy = _realityProxy;
 
         initialized = true;
     }
 
-    /// @dev Multi Scalar markets have one question for each outcome, while any other market has only one question.
-    /// @return questionsCount The number of Reality questions of this market
-    function getQuestionsCount() external view returns (uint256) {
-        return questionsIds.length;
+    /// @dev The templateId associated to the Reality question
+    function templateId() external view returns (uint256) {
+        return realityParams.templateId;
+    }
+
+    /// @dev Returns the Reality questions ids
+    function getQuestionsIds() external view returns (bytes32[] memory) {
+        return realityParams.questionsIds;
+    }
+
+    /// @dev Multi scalar markets have two or more questions, the other market types have 1
+    /// @return Array of question ids.
+    function questionsIds(uint256 index) external view returns (bytes32) {
+        return realityParams.questionsIds[index];
+    }
+
+    /// @dev Encoded questions parameters, needed to create and reopen a question
+    function encodedQuestions(
+        uint256 index
+    ) external view returns (string memory) {
+        return realityParams.encodedQuestions[index];
+    }
+
+    /// @dev Conditional Tokens questionId
+    function questionId() external view returns (bytes32) {
+        return conditionalTokensParams.questionId;
+    }
+
+    /// @dev Conditional Tokens conditionId
+    function conditionId() external view returns (bytes32) {
+        return conditionalTokensParams.conditionId;
     }
 
     /// @dev Returns the number of outcomes.

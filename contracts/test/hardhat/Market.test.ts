@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { Market, RealityProxy } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { getQuestionId } from "./helpers/utils";
 
 describe("Market", function () {
   let market: Market;
@@ -27,7 +28,6 @@ describe("Market", function () {
       const lowerBound = 0;
       const upperBound = 100;
       const conditionId = ethers.hexlify(ethers.randomBytes(32));
-      const questionId = ethers.hexlify(ethers.randomBytes(32));
       const questionsIds = [
         ethers.hexlify(ethers.randomBytes(32)),
         ethers.hexlify(ethers.randomBytes(32)),
@@ -35,16 +35,22 @@ describe("Market", function () {
       const templateId = 1;
       const encodedQuestions = ["encoded1", "encoded2"];
 
+      const questionId = getQuestionId(questionsIds, outcomes.length + 1, templateId, lowerBound, upperBound);
+
       await market.initialize(
         marketName,
         outcomes,
         lowerBound,
         upperBound,
-        conditionId,
-        questionId,
-        questionsIds,
-        templateId,
-        encodedQuestions,
+        {
+          conditionId,
+          questionId,
+        },
+        {
+          questionsIds,
+          templateId,
+          encodedQuestions
+        },
         realityProxy
       );
 
@@ -70,11 +76,17 @@ describe("Market", function () {
         ["Outcome1"],
         0,
         100,
-        ethers.hexlify(ethers.randomBytes(32)),
-        ethers.hexlify(ethers.randomBytes(32)),
-        [ethers.hexlify(ethers.randomBytes(32))],
-        1,
-        ["encoded1"],
+        {
+          conditionId: ethers.hexlify(ethers.randomBytes(32)),
+          questionId: ethers.hexlify(ethers.randomBytes(32)),
+        },
+        {
+          questionsIds: [
+            ethers.hexlify(ethers.randomBytes(32)),
+          ],
+          templateId: 1,
+          encodedQuestions: ["encoded1"]
+        },
         realityProxy
       );
 
@@ -84,11 +96,17 @@ describe("Market", function () {
           ["Outcome2"],
           0,
           100,
-          ethers.hexlify(ethers.randomBytes(32)),
-          ethers.hexlify(ethers.randomBytes(32)),
-          [ethers.hexlify(ethers.randomBytes(32))],
-          2,
-          ["encoded2"],
+          {
+            conditionId: ethers.hexlify(ethers.randomBytes(32)),
+            questionId: ethers.hexlify(ethers.randomBytes(32)),
+          },
+          {
+            questionsIds: [
+              ethers.hexlify(ethers.randomBytes(32)),
+            ],
+            templateId: 1,
+            encodedQuestions: ["encoded2"]
+          },
           realityProxy
         )
       ).to.be.revertedWith("Already initialized.");
@@ -102,20 +120,20 @@ describe("Market", function () {
         ["Outcome1", "Outcome2", "Outcome3"],
         0,
         100,
-        ethers.hexlify(ethers.randomBytes(32)),
-        ethers.hexlify(ethers.randomBytes(32)),
-        [
-          ethers.hexlify(ethers.randomBytes(32)),
-          ethers.hexlify(ethers.randomBytes(32)),
-        ],
-        1,
-        ["encoded1", "encoded2"],
+        {
+          conditionId: ethers.hexlify(ethers.randomBytes(32)),
+          questionId: ethers.hexlify(ethers.randomBytes(32)),
+        },
+        {
+          questionsIds: [
+            ethers.hexlify(ethers.randomBytes(32)),
+            ethers.hexlify(ethers.randomBytes(32)),
+          ],
+          templateId: 1,
+          encodedQuestions: ["encoded1", "encoded2"]
+        },
         realityProxy
       );
-    });
-
-    it("returns the correct number of questions", async function () {
-      expect(await market.getQuestionsCount()).to.equal(2);
     });
 
     it("returns the correct number of outcomes", async function () {

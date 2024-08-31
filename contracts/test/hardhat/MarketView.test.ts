@@ -129,7 +129,7 @@ describe("MarketView", function () {
         });
         const marketAddress = (await marketFactory.allMarkets())[0];
         const market = await ethers.getContractAt("Market", marketAddress);
-        questionId = await market.questionId();
+        questionId = await market.questionsIds(0);
         templateId = await market.templateId();
 
         // past opening_ts
