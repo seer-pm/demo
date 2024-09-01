@@ -129,7 +129,7 @@ contract MarketFactory {
         return marketId;
     }
 
-    /// @dev Creates a Multi Categorical market. Reverts if a market with the same question already exists.
+    /// @dev Creates a Multi Categorical market.
     /// @notice Multi Categorical markets are associated with a Reality question that has one or more answers
     function createMultiCategoricalMarket(
         CreateMarketParams calldata params
@@ -162,7 +162,7 @@ contract MarketFactory {
         return marketId;
     }
 
-    /// @dev Creates a Scalar market. Reverts if a market with the same question already exists.
+    /// @dev Creates a Scalar market.
     /// @notice Scalar markets are associated with a Reality question that resolves to a numeric value
     function createScalarMarket(
         CreateMarketParams calldata params
@@ -381,9 +381,6 @@ contract MarketFactory {
     }
 
     /// @dev Asks a question on reality.
-    /// Duplicated markets are not allowed, so for Categorical, Multi Categorical, and Scalar markets the same question can be asked only once.
-    /// If the same question is asked again, it will not revert here but on ConditionalTokens.prepareCondition().
-    /// We allow here to share a question between a Scalar and a Multi Scalar market or between Multi Scalar markets with different number of questions.
     /// @param encodedQuestion The encoded question containing the Reality parameters
     /// @param templateId The Reality template id
     /// @param openingTime The question opening time
@@ -412,20 +409,6 @@ contract MarketFactory {
         );
 
         if (realitio.getTimeout(question_id) != 0) {
-            /* This allows to share a question between a scalar and a multi scalar market, or between multi scalar markets.
-             *
-             * Example 1:
-             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
-             * Scalar market with the question: "How many votes will Alice receive?"
-             *
-             * Both markets will use the same question for Alice.
-             *
-             * Example 2:
-             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
-             * Multi Scalar market with three questions: "How many votes will Alice receive?", "How many votes will Bob receive?" and "How many votes will David receive?"
-             *
-             * Both markets will use the same question for Alice and Bob.
-             */
             return question_id;
         }
 
@@ -448,18 +431,21 @@ contract MarketFactory {
         bytes32 questionId,
         uint outcomeSlotCount
     ) internal returns (bytes32) {
-        conditionalTokens.prepareCondition(
+        bytes32 conditionId = conditionalTokens.getConditionId(
             address(realityProxy),
             questionId,
             outcomeSlotCount
         );
 
-        return
-            conditionalTokens.getConditionId(
+        if (conditionalTokens.getOutcomeSlotCount(conditionId) == 0) {
+            conditionalTokens.prepareCondition(
                 address(realityProxy),
                 questionId,
                 outcomeSlotCount
             );
+        }
+
+        return conditionId;
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.

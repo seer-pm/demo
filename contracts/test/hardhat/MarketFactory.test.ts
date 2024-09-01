@@ -218,11 +218,9 @@ describe("MarketFactory", function () {
       }
       expect(await marketFactory.marketCount()).to.equal(MARKET_COUNT);
     });
-    it("reverts if try to create multiple multi-scalar markets with same params", async function () {
+    it("allows to create multiple multi-scalar markets with same params", async function () {
       await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
-      await expect(
-        marketFactory.createMultiScalarMarket(multiScalarMarketParams)
-      ).to.be.reverted;
+      await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
     });
   });
 
