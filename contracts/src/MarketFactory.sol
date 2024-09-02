@@ -36,9 +36,7 @@ contract MarketFactory {
 
     // Workaround "stack too deep" errors
     struct InternalMarketConfig {
-        bytes32 questionId; // Conditional Tokens questionId
-        bytes32[] questionsIds; // Reality questions ids
-        bytes32 conditionId; // Conditional Tokens conditionId
+        string[] encodedQuestions; // The encoded questions containing the Reality parameters
         uint256 outcomeSlotCount; // Conditional Tokens outcomeSlotCount
         uint256 templateId; // Reality templateId
     }
@@ -62,14 +60,9 @@ contract MarketFactory {
     event NewMarket(
         address indexed market,
         string marketName,
-        string[] outcomes,
-        uint256 lowerBound,
-        uint256 upperBound,
         bytes32 conditionId,
         bytes32 questionId,
-        bytes32[] questionsIds,
-        uint256 templateId,
-        string[] encodedQuestions
+        bytes32[] questionsIds
     );
 
     /**
@@ -123,26 +116,11 @@ contract MarketFactory {
             params.lang
         );
 
-        bytes32 questionId = askRealityQuestion(
-            encodedQuestions[0],
-            REALITY_SINGLE_SELECT_TEMPLATE,
-            params.openingTime,
-            params.minBond
-        );
-
-        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
-
-        bytes32[] memory questionsIds = new bytes32[](1);
-        questionsIds[0] = questionId;
-
         address marketId = createMarket(
             params,
             params.marketName,
-            encodedQuestions,
             InternalMarketConfig({
-                questionId: questionId,
-                questionsIds: questionsIds,
-                conditionId: conditionId,
+                encodedQuestions: encodedQuestions,
                 outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_SINGLE_SELECT_TEMPLATE
             })
@@ -151,7 +129,7 @@ contract MarketFactory {
         return marketId;
     }
 
-    /// @dev Creates a Multi Categorical market. Reverts if a market with the same question already exists.
+    /// @dev Creates a Multi Categorical market.
     /// @notice Multi Categorical markets are associated with a Reality question that has one or more answers
     function createMultiCategoricalMarket(
         CreateMarketParams calldata params
@@ -171,26 +149,11 @@ contract MarketFactory {
             params.lang
         );
 
-        bytes32 questionId = askRealityQuestion(
-            encodedQuestions[0],
-            REALITY_MULTI_SELECT_TEMPLATE,
-            params.openingTime,
-            params.minBond
-        );
-
-        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
-
-        bytes32[] memory questionsIds = new bytes32[](1);
-        questionsIds[0] = questionId;
-
         address marketId = createMarket(
             params,
             params.marketName,
-            encodedQuestions,
             InternalMarketConfig({
-                questionId: questionId,
-                questionsIds: questionsIds,
-                conditionId: conditionId,
+                encodedQuestions: encodedQuestions,
                 outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_MULTI_SELECT_TEMPLATE
             })
@@ -199,7 +162,7 @@ contract MarketFactory {
         return marketId;
     }
 
-    /// @dev Creates a Scalar market. Reverts if a market with the same question already exists.
+    /// @dev Creates a Scalar market.
     /// @notice Scalar markets are associated with a Reality question that resolves to a numeric value
     function createScalarMarket(
         CreateMarketParams calldata params
@@ -224,26 +187,11 @@ contract MarketFactory {
             params.lang
         );
 
-        bytes32 questionId = askRealityQuestion(
-            encodedQuestions[0],
-            REALITY_UINT_TEMPLATE,
-            params.openingTime,
-            params.minBond
-        );
-
-        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
-
-        bytes32[] memory questionsIds = new bytes32[](1);
-        questionsIds[0] = questionId;
-
         address marketId = createMarket(
             params,
             params.marketName,
-            encodedQuestions,
             InternalMarketConfig({
-                questionId: questionId,
-                questionsIds: questionsIds,
-                conditionId: conditionId,
+                encodedQuestions: encodedQuestions,
                 outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_UINT_TEMPLATE
             })
@@ -264,8 +212,6 @@ contract MarketFactory {
 
         uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result
 
-        bytes32[] memory questionsIds = new bytes32[](params.outcomes.length);
-
         string[] memory encodedQuestions = new string[](params.outcomes.length);
 
         for (uint256 i = 0; i < params.outcomes.length; i++) {
@@ -280,34 +226,21 @@ contract MarketFactory {
                 params.category,
                 params.lang
             );
-
-            questionsIds[i] = askRealityQuestion(
-                encodedQuestions[i],
-                REALITY_UINT_TEMPLATE,
-                params.openingTime,
-                params.minBond
-            );
         }
-        bytes32 questionId = keccak256(abi.encode(questionsIds));
-
-        bytes32 conditionId = prepareCondition(questionId, outcomeSlotCount);
 
         address marketId = createMarket(
             params,
             string(
                 abi.encodePacked(
                     params.questionStart,
-                    '[',
+                    "[",
                     params.outcomeType,
-                    ']',
+                    "]",
                     params.questionEnd
                 )
             ),
-            encodedQuestions,
             InternalMarketConfig({
-                questionId: questionId,
-                questionsIds: questionsIds,
-                conditionId: conditionId,
+                encodedQuestions: encodedQuestions,
                 outcomeSlotCount: outcomeSlotCount,
                 templateId: REALITY_UINT_TEMPLATE
             })
@@ -320,13 +253,42 @@ contract MarketFactory {
     function createMarket(
         CreateMarketParams memory params,
         string memory marketName,
-        string[] memory encodedQuestions,
         InternalMarketConfig memory config
     ) internal returns (address) {
         Market instance = Market(market.clone());
 
+        bytes32[] memory questionsIds = new bytes32[](
+            config.encodedQuestions.length
+        );
+
+        for (uint256 i = 0; i < config.encodedQuestions.length; i++) {
+            questionsIds[i] = askRealityQuestion(
+                config.encodedQuestions[i],
+                config.templateId,
+                params.openingTime,
+                params.minBond
+            );
+        }
+
+        // questionId must be a hash of all the values that RealityProxy.resolve() uses to resolve a market,
+        // this way if an attacker tries to resolve a fake market by changing some value
+        // its questionId will not match the id of a valid market
+        bytes32 questionId = keccak256(
+            abi.encode(
+                questionsIds,
+                config.outcomeSlotCount,
+                config.templateId,
+                params.lowerBound,
+                params.upperBound
+            )
+        );
+        bytes32 conditionId = prepareCondition(
+            questionId,
+            config.outcomeSlotCount
+        );
+
         deployERC20Positions(
-            config.conditionId,
+            conditionId,
             config.outcomeSlotCount,
             params.tokenNames
         );
@@ -335,25 +297,24 @@ contract MarketFactory {
             params.outcomes,
             params.lowerBound,
             params.upperBound,
-            config.conditionId,
-            config.questionId,
-            config.questionsIds,
-            config.templateId,
-            encodedQuestions,
+            Market.ConditionalTokensParams({
+                conditionId: conditionId,
+                questionId: questionId
+            }),
+            Market.RealityParams({
+                questionsIds: questionsIds,
+                templateId: config.templateId,
+                encodedQuestions: config.encodedQuestions
+            }),
             realityProxy
         );
 
         emit NewMarket(
             address(instance),
             marketName,
-            params.outcomes,
-            params.lowerBound,
-            params.upperBound,
-            config.conditionId,
-            config.questionId,
-            config.questionsIds,
-            config.templateId,
-            encodedQuestions
+            conditionId,
+            questionId,
+            questionsIds
         );
         markets.push(address(instance));
 
@@ -420,9 +381,6 @@ contract MarketFactory {
     }
 
     /// @dev Asks a question on reality.
-    /// Duplicated markets are not allowed, so for Categorical, Multi Categorical, and Scalar markets the same question can be asked only once.
-    /// If the same question is asked again, it will not revert here but on ConditionalTokens.prepareCondition().
-    /// We allow here to share a question between a Scalar and a Multi Scalar market or between Multi Scalar markets with different number of questions.
     /// @param encodedQuestion The encoded question containing the Reality parameters
     /// @param templateId The Reality template id
     /// @param openingTime The question opening time
@@ -451,20 +409,6 @@ contract MarketFactory {
         );
 
         if (realitio.getTimeout(question_id) != 0) {
-            /* This allows to share a question between a scalar and a multi scalar market, or between multi scalar markets.
-             *
-             * Example 1:
-             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
-             * Scalar market with the question: "How many votes will Alice receive?"
-             *
-             * Both markets will use the same question for Alice.
-             *
-             * Example 2:
-             * Multi scalar market with two questions: "How many votes will Alice receive?" and "How many votes will Bob receive?"
-             * Multi Scalar market with three questions: "How many votes will Alice receive?", "How many votes will Bob receive?" and "How many votes will David receive?"
-             *
-             * Both markets will use the same question for Alice and Bob.
-             */
             return question_id;
         }
 
@@ -487,18 +431,21 @@ contract MarketFactory {
         bytes32 questionId,
         uint outcomeSlotCount
     ) internal returns (bytes32) {
-        conditionalTokens.prepareCondition(
+        bytes32 conditionId = conditionalTokens.getConditionId(
             address(realityProxy),
             questionId,
             outcomeSlotCount
         );
 
-        return
-            conditionalTokens.getConditionId(
+        if (conditionalTokens.getOutcomeSlotCount(conditionId) == 0) {
+            conditionalTokens.prepareCondition(
                 address(realityProxy),
                 questionId,
                 outcomeSlotCount
             );
+        }
+
+        return conditionId;
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.

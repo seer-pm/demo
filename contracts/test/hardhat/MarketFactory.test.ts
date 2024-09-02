@@ -85,7 +85,7 @@ describe("MarketFactory", function () {
       await marketFactory.createCategoricalMarket(categoricalMarketParams);
       const marketAddress = (await marketFactory.allMarkets())[0];
       const market = await ethers.getContractAt("Market", marketAddress);
-      expect(questionId).to.equal(await market.questionId());
+      expect(questionId).to.equal(await market.questionsIds(0));
     });
     it("creates a categorical market", async function () {
       await expect(
@@ -95,14 +95,9 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           categoricalMarketParams.marketName,
-          categoricalMarketParams.outcomes,
-          categoricalMarketParams.lowerBound,
-          categoricalMarketParams.upperBound,
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString],
-          ethers.getBigInt(2),
-          categoricalMarketParams.encodedQuestions
         );
       const marketCount = Number(await marketFactory.marketCount());
       expect(marketCount).to.equal(1);
@@ -126,14 +121,9 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiCategoricalMarketParams.marketName,
-          multiCategoricalMarketParams.outcomes,
-          multiCategoricalMarketParams.lowerBound,
-          multiCategoricalMarketParams.upperBound,
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString],
-          ethers.getBigInt(3),
-          multiCategoricalMarketParams.encodedQuestions
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -181,14 +171,9 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           scalarMarketParams.marketName,
-          scalarMarketParams.outcomes,
-          scalarMarketParams.lowerBound,
-          scalarMarketParams.upperBound,
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString],
-          ethers.getBigInt(1),
-          scalarMarketParams.encodedQuestions
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -213,16 +198,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiScalarMarketParams.marketName,
-          multiScalarMarketParams.outcomes,
-          multiScalarMarketParams.lowerBound,
-          multiScalarMarketParams.upperBound,
           ethers.isHexString,
           ethers.isHexString,
           multiScalarMarketParams.encodedQuestions.map(
             () => ethers.isHexString
           ),
-          ethers.getBigInt(1),
-          multiScalarMarketParams.encodedQuestions
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -238,11 +218,9 @@ describe("MarketFactory", function () {
       }
       expect(await marketFactory.marketCount()).to.equal(MARKET_COUNT);
     });
-    it("reverts if try to create multiple multi-scalar markets with same params", async function () {
+    it("allows to create multiple multi-scalar markets with same params", async function () {
       await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
-      await expect(
-        marketFactory.createMultiScalarMarket(multiScalarMarketParams)
-      ).to.be.reverted;
+      await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
     });
   });
 

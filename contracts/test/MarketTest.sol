@@ -384,21 +384,17 @@ contract MarketFactoryTest is BaseTest {
         getMultiScalarMarket(MIN_BOND, 1);
     }
 
-    function test_revertsIfTriesToCreateTheSameMarket() public {
+    function test_canCreateRepeatedMarkets() public {
         getCategoricalMarket(MIN_BOND, 2);
-        vm.expectRevert(bytes("condition already prepared"));
         getCategoricalMarket(MIN_BOND, 2);
 
         getMultiCategoricalMarket(MIN_BOND, 2);
-        vm.expectRevert(bytes("condition already prepared"));
         getMultiCategoricalMarket(MIN_BOND, 2);
 
         getScalarMarket(MIN_BOND, 2);
-        vm.expectRevert(bytes("condition already prepared"));
         getScalarMarket(MIN_BOND, 2);
 
         getMultiScalarMarket(MIN_BOND, 2);
-        vm.expectRevert(bytes("condition already prepared"));
         getMultiScalarMarket(MIN_BOND, 2);
     }
 
