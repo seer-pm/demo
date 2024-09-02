@@ -111,7 +111,8 @@ contract ConditionalMarketsTest is BaseTest {
         skip(60); // skip opening timestamp
 
         bytes32 answer = bytes32(uint256(2500));
-        submitAnswer(deepScalarMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = deepScalarMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 

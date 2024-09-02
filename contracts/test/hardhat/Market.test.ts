@@ -65,8 +65,7 @@ describe("Market", function () {
       expect(await market.upperBound()).to.equal(upperBound);
       expect(await market.conditionId()).to.equal(conditionId);
       expect(await market.questionId()).to.equal(questionId);
-      expect(await market.questionsIds(0)).to.equal(questionsIds[0]);
-      expect(await market.questionsIds(1)).to.equal(questionsIds[1]);
+      expect(await market.questionsIds()).to.deep.equal(questionsIds);
       expect(await market.templateId()).to.equal(templateId);
       expect(await market.encodedQuestions(0)).to.equal(encodedQuestions[0]);
       expect(await market.encodedQuestions(1)).to.equal(encodedQuestions[1]);

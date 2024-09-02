@@ -44,7 +44,7 @@ describe("Router", function () {
     const marketAddress = (await marketFactory.allMarkets())[0];
     const market = await ethers.getContractAt("Market", marketAddress);
     const questionId = await market.questionId();
-    const questionsIds = await market.getQuestionsIds();
+    const questionsIds = await market.questionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(
       oracleAddress,

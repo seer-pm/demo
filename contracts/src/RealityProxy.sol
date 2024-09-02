@@ -37,7 +37,7 @@ contract RealityProxy {
     /// @dev Resolves the specified market
     /// @param market Market to resolve
     function resolve(Market market) external {
-        bytes32[] memory questionsIds = market.getQuestionsIds();
+        bytes32[] memory questionsIds = market.questionsIds();
         bytes32 conditionId = market.conditionId();
         uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(
             conditionId

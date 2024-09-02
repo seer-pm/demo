@@ -71,15 +71,9 @@ contract Market {
         return realityParams.templateId;
     }
 
-    /// @dev Returns the Reality questions ids
-    function getQuestionsIds() external view returns (bytes32[] memory) {
+    /// @dev Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question.
+    function questionsIds() external view returns (bytes32[] memory) {
         return realityParams.questionsIds;
-    }
-
-    /// @dev Multi scalar markets have two or more questions, the other market types have 1
-    /// @return Array of question ids.
-    function questionsIds(uint256 index) external view returns (bytes32) {
-        return realityParams.questionsIds[index];
     }
 
     /// @dev Encoded questions parameters, needed to create and reopen a question
@@ -112,12 +106,6 @@ contract Market {
     /// @dev The parent outcome (optional). The parent market's outcome token this market redeems for.
     function parentOutcome() external view returns (uint256) {
         return conditionalTokensParams.parentOutcome;
-    }
-
-    /// @dev Multi Scalar markets have one question for each outcome, while any other market has only one question.
-    /// @return questionsCount The number of Reality questions of this market
-    function getQuestionsCount() external view returns (uint256) {
-        return realityParams.questionsIds.length;
     }
 
     /// @dev Returns the number of outcomes.

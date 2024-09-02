@@ -62,7 +62,7 @@ describe("RealityProxy", function () {
         await time.increase(OPENING_TS);
         // submit answer
         await realitio.submitAnswer(
-          await market.questionsIds(0),
+          (await market.questionsIds())[0],
           ethers.toBeHex(BigInt(answer), 32),
           0,
           {
@@ -143,7 +143,7 @@ describe("RealityProxy", function () {
         await time.increase(OPENING_TS);
         // submit answer
         await realitio.submitAnswer(
-          await market.questionsIds(0),
+          (await market.questionsIds())[0],
           ethers.toBeHex(BigInt(answer), 32),
           0,
           {
@@ -235,7 +235,7 @@ describe("RealityProxy", function () {
         await time.increase(OPENING_TS);
         // submit answer
         await realitio.submitAnswer(
-          await market.questionsIds(0),
+          (await market.questionsIds())[0],
           ethers.toBeHex(BigInt(answer), 32),
           0,
           {
@@ -320,7 +320,7 @@ describe("RealityProxy", function () {
           questionId,
           multiScalarMarketParams.outcomes.length + 1
         );
-        const questionsIds = await market.getQuestionsIds();
+        const questionsIds = await market.questionsIds();
 
         // past opening_ts
         await time.increase(OPENING_TS);

@@ -43,7 +43,8 @@ contract MarketFactoryTest is BaseTest {
         Market categoricalMarket = getCategoricalMarket(MIN_BOND, numOutcomes);
         skip(60); // skip opening timestamp
 
-        submitAnswer(categoricalMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = categoricalMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -70,7 +71,8 @@ contract MarketFactoryTest is BaseTest {
         Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
-        submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = multiCategoricalMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -97,7 +99,8 @@ contract MarketFactoryTest is BaseTest {
         Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
-        submitAnswer(scalarMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = scalarMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -121,8 +124,9 @@ contract MarketFactoryTest is BaseTest {
         Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
-        submitAnswer(multiScalarMarket.questionsIds(0), answer);
-        submitAnswer(multiScalarMarket.questionsIds(1), answer2);
+        bytes32[] memory questionsIds = multiScalarMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
+        submitAnswer(questionsIds[1], answer2);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -157,7 +161,8 @@ contract MarketFactoryTest is BaseTest {
         Market categoricalMarket = getCategoricalMarket(MIN_BOND, 40);
         skip(60); // skip opening timestamp
 
-        submitAnswer(categoricalMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = categoricalMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -204,7 +209,8 @@ contract MarketFactoryTest is BaseTest {
         Market multiCategoricalMarket = getMultiCategoricalMarket(MIN_BOND, 3);
         skip(60); // skip opening timestamp
 
-        submitAnswer(multiCategoricalMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = multiCategoricalMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -255,7 +261,8 @@ contract MarketFactoryTest is BaseTest {
         Market scalarMarket = getScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
-        submitAnswer(scalarMarket.questionsIds(0), answer);
+        bytes32[] memory questionsIds = scalarMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -310,8 +317,9 @@ contract MarketFactoryTest is BaseTest {
         Market multiScalarMarket = getMultiScalarMarket(MIN_BOND, 2);
         skip(60); // skip opening timestamp
 
-        submitAnswer(multiScalarMarket.questionsIds(0), answer);
-        submitAnswer(multiScalarMarket.questionsIds(1), answer2);
+        bytes32[] memory questionsIds = multiScalarMarket.questionsIds();
+        submitAnswer(questionsIds[0], answer);
+        submitAnswer(questionsIds[1], answer2);
 
         skip(60 * 60 * 24 * 2); // question timeout
 
@@ -405,8 +413,10 @@ contract MarketFactoryTest is BaseTest {
         // multiscalar market with 3 questions
         Market multiScalar2 = getMultiScalarMarket(MIN_BOND, 3);
 
-        assertEq(multiScalar1.questionsIds(0), multiScalar2.questionsIds(0));
-        assertEq(multiScalar1.questionsIds(1), multiScalar2.questionsIds(1));
+        bytes32[] memory questionsIds1 = multiScalar1.questionsIds();
+        bytes32[] memory questionsIds2 = multiScalar2.questionsIds();
+        assertEq(questionsIds1[0], questionsIds2[0]);
+        assertEq(questionsIds1[1], questionsIds2[1]);
     }
 
     function test_reusesQuestionBetweenScalarAndMultiScalarMarkets() public {
@@ -462,7 +472,9 @@ contract MarketFactoryTest is BaseTest {
             )
         );
 
-        assertEq(scalar.questionsIds(0), multiScalar.questionsIds(0));
+        bytes32[] memory questionsIdsScalar = scalar.questionsIds();
+        bytes32[] memory questionsIdsMultiscalar = multiScalar.questionsIds();
+        assertEq(questionsIdsScalar[0], questionsIdsMultiscalar[0]);
     }
 
     function test_encodedQuestions() public {

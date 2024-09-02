@@ -85,7 +85,7 @@ describe("MarketFactory", function () {
       await marketFactory.createCategoricalMarket(categoricalMarketParams);
       const marketAddress = (await marketFactory.allMarkets())[0];
       const market = await ethers.getContractAt("Market", marketAddress);
-      expect(questionId).to.equal(await market.questionsIds(0));
+      expect(questionId).to.equal((await market.questionsIds())[0]);
     });
     it("creates a categorical market", async function () {
       await expect(
