@@ -79,7 +79,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<GetMarketQuery["market"] | undefined, Error>({
-    queryKey: ["useMarket", "useGraphMarket", marketId],
+    queryKey: ["useMarket", "useGraphMarket", marketId.toLocaleLowerCase()],
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
       const client = graphQLClient(chainId);

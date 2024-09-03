@@ -138,7 +138,7 @@ function VerificationCheckPage() {
   });
 
   if (isAddress(id)) {
-    return <MarketCheck id={id} chainId={params.chainId as unknown as SupportedChain} />;
+    return <MarketCheck id={id} chainId={Number(params.chainId) as SupportedChain} />;
   }
 
   const onSubmit = async (values: VerificationCheckFormValues) => {
