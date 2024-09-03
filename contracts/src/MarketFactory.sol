@@ -325,7 +325,7 @@ contract MarketFactory {
         bytes32 questionId = keccak256(
             abi.encode(
                 questionsIds,
-                config.outcomeSlotCount,
+                params.outcomes.length,
                 config.templateId,
                 params.lowerBound,
                 params.upperBound

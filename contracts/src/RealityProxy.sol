@@ -38,10 +38,7 @@ contract RealityProxy {
     /// @param market Market to resolve
     function resolve(Market market) external {
         bytes32[] memory questionsIds = market.questionsIds();
-        bytes32 conditionId = market.conditionId();
-        uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(
-            conditionId
-        );
+        uint256 numOutcomes = market.numOutcomes();
         uint256 templateId = market.templateId();
         uint256 low = market.lowerBound();
         uint256 high = market.upperBound();
@@ -50,15 +47,11 @@ contract RealityProxy {
         // this way if an attacker tries to resolve a fake market by changing some value
         // its questionId will not match the id of a valid market
         bytes32 questionId = keccak256(
-            abi.encode(questionsIds, outcomeSlotCount, templateId, low, high)
+            abi.encode(questionsIds, numOutcomes, templateId, low, high)
         );
 
         if (templateId == REALITY_SINGLE_SELECT_TEMPLATE) {
-            resolveCategoricalMarket(
-                questionId,
-                questionsIds,
-                outcomeSlotCount - 1
-            );
+            resolveCategoricalMarket(questionId, questionsIds, numOutcomes);
             return;
         }
 
@@ -66,17 +59,13 @@ contract RealityProxy {
             resolveMultiCategoricalMarket(
                 questionId,
                 questionsIds,
-                outcomeSlotCount - 1
+                numOutcomes
             );
             return;
         }
 
         if (questionsIds.length > 1) {
-            resolveMultiScalarMarket(
-                questionId,
-                questionsIds,
-                outcomeSlotCount - 1
-            );
+            resolveMultiScalarMarket(questionId, questionsIds, numOutcomes);
             return;
         }
 
