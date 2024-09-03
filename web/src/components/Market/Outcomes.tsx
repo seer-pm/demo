@@ -324,6 +324,10 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <span>Add Liquidity</span>
                     </a>
                   )}
+
+                  {/*<Link to={`/create-market?shMarket=${market.id}&shOutcome=${i}`} className="text-purple-primary">
+                    New conditional market
+                  </Link>*/}
                 </div>
               </div>
             </div>

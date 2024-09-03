@@ -35,12 +35,10 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
-    /// @param partition An array of disjoint index sets used to split the position
     /// @param amount The amount of collateral to split.
     function splitFromDai(
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) external {
         DAI.transferFrom(msg.sender, address(this), amount);
@@ -51,7 +49,6 @@ contract MainnetRouter is Router {
             IERC20(address(sDAI)),
             parentCollectionId,
             conditionId,
-            partition,
             shares
         );
     }
@@ -60,19 +57,16 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function mergeToDai(
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) external {
         _mergePositions(
             IERC20(address(sDAI)),
             parentCollectionId,
             conditionId,
-            partition,
             amount
         );
         sDAI.redeem(amount, msg.sender, address(this));

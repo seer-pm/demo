@@ -4,6 +4,7 @@
   "scripts": {
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
+    "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && cd ../web && yarn wagmi generate",
     "verify:gnosis": "npx hardhat --network gnosis etherscan-verify --api-url https://api.gnosisscan.io"
   },
   "devDependencies": {

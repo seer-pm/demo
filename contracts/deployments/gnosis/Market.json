@@ -1,5 +1,5 @@
 {
-  "address": "0xaB903CdAf1068E86018F098c369B0A645c3F98Ac",
+  "address": "0x60Eb95536F44C696d115D943aB98C26CBfC110BF",
   "abi": [
     {
       "inputs": [],
@@ -15,10 +15,43 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "conditionalTokensParams",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "conditionId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "parentCollectionId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "parentOutcome",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "parentMarket",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "questionId",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "index",
           "type": "uint256"
         }
       ],
@@ -28,19 +61,6 @@
           "internalType": "string",
           "name": "",
           "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getQuestionsCount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -69,29 +89,58 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32",
-          "name": "_conditionId",
-          "type": "bytes32"
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "conditionId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "parentCollectionId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "parentOutcome",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "parentMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "questionId",
+              "type": "bytes32"
+            }
+          ],
+          "internalType": "struct Market.ConditionalTokensParams",
+          "name": "_conditionalTokensParams",
+          "type": "tuple"
         },
         {
-          "internalType": "bytes32",
-          "name": "_questionId",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "bytes32[]",
-          "name": "_questionsIds",
-          "type": "bytes32[]"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_templateId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string[]",
-          "name": "_encodedQuestions",
-          "type": "string[]"
+          "components": [
+            {
+              "internalType": "bytes32[]",
+              "name": "questionsIds",
+              "type": "bytes32[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "templateId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string[]",
+              "name": "encodedQuestions",
+              "type": "string[]"
+            }
+          ],
+          "internalType": "struct Market.RealityParams",
+          "name": "_realityParams",
+          "type": "tuple"
         },
         {
           "internalType": "contract RealityProxy",
@@ -177,6 +226,45 @@
     },
     {
       "inputs": [],
+      "name": "parentCollectionId",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "parentMarket",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "parentOutcome",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "questionId",
       "outputs": [
         {
@@ -189,19 +277,26 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+      "inputs": [],
       "name": "questionsIds",
       "outputs": [
         {
-          "internalType": "bytes32",
+          "internalType": "bytes32[]",
           "name": "",
-          "type": "bytes32"
+          "type": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "realityParams",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "templateId",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -254,49 +349,46 @@
       "type": "function"
     }
   ],
-  "transactionHash": "0xd998f3308de2020d1d383355af0b5b14b08055127469007b49acd149fb33eeca",
+  "transactionHash": "0xa44a1fec597fe9ed155b27d653d7cf6f1d7fe0c1fa4104adb26e2437bfe3dfc9",
   "receipt": {
     "to": null,
     "from": "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
-    "contractAddress": "0xaB903CdAf1068E86018F098c369B0A645c3F98Ac",
+    "contractAddress": "0x60Eb95536F44C696d115D943aB98C26CBfC110BF",
     "transactionIndex": 1,
-    "gasUsed": "596201",
+    "gasUsed": "764353",
     "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "blockHash": "0x337a17939d9b4503a9cdcbd994027e39b44e2c533ed96b6c65a62b54e029477f",
-    "transactionHash": "0xd998f3308de2020d1d383355af0b5b14b08055127469007b49acd149fb33eeca",
+    "blockHash": "0x7056f409c28bda83dfdc1d6c21f4d6a3cc4c71b3c7db6d29a471bbaa67a8939d",
+    "transactionHash": "0xa44a1fec597fe9ed155b27d653d7cf6f1d7fe0c1fa4104adb26e2437bfe3dfc9",
     "logs": [],
-    "blockNumber": 35247702,
-    "cumulativeGasUsed": "771396",
+    "blockNumber": 35802861,
+    "cumulativeGasUsed": "877099",
     "status": 1,
     "byzantium": true
   },
   "args": [],
-  "numDeployments": 6,
-  "solcInputHash": "a7b6681d59548aa215c1486481ab56ee",
-  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"conditionId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"encodedQuestions\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getQuestionsCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_marketName\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"_outcomes\",\"type\":\"string[]\"},{\"internalType\":\"uint256\",\"name\":\"_lowerBound\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_upperBound\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_conditionId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_questionId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32[]\",\"name\":\"_questionsIds\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256\",\"name\":\"_templateId\",\"type\":\"uint256\"},{\"internalType\":\"string[]\",\"name\":\"_encodedQuestions\",\"type\":\"string[]\"},{\"internalType\":\"contract RealityProxy\",\"name\":\"_realityProxy\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lowerBound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"marketName\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"numOutcomes\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"outcomes\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"questionId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"questionsIds\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realityProxy\",\"outputs\":[{\"internalType\":\"contract RealityProxy\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"resolve\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"templateId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"upperBound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"getQuestionsCount()\":{\"details\":\"Multi Scalar markets have one question for each outcome, while any other market has only one question.\",\"returns\":{\"_0\":\"questionsCount The number of Reality questions of this market\"}},\"initialize(string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[],address)\":{\"details\":\"Initializer\",\"params\":{\"_conditionId\":\"Conditional Tokens conditionId\",\"_encodedQuestions\":\"Encoded questions parameters, needed to create and reopen a question\",\"_lowerBound\":\"Lower bound, only used for scalar markets\",\"_marketName\":\"The name of the market\",\"_outcomes\":\"The market outcomes, doesn't include the INVALID_RESULT outcome\",\"_questionId\":\"Conditional Tokens questionId\",\"_questionsIds\":\"Reality questions ids\",\"_realityProxy\":\"Oracle contract\",\"_templateId\":\"Reality templateId\",\"_upperBound\":\"Upper bound, only user for scalar markets\"}},\"numOutcomes()\":{\"details\":\"Returns the number of outcomes. Doesn't include the INVALID_RESULT outcome.\",\"returns\":{\"_0\":\"numOutcomes The number of outcomes\"}},\"resolve()\":{\"details\":\"Helper function to resolve the market\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interaction/Market.sol\":\"Market\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"src/interaction/Interfaces.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\ninterface IERC20 {\\n    function transferFrom(\\n        address from,\\n        address to,\\n        uint256 amount\\n    ) external returns (bool);\\n\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    function balanceOf(address owner) external returns (uint256);\\n}\\n\\n// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol\\ninterface IRealityETH_v3_0 {\\n    function askQuestionWithMinBond(\\n        uint256 template_id,\\n        string memory question,\\n        address arbitrator,\\n        uint32 timeout,\\n        uint32 opening_ts,\\n        uint256 nonce,\\n        uint256 min_bond\\n    ) external payable returns (bytes32);\\n\\n    function resultForOnceSettled(\\n        bytes32 question_id\\n    ) external view returns (bytes32);\\n\\n    function getContentHash(\\n        bytes32 question_id\\n    ) external view returns (bytes32);\\n\\n    function getTimeout(bytes32 question_id) external view returns (uint32);\\n\\n    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;\\n}\\n\\ninterface IConditionalTokens {\\n    function payoutNumerators(\\n        bytes32 conditionId,\\n        uint index\\n    ) external view returns (uint);\\n\\n    function payoutDenominator(\\n        bytes32 conditionId\\n    ) external view returns (uint);\\n\\n    function prepareCondition(\\n        address oracle,\\n        bytes32 questionId,\\n        uint outcomeSlotCount\\n    ) external;\\n\\n    function reportPayouts(\\n        bytes32 questionId,\\n        uint[] calldata payouts\\n    ) external;\\n\\n    function splitPosition(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata partition,\\n        uint amount\\n    ) external;\\n\\n    function mergePositions(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata partition,\\n        uint amount\\n    ) external;\\n\\n    function redeemPositions(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata indexSets\\n    ) external;\\n\\n    function getConditionId(\\n        address oracle,\\n        bytes32 questionId,\\n        uint outcomeSlotCount\\n    ) external pure returns (bytes32);\\n\\n    function getCollectionId(\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint indexSet\\n    ) external view returns (bytes32);\\n\\n    function getPositionId(\\n        address collateralToken,\\n        bytes32 collectionId\\n    ) external pure returns (uint);\\n\\n    function getOutcomeSlotCount(\\n        bytes32 conditionId\\n    ) external view returns (uint);\\n\\n    function safeTransferFrom(\\n        address from,\\n        address to,\\n        uint256 id,\\n        uint256 value,\\n        bytes calldata data\\n    ) external;\\n}\\n\\ninterface Wrapped1155Factory {\\n    function requireWrapped1155(\\n        /*IERC1155*/ address multiToken,\\n        uint256 tokenId,\\n        bytes calldata data\\n    ) external returns (/*Wrapped1155*/ IERC20);\\n\\n    function unwrap(\\n        /*IERC1155*/ address multiToken,\\n        uint256 tokenId,\\n        uint256 amount,\\n        address recipient,\\n        bytes calldata data\\n    ) external;\\n}\\n\",\"keccak256\":\"0x2bb1cbaf99ba61b2ae948841b4b23220836a999bc2b3593a1662b9ac2c4d5289\",\"license\":\"MIT\"},\"src/interaction/Market.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: [@nvm1410]\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./RealityProxy.sol\\\";\\n\\ncontract Market {\\n    bool public initialized; // Flag to initialize the market only once\\n\\n    string public marketName; // The name of the market\\n    string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome\\n    uint256 public lowerBound; // Lower bound, only used for scalar markets\\n    uint256 public upperBound; // Upper bound, only user for scalar markets\\n    bytes32 public conditionId; // Conditional Tokens conditionId\\n    bytes32 public questionId; // Conditional Tokens questionId\\n    bytes32[] public questionsIds; // Reality questions ids\\n    uint256 public templateId; // Reality templateId\\n    string[] public encodedQuestions; // Encoded questions parameters, needed to create and reopen a question\\n    RealityProxy public realityProxy; // Oracle contract\\n\\n    /// @dev Initializer\\n    /// @param _marketName The name of the market\\n    /// @param _outcomes The market outcomes, doesn't include the INVALID_RESULT outcome\\n    /// @param _lowerBound Lower bound, only used for scalar markets\\n    /// @param _upperBound Upper bound, only user for scalar markets\\n    /// @param _conditionId Conditional Tokens conditionId\\n    /// @param _questionId Conditional Tokens questionId\\n    /// @param _questionsIds Reality questions ids\\n    /// @param _templateId Reality templateId\\n    /// @param _encodedQuestions Encoded questions parameters, needed to create and reopen a question\\n    /// @param _realityProxy Oracle contract\\n    function initialize(\\n        string memory _marketName,\\n        string[] memory _outcomes,\\n        uint256 _lowerBound,\\n        uint256 _upperBound,\\n        bytes32 _conditionId,\\n        bytes32 _questionId,\\n        bytes32[] memory _questionsIds,\\n        uint256 _templateId,\\n        string[] memory _encodedQuestions,\\n        RealityProxy _realityProxy\\n    ) external {\\n        require(!initialized, \\\"Already initialized.\\\");\\n\\n        marketName = _marketName;\\n        outcomes = _outcomes;\\n        lowerBound = _lowerBound;\\n        upperBound = _upperBound;\\n        conditionId = _conditionId;\\n        questionId = _questionId;\\n        questionsIds = _questionsIds;\\n        templateId = _templateId;\\n        encodedQuestions = _encodedQuestions;\\n        realityProxy = _realityProxy;\\n\\n        initialized = true;\\n    }\\n\\n    /// @dev Multi Scalar markets have one question for each outcome, while any other market has only one question.\\n    /// @return questionsCount The number of Reality questions of this market\\n    function getQuestionsCount() external view returns (uint256) {\\n        return questionsIds.length;\\n    }\\n\\n    /// @dev Returns the number of outcomes.\\n    /// Doesn't include the INVALID_RESULT outcome.\\n    /// @return numOutcomes The number of outcomes\\n    function numOutcomes() external view returns (uint256) {\\n        return outcomes.length;\\n    }\\n\\n    /// @dev Helper function to resolve the market\\n    function resolve() external {\\n        realityProxy.resolve(this);\\n    }\\n}\\n\",\"keccak256\":\"0xaf9ef35b91e3559c4dafafc04a8d31927735e2768ad9823ad3a3a465a14f4971\",\"license\":\"MIT\"},\"src/interaction/RealityProxy.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: [@nvm1410]\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.20;\\n\\nimport {IConditionalTokens, IRealityETH_v3_0} from \\\"./Interfaces.sol\\\";\\nimport \\\"./Market.sol\\\";\\n\\ncontract RealityProxy {\\n    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract\\n    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract\\n\\n    bytes32 constant INVALID_RESULT =\\n        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value\\n\\n    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets\\n    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets\\n    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets\\n\\n    /// @dev Constructor\\n    /// @param _conditionalTokens Conditional Tokens contract address\\n    /// @param _realitio Reality.eth contract address\\n    constructor(\\n        IConditionalTokens _conditionalTokens,\\n        IRealityETH_v3_0 _realitio\\n    ) {\\n        conditionalTokens = _conditionalTokens;\\n        realitio = _realitio;\\n    }\\n\\n    /// @dev Resolves the specified market\\n    /// @param market Market to resolve\\n    function resolve(Market market) external {\\n        uint256 templateId = market.templateId();\\n\\n        if (templateId == REALITY_SINGLE_SELECT_TEMPLATE) {\\n            resolveCategoricalMarket(market);\\n            return;\\n        }\\n\\n        if (templateId == REALITY_MULTI_SELECT_TEMPLATE) {\\n            resolveMultiCategoricalMarket(market);\\n            return;\\n        }\\n\\n        if (market.getQuestionsCount() > 1) {\\n            resolveMultiScalarMarket(market);\\n            return;\\n        }\\n\\n        resolveScalarMarket(market);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes\\n    /// @param market Market to resolve\\n    function resolveCategoricalMarket(Market market) internal {\\n        bytes32 questionId = market.questionId();\\n        uint256 answer = uint256(realitio.resultForOnceSettled(questionId));\\n        uint256 numOutcomes = market.numOutcomes();\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n\\n        if (answer == uint256(INVALID_RESULT) || answer >= numOutcomes) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[numOutcomes] = 1;\\n        } else {\\n            payouts[answer] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid or all the results are zero\\n    /// @param market Market to resolve\\n    function resolveMultiCategoricalMarket(Market market) internal {\\n        bytes32 questionId = market.questionId();\\n        uint256 answer = uint256(realitio.resultForOnceSettled(questionId));\\n        uint256 numOutcomes = market.numOutcomes();\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n\\n        if (answer == uint256(INVALID_RESULT)) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[numOutcomes] = 1;\\n        } else {\\n            bool allZeroes = true;\\n\\n            for (uint i = 0; i < numOutcomes; i++) {\\n                payouts[i] = (answer >> i) & 1;\\n                allZeroes = allZeroes && payouts[i] == 0;\\n            }\\n\\n            if (allZeroes) {\\n                // invalid result\\n                payouts[numOutcomes] = 1;\\n            }\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid\\n    /// @param market Market to resolve\\n    function resolveScalarMarket(Market market) internal {\\n        bytes32 questionId = market.questionId();\\n        uint256 answer = uint256(realitio.resultForOnceSettled(questionId));\\n        uint256[] memory payouts = new uint256[](3);\\n\\n        uint256 low = market.lowerBound();\\n        uint256 high = market.upperBound();\\n\\n        if (answer == uint256(INVALID_RESULT)) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[2] = 1;\\n        } else if (answer <= low) {\\n            payouts[0] = 1;\\n        } else if (answer >= high) {\\n            payouts[1] = 1;\\n        } else {\\n            payouts[0] = high - answer;\\n            payouts[1] = answer - low;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev If any individual result is invalid then the corresponding payout element is set to 0\\n    /// @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid\\n    /// @param market Market to resolve\\n    function resolveMultiScalarMarket(Market market) internal {\\n        uint256 numOutcomes = market.numOutcomes();\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n\\n        bool allZeroesOrInvalid = true;\\n\\n        /*\\n         * We set maxPayout to a sufficiently large number for most possible outcomes that also avoids overflows in the following places:\\n         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L89\\n         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L242\\n         */\\n        uint256 maxPayout = 2 ** (256 / 2) - 1;\\n\\n        for (uint i = 0; i < numOutcomes; i++) {\\n            payouts[i] = uint256(\\n                realitio.resultForOnceSettled(market.questionsIds(i))\\n            );\\n\\n            if (payouts[i] == uint256(INVALID_RESULT)) {\\n                payouts[i] = 0;\\n            } else if (payouts[i] > maxPayout) {\\n                payouts[i] = maxPayout;\\n            }\\n\\n            allZeroesOrInvalid = allZeroesOrInvalid && payouts[i] == 0;\\n        }\\n\\n        if (allZeroesOrInvalid) {\\n            // invalid result\\n            payouts[numOutcomes] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(market.questionId(), payouts);\\n    }\\n}\\n\",\"keccak256\":\"0x81c7fbb55c51d1b2a7084064a62456cb708d551e6f19b313b807e733d490cde3\",\"license\":\"MIT\"}},\"version\":1}",
-  "bytecode": "0x608060405234801561001057600080fd5b506109d2806100206000396000f3fe608060405234801561001057600080fd5b50600436106100d55760003560e01c80638767d64e116100875780638767d64e14610184578063957442741461018c578063a384d6ff1461019f578063b06a5c52146101a8578063b09ad8a0146101b1578063c2e112d2146101ba578063e6bfd26a146101c2578063eed2a147146101ca57600080fd5b806312e24aa4146100da578063158ef93e146100ef5780632810e1d614610111578063292503ba146101195780632ddc7de7146101395780632ff8d504146101505780637aa77f291461017b575b600080fd5b6100ed6100e83660046106fc565b6101dd565b005b6000546100fc9060ff1681565b60405190151581526020015b60405180910390f35b6100ed6102c5565b61012c6101273660046107ec565b610324565b6040516101089190610805565b61014260055481565b604051908152602001610108565b600a54610163906001600160a01b031681565b6040516001600160a01b039091168152602001610108565b61014260085481565b600254610142565b61014261019a3660046107ec565b6103d0565b61014260035481565b61014260065481565b61014260045481565b600754610142565b61012c6103f1565b61012c6101d83660046107ec565b6103fe565b60005460ff161561022b5760405162461bcd60e51b815260206004820152601460248201527320b63932b0b23c9034b734ba34b0b634bd32b21760611b604482015260640160405180910390fd5b60016102378b826108dc565b50885161024b9060029060208c019061040e565b5060038890556004879055600586905560068590558351610273906007906020870190610464565b506008839055815161028c90600990602085019061040e565b50600a80546001600160a01b0319166001600160a01b039290921691909117905550506000805460ff1916600117905550505050505050565b600a546040516355ea6c4760e01b81523060048201526001600160a01b03909116906355ea6c4790602401600060405180830381600087803b15801561030a57600080fd5b505af115801561031e573d6000803e3d6000fd5b50505050565b6009818154811061033457600080fd5b90600052602060002001600091509050805461034f90610853565b80601f016020809104026020016040519081016040528092919081815260200182805461037b90610853565b80156103c85780601f1061039d576101008083540402835291602001916103c8565b820191906000526020600020905b8154815290600101906020018083116103ab57829003601f168201915b505050505081565b600781815481106103e057600080fd5b600091825260209091200154905081565b6001805461034f90610853565b6002818154811061033457600080fd5b828054828255906000526020600020908101928215610454579160200282015b82811115610454578251829061044490826108dc565b509160200191906001019061042e565b506104609291506104ab565b5090565b82805482825590600052602060002090810192821561049f579160200282015b8281111561049f578251825591602001919060010190610484565b506104609291506104c8565b808211156104605760006104bf82826104dd565b506001016104ab565b5b8082111561046057600081556001016104c9565b5080546104e990610853565b6000825580601f106104f9575050565b601f01602090049060005260206000209081019061051791906104c8565b50565b634e487b7160e01b600052604160045260246000fd5b604051601f8201601f1916810167ffffffffffffffff811182821017156105595761055961051a565b604052919050565b600082601f83011261057257600080fd5b813567ffffffffffffffff81111561058c5761058c61051a565b61059f601f8201601f1916602001610530565b8181528460208386010111156105b457600080fd5b816020850160208301376000918101602001919091529392505050565b600067ffffffffffffffff8211156105eb576105eb61051a565b5060051b60200190565b600082601f83011261060657600080fd5b8135602061061b610616836105d1565b610530565b82815260059290921b8401810191818101908684111561063a57600080fd5b8286015b8481101561067a57803567ffffffffffffffff81111561065e5760008081fd5b61066c8986838b0101610561565b84525091830191830161063e565b509695505050505050565b600082601f83011261069657600080fd5b813560206106a6610616836105d1565b82815260059290921b840181019181810190868411156106c557600080fd5b8286015b8481101561067a57803583529183019183016106c9565b80356001600160a01b03811681146106f757600080fd5b919050565b6000806000806000806000806000806101408b8d03121561071c57600080fd5b8a3567ffffffffffffffff8082111561073457600080fd5b6107408e838f01610561565b9b5060208d013591508082111561075657600080fd5b6107628e838f016105f5565b9a5060408d0135995060608d0135985060808d0135975060a08d0135965060c08d013591508082111561079457600080fd5b6107a08e838f01610685565b955060e08d013594506101008d01359150808211156107be57600080fd5b506107cb8d828e016105f5565b9250506107db6101208c016106e0565b90509295989b9194979a5092959850565b6000602082840312156107fe57600080fd5b5035919050565b600060208083528351808285015260005b8181101561083257858101830151858201604001528201610816565b506000604082860101526040601f19601f8301168501019250505092915050565b600181811c9082168061086757607f821691505b60208210810361088757634e487b7160e01b600052602260045260246000fd5b50919050565b601f8211156108d757600081815260208120601f850160051c810160208610156108b45750805b601f850160051c820191505b818110156108d3578281556001016108c0565b5050505b505050565b815167ffffffffffffffff8111156108f6576108f661051a565b61090a816109048454610853565b8461088d565b602080601f83116001811461093f57600084156109275750858301515b600019600386901b1c1916600185901b1785556108d3565b600085815260208120601f198616915b8281101561096e5788860151825594840194600190910190840161094f565b508582101561098c5787850151600019600388901b60f8161c191681555b5050505050600190811b0190555056fea26469706673582212205b21853a92c392246d2802f908abf10bad41503c59dea8a80f72f319989706fb64736f6c63430008140033",
-  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100d55760003560e01c80638767d64e116100875780638767d64e14610184578063957442741461018c578063a384d6ff1461019f578063b06a5c52146101a8578063b09ad8a0146101b1578063c2e112d2146101ba578063e6bfd26a146101c2578063eed2a147146101ca57600080fd5b806312e24aa4146100da578063158ef93e146100ef5780632810e1d614610111578063292503ba146101195780632ddc7de7146101395780632ff8d504146101505780637aa77f291461017b575b600080fd5b6100ed6100e83660046106fc565b6101dd565b005b6000546100fc9060ff1681565b60405190151581526020015b60405180910390f35b6100ed6102c5565b61012c6101273660046107ec565b610324565b6040516101089190610805565b61014260055481565b604051908152602001610108565b600a54610163906001600160a01b031681565b6040516001600160a01b039091168152602001610108565b61014260085481565b600254610142565b61014261019a3660046107ec565b6103d0565b61014260035481565b61014260065481565b61014260045481565b600754610142565b61012c6103f1565b61012c6101d83660046107ec565b6103fe565b60005460ff161561022b5760405162461bcd60e51b815260206004820152601460248201527320b63932b0b23c9034b734ba34b0b634bd32b21760611b604482015260640160405180910390fd5b60016102378b826108dc565b50885161024b9060029060208c019061040e565b5060038890556004879055600586905560068590558351610273906007906020870190610464565b506008839055815161028c90600990602085019061040e565b50600a80546001600160a01b0319166001600160a01b039290921691909117905550506000805460ff1916600117905550505050505050565b600a546040516355ea6c4760e01b81523060048201526001600160a01b03909116906355ea6c4790602401600060405180830381600087803b15801561030a57600080fd5b505af115801561031e573d6000803e3d6000fd5b50505050565b6009818154811061033457600080fd5b90600052602060002001600091509050805461034f90610853565b80601f016020809104026020016040519081016040528092919081815260200182805461037b90610853565b80156103c85780601f1061039d576101008083540402835291602001916103c8565b820191906000526020600020905b8154815290600101906020018083116103ab57829003601f168201915b505050505081565b600781815481106103e057600080fd5b600091825260209091200154905081565b6001805461034f90610853565b6002818154811061033457600080fd5b828054828255906000526020600020908101928215610454579160200282015b82811115610454578251829061044490826108dc565b509160200191906001019061042e565b506104609291506104ab565b5090565b82805482825590600052602060002090810192821561049f579160200282015b8281111561049f578251825591602001919060010190610484565b506104609291506104c8565b808211156104605760006104bf82826104dd565b506001016104ab565b5b8082111561046057600081556001016104c9565b5080546104e990610853565b6000825580601f106104f9575050565b601f01602090049060005260206000209081019061051791906104c8565b50565b634e487b7160e01b600052604160045260246000fd5b604051601f8201601f1916810167ffffffffffffffff811182821017156105595761055961051a565b604052919050565b600082601f83011261057257600080fd5b813567ffffffffffffffff81111561058c5761058c61051a565b61059f601f8201601f1916602001610530565b8181528460208386010111156105b457600080fd5b816020850160208301376000918101602001919091529392505050565b600067ffffffffffffffff8211156105eb576105eb61051a565b5060051b60200190565b600082601f83011261060657600080fd5b8135602061061b610616836105d1565b610530565b82815260059290921b8401810191818101908684111561063a57600080fd5b8286015b8481101561067a57803567ffffffffffffffff81111561065e5760008081fd5b61066c8986838b0101610561565b84525091830191830161063e565b509695505050505050565b600082601f83011261069657600080fd5b813560206106a6610616836105d1565b82815260059290921b840181019181810190868411156106c557600080fd5b8286015b8481101561067a57803583529183019183016106c9565b80356001600160a01b03811681146106f757600080fd5b919050565b6000806000806000806000806000806101408b8d03121561071c57600080fd5b8a3567ffffffffffffffff8082111561073457600080fd5b6107408e838f01610561565b9b5060208d013591508082111561075657600080fd5b6107628e838f016105f5565b9a5060408d0135995060608d0135985060808d0135975060a08d0135965060c08d013591508082111561079457600080fd5b6107a08e838f01610685565b955060e08d013594506101008d01359150808211156107be57600080fd5b506107cb8d828e016105f5565b9250506107db6101208c016106e0565b90509295989b9194979a5092959850565b6000602082840312156107fe57600080fd5b5035919050565b600060208083528351808285015260005b8181101561083257858101830151858201604001528201610816565b506000604082860101526040601f19601f8301168501019250505092915050565b600181811c9082168061086757607f821691505b60208210810361088757634e487b7160e01b600052602260045260246000fd5b50919050565b601f8211156108d757600081815260208120601f850160051c810160208610156108b45750805b601f850160051c820191505b818110156108d3578281556001016108c0565b5050505b505050565b815167ffffffffffffffff8111156108f6576108f661051a565b61090a816109048454610853565b8461088d565b602080601f83116001811461093f57600084156109275750858301515b600019600386901b1c1916600185901b1785556108d3565b600085815260208120601f198616915b8281101561096e5788860151825594840194600190910190840161094f565b508582101561098c5787850151600019600388901b60f8161c191681555b5050505050600190811b0190555056fea26469706673582212205b21853a92c392246d2802f908abf10bad41503c59dea8a80f72f319989706fb64736f6c63430008140033",
+  "numDeployments": 9,
+  "solcInputHash": "440a7c4ac3123f438be7250247b7957b",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"conditionId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"conditionalTokensParams\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"conditionId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"parentCollectionId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"parentOutcome\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"parentMarket\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"questionId\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"encodedQuestions\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_marketName\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"_outcomes\",\"type\":\"string[]\"},{\"internalType\":\"uint256\",\"name\":\"_lowerBound\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_upperBound\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"conditionId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"parentCollectionId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"parentOutcome\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"parentMarket\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"questionId\",\"type\":\"bytes32\"}],\"internalType\":\"struct Market.ConditionalTokensParams\",\"name\":\"_conditionalTokensParams\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes32[]\",\"name\":\"questionsIds\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"},{\"internalType\":\"string[]\",\"name\":\"encodedQuestions\",\"type\":\"string[]\"}],\"internalType\":\"struct Market.RealityParams\",\"name\":\"_realityParams\",\"type\":\"tuple\"},{\"internalType\":\"contract RealityProxy\",\"name\":\"_realityProxy\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lowerBound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"marketName\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"numOutcomes\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"outcomes\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"parentCollectionId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"parentMarket\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"parentOutcome\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"questionId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"questionsIds\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realityParams\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realityProxy\",\"outputs\":[{\"internalType\":\"contract RealityProxy\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"resolve\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"templateId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"upperBound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"conditionId()\":{\"details\":\"Conditional Tokens conditionId\"},\"encodedQuestions(uint256)\":{\"details\":\"Encoded questions parameters, needed to create and reopen a question\"},\"initialize(string,string[],uint256,uint256,(bytes32,bytes32,uint256,address,bytes32),(bytes32[],uint256,string[]),address)\":{\"details\":\"Initializer\",\"params\":{\"_conditionalTokensParams\":\"Conditional Tokens params\",\"_lowerBound\":\"Lower bound, only used for scalar markets\",\"_marketName\":\"The name of the market\",\"_outcomes\":\"The market outcomes, doesn't include the INVALID_RESULT outcome\",\"_realityParams\":\"Reality params\",\"_realityProxy\":\"Oracle contract\",\"_upperBound\":\"Upper bound, only user for scalar markets\"}},\"numOutcomes()\":{\"details\":\"Returns the number of outcomes. Doesn't include the INVALID_RESULT outcome.\",\"returns\":{\"_0\":\"numOutcomes The number of outcomes\"}},\"parentCollectionId()\":{\"details\":\"Conditional Tokens parentCollectionId\"},\"parentMarket()\":{\"details\":\"The parent market (optional). This market redeems to an outcome token of the parent market.\"},\"parentOutcome()\":{\"details\":\"The parent outcome (optional). The parent market's outcome token this market redeems for.\"},\"questionId()\":{\"details\":\"Conditional Tokens questionId\"},\"questionsIds()\":{\"details\":\"Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question.\"},\"resolve()\":{\"details\":\"Helper function to resolve the market\"},\"templateId()\":{\"details\":\"The templateId associated to the Reality question\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/Market.sol\":\"Market\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"src/Interfaces.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\ninterface IERC20 {\\n    function transferFrom(\\n        address from,\\n        address to,\\n        uint256 amount\\n    ) external returns (bool);\\n\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    function balanceOf(address owner) external returns (uint256);\\n}\\n\\n// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol\\ninterface IRealityETH_v3_0 {\\n    function askQuestionWithMinBond(\\n        uint256 template_id,\\n        string memory question,\\n        address arbitrator,\\n        uint32 timeout,\\n        uint32 opening_ts,\\n        uint256 nonce,\\n        uint256 min_bond\\n    ) external payable returns (bytes32);\\n\\n    function resultForOnceSettled(\\n        bytes32 question_id\\n    ) external view returns (bytes32);\\n\\n    function getContentHash(\\n        bytes32 question_id\\n    ) external view returns (bytes32);\\n\\n    function getTimeout(bytes32 question_id) external view returns (uint32);\\n\\n    function submitAnswer(\\n        bytes32 question_id,\\n        bytes32 answer,\\n        uint256 max_previous\\n    ) external payable;\\n}\\n\\ninterface IConditionalTokens {\\n    function payoutNumerators(\\n        bytes32 conditionId,\\n        uint index\\n    ) external view returns (uint);\\n\\n    function payoutDenominator(\\n        bytes32 conditionId\\n    ) external view returns (uint);\\n\\n    function prepareCondition(\\n        address oracle,\\n        bytes32 questionId,\\n        uint outcomeSlotCount\\n    ) external;\\n\\n    function reportPayouts(\\n        bytes32 questionId,\\n        uint[] calldata payouts\\n    ) external;\\n\\n    function splitPosition(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata partition,\\n        uint amount\\n    ) external;\\n\\n    function mergePositions(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata partition,\\n        uint amount\\n    ) external;\\n\\n    function redeemPositions(\\n        /*IERC20*/ address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint[] calldata indexSets\\n    ) external;\\n\\n    function getConditionId(\\n        address oracle,\\n        bytes32 questionId,\\n        uint outcomeSlotCount\\n    ) external pure returns (bytes32);\\n\\n    function getCollectionId(\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint indexSet\\n    ) external view returns (bytes32);\\n\\n    function getPositionId(\\n        address collateralToken,\\n        bytes32 collectionId\\n    ) external pure returns (uint);\\n\\n    function getOutcomeSlotCount(\\n        bytes32 conditionId\\n    ) external view returns (uint);\\n\\n    function safeTransferFrom(\\n        address from,\\n        address to,\\n        uint256 id,\\n        uint256 value,\\n        bytes calldata data\\n    ) external;\\n\\n    function balanceOf(\\n        address owner,\\n        uint256 id\\n    ) external view returns (uint256);\\n}\\n\\ninterface Wrapped1155Factory {\\n    function requireWrapped1155(\\n        /*IERC1155*/ address multiToken,\\n        uint256 tokenId,\\n        bytes calldata data\\n    ) external returns (/*Wrapped1155*/ IERC20);\\n\\n    function unwrap(\\n        /*IERC1155*/ address multiToken,\\n        uint256 tokenId,\\n        uint256 amount,\\n        address recipient,\\n        bytes calldata data\\n    ) external;\\n}\\n\",\"keccak256\":\"0x6dd1ae365738a869e5eaca1d0203ee76a763a21b77a96942fc50e1c3ee478bd5\",\"license\":\"MIT\"},\"src/Market.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: [@nvm1410, @madhurMongia, @unknownunknown1, @mani99brar]\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./RealityProxy.sol\\\";\\n\\ncontract Market {\\n    bool public initialized; // Flag to initialize the market only once\\n\\n    struct RealityParams {\\n        bytes32[] questionsIds; // Reality questions ids\\n        uint256 templateId; // Reality templateId\\n        string[] encodedQuestions; // Encoded questions parameters, needed to create and reopen a question\\n    }\\n\\n    struct ConditionalTokensParams {\\n        bytes32 conditionId; // Conditional Tokens conditionId\\n        bytes32 parentCollectionId; // Conditional Tokens parentCollectionId\\n        uint256 parentOutcome; // conditional outcome to use (optional)\\n        address parentMarket; // conditional market to use (optional)\\n        bytes32 questionId; // Conditional Tokens questionId\\n    }\\n\\n    string public marketName; // The name of the market\\n    string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome\\n    uint256 public lowerBound; // Lower bound, only used for scalar markets\\n    uint256 public upperBound; // Upper bound, only user for scalar markets\\n    ConditionalTokensParams public conditionalTokensParams; // Conditional Tokens parameters\\n    RealityParams public realityParams; // Reality parameters\\n    RealityProxy public realityProxy; // Oracle contract\\n\\n    /// @dev Initializer\\n    /// @param _marketName The name of the market\\n    /// @param _outcomes The market outcomes, doesn't include the INVALID_RESULT outcome\\n    /// @param _lowerBound Lower bound, only used for scalar markets\\n    /// @param _upperBound Upper bound, only user for scalar markets\\n    /// @param _conditionalTokensParams Conditional Tokens params\\n    /// @param _realityParams Reality params\\n    /// @param _realityProxy Oracle contract\\n    function initialize(\\n        string memory _marketName,\\n        string[] memory _outcomes,\\n        uint256 _lowerBound,\\n        uint256 _upperBound,\\n        ConditionalTokensParams memory _conditionalTokensParams,\\n        RealityParams memory _realityParams,\\n        RealityProxy _realityProxy\\n    ) external {\\n        require(!initialized, \\\"Already initialized.\\\");\\n\\n        marketName = _marketName;\\n        outcomes = _outcomes;\\n        lowerBound = _lowerBound;\\n        upperBound = _upperBound;\\n        conditionalTokensParams = _conditionalTokensParams;\\n        realityParams = _realityParams;\\n        realityProxy = _realityProxy;\\n\\n        initialized = true;\\n    }\\n\\n    /// @dev The templateId associated to the Reality question\\n    function templateId() external view returns (uint256) {\\n        return realityParams.templateId;\\n    }\\n\\n    /// @dev Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question.\\n    function questionsIds() external view returns (bytes32[] memory) {\\n        return realityParams.questionsIds;\\n    }\\n\\n    /// @dev Encoded questions parameters, needed to create and reopen a question\\n    function encodedQuestions(\\n        uint256 index\\n    ) external view returns (string memory) {\\n        return realityParams.encodedQuestions[index];\\n    }\\n\\n    /// @dev Conditional Tokens questionId\\n    function questionId() external view returns (bytes32) {\\n        return conditionalTokensParams.questionId;\\n    }\\n\\n    /// @dev Conditional Tokens conditionId\\n    function conditionId() external view returns (bytes32) {\\n        return conditionalTokensParams.conditionId;\\n    }\\n\\n    /// @dev Conditional Tokens parentCollectionId\\n    function parentCollectionId() external view returns (bytes32) {\\n        return conditionalTokensParams.parentCollectionId;\\n    }\\n\\n    /// @dev The parent market (optional). This market redeems to an outcome token of the parent market.\\n    function parentMarket() external view returns (address) {\\n        return conditionalTokensParams.parentMarket;\\n    }\\n\\n    /// @dev The parent outcome (optional). The parent market's outcome token this market redeems for.\\n    function parentOutcome() external view returns (uint256) {\\n        return conditionalTokensParams.parentOutcome;\\n    }\\n\\n    /// @dev Returns the number of outcomes.\\n    /// Doesn't include the INVALID_RESULT outcome.\\n    /// @return numOutcomes The number of outcomes\\n    function numOutcomes() external view returns (uint256) {\\n        return outcomes.length;\\n    }\\n\\n    /// @dev Helper function to resolve the market\\n    function resolve() external {\\n        realityProxy.resolve(this);\\n    }\\n}\\n\",\"keccak256\":\"0x46514c81ff85bf4e217598e9d1b68d612547a53769a5d5c52bbd50a4368f14df\",\"license\":\"MIT\"},\"src/RealityProxy.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: [@nvm1410, @madhurMongia, @unknownunknown1, @mani99brar]\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport {IConditionalTokens, IRealityETH_v3_0} from \\\"./Interfaces.sol\\\";\\nimport \\\"./Market.sol\\\";\\n\\ncontract RealityProxy {\\n    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract\\n    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract\\n\\n    bytes32 constant INVALID_RESULT =\\n        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value\\n\\n    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets\\n    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets\\n    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets\\n\\n    /// @dev Constructor\\n    /// @param _conditionalTokens Conditional Tokens contract address\\n    /// @param _realitio Reality.eth contract address\\n    constructor(\\n        IConditionalTokens _conditionalTokens,\\n        IRealityETH_v3_0 _realitio\\n    ) {\\n        conditionalTokens = _conditionalTokens;\\n        realitio = _realitio;\\n    }\\n\\n    /// @dev Resolves the specified market\\n    /// @param market Market to resolve\\n    function resolve(Market market) external {\\n        bytes32[] memory questionsIds = market.questionsIds();\\n        bytes32 conditionId = market.conditionId();\\n        uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(\\n            conditionId\\n        );\\n        uint256 templateId = market.templateId();\\n        uint256 low = market.lowerBound();\\n        uint256 high = market.upperBound();\\n\\n        // questionId must be a hash of all the values used to resolve a market,\\n        // this way if an attacker tries to resolve a fake market by changing some value\\n        // its questionId will not match the id of a valid market\\n        bytes32 questionId = keccak256(\\n            abi.encode(questionsIds, outcomeSlotCount, templateId, low, high)\\n        );\\n\\n        if (templateId == REALITY_SINGLE_SELECT_TEMPLATE) {\\n            resolveCategoricalMarket(\\n                questionId,\\n                questionsIds,\\n                outcomeSlotCount - 1\\n            );\\n            return;\\n        }\\n\\n        if (templateId == REALITY_MULTI_SELECT_TEMPLATE) {\\n            resolveMultiCategoricalMarket(\\n                questionId,\\n                questionsIds,\\n                outcomeSlotCount - 1\\n            );\\n            return;\\n        }\\n\\n        if (questionsIds.length > 1) {\\n            resolveMultiScalarMarket(\\n                questionId,\\n                questionsIds,\\n                outcomeSlotCount - 1\\n            );\\n            return;\\n        }\\n\\n        resolveScalarMarket(questionId, questionsIds, low, high);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes\\n    /// @param questionId Conditional Tokens questionId\\n    /// @param questionsIds Reality questions ids\\n    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome\\n    function resolveCategoricalMarket(\\n        bytes32 questionId,\\n        bytes32[] memory questionsIds,\\n        uint256 numOutcomes\\n    ) internal {\\n        uint256 answer = uint256(\\n            realitio.resultForOnceSettled(questionsIds[0])\\n        );\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n\\n        if (answer == uint256(INVALID_RESULT) || answer >= numOutcomes) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[numOutcomes] = 1;\\n        } else {\\n            payouts[answer] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid or all the results are zero\\n    /// @param questionId Conditional Tokens questionId\\n    /// @param questionsIds Reality questions ids\\n    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome\\n    function resolveMultiCategoricalMarket(\\n        bytes32 questionId,\\n        bytes32[] memory questionsIds,\\n        uint256 numOutcomes\\n    ) internal {\\n        uint256 answer = uint256(\\n            realitio.resultForOnceSettled(questionsIds[0])\\n        );\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n\\n        if (answer == uint256(INVALID_RESULT)) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[numOutcomes] = 1;\\n        } else {\\n            bool allZeroes = true;\\n\\n            for (uint i = 0; i < numOutcomes; i++) {\\n                payouts[i] = (answer >> i) & 1;\\n                allZeroes = allZeroes && payouts[i] == 0;\\n            }\\n\\n            if (allZeroes) {\\n                // invalid result\\n                payouts[numOutcomes] = 1;\\n            }\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev Resolves to invalid if the answer is invalid\\n    /// @param questionId Conditional Tokens questionId\\n    /// @param questionsIds Reality questions ids\\n    /// @param low Lower bound\\n    /// @param high Upper bound\\n    function resolveScalarMarket(\\n        bytes32 questionId,\\n        bytes32[] memory questionsIds,\\n        uint256 low,\\n        uint256 high\\n    ) internal {\\n        uint256 answer = uint256(\\n            realitio.resultForOnceSettled(questionsIds[0])\\n        );\\n        uint256[] memory payouts = new uint256[](3);\\n\\n        if (answer == uint256(INVALID_RESULT)) {\\n            // the last outcome is INVALID_RESULT\\n            payouts[2] = 1;\\n        } else if (answer <= low) {\\n            payouts[0] = 1;\\n        } else if (answer >= high) {\\n            payouts[1] = 1;\\n        } else {\\n            payouts[0] = high - answer;\\n            payouts[1] = answer - low;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n\\n    /// @dev If any individual result is invalid then the corresponding payout element is set to 0\\n    /// @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid\\n    /// @param questionId Conditional Tokens questionId\\n    /// @param questionsIds Reality questions ids\\n    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome\\n    function resolveMultiScalarMarket(\\n        bytes32 questionId,\\n        bytes32[] memory questionsIds,\\n        uint256 numOutcomes\\n    ) internal {\\n        uint256[] memory payouts = new uint256[](numOutcomes + 1);\\n        bool allZeroesOrInvalid = true;\\n\\n        /*\\n         * We set maxPayout to a sufficiently large number for most possible outcomes that also avoids overflows in the following places:\\n         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L89\\n         * https://github.com/gnosis/conditional-tokens-contracts/blob/master/contracts/ConditionalTokens.sol#L242\\n         */\\n        uint256 maxPayout = 2 ** (256 / 2) - 1;\\n\\n        for (uint i = 0; i < numOutcomes; i++) {\\n            payouts[i] = uint256(\\n                realitio.resultForOnceSettled(questionsIds[i])\\n            );\\n\\n            if (payouts[i] == uint256(INVALID_RESULT)) {\\n                payouts[i] = 0;\\n            } else if (payouts[i] > maxPayout) {\\n                payouts[i] = maxPayout;\\n            }\\n\\n            allZeroesOrInvalid = allZeroesOrInvalid && payouts[i] == 0;\\n        }\\n\\n        if (allZeroesOrInvalid) {\\n            // invalid result\\n            payouts[numOutcomes] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n}\\n\",\"keccak256\":\"0x043131159bac9c0d869a63fbd7026e941d68dc70baa0d49ed53b0e414316a37d\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50610cdc806100206000396000f3fe608060405234801561001057600080fd5b50600436106101115760003560e01c8063455d885e116100ad578063b09ad8a011610071578063b09ad8a014610202578063d03ecc641461020b578063da2da66f1461021c578063e6bfd26a14610270578063eed2a1471461027857600080fd5b8063455d885e146101cc5780637aa77f29146101e15780638767d64e146101e9578063a384d6ff146101f1578063b06a5c52146101fa57600080fd5b80630d0e932b14610116578063158ef93e1461012d5780632810e1d61461014a578063292503ba146101545780632ddc7de7146101745780632ff8d5041461017c578063369b4f52146101a75780633eaac0b8146101b157806344bea37e146101c4575b600080fd5b6007545b6040519081526020015b60405180910390f35b60005461013a9060ff1681565b6040519015158152602001610124565b61015261028b565b005b6101676101623660046106ec565b6102ea565b6040516101249190610705565b60055461011a565b600d5461018f906001600160a01b031681565b6040516001600160a01b039091168152602001610124565b600b5461011a9081565b6101526101bf3660046109f6565b61039c565b60065461011a565b6101d46104cc565b6040516101249190610b04565b600b5461011a565b60025461011a565b61011a60035481565b60095461011a565b61011a60045481565b6008546001600160a01b031661018f565b60055460065460075460085460095461023f949392916001600160a01b03169085565b604080519586526020860194909452928401919091526001600160a01b03166060830152608082015260a001610124565b610167610527565b6101676102863660046106ec565b6105b5565b600d546040516355ea6c4760e01b81523060048201526001600160a01b03909116906355ea6c4790602401600060405180830381600087803b1580156102d057600080fd5b505af11580156102e4573d6000803e3d6000fd5b50505050565b6060600a600201828154811061030257610302610b48565b90600052602060002001805461031790610b5e565b80601f016020809104026020016040519081016040528092919081815260200182805461034390610b5e565b80156103905780601f1061036557610100808354040283529160200191610390565b820191906000526020600020905b81548152906001019060200180831161037357829003601f168201915b50505050509050919050565b60005460ff16156103ea5760405162461bcd60e51b815260206004820152601460248201527320b63932b0b23c9034b734ba34b0b634bd32b21760611b604482015260640160405180910390fd5b60016103f68882610be7565b50855161040a9060029060208901906105e0565b5060038590556004849055825160055560208084015160065560408401516007556060840151600880546001600160a01b0319166001600160a01b039092169190911790556080840151600955825180518492600a926104709284929190910190610636565b5060208281015160018301556040830151805161049392600285019201906105e0565b5050600d80546001600160a01b0319166001600160a01b03939093169290921790915550506000805460ff191660011790555050505050565b6060600a60000180548060200260200160405190810160405280929190818152602001828054801561051d57602002820191906000526020600020905b815481526020019060010190808311610509575b5050505050905090565b6001805461053490610b5e565b80601f016020809104026020016040519081016040528092919081815260200182805461056090610b5e565b80156105ad5780601f10610582576101008083540402835291602001916105ad565b820191906000526020600020905b81548152906001019060200180831161059057829003601f168201915b505050505081565b600281815481106105c557600080fd5b90600052602060002001600091509050805461053490610b5e565b828054828255906000526020600020908101928215610626579160200282015b8281111561062657825182906106169082610be7565b5091602001919060010190610600565b5061063292915061067d565b5090565b828054828255906000526020600020908101928215610671579160200282015b82811115610671578251825591602001919060010190610656565b5061063292915061069a565b8082111561063257600061069182826106af565b5060010161067d565b5b80821115610632576000815560010161069b565b5080546106bb90610b5e565b6000825580601f106106cb575050565b601f0160209004906000526020600020908101906106e9919061069a565b50565b6000602082840312156106fe57600080fd5b5035919050565b600060208083528351808285015260005b8181101561073257858101830151858201604001528201610716565b506000604082860101526040601f19601f8301168501019250505092915050565b634e487b7160e01b600052604160045260246000fd5b604051606081016001600160401b038111828210171561078b5761078b610753565b60405290565b60405160a081016001600160401b038111828210171561078b5761078b610753565b604051601f8201601f191681016001600160401b03811182821017156107db576107db610753565b604052919050565b600082601f8301126107f457600080fd5b81356001600160401b0381111561080d5761080d610753565b610820601f8201601f19166020016107b3565b81815284602083860101111561083557600080fd5b816020850160208301376000918101602001919091529392505050565b60006001600160401b0382111561086b5761086b610753565b5060051b60200190565b600082601f83011261088657600080fd5b8135602061089b61089683610852565b6107b3565b82815260059290921b840181019181810190868411156108ba57600080fd5b8286015b848110156108f95780356001600160401b038111156108dd5760008081fd5b6108eb8986838b01016107e3565b8452509183019183016108be565b509695505050505050565b6001600160a01b03811681146106e957600080fd5b60006060828403121561092b57600080fd5b610933610769565b905081356001600160401b038082111561094c57600080fd5b818401915084601f83011261096057600080fd5b8135602061097061089683610852565b82815260059290921b8401810191818101908884111561098f57600080fd5b948201945b838610156109ad57853582529482019490820190610994565b86525085810135908501525060408401359150808211156109cd57600080fd5b506109da84828501610875565b60408301525092915050565b80356109f181610904565b919050565b6000806000806000806000878903610160811215610a1357600080fd5b88356001600160401b0380821115610a2a57600080fd5b610a368c838d016107e3565b995060208b0135915080821115610a4c57600080fd5b610a588c838d01610875565b985060408b0135975060608b0135965060a0607f1984011215610a7a57600080fd5b610a82610791565b925060808b0135835260a08b0135602084015260c08b0135604084015260e08b01359150610aaf82610904565b8160608401526101008b013560808401528295506101208b0135925080831115610ad857600080fd5b5050610ae68a828b01610919565b925050610af661014089016109e6565b905092959891949750929550565b6020808252825182820181905260009190848201906040850190845b81811015610b3c57835183529284019291840191600101610b20565b50909695505050505050565b634e487b7160e01b600052603260045260246000fd5b600181811c90821680610b7257607f821691505b602082108103610b9257634e487b7160e01b600052602260045260246000fd5b50919050565b601f821115610be257600081815260208120601f850160051c81016020861015610bbf5750805b601f850160051c820191505b81811015610bde57828155600101610bcb565b5050505b505050565b81516001600160401b03811115610c0057610c00610753565b610c1481610c0e8454610b5e565b84610b98565b602080601f831160018114610c495760008415610c315750858301515b600019600386901b1c1916600185901b178555610bde565b600085815260208120601f198616915b82811015610c7857888601518255948401946001909101908401610c59565b5085821015610c965787850151600019600388901b60f8161c191681555b5050505050600190811b0190555056fea2646970667358221220836fd6d260bb96df378abf486c36acba4b7dcd39b76938c1d9e8d4bcaf0510e164736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101115760003560e01c8063455d885e116100ad578063b09ad8a011610071578063b09ad8a014610202578063d03ecc641461020b578063da2da66f1461021c578063e6bfd26a14610270578063eed2a1471461027857600080fd5b8063455d885e146101cc5780637aa77f29146101e15780638767d64e146101e9578063a384d6ff146101f1578063b06a5c52146101fa57600080fd5b80630d0e932b14610116578063158ef93e1461012d5780632810e1d61461014a578063292503ba146101545780632ddc7de7146101745780632ff8d5041461017c578063369b4f52146101a75780633eaac0b8146101b157806344bea37e146101c4575b600080fd5b6007545b6040519081526020015b60405180910390f35b60005461013a9060ff1681565b6040519015158152602001610124565b61015261028b565b005b6101676101623660046106ec565b6102ea565b6040516101249190610705565b60055461011a565b600d5461018f906001600160a01b031681565b6040516001600160a01b039091168152602001610124565b600b5461011a9081565b6101526101bf3660046109f6565b61039c565b60065461011a565b6101d46104cc565b6040516101249190610b04565b600b5461011a565b60025461011a565b61011a60035481565b60095461011a565b61011a60045481565b6008546001600160a01b031661018f565b60055460065460075460085460095461023f949392916001600160a01b03169085565b604080519586526020860194909452928401919091526001600160a01b03166060830152608082015260a001610124565b610167610527565b6101676102863660046106ec565b6105b5565b600d546040516355ea6c4760e01b81523060048201526001600160a01b03909116906355ea6c4790602401600060405180830381600087803b1580156102d057600080fd5b505af11580156102e4573d6000803e3d6000fd5b50505050565b6060600a600201828154811061030257610302610b48565b90600052602060002001805461031790610b5e565b80601f016020809104026020016040519081016040528092919081815260200182805461034390610b5e565b80156103905780601f1061036557610100808354040283529160200191610390565b820191906000526020600020905b81548152906001019060200180831161037357829003601f168201915b50505050509050919050565b60005460ff16156103ea5760405162461bcd60e51b815260206004820152601460248201527320b63932b0b23c9034b734ba34b0b634bd32b21760611b604482015260640160405180910390fd5b60016103f68882610be7565b50855161040a9060029060208901906105e0565b5060038590556004849055825160055560208084015160065560408401516007556060840151600880546001600160a01b0319166001600160a01b039092169190911790556080840151600955825180518492600a926104709284929190910190610636565b5060208281015160018301556040830151805161049392600285019201906105e0565b5050600d80546001600160a01b0319166001600160a01b03939093169290921790915550506000805460ff191660011790555050505050565b6060600a60000180548060200260200160405190810160405280929190818152602001828054801561051d57602002820191906000526020600020905b815481526020019060010190808311610509575b5050505050905090565b6001805461053490610b5e565b80601f016020809104026020016040519081016040528092919081815260200182805461056090610b5e565b80156105ad5780601f10610582576101008083540402835291602001916105ad565b820191906000526020600020905b81548152906001019060200180831161059057829003601f168201915b505050505081565b600281815481106105c557600080fd5b90600052602060002001600091509050805461053490610b5e565b828054828255906000526020600020908101928215610626579160200282015b8281111561062657825182906106169082610be7565b5091602001919060010190610600565b5061063292915061067d565b5090565b828054828255906000526020600020908101928215610671579160200282015b82811115610671578251825591602001919060010190610656565b5061063292915061069a565b8082111561063257600061069182826106af565b5060010161067d565b5b80821115610632576000815560010161069b565b5080546106bb90610b5e565b6000825580601f106106cb575050565b601f0160209004906000526020600020908101906106e9919061069a565b50565b6000602082840312156106fe57600080fd5b5035919050565b600060208083528351808285015260005b8181101561073257858101830151858201604001528201610716565b506000604082860101526040601f19601f8301168501019250505092915050565b634e487b7160e01b600052604160045260246000fd5b604051606081016001600160401b038111828210171561078b5761078b610753565b60405290565b60405160a081016001600160401b038111828210171561078b5761078b610753565b604051601f8201601f191681016001600160401b03811182821017156107db576107db610753565b604052919050565b600082601f8301126107f457600080fd5b81356001600160401b0381111561080d5761080d610753565b610820601f8201601f19166020016107b3565b81815284602083860101111561083557600080fd5b816020850160208301376000918101602001919091529392505050565b60006001600160401b0382111561086b5761086b610753565b5060051b60200190565b600082601f83011261088657600080fd5b8135602061089b61089683610852565b6107b3565b82815260059290921b840181019181810190868411156108ba57600080fd5b8286015b848110156108f95780356001600160401b038111156108dd5760008081fd5b6108eb8986838b01016107e3565b8452509183019183016108be565b509695505050505050565b6001600160a01b03811681146106e957600080fd5b60006060828403121561092b57600080fd5b610933610769565b905081356001600160401b038082111561094c57600080fd5b818401915084601f83011261096057600080fd5b8135602061097061089683610852565b82815260059290921b8401810191818101908884111561098f57600080fd5b948201945b838610156109ad57853582529482019490820190610994565b86525085810135908501525060408401359150808211156109cd57600080fd5b506109da84828501610875565b60408301525092915050565b80356109f181610904565b919050565b6000806000806000806000878903610160811215610a1357600080fd5b88356001600160401b0380821115610a2a57600080fd5b610a368c838d016107e3565b995060208b0135915080821115610a4c57600080fd5b610a588c838d01610875565b985060408b0135975060608b0135965060a0607f1984011215610a7a57600080fd5b610a82610791565b925060808b0135835260a08b0135602084015260c08b0135604084015260e08b01359150610aaf82610904565b8160608401526101008b013560808401528295506101208b0135925080831115610ad857600080fd5b5050610ae68a828b01610919565b925050610af661014089016109e6565b905092959891949750929550565b6020808252825182820181905260009190848201906040850190845b81811015610b3c57835183529284019291840191600101610b20565b50909695505050505050565b634e487b7160e01b600052603260045260246000fd5b600181811c90821680610b7257607f821691505b602082108103610b9257634e487b7160e01b600052602260045260246000fd5b50919050565b601f821115610be257600081815260208120601f850160051c81016020861015610bbf5750805b601f850160051c820191505b81811015610bde57828155600101610bcb565b5050505b505050565b81516001600160401b03811115610c0057610c00610753565b610c1481610c0e8454610b5e565b84610b98565b602080601f831160018114610c495760008415610c315750858301515b600019600386901b1c1916600185901b178555610bde565b600085815260208120601f198616915b82811015610c7857888601518255948401946001909101908401610c59565b5085821015610c965787850151600019600388901b60f8161c191681555b5050505050600190811b0190555056fea2646970667358221220836fd6d260bb96df378abf486c36acba4b7dcd39b76938c1d9e8d4bcaf0510e164736f6c63430008140033",
   "devdoc": {
     "kind": "dev",
     "methods": {
-      "getQuestionsCount()": {
-        "details": "Multi Scalar markets have one question for each outcome, while any other market has only one question.",
-        "returns": {
-          "_0": "questionsCount The number of Reality questions of this market"
-        }
+      "conditionId()": {
+        "details": "Conditional Tokens conditionId"
       },
-      "initialize(string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[],address)": {
+      "encodedQuestions(uint256)": {
+        "details": "Encoded questions parameters, needed to create and reopen a question"
+      },
+      "initialize(string,string[],uint256,uint256,(bytes32,bytes32,uint256,address,bytes32),(bytes32[],uint256,string[]),address)": {
         "details": "Initializer",
         "params": {
-          "_conditionId": "Conditional Tokens conditionId",
-          "_encodedQuestions": "Encoded questions parameters, needed to create and reopen a question",
+          "_conditionalTokensParams": "Conditional Tokens params",
           "_lowerBound": "Lower bound, only used for scalar markets",
           "_marketName": "The name of the market",
           "_outcomes": "The market outcomes, doesn't include the INVALID_RESULT outcome",
-          "_questionId": "Conditional Tokens questionId",
-          "_questionsIds": "Reality questions ids",
+          "_realityParams": "Reality params",
           "_realityProxy": "Oracle contract",
-          "_templateId": "Reality templateId",
           "_upperBound": "Upper bound, only user for scalar markets"
         }
       },
@@ -306,8 +398,26 @@
           "_0": "numOutcomes The number of outcomes"
         }
       },
+      "parentCollectionId()": {
+        "details": "Conditional Tokens parentCollectionId"
+      },
+      "parentMarket()": {
+        "details": "The parent market (optional). This market redeems to an outcome token of the parent market."
+      },
+      "parentOutcome()": {
+        "details": "The parent outcome (optional). The parent market's outcome token this market redeems for."
+      },
+      "questionId()": {
+        "details": "Conditional Tokens questionId"
+      },
+      "questionsIds()": {
+        "details": "Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question."
+      },
       "resolve()": {
         "details": "Helper function to resolve the market"
+      },
+      "templateId()": {
+        "details": "The templateId associated to the Reality question"
       }
     },
     "version": 1
@@ -320,95 +430,76 @@
   "storageLayout": {
     "storage": [
       {
-        "astId": 892,
-        "contract": "src/interaction/Market.sol:Market",
+        "astId": 338,
+        "contract": "src/Market.sol:Market",
         "label": "initialized",
         "offset": 0,
         "slot": "0",
         "type": "t_bool"
       },
       {
-        "astId": 894,
-        "contract": "src/interaction/Market.sol:Market",
+        "astId": 360,
+        "contract": "src/Market.sol:Market",
         "label": "marketName",
         "offset": 0,
         "slot": "1",
         "type": "t_string_storage"
       },
       {
-        "astId": 897,
-        "contract": "src/interaction/Market.sol:Market",
+        "astId": 363,
+        "contract": "src/Market.sol:Market",
         "label": "outcomes",
         "offset": 0,
         "slot": "2",
         "type": "t_array(t_string_storage)dyn_storage"
       },
       {
-        "astId": 899,
-        "contract": "src/interaction/Market.sol:Market",
+        "astId": 365,
+        "contract": "src/Market.sol:Market",
         "label": "lowerBound",
         "offset": 0,
         "slot": "3",
         "type": "t_uint256"
       },
       {
-        "astId": 901,
-        "contract": "src/interaction/Market.sol:Market",
+        "astId": 367,
+        "contract": "src/Market.sol:Market",
         "label": "upperBound",
         "offset": 0,
         "slot": "4",
         "type": "t_uint256"
       },
       {
-        "astId": 903,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "conditionId",
+        "astId": 370,
+        "contract": "src/Market.sol:Market",
+        "label": "conditionalTokensParams",
         "offset": 0,
         "slot": "5",
-        "type": "t_bytes32"
+        "type": "t_struct(ConditionalTokensParams)358_storage"
       },
       {
-        "astId": 905,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "questionId",
-        "offset": 0,
-        "slot": "6",
-        "type": "t_bytes32"
-      },
-      {
-        "astId": 908,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "questionsIds",
-        "offset": 0,
-        "slot": "7",
-        "type": "t_array(t_bytes32)dyn_storage"
-      },
-      {
-        "astId": 910,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "templateId",
-        "offset": 0,
-        "slot": "8",
-        "type": "t_uint256"
-      },
-      {
-        "astId": 913,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "encodedQuestions",
-        "offset": 0,
-        "slot": "9",
-        "type": "t_array(t_string_storage)dyn_storage"
-      },
-      {
-        "astId": 916,
-        "contract": "src/interaction/Market.sol:Market",
-        "label": "realityProxy",
+        "astId": 373,
+        "contract": "src/Market.sol:Market",
+        "label": "realityParams",
         "offset": 0,
         "slot": "10",
-        "type": "t_contract(RealityProxy)3155"
+        "type": "t_struct(RealityParams)347_storage"
+      },
+      {
+        "astId": 376,
+        "contract": "src/Market.sol:Market",
+        "label": "realityProxy",
+        "offset": 0,
+        "slot": "13",
+        "type": "t_contract(RealityProxy)2772"
       }
     ],
     "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
       "t_array(t_bytes32)dyn_storage": {
         "base": "t_bytes32",
         "encoding": "dynamic_array",
@@ -431,7 +522,7 @@
         "label": "bytes32",
         "numberOfBytes": "32"
       },
-      "t_contract(RealityProxy)3155": {
+      "t_contract(RealityProxy)2772": {
         "encoding": "inplace",
         "label": "contract RealityProxy",
         "numberOfBytes": "20"
@@ -440,6 +531,84 @@
         "encoding": "bytes",
         "label": "string",
         "numberOfBytes": "32"
+      },
+      "t_struct(ConditionalTokensParams)358_storage": {
+        "encoding": "inplace",
+        "label": "struct Market.ConditionalTokensParams",
+        "members": [
+          {
+            "astId": 349,
+            "contract": "src/Market.sol:Market",
+            "label": "conditionId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 351,
+            "contract": "src/Market.sol:Market",
+            "label": "parentCollectionId",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 353,
+            "contract": "src/Market.sol:Market",
+            "label": "parentOutcome",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 355,
+            "contract": "src/Market.sol:Market",
+            "label": "parentMarket",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_address"
+          },
+          {
+            "astId": 357,
+            "contract": "src/Market.sol:Market",
+            "label": "questionId",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "160"
+      },
+      "t_struct(RealityParams)347_storage": {
+        "encoding": "inplace",
+        "label": "struct Market.RealityParams",
+        "members": [
+          {
+            "astId": 341,
+            "contract": "src/Market.sol:Market",
+            "label": "questionsIds",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_array(t_bytes32)dyn_storage"
+          },
+          {
+            "astId": 343,
+            "contract": "src/Market.sol:Market",
+            "label": "templateId",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 346,
+            "contract": "src/Market.sol:Market",
+            "label": "encodedQuestions",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_string_storage)dyn_storage"
+          }
+        ],
+        "numberOfBytes": "96"
       },
       "t_uint256": {
         "encoding": "inplace",

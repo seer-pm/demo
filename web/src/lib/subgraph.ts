@@ -3,6 +3,7 @@ import { SupportedChain, gnosis } from "./chains";
 
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]:
+    (typeof window !== "undefined" && import.meta.env.VITE_SUBGRAPH_GNOSIS) ||
     "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {

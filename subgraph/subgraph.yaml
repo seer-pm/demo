@@ -15,8 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities:
-        - Market
+      entities: []
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
@@ -38,8 +37,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities:
-        - Market
+      entities: []
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
@@ -61,8 +59,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      entities:
-        - Market
+      entities: []
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
@@ -72,6 +69,30 @@ dataSources:
         - event: NewMarket(indexed
             address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
           handler: handleNewMarket
+      file: ./src/market-factory.ts
+  - kind: ethereum
+    name: MarketFactoryV4
+    network: gnosis
+    source:
+      abi: MarketFactoryV4
+      address: "0x4c98aA5CF10e8e202335AD0665eA36b3fa8E6ED0"
+      startBlock: 35802863
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities: []
+      abis:
+        - name: MarketFactoryV4
+          file: ./abis/MarketFactoryV4.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+        - name: MarketView
+          file: ./abis/MarketView.json
+      eventHandlers:
+        - event: NewMarket(indexed
+            address,string,address,string,bytes32,bytes32,bytes32[])
+          handler: handleNewMarketV4
       file: ./src/market-factory.ts
   - kind: ethereum
     name: Reality
@@ -87,8 +108,7 @@ dataSources:
       abis:
         - name: Reality
           file: ./abis/Realitiy.json
-      entities:
-        - Market
+      entities: []
       eventHandlers:
         - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed
             address,uint256,uint256,bool)
@@ -116,8 +136,7 @@ dataSources:
       abis:
         - name: ConditionalTokens
           file: ./abis/ConditionalTokens.json
-      entities:
-        - Market
+      entities: []
       eventHandlers:
         - event: PositionSplit(indexed address,address,indexed bytes32,indexed
             bytes32,uint256[],uint256)

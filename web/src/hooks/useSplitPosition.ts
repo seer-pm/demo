@@ -1,5 +1,4 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { generateBasicPartition } from "@/lib/conditional-tokens";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -28,7 +27,6 @@ async function splitFromRouter(
   collateralToken: Address,
   parentCollectionId: `0x${string}`,
   conditionId: `0x${string}`,
-  partition: bigint[],
   amount: bigint,
 ) {
   if (isMainCollateral) {
@@ -36,18 +34,18 @@ async function splitFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "splitPosition",
-      args: [collateralToken, parentCollectionId, conditionId, partition, amount],
+      args: [collateralToken, parentCollectionId, conditionId, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterSplitFromDai(config, {
-      args: [parentCollectionId, conditionId, partition, amount],
+      args: [parentCollectionId, conditionId, amount],
     });
   }
 
   return await writeGnosisRouterSplitFromBase(config, {
-    args: [parentCollectionId, conditionId, partition],
+    args: [parentCollectionId, conditionId],
     value: amount,
   });
 }
@@ -62,7 +60,6 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
         props.collateralToken,
         props.parentCollectionId,
         props.conditionId,
-        generateBasicPartition(props.outcomeSlotCount),
         props.amount,
       ),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },

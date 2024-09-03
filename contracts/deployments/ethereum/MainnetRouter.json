@@ -133,25 +133,6 @@
       {
         "inputs": [
           {
-            "internalType": "bytes32",
-            "name": "conditionId",
-            "type": "bytes32"
-          }
-        ],
-        "name": "isPayoutReported",
-        "outputs": [
-          {
-            "internalType": "bool",
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [
-          {
             "internalType": "contract IERC20",
             "name": "collateralToken",
             "type": "address"
@@ -165,11 +146,6 @@
             "internalType": "bytes32",
             "name": "conditionId",
             "type": "bytes32"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "partition",
-            "type": "uint256[]"
           },
           {
             "internalType": "uint256",
@@ -193,11 +169,6 @@
             "internalType": "bytes32",
             "name": "conditionId",
             "type": "bytes32"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "partition",
-            "type": "uint256[]"
           },
           {
             "internalType": "uint256",
@@ -365,11 +336,6 @@
             "type": "bytes32"
           },
           {
-            "internalType": "uint256[]",
-            "name": "partition",
-            "type": "uint256[]"
-          },
-          {
             "internalType": "uint256",
             "name": "amount",
             "type": "uint256"
@@ -396,11 +362,6 @@
             "internalType": "bytes32",
             "name": "conditionId",
             "type": "bytes32"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "partition",
-            "type": "uint256[]"
           },
           {
             "internalType": "uint256",

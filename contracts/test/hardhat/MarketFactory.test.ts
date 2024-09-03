@@ -85,7 +85,7 @@ describe("MarketFactory", function () {
       await marketFactory.createCategoricalMarket(categoricalMarketParams);
       const marketAddress = (await marketFactory.allMarkets())[0];
       const market = await ethers.getContractAt("Market", marketAddress);
-      expect(questionId).to.equal(await market.questionsIds(0));
+      expect(questionId).to.equal((await market.questionsIds())[0]);
     });
     it("creates a categorical market", async function () {
       await expect(
@@ -95,9 +95,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           categoricalMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
       const marketCount = Number(await marketFactory.marketCount());
       expect(marketCount).to.equal(1);
@@ -121,9 +123,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiCategoricalMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -171,9 +175,11 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           scalarMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
-          [ethers.isHexString],
+          [ethers.isHexString]
         );
 
       const marketCount = Number(await marketFactory.marketCount());
@@ -198,11 +204,13 @@ describe("MarketFactory", function () {
         .withArgs(
           ethers.isAddress,
           multiScalarMarketParams.marketName,
+          ethers.ZeroAddress,
+          "",
           ethers.isHexString,
           ethers.isHexString,
           multiScalarMarketParams.encodedQuestions.map(
             () => ethers.isHexString
-          ),
+          )
         );
 
       const marketCount = Number(await marketFactory.marketCount());

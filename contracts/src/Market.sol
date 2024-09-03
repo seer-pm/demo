@@ -22,6 +22,9 @@ contract Market {
 
     struct ConditionalTokensParams {
         bytes32 conditionId; // Conditional Tokens conditionId
+        bytes32 parentCollectionId; // Conditional Tokens parentCollectionId
+        uint256 parentOutcome; // conditional outcome to use (optional)
+        address parentMarket; // conditional market to use (optional)
         bytes32 questionId; // Conditional Tokens questionId
     }
 
@@ -68,15 +71,9 @@ contract Market {
         return realityParams.templateId;
     }
 
-    /// @dev Returns the Reality questions ids
-    function getQuestionsIds() external view returns (bytes32[] memory) {
+    /// @dev Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question.
+    function questionsIds() external view returns (bytes32[] memory) {
         return realityParams.questionsIds;
-    }
-
-    /// @dev Multi scalar markets have two or more questions, the other market types have 1
-    /// @return Array of question ids.
-    function questionsIds(uint256 index) external view returns (bytes32) {
-        return realityParams.questionsIds[index];
     }
 
     /// @dev Encoded questions parameters, needed to create and reopen a question
@@ -94,6 +91,21 @@ contract Market {
     /// @dev Conditional Tokens conditionId
     function conditionId() external view returns (bytes32) {
         return conditionalTokensParams.conditionId;
+    }
+
+    /// @dev Conditional Tokens parentCollectionId
+    function parentCollectionId() external view returns (bytes32) {
+        return conditionalTokensParams.parentCollectionId;
+    }
+
+    /// @dev The parent market (optional). This market redeems to an outcome token of the parent market.
+    function parentMarket() external view returns (address) {
+        return conditionalTokensParams.parentMarket;
+    }
+
+    /// @dev The parent outcome (optional). The parent market's outcome token this market redeems for.
+    function parentOutcome() external view returns (uint256) {
+        return conditionalTokensParams.parentOutcome;
     }
 
     /// @dev Returns the number of outcomes.

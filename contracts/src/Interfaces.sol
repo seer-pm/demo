@@ -37,7 +37,11 @@ interface IRealityETH_v3_0 {
 
     function getTimeout(bytes32 question_id) external view returns (uint32);
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
+    function submitAnswer(
+        bytes32 question_id,
+        bytes32 answer,
+        uint256 max_previous
+    ) external payable;
 }
 
 interface IConditionalTokens {
@@ -112,6 +116,11 @@ interface IConditionalTokens {
         uint256 value,
         bytes calldata data
     ) external;
+
+    function balanceOf(
+        address owner,
+        uint256 id
+    ) external view returns (uint256);
 }
 
 interface Wrapped1155Factory {

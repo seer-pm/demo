@@ -31,24 +31,25 @@ contract Router is ERC1155Holder {
 
     /// @notice Transfers the collateral to the Router, splits the position and sends the ERC20 outcome tokens back to the user
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
+    /// @dev Collateral tokens are deposited only if we are not splitting a deep position (parentCollectionId is bytes32(0))
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
-    /// @param partition An array of disjoint index sets used to split the position
     /// @param amount The amount of collateral to split.
     function splitPosition(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) public {
-        collateralToken.transferFrom(msg.sender, address(this), amount);
+        if (parentCollectionId == bytes32(0)) {
+            // transfer the collateral tokens to the Router
+            collateralToken.transferFrom(msg.sender, address(this), amount);
+        }
         _splitPosition(
             collateralToken,
             parentCollectionId,
             conditionId,
-            partition,
             amount
         );
     }
@@ -58,16 +59,42 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
-    /// @param partition An array of disjoint index sets used to split the position
     /// @param amount The amount of collateral to split
     function _splitPosition(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) internal {
-        collateralToken.approve(address(conditionalTokens), amount);
+        uint256[] memory partition = getPartition(
+            conditionalTokens.getOutcomeSlotCount(conditionId)
+        );
+
+        if (parentCollectionId != bytes32(0)) {
+            // it's splitting from a parent position, so we need to unwrap these tokens first
+            // because they will be burnt to mint the child outcome tokens
+            Wrapped1155Factory wrapped1155Factory = wrappedERC20Factory
+                .wrapped1155Factory();
+
+            uint256 tokenId = conditionalTokens.getPositionId(
+                address(collateralToken),
+                parentCollectionId
+            );
+
+            // unwrap ERC20
+            IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
+
+            wrapped1155.transferFrom(msg.sender, address(this), amount);
+            wrapped1155Factory.unwrap(
+                address(conditionalTokens),
+                tokenId,
+                amount,
+                address(this),
+                wrappedERC20Factory.data(tokenId)
+            );
+        } else {
+            collateralToken.approve(address(conditionalTokens), amount);
+        }
 
         conditionalTokens.splitPosition(
             address(collateralToken),
@@ -77,6 +104,7 @@ contract Router is ERC1155Holder {
             amount
         );
 
+        // wrap & transfer the minted outcome tokens
         for (uint j = 0; j < partition.length; j++) {
             uint256 tokenId = getTokenId(
                 collateralToken,
@@ -103,26 +131,28 @@ contract Router is ERC1155Holder {
 
     /// @notice Merges positions and sends the collateral tokens to the user
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
+    /// @dev Collateral tokens are withdrawn only if we are not merging a deep position (parentCollectionId is bytes32(0))
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function mergePositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) public {
         _mergePositions(
             collateralToken,
             parentCollectionId,
             conditionId,
-            partition,
             amount
         );
-        collateralToken.transfer(msg.sender, amount);
+
+        if (parentCollectionId == bytes32(0)) {
+            // send collateral tokens back to the user
+            collateralToken.transfer(msg.sender, amount);
+        }
     }
 
     /// @notice Merges positions and receives the collateral tokens.
@@ -130,15 +160,18 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
-    /// @param partition An array of disjoint index sets used to merge the positions
     /// @param amount The amount of outcome tokens to merge
     function _mergePositions(
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint[] calldata partition,
         uint amount
     ) internal {
+        uint256[] memory partition = getPartition(
+            conditionalTokens.getOutcomeSlotCount(conditionId)
+        );
+
+        // we need to unwrap the outcome tokens because they will be burnt during the merge
         Wrapped1155Factory wrapped1155Factory = wrappedERC20Factory
             .wrapped1155Factory();
 
@@ -154,7 +187,6 @@ contract Router is ERC1155Holder {
             IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
-
             wrapped1155Factory.unwrap(
                 address(conditionalTokens),
                 tokenId,
@@ -171,10 +203,34 @@ contract Router is ERC1155Holder {
             partition,
             amount
         );
+
+        if (parentCollectionId != bytes32(0)) {
+            // it's merging from a parent position, so we need to wrap these tokens
+            // and send them back to the user
+            uint256 tokenId = conditionalTokens.getPositionId(
+                address(collateralToken),
+                parentCollectionId
+            );
+
+            // wrap to erc20
+            conditionalTokens.safeTransferFrom(
+                address(this),
+                address(wrappedERC20Factory.wrapped1155Factory()),
+                tokenId,
+                amount,
+                wrappedERC20Factory.data(tokenId)
+            );
+
+            IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
+
+            // transfer the ERC20 back to the user
+            wrapped1155.transfer(msg.sender, amount);
+        }
     }
 
     /// @notice Redeems positions and sends the collateral tokens to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
+    /// @dev Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0))
     /// @param collateralToken The address of the ERC20 used as collateral
     /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition used to redeem
@@ -185,7 +241,11 @@ contract Router is ERC1155Holder {
         bytes32 conditionId,
         uint[] calldata indexSets
     ) public {
-        uint256 initialBalance = collateralToken.balanceOf(address(this));
+        uint256 initialBalance;
+
+        if (parentCollectionId == bytes32(0)) {
+            initialBalance = collateralToken.balanceOf(address(this));
+        }
 
         _redeemPositions(
             collateralToken,
@@ -193,10 +253,16 @@ contract Router is ERC1155Holder {
             conditionId,
             indexSets
         );
-        uint256 finalBalance = collateralToken.balanceOf(address(this));
 
-        if (finalBalance > initialBalance) {
-            collateralToken.transfer(msg.sender, finalBalance - initialBalance);
+        if (parentCollectionId == bytes32(0)) {
+            uint256 finalBalance = collateralToken.balanceOf(address(this));
+
+            if (finalBalance > initialBalance) {
+                collateralToken.transfer(
+                    msg.sender,
+                    finalBalance - initialBalance
+                );
+            }
         }
     }
 
@@ -212,11 +278,13 @@ contract Router is ERC1155Holder {
         bytes32 conditionId,
         uint[] calldata indexSets
     ) internal {
+        uint256 tokenId = 0;
+
         Wrapped1155Factory wrapped1155Factory = wrappedERC20Factory
             .wrapped1155Factory();
 
         for (uint j = 0; j < indexSets.length; j++) {
-            uint256 tokenId = getTokenId(
+            tokenId = getTokenId(
                 collateralToken,
                 parentCollectionId,
                 conditionId,
@@ -239,12 +307,61 @@ contract Router is ERC1155Holder {
             );
         }
 
+        uint256 initialBalance = 0;
+
+        if (parentCollectionId != bytes32(0)) {
+            tokenId = conditionalTokens.getPositionId(
+                address(collateralToken),
+                parentCollectionId
+            );
+            initialBalance = conditionalTokens.balanceOf(
+                address(this),
+                tokenId
+            );
+        }
+
         conditionalTokens.redeemPositions(
             address(collateralToken),
             parentCollectionId,
             conditionId,
             indexSets
         );
+
+        if (parentCollectionId != bytes32(0)) {
+            uint256 finalBalance = conditionalTokens.balanceOf(
+                address(this),
+                tokenId
+            );
+
+            if (finalBalance > initialBalance) {
+                // wrap to erc20
+                conditionalTokens.safeTransferFrom(
+                    address(this),
+                    address(wrappedERC20Factory.wrapped1155Factory()),
+                    tokenId,
+                    finalBalance - initialBalance,
+                    wrappedERC20Factory.data(tokenId)
+                );
+
+                IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
+
+                // transfer the ERC20 back to the user
+                wrapped1155.transfer(msg.sender, finalBalance - initialBalance);
+            }
+        }
+    }
+
+    /// @dev Returns a partition containing the full set of outcomes
+    /// @param size Number of outcome slots
+    /// @return The partition containing the full set of outcomes
+    function getPartition(uint256 size) internal pure returns (uint256[] memory) {
+        uint256[] memory partition = new uint256[](size);
+
+        for (uint i = 0; i < size; i++) {
+            partition[i] = 1 << i;
+        }
+
+        return partition;
     }
 
     /// @notice Constructs a tokenId from a collateral token and an outcome collection.
