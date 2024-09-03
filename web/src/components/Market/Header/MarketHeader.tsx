@@ -15,6 +15,7 @@ import {
   EyeIcon,
   MultiCategoricalIcon,
   MultiScalarIcon,
+  MyMarket,
   ScalarIcon,
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
@@ -23,12 +24,13 @@ import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
 
 interface MarketHeaderProps {
-  market: Market;
+  market: Market & { creator?: string };
   images?: { market: string; outcomes: string[] };
   chainId: SupportedChain;
   type?: "default" | "preview" | "small";
@@ -174,6 +176,8 @@ export function MarketHeader({
   outcomesCount = 0,
   verificationStatusResult,
 }: MarketHeaderProps) {
+  const { address } = useAccount();
+
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useSDaiToDai(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
@@ -183,11 +187,10 @@ export function MarketHeader({
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, chainId, true);
 
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-
   return (
     <div
       className={clsx(
-        "bg-white rounded-[3px] drop-shadow text-left flex flex-col",
+        "bg-white rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
@@ -199,10 +202,18 @@ export function MarketHeader({
           colors?.text,
         )}
       >
-        <div className="flex items-center space-x-2 w-full">
+        <div className="flex items-center gap-2 w-full">
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          <div className="flex items-center gap-4 ml-auto">
+            {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
+              <div className="tooltip">
+                <p className="tooltiptext">Market created by this account</p>
+                <MyMarket />
+              </div>
+            )}
+            {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          </div>
         </div>
         <div>{market.index && `#${market.index}`}</div>
       </div>

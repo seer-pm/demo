@@ -1,25 +1,12 @@
 import ConnectWallet from "@/components/ConnectWallet";
-import {
-  BookIcon,
-  BugIcon,
-  DownArrow,
-  EthIcon,
-  PolicyIcon,
-  QuestionIcon,
-  SettingsIcon,
-  TelegramIcon,
-} from "@/lib/icons";
+import { BookIcon, BugIcon, DownArrow, EthIcon, Menu, PolicyIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { isUndefined } from "@/lib/utils";
-import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAccount } from "wagmi";
 
 export default function Header() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { address } = useAccount();
 
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
@@ -48,7 +35,7 @@ export default function Header() {
 
         <div className="sm:hidden">
           <button type="button" onClick={toggleMenu}>
-            <Bars3Icon className="h-6 w-6" />
+            <Menu />
           </button>
         </div>
 
@@ -99,13 +86,7 @@ export default function Header() {
           <li>
             <ConnectWallet />
           </li>
-          {!isUndefined(address) && (
-            <li>
-              <Link to={paths.profile()}>
-                <SettingsIcon />
-              </Link>
-            </li>
-          )}
+
           <li className="flex items-center">
             <div className="dropdown dropdown-end">
               <div tabIndex={0} role="button">

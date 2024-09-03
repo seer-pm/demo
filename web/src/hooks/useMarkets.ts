@@ -23,9 +23,13 @@ import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./
 const ITEMS_PER_PAGE = 10;
 const MARKETS_COUNT_PER_QUERY = 1000;
 
-export const useOnChainMarkets = (chainId: SupportedChain, marketName: string, marketStatus: MarketStatus | "") => {
+export const useOnChainMarkets = (
+  chainId: SupportedChain,
+  marketName: string,
+  marketStatusList: MarketStatus[] | undefined,
+) => {
   return useQuery<Market[] | undefined, Error>({
-    queryKey: ["useOnChainMarkets", chainId, marketName, marketStatus],
+    queryKey: ["useOnChainMarkets", chainId, marketName, marketStatusList],
     queryFn: async () => {
       const markets = (
         await readMarketViewGetMarkets(config, {
@@ -103,34 +107,58 @@ export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filte
 export const useGraphMarkets = (
   chainId: SupportedChain,
   marketName: string,
-  marketStatus: MarketStatus | "",
+  marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
 ) => {
   return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainId, marketName, marketStatus, creator, orderBy],
+    queryKey: ["useGraphMarkets", chainId, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
       const now = String(Math.round(new Date().getTime() / 1000));
 
       let where: Market_Filter = { marketName_contains_nocase: marketName };
+      const or = [];
 
-      if (marketStatus === MarketStatus.NOT_OPEN) {
-        where["openingTs_gt"] = now;
-      } else if (marketStatus === MarketStatus.OPEN) {
-        where["openingTs_lt"] = now;
-        where["hasAnswers"] = false;
-      } else if (marketStatus === MarketStatus.ANSWER_NOT_FINAL) {
-        where["openingTs_lt"] = now;
-        where["hasAnswers"] = true;
-        where["finalizeTs_gt"] = now;
-      } else if (marketStatus === MarketStatus.IN_DISPUTE) {
-        where["questionsInArbitration_gt"] = "0";
-      } else if (marketStatus === MarketStatus.PENDING_EXECUTION) {
-        where["finalizeTs_lt"] = now;
-        where["payoutReported"] = false;
-      } else if (marketStatus === MarketStatus.CLOSED) {
-        where["payoutReported"] = true;
+      if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
+        or.push({
+          openingTs_gt: now,
+        });
+      }
+      if (marketStatusList?.includes(MarketStatus.OPEN)) {
+        or.push({
+          openingTs_lt: now,
+          hasAnswers: false,
+        });
+      }
+      if (marketStatusList?.includes(MarketStatus.ANSWER_NOT_FINAL)) {
+        or.push({
+          openingTs_lt: now,
+          hasAnswers: true,
+          finalizeTs_gt: now,
+        });
+      }
+      if (marketStatusList?.includes(MarketStatus.IN_DISPUTE)) {
+        or.push({
+          questionsInArbitration_gt: "0",
+        });
+      }
+      if (marketStatusList?.includes(MarketStatus.PENDING_EXECUTION)) {
+        or.push({
+          finalizeTs_lt: now,
+          payoutReported: false,
+        });
+      }
+      if (marketStatusList?.includes(MarketStatus.CLOSED)) {
+        or.push({
+          payoutReported: true,
+        });
+      }
+
+      if (or.length > 0) {
+        where = {
+          and: [where, { or }],
+        };
       }
 
       if (participant) {
@@ -165,24 +193,25 @@ export const useGraphMarkets = (
 interface UseMarketsProps {
   chainId: SupportedChain;
   marketName?: string;
-  marketStatus?: MarketStatus | "";
+  marketStatusList?: MarketStatus[];
   creator?: Address | "";
   participant?: Address | "";
   orderBy?: Market_OrderBy;
-  verificationStatus?: VerificationStatus;
+  verificationStatusList?: VerificationStatus[];
+  isShowMyMarkets: boolean;
 }
 
 export const useMarkets = ({
   chainId,
   marketName = "",
-  marketStatus = "",
+  marketStatusList = [],
   creator = "",
   participant = "",
   orderBy,
 }: UseMarketsProps) => {
-  const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatus);
-  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatus, creator, participant, orderBy);
-  if (marketName || marketStatus) {
+  const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatusList);
+  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy);
+  if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;
   }
@@ -205,11 +234,18 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   let data = params.orderBy ? markets : defaultSortedMarkets;
 
   // filter by verification status
-  if (params.verificationStatus) {
+  if (params.verificationStatusList) {
     data = data.filter((market) => {
       const verificationStatus =
         verificationStatusResultList?.[market.id.toLowerCase()]?.status ?? defaultStatus.status;
-      return verificationStatus === params.verificationStatus;
+      return params.verificationStatusList?.some((status) => verificationStatus === status);
+    });
+  }
+
+  // filter my markets
+  if (params.isShowMyMarkets) {
+    data = data.filter((market: Market & { creator?: string }) => {
+      return address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase();
     });
   }
 

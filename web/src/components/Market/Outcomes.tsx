@@ -16,7 +16,6 @@ import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tooltip } from "react-tooltip";
 import { RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -262,25 +261,23 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                   </p>
                   {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
                     <>
-                      <span data-tooltip-id={market.outcomes[i]}>
+                      <span className="tooltip">
+                        <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
+                          {getTooltipContent(market.outcomes[i])}
+                        </p>
                         <QuestionIcon fill="#9747FF" />
                       </span>
-                      <Tooltip id={market.outcomes[i]}>
-                        <p className="whitespace-break-spaces	">{getTooltipContent(market.outcomes[i])}</p>
-                      </Tooltip>
                     </>
                   )}
                   {i === market.wrappedTokens.length - 1 && (
                     <>
-                      <span data-tooltip-id={market.outcomes[i]}>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                      <Tooltip id={market.outcomes[i]}>
-                        <p className="break-words w-[300px]">
+                      <span className="tooltip">
+                        <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                           Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
                           to invalid.
                         </p>
-                      </Tooltip>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
                     </>
                   )}
                 </div>

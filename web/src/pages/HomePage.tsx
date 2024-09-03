@@ -7,14 +7,11 @@ import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { useState } from "react";
 import { useAccount } from "wagmi";
 
 function Home() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const [marketName, setMarketName] = useState("");
-  const { verificationStatus, orderBy, toggleOrderBy, toggleVerificationStatus, marketStatus, setMarketStatus } =
-    useMarketsSearchParams();
+  const { marketName, verificationStatusList, orderBy, marketStatusList, isShowMyMarkets } = useMarketsSearchParams();
   const {
     data: markets = [],
     isPending,
@@ -22,24 +19,17 @@ function Home() {
   } = useSortAndFilterMarkets({
     chainId: chainId as SupportedChain,
     marketName,
-    marketStatus,
+    marketStatusList,
     orderBy,
-    verificationStatus,
+    verificationStatusList,
+    isShowMyMarkets,
   });
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <div className="text-[24px] font-semibold">Markets</div>
-      <MarketsFilter
-        setMarketName={setMarketName}
-        marketStatus={marketStatus}
-        setMarketStatus={setMarketStatus}
-        orderBy={orderBy}
-        setOrderBy={toggleOrderBy}
-        verificationStatus={verificationStatus}
-        setVerificationStatus={toggleVerificationStatus}
-      />
+      <MarketsFilter />
 
       {isPending && (
         <div className="py-10 px-10">

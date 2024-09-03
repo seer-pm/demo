@@ -106,12 +106,13 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
     queryKey: ["useMarket", "useOnChainMarket", marketId, chainId, factory],
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
-      return mapOnChainMarket(
-        await readMarketViewGetMarket(config, {
+      return mapOnChainMarket({
+        ...(await readMarketViewGetMarket(config, {
           args: [factory, marketId],
           chainId,
-        }),
-      );
+        })),
+        creator: graphMarket?.creator,
+      });
     },
     refetchOnWindowFocus: true,
   });

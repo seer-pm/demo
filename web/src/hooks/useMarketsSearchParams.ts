@@ -5,26 +5,25 @@ import { VerificationStatus } from "./useVerificationStatus";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const verificationStatus = searchParams.get("verificationStatus") as VerificationStatus;
+  const marketName = searchParams.get("marketName") ?? undefined;
+  const isShowMyMarkets = searchParams.get("myMarkets") === "true";
+  const verificationStatusList =
+    searchParams.getAll("verificationStatus").length === 0
+      ? undefined
+      : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
   const orderBy = searchParams.get("orderBy") as Market_OrderBy;
-  const marketStatus = searchParams.get("marketStatus") as MarketStatus;
+  const marketStatusList =
+    searchParams.getAll("marketStatus").length === 0
+      ? undefined
+      : (searchParams.getAll("marketStatus") as MarketStatus[]);
   const page = Number(searchParams.get("page") ?? 1);
-  // useEffect(() => {
-  //   const verificationStatus = searchParams.get("verificationStatus");
-  //   if (!verificationStatus) {
-  //     setSearchParams((params) => {
-  //       params.set("verificationStatus", "verified");
-  //       return params;
-  //     });
-  //   }
-  // }, []);
 
-  const toggleOrderBy = (newOrderBy: Market_OrderBy) => {
+  const setMarketName = (value: string) => {
     setSearchParams((params) => {
-      if (newOrderBy === params.get("orderBy")) {
-        params.delete("orderBy");
+      if (!value) {
+        params.delete("marketName");
       } else {
-        params.set("orderBy", newOrderBy);
+        params.set("marketName", value);
       }
       if (page > 1) {
         params.set("page", "1");
@@ -33,12 +32,25 @@ function useMarketsSearchParams() {
     });
   };
 
-  const toggleVerificationStatus = (newVerificationStatus: VerificationStatus) => {
+  const setOrderBy = (orderBy: Market_OrderBy | "default") => {
     setSearchParams((params) => {
-      if (newVerificationStatus === params.get("verificationStatus")) {
-        params.delete("verificationStatus");
+      if (orderBy === "default") {
+        params.delete("orderBy");
       } else {
-        params.set("verificationStatus", newVerificationStatus);
+        params.set("orderBy", orderBy);
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const setVerificationStatus = (statusList: VerificationStatus[] | undefined) => {
+    setSearchParams((params) => {
+      params.delete("verificationStatus");
+      if (statusList) {
+        statusList.map((x) => params.append("verificationStatus", x));
       }
       if (page > 1) {
         params.set("page", "1");
@@ -54,12 +66,25 @@ function useMarketsSearchParams() {
     });
   };
 
-  const setMarketStatus = (status: MarketStatus | "") => {
+  const setMarketStatus = (statusList: MarketStatus[] | undefined) => {
     setSearchParams((params) => {
-      if (status === "") {
-        params.delete("marketStatus");
+      params.delete("marketStatus");
+      if (statusList) {
+        statusList.map((x) => params.append("marketStatus", x));
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const toggleShowMyMarkets = (showMyMarkets: boolean) => {
+    setSearchParams((params) => {
+      if (showMyMarkets) {
+        params.set("myMarkets", "true");
       } else {
-        params.set("marketStatus", status);
+        params.delete("myMarkets");
       }
       if (page > 1) {
         params.set("page", "1");
@@ -68,14 +93,19 @@ function useMarketsSearchParams() {
     });
   };
   return {
-    verificationStatus,
+    marketName,
+    verificationStatusList,
     orderBy,
-    toggleOrderBy,
-    toggleVerificationStatus,
+    setOrderBy,
+    setVerificationStatus,
     page,
+    setMarketName,
     setPage,
-    marketStatus,
+    marketStatusList,
     setMarketStatus,
+    isShowMyMarkets,
+    toggleShowMyMarkets,
+    hasFilters: marketName || verificationStatusList?.length || marketStatusList?.length || orderBy,
   };
 }
 
