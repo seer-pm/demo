@@ -1,5 +1,6 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
+import clsx from "clsx";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
@@ -21,7 +22,10 @@ export function MarketsFilter() {
         </div>
         <button
           type="button"
-          className="select select-bordered bg-white focus:outline-purple-primary w-[210px] flex items-center gap-2"
+          className={clsx(
+            "select select-bordered bg-white w-[210px] flex items-center gap-2",
+            isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
+          )}
           onClick={() => setShowFilters((state) => !state)}
         >
           <div className="relative">
