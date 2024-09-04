@@ -141,7 +141,7 @@ export function ImageUpload<
             <Dropzone
               onDrop={(files) => setFile(files[0])}
               onError={(error: Error) => console.log(error)}
-              accept={{ "image/png": [] }}
+              accept={{ "image/png": [], "image/jpeg": [] }}
             >
               {({ getRootProps, getInputProps }) => (
                 <div
@@ -175,7 +175,7 @@ export function ImageUpload<
               <div>
                 <InfoCircleIcon width="16" height="16" />
               </div>
-              <span>Add an image cover to illustrate the market - Upload a 1:1 aspect ratio PNG image.</span>
+              <span>Add an image cover to illustrate the market - Upload a 1:1 aspect ratio PNG or JPEG image.</span>
             </div>
           )}
           <FormError errors={errors} name={name} />
