@@ -12,7 +12,7 @@ export const GnosisAddress = {
   W_X_DAI: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
   SWAPR_QUOTER: "0xcBaD9FDf0D2814659Eb26f600EFDeAF005Eda0F7",
   SWAPR_ROUTER: "0xfFB643E73f280B97809A8b41f7232AB401a04ee1",
-  WXDAI_SDAI_WHALE: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
+  WXDAI_SDAI_WHALE: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
 };
 
 export const MainnetAddress = {
@@ -25,6 +25,7 @@ export const MainnetAddress = {
 export const MIN_BOND = "5"; //ethers
 export const ETH_BALANCE = "1000"; //ethers
 export const SPLIT_AMOUNT = "10"; //ethers
+export const CONDITIONAL_SPLIT_AMOUNT = String(Number(SPLIT_AMOUNT) / 4 * 3);
 export const MERGE_AMOUNT = String(Number(SPLIT_AMOUNT) / 3);
 export const DELTA = ethers.parseEther(SPLIT_AMOUNT) / BigInt(1e4); //+- 0.01%
 
@@ -32,7 +33,7 @@ export const QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5; //seconds
 
 export const OPENING_TS = 60 * 60; // seconds
 
-export const PARENT_COLLECTION_ID = "0x0000000000000000000000000000000000000000000000000000000000000000";
+export const EMPTY_PARENT_COLLECTION_ID = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 export const INVALID_RESULT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 export const ANSWERED_TOO_SOON = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";

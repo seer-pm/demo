@@ -4,7 +4,7 @@ import { ethers, network } from "hardhat";
 import {
   CollateralToken,
   ConditionalTokens,
-  IERC20,
+  Market,
   MarketFactory,
   RealityETH_v3_0,
   RealityProxy,
@@ -12,13 +12,15 @@ import {
   WrappedERC20Factory,
 } from "../../typechain-types";
 import {
-  MIN_BOND,
-  OPENING_TS,
-  PARENT_COLLECTION_ID,
-  SPLIT_AMOUNT,
-  QUESTION_TIMEOUT,
   categoricalMarketParams,
   MERGE_AMOUNT,
+  MIN_BOND,
+  OPENING_TS,
+  EMPTY_PARENT_COLLECTION_ID,
+  QUESTION_TIMEOUT,
+  scalarMarketParams,
+  SPLIT_AMOUNT,
+  CONDITIONAL_SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal } from "./helpers/utils";
@@ -32,7 +34,7 @@ describe("Router", function () {
   let wrappedERC20Factory: WrappedERC20Factory;
   let realitio: RealityETH_v3_0;
 
-  async function createMarketAndSplitPosition() {
+  async function createMarketAndSplitPosition(splitPosition = true) {
     // first need to create a market to create outcome tokens
     const currentBlockTime = await time.latest();
     await marketFactory.createCategoricalMarket({
@@ -46,23 +48,63 @@ describe("Router", function () {
     const questionId = await market.questionId();
     const questionsIds = await market.questionsIds();
     const oracleAddress = await realityProxy.getAddress();
-    const conditionId = await conditionalTokens.getConditionId(
-      oracleAddress,
-      questionId,
-      outcomeSlotCount
-    );
+    const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
 
+    if (splitPosition) {
+      // approve router to transfer user token to the contract
+      await collateralToken.approve(router, ethers.parseEther(SPLIT_AMOUNT));
+
+      // split collateral token to outcome tokens
+      await router.splitPosition(
+        collateralToken,
+        EMPTY_PARENT_COLLECTION_ID,
+        conditionId,
+        ethers.parseEther(SPLIT_AMOUNT),
+      );
+    }
+
+    return { outcomeSlotCount, conditionId, questionsIds, market };
+  }
+
+  async function createConditionalMarketAndSplitPosition(parentMarket: Market, parentOutcome: number) {
+    // create a conditional market and outcome tokens
+    const currentBlockTime = await time.latest();
+    const marketAddress = await marketFactory.createScalarMarket.staticCall({
+      ...scalarMarketParams,
+      openingTime: currentBlockTime + OPENING_TS,
+      parentMarket,
+      parentOutcome,
+    });
+    await marketFactory.createScalarMarket({
+      ...scalarMarketParams,
+      openingTime: currentBlockTime + OPENING_TS,
+      parentMarket,
+      parentOutcome,
+    });
+    const outcomeSlotCount = scalarMarketParams.outcomes.length + 1;
+    const market = await ethers.getContractAt("Market", marketAddress);
+    const questionId = await market.questionId();
+    const questionsIds = await market.questionsIds();
+    const oracleAddress = await realityProxy.getAddress();
+    const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
+    const parentCollectionId = await market.parentCollectionId();
+    // split parent outcome tokens to conditional outcome tokens
     // approve router to transfer user token to the contract
-    await collateralToken.approve(router, ethers.parseEther(SPLIT_AMOUNT));
-
-    // split collateral token to outcome tokens
+    const parentTokenId = await router.getTokenId(
+      collateralToken,
+      await parentMarket.parentCollectionId(),
+      await parentMarket.conditionId(),
+      getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+    );
+    const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+    await parentToken.approve(router, ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
     await router.splitPosition(
       collateralToken,
-      PARENT_COLLECTION_ID,
+      await market.parentCollectionId(),
       conditionId,
-      ethers.parseEther(SPLIT_AMOUNT)
+      ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT),
     );
-    return { outcomeSlotCount, conditionId, questionsIds, market };
+    return { outcomeSlotCount, conditionId, questionsIds, market, parentCollectionId };
   }
 
   beforeEach(async function () {
@@ -93,31 +135,22 @@ describe("Router", function () {
   describe("splitPosition", function () {
     it("splits position and send outcome tokens to user", async function () {
       const [owner] = await ethers.getSigners();
-      const previousCollateralTokenBalance =
-        await collateralToken.balanceOf(owner);
-      const { outcomeSlotCount, conditionId } =
-        await createMarketAndSplitPosition();
+      const previousCollateralTokenBalance = await collateralToken.balanceOf(owner);
+      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
-        expect(await token.balanceOf(owner)).to.equal(
-          ethers.parseEther(SPLIT_AMOUNT)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        expect(await token.balanceOf(owner)).to.equal(ethers.parseEther(SPLIT_AMOUNT));
       }
-      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
-        ethers.parseEther(SPLIT_AMOUNT)
-      );
+      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(ethers.parseEther(SPLIT_AMOUNT));
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        previousCollateralTokenBalance - ethers.parseEther(SPLIT_AMOUNT)
+        previousCollateralTokenBalance - ethers.parseEther(SPLIT_AMOUNT),
       );
     });
   });
@@ -126,24 +159,19 @@ describe("Router", function () {
     it("merges positions and send collateral tokens to user", async function () {
       const [owner] = await ethers.getSigners();
       // split first
-      const { outcomeSlotCount, conditionId } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
 
-      const collateralTokenBalanceAfterSplit =
-        await collateralToken.balanceOf(owner);
+      const collateralTokenBalanceAfterSplit = await collateralToken.balanceOf(owner);
 
       // allow router to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
@@ -151,31 +179,28 @@ describe("Router", function () {
       // merge positions
       await router.mergePositions(
         collateralToken,
-        PARENT_COLLECTION_ID,
+        EMPTY_PARENT_COLLECTION_ID,
         conditionId,
-        ethers.parseEther(MERGE_AMOUNT)
+        ethers.parseEther(MERGE_AMOUNT),
       );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         expect(await token.balanceOf(owner)).to.equal(
-          ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT)
+          ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT),
         );
       }
       expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
-        ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT)
+        ethers.parseEther(SPLIT_AMOUNT) - ethers.parseEther(MERGE_AMOUNT),
       );
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        collateralTokenBalanceAfterSplit + ethers.parseEther(MERGE_AMOUNT)
+        collateralTokenBalanceAfterSplit + ethers.parseEther(MERGE_AMOUNT),
       );
     });
   });
@@ -186,80 +211,62 @@ describe("Router", function () {
       const REDEEMED_POSITION = 1;
       const [owner] = await ethers.getSigners();
       // split first
-      const { outcomeSlotCount, conditionId, questionsIds, market } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionsIds, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
       // submit answer
-      await realitio.submitAnswer(
-        questionsIds[0],
-        ethers.toBeHex(BigInt(ANSWER), 32),
-        0,
-        {
-          value: ethers.parseEther(MIN_BOND),
-        }
-      );
+      await realitio.submitAnswer(questionsIds[0], ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+        value: ethers.parseEther(MIN_BOND),
+      });
 
       // past finalized_ts
       await time.increase(QUESTION_TIMEOUT);
 
       await realityProxy.resolve(market);
 
-      const collateralTokenBalanceAfterSplit =
-        await collateralToken.balanceOf(owner);
+      const collateralTokenBalanceAfterSplit = await collateralToken.balanceOf(owner);
 
       // allow router to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       // redeem winning position
-      await router.redeemPositions(
-        collateralToken,
-        PARENT_COLLECTION_ID,
-        conditionId,
-        [getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount)]
-      );
+      await router.redeemPositions(collateralToken, EMPTY_PARENT_COLLECTION_ID, conditionId, [
+        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
+      ]);
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {
-          expect(await token.balanceOf(owner)).to.equal(
-            ethers.parseEther(SPLIT_AMOUNT)
-          );
+          expect(await token.balanceOf(owner)).to.equal(ethers.parseEther(SPLIT_AMOUNT));
         }
       }
       expect(await collateralToken.balanceOf(conditionalTokens)).to.equal("0");
       expect(await collateralToken.balanceOf(owner)).to.equal(
-        collateralTokenBalanceAfterSplit + ethers.parseEther(SPLIT_AMOUNT)
+        collateralTokenBalanceAfterSplit + ethers.parseEther(SPLIT_AMOUNT),
       );
       // check winning outcomes
       const winningOutcomes = await router.getWinningOutcomes(conditionId);
-      expect(winningOutcomes[ANSWER]).to.equal(true);
+      expect(winningOutcomes[REDEEMED_POSITION]).to.equal(true);
     });
 
     it("redeems a losing position", async function () {
@@ -267,79 +274,313 @@ describe("Router", function () {
       const REDEEMED_POSITION = 0;
       const [owner] = await ethers.getSigners();
       // split first
-      const { outcomeSlotCount, conditionId, questionsIds, market } =
-        await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionsIds, market } = await createMarketAndSplitPosition();
 
       // answer the question and resolve the market
       // past opening_ts
       await time.increase(OPENING_TS);
       // submit answer
-      await realitio.submitAnswer(
-        questionsIds[0],
-        ethers.toBeHex(BigInt(ANSWER), 32),
-        0,
-        {
-          value: ethers.parseEther(MIN_BOND),
-        }
-      );
+      await realitio.submitAnswer(questionsIds[0], ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+        value: ethers.parseEther(MIN_BOND),
+      });
 
       // past finalized_ts
       await time.increase(QUESTION_TIMEOUT);
 
       await realityProxy.resolve(market);
 
-      const collateralTokenBalanceAfterSplit =
-        await collateralToken.balanceOf(owner);
+      const collateralTokenBalanceAfterSplit = await collateralToken.balanceOf(owner);
 
       // allow router to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
-        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
 
         await token.approve(router, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       // redeem losing position
-      await router.redeemPositions(
+      await router.redeemPositions(collateralToken, EMPTY_PARENT_COLLECTION_ID, conditionId, [
+        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
+      ]);
+
+      for (let i = 0; i < outcomeSlotCount; i++) {
+        const tokenId = await router.getTokenId(
+          collateralToken,
+          EMPTY_PARENT_COLLECTION_ID,
+          conditionId,
+          getBitMaskDecimal([i], outcomeSlotCount),
+        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        if (i === REDEEMED_POSITION) {
+          expect(await token.balanceOf(owner)).to.equal("0");
+        } else {
+          expect(await token.balanceOf(owner)).to.equal(ethers.parseEther(SPLIT_AMOUNT));
+        }
+      }
+      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(ethers.parseEther(SPLIT_AMOUNT));
+      expect(await collateralToken.balanceOf(owner)).to.equal(collateralTokenBalanceAfterSplit);
+    });
+  });
+
+  describe("Conditional market", function () {
+    it("saves a correct parent collection id", async function () {
+      const parentOutcome = 0;
+      // create parent market
+      const { market: parentMarket } = await createMarketAndSplitPosition(false);
+      // create conditional market on outcome 0
+      const marketAddress = await marketFactory.createScalarMarket.staticCall({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      await marketFactory.createScalarMarket({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      const market = await ethers.getContractAt("Market", marketAddress);
+
+      // check parent collection id saved in market is equal the actual parent collection id
+      expect(await market.parentCollectionId()).to.equal(
+        await conditionalTokens.getCollectionId(
+          await parentMarket.parentCollectionId(),
+          await parentMarket.conditionId(),
+          getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+        ),
+      );
+    });
+    it("reverts if split conditional market without parent market outcome token", async function () {
+      const parentOutcome = 0;
+      // create parent market
+      const { market: parentMarket } = await createMarketAndSplitPosition(false);
+      // create conditional market on outcome 0
+      const marketAddress = await marketFactory.createScalarMarket.staticCall({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      await marketFactory.createScalarMarket({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      const market = await ethers.getContractAt("Market", marketAddress);
+      // approve router to transfer user token to the contract
+      const parentTokenId = await router.getTokenId(
         collateralToken,
-        PARENT_COLLECTION_ID,
+        await parentMarket.parentCollectionId(),
+        await parentMarket.conditionId(),
+        getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+      );
+      const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+      await parentToken.approve(router, ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
+      await expect(
+        router.splitPosition(
+          collateralToken,
+          await market.parentCollectionId(),
+          await market.conditionId(),
+          ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT),
+        ),
+      ).to.be.reverted;
+    });
+    it("reverts if split amount is higher than parent market outcome token", async function () {
+      const parentOutcome = 0;
+      // create parent market and split
+      const { market: parentMarket } = await createMarketAndSplitPosition();
+      // create conditional market on outcome 0
+      const marketAddress = await marketFactory.createScalarMarket.staticCall({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      await marketFactory.createScalarMarket({
+        ...scalarMarketParams,
+        parentMarket,
+        parentOutcome,
+      });
+      const market = await ethers.getContractAt("Market", marketAddress);
+      // approve router to transfer user token to the contract
+      const parentTokenId = await router.getTokenId(
+        collateralToken,
+        await parentMarket.parentCollectionId(),
+        await parentMarket.conditionId(),
+        getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+      );
+      const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+      await parentToken.approve(router, ethers.parseEther(String(Number(SPLIT_AMOUNT) + 1)));
+
+      await expect(
+        router.splitPosition(
+          collateralToken,
+          await market.parentCollectionId(),
+          await market.conditionId(),
+          ethers.parseEther(String(Number(SPLIT_AMOUNT) + 1)),
+        ),
+      ).to.be.reverted;
+    });
+    it("splits to deeper positions", async function () {
+      const parentOutcome = 1;
+      const [owner] = await ethers.getSigners();
+      const { market: parentMarket } = await createMarketAndSplitPosition();
+      const previousCollateralTokenBalance = await collateralToken.balanceOf(owner);
+      const parentTokenId = await router.getTokenId(
+        collateralToken,
+        await parentMarket.parentCollectionId(),
+        await parentMarket.conditionId(),
+        getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+      );
+      const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+      const previousParentTokenBalance = await parentToken.balanceOf(owner);
+      const { outcomeSlotCount, parentCollectionId, conditionId } = await createConditionalMarketAndSplitPosition(
+        parentMarket,
+        parentOutcome,
+      );
+      for (let i = 0; i < outcomeSlotCount; i++) {
+        const tokenId = await router.getTokenId(
+          collateralToken,
+          parentCollectionId,
+          conditionId,
+          getBitMaskDecimal([i], outcomeSlotCount),
+        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        expect(await token.balanceOf(owner)).to.equal(ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
+      }
+
+      expect(await collateralToken.balanceOf(owner)).to.equal(previousCollateralTokenBalance);
+      expect(await parentToken.balanceOf(owner)).to.equal(
+        previousParentTokenBalance - ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT),
+      );
+    });
+    it("merges to parent token", async function () {
+      const parentOutcome = 1;
+      const [owner] = await ethers.getSigners();
+      const { market: parentMarket } = await createMarketAndSplitPosition();
+
+      const { outcomeSlotCount, parentCollectionId, conditionId } = await createConditionalMarketAndSplitPosition(
+        parentMarket,
+        parentOutcome,
+      );
+      const mergeAmount = String(Number(CONDITIONAL_SPLIT_AMOUNT) / 2);
+      // allow router to transfer position tokens to the contract
+      for (let i = 0; i < outcomeSlotCount; i++) {
+        const tokenId = await router.getTokenId(
+          collateralToken,
+          parentCollectionId,
+          conditionId,
+          getBitMaskDecimal([i], outcomeSlotCount),
+        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+
+        await token.approve(router, ethers.parseEther(mergeAmount));
+      }
+      const previousCollateralTokenBalance = await collateralToken.balanceOf(owner);
+      const parentTokenId = await router.getTokenId(
+        collateralToken,
+        await parentMarket.parentCollectionId(),
+        await parentMarket.conditionId(),
+        getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+      );
+      const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+      const previousParentTokenBalance = await parentToken.balanceOf(owner);
+      // merge positions
+      await router.mergePositions(
+        collateralToken,
+        parentCollectionId,
         conditionId,
-        [getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount)]
+        ethers.parseEther(String(Number(mergeAmount))),
       );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await router.getTokenId(
           collateralToken,
-          PARENT_COLLECTION_ID,
+          parentCollectionId,
           conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount)
+          getBitMaskDecimal([i], outcomeSlotCount),
         );
-        const token = await ethers.getContractAt(
-          "Wrapped1155",
-          await wrappedERC20Factory.tokens(tokenId)
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        expect(await token.balanceOf(owner)).to.equal(
+          ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT) - ethers.parseEther(mergeAmount),
         );
+      }
+      expect(await collateralToken.balanceOf(owner)).to.equal(previousCollateralTokenBalance);
+      expect(await parentToken.balanceOf(owner)).to.equal(previousParentTokenBalance + ethers.parseEther(mergeAmount));
+    });
+    it("redeems a winning position", async function () {
+      const ANSWER = 101; // > higherBound
+      const REDEEMED_POSITION = 1;
+      const parentOutcome = 1;
+      const [owner] = await ethers.getSigners();
+      // split first
+      const { market: parentMarket } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, conditionId, questionsIds, market, parentCollectionId } =
+        await createConditionalMarketAndSplitPosition(parentMarket, parentOutcome);
+      // answer the question and resolve the market
+      // past opening_ts
+      await time.increase(OPENING_TS);
+      // submit answer
+      await realitio.submitAnswer(questionsIds[0], ethers.toBeHex(BigInt(ANSWER), 32), 0, {
+        value: ethers.parseEther(MIN_BOND),
+      });
+
+      // past finalized_ts
+      await time.increase(QUESTION_TIMEOUT);
+
+      await realityProxy.resolve(market);
+
+      const parentTokenId = await router.getTokenId(
+        collateralToken,
+        await parentMarket.parentCollectionId(),
+        await parentMarket.conditionId(),
+        getBitMaskDecimal([parentOutcome], Number((await parentMarket.numOutcomes()) + 1n)),
+      );
+      const parentToken = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(parentTokenId));
+      const previousCollateralTokenBalance = await collateralToken.balanceOf(owner);
+      const previousParentTokenBalance = await parentToken.balanceOf(owner);
+      // allow router to transfer position tokens to the contract
+      for (let i = 0; i < outcomeSlotCount; i++) {
+        const tokenId = await router.getTokenId(
+          collateralToken,
+          parentCollectionId,
+          conditionId,
+          getBitMaskDecimal([i], outcomeSlotCount),
+        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+
+        await token.approve(router, ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
+      }
+
+      // redeem winning position
+      await router.redeemPositions(collateralToken, parentCollectionId, conditionId, [
+        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
+      ]);
+
+      for (let i = 0; i < outcomeSlotCount; i++) {
+        const tokenId = await router.getTokenId(
+          collateralToken,
+          parentCollectionId,
+          conditionId,
+          getBitMaskDecimal([i], outcomeSlotCount),
+        );
+        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.equal("0");
         } else {
-          expect(await token.balanceOf(owner)).to.equal(
-            ethers.parseEther(SPLIT_AMOUNT)
-          );
+          expect(await token.balanceOf(owner)).to.equal(ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
         }
       }
-      expect(await collateralToken.balanceOf(conditionalTokens)).to.equal(
-        ethers.parseEther(SPLIT_AMOUNT)
+      expect(await collateralToken.balanceOf(owner)).to.equal(previousCollateralTokenBalance);
+      expect(await parentToken.balanceOf(owner)).to.equal(
+        previousParentTokenBalance + ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT),
       );
-      expect(await collateralToken.balanceOf(owner)).to.equal(
-        collateralTokenBalanceAfterSplit
-      );
+      // check winning outcomes
+      const winningOutcomes = await router.getWinningOutcomes(conditionId);
+      expect(winningOutcomes[REDEEMED_POSITION]).to.equal(true);
     });
   });
 });

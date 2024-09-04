@@ -15,7 +15,7 @@ import {
   MainnetAddress,
   MIN_BOND,
   OPENING_TS,
-  PARENT_COLLECTION_ID,
+  EMPTY_PARENT_COLLECTION_ID,
   SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
@@ -56,7 +56,7 @@ describe("MainnetRouter", function () {
     // approve mainnetRouter to transfer user token to the contract
     await DAI.approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
     // split collateral token to outcome tokens
-    await mainnetRouter.splitFromDai(PARENT_COLLECTION_ID, conditionId, ethers.parseEther(SPLIT_AMOUNT));
+    await mainnetRouter.splitFromDai(EMPTY_PARENT_COLLECTION_ID, conditionId, ethers.parseEther(SPLIT_AMOUNT));
     return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
@@ -67,7 +67,6 @@ describe("MainnetRouter", function () {
         {
           forking: {
             jsonRpcUrl: MainnetAddress.RPC_URL,
-            blockNumber: 20460347,
           },
         },
       ],
@@ -135,7 +134,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -157,7 +156,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -170,7 +169,7 @@ describe("MainnetRouter", function () {
 
       // merge positions
       await mainnetRouter.mergeToDai(
-        PARENT_COLLECTION_ID,
+        EMPTY_PARENT_COLLECTION_ID,
         conditionId,
         mergeAmountInSDai,
       );
@@ -185,7 +184,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -221,7 +220,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -231,7 +230,7 @@ describe("MainnetRouter", function () {
       }
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem winning position
-      await mainnetRouter.redeemToDai(PARENT_COLLECTION_ID, conditionId, [
+      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -242,7 +241,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -283,7 +282,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -294,7 +293,7 @@ describe("MainnetRouter", function () {
 
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem losing position
-      await mainnetRouter.redeemToDai(PARENT_COLLECTION_ID, conditionId, [
+      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -305,7 +304,7 @@ describe("MainnetRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await mainnetRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );

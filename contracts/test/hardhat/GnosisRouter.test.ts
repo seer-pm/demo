@@ -14,7 +14,7 @@ import {
   GnosisAddress,
   MIN_BOND,
   OPENING_TS,
-  PARENT_COLLECTION_ID,
+  EMPTY_PARENT_COLLECTION_ID,
   SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
@@ -51,7 +51,7 @@ describe("GnosisRouter", function () {
     await sDAI.approve(gnosisRouter, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
-    await gnosisRouter.splitFromBase(PARENT_COLLECTION_ID, conditionId, {
+    await gnosisRouter.splitFromBase(EMPTY_PARENT_COLLECTION_ID, conditionId, {
       value: ethers.parseEther(SPLIT_AMOUNT),
     });
     return { outcomeSlotCount, conditionId, questionsIds, market };
@@ -64,7 +64,6 @@ describe("GnosisRouter", function () {
         {
           forking: {
             jsonRpcUrl: GnosisAddress.RPC_URL,
-            blockNumber: 35329197
           },
         },
       ],
@@ -101,7 +100,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -123,7 +122,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -134,7 +133,7 @@ describe("GnosisRouter", function () {
       const balanceBeforeMerge = await ethers.provider.getBalance(owner);
       // merge positions
       const trx = await gnosisRouter.mergeToBase(
-        PARENT_COLLECTION_ID,
+        EMPTY_PARENT_COLLECTION_ID,
         conditionId,
         mergeAmountInSDai,
       );
@@ -152,7 +151,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -190,7 +189,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -200,7 +199,7 @@ describe("GnosisRouter", function () {
       }
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem winning position
-      const trx = await gnosisRouter.redeemToBase(PARENT_COLLECTION_ID, conditionId, [
+      const trx = await gnosisRouter.redeemToBase(EMPTY_PARENT_COLLECTION_ID, conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -217,7 +216,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -259,7 +258,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
@@ -270,7 +269,7 @@ describe("GnosisRouter", function () {
 
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem losing position
-      const trx = await gnosisRouter.redeemToBase(PARENT_COLLECTION_ID, conditionId, [
+      const trx = await gnosisRouter.redeemToBase(EMPTY_PARENT_COLLECTION_ID, conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -284,7 +283,7 @@ describe("GnosisRouter", function () {
       for (let i = 0; i < outcomeSlotCount; i++) {
         const tokenId = await gnosisRouter.getTokenId(
           sDAI,
-          PARENT_COLLECTION_ID,
+          EMPTY_PARENT_COLLECTION_ID,
           conditionId,
           getBitMaskDecimal([i], outcomeSlotCount),
         );
