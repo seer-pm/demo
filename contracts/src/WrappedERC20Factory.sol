@@ -9,8 +9,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/proxy/Clones.sol";
-
 import {Wrapped1155Factory, IERC20} from "./Interfaces.sol";
 
 contract WrappedERC20Factory {

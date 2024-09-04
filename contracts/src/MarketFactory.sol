@@ -55,7 +55,7 @@ contract MarketFactory {
     WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
     address public immutable collateralToken; // Conditional Tokens collateral token contract
-    RealityProxy public realityProxy; // Oracle contract
+    RealityProxy public immutable realityProxy; // Oracle contract
     address[] public markets; // Markets created by this factory
     address public market; // Market contract
 
