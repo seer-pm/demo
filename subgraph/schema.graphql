@@ -8,7 +8,7 @@ type Market @entity {
   outcomesSupply: BigInt!
   lowerBound: BigInt!
   upperBound: BigInt!
-  parentConditionId: Bytes!
+  parentCollectionId: Bytes!
   parentOutcome: BigInt!
   parentMarket: Bytes!
   conditionId: Bytes!
@@ -59,6 +59,12 @@ type MarketQuestion @entity {
 
 type Condition @entity {
   " Conditional token conditionId "
+  id: ID!
+  market: Market!
+}
+
+type Position @entity {
+  " Conditional token positionId "
   id: ID!
   market: Market!
 }
