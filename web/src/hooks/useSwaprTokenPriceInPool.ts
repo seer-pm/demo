@@ -2,17 +2,30 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient } from "@/lib/subgraph";
 import { useQuery } from "@tanstack/react-query";
-import { OrderDirection, PoolHourData_OrderBy, getSdk } from "./queries/generated";
+import combineQuery from "graphql-combine-query";
+import {
+  GetPoolHourDatasDocument,
+  GetPoolHourDatasQuery,
+  OrderDirection,
+  PoolHourData_OrderBy,
+  getSdk,
+} from "./queries/generated";
 
-async function getHistoryTokensPrices(tokens: string[] | undefined, chainId: SupportedChain, startTime: number) {
-  if (!tokens) return {};
+async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain, startTime: number) {
+  if (tokens.length === 0) {
+    return {};
+  }
+
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
   if (!algebraClient) {
     throw new Error("Subgraph not available");
   }
-  const poolHourDatas = await Promise.all(
-    tokens.map(async (token) => {
-      const { poolHourDatas: data } = await getSdk(algebraClient).GetPoolHourDatas({
+
+  const { document, variables } = (() =>
+    combineQuery("GetPoolHourDatas").addN(
+      GetPoolHourDatasDocument,
+      tokens.map((token) => ({
         first: 1,
         orderBy: PoolHourData_OrderBy.PeriodStartUnix,
         orderDirection: OrderDirection.Desc,
@@ -23,10 +36,12 @@ async function getHistoryTokensPrices(tokens: string[] | undefined, chainId: Sup
               : { token0: token.toLocaleLowerCase(), token1: COLLATERAL_TOKENS[chainId].primary.address },
           periodStartUnix_lte: startTime,
         },
-      });
-      return data[0];
-    }),
-  );
+      })),
+    ))();
+
+  const poolHourDatas = Object.values(
+    await algebraClient.request<Record<string, GetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
+  ).map((d) => d?.[0]);
 
   return poolHourDatas
     .filter((x) => x)
@@ -75,9 +90,9 @@ async function getCurrentTokensPrices(tokens: string[] | undefined, chainId: Sup
   );
 }
 
-export const useHistoryTokensPrices = (tokens: string[] | undefined, chainId: SupportedChain, startTime: number) => {
+export const useHistoryTokensPrices = (tokens: string[], chainId: SupportedChain, startTime: number) => {
   return useQuery<{ [key: string]: number } | undefined, Error>({
-    enabled: !!tokens?.length,
+    enabled: tokens.length > 0,
     queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
     retry: false,
     queryFn: async () => await getHistoryTokensPrices(tokens, chainId, startTime),

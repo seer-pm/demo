@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 
 function useCalculatePositionsValue() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: positions, isPending } = usePositions(address as Address, chainId as SupportedChain);
+  const { data: positions = [], isPending } = usePositions(address as Address, chainId as SupportedChain);
   const { data: tokenIdToTokenCurrentPrice, isPending: isPendingCurrentPrices } = useCurrentTokensPrices(
     positions?.map((position) => position.tokenId),
     chainId as SupportedChain,

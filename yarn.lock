@@ -8270,6 +8270,11 @@ graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.1.9, graceful-fs@^4.2.0:
   resolved "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz"
   integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
 
+graphql-combine-query@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/graphql-combine-query/-/graphql-combine-query-1.2.4.tgz#73013fbef0671762569a70780778da8eb2157ef2"
+  integrity sha512-Os0d5cS8nH1cRnejGyACda0lraPzMJJjtd21KrfjKi1NWgEgzXzP8s29cpLlne+Y+51/2mS4j/3aTaIlCYMexg==
+
 graphql-config@^5.0.2:
   version "5.0.3"
   resolved "https://registry.npmjs.org/graphql-config/-/graphql-config-5.0.3.tgz"
