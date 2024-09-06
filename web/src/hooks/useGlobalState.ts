@@ -6,12 +6,14 @@ type State = {
   favorites: {
     [address: string]: string[];
   };
+  maxSlippage: string;
 };
 
 type Action = {
   addPendingOrder: (orderId: string) => void;
   removePendingOrder: (orderId: string) => void;
   toggleFavorite: (address: string, marketId: string) => void;
+  setMaxSlippage: (value: string) => void;
 };
 
 const useGlobalState = create<State & Action>()(
@@ -19,6 +21,7 @@ const useGlobalState = create<State & Action>()(
     (set) => ({
       pendingOrders: [],
       favorites: {},
+      maxSlippage: "1",
       addPendingOrder: (orderId: string) => set((state) => ({ pendingOrders: [...state.pendingOrders, orderId] })),
       removePendingOrder: (orderId: string) =>
         set((state) => ({ pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId) })),
@@ -34,6 +37,10 @@ const useGlobalState = create<State & Action>()(
             : currentFavorites.concat(marketId);
           return { favorites };
         }),
+      setMaxSlippage: (maxSlippage: string) =>
+        set(() => ({
+          maxSlippage,
+        })),
     }),
     {
       name: "seer-storage",

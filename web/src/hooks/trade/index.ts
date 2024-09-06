@@ -2,7 +2,7 @@ import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { NATIVE_TOKEN, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   Currency,
@@ -192,7 +192,12 @@ function getTradeArgs(
 
   const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
 
-  const maximumSlippage = new Percent("1", "100");
+  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
+  const [numerator, denominator] = parseFraction(slippage) ?? [];
+  const maximumSlippage =
+    Number.isInteger(numerator) && Number.isInteger(denominator)
+      ? new Percent(String(numerator), String(denominator))
+      : new Percent("1", "100");
 
   return {
     buyToken,

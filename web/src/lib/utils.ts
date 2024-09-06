@@ -122,3 +122,31 @@ export function bigIntMax(...args: bigint[]): bigint {
 export function isTwoStringsDuplicated(str1: string | undefined | null, str2: string | undefined | null) {
   return str1?.trim() && str2?.trim()?.toLowerCase() === str1?.trim()?.toLowerCase();
 }
+
+export function parseFraction(floatString: string) {
+  // Convert the string to a number
+  const num = Number(floatString);
+
+  // If it's not a valid number, return null
+  if (Number.isNaN(num)) return null;
+
+  // Split the string by decimal point
+  const [intPart, decPart] = floatString.split(".");
+
+  // If there's no decimal part, return [number, 1]
+  if (!decPart) return [num, 1];
+
+  // Calculate numerator and denominator
+  const numerator = parseInt(intPart + decPart);
+  const denominator = 10 ** decPart.length;
+
+  // Simplify the fraction
+  const gcd = findGCD(numerator, denominator);
+
+  return [numerator / gcd, denominator / gcd];
+}
+
+// Helper function to find the Greatest Common Divisor
+function findGCD(a: number, b: number): number {
+  return b === 0 ? a : findGCD(b, a % b);
+}
