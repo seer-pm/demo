@@ -1,5 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
+import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
@@ -8,7 +9,7 @@ import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { Status, getSdk } from "./queries/generated";
 
-const images = memoize((chainId: SupportedChain) => {
+export const getMarketImages = memoize((chainId: SupportedChain) => {
   return batshit.create({
     name: "images",
     fetcher: async (ids: Address[]) => {
@@ -17,7 +18,7 @@ const images = memoize((chainId: SupportedChain) => {
 
       const client = curateGraphQLClient(chainId);
 
-      if (!client) {
+      if (!client || isUndefined(registryAddress)) {
         throw new Error("Subgraph not available");
       }
 
@@ -41,7 +42,7 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain, regi
   return useQuery<{ market: string; outcomes: string[] }, Error>({
     queryKey: ["useMarketImages", marketId, chainId, currentUserAddress],
     queryFn: async () => {
-      const litems = (await images(chainId).fetch(marketId)).filter((item) => {
+      const litems = (await getMarketImages(chainId).fetch(marketId)).filter((item) => {
         if (item.latestRequester && item.latestRequester.toLowerCase() === currentUserAddress?.toLowerCase()) {
           return true;
         }

@@ -174,7 +174,7 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
     queryFn: async () => {
       const algebraFarmingClient = swaprGraphQLClient(chainId, "algebrafarming");
 
-      if (!algebraFarmingClient) {
+      if (!algebraFarmingClient || pools.length === 0) {
         return {};
       }
 

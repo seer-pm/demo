@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { getSdk } from "./queries/generated";
+import { getMarketImages } from "./useMarketImages";
 
 export type VerificationStatus = "verified" | "verifying" | "not_verified";
 export type VerificationStatusResult = { status: VerificationStatus; itemID?: string };
@@ -13,33 +14,19 @@ export const useVerificationStatus = (marketId: Address, chainId: SupportedChain
   return useQuery<VerificationStatusResult | undefined, Error>({
     queryKey: ["useVerificationStatus", marketId, chainId],
     queryFn: async () => {
-      const client = curateGraphQLClient(chainId);
+      const litems = await getMarketImages(chainId).fetch(marketId);
 
-      // @ts-ignore
-      const registryAddress = lightGeneralizedTcrAddress[chainId];
-
-      if (client && !isUndefined(registryAddress)) {
-        const { litems } = await getSdk(client).GetImages({
-          where: {
-            registryAddress,
-            key0_contains_nocase: marketId,
-          },
-        });
-
-        const registeredItem = litems.find((litem) => litem.status === "Registered");
-        if (!isUndefined(registeredItem)) {
-          return { status: "verified", itemID: registeredItem.itemID };
-        }
-
-        const pendingItem = litems.find((litem) => litem.status === "RegistrationRequested");
-        if (!isUndefined(pendingItem)) {
-          return { status: "verifying", itemID: pendingItem.itemID };
-        }
-
-        return { status: "not_verified" };
+      const registeredItem = litems.find((litem) => litem.status === "Registered");
+      if (!isUndefined(registeredItem)) {
+        return { status: "verified", itemID: registeredItem.itemID };
       }
 
-      throw new Error("Subgraph not available");
+      const pendingItem = litems.find((litem) => litem.status === "RegistrationRequested");
+      if (!isUndefined(pendingItem)) {
+        return { status: "verifying", itemID: pendingItem.itemID };
+      }
+
+      return { status: "not_verified" };
     },
     retry: false,
   });
