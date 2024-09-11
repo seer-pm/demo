@@ -11,7 +11,11 @@ interface IHomeArbitrationProxy {
      * @param _requester The address of the arbitration requester.
      * @param _maxPrevious The maximum value of the previous bond for the question.
      */
-    event RequestNotified(bytes32 indexed _questionID, address indexed _requester, uint256 _maxPrevious);
+    event RequestNotified(
+        bytes32 indexed _questionID,
+        address indexed _requester,
+        uint256 _maxPrevious
+    );
 
     /**
      * @notice To be emitted when arbitration request is rejected.
@@ -34,14 +38,20 @@ interface IHomeArbitrationProxy {
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    event RequestAcknowledged(bytes32 indexed _questionID, address indexed _requester);
+    event RequestAcknowledged(
+        bytes32 indexed _questionID,
+        address indexed _requester
+    );
 
     /**
      * @notice To be emitted when the arbitration request is canceled.
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    event RequestCanceled(bytes32 indexed _questionID, address indexed _requester);
+    event RequestCanceled(
+        bytes32 indexed _questionID,
+        address indexed _requester
+    );
 
     /**
      * @notice To be emitted when the dispute could not be created on the Foreign Chain.
@@ -49,7 +59,10 @@ interface IHomeArbitrationProxy {
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    event ArbitrationFailed(bytes32 indexed _questionID, address indexed _requester);
+    event ArbitrationFailed(
+        bytes32 indexed _questionID,
+        address indexed _requester
+    );
 
     /**
      * @notice To be emitted when receiving the answer from the arbitrator.
@@ -82,7 +95,10 @@ interface IHomeArbitrationProxy {
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function handleNotifiedRequest(bytes32 _questionID, address _requester) external;
+    function handleNotifiedRequest(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Handles arbitration request after it has been rejected.
@@ -90,12 +106,15 @@ interface IHomeArbitrationProxy {
      * Reasons why the request might be rejected:
      *  - The question does not exist
      *  - The question was not answered yet
-     *  - The quesiton bond value changed while the arbitration was being requested
+     *  - The question bond value changed while the arbitration was being requested
      *  - Another request was already accepted
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function handleRejectedRequest(bytes32 _questionID, address _requester) external;
+    function handleRejectedRequest(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Receives a failed attempt to request arbitration. TRUSTED.
@@ -103,14 +122,20 @@ interface IHomeArbitrationProxy {
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function receiveArbitrationFailure(bytes32 _questionID, address _requester) external;
+    function receiveArbitrationFailure(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Receives the answer to a specified question. TRUSTED.
      * @param _questionID The ID of the question.
      * @param _answer The answer from the arbitrator.
      */
-    function receiveArbitrationAnswer(bytes32 _questionID, bytes32 _answer) external;
+    function receiveArbitrationAnswer(
+        bytes32 _questionID,
+        bytes32 _answer
+    ) external;
 }
 
 interface IForeignArbitrationProxy is IArbitrable, IEvidence {
@@ -120,7 +145,11 @@ interface IForeignArbitrationProxy is IArbitrable, IEvidence {
      * @param _requester The address of the arbitration requester.
      * @param _maxPrevious The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than _maxPrevious. If set to 0, _maxPrevious is ignored.
      */
-    event ArbitrationRequested(bytes32 indexed _questionID, address indexed _requester, uint256 _maxPrevious);
+    event ArbitrationRequested(
+        bytes32 indexed _questionID,
+        address indexed _requester,
+        uint256 _maxPrevious
+    );
 
     /**
      * @notice Should be emitted when the dispute is created.
@@ -128,14 +157,21 @@ interface IForeignArbitrationProxy is IArbitrable, IEvidence {
      * @param _requester The address of the arbitration requester.
      * @param _disputeID The ID of the dispute.
      */
-    event ArbitrationCreated(bytes32 indexed _questionID, address indexed _requester, uint256 indexed _disputeID);
+    event ArbitrationCreated(
+        bytes32 indexed _questionID,
+        address indexed _requester,
+        uint256 indexed _disputeID
+    );
 
     /**
      * @notice Should be emitted when the arbitration is canceled by the Home Chain.
      * @param _questionID The ID of the question with the request for arbitration.
      * @param _requester The address of the arbitration requester.
      */
-    event ArbitrationCanceled(bytes32 indexed _questionID, address indexed _requester);
+    event ArbitrationCanceled(
+        bytes32 indexed _questionID,
+        address indexed _requester
+    );
 
     /**
      * @notice Should be emitted when the dispute could not be created.
@@ -144,35 +180,50 @@ interface IForeignArbitrationProxy is IArbitrable, IEvidence {
      * @param _questionID The ID of the question with the request for arbitration.
      * @param _requester The address of the arbitration requester.
      */
-    event ArbitrationFailed(bytes32 indexed _questionID, address indexed _requester);
+    event ArbitrationFailed(
+        bytes32 indexed _questionID,
+        address indexed _requester
+    );
 
     /**
      * @notice Requests arbitration for the given question.
      * @param _questionID The ID of the question.
      * @param _maxPrevious The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than _maxPrevious. If set to 0, _maxPrevious is ignored.
      */
-    function requestArbitration(bytes32 _questionID, uint256 _maxPrevious) external payable;
+    function requestArbitration(
+        bytes32 _questionID,
+        uint256 _maxPrevious
+    ) external payable;
 
     /**
      * @notice Receives the acknowledgement of the arbitration request for the given question and requester. TRUSTED.
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function receiveArbitrationAcknowledgement(bytes32 _questionID, address _requester) external;
+    function receiveArbitrationAcknowledgement(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Receives the cancelation of the arbitration request for the given question and requester. TRUSTED.
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function receiveArbitrationCancelation(bytes32 _questionID, address _requester) external;
+    function receiveArbitrationCancelation(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Cancels the arbitration in case the dispute could not be created.
      * @param _questionID The ID of the question.
      * @param _requester The address of the arbitration requester.
      */
-    function handleFailedDisputeCreation(bytes32 _questionID, address _requester) external;
+    function handleFailedDisputeCreation(
+        bytes32 _questionID,
+        address _requester
+    ) external;
 
     /**
      * @notice Gets the fee to create a dispute.
