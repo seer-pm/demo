@@ -86,8 +86,8 @@ export default async function getCroppedImg(
       if (blob === null) {
         reject();
       } else {
-        resolve(new File([blob], "image.jpg", { type: "image/jpeg" }));
+        resolve(new File([blob], "image.png", { type: "image/png" }));
       }
-    }, "image/jpeg");
+    }, "image/png");
   });
 }
