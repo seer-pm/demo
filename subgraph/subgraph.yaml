@@ -81,8 +81,8 @@ dataSources:
     network: gnosis
     source:
       abi: MarketFactoryV4
-      address: "0x4c98aA5CF10e8e202335AD0665eA36b3fa8E6ED0"
-      startBlock: 35802863
+      address: "0x8dd6FaabfE756e117B018d71Cc62CBc69E96E949"
+      startBlock: 35963581
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

@@ -24,4 +24,6 @@ const deployRealityProxy: DeployFunction = async (hre: HardhatRuntimeEnvironment
   });
 };
 
+deployRealityProxy.tags = ['RealityProxy'];
+
 export default deployRealityProxy;

@@ -24,7 +24,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 
 - [GnosisRouter](https://gnosisscan.io/address/0xe94d6564Ec3C4918CF4401Fd7AC444C5c4837389)
 - [Market](https://gnosisscan.io/address/0x60Eb95536F44C696d115D943aB98C26CBfC110BF)
-- [MarketFactory](https://gnosisscan.io/address/0x4c98aA5CF10e8e202335AD0665eA36b3fa8E6ED0)
+- [MarketFactory](https://gnosisscan.io/address/0x8dd6FaabfE756e117B018d71Cc62CBc69E96E949)
 - [MarketView](https://gnosisscan.io/address/0x0427D45906C8E1c156d8e06C1FEfC4584B916d9f)
-- [RealityProxy](https://gnosisscan.io/address/0xee30cb9D605E04B4068fc09b30e182CF03503490)
+- [RealityProxy](https://gnosisscan.io/address/0xDEC7c093623E971Ace6b023A15548b85A1c4a210)
 - [WrappedERC20Factory](https://gnosisscan.io/address/0x5bc8ddE5D07C6bf24911240AA6F9B0190ae3b557)
