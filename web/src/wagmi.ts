@@ -19,7 +19,7 @@ export const config = defaultWagmiConfig({
   connectors: [
     injected(),
     coinbaseWallet({ appName: "Seer" }),
-    walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
+    walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID, showQrModal: false }),
   ],
   transports: {
     [gnosis.id]: http(),
