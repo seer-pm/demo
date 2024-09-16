@@ -48,7 +48,7 @@ contract MarketFactory {
     uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
     uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
 
-    uint32 public questionTimeout; // Reality question timeout
+    uint32 public immutable questionTimeout; // Reality question timeout
 
     address public immutable arbitrator; // Arbitrator contract
     IRealityETH_v3_0 public immutable realitio; // Reality.eth contract
@@ -57,7 +57,7 @@ contract MarketFactory {
     address public immutable collateralToken; // Conditional Tokens collateral token contract
     RealityProxy public immutable realityProxy; // Oracle contract
     address[] public markets; // Markets created by this factory
-    address public market; // Market contract
+    address public immutable market; // Market contract
 
     /// @dev To be emitted when a new market is created
     event NewMarket(
