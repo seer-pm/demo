@@ -3,7 +3,6 @@ type Market @entity {
   factory: Bytes!
   creator: Bytes!
   marketName: String!
-  rules: String!
   outcomes: [String!]!
   outcomesSupply: BigInt!
   lowerBound: BigInt!

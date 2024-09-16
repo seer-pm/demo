@@ -111,7 +111,6 @@ contract BaseTest is Test {
             marketFactory.createCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
@@ -149,7 +148,6 @@ contract BaseTest is Test {
             marketFactory.createMultiCategoricalMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
-                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
@@ -196,7 +194,6 @@ contract BaseTest is Test {
             marketFactory.createScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "What will be ETH price on Feb 29, 2024?",
-                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
@@ -234,7 +231,6 @@ contract BaseTest is Test {
             marketFactory.createMultiScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "Ethereum President Elections",
-                    rules: "",
                     questionStart: questionStart,
                     questionEnd: questionEnd,
                     outcomeType: outcomeType,
