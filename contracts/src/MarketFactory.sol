@@ -21,6 +21,7 @@ contract MarketFactory {
     // Workaround "stack too deep" errors
     struct CreateMarketParams {
         string marketName; // Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
+        address collateralToken; // Conditional Tokens collateral token contract
         string rules; // IPFS uri of the market rules
         string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome
         string questionStart; // Used to build the Reality question on multi scalar markets
@@ -54,7 +55,6 @@ contract MarketFactory {
     IRealityETH_v3_0 public immutable realitio; // Reality.eth contract
     WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
-    address public immutable collateralToken; // Conditional Tokens collateral token contract
     RealityProxy public immutable realityProxy; // Oracle contract
     address[] public markets; // Markets created by this factory
     address public immutable market; // Market contract
@@ -77,7 +77,6 @@ contract MarketFactory {
      *  @param _realitio Address of the Realitio implementation.
      *  @param _wrappedERC20Factory Address of the WrappedERC20Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
-     *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
      *  @param _questionTimeout Reality question timeout.
      */
@@ -87,7 +86,6 @@ contract MarketFactory {
         IRealityETH_v3_0 _realitio,
         WrappedERC20Factory _wrappedERC20Factory,
         IConditionalTokens _conditionalTokens,
-        address _collateralToken,
         RealityProxy _realityProxy,
         uint32 _questionTimeout
     ) {
@@ -96,7 +94,6 @@ contract MarketFactory {
         realitio = _realitio;
         wrappedERC20Factory = _wrappedERC20Factory;
         conditionalTokens = _conditionalTokens;
-        collateralToken = _collateralToken;
         realityProxy = _realityProxy;
         questionTimeout = _questionTimeout;
     }
@@ -254,6 +251,7 @@ contract MarketFactory {
         ) = getNewMarketParams(params, config);
 
         deployERC20Positions(
+            params.collateralToken,
             conditionalTokensParams.parentCollectionId,
             conditionalTokensParams.conditionId,
             config.outcomeSlotCount,
@@ -480,11 +478,13 @@ contract MarketFactory {
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.
+    /// @param collateralToken The collateral token address
     /// @param parentCollectionId The parentCollectionId
     /// @param conditionId The conditionId
     /// @param outcomeSlotCount The amount of outcomes
     /// @param tokenNames The name of each outcome token
     function deployERC20Positions(
+        address collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint256 outcomeSlotCount,
