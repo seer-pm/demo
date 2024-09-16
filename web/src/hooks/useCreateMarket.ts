@@ -1,5 +1,4 @@
 import { getConfigNumber } from "@/lib/config";
-import ipfsPublish from "@/lib/ipfs-publish";
 import { MarketTypes } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
@@ -11,7 +10,6 @@ import { writeMarketFactory } from "./contracts/generated";
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
-  rules: string;
   questionStart: string;
   questionEnd: string;
   outcomeType: string;
@@ -63,9 +61,6 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const outcomes = getOutcomes(props.outcomes, props.lowerBound, props.upperBound, props.marketType);
 
-  const rules =
-    props.rules.trim() !== "" ? await ipfsPublish("seer_rules.txt", new TextEncoder().encode(props.rules)) : "";
-
   const result = await toastifyTx(
     () =>
       writeMarketFactory(config, {
@@ -76,7 +71,6 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
               props.marketType === MarketTypes.SCALAR
                 ? `${escapeJson(props.marketName)} [${escapeJson(props.unit)}]`
                 : escapeJson(props.marketName),
-            rules,
             questionStart: escapeJson(props.questionStart),
             questionEnd: escapeJson(props.questionEnd),
             outcomeType: escapeJson(props.outcomeType),

@@ -3,7 +3,6 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import { MarketRules } from "@/components/Market/MarketRules";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens";
@@ -133,7 +132,6 @@ function MarketPage() {
             {market && (
               <>
                 <Outcomes chainId={chainId} market={market} images={images?.outcomes} tradeCallback={tradeCallback} />
-                <MarketRules chainId={chainId} market={market} />
                 <RelatedMarkets chainId={chainId} market={market} />
               </>
             )}

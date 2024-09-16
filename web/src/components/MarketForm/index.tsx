@@ -122,7 +122,6 @@ export type MarketTypeFormValues = {
 
 export type OutcomesFormValues = {
   market: string;
-  rules: string;
   image: File;
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
   lowerBound: { value: number; token: string }; // for scalar markets

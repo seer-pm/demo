@@ -431,7 +431,6 @@ contract MarketFactoryTest is BaseTest {
             marketFactory.createScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "How many votes will OUTCOME_0 get?",
-                    rules: "",
                     questionStart: "",
                     questionEnd: "",
                     outcomeType: "",
@@ -454,7 +453,6 @@ contract MarketFactoryTest is BaseTest {
             marketFactory.createMultiScalarMarket(
                 MarketFactory.CreateMarketParams({
                     marketName: "",
-                    rules: "",
                     questionStart: "How many votes will ",
                     questionEnd: " get?",
                     outcomeType: "candidate",

@@ -81,8 +81,8 @@ dataSources:
     network: gnosis
     source:
       abi: MarketFactoryV4
-      address: "0x8dd6FaabfE756e117B018d71Cc62CBc69E96E949"
-      startBlock: 35963581
+      address: "0x2Dbe07d6A22C8D7E397DF5a01888148857582467"
+      startBlock: 36031659
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -98,8 +98,7 @@ dataSources:
         - name: ConditionalTokens
           file: ./abis/ConditionalTokens.json
       eventHandlers:
-        - event: NewMarket(indexed
-            address,string,address,string,bytes32,bytes32,bytes32[])
+        - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
           handler: handleNewMarketV4
       file: ./src/market-factory.ts
   - kind: ethereum

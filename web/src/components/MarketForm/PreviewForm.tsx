@@ -277,7 +277,6 @@ export function PreviewForm({
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
-      rules: outcomesValues.rules,
       outcomes: outcomes,
       tokenNames:
         marketTypeValues.marketType === MarketTypes.SCALAR
@@ -373,12 +372,6 @@ export function PreviewForm({
           type="preview"
           verificationStatusResult={marketReadyToVerify && verifyNow ? { status: "verified" } : undefined}
         />
-        {outcomesValues.rules.trim().length > 0 && (
-          <div className="text-left">
-            <div className="text-[14px] font-semibold mb-[12px]">Rules</div>
-            <div className="text-[14px] whitespace-break-spaces">{outcomesValues.rules}</div>
-          </div>
-        )}
       </DashedBox>
 
       <Modal

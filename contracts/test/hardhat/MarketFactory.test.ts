@@ -96,7 +96,6 @@ describe("MarketFactory", function () {
           ethers.isAddress,
           categoricalMarketParams.marketName,
           ethers.ZeroAddress,
-          "",
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString]
@@ -124,7 +123,6 @@ describe("MarketFactory", function () {
           ethers.isAddress,
           multiCategoricalMarketParams.marketName,
           ethers.ZeroAddress,
-          "",
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString]
@@ -176,7 +174,6 @@ describe("MarketFactory", function () {
           ethers.isAddress,
           scalarMarketParams.marketName,
           ethers.ZeroAddress,
-          "",
           ethers.isHexString,
           ethers.isHexString,
           [ethers.isHexString]
@@ -205,7 +202,6 @@ describe("MarketFactory", function () {
           ethers.isAddress,
           multiScalarMarketParams.marketName,
           ethers.ZeroAddress,
-          "",
           ethers.isHexString,
           ethers.isHexString,
           multiScalarMarketParams.encodedQuestions.map(

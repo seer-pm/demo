@@ -45,7 +45,6 @@ class MarketDataQuestion {
 class MarketData {
   public id: string;
   public marketName: string;
-  public rules: string;
   public outcomes: string[];
   public lowerBound: BigInt;
   public upperBound: BigInt;
@@ -86,7 +85,6 @@ export function handleNewMarket(event: NewMarketEvent): void {
     {
       id: event.params.market.toHexString(),
       marketName: event.params.marketName,
-      rules: "",
       outcomes: event.params.outcomes,
       lowerBound: event.params.lowerBound,
       upperBound: event.params.upperBound,
@@ -121,7 +119,6 @@ export function handleNewMarketV4(event: NewMarketEventV4): void {
     {
       id: event.params.market.toHexString(),
       marketName: data.marketName,
-      rules: event.params.rules,
       outcomes: data.outcomes,
       lowerBound: data.lowerBound,
       upperBound: data.upperBound,
@@ -160,7 +157,6 @@ function processMarket(
   market.factory = event.address;
   market.creator = event.transaction.from;
   market.marketName = data.marketName;
-  market.rules = data.rules;
   market.outcomes = data.outcomes;
   market.outcomesSupply = BigInt.fromI32(0);
   market.lowerBound = data.lowerBound;
