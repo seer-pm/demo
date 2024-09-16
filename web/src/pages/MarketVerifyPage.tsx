@@ -142,7 +142,7 @@ function MarkeVerifyPage() {
 
           <div className="text-[14px] text-left text-black-secondary">
             Verification requires the question and outcome images. Please, upload a 1:1 aspect ratio PNG or JPEG image
-            for each field below.
+            for each field below. If there is a background, it should be transparent.
           </div>
 
           <VerificationForm useOutcomesFormReturn={useOutcomesFormReturn} showOnlyMissingImages={false} />

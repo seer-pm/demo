@@ -175,7 +175,10 @@ export function ImageUpload<
               <div>
                 <InfoCircleIcon width="16" height="16" />
               </div>
-              <span>Add an image cover to illustrate the market - Upload a 1:1 aspect ratio PNG or JPEG image.</span>
+              <span>
+                Add an image cover to illustrate the market - Upload a 1:1 aspect ratio PNG or JPEG image. If there is a
+                background, it should be transparent.
+              </span>
             </div>
           )}
           <FormError errors={errors} name={name} />
