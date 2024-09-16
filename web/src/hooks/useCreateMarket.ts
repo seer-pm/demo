@@ -1,5 +1,4 @@
 import { getConfigNumber } from "@/lib/config";
-import ipfsPublish from "@/lib/ipfs-publish";
 import { MarketTypes } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";

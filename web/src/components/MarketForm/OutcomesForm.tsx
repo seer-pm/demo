@@ -15,7 +15,6 @@ import {
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
-import Textarea from "../Form/Textarea";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
