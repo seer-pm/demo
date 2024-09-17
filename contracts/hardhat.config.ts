@@ -1,13 +1,26 @@
 import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS }from "hardhat/builtin-tasks/task-names";
 import "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
+const glob = require("glob");
+const path = require("path");
 
 dotenv.config();
+
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (_, hre, runSuper) => {
+  const paths = await runSuper();
+
+  const otherDirectoryGlob = path.join(hre.config.paths.root, "test", "hardhat", "mocks", "**", "*.sol");
+  const otherPaths = glob.sync(otherDirectoryGlob);
+
+  return [...paths, ...otherPaths];
+});
 
 const config: HardhatUserConfig = {
   solidity: {
