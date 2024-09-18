@@ -150,7 +150,7 @@ function MarkeVerifyPage() {
           {marketReadyToVerify && !isUndefined(submissionDeposit) && (
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
               <span>Verification deposit:</span>{" "}
-              <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} DAI</span>
+              <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} xDAI</span>
             </div>
           )}
 
