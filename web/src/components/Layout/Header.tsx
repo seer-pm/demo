@@ -1,5 +1,15 @@
 import ConnectWallet from "@/components/ConnectWallet";
-import { BookIcon, BugIcon, DownArrow, EthIcon, Menu, PolicyIcon, QuestionIcon, TelegramIcon } from "@/lib/icons";
+import {
+  BookIcon,
+  BugIcon,
+  DownArrow,
+  EthIcon,
+  Menu,
+  PolicyIcon,
+  QuestionIcon,
+  SeerLogo,
+  TelegramIcon,
+} from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -29,7 +39,7 @@ export default function Header() {
       <nav className="navbar justify-between bg-purple-dark px-[24px] text-white">
         <div className="w-1/3">
           <Link className="text-white" to="/">
-            Seer
+            <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
         </div>
 
