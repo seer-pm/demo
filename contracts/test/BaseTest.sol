@@ -358,10 +358,7 @@ contract BaseTest is Test {
         // split, merge & redeem to base
         vm.deal(address(msg.sender), splitAmount);
 
-        gnosisRouter.splitFromBase{value: splitAmount}(
-            bytes32(0),
-            market.conditionId()
-        );
+        gnosisRouter.splitFromBase{value: splitAmount}(market.conditionId());
 
         // calculate xDAI => sDAI conversion rate
         uint256 splitAmountInSDai = ISavingsXDai(collateralToken)
@@ -381,11 +378,7 @@ contract BaseTest is Test {
             partition
         );
 
-        gnosisRouter.mergeToBase(
-            bytes32(0),
-            market.conditionId(),
-            amountToMerge
-        );
+        gnosisRouter.mergeToBase(market.conditionId(), amountToMerge);
 
         // amountToMerge is understood as sDai, not xDai
         uint256 amountToRedeemInSDai = splitAmountInSDai - amountToMerge;
@@ -397,7 +390,7 @@ contract BaseTest is Test {
             amountToRedeemInSDai
         );
 
-        gnosisRouter.redeemToBase(bytes32(0), market.conditionId(), partition);
+        gnosisRouter.redeemToBase(market.conditionId(), partition);
 
         assertOutcomesBalances(msg.sender, market.conditionId(), partition, 0);
     }

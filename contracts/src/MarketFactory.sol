@@ -26,7 +26,7 @@ contract MarketFactory {
         string questionEnd; // Used to build the Reality question on multi scalar markets
         string outcomeType; // Used to build the Reality question on multi scalar markets
         uint256 parentOutcome; // conditional outcome to use (optional)
-        address parentMarket; // conditional market to use (optional)
+        address parentMarket; // conditional market to use (optional). UNTRUSTED.
         string category; // Reality question category
         string lang; // Reality question language
         uint256 lowerBound; // Lower bound, only used for scalar markets

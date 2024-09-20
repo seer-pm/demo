@@ -29,30 +29,21 @@ contract GnosisRouter is Router {
 
     /// @notice Splits a position using xDAI and sends the ERC20 outcome tokens back to the user
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
-    function splitFromBase(
-        bytes32 parentCollectionId,
-        bytes32 conditionId
-    ) external payable {
+    function splitFromBase(bytes32 conditionId) external payable {
         uint256 shares = savingsXDaiAdapter.depositXDAI{value: msg.value}(
             address(this)
         );
 
-        _splitPosition(sDAI, parentCollectionId, conditionId, shares);
+        _splitPosition(sDAI, bytes32(0), conditionId, shares);
     }
 
     /// @notice Merges positions and sends xDAI to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
     /// @param amount The amount of outcome tokens to merge
-    function mergeToBase(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint amount
-    ) external {
-        _mergePositions(sDAI, parentCollectionId, conditionId, amount);
+    function mergeToBase(bytes32 conditionId, uint amount) external {
+        _mergePositions(sDAI, bytes32(0), conditionId, amount);
 
         sDAI.approve(address(savingsXDaiAdapter), amount);
         savingsXDaiAdapter.redeemXDAI(amount, msg.sender);
@@ -60,17 +51,15 @@ contract GnosisRouter is Router {
 
     /// @notice Redeems positions and sends xDAI to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition used to redeem
     /// @param indexSets The index sets of the outcomes to redeem
     function redeemToBase(
-        bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata indexSets
     ) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
+        _redeemPositions(sDAI, bytes32(0), conditionId, indexSets);
 
         uint256 finalBalance = sDAI.balanceOf(address(this));
 

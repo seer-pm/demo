@@ -56,7 +56,7 @@ describe("MainnetRouter", function () {
     // approve mainnetRouter to transfer user token to the contract
     await DAI.approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
     // split collateral token to outcome tokens
-    await mainnetRouter.splitFromDai(EMPTY_PARENT_COLLECTION_ID, conditionId, ethers.parseEther(SPLIT_AMOUNT));
+    await mainnetRouter.splitFromDai(conditionId, ethers.parseEther(SPLIT_AMOUNT));
     return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
@@ -169,7 +169,6 @@ describe("MainnetRouter", function () {
 
       // merge positions
       await mainnetRouter.mergeToDai(
-        EMPTY_PARENT_COLLECTION_ID,
         conditionId,
         mergeAmountInSDai,
       );
@@ -230,7 +229,7 @@ describe("MainnetRouter", function () {
       }
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem winning position
-      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
+      await mainnetRouter.redeemToDai(conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -293,7 +292,7 @@ describe("MainnetRouter", function () {
 
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem losing position
-      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
+      await mainnetRouter.redeemToDai(conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 

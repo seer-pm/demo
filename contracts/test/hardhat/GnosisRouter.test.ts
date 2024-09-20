@@ -51,7 +51,7 @@ describe("GnosisRouter", function () {
     await sDAI.approve(gnosisRouter, ethers.parseEther(SPLIT_AMOUNT));
 
     // split collateral token to outcome tokens
-    await gnosisRouter.splitFromBase(EMPTY_PARENT_COLLECTION_ID, conditionId, {
+    await gnosisRouter.splitFromBase(conditionId, {
       value: ethers.parseEther(SPLIT_AMOUNT),
     });
     return { outcomeSlotCount, conditionId, questionsIds, market };
@@ -133,7 +133,6 @@ describe("GnosisRouter", function () {
       const balanceBeforeMerge = await ethers.provider.getBalance(owner);
       // merge positions
       const trx = await gnosisRouter.mergeToBase(
-        EMPTY_PARENT_COLLECTION_ID,
         conditionId,
         mergeAmountInSDai,
       );
@@ -199,7 +198,7 @@ describe("GnosisRouter", function () {
       }
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem winning position
-      const trx = await gnosisRouter.redeemToBase(EMPTY_PARENT_COLLECTION_ID, conditionId, [
+      const trx = await gnosisRouter.redeemToBase(conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 
@@ -269,7 +268,7 @@ describe("GnosisRouter", function () {
 
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem losing position
-      const trx = await gnosisRouter.redeemToBase(EMPTY_PARENT_COLLECTION_ID, conditionId, [
+      const trx = await gnosisRouter.redeemToBase(conditionId, [
         getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
       ]);
 

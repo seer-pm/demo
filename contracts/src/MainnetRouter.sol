@@ -33,58 +33,36 @@ contract MainnetRouter is Router {
 
     /// @notice Splits a position using DAI and sends the ERC20 outcome tokens back to the user
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to split
     /// @param amount The amount of collateral to split.
-    function splitFromDai(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint amount
-    ) external {
+    function splitFromDai(bytes32 conditionId, uint amount) external {
         DAI.transferFrom(msg.sender, address(this), amount);
         DAI.approve(address(sDAI), amount);
         uint256 shares = sDAI.deposit(amount, address(this));
 
-        _splitPosition(
-            IERC20(address(sDAI)),
-            parentCollectionId,
-            conditionId,
-            shares
-        );
+        _splitPosition(IERC20(address(sDAI)), bytes32(0), conditionId, shares);
     }
 
     /// @notice Merges positions and sends DAI to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition to merge
     /// @param amount The amount of outcome tokens to merge
-    function mergeToDai(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint amount
-    ) external {
-        _mergePositions(
-            IERC20(address(sDAI)),
-            parentCollectionId,
-            conditionId,
-            amount
-        );
+    function mergeToDai(bytes32 conditionId, uint amount) external {
+        _mergePositions(IERC20(address(sDAI)), bytes32(0), conditionId, amount);
         sDAI.redeem(amount, msg.sender, address(this));
     }
 
     /// @notice Redeems positions and sends DAI to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id
     /// @param conditionId The id of the condition used to redeem
     /// @param indexSets The index sets of the outcomes to redeem
     function redeemToDai(
-        bytes32 parentCollectionId,
         bytes32 conditionId,
         uint[] calldata indexSets
     ) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
+        _redeemPositions(sDAI, bytes32(0), conditionId, indexSets);
 
         uint256 finalBalance = sDAI.balanceOf(address(this));
 
