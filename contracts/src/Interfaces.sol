@@ -13,6 +13,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address owner) external returns (uint256);
+
+    function name() external returns (string memory);
+
+    function symbol() external returns (string memory);
 }
 
 // https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol

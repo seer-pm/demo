@@ -523,4 +523,20 @@ contract MarketFactoryTest is BaseTest {
             unicode"How many votes will OUTCOME_1 get?␟misc␟en_US"
         );
     }
+
+    function test_wrappedTokenInfo() public {
+        Market market = getCategoricalMarket(MIN_BOND, 2);
+
+        IERC20 outcome1 = IERC20(
+                    gnosisRouter.getTokenAddress(
+                        IERC20(collateralToken),
+                        market.parentCollectionId(),
+                        market.conditionId(),
+                        1
+                    )
+                );
+
+        assertEq(outcome1.name(), "Seer Position");
+        assertEq(outcome1.symbol(), "SER-POS");
+    }
 }
