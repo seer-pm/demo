@@ -207,7 +207,6 @@ export function MarketHeader({
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
           <div className="flex items-center gap-4 ml-auto">
-            <SeerLogo fill="#511778" width="50px" height="100%" />
             {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
               <div className="tooltip">
                 <p className="tooltiptext">Market created by this account</p>
@@ -272,14 +271,20 @@ export function MarketHeader({
         </div>
       )}
       {type !== "small" && (
-        <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto">
-          <div className="flex items-center space-x-[10px] lg:space-x-6">
-            <div className="flex items-center space-x-2">
-              {MARKET_TYPES_ICONS[marketType]} <div>{MARKET_TYPES_TEXTS[marketType]}</div>
+        <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
+          <div className="flex items-center gap-4">
+            <SeerLogo fill="#511778" width="50px" height="100%" />
+            <div className="flex items-center gap-2">
+              <div className="tooltip">
+                <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
+                {MARKET_TYPES_ICONS[marketType]}
+              </div>
+              <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
             </div>
             {!isUndefined(daiAmount) && (
-              <div className="flex items-center space-x-2">
-                <span className="text-black-secondary max-lg:hidden">Open interest:</span>{" "}
+              <div className="!flex items-center gap-2 tooltip">
+                <p className="tooltiptext @[510px]:hidden">Open interest</p>
+                <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
                 <div>{displayBalance(daiAmount, 18, false)} DAI</div> <DaiLogo />
               </div>
             )}
