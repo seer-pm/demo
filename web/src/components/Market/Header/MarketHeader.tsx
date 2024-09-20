@@ -17,6 +17,7 @@ import {
   MultiScalarIcon,
   MyMarket,
   ScalarIcon,
+  SeerLogo,
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -206,6 +207,7 @@ export function MarketHeader({
           <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
           {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
           <div className="flex items-center gap-4 ml-auto">
+            <SeerLogo fill="#511778" width="50px" height="100%" />
             {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
               <div className="tooltip">
                 <p className="tooltiptext">Market created by this account</p>
