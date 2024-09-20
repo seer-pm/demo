@@ -285,7 +285,7 @@ export function MarketHeader({
               <div className="!flex items-center gap-2 tooltip">
                 <p className="tooltiptext @[510px]:hidden">Open interest</p>
                 <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
-                <div>{displayBalance(daiAmount, 18, false)} DAI</div> <DaiLogo />
+                <div>{displayBalance(daiAmount, 18, true)} DAI</div> <DaiLogo />
               </div>
             )}
           </div>

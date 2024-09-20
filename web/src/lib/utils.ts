@@ -81,7 +81,7 @@ function formatBigNumbers(amount: number) {
 
   for (const [denominator, letter] of quantifiers) {
     if (amount >= denominator) {
-      return `${+Math.round((amount * 100) / denominator) / 100} ${letter}`;
+      return `${+Math.round((amount * 100) / denominator) / 100}${letter}`;
     }
   }
 
