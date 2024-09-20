@@ -68,6 +68,12 @@ contract MarketFactory {
         bytes32[] questionsIds
     );
 
+    /// @dev To be emitted when a position is wrapped to ERC20.
+    event NewPositionTicker(
+        uint256 indexed positionId,
+        string ticker
+    );
+
     /**
      *  @dev Constructor.
      *  @param _market Address of the market contract that is going to be used for each new deployment.
@@ -503,11 +509,11 @@ contract MarketFactory {
                 "Missing token name"
             );
 
+            emit NewPositionTicker(tokenId, j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]);
+
             wrappedERC20Factory.createWrappedToken(
                 address(conditionalTokens),
-                tokenId,
-                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j],
-                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]
+                tokenId
             );
         }
     }

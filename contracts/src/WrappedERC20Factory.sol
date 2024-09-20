@@ -15,7 +15,9 @@ contract WrappedERC20Factory {
     Wrapped1155Factory public immutable wrapped1155Factory; // Address of the Wrapped1155Factory implementation.
 
     mapping(uint256 => IERC20) public tokens; // Maps the ERC1155 tokenId to the ERC20 token.
-    mapping(uint256 => bytes) public data; // Token data associated to each tokenId.
+
+    // encoded value corresponds to name=Seer Position, symbol=SER-POS, decimals=18.
+    bytes public constant TOKEN_DATA = hex'5365657220506f736974696f6e0000000000000000000000000000000000001a5345522d504f530000000000000000000000000000000000000000000000000e1200000000000000000000000000000000000000000000000000000000000000';
 
     /**
      *  @dev Constructor.
@@ -25,54 +27,21 @@ contract WrappedERC20Factory {
         wrapped1155Factory = _wrapped1155Factory;
     }
 
-    /// @dev Encodes a short string (less than than 31 bytes long) as for storage as expected by Solidity.
-    /// See https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922
-    /// @param value String to encode.
-    function toString31(
-        string memory value
-    ) public pure returns (bytes32 encodedString) {
-        uint256 length = bytes(value).length;
-        require(length < 32, "string too long");
-
-        // Read the right-padded string data, which is guaranteed to fit into a single
-        // word because its length is less than 32.
-        assembly {
-            encodedString := mload(add(value, 0x20))
-        }
-
-        // Now mask the string data, this ensures that the bytes past the string length are all 0s.
-        bytes32 mask = bytes32(type(uint256).max << ((32 - length) << 3));
-        encodedString = encodedString & mask;
-
-        // Finally, set the least significant byte to be the hex length of the encoded string, that is its byte-length times two.
-        encodedString = encodedString | bytes32(length << 1);
-    }
-
-    /// @dev Wraps an ERC1155 token to ERC20, with a custom name and symbol.
+    /// @dev Wraps an ERC1155 token to ERC20.
     /// @param multiToken ERC1155 token to wrap.
     /// @param tokenId ERC1155 token ID.
-    /// @param tokenName Wrapped ERC20 name.
-    /// @param tokenSymbol Wrapped ERC20 symbol.
     function createWrappedToken(
         address multiToken,
-        uint256 tokenId,
-        string memory tokenName,
-        string memory tokenSymbol
+        uint256 tokenId
     ) external returns (IERC20) {
-        bytes memory tokenData = abi.encodePacked(
-            toString31(tokenName),
-            toString31(tokenSymbol),
-            uint8(18)
-        );
-
         IERC20 erc20 = wrapped1155Factory.requireWrapped1155(
             multiToken,
             tokenId,
-            tokenData
+            TOKEN_DATA
         );
 
+        // requireWrapped1155 will return the same ERC20 if it's called multiple times with the same multiToken & tokenId.
         tokens[tokenId] = erc20;
-        data[tokenId] = tokenData;
 
         return erc20;
     }

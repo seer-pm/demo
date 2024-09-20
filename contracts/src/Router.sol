@@ -18,6 +18,9 @@ contract Router is ERC1155Holder {
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
     WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract.
 
+    // same value used on Wrapped1155Factory
+    bytes internal constant TOKEN_DATA = hex'5365657220506f736974696f6e0000000000000000000000000000000000001a5345522d504f530000000000000000000000000000000000000000000000000e1200000000000000000000000000000000000000000000000000000000000000';
+
     /// @dev Constructor
     /// @param _conditionalTokens Conditional Tokens contract.
     /// @param _wrappedERC20Factory WrappedERC20Factory contract.
@@ -89,7 +92,7 @@ contract Router is ERC1155Holder {
                 tokenId,
                 amount,
                 address(this),
-                wrappedERC20Factory.data(tokenId)
+                TOKEN_DATA
             );
         } else {
             collateralToken.approve(address(conditionalTokens), amount);
@@ -118,7 +121,7 @@ contract Router is ERC1155Holder {
                 address(wrappedERC20Factory.wrapped1155Factory()),
                 tokenId,
                 amount,
-                wrappedERC20Factory.data(tokenId)
+                TOKEN_DATA
             );
 
             IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
@@ -191,7 +194,7 @@ contract Router is ERC1155Holder {
                 tokenId,
                 amount,
                 address(this),
-                wrappedERC20Factory.data(tokenId)
+                TOKEN_DATA
             );
         }
 
@@ -216,7 +219,7 @@ contract Router is ERC1155Holder {
                 address(wrappedERC20Factory.wrapped1155Factory()),
                 tokenId,
                 amount,
-                wrappedERC20Factory.data(tokenId)
+                TOKEN_DATA
             );
 
             IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
@@ -301,7 +304,7 @@ contract Router is ERC1155Holder {
                 tokenId,
                 amount,
                 address(this),
-                wrappedERC20Factory.data(tokenId)
+                TOKEN_DATA
             );
         }
 
@@ -338,7 +341,7 @@ contract Router is ERC1155Holder {
                     address(wrappedERC20Factory.wrapped1155Factory()),
                     tokenId,
                     finalBalance - initialBalance,
-                    wrappedERC20Factory.data(tokenId)
+                    TOKEN_DATA
                 );
 
                 IERC20 wrapped1155 = wrappedERC20Factory.tokens(tokenId);
