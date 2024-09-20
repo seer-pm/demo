@@ -13,19 +13,19 @@ import {IConditionalTokens, IRealityETH_v3_0} from "./Interfaces.sol";
 import "./Market.sol";
 
 contract RealityProxy {
-    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract
-    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract
+    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
+    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
 
     bytes32 constant INVALID_RESULT =
-        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value.
 
-    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets
-    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets
-    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets.
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets.
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets.
 
     /// @dev Constructor
-    /// @param _conditionalTokens Conditional Tokens contract address
-    /// @param _realitio Reality.eth contract address
+    /// @param _conditionalTokens Conditional Tokens contract address.
+    /// @param _realitio Reality.eth contract address.
     constructor(
         IConditionalTokens _conditionalTokens,
         IRealityETH_v3_0 _realitio
@@ -34,8 +34,8 @@ contract RealityProxy {
         realitio = _realitio;
     }
 
-    /// @dev Resolves the specified market
-    /// @param market Market to resolve
+    /// @dev Resolves the specified market.
+    /// @param market Market to resolve. UNTRUSTED.
     function resolve(Market market) external {
         bytes32[] memory questionsIds = market.questionsIds();
         uint256 numOutcomes = market.numOutcomes();
@@ -43,9 +43,7 @@ contract RealityProxy {
         uint256 low = market.lowerBound();
         uint256 high = market.upperBound();
 
-        // questionId must be a hash of all the values used to resolve a market,
-        // this way if an attacker tries to resolve a fake market by changing some value
-        // its questionId will not match the id of a valid market
+        // questionId must be a hash of all the values used to resolve a market, this way if an attacker tries to resolve a fake market by changing some value its questionId will not match the id of a valid market.
         bytes32 questionId = keccak256(
             abi.encode(questionsIds, numOutcomes, templateId, low, high)
         );
@@ -72,10 +70,10 @@ contract RealityProxy {
         resolveScalarMarket(questionId, questionsIds, low, high);
     }
 
-    /// @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes
-    /// @param questionId Conditional Tokens questionId
-    /// @param questionsIds Reality questions ids
-    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome
+    /// @dev Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes.
+    /// @param questionId Conditional Tokens questionId.
+    /// @param questionsIds Reality questions ids.
+    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome.
     function resolveCategoricalMarket(
         bytes32 questionId,
         bytes32[] memory questionsIds,
@@ -87,7 +85,7 @@ contract RealityProxy {
         uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         if (answer == uint256(INVALID_RESULT) || answer >= numOutcomes) {
-            // the last outcome is INVALID_RESULT
+            // the last outcome is INVALID_RESULT.
             payouts[numOutcomes] = 1;
         } else {
             payouts[answer] = 1;
@@ -96,10 +94,10 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    /// @dev Resolves to invalid if the answer is invalid or all the results are zero
-    /// @param questionId Conditional Tokens questionId
-    /// @param questionsIds Reality questions ids
-    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome
+    /// @dev Resolves to invalid if the answer is invalid or all the results are zero.
+    /// @param questionId Conditional Tokens questionId.
+    /// @param questionsIds Reality questions ids.
+    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome.
     function resolveMultiCategoricalMarket(
         bytes32 questionId,
         bytes32[] memory questionsIds,
@@ -111,7 +109,7 @@ contract RealityProxy {
         uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         if (answer == uint256(INVALID_RESULT)) {
-            // the last outcome is INVALID_RESULT
+            // the last outcome is INVALID_RESULT.
             payouts[numOutcomes] = 1;
         } else {
             bool allZeroes = true;
@@ -122,7 +120,7 @@ contract RealityProxy {
             }
 
             if (allZeroes) {
-                // invalid result
+                // invalid result.
                 payouts[numOutcomes] = 1;
             }
         }
@@ -130,11 +128,11 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    /// @dev Resolves to invalid if the answer is invalid
-    /// @param questionId Conditional Tokens questionId
-    /// @param questionsIds Reality questions ids
-    /// @param low Lower bound
-    /// @param high Upper bound
+    /// @dev Resolves to invalid if the answer is invalid.
+    /// @param questionId Conditional Tokens questionId.
+    /// @param questionsIds Reality questions ids.
+    /// @param low Lower bound.
+    /// @param high Upper bound.
     function resolveScalarMarket(
         bytes32 questionId,
         bytes32[] memory questionsIds,
@@ -147,7 +145,7 @@ contract RealityProxy {
         uint256[] memory payouts = new uint256[](3);
 
         if (answer == uint256(INVALID_RESULT)) {
-            // the last outcome is INVALID_RESULT
+            // the last outcome is INVALID_RESULT.
             payouts[2] = 1;
         } else if (answer <= low) {
             payouts[0] = 1;
@@ -161,11 +159,11 @@ contract RealityProxy {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
 
-    /// @dev If any individual result is invalid then the corresponding payout element is set to 0
-    /// @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid
-    /// @param questionId Conditional Tokens questionId
-    /// @param questionsIds Reality questions ids
-    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome
+    /// @dev If any individual result is invalid then the corresponding payout element is set to 0.
+    /// @dev If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid.
+    /// @param questionId Conditional Tokens questionId.
+    /// @param questionsIds Reality questions ids.
+    /// @param numOutcomes The number of outcomes, excluding the INVALID_RESULT outcome.
     function resolveMultiScalarMarket(
         bytes32 questionId,
         bytes32[] memory questionsIds,
@@ -196,7 +194,7 @@ contract RealityProxy {
         }
 
         if (allZeroesOrInvalid) {
-            // invalid result
+            // invalid result.
             payouts[numOutcomes] = 1;
         }
 
