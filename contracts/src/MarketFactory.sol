@@ -99,7 +99,7 @@ contract MarketFactory {
         questionTimeout = _questionTimeout;
     }
 
-    /// @dev Creates a Categorical market. Reverts if a market with the same question already exists.
+    /// @dev Creates a Categorical market.
     /// @notice Categorical markets are associated with a Reality question that has only one answer.
     function createCategoricalMarket(
         CreateMarketParams calldata params
