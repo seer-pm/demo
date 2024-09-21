@@ -80,9 +80,9 @@ forge coverage
 **Hardhat**
 ```bash
 # run test
-npx hardhat test
+yarn hardhat test
 # run coverage
-npx hardhat coverage
+yarn hardhat coverage
 ```
 
 ## Deploy
