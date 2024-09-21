@@ -32,12 +32,14 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 ## Installation
 
 ### Prerequisites
-Install NodeJs
+Install Node.js and Yarn
 ```bash
 # installs nvm (Node Version Manager)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 # download and install Node.js (you may need to restart the terminal)
 nvm install 20
+# install yarn
+npm install --global yarn
 ```
 
 Clone the repo, then cd to contracts folder:
@@ -45,7 +47,7 @@ Clone the repo, then cd to contracts folder:
 cd .\contracts\
 ```
 
-### Yarn install
+### Install packages
 ```
 yarn
 ```
@@ -64,7 +66,7 @@ forge install foundry-rs/forge-std
 ```
 yarn hardhat compile
 ```
-Please ignore the warnings. They are coming from third-party/mock contracts.
+>Please ignore the warnings. They are coming from third-party/mock contracts.
 
 ## Testing
 **Foundry (bash)**
