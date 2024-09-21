@@ -1,12 +1,13 @@
 pragma solidity 0.8.20;
 
-import "forge-std/Test.sol";
-import "./BaseTest.sol";
-import "../src/MarketFactory.sol";
-import "../src/Market.sol";
-import "../src/RealityProxy.sol";
 import "../src/GnosisRouter.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import {IERC20} from "../src/Interfaces.sol";
+import "../src/Market.sol";
+import "../src/MarketFactory.sol";
+import "../src/RealityProxy.sol";
+import "./BaseTest.sol";
+import "forge-std/Test.sol";
+
 import "forge-std/console.sol";
 
 contract MarketFactoryTest is BaseTest {
@@ -31,10 +32,7 @@ contract MarketFactoryTest is BaseTest {
         return answers;
     }
 
-    function test_createsCategoricalMarket(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_createsCategoricalMarket(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -52,19 +50,12 @@ contract MarketFactoryTest is BaseTest {
 
         vm.startPrank(msg.sender);
 
-        splitMergeAndRedeem(
-            categoricalMarket,
-            getPartition(numOutcomes + 1),
-            splitAmount
-        );
+        splitMergeAndRedeem(categoricalMarket, getPartition(numOutcomes + 1), splitAmount);
 
         vm.stopPrank();
     }
 
-    function test_createsMultiCategoricalMarket(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_createsMultiCategoricalMarket(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -80,19 +71,12 @@ contract MarketFactoryTest is BaseTest {
 
         vm.startPrank(msg.sender);
 
-        splitMergeAndRedeem(
-            multiCategoricalMarket,
-            getPartition(3 + 1),
-            splitAmount
-        );
+        splitMergeAndRedeem(multiCategoricalMarket, getPartition(3 + 1), splitAmount);
 
         vm.stopPrank();
     }
 
-    function test_createsScalarMarket(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_createsScalarMarket(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -113,11 +97,7 @@ contract MarketFactoryTest is BaseTest {
         vm.stopPrank();
     }
 
-    function test_createsMultiScalarMarket(
-        uint256 splitAmount,
-        bytes32 answer,
-        bytes32 answer2
-    ) public {
+    function test_createsMultiScalarMarket(uint256 splitAmount, bytes32 answer, bytes32 answer2) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
@@ -134,11 +114,7 @@ contract MarketFactoryTest is BaseTest {
 
         vm.startPrank(msg.sender);
 
-        splitMergeAndRedeem(
-            multiScalarMarket,
-            getPartition(2 + 1),
-            splitAmount
-        );
+        splitMergeAndRedeem(multiScalarMarket, getPartition(2 + 1), splitAmount);
 
         vm.stopPrank();
     }
@@ -151,10 +127,7 @@ contract MarketFactoryTest is BaseTest {
         assertGt(sum, 0);
     }
 
-    function test_categoricalMarketPayout(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_categoricalMarketPayout(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -173,17 +146,11 @@ contract MarketFactoryTest is BaseTest {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
-        (, uint256[] memory payoutNumerators) = abi.decode(
-            entries[0].data,
-            (uint256, uint256[])
-        );
+        (, uint256[] memory payoutNumerators) = abi.decode(entries[0].data, (uint256, uint256[]));
 
         assertNotEmptyPayout(payoutNumerators);
 
-        if (
-            uint256(answer) >= 0 &&
-            uint256(answer) <= categoricalMarket.numOutcomes()
-        ) {
+        if (uint256(answer) >= 0 && uint256(answer) <= categoricalMarket.numOutcomes()) {
             // valid outcomes (results between 0 and outcomeSlotCount)
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
                 assertEq(payoutNumerators[i], i == uint256(answer) ? 1 : 0);
@@ -191,18 +158,12 @@ contract MarketFactoryTest is BaseTest {
         } else {
             // invalid outcomes
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
-                assertEq(
-                    payoutNumerators[i],
-                    i == categoricalMarket.numOutcomes() ? 1 : 0
-                );
+                assertEq(payoutNumerators[i], i == categoricalMarket.numOutcomes() ? 1 : 0);
             }
         }
     }
 
-    function test_multiCategoricalMarketPayout(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_multiCategoricalMarketPayout(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -221,20 +182,14 @@ contract MarketFactoryTest is BaseTest {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
-        (, uint256[] memory payoutNumerators) = abi.decode(
-            entries[0].data,
-            (uint256, uint256[])
-        );
+        (, uint256[] memory payoutNumerators) = abi.decode(entries[0].data, (uint256, uint256[]));
 
         assertNotEmptyPayout(payoutNumerators);
 
         if (answer == INVALID_RESULT || answer == bytes32(0)) {
             // invalid outcomes
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
-                assertEq(
-                    payoutNumerators[i],
-                    i == multiCategoricalMarket.numOutcomes() ? 1 : 0
-                );
+                assertEq(payoutNumerators[i], i == multiCategoricalMarket.numOutcomes() ? 1 : 0);
             }
         } else {
             // valid outcomes
@@ -251,10 +206,7 @@ contract MarketFactoryTest is BaseTest {
         }
     }
 
-    function test_scalarMarketPayout(
-        uint256 splitAmount,
-        bytes32 answer
-    ) public {
+    function test_scalarMarketPayout(uint256 splitAmount, bytes32 answer) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
@@ -273,20 +225,14 @@ contract MarketFactoryTest is BaseTest {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
-        (, uint256[] memory payoutNumerators) = abi.decode(
-            entries[0].data,
-            (uint256, uint256[])
-        );
+        (, uint256[] memory payoutNumerators) = abi.decode(entries[0].data, (uint256, uint256[]));
 
         assertNotEmptyPayout(payoutNumerators);
 
         if (answer == INVALID_RESULT) {
             // invalid
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
-                assertEq(
-                    payoutNumerators[i],
-                    i == scalarMarket.numOutcomes() ? 1 : 0
-                );
+                assertEq(payoutNumerators[i], i == scalarMarket.numOutcomes() ? 1 : 0);
             }
         } else {
             uint256 low = scalarMarket.lowerBound();
@@ -306,11 +252,7 @@ contract MarketFactoryTest is BaseTest {
         }
     }
 
-    function test_multiScalarMarketPayout(
-        uint256 splitAmount,
-        bytes32 answer,
-        bytes32 answer2
-    ) public {
+    function test_multiScalarMarketPayout(uint256 splitAmount, bytes32 answer, bytes32 answer2) public {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON && answer2 != ANSWERED_TOO_SOON);
 
@@ -330,23 +272,15 @@ contract MarketFactoryTest is BaseTest {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         // ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)
-        (, uint256[] memory payoutNumerators) = abi.decode(
-            entries[0].data,
-            (uint256, uint256[])
-        );
+        (, uint256[] memory payoutNumerators) = abi.decode(entries[0].data, (uint256, uint256[]));
 
         assertNotEmptyPayout(payoutNumerators);
 
-        if (
-            (answer == bytes32(0) && answer2 == bytes32(0)) ||
-            (answer == INVALID_RESULT && answer2 == INVALID_RESULT)
-        ) {
+        if ((answer == bytes32(0) && answer2 == bytes32(0)) || (answer == INVALID_RESULT && answer2 == INVALID_RESULT))
+        {
             // invalid
             for (uint256 i = 0; i < payoutNumerators.length; i++) {
-                assertEq(
-                    payoutNumerators[i],
-                    i == multiScalarMarket.numOutcomes() ? 1 : 0
-                );
+                assertEq(payoutNumerators[i], i == multiScalarMarket.numOutcomes() ? 1 : 0);
             }
         } else if (answer == INVALID_RESULT) {
             assertEq(payoutNumerators[0], 0);
@@ -355,14 +289,8 @@ contract MarketFactoryTest is BaseTest {
         } else {
             // valid outcomes
             uint256 maxPayout = 2 ** (256 / 2) - 1;
-            assertEq(
-                payoutNumerators[0],
-                uint256(answer) > maxPayout ? maxPayout : uint256(answer)
-            );
-            assertEq(
-                payoutNumerators[1],
-                uint256(answer2) > maxPayout ? maxPayout : uint256(answer2)
-            );
+            assertEq(payoutNumerators[0], uint256(answer) > maxPayout ? maxPayout : uint256(answer));
+            assertEq(payoutNumerators[1], uint256(answer2) > maxPayout ? maxPayout : uint256(answer2));
         }
     }
 
@@ -371,16 +299,12 @@ contract MarketFactoryTest is BaseTest {
         getCategoricalMarket(MIN_BOND, 1);
     }
 
-    function test_revertsIfCreatesMultiCategoricalMarketWithOneQuestion()
-        public
-    {
+    function test_revertsIfCreatesMultiCategoricalMarketWithOneQuestion() public {
         vm.expectRevert(bytes("Outcomes count must be 2 or more"));
         getMultiCategoricalMarket(MIN_BOND, 1);
     }
 
-    function test_revertsIfCreatesScalarMarketWithOtherThanTwoQuestions(
-        uint8 numOutcomes
-    ) public {
+    function test_revertsIfCreatesScalarMarketWithOtherThanTwoQuestions(uint8 numOutcomes) public {
         if (numOutcomes != 2) {
             vm.expectRevert(bytes("Outcomes count must be 2"));
         }
@@ -421,10 +345,7 @@ contract MarketFactoryTest is BaseTest {
 
     function test_reusesQuestionBetweenScalarAndMultiScalarMarkets() public {
         uint256 numOutcomes = 2;
-        (
-            string[] memory outcomes,
-            string[] memory tokenNames
-        ) = getOutcomesAndTokens(numOutcomes);
+        (string[] memory outcomes, string[] memory tokenNames) = getOutcomesAndTokens(numOutcomes);
 
         // scalar market
         Market scalar = Market(
@@ -503,38 +424,24 @@ contract MarketFactoryTest is BaseTest {
         getScalarMarket(MIN_BOND, 2);
         entries = vm.getRecordedLogs();
 
-        assertEq(
-            getEncodedQuestion(entries, 0),
-            unicode"What will be ETH price on Feb 29, 2024?␟misc␟en_US"
-        );
+        assertEq(getEncodedQuestion(entries, 0), unicode"What will be ETH price on Feb 29, 2024?␟misc␟en_US");
 
         // multi scalar market
         vm.recordLogs();
         getMultiScalarMarket(MIN_BOND, 2);
         entries = vm.getRecordedLogs();
 
-        assertEq(
-            getEncodedQuestion(entries, 0),
-            unicode"How many votes will OUTCOME_0 get?␟misc␟en_US"
-        );
+        assertEq(getEncodedQuestion(entries, 0), unicode"How many votes will OUTCOME_0 get?␟misc␟en_US");
 
-        assertEq(
-            getEncodedQuestion(entries, 1),
-            unicode"How many votes will OUTCOME_1 get?␟misc␟en_US"
-        );
+        assertEq(getEncodedQuestion(entries, 1), unicode"How many votes will OUTCOME_1 get?␟misc␟en_US");
     }
 
     function test_wrappedTokenInfo() public {
         Market market = getCategoricalMarket(MIN_BOND, 2);
 
         IERC20 outcome1 = IERC20(
-                    gnosisRouter.getTokenAddress(
-                        IERC20(collateralToken),
-                        market.parentCollectionId(),
-                        market.conditionId(),
-                        1
-                    )
-                );
+            gnosisRouter.getTokenAddress(IERC20(collateralToken), market.parentCollectionId(), market.conditionId(), 1)
+        );
 
         assertEq(outcome1.name(), "Seer Position");
         assertEq(outcome1.symbol(), "SER-POS");

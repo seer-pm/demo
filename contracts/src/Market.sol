@@ -77,9 +77,7 @@ contract Market {
     }
 
     /// @dev Encoded questions parameters, needed to create and reopen a question.
-    function encodedQuestions(
-        uint256 index
-    ) external view returns (string memory) {
+    function encodedQuestions(uint256 index) external view returns (string memory) {
         return realityParams.encodedQuestions[index];
     }
 

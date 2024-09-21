@@ -5,7 +5,11 @@
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
     "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && cd ../web && yarn wagmi generate",
-    "verify:gnosis": "npx hardhat --network gnosis etherscan-verify --api-url https://api.gnosisscan.io"
+    "verify:gnosis": "npx hardhat --network gnosis etherscan-verify --api-url https://api.gnosisscan.io",
+    "lint:check": "yarn lint:sol-tests && yarn lint:sol-logic && forge fmt --check",
+    "lint:fix": "yarn lint:sol-tests --fix && yarn lint:sol-logic --fix",
+    "lint:sol-logic": "solhint -c .solhint.json 'src/*.sol' 'script/*.sol'",
+    "lint:sol-tests": "solhint -c .solhint.tests.json 'test/*.sol'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
@@ -17,6 +21,7 @@
     "ethers": "^6.13.1",
     "hardhat": "^2.19.4",
     "hardhat-deploy": "^0.12.4",
+    "solhint-community": "^4.0.0",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.3.3"

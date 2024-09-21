@@ -3,25 +3,16 @@ pragma solidity 0.8.20;
 
 import "./Router.sol";
 
-interface SavingsDai is IERC20 {
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external returns (uint256 shares);
+interface ISavingsDai is IERC20 {
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external returns (uint256 assets);
+    function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
 }
 
 /// @dev Router implementation with functions to interact with DAI on Ethereum Mainnet.
 contract MainnetRouter is Router {
-    IERC20 public constant DAI =
-        IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI address.
-    SavingsDai public constant sDAI =
-        SavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA); // SavingsDai address.
+    IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI address.
+    ISavingsDai public constant sDAI = ISavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA); // SavingsDai address.
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
@@ -35,7 +26,7 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
     /// @param conditionId The id of the condition to split.
     /// @param amount The amount of collateral to split.
-    function splitFromDai(bytes32 conditionId, uint amount) external {
+    function splitFromDai(bytes32 conditionId, uint256 amount) external {
         DAI.transferFrom(msg.sender, address(this), amount);
         DAI.approve(address(sDAI), amount);
         uint256 shares = sDAI.deposit(amount, address(this));
@@ -47,7 +38,7 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
     /// @param conditionId The id of the condition to merge.
     /// @param amount The amount of outcome tokens to merge.
-    function mergeToDai(bytes32 conditionId, uint amount) external {
+    function mergeToDai(bytes32 conditionId, uint256 amount) external {
         _mergePositions(IERC20(address(sDAI)), bytes32(0), conditionId, amount);
         sDAI.redeem(amount, msg.sender, address(this));
     }
@@ -56,10 +47,7 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
     /// @param conditionId The id of the condition used to redeem.
     /// @param indexSets The index sets of the outcomes to redeem.
-    function redeemToDai(
-        bytes32 conditionId,
-        uint[] calldata indexSets
-    ) external {
+    function redeemToDai(bytes32 conditionId, uint256[] calldata indexSets) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
         _redeemPositions(sDAI, bytes32(0), conditionId, indexSets);
@@ -67,11 +55,7 @@ contract MainnetRouter is Router {
         uint256 finalBalance = sDAI.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
-            sDAI.redeem(
-                finalBalance - initialBalance,
-                msg.sender,
-                address(this)
-            );
+            sDAI.redeem(finalBalance - initialBalance, msg.sender, address(this));
         }
     }
 }

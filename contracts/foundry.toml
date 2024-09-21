@@ -1,3 +1,14 @@
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = 'long'
+quote_style = 'double'
+number_underscore = 'thousands'
+multiline_func_header = 'params_first_multi'
+sort_imports = true
+ignore = ['src/interaction/**/*sol', 'test/hardhat/**/*.sol']
+
 [profile.default]
 src = 'src'
 out = 'out'

@@ -1,9 +1,9 @@
 pragma solidity 0.8.20;
 
+import "../src/Market.sol";
+import "./BaseTest.sol";
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "./BaseTest.sol";
-import "../src/Market.sol";
 
 contract ConditionalMarketsTest is BaseTest {
     uint256 constant MAX_SPLIT_AMOUNT = 100_000_000 ether;
@@ -14,23 +14,13 @@ contract ConditionalMarketsTest is BaseTest {
         uint256 splitAmount = 1 ether;
 
         Market categoricalMarket = getCategoricalMarket(MIN_BOND, numOutcomes);
-        Market deepScalarMarket = getScalarMarket(
-            MIN_BOND,
-            numOutcomes,
-            0,
-            address(categoricalMarket)
-        );
+        Market deepScalarMarket = getScalarMarket(MIN_BOND, numOutcomes, 0, address(categoricalMarket));
 
         IERC20(collateralToken).approve(address(gnosisRouter), splitAmount);
         deal(collateralToken, address(msg.sender), splitAmount);
 
         // split shallow position
-        gnosisRouter.splitPosition(
-            IERC20(collateralToken),
-            bytes32(0),
-            categoricalMarket.conditionId(),
-            splitAmount
-        );
+        gnosisRouter.splitPosition(IERC20(collateralToken), bytes32(0), categoricalMarket.conditionId(), splitAmount);
 
         // split deep position
         approveWrappedTokens(
@@ -41,19 +31,11 @@ contract ConditionalMarketsTest is BaseTest {
             getPartition(1)
         );
         gnosisRouter.splitPosition(
-            IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
-            splitAmount
+            IERC20(collateralToken), deepScalarMarket.parentCollectionId(), deepScalarMarket.conditionId(), splitAmount
         );
 
         // assert split balances
-        assertOutcomesBalances(
-            msg.sender,
-            categoricalMarket.conditionId(),
-            getPartition(1),
-            0
-        );
+        assertOutcomesBalances(msg.sender, categoricalMarket.conditionId(), getPartition(1), 0);
         assertOutcomesBalances(
             msg.sender,
             deepScalarMarket.conditionId(),
@@ -71,19 +53,11 @@ contract ConditionalMarketsTest is BaseTest {
             getPartition(numOutcomes + 1)
         );
         gnosisRouter.mergePositions(
-            IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
-            splitAmount
+            IERC20(collateralToken), deepScalarMarket.parentCollectionId(), deepScalarMarket.conditionId(), splitAmount
         );
 
         // assert merge balances
-        assertOutcomesBalances(
-            msg.sender,
-            categoricalMarket.conditionId(),
-            getPartition(1),
-            splitAmount
-        );
+        assertOutcomesBalances(msg.sender, categoricalMarket.conditionId(), getPartition(1), splitAmount);
         assertOutcomesBalances(
             msg.sender,
             deepScalarMarket.conditionId(),
@@ -101,10 +75,7 @@ contract ConditionalMarketsTest is BaseTest {
             getPartition(1)
         );
         gnosisRouter.splitPosition(
-            IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
-            splitAmount
+            IERC20(collateralToken), deepScalarMarket.parentCollectionId(), deepScalarMarket.conditionId(), splitAmount
         );
 
         // submit answer
@@ -133,18 +104,9 @@ contract ConditionalMarketsTest is BaseTest {
             getPartition(1)
         );
 
+        assertOutcomesBalances(msg.sender, categoricalMarket.conditionId(), getPartition(numOutcomes + 1), splitAmount);
         assertOutcomesBalances(
-            msg.sender,
-            categoricalMarket.conditionId(),
-            getPartition(numOutcomes + 1),
-            splitAmount
-        );
-        assertOutcomesBalances(
-            msg.sender,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
-            getPartition(1),
-            0
+            msg.sender, deepScalarMarket.conditionId(), deepScalarMarket.parentCollectionId(), getPartition(1), 0
         );
 
         vm.stopPrank();
