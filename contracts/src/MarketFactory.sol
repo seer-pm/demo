@@ -248,7 +248,7 @@ contract MarketFactory {
         (
             Market.ConditionalTokensParams memory conditionalTokensParams,
             Market.RealityParams memory realityParams
-        ) = getNewMarketParams(params, config);
+        ) = createNewMarketParams(params, config);
 
         Market instance = Market(market.clone());
 
@@ -277,7 +277,7 @@ contract MarketFactory {
     }
 
     /// @dev Creates the structures needed to initialize the new market.
-    function getNewMarketParams(
+    function createNewMarketParams(
         CreateMarketParams memory params,
         InternalMarketConfig memory config
     )
