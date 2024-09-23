@@ -17,47 +17,82 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 contract MarketFactory {
     using Clones for address;
 
-    // Workaround "stack too deep" errors.
+    /// @dev Workaround "stack too deep" errors.
+    /// @param marketName Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
+    /// @param outcomes The market outcomes, doesn't include the INVALID_RESULT outcome.
+    /// @param questionStart Used to build the Reality question on multi scalar markets.
+    /// @param questionEnd Used to build the Reality question on multi scalar markets.
+    /// @param outcomeType Used to build the Reality question on multi scalar markets.
+    /// @param parentOutcome conditional outcome to use (optional).
+    /// @param parentMarket conditional market to use (optional). UNTRUSTED.
+    /// @param category Reality question category.
+    /// @param lang Reality question language.
+    /// @param lowerBound Lower bound, only used for scalar markets.
+    /// @param upperBound Upper bound, only used for scalar markets.
+    /// @param minBond Min bond to use on Reality.
+    /// @param openingTime Reality question opening time.
+    /// @param tokenNames Name of the ERC20 tokens associated to each outcome.
     struct CreateMarketParams {
-        string marketName; // Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
-        string[] outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome.
-        string questionStart; // Used to build the Reality question on multi scalar markets.
-        string questionEnd; // Used to build the Reality question on multi scalar markets.
-        string outcomeType; // Used to build the Reality question on multi scalar markets.
-        uint256 parentOutcome; // conditional outcome to use (optional).
-        address parentMarket; // conditional market to use (optional). UNTRUSTED.
-        string category; // Reality question category.
-        string lang; // Reality question language.
-        uint256 lowerBound; // Lower bound, only used for scalar markets.
-        uint256 upperBound; // Upper bound, only used for scalar markets.
-        uint256 minBond; // Min bond to use on Reality.
-        uint32 openingTime; // Reality question opening time.
-        string[] tokenNames; // Name of the ERC20 tokens associated to each outcome.
+        string marketName;
+        string[] outcomes;
+        string questionStart;
+        string questionEnd;
+        string outcomeType;
+        uint256 parentOutcome;
+        address parentMarket;
+        string category;
+        string lang;
+        uint256 lowerBound;
+        uint256 upperBound;
+        uint256 minBond;
+        uint32 openingTime;
+        string[] tokenNames;
     }
 
-    // Workaround "stack too deep" errors.
+    /// @dev Workaround "stack too deep" errors.
+    /// @param encodedQuestions The encoded questions containing the Reality parameters.
+    /// @param outcomeSlotCount Conditional Tokens outcomeSlotCount.
+    /// @param templateId Reality templateId.
     struct InternalMarketConfig {
-        string[] encodedQuestions; // The encoded questions containing the Reality parameters.
-        uint256 outcomeSlotCount; // Conditional Tokens outcomeSlotCount.
-        uint256 templateId; // Reality templateId.
+        string[] encodedQuestions;
+        uint256 outcomeSlotCount;
+        uint256 templateId;
     }
 
-    uint8 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets.
-    uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets.
-    uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets.
+    /// @dev Template for scalar and multi scalar markets.
+    uint8 internal constant REALITY_UINT_TEMPLATE = 1;
+    /// @dev Template for categorical markets.
+    uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
+    /// @dev Template for multi categorical markets.
+    uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
-    uint32 public immutable questionTimeout; // Reality question timeout.
+    /// @dev Reality question timeout.
+    uint32 public immutable questionTimeout;
 
-    address public immutable arbitrator; // Arbitrator contract.
-    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
-    IWrapped1155Factory public immutable wrapped1155Factory; // Wrapped1155Factory contract.
-    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
-    address public immutable collateralToken; // Conditional Tokens collateral token contract.
-    RealityProxy public immutable realityProxy; // Oracle contract.
-    address[] public markets; // Markets created by this factory.
-    address public immutable market; // Market contract.
+    /// @dev Arbitrator contract.
+    address public immutable arbitrator;
+    /// @dev Reality.eth contract.
+    IRealityETH_v3_0 public immutable realitio;
+    /// @dev Wrapped1155Factory contract.
+    IWrapped1155Factory public immutable wrapped1155Factory;
+    /// @dev Conditional Tokens contract.
+    IConditionalTokens public immutable conditionalTokens;
+    /// @dev Conditional Tokens collateral token contract.
+    address public immutable collateralToken;
+    /// @dev Oracle contract.
+    RealityProxy public immutable realityProxy;
+    /// @dev Markets created by this factory.
+    address[] public markets;
+    /// @dev Market contract.
+    address public immutable market;
 
     /// @dev To be emitted when a new market is created.
+    /// @param market The new market address.
+    /// @param marketName The name of the market.
+    /// @param parentMarket Conditional market to use.
+    /// @param conditionId Conditional Tokens conditionId.
+    /// @param questionId Conditional Tokens questionId.
+    /// @param questionsIds Reality questions ids.
     event NewMarket(
         address indexed market,
         string marketName,
@@ -100,6 +135,8 @@ contract MarketFactory {
 
     /// @dev Creates a Categorical market.
     /// @notice Categorical markets are associated with a Reality question that has only one answer.
+    /// @param params CreateMarketParams instance.
+    /// @return The new market address.
     function createCategoricalMarket(CreateMarketParams calldata params) external returns (address) {
         require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
 
@@ -120,6 +157,8 @@ contract MarketFactory {
 
     /// @dev Creates a Multi Categorical market.
     /// @notice Multi Categorical markets are associated with a Reality question that has one or more answers.
+    /// @param params CreateMarketParams instance.
+    /// @return The new market address.
     function createMultiCategoricalMarket(CreateMarketParams calldata params) external returns (address) {
         require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
 
@@ -140,6 +179,8 @@ contract MarketFactory {
 
     /// @dev Creates a Scalar market.
     /// @notice Scalar markets are associated with a Reality question that resolves to a numeric value.
+    /// @param params CreateMarketParams instance.
+    /// @return The new market address.
     function createScalarMarket(CreateMarketParams calldata params) external returns (address) {
         require(params.upperBound > params.lowerBound, "upperBound must be higher than lowerBound");
         // values reserved by Reality for INVALID and UNRESOLVED_ANSWER.
@@ -162,6 +203,8 @@ contract MarketFactory {
 
     /// @dev Creates a Multi Scalar market.
     /// @notice Multi Scalar markets are associated with two or more Reality questions, and each one of them resolves to a numeric value.
+    /// @param params CreateMarketParams instance.
+    /// @return The new market address.
     function createMultiScalarMarket(CreateMarketParams calldata params) external returns (address) {
         require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
 
@@ -187,6 +230,10 @@ contract MarketFactory {
     }
 
     /// @dev Creates the Market and deploys the wrapped ERC20 tokens.
+    /// @param params CreateMarketParams instance.
+    /// @param marketName The market name.
+    /// @param config InternalMarketConfig instance.
+    /// @return The new market address.
     function createMarket(
         CreateMarketParams memory params,
         string memory marketName,
@@ -222,6 +269,10 @@ contract MarketFactory {
     }
 
     /// @dev Creates the structures needed to initialize the new market.
+    /// @param params CreateMarketParams instance.
+    /// @param config InternalMarketConfig instance.
+    /// @return Market.ConditionalTokensParams instance.
+    /// @return Market.RealityParams instance.
     function createNewMarketParams(
         CreateMarketParams memory params,
         InternalMarketConfig memory config
@@ -340,6 +391,7 @@ contract MarketFactory {
     /// @dev Prepares the CTF condition and returns the conditionId.
     /// @param questionId An identifier for the question to be answered by the oracle.
     /// @param outcomeSlotCount The number of outcome slots which must be used for this condition. Must not exceed 256.
+    /// @return Condition ID.
     function prepareCondition(bytes32 questionId, uint256 outcomeSlotCount) internal returns (bytes32) {
         bytes32 conditionId = conditionalTokens.getConditionId(address(realityProxy), questionId, outcomeSlotCount);
 
@@ -355,6 +407,8 @@ contract MarketFactory {
     /// @param conditionId The conditionId.
     /// @param outcomeSlotCount The amount of outcomes.
     /// @param tokenNames The name of each outcome token.
+    /// @return wrapped1155 Array of outcome tokens wrapped to ERC20.
+    /// @return data Array of token data used to create each ERC20.
     function deployERC20Positions(
         bytes32 parentCollectionId,
         bytes32 conditionId,
@@ -388,6 +442,7 @@ contract MarketFactory {
     /// @dev Encodes a short string (less than than 31 bytes long) as for storage as expected by Solidity.
     /// See https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922
     /// @param value String to encode.
+    /// @return encodedString The encoded string.
     function toString31(string memory value) internal pure returns (bytes32 encodedString) {
         uint256 length = bytes(value).length;
         require(length < 32, "string too long");

@@ -13,16 +13,22 @@ import {IConditionalTokens, IRealityETH_v3_0} from "./Interfaces.sol";
 import "./Market.sol";
 
 contract RealityProxy {
-    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
-    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
+    /// @dev Conditional Tokens contract.
+    IConditionalTokens public immutable conditionalTokens;
+    /// @dev Reality.eth contract.
+    IRealityETH_v3_0 public immutable realitio;
 
-    bytes32 internal constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value.
+    /// @dev INVALID_RESULT reserved value.
+    bytes32 internal constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets.
-    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets.
-    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets.
+    /// @dev Template for scalar and multi scalar markets.
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1;
+    /// @dev Template for categorical markets.
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
+    /// @dev Template for multi categorical markets.
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
-    /// @dev Constructor
+    /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract address.
     /// @param _realitio Reality.eth contract address.
     constructor(IConditionalTokens _conditionalTokens, IRealityETH_v3_0 _realitio) {

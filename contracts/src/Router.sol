@@ -15,8 +15,10 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 /// @dev The Router contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155.
 contract Router is ERC1155Holder {
-    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
-    IWrapped1155Factory public immutable wrapped1155Factory; // Wrapped1155Factory contract.
+    /// @dev Conditional Tokens contract.
+    IConditionalTokens public immutable conditionalTokens;
+    /// @dev Wrapped1155Factory contract.
+    IWrapped1155Factory public immutable wrapped1155Factory;
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
@@ -228,6 +230,7 @@ contract Router is ERC1155Holder {
     /// @param parentCollectionId The Conditional Tokens parent collection id.
     /// @param conditionId The id of the condition used to redeem.
     /// @param indexSet Index set of the outcome collection to combine with the parent outcome collection.
+    /// @return The token id.
     function getTokenId(
         IERC20 collateralToken,
         bytes32 parentCollectionId,

@@ -11,9 +11,11 @@ interface ISavingsXDaiAdapter {
 
 /// @dev Router implementation with functions to interact with xDAI on Gnosis Chain.
 contract GnosisRouter is Router {
-    IERC20 public constant sDAI = IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701); // sDAI address.
+    /// @dev sDAI address.
+    IERC20 public constant sDAI = IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
+    /// @dev SavingsXDaiAdapter address.
     ISavingsXDaiAdapter public constant savingsXDaiAdapter =
-        ISavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94); // SavingsXDaiAdapter address.
+        ISavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94);
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.

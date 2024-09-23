@@ -11,8 +11,10 @@ interface ISavingsDai is IERC20 {
 
 /// @dev Router implementation with functions to interact with DAI on Ethereum Mainnet.
 contract MainnetRouter is Router {
-    IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI address.
-    ISavingsDai public constant sDAI = ISavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA); // SavingsDai address.
+    /// @dev DAI address.
+    IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    /// @dev SavingsDai address.
+    ISavingsDai public constant sDAI = ISavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA);
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
