@@ -350,7 +350,7 @@ contract MarketFactory {
         return conditionId;
     }
 
-    /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SEER_INVALID_RESULT.
+    /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
     /// @param parentCollectionId The parentCollectionId.
     /// @param conditionId The conditionId.
     /// @param outcomeSlotCount The amount of outcomes.
@@ -373,8 +373,8 @@ contract MarketFactory {
             require(j == invalidResultIndex || bytes(tokenNames[j]).length != 0, "Missing token name");
 
             bytes memory _data = abi.encodePacked(
-                toString31(j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]),
-                toString31(j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]),
+                toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
+                toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
                 uint8(18)
             );
 
