@@ -63,7 +63,7 @@ interface IRealityETH_v3_0 {
     ) external view returns (bytes32);
 }
 
-interface MarketV1 {
+interface IMarketV1 {
     function questionsIds(uint256 index) external view returns (bytes32);
 
     function getQuestionsCount() external view returns (uint256);
@@ -285,11 +285,11 @@ contract MarketView {
         try market.questionsIds() returns (bytes32[] memory questionsIds) {
             return questionsIds;
         } catch {
-            uint256 questionsCount = MarketV1(address(market))
+            uint256 questionsCount = IMarketV1(address(market))
                 .getQuestionsCount();
             bytes32[] memory questionsIds = new bytes32[](questionsCount);
             for (uint256 i = 0; i < questionsCount; i++) {
-                questionsIds[i] = MarketV1(address(market)).questionsIds(i);
+                questionsIds[i] = IMarketV1(address(market)).questionsIds(i);
             }
             return questionsIds;
         }

@@ -6,7 +6,6 @@ import "../src/MarketFactory.sol";
 import "../src/Market.sol";
 import "../src/RealityProxy.sol";
 import "../src/GnosisRouter.sol";
-import {IRealityETH_v3_0, IConditionalTokens, IERC20} from "../src/Interfaces.sol";
 import "forge-std/console.sol";
 
 contract MarketFactoryTest is BaseTest {

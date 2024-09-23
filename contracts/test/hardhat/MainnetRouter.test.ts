@@ -79,7 +79,7 @@ describe("MainnetRouter", function () {
       "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
       MainnetAddress.DAI,
     )) as unknown as IERC20;
-    sDAI = await ethers.getContractAt("ISavingsDai", MainnetAddress.S_DAI);
+    sDAI = await ethers.getContractAt("test/hardhat/mocks/ISavingsDai.sol:ISavingsDai", MainnetAddress.S_DAI);
     const sDAIMarketFactoryDeployFixture = async () => marketFactoryDeployFixture(sDAI);
     const {
       marketFactory: _marketFactory,

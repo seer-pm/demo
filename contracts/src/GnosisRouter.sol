@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "./Router.sol";
 
-interface SavingsXDaiAdapter {
+interface ISavingsXDaiAdapter {
     function depositXDAI(address receiver) external payable returns (uint256);
 
     function redeemXDAI(
@@ -16,8 +16,8 @@ interface SavingsXDaiAdapter {
 contract GnosisRouter is Router {
     IERC20 public constant sDAI =
         IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701); // sDAI address.
-    SavingsXDaiAdapter public constant savingsXDaiAdapter =
-        SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94); // SavingsXDaiAdapter address.
+    ISavingsXDaiAdapter public constant savingsXDaiAdapter =
+        ISavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94); // SavingsXDaiAdapter address.
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.

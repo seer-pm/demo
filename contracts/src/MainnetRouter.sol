@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "./Router.sol";
 
-interface SavingsDai is IERC20 {
+interface ISavingsDai is IERC20 {
     function deposit(
         uint256 assets,
         address receiver
@@ -20,8 +20,8 @@ interface SavingsDai is IERC20 {
 contract MainnetRouter is Router {
     IERC20 public constant DAI =
         IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI address.
-    SavingsDai public constant sDAI =
-        SavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA); // SavingsDai address.
+    ISavingsDai public constant sDAI =
+        ISavingsDai(0x83F20F44975D03b1b09e64809B757c47f942BEeA); // SavingsDai address.
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.

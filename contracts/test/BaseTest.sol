@@ -384,7 +384,7 @@ contract BaseTest is Test {
     function getPartition(uint256 size) public pure returns (uint256[] memory) {
         uint256[] memory partition = new uint256[](size);
 
-        for (uint i = 0; i < size; i++) {
+        for (uint256 i = 0; i < size; i++) {
             partition[i] = 1 << i;
         }
 
@@ -394,7 +394,7 @@ contract BaseTest is Test {
     function getOutcomesIndex(uint256 size) public pure returns (uint256[] memory) {
         uint256[] memory outcomesIndex = new uint256[](size);
 
-        for (uint i = 0; i < size; i++) {
+        for (uint256 i = 0; i < size; i++) {
             outcomesIndex[i] = i;
         }
 

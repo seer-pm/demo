@@ -1,0 +1,3 @@
+node_modules
+src/interaction/*.sol
+test/hardhat/**/*.sol

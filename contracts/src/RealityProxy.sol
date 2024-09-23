@@ -16,7 +16,7 @@ contract RealityProxy {
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
     IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
 
-    bytes32 constant INVALID_RESULT =
+    bytes32 internal constant INVALID_RESULT =
         0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value.
 
     uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets.
