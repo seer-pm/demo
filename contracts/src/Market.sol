@@ -9,8 +9,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "./RealityProxy.sol";
 import {IERC20} from "./Interfaces.sol";
+import "./RealityProxy.sol";
 
 contract Market {
     bool public initialized; // Flag to initialize the market only once.
@@ -80,9 +80,7 @@ contract Market {
     }
 
     /// @dev Encoded questions parameters, needed to create and reopen a question.
-    function encodedQuestions(
-        uint256 index
-    ) external view returns (string memory) {
+    function encodedQuestions(uint256 index) external view returns (string memory) {
         return realityParams.encodedQuestions[index];
     }
 
@@ -111,23 +109,14 @@ contract Market {
         return conditionalTokensParams.parentOutcome;
     }
 
-    function wrappedOutcome(
-        uint256 index
-    ) external view returns (IERC20 wrapped1155, bytes memory data) {
-        return (
-            conditionalTokensParams.wrapped1155[index],
-            conditionalTokensParams.data[index]
-        );
+    function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data) {
+        return (conditionalTokensParams.wrapped1155[index], conditionalTokensParams.data[index]);
     }
 
-    function parentWrappedOutcome()
-        external
-        view
-        returns (IERC20 wrapped1155, bytes memory data)
-    {
+    function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data) {
         if (conditionalTokensParams.parentMarket != address(0)) {
-            (wrapped1155, data) = Market(conditionalTokensParams.parentMarket)
-                .wrappedOutcome(conditionalTokensParams.parentOutcome);
+            (wrapped1155, data) =
+                Market(conditionalTokensParams.parentMarket).wrappedOutcome(conditionalTokensParams.parentOutcome);
         }
     }
 

@@ -6,16 +6,12 @@ import "./Router.sol";
 interface ISavingsXDaiAdapter {
     function depositXDAI(address receiver) external payable returns (uint256);
 
-    function redeemXDAI(
-        uint256 shares,
-        address receiver
-    ) external payable returns (uint256);
+    function redeemXDAI(uint256 shares, address receiver) external payable returns (uint256);
 }
 
 /// @dev Router implementation with functions to interact with xDAI on Gnosis Chain.
 contract GnosisRouter is Router {
-    IERC20 public constant sDAI =
-        IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701); // sDAI address.
+    IERC20 public constant sDAI = IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701); // sDAI address.
     ISavingsXDaiAdapter public constant savingsXDaiAdapter =
         ISavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94); // SavingsXDaiAdapter address.
 
@@ -30,12 +26,8 @@ contract GnosisRouter is Router {
     /// @notice Splits a position using xDAI and sends the ERC20 outcome tokens back to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param market The Market to split.
-    function splitFromBase(
-        Market market
-    ) external payable {
-        uint256 shares = savingsXDaiAdapter.depositXDAI{value: msg.value}(
-            address(this)
-        );
+    function splitFromBase(Market market) external payable {
+        uint256 shares = savingsXDaiAdapter.depositXDAI{value: msg.value}(address(this));
 
         _splitPosition(sDAI, market, shares);
     }
@@ -44,10 +36,7 @@ contract GnosisRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param market The Market to merge.
     /// @param amount The amount of outcome tokens to merge.
-    function mergeToBase(
-        Market market,
-        uint amount
-    ) external {
+    function mergeToBase(Market market, uint256 amount) external {
         _mergePositions(sDAI, market, amount);
 
         sDAI.approve(address(savingsXDaiAdapter), amount);
@@ -58,10 +47,7 @@ contract GnosisRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function redeemToBase(
-        Market market,
-        uint[] calldata outcomeIndexes
-    ) external {
+    function redeemToBase(Market market, uint256[] calldata outcomeIndexes) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
         _redeemPositions(sDAI, market, outcomeIndexes);
@@ -69,14 +55,8 @@ contract GnosisRouter is Router {
         uint256 finalBalance = sDAI.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
-            sDAI.approve(
-                address(savingsXDaiAdapter),
-                finalBalance - initialBalance
-            );
-            savingsXDaiAdapter.redeemXDAI(
-                finalBalance - initialBalance,
-                msg.sender
-            );
+            sDAI.approve(address(savingsXDaiAdapter), finalBalance - initialBalance);
+            savingsXDaiAdapter.redeemXDAI(finalBalance - initialBalance, msg.sender);
         }
     }
 }

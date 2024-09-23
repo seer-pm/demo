@@ -9,9 +9,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "./Market.sol";
 import {IConditionalTokens, IERC20, IWrapped1155Factory} from "./Interfaces.sol";
+import "./Market.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 /// @dev The Router contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155.
 contract Router is ERC1155Holder {
@@ -21,10 +21,7 @@ contract Router is ERC1155Holder {
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
     /// @param _wrapped1155Factory Wrapped1155Factory contract.
-    constructor(
-        IConditionalTokens _conditionalTokens,
-        IWrapped1155Factory _wrapped1155Factory
-    ) {
+    constructor(IConditionalTokens _conditionalTokens, IWrapped1155Factory _wrapped1155Factory) {
         conditionalTokens = _conditionalTokens;
         wrapped1155Factory = _wrapped1155Factory;
     }
@@ -35,20 +32,12 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to split.
     /// @param amount The amount of collateral to split.
-    function splitPosition(
-        IERC20 collateralToken,
-        Market market,
-        uint amount
-    ) public {
+    function splitPosition(IERC20 collateralToken, Market market, uint256 amount) public {
         if (market.parentCollectionId() == bytes32(0)) {
             // transfer the collateral tokens to the Router.
             collateralToken.transferFrom(msg.sender, address(this), amount);
         }
-        _splitPosition(
-            collateralToken,
-            market,
-            amount
-        );
+        _splitPosition(collateralToken, market, amount);
     }
 
     /// @notice Splits a position and sends the ERC20 outcome tokens to the user.
@@ -56,66 +45,34 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to split.
     /// @param amount The amount of collateral to split.
-    function _splitPosition(
-        IERC20 collateralToken,
-        Market market,
-        uint amount
-    ) internal {
+    function _splitPosition(IERC20 collateralToken, Market market, uint256 amount) internal {
         bytes32 parentCollectionId = market.parentCollectionId();
         bytes32 conditionId = market.conditionId();
 
-        uint256[] memory partition = getPartition(
-            conditionalTokens.getOutcomeSlotCount(conditionId)
-        );
+        uint256[] memory partition = getPartition(conditionalTokens.getOutcomeSlotCount(conditionId));
 
         if (parentCollectionId != bytes32(0)) {
             // it's splitting from a parent position, so we need to unwrap these tokens first because they will be burnt to mint the child outcome tokens.
             (IERC20 wrapped1155, bytes memory data) = market.parentWrappedOutcome();
 
-            uint256 tokenId = conditionalTokens.getPositionId(
-                address(collateralToken),
-                parentCollectionId
-            );
+            uint256 tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
-            wrapped1155Factory.unwrap(
-                address(conditionalTokens),
-                tokenId,
-                amount,
-                address(this),
-                data
-            );
+            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amount, address(this), data);
         } else {
             collateralToken.approve(address(conditionalTokens), amount);
         }
 
-        conditionalTokens.splitPosition(
-            address(collateralToken),
-            parentCollectionId,
-            conditionId,
-            partition,
-            amount
-        );
+        conditionalTokens.splitPosition(address(collateralToken), parentCollectionId, conditionId, partition, amount);
 
         // wrap & transfer the minted outcome tokens.
-        for (uint j = 0; j < partition.length; j++) {
-            uint256 tokenId = getTokenId(
-                collateralToken,
-                parentCollectionId,
-                conditionId,
-                partition[j]
-            );
+        for (uint256 j = 0; j < partition.length; j++) {
+            uint256 tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, partition[j]);
 
             (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(j);
 
             // wrap to erc20.
-            conditionalTokens.safeTransferFrom(
-                address(this),
-                address(wrapped1155Factory),
-                tokenId,
-                amount,
-                data
-            );
+            conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
             wrapped1155.transfer(msg.sender, amount);
@@ -128,16 +85,8 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to merge.
     /// @param amount The amount of outcome tokens to merge.
-    function mergePositions(
-        IERC20 collateralToken,
-        Market market,
-        uint amount
-    ) public {
-        _mergePositions(
-            collateralToken,
-            market,
-            amount
-        );
+    function mergePositions(IERC20 collateralToken, Market market, uint256 amount) public {
+        _mergePositions(collateralToken, market, amount);
 
         if (market.parentCollectionId() == bytes32(0)) {
             // send collateral tokens back to the user.
@@ -150,65 +99,33 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to merge.
     /// @param amount The amount of outcome tokens to merge.
-    function _mergePositions(
-        IERC20 collateralToken,
-        Market market,
-        uint amount
-    ) internal {
+    function _mergePositions(IERC20 collateralToken, Market market, uint256 amount) internal {
         bytes32 parentCollectionId = market.parentCollectionId();
         bytes32 conditionId = market.conditionId();
 
-        uint256[] memory partition = getPartition(
-            conditionalTokens.getOutcomeSlotCount(conditionId)
-        );
+        uint256[] memory partition = getPartition(conditionalTokens.getOutcomeSlotCount(conditionId));
 
         // we need to unwrap the outcome tokens because they will be burnt during the merge.
 
-        for (uint j = 0; j < partition.length; j++) {
-            uint256 tokenId = getTokenId(
-                collateralToken,
-                parentCollectionId,
-                conditionId,
-                partition[j]
-            );
+        for (uint256 j = 0; j < partition.length; j++) {
+            uint256 tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, partition[j]);
 
             (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(j);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
-            wrapped1155Factory.unwrap(
-                address(conditionalTokens),
-                tokenId,
-                amount,
-                address(this),
-                data
-            );
+            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amount, address(this), data);
         }
 
-        conditionalTokens.mergePositions(
-            address(collateralToken),
-            parentCollectionId,
-            conditionId,
-            partition,
-            amount
-        );
+        conditionalTokens.mergePositions(address(collateralToken), parentCollectionId, conditionId, partition, amount);
 
         if (parentCollectionId != bytes32(0)) {
             // it's merging from a parent position, so we need to wrap these tokens and send them back to the user.
-            uint256 tokenId = conditionalTokens.getPositionId(
-                address(collateralToken),
-                parentCollectionId
-            );
+            uint256 tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
 
             (IERC20 wrapped1155, bytes memory data) = market.parentWrappedOutcome();
 
             // wrap to erc20.
-            conditionalTokens.safeTransferFrom(
-                address(this),
-                address(wrapped1155Factory),
-                tokenId,
-                amount,
-                data
-            );
+            conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
             wrapped1155.transfer(msg.sender, amount);
@@ -221,11 +138,7 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function redeemPositions(
-        IERC20 collateralToken,
-        Market market,
-        uint[] calldata outcomeIndexes
-    ) public {
+    function redeemPositions(IERC20 collateralToken, Market market, uint256[] calldata outcomeIndexes) public {
         bytes32 parentCollectionId = market.parentCollectionId();
         uint256 initialBalance;
 
@@ -233,20 +146,13 @@ contract Router is ERC1155Holder {
             initialBalance = collateralToken.balanceOf(address(this));
         }
 
-        _redeemPositions(
-            collateralToken,
-            market,
-            outcomeIndexes
-        );
+        _redeemPositions(collateralToken, market, outcomeIndexes);
 
         if (parentCollectionId == bytes32(0)) {
             uint256 finalBalance = collateralToken.balanceOf(address(this));
 
             if (finalBalance > initialBalance) {
-                collateralToken.transfer(
-                    msg.sender,
-                    finalBalance - initialBalance
-                );
+                collateralToken.transfer(msg.sender, finalBalance - initialBalance);
             }
         }
     }
@@ -256,25 +162,16 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function _redeemPositions(
-        IERC20 collateralToken,
-        Market market,
-        uint[] calldata outcomeIndexes
-    ) internal {
+    function _redeemPositions(IERC20 collateralToken, Market market, uint256[] calldata outcomeIndexes) internal {
         bytes32 parentCollectionId = market.parentCollectionId();
         bytes32 conditionId = market.conditionId();
         uint256 tokenId = 0;
 
         uint256[] memory indexSets = new uint256[](outcomeIndexes.length);
 
-        for (uint j = 0; j < outcomeIndexes.length; j++) {
+        for (uint256 j = 0; j < outcomeIndexes.length; j++) {
             indexSets[j] = 1 << outcomeIndexes[j];
-            tokenId = getTokenId(
-                collateralToken,
-                parentCollectionId,
-                conditionId,
-                indexSets[j]
-            );
+            tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, indexSets[j]);
 
             // first we need to unwrap the outcome tokens that will be redeemed.
             (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(outcomeIndexes[j]);
@@ -282,53 +179,29 @@ contract Router is ERC1155Holder {
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
 
-            wrapped1155Factory.unwrap(
-                address(conditionalTokens),
-                tokenId,
-                amount,
-                address(this),
-                data
-            );
+            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amount, address(this), data);
         }
 
         uint256 initialBalance = 0;
 
         if (parentCollectionId != bytes32(0)) {
             // if we are redeeming from a child market, the user may already have parent tokens so we need to track the balance change.
-            tokenId = conditionalTokens.getPositionId(
-                address(collateralToken),
-                parentCollectionId
-            );
-            initialBalance = conditionalTokens.balanceOf(
-                address(this),
-                tokenId
-            );
+            tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
+            initialBalance = conditionalTokens.balanceOf(address(this), tokenId);
         }
 
-        conditionalTokens.redeemPositions(
-            address(collateralToken),
-            parentCollectionId,
-            conditionId,
-            indexSets
-        );
+        conditionalTokens.redeemPositions(address(collateralToken), parentCollectionId, conditionId, indexSets);
 
         if (parentCollectionId != bytes32(0)) {
             // if we are redeeming from a child market, redeemPositions() returned outcome tokens of the parent market. We need to wrap and send them to the user.
-            uint256 finalBalance = conditionalTokens.balanceOf(
-                address(this),
-                tokenId
-            );
+            uint256 finalBalance = conditionalTokens.balanceOf(address(this), tokenId);
 
             if (finalBalance > initialBalance) {
                 // wrap to erc20.
                 (IERC20 parentWrapped1155, bytes memory parentData) = market.parentWrappedOutcome();
 
                 conditionalTokens.safeTransferFrom(
-                    address(this),
-                    address(wrapped1155Factory),
-                    tokenId,
-                    finalBalance - initialBalance,
-                    parentData
+                    address(this), address(wrapped1155Factory), tokenId, finalBalance - initialBalance, parentData
                 );
 
                 // transfer the ERC20 back to the user.
@@ -343,7 +216,7 @@ contract Router is ERC1155Holder {
     function getPartition(uint256 size) internal pure returns (uint256[] memory) {
         uint256[] memory partition = new uint256[](size);
 
-        for (uint i = 0; i < size; i++) {
+        for (uint256 i = 0; i < size; i++) {
             partition[i] = 1 << i;
         }
 
@@ -359,34 +232,20 @@ contract Router is ERC1155Holder {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint indexSet
+        uint256 indexSet
     ) public view returns (uint256) {
-        bytes32 collectionId = conditionalTokens.getCollectionId(
-            parentCollectionId,
-            conditionId,
-            indexSet
-        );
-        return
-            conditionalTokens.getPositionId(
-                address(collateralToken),
-                collectionId
-            );
+        bytes32 collectionId = conditionalTokens.getCollectionId(parentCollectionId, conditionId, indexSet);
+        return conditionalTokens.getPositionId(address(collateralToken), collectionId);
     }
 
     /// @notice Helper function used to know the redeemable outcomes associated to a conditionId.
     /// @param conditionId The id of the condition.
     /// @return An array of outcomes where a true value indicates that the outcome is redeemable.
-    function getWinningOutcomes(
-        bytes32 conditionId
-    ) external view returns (bool[] memory) {
-        bool[] memory result = new bool[](
-            conditionalTokens.getOutcomeSlotCount(conditionId)
-        );
+    function getWinningOutcomes(bytes32 conditionId) external view returns (bool[] memory) {
+        bool[] memory result = new bool[](conditionalTokens.getOutcomeSlotCount(conditionId));
 
         for (uint256 i = 0; i < result.length; i++) {
-            result[i] = conditionalTokens.payoutNumerators(conditionId, i) == 0
-                ? false
-                : true;
+            result[i] = conditionalTokens.payoutNumerators(conditionId, i) == 0 ? false : true;
         }
 
         return result;
