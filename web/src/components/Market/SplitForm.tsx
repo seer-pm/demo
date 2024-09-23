@@ -70,8 +70,7 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
     await splitPosition.mutateAsync({
       account: account!,
       router: router,
-      parentCollectionId: market.parentCollectionId,
-      conditionId: market.conditionId,
+      market: market.id,
       collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,

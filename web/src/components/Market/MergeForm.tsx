@@ -65,8 +65,7 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
       router,
-      parentCollectionId: market.parentCollectionId,
-      conditionId: market.conditionId,
+      market: market.id,
       collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,

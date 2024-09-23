@@ -10,8 +10,7 @@ import { writeGnosisRouterMergeToBase, writeMainnetRouterMergeToDai } from "./co
 
 interface MergePositionProps {
   router: Address;
-  parentCollectionId: `0x${string}`;
-  conditionId: `0x${string}`;
+  market: Address;
   collateralToken: Address;
   outcomeSlotCount: number;
   amount: bigint;
@@ -24,8 +23,7 @@ async function mergeFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
-  parentCollectionId: `0x${string}`,
-  conditionId: `0x${string}`,
+  market: Address,
   amount: bigint,
 ) {
   if (isMainCollateral) {
@@ -33,18 +31,18 @@ async function mergeFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "mergePositions",
-      args: [collateralToken, parentCollectionId, conditionId, amount],
+      args: [collateralToken, market, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterMergeToDai(config, {
-      args: [parentCollectionId, conditionId, amount],
+      args: [market, amount],
     });
   }
 
   return await writeGnosisRouterMergeToBase(config, {
-    args: [parentCollectionId, conditionId, amount],
+    args: [market, amount],
   });
 }
 
@@ -56,8 +54,7 @@ async function mergePositions(props: MergePositionProps): Promise<TransactionRec
         props.routerType,
         props.router,
         props.collateralToken,
-        props.parentCollectionId,
-        props.conditionId,
+        props.market,
         props.amount,
       ),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },

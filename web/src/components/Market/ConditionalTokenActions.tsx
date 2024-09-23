@@ -61,13 +61,7 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
 
       {activeTab === "redeem" &&
         (marketStatus === MarketStatus.CLOSED ? (
-          <RedeemForm
-            account={account}
-            market={market}
-            chainId={chainId}
-            router={router}
-            conditionId={market.conditionId}
-          />
+          <RedeemForm account={account} market={market} chainId={chainId} router={router} />
         ) : (
           "Redemptions are not available yet."
         ))}

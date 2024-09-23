@@ -11,8 +11,7 @@ import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "
 interface SplitPositionProps {
   account: Address;
   router: Address;
-  parentCollectionId: `0x${string}`;
-  conditionId: `0x${string}`;
+  market: Address;
   collateralToken: Address;
   outcomeSlotCount: number;
   amount: bigint;
@@ -25,8 +24,7 @@ async function splitFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
-  parentCollectionId: `0x${string}`,
-  conditionId: `0x${string}`,
+  market: Address,
   amount: bigint,
 ) {
   if (isMainCollateral) {
@@ -34,18 +32,18 @@ async function splitFromRouter(
       address: router,
       abi: RouterAbi,
       functionName: "splitPosition",
-      args: [collateralToken, parentCollectionId, conditionId, amount],
+      args: [collateralToken, market, amount],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterSplitFromDai(config, {
-      args: [parentCollectionId, conditionId, amount],
+      args: [market, amount],
     });
   }
 
   return await writeGnosisRouterSplitFromBase(config, {
-    args: [parentCollectionId, conditionId],
+    args: [market],
     value: amount,
   });
 }
@@ -58,8 +56,7 @@ async function splitPosition(props: SplitPositionProps): Promise<TransactionRece
         props.routerType,
         props.router,
         props.collateralToken,
-        props.parentCollectionId,
-        props.conditionId,
+        props.market,
         props.amount,
       ),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
