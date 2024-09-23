@@ -10,6 +10,7 @@
 pragma solidity 0.8.20;
 
 import "./RealityProxy.sol";
+import {IERC20} from "./Interfaces.sol";
 
 contract Market {
     bool public initialized; // Flag to initialize the market only once.
@@ -26,6 +27,8 @@ contract Market {
         uint256 parentOutcome; // conditional outcome to use (optional).
         address parentMarket; // conditional market to use (optional).
         bytes32 questionId; // Conditional Tokens questionId.
+        IERC20[] wrapped1155; // Outcome tokens Wrapped1155 address.
+        bytes[] data; // Wrapped1155 token data.
     }
 
     string public marketName; // The name of the market.
@@ -106,6 +109,26 @@ contract Market {
     /// @dev The parent outcome (optional). The parent market's outcome token this market redeems for.
     function parentOutcome() external view returns (uint256) {
         return conditionalTokensParams.parentOutcome;
+    }
+
+    function wrappedOutcome(
+        uint256 index
+    ) external view returns (IERC20 wrapped1155, bytes memory data) {
+        return (
+            conditionalTokensParams.wrapped1155[index],
+            conditionalTokensParams.data[index]
+        );
+    }
+
+    function parentWrappedOutcome()
+        external
+        view
+        returns (IERC20 wrapped1155, bytes memory data)
+    {
+        if (conditionalTokensParams.parentMarket != address(0)) {
+            (wrapped1155, data) = Market(conditionalTokensParams.parentMarket)
+                .wrappedOutcome(conditionalTokensParams.parentOutcome);
+        }
     }
 
     /// @dev Returns the number of outcomes.

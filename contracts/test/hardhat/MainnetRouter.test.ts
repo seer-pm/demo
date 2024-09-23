@@ -7,7 +7,6 @@ import {
   MarketFactory,
   RealityETH_v3_0,
   RealityProxy,
-  WrappedERC20Factory,
   IERC20,
   ISavingsDai,
 } from "../../typechain-types";
@@ -15,7 +14,6 @@ import {
   MainnetAddress,
   MIN_BOND,
   OPENING_TS,
-  EMPTY_PARENT_COLLECTION_ID,
   SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
   categoricalMarketParams,
@@ -32,7 +30,6 @@ describe("MainnetRouter", function () {
   let conditionalTokens: ConditionalTokens;
   let realityProxy: RealityProxy;
   let mainnetRouter: MainnetRouter;
-  let wrappedERC20Factory: WrappedERC20Factory;
   let realitio: RealityETH_v3_0;
   let DAI: IERC20;
   let sDAI: ISavingsDai;
@@ -52,11 +49,10 @@ describe("MainnetRouter", function () {
     const questionsIds = await market.questionsIds();
     const oracleAddress = await realityProxy.getAddress();
     const conditionId = await conditionalTokens.getConditionId(oracleAddress, questionId, outcomeSlotCount);
-
     // approve mainnetRouter to transfer user token to the contract
     await DAI.approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
     // split collateral token to outcome tokens
-    await mainnetRouter.splitFromDai(EMPTY_PARENT_COLLECTION_ID, conditionId, ethers.parseEther(SPLIT_AMOUNT));
+    await mainnetRouter.splitFromDai(market, ethers.parseEther(SPLIT_AMOUNT));
     return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
@@ -89,26 +85,24 @@ describe("MainnetRouter", function () {
       marketFactory: _marketFactory,
       conditionalTokens: _conditionalTokens,
       realityProxy: _realityProxy,
-      wrappedERC20Factory: _wrappedERC20Factory,
+      wrapped1155Factory: _wrapped1155Factory,
       realitio: _realitio,
     } = await loadFixture(sDAIMarketFactoryDeployFixture);
 
     marketFactory = _marketFactory;
     conditionalTokens = _conditionalTokens;
     realityProxy = _realityProxy;
-    wrappedERC20Factory = _wrappedERC20Factory;
     realitio = _realitio;
 
     mainnetRouter = await (
       await ethers.getContractFactory("MainnetRouter")
-    ).deploy(conditionalTokens, wrappedERC20Factory);
+    ).deploy(conditionalTokens, _wrapped1155Factory);
 
     // connect all contracts to the whale
     marketFactory = marketFactory.connect(owner);
     conditionalTokens = conditionalTokens.connect(owner);
     realityProxy = realityProxy.connect(owner);
     mainnetRouter = mainnetRouter.connect(owner);
-    wrappedERC20Factory = wrappedERC20Factory.connect(owner);
     realitio = realitio.connect(owner);
     DAI = DAI.connect(owner);
     sDAI = sDAI.connect(owner);
@@ -129,16 +123,11 @@ describe("MainnetRouter", function () {
 
   describe("splitPosition", function () {
     it("splits position and send outcome tokens to user", async function () {
-      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, market } = await createMarketAndSplitPosition();
       const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
 
         expect(await token.balanceOf(owner)).to.be.closeTo(amountInSDai, DELTA);
       }
@@ -148,19 +137,14 @@ describe("MainnetRouter", function () {
   describe("mergePositions", function () {
     it("merges positions and send collateral tokens to user", async function () {
       // split first
-      const { outcomeSlotCount, conditionId } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, market } = await createMarketAndSplitPosition();
       const splitAmountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       const mergeAmountInSDai = await sDAI.convertToShares(ethers.parseEther(MERGE_AMOUNT));
 
       // allow mainnetRouter to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
 
         // approve some more for the fluctuation of exchange rate
         await token.connect(owner).approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
@@ -169,8 +153,7 @@ describe("MainnetRouter", function () {
 
       // merge positions
       await mainnetRouter.mergeToDai(
-        EMPTY_PARENT_COLLECTION_ID,
-        conditionId,
+        market,
         mergeAmountInSDai,
       );
 
@@ -182,13 +165,8 @@ describe("MainnetRouter", function () {
       );
 
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
         expect(await token.balanceOf(owner)).to.be.closeTo(splitAmountInSDai - mergeAmountInSDai, DELTA);
       }
       expect(await sDAI.balanceOf(conditionalTokens)).to.be.closeTo(splitAmountInSDai - mergeAmountInSDai, DELTA);
@@ -218,34 +196,22 @@ describe("MainnetRouter", function () {
 
       // allow mainnetRouter to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
 
         await token.connect(owner).approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
       }
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem winning position
-      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
-        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
-      ]);
+      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION]);
 
       const balanceAfterRedeem = await DAI.balanceOf(owner);
 
       expect(balanceBeforeRedeem + (await sDAI.convertToAssets(amountInSDai))).to.be.closeTo(balanceAfterRedeem, DELTA);
 
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.be.closeTo("0", DELTA);
         } else {
@@ -263,7 +229,7 @@ describe("MainnetRouter", function () {
       const REDEEMED_POSITION = 0;
 
       // split first
-      const { outcomeSlotCount, conditionId, questionsIds, market } = await createMarketAndSplitPosition();
+      const { outcomeSlotCount, questionsIds, market } = await createMarketAndSplitPosition();
       const amountInSDai = await sDAI.convertToShares(ethers.parseEther(SPLIT_AMOUNT));
       // answer the question and resolve the market
       // past opening_ts
@@ -280,35 +246,23 @@ describe("MainnetRouter", function () {
 
       // allow mainnetRouter to transfer position tokens to the contract
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
 
         await token.connect(owner).approve(mainnetRouter, ethers.parseEther(SPLIT_AMOUNT));
       }
 
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem losing position
-      await mainnetRouter.redeemToDai(EMPTY_PARENT_COLLECTION_ID, conditionId, [
-        getBitMaskDecimal([REDEEMED_POSITION], outcomeSlotCount),
-      ]);
+      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION]);
 
       const balanceAfterRedeem = await DAI.balanceOf(owner);
 
       expect(balanceBeforeRedeem).to.equal(balanceAfterRedeem);
 
       for (let i = 0; i < outcomeSlotCount; i++) {
-        const tokenId = await mainnetRouter.getTokenId(
-          sDAI,
-          EMPTY_PARENT_COLLECTION_ID,
-          conditionId,
-          getBitMaskDecimal([i], outcomeSlotCount),
-        );
-        const token = await ethers.getContractAt("Wrapped1155", await wrappedERC20Factory.tokens(tokenId));
+        const [wrapped1155] = await market.wrappedOutcome(i);
+        const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
         if (i === REDEEMED_POSITION) {
           expect(await token.balanceOf(owner)).to.be.closeTo("0", DELTA);
         } else {

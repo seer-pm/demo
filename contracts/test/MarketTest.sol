@@ -6,7 +6,7 @@ import "../src/MarketFactory.sol";
 import "../src/Market.sol";
 import "../src/RealityProxy.sol";
 import "../src/GnosisRouter.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IERC20} from "../src/Interfaces.sol";
 import "forge-std/console.sol";
 
 contract MarketFactoryTest is BaseTest {
@@ -38,7 +38,7 @@ contract MarketFactoryTest is BaseTest {
         vm.assume(splitAmount < MAX_SPLIT_AMOUNT);
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        uint256 numOutcomes = 20;
+        uint256 numOutcomes = 3;
 
         Market categoricalMarket = getCategoricalMarket(MIN_BOND, numOutcomes);
         skip(60); // skip opening timestamp
@@ -51,13 +51,14 @@ contract MarketFactoryTest is BaseTest {
         categoricalMarket.resolve();
 
         vm.startPrank(msg.sender);
-
+console.log('aaa');
         splitMergeAndRedeem(
             categoricalMarket,
             getPartition(numOutcomes + 1),
+            getOutcomesIndex(numOutcomes + 1),
             splitAmount
         );
-
+console.log('bbb');
         vm.stopPrank();
     }
 
@@ -83,6 +84,7 @@ contract MarketFactoryTest is BaseTest {
         splitMergeAndRedeem(
             multiCategoricalMarket,
             getPartition(3 + 1),
+            getOutcomesIndex(3 + 1),
             splitAmount
         );
 
@@ -108,7 +110,7 @@ contract MarketFactoryTest is BaseTest {
 
         vm.startPrank(msg.sender);
 
-        splitMergeAndRedeem(scalarMarket, getPartition(2 + 1), splitAmount);
+        splitMergeAndRedeem(scalarMarket, getPartition(2 + 1), getOutcomesIndex(2 + 1), splitAmount);
 
         vm.stopPrank();
     }
@@ -137,6 +139,7 @@ contract MarketFactoryTest is BaseTest {
         splitMergeAndRedeem(
             multiScalarMarket,
             getPartition(2 + 1),
+            getOutcomesIndex(2 + 1),
             splitAmount
         );
 

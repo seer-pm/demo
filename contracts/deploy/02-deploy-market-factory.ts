@@ -14,7 +14,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   const market = await deployments.get("Market");
   const realitioArbitrator = await deployments.get("RealitioHomeArbitrationProxy");
   const reality = await deployments.get("Reality");
-  const wrappedERC20Factory = await deployments.get("WrappedERC20Factory");
+  const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
   const collateralToken = await deployments.get("CollateralToken");
   const realityProxy = await deployments.get("RealityProxy");
@@ -25,7 +25,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
       market.address,
       realitioArbitrator.address,
       reality.address,
-      wrappedERC20Factory.address,
+      wrapped1155Factory.address,
       conditionalTokens.address,
       collateralToken.address,
       realityProxy.address,

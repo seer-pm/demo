@@ -13,6 +13,8 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address owner) external returns (uint256);
+
+    function totalSupply() external view returns (uint256);
 }
 
 // https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol
@@ -123,7 +125,7 @@ interface IConditionalTokens {
     ) external view returns (uint256);
 }
 
-interface Wrapped1155Factory {
+interface IWrapped1155Factory {
     function requireWrapped1155(
         /*IERC1155*/ address multiToken,
         uint256 tokenId,

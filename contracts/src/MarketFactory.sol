@@ -12,8 +12,7 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./Market.sol";
 import "./RealityProxy.sol";
-import "./WrappedERC20Factory.sol";
-import {IRealityETH_v3_0, IConditionalTokens} from "./Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IWrapped1155Factory} from "./Interfaces.sol";
 
 contract MarketFactory {
     using Clones for address;
@@ -51,7 +50,7 @@ contract MarketFactory {
 
     address public immutable arbitrator; // Arbitrator contract.
     IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
-    WrappedERC20Factory public immutable wrappedERC20Factory; // WrappedERC20Factory contract.
+    IWrapped1155Factory public immutable wrapped1155Factory; // Wrapped1155Factory contract.
     IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
     address public immutable collateralToken; // Conditional Tokens collateral token contract.
     RealityProxy public immutable realityProxy; // Oracle contract.
@@ -73,7 +72,7 @@ contract MarketFactory {
      *  @param _market Address of the market contract that is going to be used for each new deployment.
      *  @param _arbitrator Address of the arbitrator that is going to resolve Realitio disputes.
      *  @param _realitio Address of the Realitio implementation.
-     *  @param _wrappedERC20Factory Address of the WrappedERC20Factory implementation.
+     *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
      *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
@@ -83,7 +82,7 @@ contract MarketFactory {
         address _market,
         address _arbitrator,
         IRealityETH_v3_0 _realitio,
-        WrappedERC20Factory _wrappedERC20Factory,
+        IWrapped1155Factory _wrapped1155Factory,
         IConditionalTokens _conditionalTokens,
         address _collateralToken,
         RealityProxy _realityProxy,
@@ -92,7 +91,7 @@ contract MarketFactory {
         market = _market;
         arbitrator = _arbitrator;
         realitio = _realitio;
-        wrappedERC20Factory = _wrappedERC20Factory;
+        wrapped1155Factory = _wrapped1155Factory;
         conditionalTokens = _conditionalTokens;
         collateralToken = _collateralToken;
         realityProxy = _realityProxy;
@@ -251,13 +250,6 @@ contract MarketFactory {
             Market.RealityParams memory realityParams
         ) = getNewMarketParams(params, config);
 
-        deployERC20Positions(
-            conditionalTokensParams.parentCollectionId,
-            conditionalTokensParams.conditionId,
-            config.outcomeSlotCount,
-            params.tokenNames
-        );
-
         Market instance = Market(market.clone());
 
         instance.initialize(
@@ -331,13 +323,22 @@ contract MarketFactory {
             config.outcomeSlotCount
         );
 
+        (IERC20[] memory wrapped1155, bytes[] memory data) = deployERC20Positions(
+            parentCollectionId,
+            conditionId,
+            config.outcomeSlotCount,
+            params.tokenNames
+        );
+
         return (
             Market.ConditionalTokensParams({
                 conditionId: conditionId,
                 questionId: questionId,
                 parentCollectionId: parentCollectionId,
                 parentOutcome: params.parentOutcome,
-                parentMarket: params.parentMarket
+                parentMarket: params.parentMarket,
+                wrapped1155: wrapped1155,
+                data: data
             }),
             Market.RealityParams({
                 questionsIds: questionsIds,
@@ -484,8 +485,11 @@ contract MarketFactory {
         bytes32 conditionId,
         uint256 outcomeSlotCount,
         string[] memory tokenNames
-    ) internal {
+    ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {
         uint256 invalidResultIndex = outcomeSlotCount - 1;
+
+        wrapped1155 = new IERC20[](outcomeSlotCount);
+        data = new bytes[](outcomeSlotCount);
 
         for (uint j = 0; j < outcomeSlotCount; j++) {
             bytes32 collectionId = conditionalTokens.getCollectionId(
@@ -503,13 +507,43 @@ contract MarketFactory {
                 "Missing token name"
             );
 
-            wrappedERC20Factory.createWrappedToken(
+            bytes memory _data = abi.encodePacked(
+                toString31(j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]),
+                toString31(j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]),
+                uint8(18)
+            );
+
+            IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(
                 address(conditionalTokens),
                 tokenId,
-                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j],
-                j == invalidResultIndex ? "SEER_INVALID_RESULT" : tokenNames[j]
+                _data
             );
+
+            wrapped1155[j] = _wrapped1155;
+            data[j] = _data;
         }
+    }
+
+    /// @dev Encodes a short string (less than than 31 bytes long) as for storage as expected by Solidity.
+    /// See https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922
+    /// @param value String to encode.
+    function toString31(
+        string memory value
+    ) internal pure returns (bytes32 encodedString) {
+        uint256 length = bytes(value).length;
+        require(length < 32, "string too long");
+
+        // Read the right-padded string data, which is guaranteed to fit into a single word because its length is less than 32.
+        assembly {
+            encodedString := mload(add(value, 0x20))
+        }
+
+        // Now mask the string data, this ensures that the bytes past the string length are all 0s.
+        bytes32 mask = bytes32(type(uint256).max << ((32 - length) << 3));
+        encodedString = encodedString & mask;
+
+        // Finally, set the least significant byte to be the hex length of the encoded string, that is its byte-length times two.
+        encodedString = encodedString | bytes32(length << 1);
     }
 
     /// @dev Returns all the markets created by this factory.

@@ -17,10 +17,6 @@ export async function marketFactoryDeployFixture(
     "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory"
   );
 
-  const wrappedERC20Factory = await (
-    await ethers.getContractFactory("WrappedERC20Factory")
-  ).deploy(wrapped1155Factory);
-
   const conditionalTokens = await ethers.deployContract("ConditionalTokens");
 
   const collateralToken =
@@ -32,7 +28,7 @@ export async function marketFactoryDeployFixture(
 
   const router = await (
     await ethers.getContractFactory("Router")
-  ).deploy(conditionalTokens, wrappedERC20Factory);
+  ).deploy(conditionalTokens, wrapped1155Factory);
 
   // Deploy MarketFactory
   const marketFactory = await (
@@ -41,7 +37,7 @@ export async function marketFactoryDeployFixture(
     market,
     arbitrator,
     realitio,
-    wrappedERC20Factory,
+    wrapped1155Factory,
     conditionalTokens,
     await collateralToken.getAddress(),
     realityProxy,
@@ -55,6 +51,6 @@ export async function marketFactoryDeployFixture(
     realityProxy,
     router,
     collateralToken,
-    wrappedERC20Factory,
+    wrapped1155Factory,
   };
 }

@@ -5,7 +5,7 @@ import "../src/MarketFactory.sol";
 import "../src/Market.sol";
 import "../src/RealityProxy.sol";
 import "../src/GnosisRouter.sol";
-import {IRealityETH_v3_0, IConditionalTokens, Wrapped1155Factory, IERC20} from "../src/Interfaces.sol";
+import {IRealityETH_v3_0, IConditionalTokens, IWrapped1155Factory, IERC20} from "../src/Interfaces.sol";
 import "solmate/src/utils/LibString.sol";
 import "forge-std/console.sol";
 
@@ -45,10 +45,6 @@ contract BaseTest is Test {
 
         Market market = new Market();
 
-        WrappedERC20Factory wrappedERC20Factory = new WrappedERC20Factory(
-            Wrapped1155Factory(wrapped1155Factory)
-        );
-
         RealityProxy realityProxy = new RealityProxy(
             IConditionalTokens(conditionalTokens),
             IRealityETH_v3_0(realitio)
@@ -58,7 +54,7 @@ contract BaseTest is Test {
             address(market),
             arbitrator,
             IRealityETH_v3_0(realitio),
-            wrappedERC20Factory,
+            IWrapped1155Factory(wrapped1155Factory),
             IConditionalTokens(conditionalTokens),
             collateralToken,
             realityProxy,
@@ -67,7 +63,7 @@ contract BaseTest is Test {
 
         gnosisRouter = new GnosisRouter(
             IConditionalTokens(conditionalTokens),
-            wrappedERC20Factory
+            IWrapped1155Factory(wrapped1155Factory)
         );
     }
 
@@ -261,37 +257,14 @@ contract BaseTest is Test {
 
     function assertOutcomesBalances(
         address owner,
-        bytes32 conditionId,
-        uint256[] memory partition,
-        uint256 amount
-    ) public {
-        return
-            assertOutcomesBalances(
-                owner,
-                conditionId,
-                bytes32(0),
-                partition,
-                amount
-            );
-    }
-
-    function assertOutcomesBalances(
-        address owner,
-        bytes32 conditionId,
-        bytes32 parentCollectionId,
+        Market market,
         uint256[] memory partition,
         uint256 amount
     ) public {
         for (uint256 i = 0; i < partition.length; i++) {
+            (IERC20 wrapped1155, ) = market.wrappedOutcome(i);
             assertEq(
-                IERC20(
-                    gnosisRouter.getTokenAddress(
-                        IERC20(collateralToken),
-                        parentCollectionId,
-                        conditionId,
-                        partition[i]
-                    )
-                ).balanceOf(owner),
+                wrapped1155.balanceOf(owner),
                 amount
             );
         }
@@ -300,6 +273,7 @@ contract BaseTest is Test {
     function splitMergeAndRedeem(
         Market market,
         uint256[] memory partition,
+        uint256[] memory outcomeIndexes,
         uint256 splitAmount
     ) public {
         uint256 amountToMerge = splitAmount / uint256(3);
@@ -312,14 +286,13 @@ contract BaseTest is Test {
 
         gnosisRouter.splitPosition(
             IERC20(collateralToken),
-            bytes32(0),
-            market.conditionId(),
+            market,
             splitAmount
         );
 
         assertOutcomesBalances(
             msg.sender,
-            market.conditionId(),
+            market,
             partition,
             splitAmount
         );
@@ -327,40 +300,36 @@ contract BaseTest is Test {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            market.conditionId(),
-            market.parentCollectionId(),
+            market,
             partition
         );
 
         gnosisRouter.mergePositions(
             IERC20(collateralToken),
-            bytes32(0),
-            market.conditionId(),
+            market,
             amountToMerge
         );
 
         assertOutcomesBalances(
             msg.sender,
-            market.conditionId(),
+            market,
             partition,
             amountToRedeem
         );
 
         gnosisRouter.redeemPositions(
             IERC20(collateralToken),
-            bytes32(0),
-            market.conditionId(),
-            partition
+            market,
+            outcomeIndexes
         );
 
-        assertOutcomesBalances(msg.sender, market.conditionId(), partition, 0);
+        assertOutcomesBalances(msg.sender, market, partition, 0);
 
         // split, merge & redeem to base
         vm.deal(address(msg.sender), splitAmount);
 
         gnosisRouter.splitFromBase{value: splitAmount}(
-            bytes32(0),
-            market.conditionId()
+            market
         );
 
         // calculate xDAI => sDAI conversion rate
@@ -368,7 +337,7 @@ contract BaseTest is Test {
             .convertToShares(splitAmount);
         assertOutcomesBalances(
             msg.sender,
-            market.conditionId(),
+            market,
             partition,
             splitAmountInSDai
         );
@@ -376,14 +345,12 @@ contract BaseTest is Test {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            market.conditionId(),
-            market.parentCollectionId(),
+            market,
             partition
         );
 
         gnosisRouter.mergeToBase(
-            bytes32(0),
-            market.conditionId(),
+            market,
             amountToMerge
         );
 
@@ -392,33 +359,25 @@ contract BaseTest is Test {
 
         assertOutcomesBalances(
             msg.sender,
-            market.conditionId(),
+            market,
             partition,
             amountToRedeemInSDai
         );
 
-        gnosisRouter.redeemToBase(bytes32(0), market.conditionId(), partition);
+        gnosisRouter.redeemToBase(market, outcomeIndexes);
 
-        assertOutcomesBalances(msg.sender, market.conditionId(), partition, 0);
+        assertOutcomesBalances(msg.sender, market, partition, 0);
     }
 
     function approveWrappedTokens(
         address spender,
         uint256 amount,
-        bytes32 conditionId,
-        bytes32 parentCollectionId,
+        Market market,
         uint256[] memory partition
     ) public {
         for (uint256 i = 0; i < partition.length; i++) {
-            IERC20 token = IERC20(
-                gnosisRouter.getTokenAddress(
-                    IERC20(collateralToken),
-                    parentCollectionId,
-                    conditionId,
-                    partition[i]
-                )
-            );
-            token.approve(spender, amount);
+            (IERC20 wrapped1155, ) = market.wrappedOutcome(i);
+            wrapped1155.approve(spender, amount);
         }
     }
 
@@ -430,6 +389,16 @@ contract BaseTest is Test {
         }
 
         return partition;
+    }
+
+    function getOutcomesIndex(uint256 size) public pure returns (uint256[] memory) {
+        uint256[] memory outcomesIndex = new uint256[](size);
+
+        for (uint i = 0; i < size; i++) {
+            outcomesIndex[i] = i;
+        }
+
+        return outcomesIndex;
     }
 
     function getEncodedQuestion(

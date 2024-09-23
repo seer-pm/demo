@@ -25,20 +25,18 @@ contract MainnetRouter is Router {
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
-    /// @param _wrappedERC20Factory WrappedERC20Factory contract.
+    /// @param _wrapped1155Factory Wrapped1155Factory contract.
     constructor(
         IConditionalTokens _conditionalTokens,
-        WrappedERC20Factory _wrappedERC20Factory
-    ) Router(_conditionalTokens, _wrappedERC20Factory) {}
+        IWrapped1155Factory _wrapped1155Factory
+    ) Router(_conditionalTokens, _wrapped1155Factory) {}
 
     /// @notice Splits a position using DAI and sends the ERC20 outcome tokens back to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition to split.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to split.
     /// @param amount The amount of collateral to split.
     function splitFromDai(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
+        Market market,
         uint amount
     ) external {
         DAI.transferFrom(msg.sender, address(this), amount);
@@ -47,44 +45,38 @@ contract MainnetRouter is Router {
 
         _splitPosition(
             IERC20(address(sDAI)),
-            parentCollectionId,
-            conditionId,
+            market,
             shares
         );
     }
 
     /// @notice Merges positions and sends DAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition to merge.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to merge.
     /// @param amount The amount of outcome tokens to merge.
     function mergeToDai(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
+        Market market,
         uint amount
     ) external {
         _mergePositions(
             IERC20(address(sDAI)),
-            parentCollectionId,
-            conditionId,
+            market,
             amount
         );
         sDAI.redeem(amount, msg.sender, address(this));
     }
 
     /// @notice Redeems positions and sends DAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition used to redeem.
-    /// @param indexSets The index sets of the outcomes to redeem.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to redeem.
+    /// @param outcomeIndexes The index of the outcomes to redeem.
     function redeemToDai(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint[] calldata indexSets
+        Market market,
+        uint[] calldata outcomeIndexes
     ) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
+        _redeemPositions(sDAI, market, outcomeIndexes);
 
         uint256 finalBalance = sDAI.balanceOf(address(this));
 

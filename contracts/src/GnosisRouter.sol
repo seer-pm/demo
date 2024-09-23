@@ -21,56 +21,50 @@ contract GnosisRouter is Router {
 
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
-    /// @param _wrappedERC20Factory WrappedERC20Factory contract.
+    /// @param _wrapped1155Factory Wrapped1155Factory contract.
     constructor(
         IConditionalTokens _conditionalTokens,
-        WrappedERC20Factory _wrappedERC20Factory
-    ) Router(_conditionalTokens, _wrappedERC20Factory) {}
+        IWrapped1155Factory _wrapped1155Factory
+    ) Router(_conditionalTokens, _wrapped1155Factory) {}
 
     /// @notice Splits a position using xDAI and sends the ERC20 outcome tokens back to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition to split.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to split.
     function splitFromBase(
-        bytes32 parentCollectionId,
-        bytes32 conditionId
+        Market market
     ) external payable {
         uint256 shares = savingsXDaiAdapter.depositXDAI{value: msg.value}(
             address(this)
         );
 
-        _splitPosition(sDAI, parentCollectionId, conditionId, shares);
+        _splitPosition(sDAI, market, shares);
     }
 
     /// @notice Merges positions and sends xDAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition to merge.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to merge.
     /// @param amount The amount of outcome tokens to merge.
     function mergeToBase(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
+        Market market,
         uint amount
     ) external {
-        _mergePositions(sDAI, parentCollectionId, conditionId, amount);
+        _mergePositions(sDAI, market, amount);
 
         sDAI.approve(address(savingsXDaiAdapter), amount);
         savingsXDaiAdapter.redeemXDAI(amount, msg.sender);
     }
 
     /// @notice Redeems positions and sends xDAI to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrappedERC20Factory.
-    /// @param parentCollectionId The Conditional Tokens parent collection id.
-    /// @param conditionId The id of the condition used to redeem.
-    /// @param indexSets The index sets of the outcomes to redeem.
+    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+    /// @param market The Market to redeem.
+    /// @param outcomeIndexes The index of the outcomes to redeem.
     function redeemToBase(
-        bytes32 parentCollectionId,
-        bytes32 conditionId,
-        uint[] calldata indexSets
+        Market market,
+        uint[] calldata outcomeIndexes
     ) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(sDAI, parentCollectionId, conditionId, indexSets);
+        _redeemPositions(sDAI, market, outcomeIndexes);
 
         uint256 finalBalance = sDAI.balanceOf(address(this));
 

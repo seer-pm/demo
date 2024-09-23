@@ -27,8 +27,7 @@ contract ConditionalMarketsTest is BaseTest {
         // split shallow position
         gnosisRouter.splitPosition(
             IERC20(collateralToken),
-            bytes32(0),
-            categoricalMarket.conditionId(),
+            categoricalMarket,
             splitAmount
         );
 
@@ -36,28 +35,25 @@ contract ConditionalMarketsTest is BaseTest {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            categoricalMarket.conditionId(),
-            categoricalMarket.parentCollectionId(),
+            categoricalMarket,
             getPartition(1)
         );
         gnosisRouter.splitPosition(
             IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
+            deepScalarMarket,
             splitAmount
         );
 
         // assert split balances
         assertOutcomesBalances(
             msg.sender,
-            categoricalMarket.conditionId(),
+            categoricalMarket,
             getPartition(1),
             0
         );
         assertOutcomesBalances(
             msg.sender,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
+            deepScalarMarket,
             getPartition(numOutcomes + 1),
             splitAmount
         );
@@ -66,28 +62,25 @@ contract ConditionalMarketsTest is BaseTest {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
+            deepScalarMarket,
             getPartition(numOutcomes + 1)
         );
         gnosisRouter.mergePositions(
             IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
+            deepScalarMarket,
             splitAmount
         );
 
         // assert merge balances
         assertOutcomesBalances(
             msg.sender,
-            categoricalMarket.conditionId(),
+            categoricalMarket,
             getPartition(1),
             splitAmount
         );
         assertOutcomesBalances(
             msg.sender,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
+            deepScalarMarket,
             getPartition(numOutcomes + 1),
             0
         );
@@ -96,14 +89,12 @@ contract ConditionalMarketsTest is BaseTest {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            categoricalMarket.conditionId(),
-            categoricalMarket.parentCollectionId(),
+            categoricalMarket,
             getPartition(1)
         );
         gnosisRouter.splitPosition(
             IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
+            deepScalarMarket,
             splitAmount
         );
 
@@ -122,27 +113,24 @@ contract ConditionalMarketsTest is BaseTest {
         approveWrappedTokens(
             address(gnosisRouter),
             splitAmount,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
+            deepScalarMarket,
             getPartition(1)
         );
         gnosisRouter.redeemPositions(
             IERC20(collateralToken),
-            deepScalarMarket.parentCollectionId(),
-            deepScalarMarket.conditionId(),
-            getPartition(1)
+            deepScalarMarket,
+            getOutcomesIndex(1)
         );
 
         assertOutcomesBalances(
             msg.sender,
-            categoricalMarket.conditionId(),
+            categoricalMarket,
             getPartition(numOutcomes + 1),
             splitAmount
         );
         assertOutcomesBalances(
             msg.sender,
-            deepScalarMarket.conditionId(),
-            deepScalarMarket.parentCollectionId(),
+            deepScalarMarket,
             getPartition(1),
             0
         );

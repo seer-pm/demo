@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import {Market} from "./Market.sol";
+import {IERC20} from "./Interfaces.sol";
 
 interface IConditionalTokens {
     function getCollectionId(
@@ -24,22 +25,12 @@ interface IConditionalTokens {
     ) external view returns (uint);
 }
 
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-}
-
-interface IWrappedERC20Factory {
-    function tokens(uint256 tokenId) external view returns (IERC20 token);
-}
-
 interface IMarketFactory {
     function allMarkets() external view returns (address[] memory);
 
     function conditionalTokens() external view returns (IConditionalTokens);
 
     function realitio() external view returns (IRealityETH_v3_0);
-
-    function wrappedERC20Factory() external view returns (IWrappedERC20Factory);
 
     function collateralToken() external view returns (address);
 }
@@ -119,11 +110,9 @@ contract MarketView {
             string[] memory outcomes,
             address[] memory wrappedTokens
         ) = getOutcomesAndTokens(
-                marketFactory,
                 conditionalTokens,
                 market,
-                conditionId,
-                parentCollectionId
+                conditionId
             );
 
         (
@@ -157,11 +146,9 @@ contract MarketView {
     }
 
     function getOutcomesAndTokens(
-        IMarketFactory marketFactory,
         IConditionalTokens conditionalTokens,
         Market market,
-        bytes32 conditionId,
-        bytes32 parentCollectionId
+        bytes32 conditionId
     )
         internal
         view
@@ -180,18 +167,8 @@ contract MarketView {
                 ? "Invalid result"
                 : market.outcomes(i);
 
-            wrappedTokens[i] = address(
-                marketFactory.wrappedERC20Factory().tokens(
-                    conditionalTokens.getPositionId(
-                        marketFactory.collateralToken(),
-                        conditionalTokens.getCollectionId(
-                            parentCollectionId,
-                            conditionId,
-                            1 << i
-                        )
-                    )
-                )
-            );
+            (IERC20 wrapped1155, ) = market.wrappedOutcome(i);
+            wrappedTokens[i] = address(wrapped1155);
         }
 
         return (outcomes, wrappedTokens);
