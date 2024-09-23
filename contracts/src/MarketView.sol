@@ -52,12 +52,6 @@ interface IRealityETH_v3_0 {
     function reopened_questions(bytes32 question_id) external view returns (bytes32);
 }
 
-interface IMarketV1 {
-    function questionsIds(uint256 index) external view returns (bytes32);
-
-    function getQuestionsCount() external view returns (uint256);
-}
-
 /// @dev Contract used as a frontend helper. It doesn't have any state-changing function.
 contract MarketView {
     struct MarketInfo {
@@ -85,8 +79,6 @@ contract MarketView {
 
         IConditionalTokens conditionalTokens = marketFactory.conditionalTokens();
 
-        (bytes32 parentCollectionId, address parentMarket, uint256 parentOutcome) = getParentParams(market);
-
         (string[] memory outcomes, address[] memory wrappedTokens) =
             getOutcomesAndTokens(conditionalTokens, market, conditionId);
 
@@ -97,13 +89,13 @@ contract MarketView {
             id: address(market),
             marketName: market.marketName(),
             outcomes: outcomes,
-            parentMarket: parentMarket,
-            parentOutcome: parentOutcome,
+            parentMarket: market.parentMarket(),
+            parentOutcome: market.parentOutcome(),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
             lowerBound: market.lowerBound(),
             upperBound: market.upperBound(),
-            parentCollectionId: parentCollectionId,
+            parentCollectionId: market.parentCollectionId(),
             conditionId: conditionId,
             questionId: market.questionId(),
             templateId: market.templateId(),
@@ -147,7 +139,7 @@ contract MarketView {
             bytes32[] memory questionsIds
         )
     {
-        bytes32[] memory initialQuestionsIds = getQuestionsIds(market);
+        bytes32[] memory initialQuestionsIds = market.questionsIds();
         questions = new IRealityETH_v3_0.Question[](initialQuestionsIds.length);
         encodedQuestions = new string[](questions.length);
         questionsIds = new bytes32[](questions.length);
@@ -195,34 +187,5 @@ contract MarketView {
             }
         }
         return questionId;
-    }
-
-    /// @dev Function to maintain backward compatibility with existing markets that don't support conditional markets.
-    /// It can be removed when the old MarketFactory is no longer used.
-    function getParentParams(Market market)
-        internal
-        view
-        returns (bytes32 parentCollectionId, address parentMarket, uint256 parentOutcome)
-    {
-        try market.parentCollectionId() returns (bytes32 _parentCollectionId) {
-            return (_parentCollectionId, market.parentMarket(), market.parentOutcome());
-        } catch {
-            return (bytes32(0), address(0), 0);
-        }
-    }
-
-    /// @dev Function to maintain backward compatibility with existing markets.
-    /// It can be removed when the old MarketFactory is no longer used.
-    function getQuestionsIds(Market market) internal view returns (bytes32[] memory) {
-        try market.questionsIds() returns (bytes32[] memory questionsIds) {
-            return questionsIds;
-        } catch {
-            uint256 questionsCount = IMarketV1(address(market)).getQuestionsCount();
-            bytes32[] memory questionsIds = new bytes32[](questionsCount);
-            for (uint256 i = 0; i < questionsCount; i++) {
-                questionsIds[i] = IMarketV1(address(market)).questionsIds(i);
-            }
-            return questionsIds;
-        }
     }
 }
