@@ -34,7 +34,7 @@ contract Market {
     string public marketName; // The name of the market.
     string[] public outcomes; // The market outcomes, doesn't include the INVALID_RESULT outcome.
     uint256 public lowerBound; // Lower bound, only used for scalar markets.
-    uint256 public upperBound; // Upper bound, only user for scalar markets.
+    uint256 public upperBound; // Upper bound, only used for scalar markets.
     ConditionalTokensParams public conditionalTokensParams; // Conditional Tokens parameters.
     RealityParams public realityParams; // Reality parameters.
     RealityProxy public realityProxy; // Oracle contract.
@@ -43,7 +43,7 @@ contract Market {
     /// @param _marketName The name of the market.
     /// @param _outcomes The market outcomes, doesn't include the INVALID_RESULT outcome.
     /// @param _lowerBound Lower bound, only used for scalar markets.
-    /// @param _upperBound Upper bound, only user for scalar markets.
+    /// @param _upperBound Upper bound, only used for scalar markets.
     /// @param _conditionalTokensParams Conditional Tokens params.
     /// @param _realityParams Reality params.
     /// @param _realityProxy Oracle contract.

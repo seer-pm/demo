@@ -29,7 +29,7 @@ contract MarketFactory {
         string category; // Reality question category.
         string lang; // Reality question language.
         uint256 lowerBound; // Lower bound, only used for scalar markets.
-        uint256 upperBound; // Upper bound, only user for scalar markets.
+        uint256 upperBound; // Upper bound, only used for scalar markets.
         uint256 minBond; // Min bond to use on Reality.
         uint32 openingTime; // Reality question opening time.
         string[] tokenNames; // Name of the ERC20 tokens associated to each outcome.
