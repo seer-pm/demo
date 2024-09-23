@@ -3,7 +3,7 @@ import { Market } from "@/hooks/useMarket";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
-import { generateWinningIndexSet } from "@/lib/conditional-tokens";
+import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
@@ -20,10 +20,9 @@ interface RedeemFormProps {
   market: Market;
   chainId: number;
   router: Address;
-  conditionId: `0x${string}`;
 }
 
-export function RedeemForm({ account, market, chainId, router, conditionId }: RedeemFormProps) {
+export function RedeemForm({ account, market, chainId, router }: RedeemFormProps) {
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -31,9 +30,9 @@ export function RedeemForm({ account, market, chainId, router, conditionId }: Re
     },
   });
 
-  const { data: winningPositions = [] } = useWinningPositions(account, market, router, conditionId);
+  const { data: winningPositions = [] } = useWinningPositions(account, market, router);
 
-  const winningIndexSet = generateWinningIndexSet(winningPositions);
+  const winningOutcomeIndexes = generateWinningOutcomeIndexes(winningPositions);
 
   const redeemPositions = useRedeemPositions();
 
@@ -46,17 +45,16 @@ export function RedeemForm({ account, market, chainId, router, conditionId }: Re
     filteredWinningPositions.map((wp) => wp.balance),
   );
 
-  if (winningIndexSet.length === 0) {
+  if (winningOutcomeIndexes.length === 0) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
   }
 
   const onSubmit = async (values: RedeemFormValues) => {
     await redeemPositions.mutateAsync({
       router,
-      parentCollectionId: market.parentCollectionId,
-      conditionId,
+      market: market.id,
       collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
-      indexSets: winningIndexSet,
+      outcomeIndexes: winningOutcomeIndexes,
       isMainCollateral: !values.useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
     });

@@ -10,10 +10,9 @@ import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./
 
 interface RedeemPositionProps {
   router: Address;
-  parentCollectionId: `0x${string}`;
-  conditionId: `0x${string}`;
+  market: Address;
   collateralToken: Address;
-  indexSets: bigint[];
+  outcomeIndexes: bigint[];
   isMainCollateral: boolean;
   routerType: RouterTypes;
 }
@@ -23,27 +22,26 @@ async function redeemFromRouter(
   routerType: RouterTypes,
   router: Address,
   collateralToken: Address,
-  parentCollectionId: `0x${string}`,
-  conditionId: `0x${string}`,
-  indexSets: bigint[],
+  market: Address,
+  outcomeIndexes: bigint[],
 ) {
   if (isMainCollateral) {
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "redeemPositions",
-      args: [collateralToken, parentCollectionId, conditionId, indexSets],
+      args: [collateralToken, market, outcomeIndexes],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterRedeemToDai(config, {
-      args: [parentCollectionId, conditionId, indexSets],
+      args: [market, outcomeIndexes],
     });
   }
 
   return await writeGnosisRouterRedeemToBase(config, {
-    args: [parentCollectionId, conditionId, indexSets],
+    args: [market, outcomeIndexes],
   });
 }
 
@@ -55,9 +53,8 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
         props.routerType,
         props.router,
         props.collateralToken,
-        props.parentCollectionId,
-        props.conditionId,
-        props.indexSets,
+        props.market,
+        props.outcomeIndexes,
       ),
     {
       txSent: { title: "Redeeming tokens..." },

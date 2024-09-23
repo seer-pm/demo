@@ -17,24 +17,24 @@ const deployRouter: DeployFunction = async (
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const conditionalTokens = await deployments.get("ConditionalTokens");
-  const wrappedERC20Factory = await deployments.get("WrappedERC20Factory");
+  const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
 
   if (chainId === gnosis.id) {
     await deploy("GnosisRouter", {
       from: deployer,
-      args: [conditionalTokens.address, wrappedERC20Factory.address],
+      args: [conditionalTokens.address, wrapped1155Factory.address],
       log: true,
     });
   } else if (chainId === mainnet.id) {
     await deploy("MainnetRouter", {
       from: deployer,
-      args: [conditionalTokens.address, wrappedERC20Factory.address],
+      args: [conditionalTokens.address, wrapped1155Factory.address],
       log: true,
     });
   } else {
     await deploy("Router", {
       from: deployer,
-      args: [conditionalTokens.address, wrappedERC20Factory.address],
+      args: [conditionalTokens.address, wrapped1155Factory.address],
       log: true,
     });
   }

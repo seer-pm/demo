@@ -6,8 +6,8 @@ import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
-import { readMarketViewGetMarket } from "./contracts/generated";
-import { GetMarketQuery, getSdk } from "./queries/generated";
+import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
+import { GetMarketQuery, getSdk } from "./queries/gql-generated-seer";
 import { getOutcomes } from "./useCreateMarket";
 
 export interface Question {
@@ -101,7 +101,8 @@ export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
   const { data: graphMarket } = useGraphMarket(marketId, chainId);
-  const factory = graphMarket?.factory;
+  // @ts-ignore
+  const factory = chainId === 31337 && !graphMarket?.factory ? marketFactoryAddress[31337] : graphMarket?.factory;
 
   return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId, factory?.toLocaleLowerCase()],

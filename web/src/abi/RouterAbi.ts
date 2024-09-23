@@ -7,8 +7,8 @@ export const RouterAbi = [
         type: "address",
       },
       {
-        internalType: "contract WrappedERC20Factory",
-        name: "_wrappedERC20Factory",
+        internalType: "contract IWrapped1155Factory",
+        name: "_wrapped1155Factory",
         type: "address",
       },
     ],
@@ -21,40 +21,6 @@ export const RouterAbi = [
     outputs: [
       {
         internalType: "contract IConditionalTokens",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "contract IERC20",
-        name: "collateralToken",
-        type: "address",
-      },
-      {
-        internalType: "bytes32",
-        name: "parentCollectionId",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "conditionId",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "indexSet",
-        type: "uint256",
-      },
-    ],
-    name: "getTokenAddress",
-    outputs: [
-      {
-        internalType: "contract IERC20",
         name: "",
         type: "address",
       },
@@ -123,14 +89,9 @@ export const RouterAbi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "parentCollectionId",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "conditionId",
-        type: "bytes32",
+        internalType: "contract Market",
+        name: "market",
+        type: "address",
       },
       {
         internalType: "uint256",
@@ -229,18 +190,13 @@ export const RouterAbi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "parentCollectionId",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "conditionId",
-        type: "bytes32",
+        internalType: "contract Market",
+        name: "market",
+        type: "address",
       },
       {
         internalType: "uint256[]",
-        name: "indexSets",
+        name: "outcomeIndexes",
         type: "uint256[]",
       },
     ],
@@ -257,14 +213,9 @@ export const RouterAbi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "parentCollectionId",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "conditionId",
-        type: "bytes32",
+        internalType: "contract Market",
+        name: "market",
+        type: "address",
       },
       {
         internalType: "uint256",
@@ -298,10 +249,10 @@ export const RouterAbi = [
   },
   {
     inputs: [],
-    name: "wrappedERC20Factory",
+    name: "wrapped1155Factory",
     outputs: [
       {
-        internalType: "contract WrappedERC20Factory",
+        internalType: "contract IWrapped1155Factory",
         name: "",
         type: "address",
       },

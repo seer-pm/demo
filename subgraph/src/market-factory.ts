@@ -1,10 +1,5 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import {
-  MarketFactory,
-  NewMarket as NewMarketEvent,
-} from "../generated/MarketFactory/MarketFactory";
-import { MarketFactoryV4, NewMarket as NewMarketEventV4 } from "../generated/MarketFactoryV4/MarketFactoryV4";
-import { Reality } from "../generated/Reality/Reality";
+import { MarketFactory, NewMarket as NewMarketEvent } from "../generated/MarketFactory/MarketFactory";
 import { MarketView } from "../generated/MarketFactory/MarketView";
 import {
   Condition,
@@ -17,7 +12,7 @@ import {
 import { DEFAULT_FINALIZE_TS } from "./reality";
 import { ConditionalTokens } from "../generated/ConditionalTokens/ConditionalTokens";
 
-const MARKET_VIEW_ADDRESS = "0x0427D45906C8E1c156d8e06C1FEfC4584B916d9f";
+const MARKET_VIEW_ADDRESS = "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");
@@ -61,52 +56,6 @@ class MarketData {
 
 export function handleNewMarket(event: NewMarketEvent): void {
   const marketFactory = MarketFactory.bind(event.address);
-  const reality = Reality.bind(marketFactory.realitio());
-
-  const questions: MarketDataQuestion[] = [];
-
-  for (let i = 0; i < event.params.questionsIds.length; i++) {
-    const questionResult = reality.questions(event.params.questionsIds[i]);
-
-    questions[i] = {
-      opening_ts: questionResult.getOpening_ts(),
-      arbitrator: questionResult.getArbitrator(),
-      timeout: questionResult.getTimeout(),
-      finalize_ts: questionResult.getFinalize_ts(),
-      is_pending_arbitration: questionResult.getIs_pending_arbitration(),
-      best_answer: questionResult.getBest_answer(),
-      bond: questionResult.getBond(),
-      min_bond: questionResult.getMin_bond(),
-    };
-  }
-
-  processMarket(
-    event,
-    {
-      id: event.params.market.toHexString(),
-      marketName: event.params.marketName,
-      outcomes: event.params.outcomes,
-      lowerBound: event.params.lowerBound,
-      upperBound: event.params.upperBound,
-      parentCollectionId: Bytes.fromHexString(
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
-      ),
-      parentOutcome: BigInt.fromI32(0),
-      parentMarket: Address.zero(),
-      conditionId: event.params.conditionId,
-      questionId: event.params.questionId,
-      questionsIds: event.params.questionsIds,
-      templateId: event.params.templateId,
-      encodedQuestions: event.params.encodedQuestions,
-      questions: questions,
-    },
-    marketFactory.conditionalTokens(),
-    marketFactory.collateralToken()
-  );
-}
-
-export function handleNewMarketV4(event: NewMarketEventV4): void {
-  const marketFactory = MarketFactoryV4.bind(event.address);
   const marketView = MarketView.bind(Address.fromString(MARKET_VIEW_ADDRESS));
 
   const data = marketView.getMarket(

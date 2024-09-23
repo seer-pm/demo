@@ -1,4 +1,4 @@
-import { Market_OrderBy } from "@/hooks/queries/generated";
+import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { VerificationStatus } from "@/hooks/useVerificationStatus";

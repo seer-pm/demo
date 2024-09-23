@@ -13,7 +13,7 @@ import {
   OrderDirection,
   Pool_OrderBy,
   getSdk,
-} from "./queries/generated";
+} from "./queries/gql-generated-swapr";
 
 export interface PoolIncentive {
   reward: bigint;

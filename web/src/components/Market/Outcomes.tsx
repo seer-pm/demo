@@ -15,7 +15,7 @@ import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -325,9 +325,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </a>
                   )}
 
-                  {/*<Link to={`/create-market?shMarket=${market.id}&shOutcome=${i}`} className="text-purple-primary">
+                  <Link to={`/create-market?shMarket=${market.id}&shOutcome=${i}`} className="text-purple-primary">
                     New conditional market
-                  </Link>*/}
+                  </Link>
                 </div>
               </div>
             </div>

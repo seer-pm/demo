@@ -17,6 +17,6 @@ const deployMarket: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   });
 };
 
-deployMarket.tags = ['MarketView'];
+deployMarket.tags = ['Market'];
 
 export default deployMarket;

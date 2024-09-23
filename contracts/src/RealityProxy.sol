@@ -13,23 +13,25 @@ import {IConditionalTokens, IRealityETH_v3_0} from "./Interfaces.sol";
 import "./Market.sol";
 
 contract RealityProxy {
-    IConditionalTokens public immutable conditionalTokens; // Conditional Tokens contract.
-    IRealityETH_v3_0 public immutable realitio; // Reality.eth contract.
+    /// @dev Conditional Tokens contract.
+    IConditionalTokens public immutable conditionalTokens;
+    /// @dev Reality.eth contract.
+    IRealityETH_v3_0 public immutable realitio;
 
-    bytes32 constant INVALID_RESULT =
-        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff; // INVALID_RESULT reserved value.
+    /// @dev INVALID_RESULT reserved value.
+    bytes32 internal constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    uint256 internal constant REALITY_UINT_TEMPLATE = 1; // Template for scalar and multi scalar markets.
-    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2; // Template for categorical markets.
-    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3; // Template for multi categorical markets.
+    /// @dev Template for scalar and multi scalar markets.
+    uint256 internal constant REALITY_UINT_TEMPLATE = 1;
+    /// @dev Template for categorical markets.
+    uint256 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
+    /// @dev Template for multi categorical markets.
+    uint256 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
-    /// @dev Constructor
+    /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract address.
     /// @param _realitio Reality.eth contract address.
-    constructor(
-        IConditionalTokens _conditionalTokens,
-        IRealityETH_v3_0 _realitio
-    ) {
+    constructor(IConditionalTokens _conditionalTokens, IRealityETH_v3_0 _realitio) {
         conditionalTokens = _conditionalTokens;
         realitio = _realitio;
     }
@@ -44,9 +46,7 @@ contract RealityProxy {
         uint256 high = market.upperBound();
 
         // questionId must be a hash of all the values used to resolve a market, this way if an attacker tries to resolve a fake market by changing some value its questionId will not match the id of a valid market.
-        bytes32 questionId = keccak256(
-            abi.encode(questionsIds, numOutcomes, templateId, low, high)
-        );
+        bytes32 questionId = keccak256(abi.encode(questionsIds, numOutcomes, templateId, low, high));
 
         if (templateId == REALITY_SINGLE_SELECT_TEMPLATE) {
             resolveCategoricalMarket(questionId, questionsIds, numOutcomes);
@@ -54,11 +54,7 @@ contract RealityProxy {
         }
 
         if (templateId == REALITY_MULTI_SELECT_TEMPLATE) {
-            resolveMultiCategoricalMarket(
-                questionId,
-                questionsIds,
-                numOutcomes
-            );
+            resolveMultiCategoricalMarket(questionId, questionsIds, numOutcomes);
             return;
         }
 
@@ -79,9 +75,7 @@ contract RealityProxy {
         bytes32[] memory questionsIds,
         uint256 numOutcomes
     ) internal {
-        uint256 answer = uint256(
-            realitio.resultForOnceSettled(questionsIds[0])
-        );
+        uint256 answer = uint256(realitio.resultForOnceSettled(questionsIds[0]));
         uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         if (answer == uint256(INVALID_RESULT) || answer >= numOutcomes) {
@@ -103,9 +97,7 @@ contract RealityProxy {
         bytes32[] memory questionsIds,
         uint256 numOutcomes
     ) internal {
-        uint256 answer = uint256(
-            realitio.resultForOnceSettled(questionsIds[0])
-        );
+        uint256 answer = uint256(realitio.resultForOnceSettled(questionsIds[0]));
         uint256[] memory payouts = new uint256[](numOutcomes + 1);
 
         if (answer == uint256(INVALID_RESULT)) {
@@ -114,7 +106,7 @@ contract RealityProxy {
         } else {
             bool allZeroes = true;
 
-            for (uint i = 0; i < numOutcomes; i++) {
+            for (uint256 i = 0; i < numOutcomes; i++) {
                 payouts[i] = (answer >> i) & 1;
                 allZeroes = allZeroes && payouts[i] == 0;
             }
@@ -139,9 +131,7 @@ contract RealityProxy {
         uint256 low,
         uint256 high
     ) internal {
-        uint256 answer = uint256(
-            realitio.resultForOnceSettled(questionsIds[0])
-        );
+        uint256 answer = uint256(realitio.resultForOnceSettled(questionsIds[0]));
         uint256[] memory payouts = new uint256[](3);
 
         if (answer == uint256(INVALID_RESULT)) {
@@ -179,10 +169,8 @@ contract RealityProxy {
          */
         uint256 maxPayout = 2 ** (256 / 2) - 1;
 
-        for (uint i = 0; i < numOutcomes; i++) {
-            payouts[i] = uint256(
-                realitio.resultForOnceSettled(questionsIds[i])
-            );
+        for (uint256 i = 0; i < numOutcomes; i++) {
+            payouts[i] = uint256(realitio.resultForOnceSettled(questionsIds[i]));
 
             if (payouts[i] == uint256(INVALID_RESULT)) {
                 payouts[i] = 0;

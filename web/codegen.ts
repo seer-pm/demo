@@ -6,17 +6,30 @@ import {
   SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS,
   SWAPR_ALGEBRA_SUBGRAPH_URLS,
 } from "./src/lib/subgraph";
-const config: CodegenConfig = {
-  overwrite: true,
-  schema: [
-    SUBGRAPH_URLS[gnosis.id]!,
-    CURATE_SUBGRAPH_URLS[gnosis.id]!,
-    SWAPR_ALGEBRA_SUBGRAPH_URLS[gnosis.id]!,
-    SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS[gnosis.id]!,
-  ],
-  documents: "./src/queries/*.graphql",
-  generates: {
-    "src/hooks/queries/generated.ts": {
+
+const schemasAndDocuments = [
+  {
+    type: "seer",
+    schema: SUBGRAPH_URLS[gnosis.id]!,
+    documents: "./src/queries/markets.graphql",
+  },
+  {
+    type: "curate",
+    schema: CURATE_SUBGRAPH_URLS[gnosis.id]!,
+    documents: "./src/queries/curate.graphql",
+  },
+  {
+    type: "swapr",
+    schema: [SWAPR_ALGEBRA_SUBGRAPH_URLS[gnosis.id]!, SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS[gnosis.id]!],
+    documents: "./src/queries/swapr.graphql",
+  },
+];
+
+const generates = schemasAndDocuments.reduce(
+  (acum, curr) => {
+    acum[`src/hooks/queries/gql-generated-${curr.type}.ts`] = {
+      schema: curr.schema,
+      documents: curr.documents,
       plugins: [
         "typescript",
         // https://the-guild.dev/graphql/codegen/plugins/typescript/typescript-operations
@@ -38,8 +51,16 @@ const config: CodegenConfig = {
           Timestamp: "string",
         },
       },
-    },
+    };
+
+    return acum;
   },
+  {} as CodegenConfig["generates"],
+);
+
+const config: CodegenConfig = {
+  overwrite: true,
+  generates,
   ignoreNoDocuments: true,
 };
 

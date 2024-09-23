@@ -28,6 +28,8 @@ describe("Market", function () {
       const lowerBound = 0;
       const upperBound = 100;
       const conditionId = ethers.hexlify(ethers.randomBytes(32));
+      const wrapped1155 = [ethers.ZeroAddress, ethers.ZeroAddress];
+      const data = [ethers.hexlify(ethers.randomBytes(32)), ethers.hexlify(ethers.randomBytes(32))];
       const questionsIds = [
         ethers.hexlify(ethers.randomBytes(32)),
         ethers.hexlify(ethers.randomBytes(32)),
@@ -48,6 +50,8 @@ describe("Market", function () {
           parentOutcome: 0,
           parentMarket: ethers.ZeroAddress,
           questionId,
+          wrapped1155,
+          data,
         },
         {
           questionsIds,
@@ -84,6 +88,8 @@ describe("Market", function () {
           parentOutcome: 0,
           parentMarket: ethers.ZeroAddress,
           questionId: ethers.hexlify(ethers.randomBytes(32)),
+          wrapped1155: [ethers.ZeroAddress, ethers.ZeroAddress],
+          data: [ethers.hexlify(ethers.randomBytes(32)), ethers.hexlify(ethers.randomBytes(32))],
         },
         {
           questionsIds: [
@@ -107,6 +113,8 @@ describe("Market", function () {
             parentOutcome: 0,
             parentMarket: ethers.ZeroAddress,
             questionId: ethers.hexlify(ethers.randomBytes(32)),
+            wrapped1155: [],
+            data: [],
           },
           {
             questionsIds: [
@@ -134,6 +142,8 @@ describe("Market", function () {
           parentOutcome: 0,
           parentMarket: ethers.ZeroAddress,
           questionId: ethers.hexlify(ethers.randomBytes(32)),
+          wrapped1155: [ethers.ZeroAddress, ethers.ZeroAddress],
+          data: [ethers.hexlify(ethers.randomBytes(32)), ethers.hexlify(ethers.randomBytes(32))],
         },
         {
           questionsIds: [

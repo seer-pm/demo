@@ -9,14 +9,14 @@ export function generateBasicPartition(outcomeSlotCount: number) {
   return partition;
 }
 
-export function generateWinningIndexSet(winningPositions: Position[]) {
-  const indexSet = [];
+export function generateWinningOutcomeIndexes(winningPositions: Position[]) {
+  const outcomeIndexes = [];
   for (let i = 0; i < winningPositions.length; i++) {
     if (winningPositions[i].balance > 0n) {
-      indexSet.push(BigInt(1 << i));
+      outcomeIndexes.push(BigInt(i));
     }
   }
-  return indexSet;
+  return outcomeIndexes;
 }
 
 export function getPositionId(collateralToken: Address, collectionId: `0x${string}`) {

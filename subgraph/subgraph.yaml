@@ -9,8 +9,8 @@ dataSources:
     network: gnosis
     source:
       abi: MarketFactory
-      address: "0xA8457b25e99f44fa3Eb72Fe7B15C1C15FfF61E4b"
-      startBlock: 34736228
+      address: "0x47fc00bbFC6DCFB64f33405517E65CA9293a78FB"
+      startBlock: 36154502
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -19,78 +19,6 @@ dataSources:
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: ConditionalTokens
-          file: ./abis/ConditionalTokens.json
-      eventHandlers:
-        - event: NewMarket(indexed
-            address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
-          handler: handleNewMarket
-      file: ./src/market-factory.ts
-  - kind: ethereum
-    name: MarketFactoryV2
-    network: gnosis
-    source:
-      abi: MarketFactory
-      address: "0xa9912171C79200F9572fe0ABd209532a0712Ce33"
-      startBlock: 35273404
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: MarketFactory
-          file: ./abis/MarketFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: ConditionalTokens
-          file: ./abis/ConditionalTokens.json
-      eventHandlers:
-        - event: NewMarket(indexed
-            address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
-          handler: handleNewMarket
-      file: ./src/market-factory.ts
-  - kind: ethereum
-    name: MarketFactoryV3
-    network: gnosis
-    source:
-      abi: MarketFactory
-      address: "0xe61F8ca04D3c92313a22257706Cef7d8ed13A788"
-      startBlock: 35554760
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: MarketFactory
-          file: ./abis/MarketFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: ConditionalTokens
-          file: ./abis/ConditionalTokens.json
-      eventHandlers:
-        - event: NewMarket(indexed
-            address,string,string[],uint256,uint256,bytes32,bytes32,bytes32[],uint256,string[])
-          handler: handleNewMarket
-      file: ./src/market-factory.ts
-  - kind: ethereum
-    name: MarketFactoryV4
-    network: gnosis
-    source:
-      abi: MarketFactoryV4
-      address: "0x2Dbe07d6A22C8D7E397DF5a01888148857582467"
-      startBlock: 36031659
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: MarketFactoryV4
-          file: ./abis/MarketFactoryV4.json
         - name: Reality
           file: ./abis/Realitiy.json
         - name: MarketView
@@ -99,7 +27,7 @@ dataSources:
           file: ./abis/ConditionalTokens.json
       eventHandlers:
         - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
-          handler: handleNewMarketV4
+          handler: handleNewMarket
       file: ./src/market-factory.ts
   - kind: ethereum
     name: Reality
@@ -107,7 +35,7 @@ dataSources:
     source:
       abi: Reality
       address: "0xE78996A233895bE74a66F451f1019cA9734205cc"
-      startBlock: 34736228
+      startBlock: 36154502
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -135,7 +63,7 @@ dataSources:
     source:
       abi: ConditionalTokens
       address: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce"
-      startBlock: 34736228
+      startBlock: 36154502
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
