@@ -1,16 +1,24 @@
 [
   {
     "inputs": [
-      { "internalType": "address", "name": "_market", "type": "address" },
-      { "internalType": "address", "name": "_arbitrator", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "_market",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_arbitrator",
+        "type": "address"
+      },
       {
         "internalType": "contract IRealityETH_v3_0",
         "name": "_realitio",
         "type": "address"
       },
       {
-        "internalType": "contract WrappedERC20Factory",
-        "name": "_wrappedERC20Factory",
+        "internalType": "contract IWrapped1155Factory",
+        "name": "_wrapped1155Factory",
         "type": "address"
       },
       {
@@ -28,12 +36,20 @@
         "name": "_realityProxy",
         "type": "address"
       },
-      { "internalType": "address", "name": "_governor", "type": "address" }
+      {
+        "internalType": "uint32",
+        "name": "_questionTimeout",
+        "type": "uint32"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
-  { "inputs": [], "name": "ERC1167FailedCreateClone", "type": "error" },
+  {
+    "inputs": [],
+    "name": "ERC1167FailedCreateClone",
+    "type": "error"
+  },
   {
     "anonymous": false,
     "inputs": [
@@ -51,21 +67,9 @@
       },
       {
         "indexed": false,
-        "internalType": "string[]",
-        "name": "outcomes",
-        "type": "string[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "lowerBound",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "upperBound",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "parentMarket",
+        "type": "address"
       },
       {
         "indexed": false,
@@ -84,18 +88,6 @@
         "internalType": "bytes32[]",
         "name": "questionsIds",
         "type": "bytes32[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "templateId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string[]",
-        "name": "encodedQuestions",
-        "type": "string[]"
       }
     ],
     "name": "NewMarket",
@@ -103,16 +95,13 @@
   },
   {
     "inputs": [],
-    "name": "QUESTION_TIMEOUT",
-    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "allMarkets",
     "outputs": [
-      { "internalType": "address[]", "name": "", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -120,32 +109,26 @@
   {
     "inputs": [],
     "name": "arbitrator",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "_governor", "type": "address" }
-    ],
-    "name": "changeGovernor",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "_market", "type": "address" }
-    ],
-    "name": "changeMarket",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "collateralToken",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -166,16 +149,50 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "string", "name": "marketName", "type": "string" },
           {
-            "internalType": "string[]",
-            "name": "encodedQuestions",
-            "type": "string[]"
+            "internalType": "string",
+            "name": "marketName",
+            "type": "string"
           },
           {
             "internalType": "string[]",
             "name": "outcomes",
             "type": "string[]"
+          },
+          {
+            "internalType": "string",
+            "name": "questionStart",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "questionEnd",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "outcomeType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "parentOutcome",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "parentMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "lang",
+            "type": "string"
           },
           {
             "internalType": "uint256",
@@ -187,8 +204,16 @@
             "name": "upperBound",
             "type": "uint256"
           },
-          { "internalType": "uint256", "name": "minBond", "type": "uint256" },
-          { "internalType": "uint32", "name": "openingTime", "type": "uint32" },
+          {
+            "internalType": "uint256",
+            "name": "minBond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "openingTime",
+            "type": "uint32"
+          },
           {
             "internalType": "string[]",
             "name": "tokenNames",
@@ -201,7 +226,13 @@
       }
     ],
     "name": "createCategoricalMarket",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -209,16 +240,50 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "string", "name": "marketName", "type": "string" },
           {
-            "internalType": "string[]",
-            "name": "encodedQuestions",
-            "type": "string[]"
+            "internalType": "string",
+            "name": "marketName",
+            "type": "string"
           },
           {
             "internalType": "string[]",
             "name": "outcomes",
             "type": "string[]"
+          },
+          {
+            "internalType": "string",
+            "name": "questionStart",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "questionEnd",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "outcomeType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "parentOutcome",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "parentMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "lang",
+            "type": "string"
           },
           {
             "internalType": "uint256",
@@ -230,8 +295,107 @@
             "name": "upperBound",
             "type": "uint256"
           },
-          { "internalType": "uint256", "name": "minBond", "type": "uint256" },
-          { "internalType": "uint32", "name": "openingTime", "type": "uint32" },
+          {
+            "internalType": "uint256",
+            "name": "minBond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "openingTime",
+            "type": "uint32"
+          },
+          {
+            "internalType": "string[]",
+            "name": "tokenNames",
+            "type": "string[]"
+          }
+        ],
+        "internalType": "struct MarketFactory.CreateMarketParams",
+        "name": "params",
+        "type": "tuple"
+      }
+    ],
+    "name": "createMultiCategoricalMarket",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "marketName",
+            "type": "string"
+          },
+          {
+            "internalType": "string[]",
+            "name": "outcomes",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string",
+            "name": "questionStart",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "questionEnd",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "outcomeType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "parentOutcome",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "parentMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "lang",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lowerBound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "upperBound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minBond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "openingTime",
+            "type": "uint32"
+          },
           {
             "internalType": "string[]",
             "name": "tokenNames",
@@ -244,7 +408,13 @@
       }
     ],
     "name": "createMultiScalarMarket",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -252,16 +422,50 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "string", "name": "marketName", "type": "string" },
           {
-            "internalType": "string[]",
-            "name": "encodedQuestions",
-            "type": "string[]"
+            "internalType": "string",
+            "name": "marketName",
+            "type": "string"
           },
           {
             "internalType": "string[]",
             "name": "outcomes",
             "type": "string[]"
+          },
+          {
+            "internalType": "string",
+            "name": "questionStart",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "questionEnd",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "outcomeType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "parentOutcome",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "parentMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "lang",
+            "type": "string"
           },
           {
             "internalType": "uint256",
@@ -273,8 +477,16 @@
             "name": "upperBound",
             "type": "uint256"
           },
-          { "internalType": "uint256", "name": "minBond", "type": "uint256" },
-          { "internalType": "uint32", "name": "openingTime", "type": "uint32" },
+          {
+            "internalType": "uint256",
+            "name": "minBond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "openingTime",
+            "type": "uint32"
+          },
           {
             "internalType": "string[]",
             "name": "tokenNames",
@@ -287,35 +499,71 @@
       }
     ],
     "name": "createScalarMarket",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "governor",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "market",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "marketCount",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "name": "markets",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "questionTimeout",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -336,17 +584,21 @@
     "inputs": [],
     "name": "realityProxy",
     "outputs": [
-      { "internalType": "contract RealityProxy", "name": "", "type": "address" }
+      {
+        "internalType": "contract RealityProxy",
+        "name": "",
+        "type": "address"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "wrappedERC20Factory",
+    "name": "wrapped1155Factory",
     "outputs": [
       {
-        "internalType": "contract WrappedERC20Factory",
+        "internalType": "contract IWrapped1155Factory",
         "name": "",
         "type": "address"
       }
