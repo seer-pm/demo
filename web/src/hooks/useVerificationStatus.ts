@@ -4,7 +4,7 @@ import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
-import { getSdk } from "./queries/generated";
+import { getSdk } from "./queries/gql-generated-curate";
 import { getMarketImages } from "./useMarketImages";
 
 export type VerificationStatus = "verified" | "verifying" | "not_verified";

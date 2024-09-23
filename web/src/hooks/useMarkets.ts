@@ -11,7 +11,7 @@ import {
   marketViewAddress,
   readMarketViewGetMarkets,
 } from "./contracts/generated";
-import { GetMarketsQuery, Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/generated";
+import { GetMarketsQuery, Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/gql-generated-seer";
 import useDefaultSortMarket from "./useDefaultSortMarket";
 import { useGlobalState } from "./useGlobalState";
 import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";

@@ -9,7 +9,7 @@ import {
   OrderDirection,
   PoolHourData_OrderBy,
   getSdk,
-} from "./queries/generated";
+} from "./queries/gql-generated-swapr";
 
 async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain, startTime: number) {
   if (tokens.length === 0) {

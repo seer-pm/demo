@@ -7,7 +7,7 @@ import memoize from "micro-memoize";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
-import { Status, getSdk } from "./queries/generated";
+import { Status, getSdk } from "./queries/gql-generated-curate";
 
 export const getMarketImages = memoize((chainId: SupportedChain) => {
   return batshit.create({
