@@ -11,7 +11,6 @@ Smart contracts for Seer
     ├── scripts: utilities
     ├── src
     │   ├── interaction: third party smart contracts used by Seer
-    │   ├── mocks: hardhat tests mocks
     │   └── token: Seer ERC20 token
     ├── test: hardhat & foundy tests
 ```
