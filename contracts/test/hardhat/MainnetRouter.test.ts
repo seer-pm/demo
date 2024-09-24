@@ -1,29 +1,28 @@
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import {
   ConditionalTokens,
+  IERC20,
+  ISavingsDaiTest,
   MainnetRouter,
   MarketFactory,
   RealityETH_v3_0,
   RealityProxy,
-  IERC20,
-  ISavingsDai,
 } from "../../typechain-types";
 import {
-  MainnetAddress,
-  MIN_BOND,
-  OPENING_TS,
-  SPLIT_AMOUNT,
-  QUESTION_TIMEOUT,
   categoricalMarketParams,
   DELTA,
   ETH_BALANCE,
+  MainnetAddress,
   MERGE_AMOUNT,
+  MIN_BOND,
+  OPENING_TS,
+  QUESTION_TIMEOUT,
+  SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
-import { getBitMaskDecimal } from "./helpers/utils";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("MainnetRouter", function () {
   let marketFactory: MarketFactory;
@@ -32,7 +31,7 @@ describe("MainnetRouter", function () {
   let mainnetRouter: MainnetRouter;
   let realitio: RealityETH_v3_0;
   let DAI: IERC20;
-  let sDAI: ISavingsDai;
+  let sDAI: ISavingsDaiTest;
   let owner: HardhatEthersSigner;
 
   async function createMarketAndSplitPosition() {
@@ -79,7 +78,7 @@ describe("MainnetRouter", function () {
       "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
       MainnetAddress.DAI,
     )) as unknown as IERC20;
-    sDAI = await ethers.getContractAt("test/hardhat/mocks/ISavingsDai.sol:ISavingsDai", MainnetAddress.S_DAI);
+    sDAI = await ethers.getContractAt("ISavingsDaiTest", MainnetAddress.S_DAI);
     const sDAIMarketFactoryDeployFixture = async () => marketFactoryDeployFixture(sDAI);
     const {
       marketFactory: _marketFactory,
@@ -152,10 +151,7 @@ describe("MainnetRouter", function () {
       const balanceBeforeMerge = await DAI.balanceOf(owner);
 
       // merge positions
-      await mainnetRouter.mergeToDai(
-        market,
-        mergeAmountInSDai,
-      );
+      await mainnetRouter.mergeToDai(market, mergeAmountInSDai);
 
       const balanceAfterMerge = await DAI.balanceOf(owner);
 

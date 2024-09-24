@@ -10,16 +10,15 @@ import {
   RealityProxy,
 } from "../../typechain-types";
 import {
+  categoricalMarketParams,
   GnosisAddress,
+  MERGE_AMOUNT,
   MIN_BOND,
   OPENING_TS,
-  SPLIT_AMOUNT,
   QUESTION_TIMEOUT,
-  categoricalMarketParams,
-  MERGE_AMOUNT,
+  SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
-import { getBitMaskDecimal } from "./helpers/utils";
 
 describe("GnosisRouter", function () {
   let marketFactory: MarketFactory;

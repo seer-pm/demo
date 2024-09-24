@@ -2,7 +2,7 @@
 pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface ISavingsDai is IERC20 {
+interface ISavingsDaiTest is IERC20 {
     function redeem(
         uint256 shares,
         address receiver,
