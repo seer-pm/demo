@@ -244,7 +244,9 @@ contract BaseTest is Test {
 
         assertOutcomesBalances(msg.sender, market, partition, amountToRedeem);
 
-        gnosisRouter.redeemPositions(IERC20(collateralToken), market, outcomeIndexes);
+        gnosisRouter.redeemPositions(
+            IERC20(collateralToken), market, outcomeIndexes, getRedeemAmounts(outcomeIndexes.length, amountToRedeem)
+        );
 
         assertOutcomesBalances(msg.sender, market, partition, 0);
 
@@ -266,7 +268,7 @@ contract BaseTest is Test {
 
         assertOutcomesBalances(msg.sender, market, partition, amountToRedeemInSDai);
 
-        gnosisRouter.redeemToBase(market, outcomeIndexes);
+        gnosisRouter.redeemToBase(market, outcomeIndexes, getRedeemAmounts(outcomeIndexes.length, amountToRedeemInSDai));
 
         assertOutcomesBalances(msg.sender, market, partition, 0);
     }
@@ -296,6 +298,16 @@ contract BaseTest is Test {
         }
 
         return outcomesIndex;
+    }
+
+    function getRedeemAmounts(uint256 size, uint256 amount) public pure returns (uint256[] memory) {
+        uint256[] memory amounts = new uint256[](size);
+
+        for (uint256 i = 0; i < size; i++) {
+            amounts[i] = amount;
+        }
+
+        return amounts;
     }
 
     function getEncodedQuestion(Vm.Log[] memory entries, uint256 index) public pure returns (string memory) {

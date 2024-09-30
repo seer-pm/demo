@@ -49,10 +49,11 @@ contract MainnetRouter is Router {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function redeemToDai(Market market, uint256[] calldata outcomeIndexes) external {
+    /// @param amounts Amount to redeem of each outcome.
+    function redeemToDai(Market market, uint256[] calldata outcomeIndexes, uint256[] calldata amounts) external {
         uint256 initialBalance = sDAI.balanceOf(address(this));
 
-        _redeemPositions(sDAI, market, outcomeIndexes);
+        _redeemPositions(sDAI, market, outcomeIndexes, amounts);
 
         uint256 finalBalance = sDAI.balanceOf(address(this));
 

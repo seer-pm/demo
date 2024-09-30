@@ -13,6 +13,7 @@ interface RedeemPositionProps {
   market: Address;
   collateralToken: Address;
   outcomeIndexes: bigint[];
+  amounts: bigint[];
   isMainCollateral: boolean;
   routerType: RouterTypes;
 }
@@ -24,24 +25,25 @@ async function redeemFromRouter(
   collateralToken: Address,
   market: Address,
   outcomeIndexes: bigint[],
+  amounts: bigint[],
 ) {
   if (isMainCollateral) {
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "redeemPositions",
-      args: [collateralToken, market, outcomeIndexes],
+      args: [collateralToken, market, outcomeIndexes, amounts],
     });
   }
 
   if (routerType === "mainnet") {
     return await writeMainnetRouterRedeemToDai(config, {
-      args: [market, outcomeIndexes],
+      args: [market, outcomeIndexes, amounts],
     });
   }
 
   return await writeGnosisRouterRedeemToBase(config, {
-    args: [market, outcomeIndexes],
+    args: [market, outcomeIndexes, amounts],
   });
 }
 
@@ -55,6 +57,7 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
         props.collateralToken,
         props.market,
         props.outcomeIndexes,
+        props.amounts,
       ),
     {
       txSent: { title: "Redeeming tokens..." },

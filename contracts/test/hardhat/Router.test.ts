@@ -21,7 +21,7 @@ import {
   CONDITIONAL_SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
-import { getBitMaskDecimal } from "./helpers/utils";
+import { getBitMaskDecimal, getRedeemAmounts } from "./helpers/utils";
 
 describe("Router", function () {
   let marketFactory: MarketFactory;
@@ -209,7 +209,7 @@ describe("Router", function () {
       }
 
       // redeem winning position
-      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION]);
+      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, ethers.parseEther(SPLIT_AMOUNT)));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const [wrapped1155] = await market.wrappedOutcome(i);
@@ -260,7 +260,7 @@ describe("Router", function () {
       }
 
       // redeem losing position
-      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION]);
+      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, ethers.parseEther(SPLIT_AMOUNT)));
 
       for (let i = 0; i < outcomeSlotCount; i++) {
         const [wrapped1155] = await market.wrappedOutcome(i);
@@ -455,7 +455,7 @@ describe("Router", function () {
         await token.approve(router, ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT));
       }
       // redeem winning position
-      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION]);
+      await router.redeemPositions(collateralToken, market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, ethers.parseEther(CONDITIONAL_SPLIT_AMOUNT)));
       for (let i = 0; i < outcomeSlotCount; i++) {
         const [wrapped1155] = await market.wrappedOutcome(i);
         const token = await ethers.getContractAt("Wrapped1155", wrapped1155);

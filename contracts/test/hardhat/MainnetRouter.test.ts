@@ -23,6 +23,7 @@ import {
   SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
+import { getRedeemAmounts } from "./helpers/utils";
 
 describe("MainnetRouter", function () {
   let marketFactory: MarketFactory;
@@ -199,7 +200,7 @@ describe("MainnetRouter", function () {
       }
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem winning position
-      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION]);
+      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, amountInSDai));
 
       const balanceAfterRedeem = await DAI.balanceOf(owner);
 
@@ -250,7 +251,7 @@ describe("MainnetRouter", function () {
 
       const balanceBeforeRedeem = await DAI.balanceOf(owner);
       // redeem losing position
-      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION]);
+      await mainnetRouter.redeemToDai(market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, amountInSDai));
 
       const balanceAfterRedeem = await DAI.balanceOf(owner);
 
