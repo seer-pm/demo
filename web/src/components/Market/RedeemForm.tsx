@@ -38,11 +38,13 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
 
   const filteredWinningPositions = winningPositions.filter((wp) => wp.balance > 0n);
 
+  const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
+
   const { data: missingApprovals } = useMissingApprovals(
     filteredWinningPositions.map((wp) => wp.tokenId),
     account,
     router,
-    filteredWinningPositions.map((wp) => wp.balance),
+    redeemAmounts,
   );
 
   if (winningOutcomeIndexes.length === 0) {
@@ -55,6 +57,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
       market: market.id,
       collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
       outcomeIndexes: winningOutcomeIndexes,
+      amounts: redeemAmounts,
       isMainCollateral: !values.useAltCollateral,
       routerType: CHAIN_ROUTERS[chainId!],
     });

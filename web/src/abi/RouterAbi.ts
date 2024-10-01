@@ -199,6 +199,11 @@ export const RouterAbi = [
         name: "outcomeIndexes",
         type: "uint256[]",
       },
+      {
+        internalType: "uint256[]",
+        name: "amounts",
+        type: "uint256[]",
+      },
     ],
     name: "redeemPositions",
     outputs: [],

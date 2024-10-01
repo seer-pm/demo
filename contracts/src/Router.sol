@@ -140,7 +140,13 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function redeemPositions(IERC20 collateralToken, Market market, uint256[] calldata outcomeIndexes) public {
+    /// @param amounts Amount to redeem of each outcome.
+    function redeemPositions(
+        IERC20 collateralToken,
+        Market market,
+        uint256[] calldata outcomeIndexes,
+        uint256[] calldata amounts
+    ) public {
         bytes32 parentCollectionId = market.parentCollectionId();
         uint256 initialBalance;
 
@@ -148,7 +154,7 @@ contract Router is ERC1155Holder {
             initialBalance = collateralToken.balanceOf(address(this));
         }
 
-        _redeemPositions(collateralToken, market, outcomeIndexes);
+        _redeemPositions(collateralToken, market, outcomeIndexes, amounts);
 
         if (parentCollectionId == bytes32(0)) {
             uint256 finalBalance = collateralToken.balanceOf(address(this));
@@ -164,7 +170,13 @@ contract Router is ERC1155Holder {
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param market The Market to redeem.
     /// @param outcomeIndexes The index of the outcomes to redeem.
-    function _redeemPositions(IERC20 collateralToken, Market market, uint256[] calldata outcomeIndexes) internal {
+    /// @param amounts Amount to redeem of each outcome.
+    function _redeemPositions(
+        IERC20 collateralToken,
+        Market market,
+        uint256[] calldata outcomeIndexes,
+        uint256[] calldata amounts
+    ) internal {
         bytes32 parentCollectionId = market.parentCollectionId();
         bytes32 conditionId = market.conditionId();
         uint256 tokenId = 0;
@@ -177,11 +189,10 @@ contract Router is ERC1155Holder {
 
             // first we need to unwrap the outcome tokens that will be redeemed.
             (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(outcomeIndexes[j]);
-            uint256 amount = wrapped1155.balanceOf(msg.sender);
 
-            wrapped1155.transferFrom(msg.sender, address(this), amount);
+            wrapped1155.transferFrom(msg.sender, address(this), amounts[j]);
 
-            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amount, address(this), data);
+            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amounts[j], address(this), data);
         }
 
         uint256 initialBalance = 0;

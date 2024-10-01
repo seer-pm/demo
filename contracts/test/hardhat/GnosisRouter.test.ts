@@ -19,6 +19,7 @@ import {
   SPLIT_AMOUNT,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
+import { getRedeemAmounts } from "./helpers/utils";
 
 describe("GnosisRouter", function () {
   let marketFactory: MarketFactory;
@@ -173,7 +174,7 @@ describe("GnosisRouter", function () {
       }
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem winning position
-      const trx = await gnosisRouter.redeemToBase(market, [REDEEMED_POSITION]);
+      const trx = await gnosisRouter.redeemToBase(market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, amountInSDai));
 
       const receipt = await trx.wait(1);
       const { gasPrice = 0n, gasUsed = 0n } = receipt ?? {};
@@ -231,7 +232,7 @@ describe("GnosisRouter", function () {
 
       const balanceBeforeRedeem = await ethers.provider.getBalance(owner);
       // redeem losing position
-      const trx = await gnosisRouter.redeemToBase(market, [REDEEMED_POSITION]);
+      const trx = await gnosisRouter.redeemToBase(market, [REDEEMED_POSITION], getRedeemAmounts(outcomeSlotCount, amountInSDai));
 
       const receipt = await trx.wait(1);
       const { gasPrice = 0n, gasUsed = 0n } = receipt ?? {};

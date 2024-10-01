@@ -80,3 +80,13 @@ export function getQuestionId(questionsIds: string[], outcomeSlotCount: number, 
     )
   );
 }
+
+export function getRedeemAmounts(size: number, amount: bigint): bigint[] {
+  const amounts =[];
+
+  for (let i = 0; i < size; i++) {
+      amounts[i] = amount;
+  }
+
+  return amounts;
+}

@@ -231,6 +231,11 @@
             "internalType": "uint256[]",
             "name": "outcomeIndexes",
             "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "amounts",
+            "type": "uint256[]"
           }
         ],
         "name": "redeemPositions",
@@ -248,6 +253,11 @@
           {
             "internalType": "uint256[]",
             "name": "outcomeIndexes",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "amounts",
             "type": "uint256[]"
           }
         ],

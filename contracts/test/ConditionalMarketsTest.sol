@@ -55,7 +55,9 @@ contract ConditionalMarketsTest is BaseTest {
 
         // redeem
         approveWrappedTokens(address(gnosisRouter), splitAmount, deepScalarMarket, getPartition(1));
-        gnosisRouter.redeemPositions(IERC20(collateralToken), deepScalarMarket, getOutcomesIndex(1));
+        gnosisRouter.redeemPositions(
+            IERC20(collateralToken), deepScalarMarket, getOutcomesIndex(1), getRedeemAmounts(1, splitAmount)
+        );
 
         assertOutcomesBalances(msg.sender, categoricalMarket, getPartition(numOutcomes + 1), splitAmount);
         assertOutcomesBalances(msg.sender, deepScalarMarket, getPartition(1), 0);
