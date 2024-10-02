@@ -8,7 +8,7 @@ export { mainnet, gnosis, hardhat };
 
 export const SUPPORTED_CHAINS = {
   [gnosis.id]: gnosis,
-  [mainnet.id]: mainnet, // we need to have mainnet enabled to submit arbitration requests
+  [mainnet.id]: mainnet,
   //[sepolia.id]: sepolia,
   ...((import.meta.env.VITE_ADD_HARDHAT_NETWORK === "1" ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<
     number,

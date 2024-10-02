@@ -1,5 +1,6 @@
 import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
+import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, parseFraction } from "@/lib/utils";
@@ -13,6 +14,7 @@ import {
   TokenAmount,
   Trade,
   TradeType,
+  UniswapTrade,
   WXDAI,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -28,7 +30,24 @@ export interface QuoteTradeResult {
   sellToken: Address;
   sellAmount: string;
   swapType: "buy" | "sell";
-  trade: CoWTrade | SwaprV3Trade;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+}
+
+function getUniswapTrade(
+  _currencyIn: SwaprToken,
+  currencyOut: SwaprToken,
+  currencyAmountIn: TokenAmount,
+  maximumSlippage: Percent,
+  account: Address | undefined,
+  _chainId: number,
+): Promise<UniswapTrade | null> {
+  return UniswapTrade.getQuote({
+    amount: currencyAmountIn,
+    quoteCurrency: currencyOut,
+    maximumSlippage,
+    recipient: account || zeroAddress,
+    tradeType: TradeType.EXACT_INPUT,
+  });
 }
 
 function getSwaprTrade(
@@ -107,6 +126,40 @@ type QuoteTradeFn = (
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) => Promise<QuoteTradeResult>;
+
+export const getUniswapQuote: QuoteTradeFn = async (
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) => {
+  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+
+  const trade = await getUniswapTrade(
+    args.currencyIn,
+    args.currencyOut,
+    args.currencyAmountIn,
+    args.maximumSlippage,
+    account,
+    chainId,
+  );
+
+  if (!trade) {
+    throw new Error("No route found");
+  }
+
+  return {
+    value: BigInt(trade.outputAmount.raw.toString()),
+    decimals: args.sellToken.decimals,
+    trade,
+    buyToken: args.buyToken.address,
+    sellToken: args.sellToken.address,
+    sellAmount: args.sellAmount.toString(),
+    swapType,
+  };
+};
 
 export const getSwaprQuote: QuoteTradeFn = async (
   chainId: number,
@@ -275,11 +328,15 @@ async function tradeTokens({
   trade,
   account,
 }: {
-  trade: CoWTrade | SwaprV3Trade;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
   account: Address;
 }): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
+  }
+
+  if (trade instanceof UniswapTrade) {
+    return executeUniswapTrade(trade, account);
   }
 
   return executeSwaprTrade(trade, account);

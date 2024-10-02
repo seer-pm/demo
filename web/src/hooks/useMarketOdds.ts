@@ -2,7 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
-import { getCowQuote, getSwaprQuote } from "./trade";
+import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
@@ -21,10 +21,15 @@ export async function getTokenPrice(
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
-  const [swaprQuote, cowQuote] = await Promise.allSettled([
+  const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
+    getUniswapQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
     getSwaprQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
     getCowQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
   ]);
+
+  if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
+    return uniswapQuote.value.value;
+  }
 
   if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
     return cowQuote.value.value;

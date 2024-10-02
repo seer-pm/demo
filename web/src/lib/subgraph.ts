@@ -1,5 +1,5 @@
 import { GraphQLClient } from "graphql-request";
-import { SupportedChain, gnosis } from "./chains";
+import { SupportedChain, gnosis, mainnet } from "./chains";
 
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]:
@@ -18,6 +18,10 @@ export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain,
   [gnosis.id]:
     "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT",
 };
+export const UNISWAP_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
+  [mainnet.id]:
+    "https://gateway.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+};
 
 export function graphQLClient(chainId: SupportedChain) {
   const subgraphUrl = SUBGRAPH_URLS[chainId];
@@ -31,6 +35,16 @@ export function graphQLClient(chainId: SupportedChain) {
 
 export function curateGraphQLClient(chainId: SupportedChain) {
   const subgraphUrl = CURATE_SUBGRAPH_URLS[chainId];
+
+  if (!subgraphUrl) {
+    return;
+  }
+
+  return new GraphQLClient(subgraphUrl);
+}
+
+export function uniswapGraphQLClient(chainId: SupportedChain) {
+  const subgraphUrl = UNISWAP_SUBGRAPH_URLS[chainId];
 
   if (!subgraphUrl) {
     return;
