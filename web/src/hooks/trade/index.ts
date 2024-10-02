@@ -1,13 +1,12 @@
 import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN, parseFraction } from "@/lib/utils";
+import { displayBalance, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
-  Currency,
-  CurrencyAmount,
   Percent,
   SwaprV3Trade,
   Token as SwaprToken,
@@ -15,13 +14,13 @@ import {
   Trade,
   TradeType,
   UniswapTrade,
-  WXDAI,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
-import { gnosis } from "viem/chains";
+import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
+import { convertToSDAI } from "./handleSDAI";
 
 export interface QuoteTradeResult {
   value: bigint;
@@ -51,64 +50,13 @@ function getUniswapTrade(
 }
 
 function getSwaprTrade(
-  currencyIn: SwaprToken,
+  _currencyIn: SwaprToken,
   currencyOut: SwaprToken,
   currencyAmountIn: TokenAmount,
   maximumSlippage: Percent,
   account: Address | undefined,
-  chainId: number,
+  _chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  if (
-    chainId === gnosis.id &&
-    (currencyIn.address === WXDAI[chainId].address || currencyOut.address === WXDAI[chainId].address)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const path: Currency[] = [currencyIn, SDAI, currencyOut];
-
-    return SwaprV3Trade.getQuoteWithPath({
-      amount: currencyAmountIn,
-      path,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    });
-  }
-  if (
-    chainId === gnosis.id &&
-    (currencyIn.address.toLowerCase() === NATIVE_TOKEN || currencyOut.address.toLowerCase() === NATIVE_TOKEN)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const pathBuy: Currency[] = [WXDAI[chainId], SDAI, currencyOut];
-    const pathSell: Currency[] = [currencyIn, SDAI, WXDAI[chainId]];
-
-    return SwaprV3Trade.getQuoteWithPath({
-      amount:
-        currencyIn.address.toLowerCase() === NATIVE_TOKEN
-          ? CurrencyAmount.nativeCurrency(BigInt(currencyAmountIn.raw.toString()), chainId)
-          : currencyAmountIn,
-      path: currencyIn.address.toLowerCase() === NATIVE_TOKEN ? pathBuy : pathSell,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    }).then((trade) => {
-      if (trade && currencyOut.address.toLowerCase() === NATIVE_TOKEN) {
-        // change outputAmount to XDAI instead of WXDAI
-        return new SwaprV3Trade({
-          maximumSlippage: trade.maximumSlippage,
-          inputAmount: trade.inputAmount,
-          outputAmount: CurrencyAmount.nativeCurrency(BigInt(trade.outputAmount.raw.toString()), chainId),
-          tradeType: TradeType.EXACT_INPUT,
-          chainId,
-          priceImpact: trade.priceImpact,
-          fee: trade.fee,
-        });
-      }
-      return trade;
-    });
-  }
-
   return SwaprV3Trade.getQuote({
     amount: currencyAmountIn,
     quoteCurrency: currencyOut,
@@ -135,7 +83,7 @@ export const getUniswapQuote: QuoteTradeFn = async (
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) => {
-  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
   const trade = await getUniswapTrade(
     args.currencyIn,
@@ -169,7 +117,7 @@ export const getSwaprQuote: QuoteTradeFn = async (
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) => {
-  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
   const trade = await getSwaprTrade(
     args.currencyIn,
@@ -203,7 +151,7 @@ export const getCowQuote: QuoteTradeFn = async (
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) => {
-  const args = getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
   const trade = await CoWTrade.bestTradeExactIn({
     currencyAmountIn: args.currencyAmountIn,
@@ -228,13 +176,33 @@ export const getCowQuote: QuoteTradeFn = async (
   };
 };
 
-function getTradeArgs(
+async function convertCollateralToShares(
   chainId: number,
   amount: string,
-  outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) {
+  const sDAI = COLLATERAL_TOKENS[chainId].primary;
+  if (swapType === "sell" || (swapType === "buy" && collateralToken.address === sDAI.address))
+    return { amount, collateralToken: sDAI };
+  const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
+  return { amount: displayBalance(newAmount, sDAI.decimals), collateralToken: sDAI };
+}
+
+async function getTradeArgs(
+  chainId: number,
+  initialAmount: string,
+  outcomeToken: Token,
+  initialCollateralToken: Token,
+  swapType: "buy" | "sell",
+) {
+  // convert wxdai,xdai or dai to sDAI
+  const { amount, collateralToken } = await convertCollateralToShares(
+    chainId,
+    initialAmount,
+    initialCollateralToken,
+    swapType,
+  );
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
 
@@ -273,7 +241,7 @@ export function useSwaprQuote(
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0,
+    enabled: Number(amount) > 0 && chainId === gnosis.id,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
   });
@@ -295,6 +263,22 @@ export function useCowQuote(
   });
 }
 
+export function useUniswapQuote(
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) {
+  return useQuery<QuoteTradeResult | undefined, Error>({
+    queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    enabled: Number(amount) > 0 && chainId === mainnet.id,
+    retry: false,
+    queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+  });
+}
+
 export function useQuoteTrade(
   chainId: number,
   account: Address | undefined,
@@ -305,11 +289,15 @@ export function useQuoteTrade(
 ) {
   const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
 
   if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
     return cowResult;
   }
 
+  if (chainId === mainnet.id) {
+    return uniswapResult;
+  }
   return swaprResult;
 }
 
@@ -327,19 +315,23 @@ export function useMissingTradeApproval(account: Address, trade: Trade) {
 async function tradeTokens({
   trade,
   account,
+  collateral,
+  originalAmount,
 }: {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
   account: Address;
+  collateral: Token;
+  originalAmount: string;
 }): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }
 
   if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(trade, account);
+    return executeUniswapTrade(trade, account, collateral);
   }
 
-  return executeSwaprTrade(trade, account);
+  return executeSwaprTrade(trade, account, collateral, originalAmount);
 }
 
 export function useTrade(onSuccess: () => unknown) {

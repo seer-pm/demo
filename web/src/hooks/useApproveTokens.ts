@@ -11,7 +11,7 @@ interface ApproveTokensProps {
   amount: bigint;
 }
 
-async function approveTokens(props: ApproveTokensProps): Promise<void> {
+export async function approveTokens(props: ApproveTokensProps): Promise<void> {
   const result = await toastifyTx(
     () =>
       writeContract(config, {

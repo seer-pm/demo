@@ -18,6 +18,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { Address } from "viem";
+import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 
 function MarkeVerifyPage() {
@@ -150,7 +151,9 @@ function MarkeVerifyPage() {
           {marketReadyToVerify && !isUndefined(submissionDeposit) && (
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
               <span>Verification deposit:</span>{" "}
-              <span className="text-[24px] font-semibold">{displayBalance(submissionDeposit, 18)} xDAI</span>
+              <span className="text-[24px] font-semibold">
+                {displayBalance(submissionDeposit, 18)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+              </span>
             </div>
           )}
 

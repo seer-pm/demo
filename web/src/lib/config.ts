@@ -39,6 +39,11 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
   },
 } as const;
 
+export const DEX_MAPPING = {
+  [gnosis.id]: "https://v3.swapr.eth.limo/#/add",
+  [mainnet.id]: "https://app.uniswap.org/add",
+};
+
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
     [gnosis.id]: parseUnits("0.1", 18),

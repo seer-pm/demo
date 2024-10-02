@@ -23,7 +23,7 @@ export function MarketsFilter() {
         <button
           type="button"
           className={clsx(
-            "select select-bordered bg-white w-[210px] flex items-center gap-2",
+            "select select-bordered bg-white lg:w-[210px] flex items-center gap-2 w-full",
             isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
           )}
           onClick={() => setShowFilters((state) => !state)}
@@ -35,7 +35,7 @@ export function MarketsFilter() {
           Filters
         </button>
         {isShowFilters && (
-          <div className="absolute top-[60px] left-0 w-full !ml-0 z-[1]">
+          <div className="absolute lg:top-[60px] top-[110px] left-0 w-full !ml-0 z-[1]">
             <MarketsFilterBox setShowFilters={setShowFilters} />
           </div>
         )}

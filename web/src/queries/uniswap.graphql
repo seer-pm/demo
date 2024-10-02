@@ -47,3 +47,37 @@ query GetPools(
     __typename
   }
 }
+
+query GetPoolHourDatas(
+  $skip: Int = 0
+  $first: Int
+  $where: PoolHourData_filter
+  $orderBy: PoolHourData_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  poolHourDatas(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    token0Price
+    token1Price
+    pool {
+      id
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
+    }
+  }
+}

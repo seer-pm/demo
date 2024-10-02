@@ -101,9 +101,9 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
   };
 
   return (
-    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full pt-12 pb-9">
-      <div className="flex justify-center mb-9">
-        <div className="w-1/3 flex-shrink-0 border-r border-black-medium px-20">
+    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full pt-12 pb-9 @container">
+      <div className="flex justify-start mb-9 flex-wrap flex-col @[620px]:flex-row ">
+        <div className=" border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 flex-shrink-0 @[620px]:border-r">
           <p className="font-semibold flex items-center gap-2 pb-12">
             Market States{" "}
             <div className="flex-shrink-0">
@@ -164,7 +164,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="w-1/3 flex-shrink-0 border-r border-black-medium px-20">
+        <div className="flex-shrink-0 border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 @[920px]:border-r">
           <p className="font-semibold flex items-center gap-2 pb-12">
             Verification Status{" "}
             <div className="flex-shrink-0">
@@ -225,7 +225,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="w-1/3 flex-shrink-0 border-r border-black-medium px-20">
+        <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3 @[920px]:border-r">
           <p className="font-semibold flex items-center gap-2 pb-12">
             Sort By <ArrowSwap />
           </p>

@@ -1,6 +1,7 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { Token } from "@/lib/tokens";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
 import { Alert } from "../Alert";
@@ -12,9 +13,16 @@ interface SwapTokensConfirmationProps {
   trade: Trade | undefined;
   isLoading: boolean;
   onSubmit: () => Promise<void>;
+  collateral: Token;
 }
 
-export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit }: SwapTokensConfirmationProps) {
+export function SwapTokensConfirmation({
+  closeModal,
+  trade,
+  isLoading,
+  onSubmit,
+  collateral,
+}: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
   if (!tradeInfo) {
@@ -40,10 +48,24 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
     fee,
     maximumSlippage,
     invertedPrice,
+    inputAddress,
     outputAddress,
   } = tradeInfo;
+  const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
   return (
     <div className="flex flex-col justify-center items-center">
+      {inputAddress?.toLocaleLowerCase() === sDAI && collateral.address !== sDAI && (
+        <div className="w-full mb-10 text-[14px]">
+          Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
+          fees and affect the final amount you receive. You also need to approve the conversion transaction.
+        </div>
+      )}
+      {outputAddress?.toLocaleLowerCase() === sDAI && collateral.address !== sDAI && (
+        <div className="w-full mb-10 text-[14px]">
+          sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
+          incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
+        </div>
+      )}
       <div className="w-[400px] h-[150px]">
         <div className="flex items-center justify-between mb-5">
           <p className="text-2xl">
@@ -101,23 +123,8 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
           {minimumReceive} {outputToken}
         </span>{" "}
         or the transaction will revert.
-        {outputAddress?.toLowerCase() === NATIVE_TOKEN && <div></div>}
       </Alert>
-      {outputAddress?.toLowerCase() === NATIVE_TOKEN && (
-        <div className="mt-2 w-full">
-          <Alert type="warning">
-            <p>
-              <span className="font-bold">Swapping to XDAI</span> involves two steps:
-              <br />
-              1. Swap to wxDAI
-              <br />
-              2. Unwrap wxDAI to XDAI
-            </p>
 
-            <p>You can choose to reject the second transaction and keep wxDAI.</p>
-          </Alert>
-        </div>
-      )}
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
         <Button variant="primary" type="submit" isLoading={isLoading} text="Continue" onClick={onSubmit} />
