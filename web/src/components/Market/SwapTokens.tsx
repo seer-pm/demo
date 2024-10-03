@@ -41,7 +41,7 @@ interface SwapTokensProps {
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
   if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (chainId === gnosis.id && isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
+    if (isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
       return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
     }
 
@@ -142,7 +142,7 @@ export function SwapTokens({
   } = useModal("confirm-swap-modal");
   const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId]?.address as `0x${string}`);
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
-  const isUseWrappedToken = wxDAIBalance > xDAIBalance;
+  const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
   const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
@@ -330,7 +330,8 @@ export function SwapTokens({
                   quoteData?.value === 0n ||
                   !account ||
                   !isValid ||
-                  tradeTokens.isPending
+                  tradeTokens.isPending ||
+                  isPriceTooHigh
                 }
                 isLoading={
                   tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)

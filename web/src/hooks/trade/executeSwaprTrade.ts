@@ -14,6 +14,7 @@ import {
   redeemFromSDAI,
   redeemFromSDAIToNative,
 } from "./handleSDAI";
+import { getConvertedShares, setSwaprTradeLimit } from "./utils";
 
 async function getPopulatedTransaction(
   trade: SwaprV3Trade,
@@ -27,7 +28,14 @@ async function getPopulatedTransaction(
   // xdai to sdai
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const shares = getConvertedShares(receipt);
+    if (shares) {
+      const newTrade = setSwaprTradeLimit(trade, shares);
+      return newTrade.swapTransaction({
+        recipient: account,
+      });
+    }
   }
 
   // wxdai to sdai
@@ -39,7 +47,14 @@ async function getPopulatedTransaction(
       tokenAddress: wxDAIAddress,
       spender: sDAIAddress,
     });
-    await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const shares = getConvertedShares(receipt);
+    if (shares) {
+      const newTrade = setSwaprTradeLimit(trade, shares);
+      return newTrade.swapTransaction({
+        recipient: account,
+      });
+    }
   }
 
   return await trade.swapTransaction({

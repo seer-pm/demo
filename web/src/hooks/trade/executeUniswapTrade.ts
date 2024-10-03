@@ -8,6 +8,7 @@ import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { approveTokens } from "../useApproveTokens";
 import { depositToSDAI, redeemFromSDAI } from "./handleSDAI";
+import { getConvertedShares, setUniswapTradeLimit } from "./utils";
 
 async function getPopulatedTransaction(
   trade: UniswapTrade,
@@ -26,7 +27,14 @@ async function getPopulatedTransaction(
       tokenAddress: DAIAddress,
       spender: sDAIAddress,
     });
-    await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const shares = getConvertedShares(receipt);
+    if (shares) {
+      const newTrade = await setUniswapTradeLimit(trade, shares, account);
+      return newTrade.swapTransaction({
+        recipient: account,
+      });
+    }
   }
 
   return await trade.swapTransaction({

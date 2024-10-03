@@ -4,7 +4,7 @@ import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { displayBalance, isTwoStringsEqual, parseFraction } from "@/lib/utils";
+import { isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   Percent,
@@ -16,7 +16,7 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
+import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
@@ -186,7 +186,7 @@ async function convertCollateralToShares(
   if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address)))
     return { amount, collateralToken: sDAI };
   const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
-  return { amount: displayBalance(newAmount, sDAI.decimals), collateralToken: sDAI };
+  return { amount: formatUnits(newAmount, sDAI.decimals), collateralToken: sDAI };
 }
 
 async function getTradeArgs(
