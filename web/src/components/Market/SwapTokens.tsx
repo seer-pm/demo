@@ -3,7 +3,7 @@ import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, DEX_MAPPING } from "@/lib/config";
+import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -216,7 +216,7 @@ export function SwapTokens({
             <Alert type="warning">
               This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
               <a
-                href={`${DEX_MAPPING[chainId]}/${outcomeToken.address}/${sDAI.address}/enter-amounts`}
+                href={getLiquidityUrl(chainId, outcomeToken.address, sDAI.address)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary"

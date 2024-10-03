@@ -85,3 +85,25 @@ export const getRouterAddress = (chainId?: SupportedChain): Address => {
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
   return BIG_NUMBERS_CONFIG[configKey][chainId || DEFAULT_CHAIN];
 };
+
+export const getLiquidityUrl = (chainId: number, token1: string, token2: string) => {
+  switch (chainId) {
+    case gnosis.id:
+      return `https://v3.swapr.eth.limo/#/add/${token1}/${token2}/enter-amounts`;
+    case mainnet.id:
+      return `https://bunni.pro/add/ethereum?tokenA=${token1}&tokenB=${token2}`;
+    default:
+      return "#";
+  }
+};
+
+export const getFarmingUrl = (chainId: number, farmId: string) => {
+  switch (chainId) {
+    case gnosis.id:
+      return `https://v3.swapr.eth.limo/#/farming/farms#${farmId}`;
+    case mainnet.id:
+      return "#";
+    default:
+      return "#";
+  }
+};

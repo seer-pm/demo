@@ -5,7 +5,7 @@ import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hoo
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, DEX_MAPPING, SWAPR_CONFIG } from "@/lib/config";
+import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -117,7 +117,7 @@ function AddLiquidityInfo({
               </div>
               <div>
                 <a
-                  href={`${DEX_MAPPING[chainId]}/${pool.token0}/${pool.token1}/enter-amounts`}
+                  href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-purple-primary flex items-center space-x-2"
@@ -133,7 +133,7 @@ function AddLiquidityInfo({
                   <div className="flex items-center justify-between items-center" key={deposit.id}>
                     <div>
                       <a
-                        href={`https://v3.swapr.eth.limo/#/farming/farms#${deposit.id}`}
+                        href={getFarmingUrl(chainId, deposit.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-purple-primary hover:underline"
@@ -316,7 +316,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </button>
                   ) : (
                     <a
-                      href={`${DEX_MAPPING[chainId]}/${wrappedAddress}/${COLLATERAL_TOKENS[chainId].primary.address}/enter-amounts`}
+                      href={getLiquidityUrl(chainId, wrappedAddress, COLLATERAL_TOKENS[chainId].primary.address)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary flex items-center space-x-2 hover:underline"
