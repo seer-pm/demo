@@ -4,7 +4,7 @@ import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { displayBalance, parseFraction } from "@/lib/utils";
+import { displayBalance, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   Percent,
@@ -183,7 +183,7 @@ async function convertCollateralToShares(
   swapType: "buy" | "sell",
 ) {
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
-  if (swapType === "sell" || (swapType === "buy" && collateralToken.address === sDAI.address))
+  if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address)))
     return { amount, collateralToken: sDAI };
   const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
   return { amount: displayBalance(newAmount, sDAI.decimals), collateralToken: sDAI };
@@ -328,7 +328,7 @@ async function tradeTokens({
   }
 
   if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(trade, account, collateral);
+    return executeUniswapTrade(trade, account, collateral, originalAmount);
   }
 
   return executeSwaprTrade(trade, account, collateral, originalAmount);

@@ -6,7 +6,7 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, DEX_MAPPING } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
@@ -39,9 +39,9 @@ interface SwapTokensProps {
   isInvalidResult: boolean;
 }
 
-function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, useWrappedToken: boolean): Token {
+function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
   if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (chainId === gnosis.id && useWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
+    if (chainId === gnosis.id && isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
       return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
     }
 
@@ -142,9 +142,9 @@ export function SwapTokens({
   } = useModal("confirm-swap-modal");
   const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId]?.address as `0x${string}`);
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
-  const useWrappedToken = wxDAIBalance > xDAIBalance;
+  const isUseWrappedToken = wxDAIBalance > xDAIBalance;
 
-  const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, useWrappedToken);
+  const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
   const { data: balance = BigInt(0) } = useTokenBalance(account, sellToken.address);
 
@@ -174,17 +174,20 @@ export function SwapTokens({
   };
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
   const { data: maxDAIPerShare } = useConvertToAssets(parseUnits("1", sDAI.decimals), chainId);
-  const shares = quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0;
-  const sDaiPerShare = Number(amount) / Number(shares);
 
   // convert sell result to assets if collateral is not sDAI
-  const isSellToOtherTokens = swapType === "sell" && selectedCollateral.address !== sDAI.address;
-  const { data: sharesToAssets } = useConvertToAssets(isSellToOtherTokens ? quoteData?.value ?? 0n : 0n, chainId);
+  const isSellToOtherCollateral = swapType === "sell" && selectedCollateral.address !== sDAI.address;
+  const { data: sharesToAssets } = useConvertToAssets(isSellToOtherCollateral ? quoteData?.value ?? 0n : 0n, chainId);
   const assets = sharesToAssets ? displayBalance(sharesToAssets, selectedCollateral.decimals) : 0;
 
-  const maxCollateralPerShare =
-    selectedCollateral.symbol === "sDAI" ? 1 : Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals));
-  const isPriceTooHigh = Number(shares) > 0 && sDaiPerShare > 1 && swapType === "buy";
+  // check if current token price higher than 1 sdai per token
+  const shares = quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0;
+  const maxCollateralPerShare = isTwoStringsEqual(selectedCollateral.address, sDAI.address)
+    ? 1
+    : Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals));
+  const collateralPerShare = Number(amount) / Number(shares);
+  const isPriceTooHigh = Number(shares) > 0 && collateralPerShare > maxCollateralPerShare && swapType === "buy";
+
   return (
     <>
       <ConfirmSwapModal
@@ -196,6 +199,7 @@ export function SwapTokens({
             isLoading={tradeTokens.isPending}
             onSubmit={onSubmit}
             collateral={selectedCollateral}
+            originalAmount={amount}
           />
         }
       />
@@ -287,7 +291,7 @@ export function SwapTokens({
 
             <div className="flex space-x-2 text-purple-primary">
               {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-              {swapType === "sell" && isSellToOtherTokens ? assets : shares}
+              {swapType === "sell" && isSellToOtherCollateral ? assets : shares}
             </div>
 
             {isPriceTooHigh && (
@@ -302,7 +306,7 @@ export function SwapTokens({
               <AltCollateralSwitch
                 {...register("useAltCollateral")}
                 chainId={chainId}
-                useWrappedToken={useWrappedToken}
+                isUseWrappedToken={isUseWrappedToken}
               />
               <div className="text-[12px] text-black-secondary flex items-center gap-2">
                 Max slippage:{" "}
@@ -326,8 +330,7 @@ export function SwapTokens({
                   quoteData?.value === 0n ||
                   !account ||
                   !isValid ||
-                  tradeTokens.isPending ||
-                  isPriceTooHigh
+                  tradeTokens.isPending
                 }
                 isLoading={
                   tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)

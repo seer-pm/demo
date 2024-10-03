@@ -79,7 +79,7 @@ const SDAI_ABI = [
     inputs: [
       {
         internalType: "uint256",
-        name: "assets",
+        name: "shares",
         type: "uint256",
       },
       {
@@ -93,11 +93,11 @@ const SDAI_ABI = [
         type: "address",
       },
     ],
-    name: "withdraw",
+    name: "redeem",
     outputs: [
       {
         internalType: "uint256",
-        name: "shares",
+        name: "",
         type: "uint256",
       },
     ],
@@ -162,17 +162,17 @@ export async function convertToSDAI({ chainId, amount }: Omit<HandleSDAIProps, "
   });
 }
 
-export async function withdrawFromSDAI({ chainId, amount, owner }: HandleSDAIProps) {
+export async function redeemFromSDAI({ chainId, amount, owner }: HandleSDAIProps) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
         address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
         abi: SDAI_ABI,
-        functionName: "withdraw",
+        functionName: "redeem",
         args: [amount, owner, owner],
         chainId: chainId,
       }),
-    { txSent: { title: "Withdrawing..." }, txSuccess: { title: "Trade executed!" } },
+    { txSent: { title: "Redeeming..." }, txSuccess: { title: "Trade executed!" } },
   );
   if (!unwrappedResult.status) {
     throw unwrappedResult.error;
@@ -198,7 +198,7 @@ export async function depositToSDAI({ chainId, amount, owner }: HandleSDAIProps)
   return wrappedResult.receipt;
 }
 
-export async function withdrawFromSDAIToNative({ chainId, amount, owner }: HandleSDAIProps) {
+export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleSDAIProps) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -235,7 +235,7 @@ export async function depositFromNativeToSDAI({ chainId, amount, owner }: Handle
   return wrappedResult.receipt;
 }
 
-export function useConvertToShares(amount: bigint, chainId: ChainId) {
+export function useConvertToShares(amount: bigint, chainId: number) {
   return useQuery<bigint | undefined, Error>({
     enabled: amount > 0,
     queryKey: ["useConvertToShares", amount.toString(), chainId],
@@ -245,7 +245,7 @@ export function useConvertToShares(amount: bigint, chainId: ChainId) {
   });
 }
 
-export function useConvertToAssets(amount: bigint, chainId: ChainId) {
+export function useConvertToAssets(amount: bigint, chainId: number) {
   return useQuery<bigint | undefined, Error>({
     enabled: amount > 0,
     queryKey: ["useConvertToAssets", amount.toString(), chainId],

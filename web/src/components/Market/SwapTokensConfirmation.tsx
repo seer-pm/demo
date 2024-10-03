@@ -1,9 +1,12 @@
+import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
 import { Token } from "@/lib/tokens";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
+import { formatUnits } from "viem";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
@@ -14,6 +17,7 @@ interface SwapTokensConfirmationProps {
   isLoading: boolean;
   onSubmit: () => Promise<void>;
   collateral: Token;
+  originalAmount: string;
 }
 
 export function SwapTokensConfirmation({
@@ -22,9 +26,14 @@ export function SwapTokensConfirmation({
   isLoading,
   onSubmit,
   collateral,
+  originalAmount,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
+  const { data: outputToAssets } = useConvertToAssets(
+    BigInt(trade?.outputAmount?.raw?.toString() ?? "0"),
+    trade?.chainId ?? 0,
+  );
   if (!tradeInfo) {
     return (
       <div className="flex flex-col justify-center items-center">
@@ -38,7 +47,7 @@ export function SwapTokensConfirmation({
       </div>
     );
   }
-  const {
+  let {
     inputToken,
     outputToken,
     inputAmount,
@@ -52,15 +61,34 @@ export function SwapTokensConfirmation({
     outputAddress,
   } = tradeInfo;
   const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
+
+  const isBuyWithOtherCollateral =
+    isTwoStringsEqual(inputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+  const isSellWithOtherCollateral =
+    isTwoStringsEqual(outputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+
+  inputAmount = isBuyWithOtherCollateral ? Number(originalAmount).toFixed(6) : inputAmount;
+  inputToken = isBuyWithOtherCollateral ? collateral.symbol : inputToken;
+
+  outputAmount = isSellWithOtherCollateral
+    ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
+    : outputAmount;
+  outputToken = isSellWithOtherCollateral ? collateral.symbol : outputToken;
+
+  price = !isTwoStringsEqual(collateral.address, sDAI)
+    ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
+    : price;
+  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(6) : invertedPrice;
+
   return (
     <div className="flex flex-col justify-center items-center">
-      {inputAddress?.toLocaleLowerCase() === sDAI && collateral.address !== sDAI && (
+      {isBuyWithOtherCollateral && (
         <div className="w-full mb-10 text-[14px]">
           Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
           fees and affect the final amount you receive. You also need to approve the conversion transaction.
         </div>
       )}
-      {outputAddress?.toLocaleLowerCase() === sDAI && collateral.address !== sDAI && (
+      {isSellWithOtherCollateral && (
         <div className="w-full mb-10 text-[14px]">
           sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
           incur fees and affect the final amount you receive. You also need to approve the conversion transaction.

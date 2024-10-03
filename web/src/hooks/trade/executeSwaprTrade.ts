@@ -1,7 +1,7 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastifyTx } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { SwaprV3Trade, WXDAI } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
@@ -9,11 +9,10 @@ import { Address, TransactionReceipt, parseUnits } from "viem";
 import { approveTokens } from "../useApproveTokens";
 import {
   S_DAI_ADAPTER,
-  convertFromSDAI,
   depositFromNativeToSDAI,
   depositToSDAI,
-  withdrawFromSDAI,
-  withdrawFromSDAIToNative,
+  redeemFromSDAI,
+  redeemFromSDAIToNative,
 } from "./handleSDAI";
 
 async function getPopulatedTransaction(
@@ -22,19 +21,24 @@ async function getPopulatedTransaction(
   collateral: Token,
   originalAmount: string,
 ) {
-  const isBuyOutcomeTokens =
-    trade.inputAmount.currency.address?.toLocaleLowerCase() === COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const wxDAIAddress = WXDAI[trade.chainId].address as Address;
+  const isBuyOutcomeTokens = isTwoStringsEqual(trade.inputAmount.currency.address, sDAIAddress);
   // xdai to sdai
-  if (isBuyOutcomeTokens && collateral.address === NATIVE_TOKEN) {
-    const sDAIInputAmount = BigInt(trade.inputAmount.raw.toString());
-    const xDAIAmount = await convertFromSDAI({ chainId: trade.chainId, amount: sDAIInputAmount });
-    await depositFromNativeToSDAI({ amount: xDAIAmount, chainId: trade.chainId, owner: account });
+  if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
+    const amount = parseUnits(originalAmount, collateral.decimals);
+    await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
   }
 
   // wxdai to sdai
 
-  if (isBuyOutcomeTokens && collateral.address === WXDAI[trade.chainId].address.toLocaleLowerCase()) {
+  if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
+    await approveTokens({
+      amount,
+      tokenAddress: wxDAIAddress,
+      spender: sDAIAddress,
+    });
     await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
   }
 
@@ -65,15 +69,16 @@ export async function executeSwaprTrade(
     throw result.error;
   }
   const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
-  const isSellOutcomeTokens = trade.outputAmount.currency.address?.toLocaleLowerCase() === sDAIAddress;
+  const wxDAIAddress = WXDAI[trade.chainId].address as Address;
+  const isSellOutcomeTokens = isTwoStringsEqual(trade.outputAmount.currency.address, sDAIAddress);
   // sdai to xdai
-  if (isSellOutcomeTokens && collateral.address === NATIVE_TOKEN) {
+  if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
     await approveTokens({
       amount: BigInt(trade.outputAmount.raw.toString()),
       tokenAddress: sDAIAddress,
       spender: S_DAI_ADAPTER,
     });
-    await withdrawFromSDAIToNative({
+    await redeemFromSDAIToNative({
       amount: BigInt(trade.outputAmount.raw.toString()),
       chainId: trade.chainId,
       owner: account,
@@ -81,8 +86,8 @@ export async function executeSwaprTrade(
   }
 
   // sdai to wxdai
-  if (isSellOutcomeTokens && collateral.address === WXDAI[trade.chainId].address.toLocaleLowerCase()) {
-    await withdrawFromSDAI({
+  if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
+    await redeemFromSDAI({
       amount: BigInt(trade.outputAmount.raw.toString()),
       chainId: trade.chainId,
       owner: account,
