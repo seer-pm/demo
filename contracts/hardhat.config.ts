@@ -75,7 +75,7 @@ const config: HardhatUserConfig = {
       },
       saveDeployments: true,
     },
-    mainnet: {
+    ethereum: {
       chainId: 1,
       url: "https://eth.llamarpc.com",
       accounts:
