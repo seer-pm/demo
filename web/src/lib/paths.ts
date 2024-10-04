@@ -9,7 +9,7 @@ export const paths = {
   verifiedMarketPolicy: () =>
     "https://cdn.kleros.link/ipfs/QmfGcodBzG53DBxS2Uxu5jug9YiHUpJ5tKFqhP6Z2HjscU/Seer%20-%20Verified%20Markets.pdf",
   marketRulesPolicy: () =>
-    "https://cdn.kleros.link/ipfs/QmW6npv4J3jvF87WVCEaQQ6f2PK1T9ytX2eYg86XkT9ScK/Seer%20-%20Markets%20Policy.pdf",
+    "https://cdn.kleros.link/ipfs/QmPmRkXFUmzP4rq2YfD3wNwL8bg3WDxkYuvTP9A9UZm9gJ/seer-markets-resolution-policy.pdf",
   klerosDispute: (disputeId: number) => `https://court.kleros.io/cases/${disputeId}`,
   farmingProgram: () => "#",
   curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
