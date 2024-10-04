@@ -26,6 +26,18 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 - [MarketFactory](https://gnosisscan.io/address/0xAA43e743a24262AbBEDB247E08F9357Fc0A82ed7)
 - [MarketView](https://gnosisscan.io/address/0x995dC9c89B6605a1E8cc028B37cb8e568e27626f)
 - [RealityProxy](https://gnosisscan.io/address/0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C)
+- [Wrapped1155Factory](https://gnosisscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f)
+
+### Ethereum
+
+- [MainnetRouter](https://etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6)
+- [Market](https://etherscan.io/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93)
+- [MarketFactory](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904)
+- [MarketView](https://etherscan.io/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC)
+- [RealitioForeignArbitrationProxyWithAppeals](https://etherscan.io/address/0x4a7e264B67852ea8b737e505739cb557c7c43c00)
+- [Realitio_v2_1_ArbitratorWithAppeals](https://etherscan.io/address/0x2018038203aEE8e7a29dABd73771b0355D4F85ad)
+- [RealityProxy](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E)
+- [Wrapped1155Factory](https://etherscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f)
 
 ## Installation
 
