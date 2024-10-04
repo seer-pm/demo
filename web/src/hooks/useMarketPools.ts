@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient } from "@/lib/subgraph";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
@@ -9,11 +9,11 @@ import { Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
-  GetPoolsQuery,
   OrderDirection,
   Pool_OrderBy,
-  getSdk,
+  getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
+import { getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -62,7 +62,7 @@ const eternalFarming = memoize((chainId: SupportedChain) => {
         throw new Error("Subgraph not available");
       }
 
-      const { eternalFarmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
+      const { eternalFarmings } = await getSwaprSdk(algebraFarmingClient).GetEternalFarmings({
         where: { pool_in: ids },
       });
 
@@ -83,7 +83,7 @@ const getPools = memoize((chainId: SupportedChain) => {
         throw new Error("Subgraph not available");
       }
 
-      const { pools } = await getSdk(algebraClient).GetPools({
+      const { pools } = await getSwaprSdk(algebraClient).GetPools({
         where: {
           or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
         },
@@ -126,14 +126,29 @@ async function getPoolInfo(
   );
 }
 
-export async function getAllOutcomePools(chainId: SupportedChain): Promise<GetPoolsQuery["pools"] | undefined> {
-  const algebraClient = swaprGraphQLClient(chainId, "algebra");
+interface OutcomePool {
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  liquidity: string;
+}
 
-  if (!algebraClient) {
+export async function getAllOutcomePools(chainId: SupportedChain): Promise<OutcomePool[] | undefined> {
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+  if (!graphQLClient) {
     throw new Error("Subgraph not available");
   }
+
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+
   try {
-    const { pools } = await getSdk(algebraClient).GetPools({
+    const { pools } = await graphQLSdk(graphQLClient).GetPools({
       where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
     });
     return pools;
@@ -178,7 +193,7 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
         return {};
       }
 
-      const { deposits } = await getSdk(algebraFarmingClient).GetDeposits({
+      const { deposits } = await getSwaprSdk(algebraFarmingClient).GetDeposits({
         where: { pool_in: pools, owner, liquidity_not: "0" },
       });
 

@@ -1,8 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient } from "@/lib/subgraph";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { useQuery } from "@tanstack/react-query";
 import combineQuery from "graphql-combine-query";
+import { mainnet } from "viem/chains";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
@@ -16,9 +17,10 @@ async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain,
     return {};
   }
 
-  const algebraClient = swaprGraphQLClient(chainId, "algebra");
+  const subgraphClient =
+    chainId === mainnet.id ? uniswapGraphQLClient(chainId) : swaprGraphQLClient(chainId, "algebra");
 
-  if (!algebraClient) {
+  if (!subgraphClient) {
     throw new Error("Subgraph not available");
   }
 
@@ -40,7 +42,7 @@ async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain,
     ))();
 
   const poolHourDatas = Object.values(
-    await algebraClient.request<Record<string, GetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
+    await subgraphClient.request<Record<string, GetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
   ).map((d) => d?.[0]);
 
   return poolHourDatas
@@ -61,12 +63,13 @@ async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain,
 
 async function getCurrentTokensPrices(tokens: string[] | undefined, chainId: SupportedChain) {
   if (!tokens) return {};
-  const algebraClient = swaprGraphQLClient(chainId, "algebra");
-  if (!algebraClient) {
+  const subgraphClient =
+    chainId === mainnet.id ? uniswapGraphQLClient(chainId) : swaprGraphQLClient(chainId, "algebra");
+  if (!subgraphClient) {
     throw new Error("Subgraph not available");
   }
 
-  const { pools } = await getSdk(algebraClient).GetPools({
+  const { pools } = await getSdk(subgraphClient).GetPools({
     where: {
       or: tokens.map((token) =>
         token.toLocaleLowerCase() > COLLATERAL_TOKENS[chainId].primary.address

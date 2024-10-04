@@ -1,9 +1,9 @@
 import { Spinner } from "@/components/Spinner";
+import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
-import { useSDaiToDai } from "@/hooks/useSDaiToDai";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import {
@@ -25,6 +25,7 @@ import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/
 import clsx from "clsx";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
@@ -180,7 +181,7 @@ export function MarketHeader({
   const { address } = useAccount();
 
   const { data: marketStatus } = useMarketStatus(market, chainId);
-  const { data: daiAmount } = useSDaiToDai(market.outcomesSupply, chainId);
+  const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
@@ -285,7 +286,10 @@ export function MarketHeader({
               <div className="!flex items-center gap-2 tooltip">
                 <p className="tooltiptext @[510px]:hidden">Open interest</p>
                 <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
-                <div>{displayBalance(daiAmount, 18, true)} DAI</div> <DaiLogo />
+                <div>
+                  {displayBalance(daiAmount, 18, true)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+                </div>{" "}
+                <DaiLogo />
               </div>
             )}
           </div>

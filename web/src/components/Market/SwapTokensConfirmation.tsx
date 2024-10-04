@@ -1,8 +1,12 @@
+import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { Token } from "@/lib/tokens";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
+import { formatUnits } from "viem";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
@@ -12,11 +16,24 @@ interface SwapTokensConfirmationProps {
   trade: Trade | undefined;
   isLoading: boolean;
   onSubmit: () => Promise<void>;
+  collateral: Token;
+  originalAmount: string;
 }
 
-export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit }: SwapTokensConfirmationProps) {
+export function SwapTokensConfirmation({
+  closeModal,
+  trade,
+  isLoading,
+  onSubmit,
+  collateral,
+  originalAmount,
+}: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
+  const { data: outputToAssets } = useConvertToAssets(
+    BigInt(trade?.outputAmount?.raw?.toString() ?? "0"),
+    trade?.chainId ?? 0,
+  );
   if (!tradeInfo) {
     return (
       <div className="flex flex-col justify-center items-center">
@@ -30,7 +47,7 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
       </div>
     );
   }
-  const {
+  let {
     inputToken,
     outputToken,
     inputAmount,
@@ -40,10 +57,43 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
     fee,
     maximumSlippage,
     invertedPrice,
+    inputAddress,
     outputAddress,
   } = tradeInfo;
+  const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
+
+  const isBuyWithOtherCollateral =
+    isTwoStringsEqual(inputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+  const isSellWithOtherCollateral =
+    isTwoStringsEqual(outputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+
+  inputAmount = isBuyWithOtherCollateral ? Number(originalAmount).toFixed(6) : inputAmount;
+  inputToken = isBuyWithOtherCollateral ? collateral.symbol : inputToken;
+
+  outputAmount = isSellWithOtherCollateral
+    ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
+    : outputAmount;
+  outputToken = isSellWithOtherCollateral ? collateral.symbol : outputToken;
+
+  price = !isTwoStringsEqual(collateral.address, sDAI)
+    ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
+    : price;
+  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(6) : invertedPrice;
+
   return (
     <div className="flex flex-col justify-center items-center">
+      {isBuyWithOtherCollateral && (
+        <div className="w-full mb-10 text-[14px]">
+          Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
+          fees and affect the final amount you receive. You also need to approve the conversion transaction.
+        </div>
+      )}
+      {isSellWithOtherCollateral && (
+        <div className="w-full mb-10 text-[14px]">
+          sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
+          incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
+        </div>
+      )}
       <div className="w-[400px] h-[150px]">
         <div className="flex items-center justify-between mb-5">
           <p className="text-2xl">
@@ -101,23 +151,8 @@ export function SwapTokensConfirmation({ closeModal, trade, isLoading, onSubmit 
           {minimumReceive} {outputToken}
         </span>{" "}
         or the transaction will revert.
-        {outputAddress?.toLowerCase() === NATIVE_TOKEN && <div></div>}
       </Alert>
-      {outputAddress?.toLowerCase() === NATIVE_TOKEN && (
-        <div className="mt-2 w-full">
-          <Alert type="warning">
-            <p>
-              <span className="font-bold">Swapping to XDAI</span> involves two steps:
-              <br />
-              1. Swap to wxDAI
-              <br />
-              2. Unwrap wxDAI to XDAI
-            </p>
 
-            <p>You can choose to reject the second transaction and keep wxDAI.</p>
-          </Alert>
-        </div>
-      )}
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
         <Button variant="primary" type="submit" isLoading={isLoading} text="Continue" onClick={onSubmit} />

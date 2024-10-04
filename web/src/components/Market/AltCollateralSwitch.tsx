@@ -5,20 +5,19 @@ import Toggle from "../Form/Toggle";
 
 type AltCollateralSwitchProps = {
   chainId: number;
-  useWrappedToken?: boolean;
+  isUseWrappedToken?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollateralSwitchProps>((props, ref) => {
-  const { chainId, useWrappedToken = false, ...toggleProps } = props;
+  const { chainId, isUseWrappedToken = false, ...toggleProps } = props;
 
   if (isUndefined(COLLATERAL_TOKENS[chainId].secondary)) {
     return null;
   }
 
-  const secondary = !useWrappedToken
-    ? COLLATERAL_TOKENS[chainId].secondary
-    : COLLATERAL_TOKENS[chainId].secondary?.wrapped || COLLATERAL_TOKENS[chainId].secondary;
-
+  const secondary = isUseWrappedToken
+    ? COLLATERAL_TOKENS[chainId].secondary?.wrapped || COLLATERAL_TOKENS[chainId].secondary
+    : COLLATERAL_TOKENS[chainId].secondary;
   return (
     <div className="flex space-x-2">
       <div>sDAI</div>

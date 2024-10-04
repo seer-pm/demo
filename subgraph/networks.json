@@ -12,5 +12,19 @@
       "address": "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
       "startBlock": 36334333
     }
+  },
+  "mainnet": {
+    "MarketFactory": {
+      "address": "0x1F728c2fD6a3008935c1446a965a313E657b7904",
+      "startBlock": 20894990
+    },
+    "Reality": {
+      "address": "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
+      "startBlock": 20894990
+    },
+    "ConditionalTokens": {
+      "address": "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
+      "startBlock": 20894990
+    }
   }
 }

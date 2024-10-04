@@ -1,10 +1,11 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis } from "viem/chains";
+import { gnosis, mainnet } from "viem/chains";
 import {
   CURATE_SUBGRAPH_URLS,
   SUBGRAPH_URLS,
   SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS,
   SWAPR_ALGEBRA_SUBGRAPH_URLS,
+  UNISWAP_SUBGRAPH_URLS,
 } from "./src/lib/subgraph";
 
 const schemasAndDocuments = [
@@ -22,6 +23,11 @@ const schemasAndDocuments = [
     type: "swapr",
     schema: [SWAPR_ALGEBRA_SUBGRAPH_URLS[gnosis.id]!, SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS[gnosis.id]!],
     documents: "./src/queries/swapr.graphql",
+  },
+  {
+    type: "uniswap",
+    schema: UNISWAP_SUBGRAPH_URLS[mainnet.id],
+    documents: "./src/queries/uniswap.graphql",
   },
 ];
 

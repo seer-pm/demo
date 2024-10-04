@@ -1,5 +1,14 @@
-import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { MarketFactory, NewMarket as NewMarketEvent } from "../generated/MarketFactory/MarketFactory";
+import {
+  Address,
+  BigInt,
+  Bytes,
+  dataSource,
+  ethereum,
+} from "@graphprotocol/graph-ts";
+import {
+  MarketFactory,
+  NewMarket as NewMarketEvent,
+} from "../generated/MarketFactory/MarketFactory";
 import { MarketView } from "../generated/MarketFactory/MarketView";
 import {
   Condition,
@@ -12,7 +21,10 @@ import {
 import { DEFAULT_FINALIZE_TS } from "./reality";
 import { ConditionalTokens } from "../generated/ConditionalTokens/ConditionalTokens";
 
-const MARKET_VIEW_ADDRESS = "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+const MARKET_VIEW_ADDRESS =
+  dataSource.network() == "mainnet"
+    ? "0xAb797C4C6022A401c31543E316D3cd04c67a87fC"
+    : "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");

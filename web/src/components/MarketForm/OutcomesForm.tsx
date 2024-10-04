@@ -1,7 +1,7 @@
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { isTwoStringsDuplicated, isUndefined } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import {
@@ -51,9 +51,7 @@ function OutcomeFields({
           {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
             validate: (v) => {
-              if (
-                outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsDuplicated(v, outcome.value))
-              ) {
+              if (outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value))) {
                 return "Duplicated outcome.";
               }
               return true;
@@ -133,9 +131,8 @@ function TokenNameField({
               required: "This field is required.",
               validate: (v, formValues) => {
                 if (
-                  (fieldName === "lowerBound.token" &&
-                    isTwoStringsDuplicated(v as string, formValues.upperBound.token)) ||
-                  (fieldName === "upperBound.token" && isTwoStringsDuplicated(v as string, formValues.lowerBound.token))
+                  (fieldName === "lowerBound.token" && isTwoStringsEqual(v as string, formValues.upperBound.token)) ||
+                  (fieldName === "upperBound.token" && isTwoStringsEqual(v as string, formValues.lowerBound.token))
                 ) {
                   return "Duplicated token name.";
                 }
@@ -144,7 +141,7 @@ function TokenNameField({
                   if (
                     !Number.isNaN(outcomeIndex) &&
                     formValues.outcomes.some(
-                      (outcome, index) => index !== outcomeIndex && isTwoStringsDuplicated(v as string, outcome.token),
+                      (outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v as string, outcome.token),
                     )
                   ) {
                     return "Duplicated token name.";

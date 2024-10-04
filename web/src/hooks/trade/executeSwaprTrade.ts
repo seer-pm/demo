@@ -1,41 +1,60 @@
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastifyTx } from "@/lib/toastify";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { Token } from "@/lib/tokens";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { Currency, SwaprV3Trade, Token as SwaprToken, WXDAI } from "@swapr/sdk";
+import { SwaprV3Trade, WXDAI } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
-import { Address, TransactionReceipt } from "viem";
-import { gnosis } from "viem/chains";
-import { unwrapXDAI } from "./handleXDAI";
+import { Address, TransactionReceipt, parseUnits } from "viem";
+import { approveTokens } from "../useApproveTokens";
+import {
+  S_DAI_ADAPTER,
+  depositFromNativeToSDAI,
+  depositToSDAI,
+  redeemFromSDAI,
+  redeemFromSDAIToNative,
+} from "./handleSDAI";
+import { getConvertedShares, setSwaprTradeLimit } from "./utils";
 
-async function getPopulatedTransaction(trade: SwaprV3Trade, account: Address) {
-  if (
-    trade.chainId === gnosis.id &&
-    (trade.inputAmount.currency.address === WXDAI[trade.chainId].address ||
-      trade.outputAmount.currency.address === WXDAI[trade.chainId].address)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(trade.chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const path: Currency[] = [trade.inputAmount.currency, SDAI, trade.outputAmount.currency];
-    return await trade.multiSwapTransaction({
-      recipient: account,
-      path,
-    });
+async function getPopulatedTransaction(
+  trade: SwaprV3Trade,
+  account: Address,
+  collateral: Token,
+  originalAmount: string,
+) {
+  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const wxDAIAddress = WXDAI[trade.chainId].address as Address;
+  const isBuyOutcomeTokens = isTwoStringsEqual(trade.inputAmount.currency.address, sDAIAddress);
+  // xdai to sdai
+  if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
+    const amount = parseUnits(originalAmount, collateral.decimals);
+    const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const shares = getConvertedShares(receipt);
+    if (shares) {
+      const newTrade = setSwaprTradeLimit(trade, shares);
+      return newTrade.swapTransaction({
+        recipient: account,
+      });
+    }
   }
 
-  if (
-    trade.chainId === gnosis.id &&
-    (trade.inputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN ||
-      trade.outputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN)
-  ) {
-    // build the route using the intermediate WXDAI<>sDAI pool
-    const SDAI = new SwaprToken(trade.chainId, "0xaf204776c7245bf4147c2612bf6e5972ee483701", 18, "sDAI");
-    const pathBuy: Currency[] = [WXDAI[trade.chainId], SDAI, trade.outputAmount.currency];
-    const pathSell: Currency[] = [trade.inputAmount.currency, SDAI, WXDAI[trade.chainId]];
+  // wxdai to sdai
 
-    return await trade.multiSwapTransaction({
-      recipient: account,
-      path: trade.inputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN ? pathBuy : pathSell,
+  if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
+    const amount = parseUnits(originalAmount, collateral.decimals);
+    await approveTokens({
+      amount,
+      tokenAddress: wxDAIAddress,
+      spender: sDAIAddress,
     });
+    const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
+    const shares = getConvertedShares(receipt);
+    if (shares) {
+      const newTrade = setSwaprTradeLimit(trade, shares);
+      return newTrade.swapTransaction({
+        recipient: account,
+      });
+    }
   }
 
   return await trade.swapTransaction({
@@ -43,8 +62,13 @@ async function getPopulatedTransaction(trade: SwaprV3Trade, account: Address) {
   });
 }
 
-export async function executeSwaprTrade(trade: SwaprV3Trade, account: Address): Promise<TransactionReceipt> {
-  const populatedTransaction = await getPopulatedTransaction(trade, account);
+export async function executeSwaprTrade(
+  trade: SwaprV3Trade,
+  account: Address,
+  collateral: Token,
+  originalAmount: string,
+): Promise<TransactionReceipt> {
+  const populatedTransaction = await getPopulatedTransaction(trade, account, collateral, originalAmount);
 
   const result = await toastifyTx(
     () =>
@@ -59,12 +83,31 @@ export async function executeSwaprTrade(trade: SwaprV3Trade, account: Address): 
   if (!result.status) {
     throw result.error;
   }
-  // unwrap if use xdai
-  if (trade.outputAmount.currency.address?.toLowerCase() === NATIVE_TOKEN) {
-    return await unwrapXDAI({
+  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const wxDAIAddress = WXDAI[trade.chainId].address as Address;
+  const isSellOutcomeTokens = isTwoStringsEqual(trade.outputAmount.currency.address, sDAIAddress);
+  // sdai to xdai
+  if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
+    await approveTokens({
+      amount: BigInt(trade.outputAmount.raw.toString()),
+      tokenAddress: sDAIAddress,
+      spender: S_DAI_ADAPTER,
+    });
+    await redeemFromSDAIToNative({
       amount: BigInt(trade.outputAmount.raw.toString()),
       chainId: trade.chainId,
+      owner: account,
     });
   }
+
+  // sdai to wxdai
+  if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
+    await redeemFromSDAI({
+      amount: BigInt(trade.outputAmount.raw.toString()),
+      chainId: trade.chainId,
+      owner: account,
+    });
+  }
+
   return result.receipt;
 }
