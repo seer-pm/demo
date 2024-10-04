@@ -77,7 +77,7 @@ contract Router is ERC1155Holder {
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
-            wrapped1155.transfer(msg.sender, amount);
+            require(wrapped1155.transfer(msg.sender, amount), "Wrapped token transfer failed");
         }
     }
 
@@ -92,7 +92,7 @@ contract Router is ERC1155Holder {
 
         if (market.parentCollectionId() == bytes32(0)) {
             // send collateral tokens back to the user.
-            collateralToken.transfer(msg.sender, amount);
+            require(collateralToken.transfer(msg.sender, amount), "Collateral transfer failed");
         }
     }
 
@@ -130,7 +130,7 @@ contract Router is ERC1155Holder {
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
-            wrapped1155.transfer(msg.sender, amount);
+            require(wrapped1155.transfer(msg.sender, amount), "Wrapped token transfer failed");
         }
     }
 
@@ -160,7 +160,8 @@ contract Router is ERC1155Holder {
             uint256 finalBalance = collateralToken.balanceOf(address(this));
 
             if (finalBalance > initialBalance) {
-                collateralToken.transfer(msg.sender, finalBalance - initialBalance);
+                // send collateral tokens back to the user.
+                require(collateralToken.transfer(msg.sender, finalBalance - initialBalance), "Collateral transfer failed");
             }
         }
     }
@@ -218,7 +219,7 @@ contract Router is ERC1155Holder {
                 );
 
                 // transfer the ERC20 back to the user.
-                parentWrapped1155.transfer(msg.sender, finalBalance - initialBalance);
+                require(parentWrapped1155.transfer(msg.sender, finalBalance - initialBalance), "Parent wrapped token transfer failed");
             }
         }
     }
