@@ -12,9 +12,12 @@ pragma solidity 0.8.20;
 import {IConditionalTokens, IERC20, IWrapped1155Factory} from "./Interfaces.sol";
 import "./Market.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @dev The Router contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155.
 contract Router is ERC1155Holder {
+    using SafeERC20 for IERC20;
+
     /// @dev Conditional Tokens contract.
     IConditionalTokens public immutable conditionalTokens;
     /// @dev Wrapped1155Factory contract.
@@ -77,7 +80,7 @@ contract Router is ERC1155Holder {
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
-            wrapped1155.transfer(msg.sender, amount);
+            wrapped1155.safeTransfer(msg.sender, amount);
         }
     }
 
@@ -92,7 +95,7 @@ contract Router is ERC1155Holder {
 
         if (market.parentCollectionId() == bytes32(0)) {
             // send collateral tokens back to the user.
-            collateralToken.transfer(msg.sender, amount);
+            collateralToken.safeTransfer(msg.sender, amount);
         }
     }
 
@@ -130,7 +133,7 @@ contract Router is ERC1155Holder {
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
 
             // transfer the ERC20 back to the user.
-            wrapped1155.transfer(msg.sender, amount);
+            wrapped1155.safeTransfer(msg.sender, amount);
         }
     }
 
@@ -160,7 +163,8 @@ contract Router is ERC1155Holder {
             uint256 finalBalance = collateralToken.balanceOf(address(this));
 
             if (finalBalance > initialBalance) {
-                collateralToken.transfer(msg.sender, finalBalance - initialBalance);
+                // send collateral tokens back to the user.
+                collateralToken.safeTransfer(msg.sender, finalBalance - initialBalance);
             }
         }
     }
@@ -218,7 +222,7 @@ contract Router is ERC1155Holder {
                 );
 
                 // transfer the ERC20 back to the user.
-                parentWrapped1155.transfer(msg.sender, finalBalance - initialBalance);
+                parentWrapped1155.safeTransfer(msg.sender, finalBalance - initialBalance);
             }
         }
     }

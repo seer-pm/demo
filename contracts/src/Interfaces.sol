@@ -1,17 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
-
-interface IERC20 {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-
-    function transfer(address to, uint256 amount) external returns (bool);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function balanceOf(address owner) external returns (uint256);
-
-    function totalSupply() external view returns (uint256);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol
 interface IRealityETH_v3_0 {
