@@ -1,28 +1,26 @@
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain, gnosis, mainnet } from "./chains";
 
+const api = "8b2690ffdd390bad59638b894ee8d9f6";
+
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]:
     (typeof window !== "undefined" && import.meta.env.VITE_SUBGRAPH_GNOSIS) ||
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH",
-  [mainnet.id]:
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M",
+    `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
+  [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]:
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp",
+  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp`,
+  [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/GQSb43FupQuxN11QaSVfTt5DytccLMsXKCrzuGuY7ZTD`,
 };
 export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]:
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR",
+  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
 };
 export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]:
-    "https://gateway-arbitrum.network.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT",
+  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
 };
 export const UNISWAP_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [mainnet.id]:
-    "https://gateway.thegraph.com/api/8b2690ffdd390bad59638b894ee8d9f6/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+  [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
 };
 
 export function graphQLClient(chainId: SupportedChain) {
