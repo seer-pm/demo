@@ -47,7 +47,7 @@ export const DEX_MAPPING = {
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
     [gnosis.id]: parseUnits("0.1", 18),
-    [mainnet.id]: parseUnits("5", 18),
+    [mainnet.id]: parseUnits("0.001", 18),
     [sepolia.id]: parseUnits("0.000001", 18),
     [hardhat.id]: parseUnits("5", 18),
   },
