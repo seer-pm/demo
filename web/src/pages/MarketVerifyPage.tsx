@@ -56,7 +56,8 @@ function MarkeVerifyPage() {
     removeOutcomes();
 
     if (market) {
-      for (const outcome of market.outcomes) {
+      // remove the last outcome (INVALID_RESULT)
+      for (const outcome of market.outcomes.slice(0, -1)) {
         appendOutcome({ value: outcome, token: "", image: "" });
       }
     }
