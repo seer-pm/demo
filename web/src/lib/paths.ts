@@ -28,10 +28,10 @@ export const paths = {
   getHelp: () => "#",
   beginnerGuide: () => "https://ethereum.org/en/wallets/",
   etherscan: () => "#",
-  github: () => "#",
+  github: () => "https://github.com/seer-pm",
   snapshot: () => "#",
   discord: () => "#",
-  twitter: () => "#",
+  twitter: () => "https://x.com/seer_pm",
   telegram: () => "#",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
 };
