@@ -1,9 +1,9 @@
-import { defineConfig } from "vite";
+import path from "path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "tailwindcss";
-import viteTsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
-import path from "path";
+import viteTsconfigPaths from "vite-tsconfig-paths";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -17,7 +17,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'node-fetch': 'isomorphic-fetch',
+      "node-fetch": "isomorphic-fetch",
+      jsbi: path.resolve(__dirname, "./../node_modules/jsbi/dist/jsbi-cjs.js"),
     },
   },
   css: {

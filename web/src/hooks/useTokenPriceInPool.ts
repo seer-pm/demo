@@ -1,6 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import combineQuery from "graphql-combine-query";
 import { mainnet } from "viem/chains";
@@ -49,7 +50,7 @@ async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain,
     .filter((x) => x)
     .reduce(
       (acc, curr) => {
-        const isToken0SDAI = curr.pool.token0.id === COLLATERAL_TOKENS[chainId].primary.address;
+        const isToken0SDAI = isTwoStringsEqual(curr.pool.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
         const outcomeTokenAddress = isToken0SDAI ? curr.pool.token1.id : curr.pool.token0.id;
         const outcomeTokenPrice = isToken0SDAI
           ? Number(curr.token1Price) / Number(curr.token0Price)
@@ -81,7 +82,7 @@ async function getCurrentTokensPrices(tokens: string[] | undefined, chainId: Sup
 
   return pools.reduce(
     (acc, curr) => {
-      const isToken0SDAI = curr.token0.id.toLocaleLowerCase() === COLLATERAL_TOKENS[chainId].primary.address;
+      const isToken0SDAI = isTwoStringsEqual(curr.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
       const outcomeTokenAddress = isToken0SDAI ? curr.token1.id : curr.token0.id;
       const outcomeTokenPrice = isToken0SDAI
         ? Number(curr.token1Price) / Number(curr.token0Price)

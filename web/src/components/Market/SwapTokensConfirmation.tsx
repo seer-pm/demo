@@ -73,7 +73,7 @@ export function SwapTokensConfirmation({
   outputAmount = isSellWithOtherCollateral
     ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
     : outputAmount;
-  outputToken = isSellWithOtherCollateral ? collateral.symbol : outputToken;
+  outputToken = (isSellWithOtherCollateral ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
@@ -94,13 +94,13 @@ export function SwapTokensConfirmation({
           incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
         </div>
       )}
-      <div className="w-[400px] h-[150px]">
-        <div className="flex items-center justify-between mb-5">
-          <p className="text-2xl">
+      <div className="min-w-[400px] min-h-[150px]">
+        <div className="flex items-center justify-between mb-5 gap-2">
+          <p className="text-2xl break-words">
             {inputAmount} {inputToken}
           </p>
           <RightArrow />
-          <p className="text-2xl">
+          <p className="text-2xl break-words">
             {outputAmount} {outputToken}
           </p>
         </div>

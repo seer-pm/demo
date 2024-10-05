@@ -1,5 +1,5 @@
 import { usePositions } from "@/hooks/usePortfolioPositions";
-import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/useSwaprTokenPriceInPool";
+import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/useTokenPriceInPool";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
