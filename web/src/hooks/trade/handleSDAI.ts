@@ -172,7 +172,7 @@ export async function redeemFromSDAI({ chainId, amount, owner }: HandleSDAIProps
         args: [amount, owner, owner],
         chainId: chainId,
       }),
-    { txSent: { title: "Redeeming..." }, txSuccess: { title: "Trade executed!" } },
+    { txSent: { title: "Redeeming..." }, txSuccess: { title: "Redeemed!" } },
   );
   if (!unwrappedResult.status) {
     throw unwrappedResult.error;
@@ -208,7 +208,7 @@ export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleS
         args: [amount, owner],
         chainId: chainId,
       }),
-    { txSent: { title: "Withdrawing..." }, txSuccess: { title: "Trade executed!" } },
+    { txSent: { title: "Redeeming..." }, txSuccess: { title: "Redeemed!" } },
   );
   if (!unwrappedResult.status) {
     throw unwrappedResult.error;
