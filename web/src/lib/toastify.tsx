@@ -1,8 +1,7 @@
 import { config as wagmiConfig } from "@/wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { ConnectorNotConnectedError } from "@wagmi/core";
+import { ConnectorNotConnectedError, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
-import { TransactionReceipt } from "viem";
+import { TransactionReceipt, WaitForTransactionReceiptTimeoutError } from "viem";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 
 export const DEFAULT_TOAST_OPTIONS = {
@@ -108,26 +107,43 @@ export const toastify: ToastifyFn<any> = async (execute, config) => {
 };
 
 export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
+  let hash: `0x${string}` | undefined = undefined;
   try {
-    const hash = await contractWrite();
-
+    hash = await contractWrite();
     toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
-
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash,
       confirmations: import.meta.env.VITE_TX_CONFIRMATIONS || 0,
+      timeout: 20000, //20 seconds timeout, then we poll manually
     });
-
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
 
     return { status: true, receipt: receipt };
     // biome-ignore lint/suspicious/noExplicitAny:
   } catch (error: any) {
+    // timeout so we poll manually
+    if (error instanceof WaitForTransactionReceiptTimeoutError && hash) {
+      const newReceipt = await pollForTransactionReceipt(hash);
+      if (newReceipt) {
+        toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
+        return { status: true, receipt: newReceipt };
+      }
+    }
     toastError({ title: getErrorMessage(error), subtitle: config?.txSent?.subtitle });
 
     return { status: false, error };
   }
 };
+
+async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 10, interval = 5000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const txReceipt = await getTransactionReceipt(wagmiConfig, { hash });
+    if (txReceipt?.blockNumber) {
+      return txReceipt;
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
 
 // biome-ignore lint/suspicious/noExplicitAny:
 function getErrorMessage(error: any): string {

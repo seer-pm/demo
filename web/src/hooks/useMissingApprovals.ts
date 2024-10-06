@@ -9,7 +9,7 @@ interface ApprovalInfo {
   amount: bigint;
 }
 
-async function fetchNeededApprovals(
+export async function fetchNeededApprovals(
   tokensAddresses: Address[],
   account: Address,
   spender: Address,

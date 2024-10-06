@@ -7,6 +7,7 @@ import { SwaprV3Trade, WXDAI } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { approveTokens } from "../useApproveTokens";
+import { fetchNeededApprovals } from "../useMissingApprovals";
 import {
   S_DAI_ADAPTER,
   depositFromNativeToSDAI,
@@ -42,11 +43,14 @@ async function getPopulatedTransaction(
 
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveTokens({
-      amount,
-      tokenAddress: wxDAIAddress,
-      spender: sDAIAddress,
-    });
+    const missingApprovals = await fetchNeededApprovals([wxDAIAddress], account, sDAIAddress, [amount]);
+    if (missingApprovals.length > 0) {
+      await approveTokens({
+        amount,
+        tokenAddress: wxDAIAddress,
+        spender: sDAIAddress,
+      });
+    }
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
@@ -86,15 +90,19 @@ export async function executeSwaprTrade(
   const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
   const wxDAIAddress = WXDAI[trade.chainId].address as Address;
   const isSellOutcomeTokens = isTwoStringsEqual(trade.outputAmount.currency.address, sDAIAddress);
+  const receivedAmount = BigInt(trade.outputAmount.raw.toString());
   // sdai to xdai
   if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    await approveTokens({
-      amount: BigInt(trade.outputAmount.raw.toString()),
-      tokenAddress: sDAIAddress,
-      spender: S_DAI_ADAPTER,
-    });
+    const missingApprovals = await fetchNeededApprovals([sDAIAddress], account, S_DAI_ADAPTER, [receivedAmount]);
+    if (missingApprovals.length > 0) {
+      await approveTokens({
+        amount: receivedAmount,
+        tokenAddress: sDAIAddress,
+        spender: S_DAI_ADAPTER,
+      });
+    }
     await redeemFromSDAIToNative({
-      amount: BigInt(trade.outputAmount.raw.toString()),
+      amount: receivedAmount,
       chainId: trade.chainId,
       owner: account,
     });
@@ -103,7 +111,7 @@ export async function executeSwaprTrade(
   // sdai to wxdai
   if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     await redeemFromSDAI({
-      amount: BigInt(trade.outputAmount.raw.toString()),
+      amount: receivedAmount,
       chainId: trade.chainId,
       owner: account,
     });

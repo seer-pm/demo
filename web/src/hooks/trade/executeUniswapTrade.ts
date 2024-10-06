@@ -7,6 +7,7 @@ import { UniswapTrade } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
 import { approveTokens } from "../useApproveTokens";
+import { fetchNeededApprovals } from "../useMissingApprovals";
 import { depositToSDAI, redeemFromSDAI } from "./handleSDAI";
 import { getConvertedShares, setUniswapTradeLimit } from "./utils";
 
@@ -22,11 +23,14 @@ async function getPopulatedTransaction(
   // dai to sdai
   if (isBuyOutcomeTokens && DAIAddress && isTwoStringsEqual(collateral.address, DAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveTokens({
-      amount,
-      tokenAddress: DAIAddress,
-      spender: sDAIAddress,
-    });
+    const missingApprovals = await fetchNeededApprovals([DAIAddress], account, sDAIAddress, [amount]);
+    if (missingApprovals.length > 0) {
+      await approveTokens({
+        amount,
+        tokenAddress: DAIAddress,
+        spender: sDAIAddress,
+      });
+    }
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
