@@ -45,7 +45,6 @@ export async function getUniswapHistoryTokensPrices(
     throw new Error("Subgraph not available");
   }
   const blockNumber = await getBlockNumberAtTime(startTime);
-  console.log(blockNumber);
   const { pools } = await getSdk(subgraphClient).GetPools({
     where: {
       or: tokens.map((token) =>
@@ -63,9 +62,7 @@ export async function getUniswapHistoryTokensPrices(
     (acc, curr) => {
       const isToken0SDAI = isTwoStringsEqual(curr.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
       const outcomeTokenAddress = isToken0SDAI ? curr.token1.id : curr.token0.id;
-      const outcomeTokenPrice = isToken0SDAI
-        ? Number(curr.token1Price) / Number(curr.token0Price)
-        : Number(curr.token0Price) / Number(curr.token1Price);
+      const outcomeTokenPrice = isToken0SDAI ? Number(curr.token0Price) : Number(curr.token1Price);
       acc[outcomeTokenAddress] = outcomeTokenPrice;
       return acc;
     },
@@ -94,9 +91,7 @@ export async function getUniswapCurrentTokensPrices(tokens: string[] | undefined
     (acc, curr) => {
       const isToken0SDAI = isTwoStringsEqual(curr.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
       const outcomeTokenAddress = isToken0SDAI ? curr.token1.id : curr.token0.id;
-      const outcomeTokenPrice = isToken0SDAI
-        ? Number(curr.token1Price) / Number(curr.token0Price)
-        : Number(curr.token0Price) / Number(curr.token1Price);
+      const outcomeTokenPrice = isToken0SDAI ? Number(curr.token0Price) : Number(curr.token1Price);
       acc[outcomeTokenAddress] = outcomeTokenPrice;
       return acc;
     },

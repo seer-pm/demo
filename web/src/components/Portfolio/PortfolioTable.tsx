@@ -68,8 +68,9 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
       {
         accessorKey: "tokenPrice",
         cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
-        header: "Current Token Price (per sDAI)",
+        header: "Current Token Price (sDAI)",
       },
+
       {
         accessorKey: "tokenValue",
         cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
