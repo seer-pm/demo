@@ -318,12 +318,7 @@ export function PreviewForm({
       marketTypeValues.marketType === MarketTypes.SCALAR
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
-    outcomes: getOutcomes(
-      outcomes,
-      outcomesValues.lowerBound.value,
-      outcomesValues.upperBound.value,
-      marketTypeValues.marketType,
-    ).concat(INVALID_RESULT_OUTCOME_TEXT),
+    outcomes: getOutcomes(outcomes, marketTypeValues.marketType).concat(INVALID_RESULT_OUTCOME_TEXT),
     parentMarket,
     parentOutcome,
     wrappedTokens: ["0x000", "0x000"],

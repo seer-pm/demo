@@ -67,12 +67,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
   };
 
   if (getMarketType(market) === MarketTypes.SCALAR) {
-    market.outcomes = getOutcomes(
-      market.outcomes.slice(),
-      Number(market.lowerBound),
-      Number(market.upperBound),
-      getMarketType(market),
-    );
+    market.outcomes = getOutcomes(market.outcomes.slice(), getMarketType(market));
   }
   return market;
 }

@@ -61,21 +61,21 @@ function getOutcome(templateId: bigint, values: AnswerFormValues) {
     .filter((v) => v !== false) as number[];
 }
 
-function getOutcomes(market: Market, question: Question) {
-  let outcomes: { value: FormEventOutcomeValue; text: string }[] = [];
+function getOutcomesOptions(market: Market, question: Question) {
+  let options: { value: FormEventOutcomeValue; text: string }[] = [];
 
-  outcomes = market.outcomes
+  options = market.outcomes
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
   // the last element is the Invalid Result outcome
-  outcomes.pop();
+  options.pop();
 
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
-    outcomes = outcomes.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
+    options = options.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
   }
 
-  return outcomes;
+  return options;
 }
 
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
@@ -176,7 +176,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     );
   }
 
-  const outcomesOptions = getOutcomes(market, question);
+  const outcomesOptions = getOutcomesOptions(market, question);
 
   const onMultiSelectClick = (index: number, value: FormEventOutcomeValue) => {
     return () => {
