@@ -299,7 +299,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     rel="noopener noreferrer"
                     className="text-purple-primary tooltip"
                   >
-                    <p className="tooltiptext">View on {SUPPORTED_CHAINS[chainId].name}</p>
+                    <p className="tooltiptext">
+                      View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[chainId].name}
+                    </p>
                     <EtherscanIcon width="12" height="12" />
                   </a>
 

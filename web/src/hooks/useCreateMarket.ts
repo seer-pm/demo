@@ -47,14 +47,22 @@ export function getOutcomes(outcomes: string[], lowerBound: number, upperBound: 
   return outcomes;
 }
 
+function generateTokenName(outcome: string) {
+  return outcome
+    .replace(/[^\w\s]/gi, "") // remove special characters
+    .replaceAll("_", " ") // replace underscores with spaces
+    .replace(/ {2,}/g, " ") // remove consecutive spaces
+    .trim() // trim
+    .replaceAll(" ", "_") // replace spaces with underscore
+    .toLocaleUpperCase() // uppercase
+    .substring(0, 11); // 11 characters to follow the verification policy
+}
+
 function getTokenNames(tokenNames: string[], outcomes: string[]) {
   // we loop over `outcomes` because it's the return value of getOutcomes(),
   // that already has the correct outcomes for scalar markets
   return outcomes.map((outcome, i) =>
-    (tokenNames[i].trim() !== "" ? tokenNames[i].trim() : outcome.toLocaleUpperCase().replaceAll(" ", "_")).slice(
-      0,
-      31,
-    ),
+    (tokenNames[i].trim() !== "" ? tokenNames[i].trim() : generateTokenName(outcome)).slice(0, 31),
   );
 }
 
