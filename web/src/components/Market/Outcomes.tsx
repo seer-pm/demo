@@ -10,7 +10,7 @@ import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, isUndefined, splitScalarOutcome } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -223,12 +223,12 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     };
   };
 
-  const getTooltipContent = (outcome: string) => {
-    const { type, lowerBound, upperBound } = splitScalarOutcome(outcome) ?? {};
-    if (type === "UP") {
+  const getTooltipContent = (market: Market, outcomeIndex: number) => {
+    const [lowerBound, upperBound] = [market.lowerBound, market.upperBound];
+    if (outcomeIndex === 1) {
       return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
     }
-    if (type === "DOWN") {
+    if (outcomeIndex === 0) {
       return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 0\nAnswer within [${lowerBound}-${upperBound}]: (${upperBound}-answer)/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 1`;
     }
     return "";
@@ -263,7 +263,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     <>
                       <span className="tooltip">
                         <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
-                          {getTooltipContent(market.outcomes[i])}
+                          {getTooltipContent(market, i)}
                         </p>
                         <QuestionIcon fill="#9747FF" />
                       </span>
