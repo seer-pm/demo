@@ -20,7 +20,7 @@ export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain,
   [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
 };
 export const UNISWAP_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/6EcVGBGhW8U6B9nd9uT1n5iDRMtH2evoJeaY5BXBCniM`,
 };
 
 export function graphQLClient(chainId: SupportedChain) {

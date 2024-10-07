@@ -1,25 +1,22 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { swaprGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import combineQuery from "graphql-combine-query";
-import { mainnet } from "viem/chains";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
   OrderDirection,
   PoolHourData_OrderBy,
   getSdk,
-} from "./queries/gql-generated-swapr";
+} from "../queries/gql-generated-swapr";
 
-async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain, startTime: number) {
+export async function getSwaprHistoryTokensPrices(tokens: string[], chainId: SupportedChain, startTime: number) {
   if (tokens.length === 0) {
     return {};
   }
 
-  const subgraphClient =
-    chainId === mainnet.id ? uniswapGraphQLClient(chainId) : swaprGraphQLClient(chainId, "algebra");
+  const subgraphClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
@@ -62,10 +59,9 @@ async function getHistoryTokensPrices(tokens: string[], chainId: SupportedChain,
     );
 }
 
-async function getCurrentTokensPrices(tokens: string[] | undefined, chainId: SupportedChain) {
+export async function getSwaprCurrentTokensPrices(tokens: string[] | undefined, chainId: SupportedChain) {
   if (!tokens) return {};
-  const subgraphClient =
-    chainId === mainnet.id ? uniswapGraphQLClient(chainId) : swaprGraphQLClient(chainId, "algebra");
+  const subgraphClient = swaprGraphQLClient(chainId, "algebra");
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
   }
@@ -93,21 +89,3 @@ async function getCurrentTokensPrices(tokens: string[] | undefined, chainId: Sup
     {} as { [key: string]: number },
   );
 }
-
-export const useHistoryTokensPrices = (tokens: string[], chainId: SupportedChain, startTime: number) => {
-  return useQuery<{ [key: string]: number } | undefined, Error>({
-    enabled: tokens.length > 0,
-    queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
-    retry: false,
-    queryFn: async () => await getHistoryTokensPrices(tokens, chainId, startTime),
-  });
-};
-
-export const useCurrentTokensPrices = (tokens: string[] | undefined, chainId: SupportedChain) => {
-  return useQuery<{ [key: string]: number } | undefined, Error>({
-    enabled: !!tokens?.length,
-    queryKey: ["useCurrentTokensPrice", tokens, chainId],
-    retry: false,
-    queryFn: async () => await getCurrentTokensPrices(tokens, chainId),
-  });
-};

@@ -3,7 +3,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Input from "@/components/Form/Input";
 import PortfolioTable from "@/components/Portfolio/PortfolioTable";
 import { Spinner } from "@/components/Spinner";
-import useCalculatePositionsValue from "@/hooks/useCalculatePositionsValue";
+import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
 
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, SearchIcon, Union } from "@/lib/icons";
@@ -18,7 +18,8 @@ function PortfolioPage() {
     setFilterMarketName((event.target as HTMLInputElement).value);
   };
 
-  const { isCalculating, isGettingPositions, delta, positions, currentPortfolioValue } = useCalculatePositionsValue();
+  const { isCalculating, isGettingPositions, delta, positions, currentPortfolioValue, deltaPercent } =
+    useCalculatePositionsValue();
 
   const filteredPositions = positions?.filter((position) =>
     position.marketName.toLowerCase().includes(filterMarketName.toLowerCase()),
@@ -58,14 +59,14 @@ function PortfolioPage() {
                 <span>
                   <ArrowDropUp fill="#00C42B" />
                 </span>
-                {delta.toFixed(2)} sDAI ({((delta / currentPortfolioValue) * 100).toFixed(2)}%) today
+                {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
               </p>
             ) : (
               <p className="text-[#c40000] flex gap-2">
                 <span>
                   <ArrowDropDown fill="#c40000" />
                 </span>
-                {delta.toFixed(2)} sDAI ({((delta / currentPortfolioValue) * 100).toFixed(2)}%) today
+                {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
               </p>
             ))}
         </div>

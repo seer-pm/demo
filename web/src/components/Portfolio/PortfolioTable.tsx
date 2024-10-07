@@ -1,8 +1,8 @@
 import React from "react";
 
+import { PortfolioPosition } from "@/hooks/portfolio/usePortfolioPositions";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { PortfolioPosition } from "@/hooks/usePortfolioPositions";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";

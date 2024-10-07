@@ -3,10 +3,10 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, formatUnits } from "viem";
-import { readConditionalTokensPayoutNumerators } from "./contracts/generated";
-import { Market } from "./useMarket";
-import { MarketStatus, getMarketStatus } from "./useMarketStatus";
-import { fetchMarkets } from "./useMarkets";
+import { readConditionalTokensPayoutNumerators } from "../contracts/generated";
+import { Market } from "../useMarket";
+import { MarketStatus, getMarketStatus } from "../useMarketStatus";
+import { fetchMarkets } from "../useMarkets";
 
 export interface PortfolioPosition {
   tokenName: string;

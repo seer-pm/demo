@@ -1,5 +1,5 @@
-import { usePositions } from "@/hooks/usePortfolioPositions";
-import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/useTokenPriceInPool";
+import { usePositions } from "@/hooks/portfolio/usePortfolioPositions";
+import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/portfolio/useTokenPriceInPool";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
@@ -53,6 +53,7 @@ function useCalculatePositionsValue() {
     delta,
     positions: positionsWithTokenValue,
     currentPortfolioValue,
+    deltaPercent: Number.isNaN(delta / currentPortfolioValue) ? 0 : (delta / currentPortfolioValue) * 100,
   };
 }
 
