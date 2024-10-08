@@ -1,9 +1,11 @@
+import Button from "@/components/Form/Button";
 import { useModal } from "@/components/Modal";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain } from "@/lib/chains";
 import { CalendarIcon } from "@/lib/icons";
 import { getMarketType, getOpeningTime } from "@/lib/market";
+import { getRealityLink } from "@/lib/reality";
 import clsx from "clsx";
 import { useState } from "react";
 import { AnswerForm } from "../AnswerForm";
@@ -20,10 +22,54 @@ interface MarketInfoProps {
 }
 
 function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openAnswerModal }: MarketInfoProps) {
+  const {
+    Modal: QuestionsModal,
+    openModal: openQuestionsModal,
+    closeModal: closeQuestionsModal,
+  } = useModal("questions-modal");
+
   if (marketStatus === MarketStatus.NOT_OPEN) {
     return (
       <div className={clsx("flex items-center space-x-2", COLORS[marketStatus]?.text)}>
-        <CalendarIcon /> <div>Opening at {getOpeningTime(market)}</div>
+        <CalendarIcon />
+
+        {market.questions.length === 1 ? (
+          <div>
+            <a href={getRealityLink(chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
+              Opening at {getOpeningTime(market)}
+            </a>
+          </div>
+        ) : (
+          <>
+            <QuestionsModal
+              title="Reality questions"
+              content={
+                <div>
+                  <div className="space-y-[5px]">
+                    {market.questions.map((question, i) => (
+                      <div>
+                        <a
+                          href={getRealityLink(chainId, question.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:underline"
+                        >
+                          {market.outcomes[i]}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-center mt-[24px]">
+                    <Button type="button" variant="secondary" text="Return" onClick={closeQuestionsModal} />
+                  </div>
+                </div>
+              }
+            />
+            <button type="button" onClick={openQuestionsModal} className="text-left">
+              Opening at {getOpeningTime(market)}
+            </button>
+          </>
+        )}
       </div>
     );
   }
