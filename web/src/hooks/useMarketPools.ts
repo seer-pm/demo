@@ -138,7 +138,7 @@ interface OutcomePool {
   liquidity: string;
 }
 
-export async function getAllOutcomePools(chainId: SupportedChain): Promise<OutcomePool[] | undefined> {
+async function getAllOutcomePools(chainId: SupportedChain): Promise<OutcomePool[]> {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
@@ -147,14 +147,10 @@ export async function getAllOutcomePools(chainId: SupportedChain): Promise<Outco
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
 
-  try {
-    const { pools } = await graphQLSdk(graphQLClient).GetPools({
-      where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
-    });
-    return pools;
-  } catch (e) {
-    console.log(e);
-  }
+  const { pools } = await graphQLSdk(graphQLClient).GetPools({
+    where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
+  });
+  return pools;
 }
 
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
