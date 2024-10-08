@@ -185,7 +185,7 @@ export function QuestionLine({
 
         <div className="text-black-medium">|</div>
         <div className="flex items-center space-x-2">
-          <RealityLink chainId={chainId} questionId={market.questionId} />
+          <RealityLink chainId={chainId} questionId={question.id} />
         </div>
         <div className="text-black-medium">|</div>
         <DisputeLink questionId={question.id} />
@@ -265,7 +265,7 @@ export function QuestionLine({
         <>
           <div className="text-black-medium">|</div>
           <div className="flex items-center space-x-2">
-            <RealityLink chainId={chainId} questionId={market.questionId} />
+            <RealityLink chainId={chainId} questionId={question.id} />
           </div>
         </>
       )}
