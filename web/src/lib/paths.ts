@@ -10,7 +10,8 @@ export const paths = {
     "https://cdn.kleros.link/ipfs/QmP1JMDd1EP1uR4ski5PQTJWyYsaafnsLyzYscD8fdpd8v/seer-verified-markets-on-gnosis-policy.pdf",
   marketRulesPolicy: () =>
     "https://cdn.kleros.link/ipfs/QmPmRkXFUmzP4rq2YfD3wNwL8bg3WDxkYuvTP9A9UZm9gJ/seer-markets-resolution-policy.pdf",
-  klerosDispute: (disputeId: bigint) => `https://court.kleros.io/cases/${disputeId.toString()}`,
+  klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
+    `https://court.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
   farmingProgram: () => "#",
   curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
     if (chainId in lightGeneralizedTcrAddress) {

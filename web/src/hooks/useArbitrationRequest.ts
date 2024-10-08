@@ -20,6 +20,7 @@ export async function getArbitrationRequest(
   if (chainId === mainnet.id) {
     const [status, , disputeId] = await readRealitioV2_1ArbitratorWithAppealsArbitrationRequests(config, {
       args: [BigInt(questionId)],
+      chainId: mainnet.id,
     });
 
     return { status, disputeId };
@@ -44,7 +45,7 @@ export async function getArbitrationRequest(
 
 export const useArbitrationRequest = (questionId: `0x${string}`, chainId: SupportedChain) => {
   return useQuery<ArbitrationRequest, Error>({
-    queryKey: ["useArbitrationRequest", questionId],
+    queryKey: ["useArbitrationRequest", questionId, chainId],
     queryFn: async () => {
       return await getArbitrationRequest(questionId, chainId);
     },

@@ -3,7 +3,7 @@ import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, mainnet } from "@/lib/chains";
 import { CheckCircleIcon, HourGlassIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -74,7 +74,12 @@ function DisputeLink({ questionId, chainId }: { questionId: `0x${string}`; chain
 
   return (
     <div className="flex items-center space-x-2">
-      <a className="text-purple-primary" href={paths.klerosDispute(disputeId)} target="_blank" rel="noreferrer">
+      <a
+        className="text-purple-primary"
+        href={paths.klerosDispute(disputeId, mainnet.id)}
+        target="_blank"
+        rel="noreferrer"
+      >
         Check the case on Kleros Court
       </a>
       <RightArrow />
