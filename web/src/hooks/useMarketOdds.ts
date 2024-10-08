@@ -6,12 +6,12 @@ import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
-function normalizeOdds(prices: number[]) {
+function normalizeOdds(prices: number[]): number[] {
   const sum = prices.reduce((acc, curr) => {
     return acc + curr;
   }, 0);
 
-  return prices.map((price) => Math.round((price / sum) * 100));
+  return prices.map((price) => Number(((price / sum) * 100).toFixed(1)));
 }
 
 export async function getTokenPrice(
