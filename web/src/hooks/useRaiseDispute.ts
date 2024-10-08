@@ -4,7 +4,10 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
-import { writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration } from "./contracts/generated";
+import {
+  writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
+  writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
+} from "./contracts/generated";
 
 interface RaiseDisputeProps {
   questionId: `0x${string}`;
@@ -16,11 +19,17 @@ interface RaiseDisputeProps {
 async function raiseDispute(props: RaiseDisputeProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     async () =>
-      writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
-        args: [props.questionId, props.currentBond],
-        value: props.arbitrationCost,
-        chainId: mainnet.id,
-      }),
+      props.chainId === mainnet.id
+        ? writeRealitioV2_1ArbitratorWithAppealsRequestArbitration(config, {
+            args: [props.questionId, props.currentBond],
+            value: props.arbitrationCost,
+            chainId: mainnet.id,
+          })
+        : writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
+            args: [props.questionId, props.currentBond],
+            value: props.arbitrationCost,
+            chainId: mainnet.id,
+          }),
     {
       txSent: { title: "Creating dispute..." },
       txSuccess: { title: "Dispute created!" },
