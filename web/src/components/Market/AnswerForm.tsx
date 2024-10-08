@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
-import { useReadRealitioForeignArbitrationProxyWithAppealsArbitrationRequests } from "@/hooks/contracts/generated";
+import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
@@ -22,7 +22,7 @@ import { displayBalance } from "@/lib/utils";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
-import { hexToNumber, parseEther, zeroAddress } from "viem";
+import { hexToNumber, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -85,9 +85,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
-  const { data: arbitrationRequest } = useReadRealitioForeignArbitrationProxyWithAppealsArbitrationRequests({
-    args: [BigInt(question.id), address || zeroAddress],
-  });
+  const { data: arbitrationRequest } = useArbitrationRequest(question.id, chainId);
 
   const useFormReturn = useForm<AnswerFormValues>({
     mode: "all",
@@ -135,7 +133,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     );
   }
 
-  if (question.is_pending_arbitration || arbitrationRequest?.[0] === 1) {
+  if (question.is_pending_arbitration || arbitrationRequest?.status === 1) {
     return (
       <>
         <Alert type="info">This question is in arbitration process.</Alert>

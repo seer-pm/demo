@@ -1,4 +1,4 @@
-import { useArbitrationDisputeId } from "@/hooks/useArbitrationDisputeId";
+import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
@@ -64,7 +64,9 @@ function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questio
 }
 
 function DisputeLink({ questionId, chainId }: { questionId: `0x${string}`; chainId: SupportedChain }) {
-  const { data: disputeId } = useArbitrationDisputeId(questionId, chainId);
+  const { data: arbitrationRequest } = useArbitrationRequest(questionId, chainId);
+
+  const disputeId = arbitrationRequest?.disputeId || 0n;
 
   if (!disputeId) {
     return null;

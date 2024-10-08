@@ -8,12 +8,21 @@ import {
   readRealitioV2_1ArbitratorWithAppealsArbitrationRequests,
 } from "./contracts/generated";
 
-async function getArbitrationDisputeId(questionId: `0x${string}`, chainId: SupportedChain): Promise<number> {
+interface ArbitrationRequest {
+  status: number;
+  disputeId: bigint;
+}
+
+export async function getArbitrationRequest(
+  questionId: `0x${string}`,
+  chainId: SupportedChain,
+): Promise<ArbitrationRequest> {
   if (chainId === mainnet.id) {
-    const arbitrationRequest = await readRealitioV2_1ArbitratorWithAppealsArbitrationRequests(config, {
+    const [status, , disputeId] = await readRealitioV2_1ArbitratorWithAppealsArbitrationRequests(config, {
       args: [BigInt(questionId)],
     });
-    return Number(arbitrationRequest[2]);
+
+    return { status, disputeId };
   }
 
   const requester = await readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester(config, {
@@ -22,22 +31,22 @@ async function getArbitrationDisputeId(questionId: `0x${string}`, chainId: Suppo
   });
 
   if (requester === zeroAddress) {
-    return 0;
+    return { status: 0, disputeId: 0n };
   }
 
-  const arbitrationRequest = await readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests(config, {
+  const [status, , disputeId] = await readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests(config, {
     args: [BigInt(questionId), requester],
     chainId: mainnet.id,
   });
 
-  return Number(arbitrationRequest[2]);
+  return { status, disputeId };
 }
 
-export const useArbitrationDisputeId = (questionId: `0x${string}`, chainId: SupportedChain) => {
-  return useQuery<number, Error>({
-    queryKey: ["useArbitrationDisputeId", questionId],
+export const useArbitrationRequest = (questionId: `0x${string}`, chainId: SupportedChain) => {
+  return useQuery<ArbitrationRequest, Error>({
+    queryKey: ["useArbitrationRequest", questionId],
     queryFn: async () => {
-      return getArbitrationDisputeId(questionId, chainId);
+      return await getArbitrationRequest(questionId, chainId);
     },
   });
 };
