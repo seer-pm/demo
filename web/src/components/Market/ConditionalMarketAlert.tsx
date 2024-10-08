@@ -6,27 +6,35 @@ import { Address } from "viem";
 import { Alert } from "../Alert";
 
 export function ConditionalMarketAlert({
-  parentMarket,
+  parentMarket: parentMarketAddress,
   parentOutcome,
   chainId,
-}: { parentMarket: Address; parentOutcome: bigint; chainId: SupportedChain }) {
-  const { data: conditionalMarket } = useMarket(parentMarket, chainId);
+}: {
+  parentMarket: Address;
+  parentOutcome: bigint;
+  chainId: SupportedChain;
+}) {
+  const { data: parentMarket } = useMarket(parentMarketAddress, chainId);
 
-  if (!conditionalMarket) {
+  if (!parentMarket) {
     return null;
   }
 
   return (
     <Alert type="info" title="Conditional Market">
       This market is conditional on the resolution of{" "}
+      <Link to={paths.market(parentMarket.id, chainId)} target="_blank" className="text-purple-primary font-medium">
+        "{parentMarket.marketName}"
+      </Link>{" "}
+      being{" "}
       <Link
-        to={paths.market(conditionalMarket.id, chainId)}
+        to={`${paths.market(parentMarket.id, chainId)}?outcome=${parentOutcome}`}
         target="_blank"
         className="text-purple-primary font-medium"
       >
-        "{conditionalMarket.marketName}"
-      </Link>{" "}
-      being <span className="font-medium">"{conditionalMarket.outcomes[Number(parentOutcome)]}"</span>. <br />
+        "{parentMarket.outcomes[Number(parentOutcome)]}"
+      </Link>
+      . <br />
       If the main market resolves to a different outcome, the tokens of this market will be worthless.
     </Alert>
   );

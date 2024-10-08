@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/Spinner";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { Market } from "@/hooks/useMarket";
+import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
@@ -13,6 +13,7 @@ import {
   DaiLogo,
   ExclamationCircleIcon,
   EyeIcon,
+  LawBalanceIcon,
   MultiCategoricalIcon,
   MultiScalarIcon,
   MyMarket,
@@ -179,7 +180,7 @@ export function MarketHeader({
   verificationStatusResult,
 }: MarketHeaderProps) {
   const { address } = useAccount();
-
+  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
@@ -241,6 +242,26 @@ export function MarketHeader({
               </Link>
             )}
           </div>
+          {parentMarket && type !== "default" && (
+            <p className="text-[14px] my-2">
+              Conditional on{" "}
+              <Link
+                to={paths.market(parentMarket.id, chainId)}
+                target="_blank"
+                className="text-purple-primary font-medium"
+              >
+                "{parentMarket.marketName}"
+              </Link>{" "}
+              being{" "}
+              <Link
+                to={`${paths.market(parentMarket.id, chainId)}?outcome=${market.parentOutcome}`}
+                target="_blank"
+                className="text-purple-primary font-medium"
+              >
+                "{parentMarket.outcomes[Number(market.parentOutcome)]}"
+              </Link>
+            </p>
+          )}
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} chainId={chainId} />
           ) : (
@@ -299,6 +320,7 @@ export function MarketHeader({
                 "flex items-center space-x-2",
                 verificationStatusResult.status === "verified" && "text-success-primary",
                 verificationStatusResult.status === "verifying" && "text-blue-primary",
+                verificationStatusResult.status === "challenged" && "text-warning-primary",
                 verificationStatusResult.status === "not_verified" && "text-purple-primary",
               )}
               to={
@@ -320,6 +342,12 @@ export function MarketHeader({
                 <>
                   <ClockIcon />
                   <div className="max-lg:hidden">Verifying</div>
+                </>
+              )}
+              {verificationStatusResult.status === "challenged" && (
+                <>
+                  <LawBalanceIcon />
+                  <div className="max-lg:hidden">Challenged</div>
                 </>
               )}
               {verificationStatusResult.status === "not_verified" && (

@@ -201,7 +201,7 @@ function ModalContentCreateMarket({
         <div className="px-[20px]">
           <div className="text-[14px] text-purple-primary text-left mb-[16px]">Pending images:</div>
           <div className="text-[14px] text-left">
-            Verification requires the question and outcome images. Please, upload a 1:1 aspect ratio PNG or JPEG image
+            Verification requires the question and outcome images. Please upload a 1:1 aspect ratio PNG or JPEG image
             for each field below. If there is a background, it should be transparent.
           </div>
 

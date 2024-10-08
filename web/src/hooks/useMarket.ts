@@ -101,7 +101,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
 
   return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId, factory?.toLocaleLowerCase()],
-    enabled: marketId !== zeroAddress && !isUndefined(factory),
+    enabled: marketId && marketId !== zeroAddress && !isUndefined(factory),
     queryFn: async () => {
       return mapOnChainMarket({
         ...(await readMarketViewGetMarket(config, {

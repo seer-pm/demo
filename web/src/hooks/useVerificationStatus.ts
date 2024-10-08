@@ -7,7 +7,7 @@ import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { getSdk } from "./queries/gql-generated-curate";
 import { getMarketImages } from "./useMarketImages";
 
-export type VerificationStatus = "verified" | "verifying" | "not_verified";
+export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
 export type VerificationStatusResult = { status: VerificationStatus; itemID?: string };
 
 export const useVerificationStatus = (marketId: Address, chainId: SupportedChain) => {
@@ -23,6 +23,9 @@ export const useVerificationStatus = (marketId: Address, chainId: SupportedChain
 
       const pendingItem = litems.find((litem) => litem.status === "RegistrationRequested");
       if (!isUndefined(pendingItem)) {
+        if (pendingItem.disputed) {
+          return { status: "challenged", itemID: pendingItem.itemID };
+        }
         return { status: "verifying", itemID: pendingItem.itemID };
       }
 
@@ -57,7 +60,11 @@ export const useVerificationStatusList = (chainId: SupportedChain) => {
               return obj;
             }
             if (item.status === "RegistrationRequested") {
-              obj[item.key0.toLowerCase()] = { status: "verifying", itemID: item.itemID };
+              if (item.disputed) {
+                obj[item.key0.toLowerCase()] = { status: "challenged", itemID: item.itemID };
+              } else {
+                obj[item.key0.toLowerCase()] = { status: "verifying", itemID: item.itemID };
+              }
               return obj;
             }
             obj[item.key0.toLowerCase()] = { status: "not_verified" };

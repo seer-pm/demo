@@ -8,7 +8,8 @@ import { defaultStatus, useVerificationStatusList } from "./useVerificationStatu
 const statusPriority = {
   verified: 0,
   verifying: 1,
-  not_verified: 2,
+  challenged: 2,
+  not_verified: 3,
 };
 
 type ExtendedMarket = Market & {

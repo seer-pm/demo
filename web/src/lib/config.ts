@@ -3,6 +3,8 @@ import * as generatedHooks from "@/hooks/contracts/generated";
 const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
+import ethereumIcon from "../../assets/images/ethereum.webp";
+import gnosisIcon from "../../assets/images/gnosis.webp";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
@@ -101,4 +103,9 @@ export const getFarmingUrl = (chainId: number, farmId: string) => {
     default:
       return "#";
   }
+};
+
+export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
+  [gnosis.id]: gnosisIcon,
+  [mainnet.id]: ethereumIcon,
 };

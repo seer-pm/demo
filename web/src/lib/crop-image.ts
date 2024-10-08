@@ -80,9 +80,22 @@ export default async function getCroppedImg(
   // As Base64 string
   // return croppedCanvas.toDataURL('image/jpeg');
 
+  // Reduce the image resolution if larger than 500*500
+  const scalingFactor = Math.max(pixelCrop.width / 500, 1);
+  const newWidth = pixelCrop.width / scalingFactor;
+  const newHeight = pixelCrop.height / scalingFactor;
+
+  // Create a new canvas for the final image
+  const finalCanvas = document.createElement("canvas");
+  finalCanvas.width = newWidth;
+  finalCanvas.height = newHeight;
+  const finalCtx = finalCanvas.getContext("2d")!;
+
+  // Draw the cropped image onto the final canvas with the new dimensions
+  finalCtx.drawImage(croppedCanvas, 0, 0, pixelCrop.width, pixelCrop.height, 0, 0, newWidth, newHeight);
   // As a blob
   return new Promise((resolve, reject) => {
-    croppedCanvas.toBlob((blob) => {
+    finalCanvas.toBlob((blob) => {
       if (blob === null) {
         reject();
       } else {

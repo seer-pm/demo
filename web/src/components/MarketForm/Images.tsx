@@ -49,7 +49,11 @@ function EditImageModal({
   image,
   setFile,
   closeModal,
-}: { image: File; setFile: (file: File) => void; closeModal: () => void }) {
+}: {
+  image: File;
+  setFile: (file: File) => void;
+  closeModal: () => void;
+}) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -132,12 +136,18 @@ export function ImageUpload<
             return "The image aspect ratio must be 1:1.";
           }
 
+          const maxSizeKB = 100;
+          const imageSizeKB = v.size / 1024;
+          if (imageSizeKB > maxSizeKB) {
+            return `Image size (${imageSizeKB.toFixed(2)} KB) exceeds the maximum allowed size of ${maxSizeKB} KB.`;
+          }
+
           return true;
         },
       }}
       render={({ formState: { errors } }) => (
         <div>
-          <DashedBox className="p-[20px] text-center">
+          <DashedBox className="text-center">
             <Dropzone
               onDrop={(files) => setFile(files[0])}
               onError={(error: Error) => console.log(error)}
@@ -146,7 +156,7 @@ export function ImageUpload<
               {({ getRootProps, getInputProps }) => (
                 <div
                   {...getRootProps({
-                    className: "dropzone",
+                    className: "dropzone p-[20px]",
                   })}
                 >
                   <input {...getInputProps()} />
@@ -156,20 +166,25 @@ export function ImageUpload<
                       <PreviewImage file={image} />
                     </div>
                   )}
+                  {!!image && (
+                    <p className="text-purple-primary text-[14px]">Drag and drop or click to select a new image.</p>
+                  )}
                 </div>
               )}
             </Dropzone>
-
-            {!!image && (
-              <>
-                <Button text="Edit image" className="!px-[10px]" onClick={openModal} size="small" />
-                <Modal
-                  title="Edit Image"
-                  content={<EditImageModal image={image} setFile={setFile} closeModal={closeModal} />}
-                />
-              </>
-            )}
           </DashedBox>
+          <FormError errors={errors} name={name} />
+          {!!image && (
+            <>
+              <div className="w-full flex justify-center mt-4">
+                <Button text="Edit image" className="!px-[10px]" onClick={openModal} size="small" />
+              </div>
+              <Modal
+                title="Edit Image"
+                content={<EditImageModal image={image} setFile={setFile} closeModal={closeModal} />}
+              />
+            </>
+          )}
           {showInfo && (
             <div className="text-left text-[14px] text-black-secondary flex items-center space-x-2 mt-[16px]">
               <div>
@@ -181,7 +196,6 @@ export function ImageUpload<
               </span>
             </div>
           )}
-          <FormError errors={errors} name={name} />
         </div>
       )}
     />

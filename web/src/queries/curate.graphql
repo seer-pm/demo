@@ -14,5 +14,6 @@ query GetImages(
         key0
         data
         latestRequester
+        disputed
   }
 }

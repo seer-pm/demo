@@ -2,7 +2,15 @@ import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { VerificationStatus } from "@/hooks/useVerificationStatus";
-import { ArrowSwap, CheckCircleIcon, ClockIcon, ExclamationCircleIcon, Filter, QuestionIcon } from "@/lib/icons";
+import {
+  ArrowSwap,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+  Filter,
+  LawBalanceIcon,
+  QuestionIcon,
+} from "@/lib/icons";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -19,6 +27,7 @@ export const VERIFY_STATUS_OPTIONS = [
   { value: "", text: "All" },
   { value: "verified", text: "Verified", icon: <CheckCircleIcon />, colorClassName: "text-success-primary" },
   { value: "verifying", text: "Verifying", icon: <ClockIcon />, colorClassName: "text-blue-primary" },
+  { value: "challenged", text: "Challenged", icon: <LawBalanceIcon />, colorClassName: "text-warning-primary" },
   {
     value: "not_verified",
     text: "Not Verified",
