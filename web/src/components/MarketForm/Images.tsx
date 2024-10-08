@@ -136,7 +136,7 @@ export function ImageUpload<
             return "The image aspect ratio must be 1:1.";
           }
 
-          const maxSizeKB = 100;
+          const maxSizeKB = 500;
           const imageSizeKB = v.size / 1024;
           if (imageSizeKB > maxSizeKB) {
             return `Image size (${imageSizeKB.toFixed(2)} KB) exceeds the maximum allowed size of ${maxSizeKB} KB.`;
