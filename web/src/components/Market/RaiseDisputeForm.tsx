@@ -24,7 +24,7 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
-  const { data: arbitrationCost } = useArbitrationCost();
+  const { data: arbitrationCost } = useArbitrationCost(chainId);
   const raiseDispute = useRaiseDispute((/*receipt: TransactionReceipt*/) => {});
 
   const onRaiseDispute = async () => {
