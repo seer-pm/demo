@@ -63,8 +63,8 @@ function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questio
   );
 }
 
-function DisputeLink({ questionId }: { questionId: `0x${string}` }) {
-  const { data: disputeId } = useArbitrationDisputeId(questionId);
+function DisputeLink({ questionId, chainId }: { questionId: `0x${string}`; chainId: SupportedChain }) {
+  const { data: disputeId } = useArbitrationDisputeId(questionId, chainId);
 
   if (!disputeId) {
     return null;
@@ -188,7 +188,7 @@ export function QuestionLine({
           <RealityLink chainId={chainId} questionId={question.id} />
         </div>
         <div className="text-black-medium">|</div>
-        <DisputeLink questionId={question.id} />
+        <DisputeLink questionId={question.id} chainId={chainId} />
       </div>
     );
   }
