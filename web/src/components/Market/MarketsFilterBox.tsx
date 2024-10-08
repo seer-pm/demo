@@ -17,13 +17,13 @@ import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
 import { STATUS_TEXTS } from "./Header/MarketHeader";
-export const ORDER_OPTIONS = [
+const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Your Markets -> Verification Status -> Liquidity" },
   { value: Market_OrderBy.OutcomesSupply, text: "Open Interest" },
   { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
 ];
 
-export const VERIFY_STATUS_OPTIONS = [
+const VERIFY_STATUS_OPTIONS = [
   { value: "", text: "All" },
   { value: "verified", text: "Verified", icon: <CheckCircleIcon />, colorClassName: "text-success-primary" },
   { value: "verifying", text: "Verifying", icon: <ClockIcon />, colorClassName: "text-blue-primary" },
@@ -36,7 +36,7 @@ export const VERIFY_STATUS_OPTIONS = [
   },
 ];
 
-export const MARKET_STATUS_OPTIONS = [
+const MARKET_STATUS_OPTIONS = [
   { value: "", text: "All", icon: <div className="w-2 h-2 rounded-full	bg-black-primary flex-shrink-0" /> },
   {
     value: MarketStatus.NOT_OPEN,
@@ -110,10 +110,10 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
   };
 
   return (
-    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full pt-12 pb-9 @container">
-      <div className="flex justify-start mb-9 flex-wrap flex-col @[620px]:flex-row ">
+    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
+      <div className="flex justify-start mb-6 flex-wrap flex-col @[620px]:flex-row ">
         <div className=" border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 flex-shrink-0 @[620px]:border-r">
-          <p className="font-semibold flex items-center gap-2 pb-12">
+          <p className="font-semibold flex items-center gap-2 pb-5">
             Market States{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -129,10 +129,10 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   {MARKET_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
-                      <div className="flex items-center m-1 gap-6">
+                      <div className="flex items-center mx-1 gap-6">
                         <input
                           id={`market-status-${option.value}`}
                           className="cursor-pointer checkbox"
@@ -174,7 +174,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="flex-shrink-0 border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 @[920px]:border-r">
-          <p className="font-semibold flex items-center gap-2 pb-12">
+          <p className="font-semibold flex items-center gap-2 pb-5">
             Verification Status{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -190,10 +190,10 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   {VERIFY_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
-                      <div className="flex items-center m-1 gap-6">
+                      <div className="flex items-center mx-1 gap-6">
                         <input
                           id={`verification-status-${option.value}`}
                           className="cursor-pointer checkbox"
@@ -234,8 +234,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3 @[920px]:border-r">
-          <p className="font-semibold flex items-center gap-2 pb-12">
+        <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3">
+          <p className="font-semibold flex items-center gap-2 pb-5">
             Sort By <ArrowSwap />
           </p>
           <Controller
@@ -246,10 +246,10 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   {ORDER_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
-                      <div className="flex items-center m-1 gap-6">
+                      <div className="flex items-center mx-1 gap-6">
                         <input
                           id={`order-by-${option.value}`}
                           className="cursor-pointer radio"
@@ -279,10 +279,14 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         </div>
       </div>
       <div className="flex items-center justify-end px-9 gap-8">
-        <button type="button" className="text-purple-primary hover:opacity-50" onClick={() => setShowFilters(false)}>
+        <button
+          type="button"
+          className="text-purple-primary hover:opacity-50 text-[14px]"
+          onClick={() => setShowFilters(false)}
+        >
           Cancel
         </button>
-        <Button text="Apply" onClick={handleSubmit(apply)} disabled={Object.keys(errors).length > 0} />
+        <Button text="Apply" onClick={handleSubmit(apply)} disabled={Object.keys(errors).length > 0} size="small" />
       </div>
     </div>
   );
