@@ -33,6 +33,6 @@ export const paths = {
   snapshot: () => "#",
   discord: () => "#",
   twitter: () => "https://x.com/seer_pm",
-  telegram: () => "#",
+  telegram: () => "https://t.me/+sFMfslAZNTA1YmQ1",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
 };
