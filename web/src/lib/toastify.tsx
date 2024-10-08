@@ -1,7 +1,12 @@
 import { config as wagmiConfig } from "@/wagmi";
 import { ConnectorNotConnectedError, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
-import { TransactionReceipt, WaitForTransactionReceiptTimeoutError } from "viem";
+import {
+  TransactionNotFoundError,
+  TransactionReceipt,
+  TransactionReceiptNotFoundError,
+  WaitForTransactionReceiptTimeoutError,
+} from "viem";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 
 export const DEFAULT_TOAST_OPTIONS = {
@@ -122,7 +127,11 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
     // biome-ignore lint/suspicious/noExplicitAny:
   } catch (error: any) {
     // timeout so we poll manually
-    if (error instanceof WaitForTransactionReceiptTimeoutError && hash) {
+    if (
+      hash &&
+      error instanceof
+        (WaitForTransactionReceiptTimeoutError || TransactionNotFoundError || TransactionReceiptNotFoundError)
+    ) {
       const newReceipt = await pollForTransactionReceipt(hash);
       if (newReceipt) {
         toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
@@ -135,13 +144,17 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
   }
 };
 
-async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 10, interval = 5000) {
+async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, initialInterval = 500) {
   for (let i = 0; i < maxAttempts; i++) {
-    const txReceipt = await getTransactionReceipt(wagmiConfig, { hash });
-    if (txReceipt?.blockNumber) {
-      return txReceipt;
-    }
-    await new Promise((resolve) => setTimeout(resolve, interval));
+    try {
+      const txReceipt = await getTransactionReceipt(wagmiConfig, { hash });
+      if (txReceipt?.blockNumber) {
+        return txReceipt;
+      }
+    } catch (e) {}
+    const backoffTime = initialInterval * 2 ** i;
+    const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries
+    await new Promise((resolve) => setTimeout(resolve, backoffTime + jitter));
   }
 }
 
