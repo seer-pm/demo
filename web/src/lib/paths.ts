@@ -24,9 +24,9 @@ export const paths = {
     return "#";
   },
   faq: () => "#",
-  dappGuide: () => "#",
-  bugReport: () => "#",
-  getHelp: () => "#",
+  dappGuide: () => "https://seer-3.gitbook.io/seer-documentation",
+  bugReport: () => "https://github.com/seer-pm/demo/issues",
+  getHelp: () => "https://t.me/+sFMfslAZNTA1YmQ1",
   beginnerGuide: () => "https://ethereum.org/en/wallets/",
   etherscan: () => "#",
   github: () => "https://github.com/seer-pm",

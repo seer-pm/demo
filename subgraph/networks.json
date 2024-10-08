@@ -1,16 +1,16 @@
 {
   "gnosis": {
     "MarketFactory": {
-      "address": "0xAA43e743a24262AbBEDB247E08F9357Fc0A82ed7",
-      "startBlock": 36334333
+      "address": "0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1",
+      "startBlock": 36404701
     },
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
-      "startBlock": 36334333
+      "startBlock": 36404701
     },
     "ConditionalTokens": {
       "address": "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
-      "startBlock": 36334333
+      "startBlock": 36404701
     }
   },
   "mainnet": {
