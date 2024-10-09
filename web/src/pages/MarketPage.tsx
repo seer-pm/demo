@@ -10,11 +10,11 @@ import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
-import { SEER_OUTCOME } from "@/lib/utils";
 import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
@@ -35,19 +35,15 @@ function SwapWidget({
   images?: string[];
 }) {
   const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-
-  const outcomeToken = {
-    address: market.wrappedTokens[outcomeIndex],
-    decimals: 18,
-    symbol: SEER_OUTCOME,
-  };
-
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex]);
   // on child markets we want to buy/sell using parent outcomes
-  const parentCollateral = conditionalMarket
-    ? { address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)], decimals: 18, symbol: SEER_OUTCOME }
-    : undefined;
+  const { data: parentCollateral } = useTokenInfo(conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
 
   const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
+
+  if (!outcomeToken) {
+    return null;
+  }
 
   return (
     <SwapTokens
