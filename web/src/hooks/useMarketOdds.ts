@@ -6,6 +6,7 @@ import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { Market, useMarket } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
+import { useTokenInfo } from "./useTokenInfo";
 
 function normalizeOdds(prices: number[]): number[] {
   const sum = prices.reduce((acc, curr) => {
@@ -46,13 +47,8 @@ async function getTokenPrice(
 
 export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
   const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-  const collateralToken = conditionalMarket
-    ? {
-        address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)],
-        decimals: 18,
-        symbol: "SEER_OUTCOME",
-      }
-    : COLLATERAL_TOKENS[chainId].primary;
+  const { data: parentCollateral } = useTokenInfo(conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
+  const collateralToken = parentCollateral || COLLATERAL_TOKENS[chainId].primary;
   const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);
 
   return useQuery<number[] | undefined, Error>({

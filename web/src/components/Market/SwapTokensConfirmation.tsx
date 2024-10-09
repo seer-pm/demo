@@ -1,3 +1,4 @@
+import { iswxsDAI } from "@/hooks/trade";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { COLLATERAL_TOKENS } from "@/lib/config";
@@ -62,10 +63,15 @@ export function SwapTokensConfirmation({
   } = tradeInfo;
   const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
 
+  const needsToConvertCollateralToShares = iswxsDAI(collateral, trade?.chainId || 0);
   const isBuyWithOtherCollateral =
-    isTwoStringsEqual(inputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+    isTwoStringsEqual(inputAddress, sDAI) &&
+    !isTwoStringsEqual(collateral.address, sDAI) &&
+    needsToConvertCollateralToShares;
   const isSellWithOtherCollateral =
-    isTwoStringsEqual(outputAddress, sDAI) && !isTwoStringsEqual(collateral.address, sDAI);
+    isTwoStringsEqual(outputAddress, sDAI) &&
+    !isTwoStringsEqual(collateral.address, sDAI) &&
+    needsToConvertCollateralToShares;
 
   inputAmount = isBuyWithOtherCollateral ? Number(originalAmount).toFixed(6) : inputAmount;
   inputToken = isBuyWithOtherCollateral ? collateral.symbol : inputToken;
@@ -73,6 +79,7 @@ export function SwapTokensConfirmation({
   outputAmount = isSellWithOtherCollateral
     ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
     : outputAmount;
+
   outputToken = (isSellWithOtherCollateral ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)

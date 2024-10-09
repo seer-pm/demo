@@ -4,7 +4,7 @@ import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { isTwoStringsEqual, parseFraction } from "@/lib/utils";
+import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   Percent,
@@ -14,6 +14,7 @@ import {
   Trade,
   TradeType,
   UniswapTrade,
+  WXDAI,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
@@ -183,10 +184,20 @@ async function convertCollateralToShares(
   swapType: "buy" | "sell",
 ) {
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
-  if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address)))
+  if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address))) {
     return { amount, collateralToken: sDAI };
+  }
+
   const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
   return { amount: formatUnits(newAmount, sDAI.decimals), collateralToken: sDAI };
+}
+
+export function iswxsDAI(token: Token, chainId: number) {
+  return (
+    isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
+    (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
+    isTwoStringsEqual(token.address, WXDAI[chainId].address) // wxDAI
+  );
 }
 
 async function getTradeArgs(
@@ -197,12 +208,9 @@ async function getTradeArgs(
   swapType: "buy" | "sell",
 ) {
   // convert wxdai,xdai or dai to sDAI
-  const { amount, collateralToken } = await convertCollateralToShares(
-    chainId,
-    initialAmount,
-    initialCollateralToken,
-    swapType,
-  );
+  const { amount, collateralToken } = iswxsDAI(initialCollateralToken, chainId)
+    ? await convertCollateralToShares(chainId, initialAmount, initialCollateralToken, swapType)
+    : { amount: initialAmount, collateralToken: initialCollateralToken };
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
 

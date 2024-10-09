@@ -9,6 +9,7 @@ import { SwapTokens } from "@/components/Market/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
@@ -33,20 +34,16 @@ function SwapWidget({
   images?: string[];
 }) {
   const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-
-  const OUTCOME_SYMBOL = "SEER_OUTCOME"; // it's not used
-  const outcomeToken = {
-    address: market.wrappedTokens[outcomeIndex],
-    decimals: 18,
-    symbol: OUTCOME_SYMBOL,
-  };
-
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex]);
   // on child markets we want to buy/sell using parent outcomes
-  const parentCollateral = conditionalMarket
-    ? { address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)], decimals: 18, symbol: OUTCOME_SYMBOL }
-    : undefined;
+  const { data: parentCollateral } = useTokenInfo(conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
 
   const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
+
+  if (!outcomeToken) {
+    return null;
+  }
+
   return (
     <SwapTokens
       account={account}

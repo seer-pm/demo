@@ -1,25 +1,12 @@
 import { Trade } from "@swapr/sdk";
-import { Address } from "viem";
-import { useTokensInfo } from "../useTokenInfo";
 
 export function useGetTradeInfo(trade: Trade | undefined) {
-  const tokenAddresses = [trade?.inputAmount?.currency, trade?.outputAmount?.currency]
-    .filter((x) => x?.address && x.symbol === "SEER_OUTCOME")
-    .map((x) => x!.address) as Address[];
-
-  const { data } = useTokensInfo(tokenAddresses);
   if (!trade) {
     return undefined;
   }
   return {
-    inputToken:
-      trade.inputAmount.currency.symbol === "SEER_OUTCOME" && data?.[0]
-        ? data[0].symbol
-        : trade.inputAmount.currency.symbol,
-    outputToken:
-      trade.outputAmount.currency.symbol === "SEER_OUTCOME" && data?.[0]
-        ? data[0].symbol
-        : trade.outputAmount.currency.symbol,
+    inputToken: trade.inputAmount.currency.symbol,
+    outputToken: trade.outputAmount.currency.symbol,
     inputAmount: trade.inputAmount.toFixed(6),
     inputAddress: trade.inputAmount.currency.address,
     outputAddress: trade.outputAmount.currency.address,
