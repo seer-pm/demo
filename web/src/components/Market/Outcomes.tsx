@@ -259,6 +259,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                 <div className="text-[16px] flex items-center gap-1">
                   <p>
                     #{i + 1} {market.outcomes[i]}{" "}
+                    {i <= 1 &&
+                      getMarketType(market) === MarketTypes.SCALAR &&
+                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
                   </p>
                   {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
                     <>

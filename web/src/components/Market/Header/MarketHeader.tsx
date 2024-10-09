@@ -156,7 +156,10 @@ function OutcomesInfo({
               )}
               <div className="space-y-1">
                 <div className="group-hover:underline">
-                  #{i + 1} {outcome}
+                  #{i + 1} {outcome}{" "}
+                  {i <= 1 &&
+                    getMarketType(market) === MarketTypes.SCALAR &&
+                    `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
                 </div>
                 {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
               </div>
