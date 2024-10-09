@@ -1,9 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
-import { Market } from "./useMarket";
+import { Market, useMarket } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
 function normalizeOdds(prices: number[]): number[] {
@@ -14,17 +15,18 @@ function normalizeOdds(prices: number[]): number[] {
   return prices.map((price) => Number(((price / sum) * 100).toFixed(1)));
 }
 
-export async function getTokenPrice(
+async function getTokenPrice(
   wrappedAddress: Address,
+  collateralToken: Token,
   chainId: SupportedChain,
   amount: string,
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
   const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
-    getUniswapQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
-    getSwaprQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
-    getCowQuote(chainId, undefined, amount, outcomeToken, COLLATERAL_TOKENS[chainId].primary, swapType ?? "buy"),
+    getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
+    getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
+    getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
   ]);
 
   if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
@@ -43,7 +45,16 @@ export async function getTokenPrice(
 }
 
 export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
-  const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens);
+  const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
+  const collateralToken = conditionalMarket
+    ? {
+        address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)],
+        decimals: 18,
+        symbol: "SEER_OUTCOME",
+      }
+    : COLLATERAL_TOKENS[chainId].primary;
+  const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);
+
   return useQuery<number[] | undefined, Error>({
     enabled: hasLiquidity && enabled,
     queryKey: ["useMarketOdds", market.id, chainId, hasLiquidity],
@@ -53,7 +64,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
       const prices = await Promise.all(
         market.wrappedTokens.map(async (wrappedAddress) => {
           try {
-            const price = await getTokenPrice(wrappedAddress, chainId, String(BUY_AMOUNT));
+            const price = await getTokenPrice(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT));
 
             if (price === 0n) {
               return 0;

@@ -1,12 +1,15 @@
 import { SupportedChain } from "@/lib/chains";
-import { bigIntMax } from "@/lib/utils";
+import { Token } from "@/lib/tokens";
+import { bigIntMax, isTwoStringsEqual } from "@/lib/utils";
 import { useAllOutcomePools } from "./useMarketPools";
 
-function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${string}`[] | undefined) {
-  const { data: outcomePools = [] } = useAllOutcomePools(chainId as SupportedChain);
+function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${string}`[], collateralToken: Token) {
+  const { data: outcomePools = [] } = useAllOutcomePools(chainId as SupportedChain, collateralToken);
   const outcomeLiquidityMapping = outcomePools.reduce(
     (obj, item) => {
-      const outcomeTokenId = item.token0.symbol === "sDAI" ? item.token1.id : item.token0.id;
+      const outcomeTokenId = isTwoStringsEqual(item.token0.id, collateralToken.address)
+        ? item.token1.id
+        : item.token0.id;
       obj[outcomeTokenId.toLowerCase()] = BigInt(item.liquidity);
       return obj;
     },

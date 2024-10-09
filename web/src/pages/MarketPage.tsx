@@ -33,11 +33,19 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
+  const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
+
+  const OUTCOME_SYMBOL = "SEER_OUTCOME"; // it's not used
   const outcomeToken = {
     address: market.wrappedTokens[outcomeIndex],
     decimals: 18,
-    symbol: "SEER_OUTCOME", // it's not used
+    symbol: OUTCOME_SYMBOL,
   };
+
+  // on child markets we want to buy/sell using parent outcomes
+  const parentCollateral = conditionalMarket
+    ? { address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)], decimals: 18, symbol: OUTCOME_SYMBOL }
+    : undefined;
 
   const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
   return (
@@ -49,6 +57,7 @@ function SwapWidget({
       outcomeImage={images?.[outcomeIndex]}
       isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
       hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
+      parentCollateral={parentCollateral}
     />
   );
 }

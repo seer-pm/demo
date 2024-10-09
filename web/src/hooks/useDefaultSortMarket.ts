@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { bigIntMax } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import { Market } from "./useMarket";
@@ -19,7 +20,7 @@ type ExtendedMarket = Market & {
 
 function useDefaultSortMarket(markets: Market[]) {
   const { address: currentUserAddress, chainId = DEFAULT_CHAIN } = useAccount();
-  const { data: pools = [] } = useAllOutcomePools(chainId as SupportedChain);
+  const { data: pools = [] } = useAllOutcomePools(chainId as SupportedChain, COLLATERAL_TOKENS[chainId].primary);
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
   const outcomeLiquidityMapping = pools.reduce(
     (obj, item) => {
