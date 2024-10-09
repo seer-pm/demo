@@ -296,7 +296,7 @@ export function SwapTokens({
               {quoteFetchStatus === "fetching"
                 ? <div className="shimmer-container ml-2 flex-grow"/>
                 : swapType === "sell"
-                  ? parseFloat((1/collateralPerShare).toPrecision(5))
+                  ? collateralPerShare > 0 ? parseFloat((1/collateralPerShare).toPrecision(5)) : 0
                   : parseFloat(collateralPerShare.toPrecision(5))
               }
             </div>
