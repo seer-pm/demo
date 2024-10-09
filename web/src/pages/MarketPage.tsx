@@ -82,7 +82,7 @@ function MarketPage() {
 
   if (isMarketPending || !router || !market) {
     return (
-      <div className="container py-10">
+      <div className="container py-10 flex justify-center w-full">
         <Spinner />
       </div>
     );
