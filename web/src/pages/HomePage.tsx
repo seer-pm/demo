@@ -32,7 +32,7 @@ function Home() {
       <MarketsFilter />
 
       {isPending && (
-        <div className="py-10 px-10">
+        <div className="py-10 px-10 flex justify-center">
           <Spinner />
         </div>
       )}
