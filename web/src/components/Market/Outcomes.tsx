@@ -1,5 +1,5 @@
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
-import { Market } from "@/hooks/useMarket";
+import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
@@ -16,7 +16,7 @@ import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { RpcError } from "viem";
+import { RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -188,6 +188,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const [searchParams] = useSearchParams();
   const outcomeIndexFromSearch = Number(searchParams.get("outcome"));
   const [activeOutcome, setActiveOutcome] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
+  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
@@ -318,7 +319,13 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </button>
                   ) : (
                     <a
-                      href={getLiquidityUrl(chainId, wrappedAddress, COLLATERAL_TOKENS[chainId].primary.address)}
+                      href={getLiquidityUrl(
+                        chainId,
+                        wrappedAddress,
+                        market.parentMarket === zeroAddress
+                          ? COLLATERAL_TOKENS[chainId].primary.address
+                          : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
+                      )}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary flex items-center space-x-2 hover:underline"
