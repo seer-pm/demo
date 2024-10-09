@@ -187,7 +187,7 @@ export function SwapTokens({
   const maxCollateralPerShare = isTwoStringsEqual(selectedCollateral.address, sDAI.address)
     ? 1
     : Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals));
-  const collateralPerShare = Number(amount) / Number(shares);
+  const collateralPerShare = Number(shares) > 0 ? Number(amount) / Number(shares) : 0;
   const isPriceTooHigh = Number(shares) > 0 && collateralPerShare > maxCollateralPerShare && swapType === "buy";
 
   return (
@@ -289,6 +289,16 @@ export function SwapTokens({
                 className="w-full"
                 useFormReturn={useFormReturn}
               />
+            </div>
+
+            <div className="flex space-x-2 text-purple-primary">
+              {swapType === "buy" ? "Price per share" : "Price per share"} ={" "}
+              {quoteFetchStatus === "fetching"
+                ? <div className="shimmer-container ml-2 flex-grow"/>
+                : swapType === "sell"
+                  ? parseFloat((1/collateralPerShare).toPrecision(5))
+                  : parseFloat(collateralPerShare.toPrecision(5))
+              }
             </div>
 
             <div className="flex space-x-2 text-purple-primary">
