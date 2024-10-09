@@ -19,7 +19,7 @@ type ExtendedMarket = Market & {
 };
 
 function useDefaultSortMarket(markets: Market[]) {
-  const { address: currentUserAddress, chainId = DEFAULT_CHAIN } = useAccount();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
   const { data: pools = [] } = useAllOutcomePools(chainId as SupportedChain, COLLATERAL_TOKENS[chainId].primary);
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
   const outcomeLiquidityMapping = pools.reduce(
@@ -40,14 +40,6 @@ function useDefaultSortMarket(markets: Market[]) {
       };
     }),
   ).sort((a: ExtendedMarket, b: ExtendedMarket) => {
-    // markets created by current user will show first
-    const isACurrentUser = a.creator?.toLowerCase() === currentUserAddress?.toLowerCase();
-    const isBCurrentUser = b.creator?.toLowerCase() === currentUserAddress?.toLowerCase();
-
-    // If one is created by current user and the other isn't, prioritize the current user's item
-    if (isACurrentUser && !isBCurrentUser) return -1;
-    if (!isACurrentUser && isBCurrentUser) return 1;
-
     //by verification status
     const verificationStatusA = verificationStatusResultList?.[a.id.toLowerCase()] ?? defaultStatus;
     const verificationStatusB = verificationStatusResultList?.[b.id.toLowerCase()] ?? defaultStatus;
