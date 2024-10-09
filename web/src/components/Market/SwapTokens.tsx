@@ -37,6 +37,7 @@ interface SwapTokensProps {
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
   isInvalidResult: boolean;
+  parentCollateral: Token | undefined;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
@@ -110,6 +111,7 @@ export function SwapTokens({
   hasEnoughLiquidity,
   outcomeImage,
   isInvalidResult,
+  parentCollateral,
 }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
@@ -144,7 +146,7 @@ export function SwapTokens({
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
   const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
-  const selectedCollateral = getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
+  const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
   const { data: balance = BigInt(0) } = useTokenBalance(account, sellToken.address);
 
@@ -216,7 +218,7 @@ export function SwapTokens({
             <Alert type="warning">
               This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
               <a
-                href={getLiquidityUrl(chainId, outcomeToken.address, sDAI.address)}
+                href={getLiquidityUrl(chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary"
@@ -303,11 +305,13 @@ export function SwapTokens({
             {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
             <div className="flex justify-between">
-              <AltCollateralSwitch
-                {...register("useAltCollateral")}
-                chainId={chainId}
-                isUseWrappedToken={isUseWrappedToken}
-              />
+              {isUndefined(parentCollateral) && (
+                <AltCollateralSwitch
+                  {...register("useAltCollateral")}
+                  chainId={chainId}
+                  isUseWrappedToken={isUseWrappedToken}
+                />
+              )}
               <div className="text-[12px] text-black-secondary flex items-center gap-2">
                 Max slippage:{" "}
                 <div

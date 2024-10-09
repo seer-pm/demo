@@ -1,6 +1,7 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
@@ -126,33 +127,6 @@ async function getPoolInfo(
   );
 }
 
-interface OutcomePool {
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  liquidity: string;
-}
-
-async function getAllOutcomePools(chainId: SupportedChain): Promise<OutcomePool[]> {
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-  const { pools } = await graphQLSdk(graphQLClient).GetPools({
-    where: { or: [{ token0_: { symbol: "sDAI" } }, { token1_: { symbol: "sDAI" } }] },
-  });
-  return pools;
-}
-
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
     enabled: tokens && tokens.length > 0,
@@ -168,11 +142,42 @@ export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
   });
 };
 
-export const useAllOutcomePools = (chainId: SupportedChain) => {
-  return useQuery<Awaited<ReturnType<typeof getAllOutcomePools>>, Error>({
-    queryKey: ["useAllOutcomePools", chainId],
+interface OutcomePool {
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  liquidity: string;
+}
+
+export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Token) => {
+  return useQuery<OutcomePool[], Error>({
+    queryKey: ["useAllOutcomePools", chainId, collateralToken.address],
     retry: false,
-    queryFn: async () => await getAllOutcomePools(chainId),
+    queryFn: async () => {
+      const graphQLClient =
+        chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+      if (!graphQLClient) {
+        throw new Error("Subgraph not available");
+      }
+
+      const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+
+      const { pools } = await graphQLSdk(graphQLClient).GetPools({
+        where: {
+          or: [
+            { token0_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
+            { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
+          ],
+        },
+      });
+      return pools;
+    },
   });
 };
 
