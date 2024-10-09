@@ -10,7 +10,6 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
-import { getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
@@ -83,7 +82,7 @@ function MarkeVerifyPage() {
 
   const outcomesValues = useOutcomesFormReturn.watch();
 
-  const images = getImagesForVerification(getMarketType(market), outcomesValues);
+  const images = getImagesForVerification(outcomesValues);
   const marketReadyToVerify = images !== false;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {

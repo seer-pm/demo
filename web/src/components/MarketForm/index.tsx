@@ -69,28 +69,20 @@ interface GetImagesReturn {
   };
 }
 
-export function getImagesForVerification(
-  marketType: MarketTypes,
-  outcomesValues: OutcomesFormValues,
-): GetImagesReturn | false {
+export function getImagesForVerification(outcomesValues: OutcomesFormValues): GetImagesReturn | false {
   if (!outcomesValues.image) {
     return false;
   }
 
   let outcomesFiles: File[] = [];
 
-  if (marketType === MarketTypes.SCALAR) {
-    // there are no images for outcomes in scalar markets
-  } else {
-    // CATEGORICAL & MULTI_SCALAR
-    const allOutcomesWithImages = outcomesValues.outcomes.every((o) => o.image instanceof File);
+  const allOutcomesWithImages = outcomesValues.outcomes.every((o) => o.image instanceof File);
 
-    if (!allOutcomesWithImages) {
-      return false;
-    }
-
-    outcomesFiles = outcomesValues.outcomes.map((i) => i.image as File);
+  if (!allOutcomesWithImages) {
+    return false;
   }
+
+  outcomesFiles = outcomesValues.outcomes.map((i) => i.image as File);
 
   return {
     url: {

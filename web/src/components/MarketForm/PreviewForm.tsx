@@ -239,7 +239,7 @@ export function PreviewForm({
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
-  const images = getImagesForVerification(marketTypeValues.marketType, outcomesValues);
+  const images = getImagesForVerification(outcomesValues);
   const marketReadyToVerify = images !== false;
 
   useEffect(() => {
