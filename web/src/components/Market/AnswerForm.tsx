@@ -4,7 +4,7 @@ import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
-import { SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
 import {
   ANSWERED_TOO_SOON,
@@ -19,7 +19,9 @@ import {
   getRealityLink,
 } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
+import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
+import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
 import { hexToNumber, parseEther } from "viem";
@@ -79,7 +81,7 @@ function getOutcomesOptions(market: Market, question: Question) {
 }
 
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
-  const { address } = useAccount();
+  const { address, chainId: connectedChainId } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
@@ -128,6 +130,23 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button variant="primary" type="button" onClick={async () => open({ view: "Connect" })} text="Connect" />
+        </div>
+      </>
+    );
+  }
+
+  if (chainId !== connectedChainId) {
+    return (
+      <>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS[chainId].name} to report the answer.</Alert>
+        <div className="space-x-[24px] text-center mt-[24px]">
+          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+          <Button
+            variant="primary"
+            type="button"
+            onClick={async () => await switchChain(config, { chainId })}
+            text="Switch network"
+          />
         </div>
       </>
     );

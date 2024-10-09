@@ -3,9 +3,8 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { writeContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
-import { realityAbi, realityAddress } from "./contracts/generated";
+import { writeRealitySubmitAnswer } from "./contracts/generated";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;
@@ -17,10 +16,7 @@ interface SubmitAnswerProps {
 async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () =>
-      writeContract(config, {
-        address: realityAddress[props.chainId],
-        abi: realityAbi,
-        functionName: "submitAnswer",
+      writeRealitySubmitAnswer(config, {
         args: [props.questionId, props.outcome, props.currentBond],
         value: props.currentBond,
       }),
