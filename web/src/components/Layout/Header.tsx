@@ -56,7 +56,7 @@ export default function Header() {
             <Link to={"/"}>Markets</Link>
           </li>
           <li>
-            <Link to={"/create-market"}>Create Market</Link>
+            <Link to={"/create-market"}>Create</Link>
           </li>
           <li>
             <div className="dropdown dropdown-end">
@@ -208,7 +208,7 @@ function MobileMenu() {
             <Link to={"/"}>Markets</Link>
           </li>
           <li>
-            <Link to={"/create-market"}>Create Market</Link>
+            <Link to={"/create-market"}>Create</Link>
           </li>
         </ul>
 
