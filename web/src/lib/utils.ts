@@ -7,6 +7,8 @@ import { formatUnits, getAddress } from "viem";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
+export const SEER_OUTCOME = "SEER_OUTCOME";
+
 // outcome get from MarketView
 export const INVALID_RESULT_OUTCOME = "Invalid result";
 

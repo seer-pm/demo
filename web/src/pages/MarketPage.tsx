@@ -14,6 +14,7 @@ import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
+import { SEER_OUTCOME } from "@/lib/utils";
 import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
@@ -35,19 +36,19 @@ function SwapWidget({
 }) {
   const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
 
-  const OUTCOME_SYMBOL = "SEER_OUTCOME"; // it's not used
   const outcomeToken = {
     address: market.wrappedTokens[outcomeIndex],
     decimals: 18,
-    symbol: OUTCOME_SYMBOL,
+    symbol: SEER_OUTCOME,
   };
 
   // on child markets we want to buy/sell using parent outcomes
   const parentCollateral = conditionalMarket
-    ? { address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)], decimals: 18, symbol: OUTCOME_SYMBOL }
+    ? { address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)], decimals: 18, symbol: SEER_OUTCOME }
     : undefined;
 
   const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
+
   return (
     <SwapTokens
       account={account}

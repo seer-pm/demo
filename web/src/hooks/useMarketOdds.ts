@@ -1,6 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token } from "@/lib/tokens";
+import { SEER_OUTCOME } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
@@ -22,7 +23,7 @@ async function getTokenPrice(
   amount: string,
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
-  const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
+  const outcomeToken = { address: wrappedAddress, symbol: SEER_OUTCOME, decimals: 18 };
   const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
     getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
     getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
@@ -50,7 +51,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
     ? {
         address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)],
         decimals: 18,
-        symbol: "SEER_OUTCOME",
+        symbol: SEER_OUTCOME,
       }
     : COLLATERAL_TOKENS[chainId].primary;
   const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);
