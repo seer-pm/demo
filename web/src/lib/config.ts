@@ -88,7 +88,7 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
     case gnosis.id:
       return `https://v3.swapr.eth.limo/#/add/${token1}/${token2}/enter-amounts`;
     case mainnet.id:
-      return `https://bunni.pro/add/ethereum?tokenA=${token1}&tokenB=${token2}`;
+      return `https://bunni.pro/add/ethereum?tokenA=${token1}&tokenB=${token2}&fee=3000`;
     default:
       return "#";
   }
