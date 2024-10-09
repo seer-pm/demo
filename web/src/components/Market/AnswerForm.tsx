@@ -201,7 +201,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         // if value is INVALID_RESULT or ANSWERED_TOO_SOON reset the other values
         setValue(
           "outcomes",
-          outcomes.map((_, i) => ({ value: index === i ? true : false })),
+          outcomes.map((_, i) => ({ value: index === i })),
         );
       } else {
         // reset INVALID_RESULT and ANSWERED_TOO_SOON

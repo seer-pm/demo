@@ -135,7 +135,7 @@ const FIXTURE: [string, MarketStatus | "PENDING_EXECUTION_TOO_SOON"][] = [
 export default Object.fromEntries(
   FIXTURE.map((f) => [
     f[0],
-    <div className="space-y-5">
+    <div className="space-y-5" key={f[0]}>
       <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} />
       <div className="max-w-[500px] mx-auto">
         <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} type="preview" />

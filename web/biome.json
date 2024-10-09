@@ -12,7 +12,8 @@
       },
       "style": {
         "noNonNullAssertion": "off",
-        "useSelfClosingElements": "off"
+        "useSelfClosingElements": "off",
+        "useImportType": "off"
       },
       "complexity": {
         "useLiteralKeys": "off"

@@ -1,5 +1,5 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { SwaprV3Trade, Token as SwaprToken, TokenAmount, UniswapTrade } from "@swapr/sdk";
+import { Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
 import { ethers } from "ethers";
 import { TransactionReceipt } from "viem";
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {

@@ -1,4 +1,4 @@
-import { Chain, gnosis as _gnosis, hardhat, /*, sepolia*/ mainnet as _mainnet } from "wagmi/chains";
+import { Chain, gnosis as _gnosis, mainnet as _mainnet, hardhat /*, sepolia*/ } from "wagmi/chains";
 
 // override mainnet and gnosis here using defineChain() to test against a forked network
 const mainnet = _mainnet;

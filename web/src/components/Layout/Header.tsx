@@ -69,9 +69,9 @@ export default function Header() {
           </li>
           <li>
             <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="flex items-center space-x-2 hover:opacity-85">
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
                 <span>Policies</span> <DownArrow />
-              </div>
+              </button>
               <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary font-normal">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <a
@@ -110,9 +110,9 @@ export default function Header() {
 
           <li className="flex items-center">
             <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="hover:opacity-85">
+              <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
-              </div>
+              </button>
               <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary">
                 <li>
                   <Link
@@ -268,9 +268,9 @@ function MobileMenu() {
           <ConnectWallet isMobile />
         </div>
         <div className="dropdown dropdown-end">
-          <div tabIndex={0} role="button" className="flex items-center gap-2 hover:font-semibold">
+          <button type="button" tabIndex={0} className="flex items-center gap-2 hover:font-semibold">
             <QuestionIcon fill="#9747FF" /> Help
-          </div>
+          </button>
           <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary !left-0">
             <li>
               <Link

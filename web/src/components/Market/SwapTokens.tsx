@@ -76,15 +76,13 @@ function SwapButtons({
   return (
     <div>
       {!isShowApproval && (
-        <>
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={isDisabled}
-            isLoading={isLoading}
-            text={swapType === "buy" ? "Buy" : "Sell"}
-          />
-        </>
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={isDisabled}
+          isLoading={isLoading}
+          text={swapType === "buy" ? "Buy" : "Sell"}
+        />
       )}
       {isShowApproval && (
         <div className="space-y-[8px]">
@@ -179,7 +177,7 @@ export function SwapTokens({
 
   // convert sell result to assets if collateral is not sDAI
   const isSellToOtherCollateral = swapType === "sell" && selectedCollateral.address !== sDAI.address;
-  const { data: sharesToAssets } = useConvertToAssets(isSellToOtherCollateral ? quoteData?.value ?? 0n : 0n, chainId);
+  const { data: sharesToAssets } = useConvertToAssets(isSellToOtherCollateral ? (quoteData?.value ?? 0n) : 0n, chainId);
   const assets = sharesToAssets ? displayBalance(sharesToAssets, selectedCollateral.decimals) : 0;
 
   // check if current token price higher than 1 sdai per token
@@ -189,7 +187,7 @@ export function SwapTokens({
     : Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals));
   const collateralPerShare = Number(amount) / Number(shares);
   const isPriceTooHigh = Number(shares) > 0 && collateralPerShare > maxCollateralPerShare && swapType === "buy";
-  
+
   return (
     <>
       <ConfirmSwapModal
@@ -293,10 +291,13 @@ export function SwapTokens({
 
             <div className="flex space-x-2 text-purple-primary">
               {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-              {quoteFetchStatus === "fetching"
-                ? <div className="shimmer-container ml-2 flex-grow"/>
-                : swapType === "sell" && isSellToOtherCollateral ? assets : shares
-              }
+              {quoteFetchStatus === "fetching" ? (
+                <div className="shimmer-container ml-2 flex-grow" />
+              ) : swapType === "sell" && isSellToOtherCollateral ? (
+                assets
+              ) : (
+                shares
+              )}
             </div>
 
             {isPriceTooHigh && (

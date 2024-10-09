@@ -195,7 +195,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
   const [activePool, setActivePool] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
-
+  console.log(tokensInfo);
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
   const outcomeClick = (i: number) => {
@@ -264,25 +264,21 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
                   </p>
                   {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
-                    <>
-                      <span className="tooltip">
-                        <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
-                          {getTooltipContent(market, i)}
-                        </p>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                    </>
+                    <span className="tooltip">
+                      <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
+                        {getTooltipContent(market, i)}
+                      </p>
+                      <QuestionIcon fill="#9747FF" />
+                    </span>
                   )}
                   {i === market.wrappedTokens.length - 1 && (
-                    <>
-                      <span className="tooltip">
-                        <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
-                          Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
-                          to invalid.
-                        </p>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                    </>
+                    <span className="tooltip">
+                      <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
+                        Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
+                        to invalid.
+                      </p>
+                      <QuestionIcon fill="#9747FF" />
+                    </span>
                   )}
                 </div>
                 <div className="text-[12px] text-black-secondary">

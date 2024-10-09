@@ -1,19 +1,11 @@
-query GetImages(
-    $where: LItem_filter
-    $block: Block_height
-    $subgraphError: _SubgraphErrorPolicy_! = deny
-) {
-    litems(
-        where: $where
-        block: $block
-        subgraphError: $subgraphError
-    ) {
-        itemID
-        status
-        registryAddress
-        key0
-        data
-        latestRequester
-        disputed
+query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
+  litems(where: $where, block: $block, subgraphError: $subgraphError) {
+    itemID
+    status
+    registryAddress
+    key0
+    data
+    latestRequester
+    disputed
   }
 }

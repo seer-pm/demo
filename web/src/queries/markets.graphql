@@ -12,37 +12,35 @@ fragment Question on Question {
 }
 
 fragment Market on Market {
-    id
-    factory
-    creator
+  id
+  factory
+  creator
 }
 
 query GetMarkets(
-    $skip: Int = 0
-    $first: Int = 100
-    $orderBy: Market_orderBy
-    $orderDirection: OrderDirection
-    $where: Market_filter
-    $block: Block_height
-    $subgraphError: _SubgraphErrorPolicy_! = deny
+  $skip: Int = 0
+  $first: Int = 100
+  $orderBy: Market_orderBy
+  $orderDirection: OrderDirection
+  $where: Market_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-    markets(
-        skip: $skip
-        first: $first
-        orderBy: $orderBy
-        orderDirection: $orderDirection
-        where: $where
-        block: $block
-        subgraphError: $subgraphError
-    ) {
-        ...Market
-    }
+  markets(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    ...Market
+  }
 }
 
-query GetMarket(
-    $id: ID!
-) {
-    market(id: $id) {
-        ...Market
-    }
+query GetMarket($id: ID!) {
+  market(id: $id) {
+    ...Market
+  }
 }

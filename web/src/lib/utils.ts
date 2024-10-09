@@ -125,7 +125,7 @@ export function parseFraction(floatString: string) {
   if (!decPart) return [num, 1];
 
   // Calculate numerator and denominator
-  const numerator = parseInt(intPart + decPart);
+  const numerator = Number.parseInt(intPart + decPart);
   const denominator = 10 ** decPart.length;
 
   // Simplify the fraction

@@ -8,8 +8,8 @@ import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   Percent,
-  SwaprV3Trade,
   Token as SwaprToken,
+  SwaprV3Trade,
   TokenAmount,
   Trade,
   TradeType,

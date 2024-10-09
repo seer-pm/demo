@@ -47,7 +47,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openA
                 <div>
                   <div className="space-y-[5px]">
                     {market.questions.map((question, i) => (
-                      <div>
+                      <div key={question.id}>
                         <a
                           href={getRealityLink(chainId, question.id)}
                           target="_blank"

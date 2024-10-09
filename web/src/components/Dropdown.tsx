@@ -23,10 +23,10 @@ export function Dropdown({
   const selectedOption = options.find((option) => option.value === value);
   return (
     <div className={clsx("dropdown simple-dropdown", containerClassName)}>
-      <div tabIndex={0} role="button" className={clsx(btnClassName, "flex items-center gap-2 whitespace-nowrap")}>
+      <button type="button" tabIndex={0} className={clsx(btnClassName, "flex items-center gap-2 whitespace-nowrap")}>
         {selectedOption?.icon}
         {selectedOption?.text ?? defaultLabel}
-      </div>
+      </button>
       <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] rounded-box text-left w-52">
         {options.map((option) => (
           <li
