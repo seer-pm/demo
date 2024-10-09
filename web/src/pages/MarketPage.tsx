@@ -6,7 +6,6 @@ import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens";
-import { Spinner } from "@/components/Spinner";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -91,8 +90,20 @@ function MarketPage() {
 
   if (isMarketPending || !router || !market) {
     return (
-      <div className="container py-10">
-        <Spinner />
+      <div className="container-fluid py-10 space-y-5">
+        <Breadcrumb links={[{ title: "Market" }]} />
+        <div className="shimmer-container w-full h-[200px]"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="col-span-1 lg:col-span-8">
+            <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
+            <div className="shimmer-container h-[390px]"></div>
+          </div>
+
+          <div className="col-span-1 lg:col-span-4 space-y-5">
+            <div className="shimmer-container w-full h-[330px]"></div>
+            <div className="shimmer-container w-full h-[390px]"></div>
+          </div>
+        </div>
       </div>
     );
   }

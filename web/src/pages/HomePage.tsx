@@ -2,7 +2,6 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
-import { Spinner } from "@/components/Spinner";
 import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { defaultStatus, useVerificationStatusList } from "@/hooks/useVerificationStatus";
@@ -32,8 +31,9 @@ function Home() {
       <MarketsFilter />
 
       {isPending && (
-        <div className="py-10 px-10">
-          <Spinner />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="shimmer-container h-[450px]"></div>
+          <div className="shimmer-container h-[450px]"></div>
         </div>
       )}
 

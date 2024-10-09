@@ -304,7 +304,7 @@ export function SwapTokens({
             )}
             {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
-            <div className="flex justify-between">
+            <div className="flex justify-between flex-wrap gap-4">
               {isUndefined(parentCollateral) && (
                 <AltCollateralSwitch
                   {...register("useAltCollateral")}

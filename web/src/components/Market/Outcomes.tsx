@@ -248,7 +248,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
             )}
           >
             <div className="flex items-center space-x-[12px]">
-              <div>
+              <div className="flex-shrink-0">
                 <OutcomeImage
                   image={images?.[i]}
                   isInvalidResult={i === market.wrappedTokens.length - 1}
@@ -282,18 +282,19 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </>
                   )}
                 </div>
-                <div className="text-[12px] text-black-secondary flex items-center space-x-[16px]">
+                <div className="text-[12px] text-black-secondary">
                   {balances && balances[i] > 0n && (
-                    <>
-                      <div>
-                        {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
-                      </div>
-                      <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
-                        Add token to wallet
-                      </button>
-                    </>
+                    <div className="w-full">
+                      {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
+                    </div>
                   )}
-
+                </div>
+                <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap">
+                  {balances && balances[i] > 0n && (
+                    <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
+                      Add token to wallet
+                    </button>
+                  )}
                   <a
                     href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                     target="_blank"
@@ -334,10 +335,14 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     </a>
                   )}
 
-                  <Link to={`/create-market?shMarket=${market.id}&shOutcome=${i}`} className="text-purple-primary">
+                  <Link
+                    to={`/create-market?shMarket=${market.id}&shOutcome=${i}`}
+                    className="text-purple-primary hover:underline"
+                  >
                     New conditional market
                   </Link>
                 </div>
+                <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
               </div>
             </div>
             <div className="flex space-x-10 items-center">

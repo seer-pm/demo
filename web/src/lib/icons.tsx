@@ -177,17 +177,17 @@ export const ArrowPath = () => (
   </svg>
 );
 
-export const DownArrow = ({ width = 16, height = 16 }: SVGAttributes<SVGElement>) => (
+export const DownArrow = ({ width = 16, height = 16, fill = "#fff" }: SVGAttributes<SVGElement>) => (
   <svg width={width} height={height} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#a)">
       <path
         d="m7.378 12.305-7.12-7.01a.856.856 0 0 1 0-1.224l.83-.817a.89.89 0 0 1 1.242-.002L8 8.807l5.67-5.555a.89.89 0 0 1 1.242.002l.83.817a.856.856 0 0 1 0 1.224l-7.12 7.01a.89.89 0 0 1-1.244 0Z"
-        fill="#fff"
+        fill={fill}
       />
     </g>
     <defs>
       <clipPath id="a">
-        <path fill="#fff" d="M0 0h16v16H0z" />
+        <path fill={fill} d="M0 0h16v16H0z" />
       </clipPath>
     </defs>
   </svg>
@@ -727,5 +727,11 @@ export const LawBalanceIcon = () => (
         <rect width="14" height="14" fill="white" />
       </clipPath>
     </defs>
+  </svg>
+);
+
+export const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="white">
+    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
   </svg>
 );

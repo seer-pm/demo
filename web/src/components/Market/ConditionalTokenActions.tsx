@@ -28,7 +28,7 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
   return (
     <div className="bg-white p-[24px] drop-shadow">
       <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px]">
+      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
           role="tab"

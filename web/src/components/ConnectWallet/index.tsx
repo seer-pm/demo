@@ -28,7 +28,7 @@ const ConnectButton = () => {
   return <Button text={"Connect"} variant="primary" size="small" onClick={async () => open({ view: "Connect" })} />;
 };
 
-const ConnectWallet = () => {
+const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
   const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
   const { open } = useWeb3Modal();
   const handleSwitch = () => {
@@ -42,12 +42,12 @@ const ConnectWallet = () => {
     return (
       <div className="flex items-center gap-4">
         {NETWORK_ICON_MAPPING[chainId] && (
-          <div className="flex items-center gap-2 cursor-pointer" onClick={handleSwitch}>
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85" onClick={handleSwitch}>
             <img alt="network-icon" className="w-7 h-7 rounded-full" src={NETWORK_ICON_MAPPING[chainId]}></img>
-            <DownArrow width={10} height={10} />
+            <DownArrow width={12} height={12} fill={isMobile ? "#9747FF" : "white"} />
           </div>
         )}
-        <AccountDisplay chainId={chainId} />
+        <AccountDisplay chainId={chainId} isMobile={isMobile} />
       </div>
     );
   }

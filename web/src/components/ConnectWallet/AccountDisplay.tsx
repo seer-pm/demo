@@ -27,17 +27,6 @@ export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }
   return <div>{data ?? (isAddress(address) ? shortenAddress(address) : address)}</div>;
 };
 
-export const ChainDisplay: React.FC = () => {
-  const { chain } = useAccount();
-
-  return (
-    <div className="flex space-x-2 items-center">
-      <div className={clsx("w-[8px] h-[8px] rounded-full", chain ? "bg-success-primary" : "bg-error-primary")}></div>
-      <div>{chain?.name}</div>
-    </div>
-  );
-};
-
 export const CollateralBalance: React.FC<{ chainId: number; address?: Address }> = ({
   chainId,
   address: propAddress,
@@ -57,17 +46,22 @@ export const CollateralBalance: React.FC<{ chainId: number; address?: Address }>
   );
 };
 
-const AccountDisplay: React.FC<{ chainId: number }> = ({ chainId: _chainId }) => {
+const AccountDisplay: React.FC<{ chainId: number; isMobile: boolean }> = ({ chainId: _chainId, isMobile }) => {
   const { open } = useWeb3Modal();
+  const { chain } = useAccount();
   return (
     <div
-      className="flex space-x-2 text-[14px] bg-blue-light text-black rounded-[300px] px-[16px] py-[5px] cursor-pointer"
+      className={clsx(
+        "flex gap-2 text-[14px] rounded-[300px] px-[16px] py-[5px] cursor-pointer hover:opacity-90",
+        isMobile ? "bg-blue-medium text-purple-primary" : "bg-blue-light text-black",
+      )}
       onClick={() => open({ view: "Account" })}
     >
-      <div>
-        <ChainDisplay />
+      <div className={clsx("gap-2 items-center", isMobile ? "flex" : "hidden xl:flex")}>
+        <div className={clsx("w-[8px] h-[8px] rounded-full", chain ? "bg-success-primary" : "bg-error-primary")}></div>
+        <div>{chain?.name}</div>
       </div>
-      <div className="flex space-x-2 items-center text-black-secondary">
+      <div className={clsx("flex space-x-2 items-center", isMobile ? "text-purple-primary" : " text-black-secondary")}>
         <AddressOrName />
       </div>
       {/*<div>
