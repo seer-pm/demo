@@ -183,7 +183,7 @@ export function decodeQuestion(encodedQuestion: string): {
   }
 
   return {
-    question,
+    question: unescapeJson(question),
     outcomes,
     category,
     lang,
