@@ -120,13 +120,11 @@ function OutcomesInfo({
   chainId,
   outcomesCount = 0,
   images = [],
-  marketType,
 }: {
   market: Market;
   chainId: SupportedChain;
   outcomesCount?: number;
   images?: string[];
-  marketType: MarketTypes;
 }) {
   const validOutcomes = market.outcomes.filter((outcome) => outcome !== INVALID_RESULT_OUTCOME_TEXT);
   const outcomes = outcomesCount > 0 ? validOutcomes.slice(0, outcomesCount) : validOutcomes;
@@ -145,15 +143,9 @@ function OutcomesInfo({
             to={`${paths.market(market.id, chainId)}?outcome=${i}`}
           >
             <div className="flex items-center space-x-[12px]">
-              {marketType !== MarketTypes.SCALAR && (
-                <div className="w-[65px]">
-                  <OutcomeImage
-                    image={images?.[i]}
-                    isInvalidResult={i === market.outcomes.length - 1}
-                    title={outcome}
-                  />
-                </div>
-              )}
+              <div className="w-[65px]">
+                <OutcomeImage image={images?.[i]} isInvalidResult={i === market.outcomes.length - 1} title={outcome} />
+              </div>
               <div className="space-y-1">
                 <div className="group-hover:underline">
                   #{i + 1} {outcome}{" "}
@@ -286,13 +278,7 @@ export function MarketHeader({
 
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo
-            market={market}
-            chainId={chainId}
-            outcomesCount={outcomesCount}
-            images={images?.outcomes}
-            marketType={marketType}
-          />
+          <OutcomesInfo market={market} chainId={chainId} outcomesCount={outcomesCount} images={images?.outcomes} />
         </div>
       )}
       {type !== "small" && (
