@@ -55,7 +55,6 @@ export function SwapTokensConfirmation({
     outputAmount,
     price,
     minimumReceive,
-    fee,
     maximumSlippage,
     invertedPrice,
     inputAddress,
@@ -146,10 +145,6 @@ export function SwapTokensConfirmation({
           <p>
             {minimumReceive} {outputToken}
           </p>
-        </div>
-        <div className="flex items-center justify-between mb-5">
-          <p>Fee</p>
-          <p>{fee}%</p>
         </div>
       </div>
       <Alert type="warning">
