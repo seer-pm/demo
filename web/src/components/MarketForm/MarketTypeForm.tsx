@@ -1,8 +1,9 @@
 import { MarketTypes } from "@/lib/market";
 import { FormProvider } from "react-hook-form";
-import { ButtonsWrapper, FormStepProps, FormWithNextStep, MarketTypeFormValues } from ".";
+import { FormStepProps, FormWithNextStep, MarketTypeFormValues } from ".";
 import { Alert } from "../Alert";
 import Select from "../Form/Select";
+import { ButtonsWrapper } from "./ButtonsWrapper";
 
 const MARKETS_DESCRIPTIONS = {
   [MarketTypes.CATEGORICAL]: `<p>Questions with one specific answer.</p>

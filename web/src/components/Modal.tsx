@@ -1,15 +1,15 @@
 import clsx from "clsx";
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
 
-interface ModalProps {
+export interface ModalProps {
   title: string;
   content: React.ReactNode;
   id: string;
   open: boolean;
 }
 
-function Modal({ title, content, id, open }: ModalProps) {
+export function Modal({ title, content, id, open }: ModalProps) {
   return (
     <>
       {createPortal(
@@ -33,18 +33,4 @@ function Modal({ title, content, id, open }: ModalProps) {
       )}
     </>
   );
-}
-
-export function useModal(id: string) {
-  const [open, setOpen] = useState(false);
-  // prevent flickering
-  const modal = useCallback(
-    (props: Omit<ModalProps, "id" | "open">) => <Modal id={id} open={open} {...props} />,
-    [open],
-  );
-  return {
-    Modal: modal,
-    openModal: () => setOpen(true),
-    closeModal: () => setOpen(false),
-  };
 }

@@ -7,30 +7,27 @@ import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import {
-  CategoricalIcon,
   CheckCircleIcon,
   ClockIcon,
   DaiLogo,
   ExclamationCircleIcon,
   EyeIcon,
   LawBalanceIcon,
-  MultiCategoricalIcon,
-  MultiScalarIcon,
   MyMarket,
-  ScalarIcon,
   SeerLogo,
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
+import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
 
 interface MarketHeaderProps {
   market: Market & { creator?: string };
@@ -40,80 +37,6 @@ interface MarketHeaderProps {
   outcomesCount?: number;
   verificationStatusResult?: VerificationStatusResult;
 }
-
-export const STATUS_TEXTS: Record<MarketStatus, (hasLiquidity?: boolean) => string> = {
-  [MarketStatus.NOT_OPEN]: (hasLiquidity?: boolean) => {
-    if (isUndefined(hasLiquidity)) {
-      return "Reports not open yet";
-    }
-
-    return hasLiquidity ? "Trading Open" : "Liquidity Required";
-  },
-  [MarketStatus.OPEN]: () => "Reports open",
-  [MarketStatus.ANSWER_NOT_FINAL]: () => "Waiting for answer",
-  [MarketStatus.IN_DISPUTE]: () => "In Dispute",
-  [MarketStatus.PENDING_EXECUTION]: () => "Pending execution",
-  [MarketStatus.CLOSED]: () => "Closed",
-};
-
-export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
-  [MarketTypes.CATEGORICAL]: "Categorical",
-  [MarketTypes.SCALAR]: "Scalar",
-  [MarketTypes.MULTI_CATEGORICAL]: "Multi Categorical",
-  [MarketTypes.MULTI_SCALAR]: "Multi Scalar",
-};
-
-export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
-  [MarketTypes.CATEGORICAL]: <CategoricalIcon />,
-  [MarketTypes.SCALAR]: <ScalarIcon />,
-  [MarketTypes.MULTI_CATEGORICAL]: <MultiCategoricalIcon />,
-  [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
-};
-
-export type ColorConfig = {
-  border: string;
-  bg: string;
-  text: string;
-  dot: string;
-};
-export const COLORS: Record<MarketStatus, ColorConfig> = {
-  [MarketStatus.NOT_OPEN]: {
-    border: "border-t-[#25cdfe]",
-    bg: "bg-black-light",
-    text: "text-[#25cdfe]",
-    dot: "bg-[#25cdfe]",
-  },
-  [MarketStatus.OPEN]: {
-    border: "border-t-purple-primary",
-    bg: "bg-purple-medium",
-    text: "text-purple-primary",
-    dot: "bg-purple-primary",
-  },
-  [MarketStatus.ANSWER_NOT_FINAL]: {
-    border: "border-t-warning-primary",
-    bg: "bg-warning-light",
-    text: "text-warning-primary",
-    dot: "bg-warning-primary",
-  },
-  [MarketStatus.IN_DISPUTE]: {
-    border: "border-t-blue-secondary",
-    bg: "bg-blue-light",
-    text: "text-blue-secondary",
-    dot: "bg-blue-secondary",
-  },
-  [MarketStatus.PENDING_EXECUTION]: {
-    border: "border-t-tint-blue-primary",
-    bg: "bg-tint-blue-light",
-    text: "text-tint-blue-primary",
-    dot: "bg-tint-blue-primary",
-  },
-  [MarketStatus.CLOSED]: {
-    border: "border-t-success-primary",
-    bg: "bg-success-light",
-    text: "text-success-primary",
-    dot: "bg-success-primary",
-  },
-};
 
 function OutcomesInfo({
   market,

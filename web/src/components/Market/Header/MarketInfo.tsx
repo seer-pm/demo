@@ -1,7 +1,7 @@
 import Button from "@/components/Form/Button";
-import { useModal } from "@/components/Modal";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
+import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
 import { CalendarIcon } from "@/lib/icons";
 import { getMarketType, getOpeningTime } from "@/lib/market";
@@ -10,8 +10,8 @@ import clsx from "clsx";
 import { useState } from "react";
 import { AnswerForm } from "../AnswerForm";
 import { RaiseDisputeForm } from "../RaiseDisputeForm";
-import { COLORS } from "./MarketHeader";
 import { QuestionLine } from "./QuestionLine";
+import { COLORS } from "./index.tsx";
 
 interface MarketInfoProps {
   market: Market;

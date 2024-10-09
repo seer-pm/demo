@@ -10,7 +10,7 @@ import { paths } from "@/lib/paths";
 import { ANSWERED_TOO_SOON, getAnswerText, getQuestionStatus, getRealityLink, isFinalized } from "@/lib/reality";
 import { getTimeLeft } from "@/lib/utils";
 import clsx from "clsx";
-import { COLORS } from "./MarketHeader";
+import { COLORS } from "./index.tsx";
 
 function AnswerColumn({
   marketStatus,

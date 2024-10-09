@@ -1,6 +1,7 @@
 import { useMissingTradeApproval, useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
@@ -17,7 +18,6 @@ import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
-import { useModal } from "../Modal";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 import { OutcomeImage } from "./OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";

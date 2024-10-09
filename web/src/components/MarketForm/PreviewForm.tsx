@@ -2,6 +2,7 @@ import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market } from "@/hooks/useMarket";
+import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
@@ -16,7 +17,6 @@ import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { useAccount } from "wagmi";
 import {
-  ButtonsWrapper,
   DateFormValues,
   FormWithPrevStep,
   MISC_CATEGORY,
@@ -31,7 +31,7 @@ import Button from "../Form/Button";
 import Toggle from "../Form/Toggle";
 import { ConditionalMarketAlert } from "../Market/ConditionalMarketAlert";
 import { MarketHeader } from "../Market/Header/MarketHeader";
-import { useModal } from "../Modal";
+import { ButtonsWrapper } from "./ButtonsWrapper";
 import { VerificationForm } from "./VerificationForm";
 
 type FormStepPreview = {

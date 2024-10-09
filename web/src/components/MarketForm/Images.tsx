@@ -1,3 +1,4 @@
+import { useModal } from "@/hooks/useModal";
 import getCroppedImg from "@/lib/crop-image";
 import { InfoCircleIcon, UploadIcon } from "@/lib/icons";
 import { useEffect, useMemo, useState } from "react";
@@ -7,7 +8,6 @@ import { Control, Controller, FieldPath, FieldValues } from "react-hook-form";
 import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
-import { useModal } from "../Modal";
 
 async function getHeightAndWidthFromDataUrl(dataURL: string): Promise<{ height: number; width: number }> {
   return new Promise((resolve) => {

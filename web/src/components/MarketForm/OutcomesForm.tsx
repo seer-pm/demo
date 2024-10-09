@@ -4,17 +4,11 @@ import { paths } from "@/lib/paths";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
-import {
-  ButtonsWrapper,
-  FormStepProps,
-  FormWithNextStep,
-  FormWithPrevStep,
-  OutcomesFormValues,
-  getQuestionParts,
-} from ".";
+import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
+import { ButtonsWrapper } from "./ButtonsWrapper";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;

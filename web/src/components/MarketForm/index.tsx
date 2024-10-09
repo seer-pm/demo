@@ -1,33 +1,7 @@
-import Button from "@/components/Form/Button";
 import { MarketTypes } from "@/lib/market";
-import { isUndefined } from "@/lib/utils";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 
 export const MISC_CATEGORY = "misc";
-
-export function ButtonsWrapper({
-  goToPrevStep,
-  goToNextStep,
-  disabled,
-  isLoading = false,
-}: {
-  goToPrevStep?: FormWithPrevStep["goToPrevStep"];
-  goToNextStep?: FormWithNextStep["goToNextStep"];
-  disabled?: boolean;
-  isLoading?: boolean;
-}) {
-  return (
-    <div className="space-x-[24px]">
-      {goToPrevStep && <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />}
-      <Button
-        type="submit"
-        disabled={disabled || isLoading}
-        isLoading={isLoading}
-        text={isUndefined(goToNextStep) ? "Create Market" : "Next"}
-      />
-    </div>
-  );
-}
 
 export function getQuestionParts(
   marketName: string,

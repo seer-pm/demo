@@ -16,7 +16,8 @@ import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
-import { STATUS_TEXTS } from "./Header/MarketHeader";
+import { STATUS_TEXTS } from "./Header";
+
 const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Your Markets -> Verification Status -> Liquidity" },
   { value: Market_OrderBy.OutcomesSupply, text: "Open Interest" },

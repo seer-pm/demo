@@ -2,6 +2,7 @@ import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useF
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
+import { useModal } from "@/hooks/useModal";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
@@ -21,7 +22,6 @@ import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
-import { useModal } from "../Modal";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
 

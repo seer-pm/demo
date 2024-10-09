@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "yarn generate && tsc && vite build",
-    "lint": "biome check --apply ./src",
+    "lint": "biome check --write ./src",
     "generate": "yarn generate:hooks && yarn generate:gql",
     "generate:hooks": "wagmi generate",
     "generate:gql": "graphql-codegen",
