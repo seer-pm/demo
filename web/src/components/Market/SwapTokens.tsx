@@ -294,7 +294,7 @@ export function SwapTokens({
             <div className="flex space-x-2 text-purple-primary">
               {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
               {quoteFetchStatus === "fetching"
-                ? <div className="shimmer-container ml-2 w-24"/>
+                ? <div className="shimmer-container ml-2 flex-grow"/>
                 : swapType === "sell" && isSellToOtherCollateral ? assets : shares
               }
             </div>
