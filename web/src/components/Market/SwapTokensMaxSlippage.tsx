@@ -49,7 +49,7 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           <QuestionIcon fill="#9747FF" />
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {MAX_SLIPPAGE_OPTIONS.map((option) => (
           <div
             key={option.value}
