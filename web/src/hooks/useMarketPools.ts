@@ -45,7 +45,7 @@ function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
 function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmings"][0]): PoolIncentive {
   return {
     reward: BigInt(eternalFarming.reward),
-    apr: getPoolApr(Number(formatUnits(BigInt(eternalFarming.reward), 17))),
+    apr: getPoolApr(Number(formatUnits(BigInt(eternalFarming.reward), 18))),
     rewardToken: eternalFarming.rewardToken,
     bonusRewardToken: eternalFarming.bonusRewardToken,
     startTime: BigInt(eternalFarming.startTime),
