@@ -18,7 +18,7 @@ import {
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
@@ -96,7 +96,9 @@ function OutcomesInfo({
                 </div>
               </div>
               <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
+                <div className="text-[24px] font-semibold">
+                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i] || 0, getMarketType(market))}
+                </div>
               </div>
             </Link>
           );

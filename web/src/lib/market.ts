@@ -119,3 +119,11 @@ export function isMarketReliable(market: Market) {
     return decodedQuestion.outcomes.length === market.outcomes.length - 1;
   });
 }
+
+export function formatOdds(odds: number, marketType: MarketTypes) {
+  if (marketType === MarketTypes.SCALAR) {
+    return odds === 0 ? 0 : (odds/100).toFixed(3);
+  }
+
+  return `${odds}%`
+}

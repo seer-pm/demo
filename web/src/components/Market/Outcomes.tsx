@@ -8,7 +8,7 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, isUndefined } from "@/lib/utils";
@@ -354,7 +354,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                 </div>
               </div>
               <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
+                <div className="text-[24px] font-semibold">
+                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i] || 0, getMarketType(market))}
+                </div>
 
                 <input
                   type="radio"
