@@ -163,7 +163,7 @@ export default function Header() {
                     Crypto Beginner's Guide
                   </Link>
                 </li>
-                <li>
+                {/* <li>
                   <Link
                     to={paths.faq()}
                     target="_blank"
@@ -173,7 +173,7 @@ export default function Header() {
                     <QuestionIcon />
                     FAQ
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </div>
           </li>
