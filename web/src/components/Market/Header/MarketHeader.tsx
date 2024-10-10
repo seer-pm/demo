@@ -22,7 +22,7 @@ import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
@@ -58,34 +58,46 @@ function OutcomesInfo({
   });
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, isIntersecting);
 
+  const indexesOrderedByOdds = useMemo(() => {
+    if (oddsPending || odds.length === 0) return null;
+    else {
+      const oddsAndIndexes = odds.map((odd, i) => ({odd, i})).sort((a, b) => b.odd-a.odd)
+      console.log({odds, oddsAndIndexes, market})
+      return oddsAndIndexes.map(obj => obj.i)
+    }
+  }, [odds])
+
   return (
     <div ref={ref}>
       <div className="space-y-3">
-        {outcomes.map((outcome, i) => (
-          <Link
-            key={`${outcome}_${i}`}
-            className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-            to={`${paths.market(market.id, chainId)}?outcome=${i}`}
-          >
-            <div className="flex items-center space-x-[12px]">
-              <div className="w-[65px]">
-                <OutcomeImage image={images?.[i]} isInvalidResult={i === market.outcomes.length - 1} title={outcome} />
-              </div>
-              <div className="space-y-1">
-                <div className="group-hover:underline">
-                  #{i + 1} {outcome}{" "}
-                  {i <= 1 &&
-                    getMarketType(market) === MarketTypes.SCALAR &&
-                    `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+        {outcomes.map((outcome, i) => {
+          i = indexesOrderedByOdds ? indexesOrderedByOdds[i] : i
+          return (
+            <Link
+              key={`${outcome}_${i}`}
+              className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
+              to={`${paths.market(market.id, chainId)}?outcome=${i}`}
+            >
+              <div className="flex items-center space-x-[12px]">
+                <div className="w-[65px]">
+                  <OutcomeImage image={images?.[i]} isInvalidResult={i === market.outcomes.length - 1} title={outcome} />
                 </div>
-                {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
+                <div className="space-y-1">
+                  <div className="group-hover:underline">
+                    #{i + 1} {outcome}{" "}
+                    {i <= 1 &&
+                      getMarketType(market) === MarketTypes.SCALAR &&
+                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                  </div>
+                  {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
+                </div>
               </div>
-            </div>
-            <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
-            </div>
-          </Link>
-        ))}
+              <div className="flex space-x-10 items-center">
+                <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
+              </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   );
