@@ -69,8 +69,9 @@ function OutcomesInfo({
   return (
     <div ref={ref}>
       <div className="space-y-3">
-        {outcomes.map((outcome, j) => {
+        {outcomes.map((outcomeJ, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+          const outcome = indexesOrderedByOdds ? outcomes[i] : outcomeJ
           return (
             <Link
               key={`${outcome}_${i}`}
@@ -87,7 +88,7 @@ function OutcomesInfo({
                 </div>
                 <div className="space-y-1">
                   <div className="group-hover:underline">
-                    #{i + 1} {outcome}{" "}
+                    #{j + 1} {outcome}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}

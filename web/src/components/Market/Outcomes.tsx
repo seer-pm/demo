@@ -245,8 +245,9 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {market.wrappedTokens.map((wrappedAddress, j) => {
+        {market.wrappedTokens.map((wrappedAddressJ, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+          const wrappedAddress = indexesOrderedByOdds ? market.wrappedTokens[i] : wrappedAddressJ;
           return (
             <div
               key={wrappedAddress}
@@ -267,7 +268,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                 <div className="space-y-1">
                   <div className="text-[16px] flex items-center gap-1">
                     <p>
-                      #{i + 1} {market.outcomes[i]}{" "}
+                      #{j + 1} {market.outcomes[i]}{" "}
                       {i <= 1 &&
                         getMarketType(market) === MarketTypes.SCALAR &&
                         `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
