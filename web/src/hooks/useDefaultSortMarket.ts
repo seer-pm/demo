@@ -1,9 +1,6 @@
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { bigIntMax } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import { Market } from "./useMarket";
-import { useAllOutcomePools } from "./useMarketPools";
 import { defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
 
 const statusPriority = {
@@ -13,33 +10,11 @@ const statusPriority = {
   not_verified: 3,
 };
 
-type ExtendedMarket = Market & {
-  creator?: string | null;
-  liquidity?: bigint;
-};
-
 function useDefaultSortMarket(markets: Market[]) {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { data: pools = [] } = useAllOutcomePools(chainId as SupportedChain, COLLATERAL_TOKENS[chainId].primary);
   const { data: verificationStatusResultList } = useVerificationStatusList(chainId as SupportedChain);
-  const outcomeLiquidityMapping = pools.reduce(
-    (obj, item) => {
-      const outcomeTokenId = item.token0.symbol === "sDAI" ? item.token1.id : item.token0.id;
-      obj[outcomeTokenId.toLowerCase()] = BigInt(item.liquidity);
-      return obj;
-    },
-    {} as { [key: string]: bigint },
-  );
-  return structuredClone(
-    markets.map((market: ExtendedMarket) => {
-      return {
-        ...market,
-        liquidity: bigIntMax(
-          ...(market.wrappedTokens.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? []),
-        ),
-      };
-    }),
-  ).sort((a: ExtendedMarket, b: ExtendedMarket) => {
+
+  return structuredClone(markets).sort((a, b) => {
     //by verification status
     const verificationStatusA = verificationStatusResultList?.[a.id.toLowerCase()] ?? defaultStatus;
     const verificationStatusB = verificationStatusResultList?.[b.id.toLowerCase()] ?? defaultStatus;
@@ -48,9 +23,8 @@ function useDefaultSortMarket(markets: Market[]) {
       return statusDiff;
     }
 
-    // by liquidity
-
-    return a.liquidity === b.liquidity ? 0 : (b.liquidity ?? 0n) > (a.liquidity ?? 0n) ? 1 : -1;
+    // by open interest (outcomesSupply)
+    return a.outcomesSupply === b.outcomesSupply ? 0 : (b.outcomesSupply ?? 0n) > (a.outcomesSupply ?? 0n) ? 1 : -1;
   });
 }
 

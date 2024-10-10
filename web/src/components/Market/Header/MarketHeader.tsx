@@ -128,7 +128,7 @@ export function MarketHeader({
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, chainId, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate =
-    ((odds[0] ?? 0) * Number(market.lowerBound) + (odds[1] ?? 0) * Number(market.upperBound)) / 100;
+    ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
   return (
     <div
       className={clsx(

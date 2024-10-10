@@ -77,13 +77,10 @@ export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filte
 
   // add creator field to market to sort
   // create marketId-creator mapping for quick add to market
-  const creatorMapping = markets.reduce(
-    (obj, item) => {
-      obj[item.id.toLowerCase()] = item.creator;
-      return obj;
-    },
-    {} as { [key: string]: string | null | undefined },
-  );
+  const creatorMapping = markets.reduce((obj, item) => {
+    obj[item.id.toLowerCase()] = item.creator;
+    return obj;
+  }, {} as { [key: string]: string | null | undefined });
 
   const onChainMarkets = (await readContracts(config, {
     allowFailure: false,
@@ -229,7 +226,7 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
 
   const markets = result.data || [];
 
-  // if not orderBy, default sort by your markets-> verification status -> liquidity
+  // if not orderBy, default sort by verification status -> open interest
   const defaultSortedMarkets = useDefaultSortMarket(markets);
   let data = params.orderBy ? markets : defaultSortedMarkets;
 
