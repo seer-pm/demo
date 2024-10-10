@@ -171,7 +171,12 @@ function AddLiquidityInfo({
       </div>
 
       <div className="text-center my-[32px]">
-        <a href={paths.farmingProgram()} className="text-purple-primary text-[12px]">
+        <a
+          href={paths.farmingProgram()}
+          className="text-purple-primary text-[12px]"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Learn more about the farming program
         </a>
       </div>

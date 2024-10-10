@@ -97,6 +97,11 @@ export default function Header() {
             </div>
           </li>
           <li>
+            <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
+              Airdrop
+            </Link>
+          </li>
+          <li>
             <Link to={"/portfolio"} className="hover:opacity-85">
               Portfolio
             </Link>
@@ -256,6 +261,11 @@ function MobileMenu() {
                 </li>
               </ul>
             </div>
+          </li>
+          <li>
+            <Link to={paths.farmingProgram()} className="hover:font-semibold" target="_blank" rel="noopener noreferrer">
+              Airdrop
+            </Link>
           </li>
           <li>
             <Link to={"/portfolio"} className="hover:font-semibold">

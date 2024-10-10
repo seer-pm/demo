@@ -12,7 +12,7 @@ export const paths = {
     "https://cdn.kleros.link/ipfs/QmPmRkXFUmzP4rq2YfD3wNwL8bg3WDxkYuvTP9A9UZm9gJ/seer-markets-resolution-policy.pdf",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
     `https://court.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
-  farmingProgram: () => "#",
+  farmingProgram: () => "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",
   curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
     if (chainId in lightGeneralizedTcrAddress) {
       // @ts-ignore
