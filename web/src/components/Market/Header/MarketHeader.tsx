@@ -4,6 +4,7 @@ import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import {
@@ -14,6 +15,7 @@ import {
   EyeIcon,
   LawBalanceIcon,
   MyMarket,
+  QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
@@ -101,13 +103,15 @@ export function MarketHeader({
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, chainId);
+  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, chainId, true);
-
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
+  const marketEstimate =
+    ((odds[0] ?? 0) * Number(market.lowerBound) + (odds[1] ?? 0) * Number(market.upperBound)) / 100;
   return (
     <div
       className={clsx(
@@ -198,7 +202,17 @@ export function MarketHeader({
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} chainId={chainId} />
         </div>
       )}
-
+      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
+        <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
+          <p>Market Estimate: {marketEstimate}</p>
+          <span className="tooltip">
+            <p className="tooltiptext !whitespace-pre-wrap w-[400px]">
+              The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
+            </p>
+            <QuestionIcon fill="#9747FF" />
+          </span>
+        </div>
+      )}
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
           <OutcomesInfo market={market} chainId={chainId} outcomesCount={outcomesCount} images={images?.outcomes} />
@@ -219,10 +233,17 @@ export function MarketHeader({
               <div className="!flex items-center gap-2 tooltip">
                 <p className="tooltiptext @[510px]:hidden">Open interest</p>
                 <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
-                <div>
-                  {displayBalance(daiAmount, 18, true)} {chainId === gnosis.id ? "xDAI" : "DAI"}
-                </div>{" "}
-                <DaiLogo />
+                {!parentMarket && (
+                  <>
+                    {displayBalance(daiAmount, 18, true)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+                    <DaiLogo />
+                  </>
+                )}
+                {parentMarket && (
+                  <div>
+                    {displayBalance(market.outcomesSupply, 18, true)} {parentCollateral?.symbol ?? ""}
+                  </div>
+                )}
               </div>
             )}
           </div>

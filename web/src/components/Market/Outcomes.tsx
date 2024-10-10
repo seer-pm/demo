@@ -195,7 +195,6 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
   const [activePool, setActivePool] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
-  console.log(tokensInfo);
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
   const outcomeClick = (i: number) => {

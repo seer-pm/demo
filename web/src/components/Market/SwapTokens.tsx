@@ -7,7 +7,7 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
@@ -58,21 +58,20 @@ function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
-  collateral,
+  isCollateralDai,
 }: {
   account?: Address;
   trade: Trade;
   swapType: "buy" | "sell";
   isDisabled: boolean;
   isLoading: boolean;
-  collateral: Token;
+  isCollateralDai: boolean;
 }) {
   const missingApprovals = useMissingTradeApproval(account!, trade);
-  const isCollateralSDAI = collateral.address === COLLATERAL_TOKENS[trade.chainId].primary.address;
   const isShowApproval =
     missingApprovals &&
     missingApprovals.length > 0 &&
-    (swapType === "sell" || (swapType === "buy" && isCollateralSDAI));
+    (swapType === "sell" || (swapType === "buy" && !isCollateralDai));
   return (
     <div>
       {!isShowApproval && (
@@ -145,8 +144,9 @@ export function SwapTokens({
   const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
   const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
-  const sellToken = swapType === "buy" ? selectedCollateral : outcomeToken;
-  const { data: balance = BigInt(0) } = useTokenBalance(account, sellToken.address);
+  const [buyToken, sellToken] =
+    swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
+  const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(account, sellToken.address);
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -173,20 +173,26 @@ export function SwapTokens({
     });
   };
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
+
+  // convert sell result to xdai or wxdai if collateral is not sDAI
+  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
+  const isSellToDai = swapType === "sell" && isCollateralDai;
+  const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
+    isSellToDai ? (quoteData?.value ?? 0n) : 0n,
+    chainId,
+  );
+  const assets = sharesToAssets ? Number(displayBalance(sharesToAssets, selectedCollateral.decimals)) : 0;
+
+  // if collateral is dai, wxdai or xdai, we have to calculate maxCollateralPerShare
   const { data: maxDAIPerShare } = useConvertToAssets(parseUnits("1", sDAI.decimals), chainId);
+  const maxCollateralPerShare = isCollateralDai
+    ? Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals))
+    : 1;
 
-  // convert sell result to assets if collateral is not sDAI
-  const isSellToOtherCollateral = swapType === "sell" && selectedCollateral.address !== sDAI.address;
-  const { data: sharesToAssets } = useConvertToAssets(isSellToOtherCollateral ? (quoteData?.value ?? 0n) : 0n, chainId);
-  const assets = sharesToAssets ? displayBalance(sharesToAssets, selectedCollateral.decimals) : 0;
-
-  // check if current token price higher than 1 sdai per token
-  const shares = quoteData ? displayBalance(quoteData.value, quoteData.decimals) : 0;
-  const maxCollateralPerShare = isTwoStringsEqual(selectedCollateral.address, sDAI.address)
-    ? 1
-    : Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals));
-  const collateralPerShare = Number(shares) > 0 ? Number(amount) / Number(shares) : 0;
-  const isPriceTooHigh = Number(shares) > 0 && collateralPerShare > maxCollateralPerShare && swapType === "buy";
+  // check if current token price higher than 1 collateral per token
+  const shares = quoteData ? Number(displayBalance(quoteData.value, quoteData.decimals)) : 0;
+  const collateralPerShare = shares > 0 ? Number(amount) / (isSellToDai ? assets : shares) : 0;
+  const isPriceTooHigh = collateralPerShare > maxCollateralPerShare && swapType === "buy";
 
   return (
     <>
@@ -248,7 +254,7 @@ export function SwapTokens({
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div>
               <div className="flex justify-between items-center">
                 <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
                 <div
@@ -261,6 +267,18 @@ export function SwapTokens({
                   }}
                 >
                   Max
+                </div>
+              </div>
+              <div className="text-[12px] text-black-secondary mb-2 flex items-center gap-1">
+                Balance:{" "}
+                <div>
+                  {isFetchingBalance ? (
+                    <div className="shimmer-container w-[80px] h-[13px]" />
+                  ) : (
+                    <>
+                      {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
+                    </>
+                  )}
                 </div>
               </div>
               <Input
@@ -289,26 +307,36 @@ export function SwapTokens({
               />
             </div>
 
-            <div className="flex space-x-2 text-purple-primary">
-              {swapType === "buy" ? "Price per share" : "Price per share"} ={" "}
-              {quoteFetchStatus === "fetching"
-                ? <div className="shimmer-container ml-2 flex-grow"/>
-                : swapType === "sell"
-                  ? collateralPerShare > 0 ? parseFloat((1/collateralPerShare).toPrecision(5)) : 0
-                  : parseFloat(collateralPerShare.toPrecision(5))
-              }
-            </div>
+            {Number(amount) > 0 && (
+              <div className="flex space-x-2 text-purple-primary">
+                Price per share ={" "}
+                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets ? (
+                  <div className="shimmer-container ml-2 flex-grow" />
+                ) : (
+                  <>
+                    {swapType === "sell"
+                      ? collateralPerShare > 0
+                        ? (1 / collateralPerShare).toFixed(2)
+                        : 0
+                      : collateralPerShare.toFixed(2)}{" "}
+                    {selectedCollateral.symbol}
+                  </>
+                )}
+              </div>
+            )}
 
-            <div className="flex space-x-2 text-purple-primary">
-              {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-              {quoteFetchStatus === "fetching" ? (
-                <div className="shimmer-container ml-2 flex-grow" />
-              ) : swapType === "sell" && isSellToOtherCollateral ? (
-                assets
-              ) : (
-                shares
-              )}
-            </div>
+            {Number(amount) > 0 && (
+              <div className="flex space-x-2 text-purple-primary">
+                {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
+                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets ? (
+                  <div className="shimmer-container ml-2 flex-grow" />
+                ) : (
+                  <>
+                    {isSellToDai ? assets : shares} {buyToken.symbol}
+                  </>
+                )}
+              </div>
+            )}
 
             {isPriceTooHigh && (
               <Alert type="warning">
@@ -352,9 +380,11 @@ export function SwapTokens({
                   isPriceTooHigh
                 }
                 isLoading={
-                  tradeTokens.isPending || (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending)
+                  tradeTokens.isPending ||
+                  (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending) ||
+                  isFetchingSharesToAssets
                 }
-                collateral={selectedCollateral}
+                isCollateralDai={isCollateralDai}
               />
             ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
               <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
