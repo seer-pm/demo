@@ -245,11 +245,11 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {market.wrappedTokens.map((wrappedAddress, j) => {
+        {market.wrappedTokens.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           return (
             <div
-              key={wrappedAddress}
+              key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               className={clsx(
                 "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
@@ -304,7 +304,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       </button>
                     )}
                     <a
-                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
+                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[i]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary tooltip"
@@ -330,7 +330,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <a
                         href={getLiquidityUrl(
                           chainId,
-                          wrappedAddress,
+                          market.wrappedTokens[i],
                           market.parentMarket === zeroAddress
                             ? COLLATERAL_TOKENS[chainId].primary.address
                             : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
