@@ -20,7 +20,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -51,8 +51,7 @@ function OutcomesInfo({
   outcomesCount?: number;
   images?: string[];
 }) {
-  const validOutcomes = market.outcomes.filter((outcome) => outcome !== INVALID_RESULT_OUTCOME_TEXT);
-  const outcomes = outcomesCount > 0 ? validOutcomes.slice(0, outcomesCount) : validOutcomes;
+  const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : (market.outcomes.length - 1);
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
@@ -69,8 +68,14 @@ function OutcomesInfo({
   return (
     <div ref={ref}>
       <div className="space-y-3">
-        {outcomes.map((outcome, j) => {
+        {market.outcomes.map((outcome, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+
+          if (j >= visibleOutcomesLimit) {
+            // render the first `visibleOutcomesLimit` outcomes
+            return null;
+          }
+
           return (
             <Link
               key={`${outcome}_${i}`}
@@ -87,7 +92,7 @@ function OutcomesInfo({
                 </div>
                 <div className="space-y-1">
                   <div className="group-hover:underline">
-                    #{i + 1} {outcome}{" "}
+                    #{j + 1} {market.outcomes[i]}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
