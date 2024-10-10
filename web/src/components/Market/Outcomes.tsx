@@ -15,7 +15,7 @@ import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
@@ -197,6 +197,14 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
+  const indexesOrderedByOdds = useMemo(() => {
+    if (oddsPending || odds.length === 0) return null;
+    else {
+      const oddsAndIndexes = odds.map((odd, i) => ({odd, i})).sort((a, b) => b.odd-a.odd)
+      return oddsAndIndexes.map(obj => obj.i)
+    }
+  }, [odds])
+
   const outcomeClick = (i: number) => {
     return () => {
       setActiveOutcome(i);
@@ -237,125 +245,128 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {market.wrappedTokens.map((wrappedAddress, i) => (
-          <div
-            key={wrappedAddress}
-            onClick={outcomeClick(i)}
-            className={clsx(
-              "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
-              activeOutcome === i ? "border-purple-primary" : "border-black-medium",
-            )}
-          >
-            <div className="flex items-center space-x-[12px]">
-              <div className="flex-shrink-0">
-                <OutcomeImage
-                  image={images?.[i]}
-                  isInvalidResult={i === market.wrappedTokens.length - 1}
-                  title={market.outcomes[i]}
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="text-[16px] flex items-center gap-1">
-                  <p>
-                    #{i + 1} {market.outcomes[i]}{" "}
-                    {i <= 1 &&
-                      getMarketType(market) === MarketTypes.SCALAR &&
-                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
-                  </p>
-                  {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
-                    <span className="tooltip">
-                      <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
-                        {getTooltipContent(market, i)}
-                      </p>
-                      <QuestionIcon fill="#9747FF" />
-                    </span>
-                  )}
-                  {i === market.wrappedTokens.length - 1 && (
-                    <span className="tooltip">
-                      <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
-                        Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
-                        to invalid.
-                      </p>
-                      <QuestionIcon fill="#9747FF" />
-                    </span>
-                  )}
+        {market.wrappedTokens.map((wrappedAddress, i) => {
+          i = indexesOrderedByOdds ? indexesOrderedByOdds[i] : i
+          return (
+            <div
+              key={wrappedAddress}
+              onClick={outcomeClick(i)}
+              className={clsx(
+                "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
+                activeOutcome === i ? "border-purple-primary" : "border-black-medium",
+              )}
+            >
+              <div className="flex items-center space-x-[12px]">
+                <div className="flex-shrink-0">
+                  <OutcomeImage
+                    image={images?.[i]}
+                    isInvalidResult={i === market.wrappedTokens.length - 1}
+                    title={market.outcomes[i]}
+                  />
                 </div>
-                <div className="text-[12px] text-black-secondary">
-                  {balances && balances[i] > 0n && (
-                    <div className="w-full">
-                      {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
-                    </div>
-                  )}
-                </div>
-                <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap">
-                  {balances && balances[i] > 0n && (
-                    <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
-                      Add token to wallet
-                    </button>
-                  )}
-                  <a
-                    href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-primary tooltip"
-                  >
-                    <p className="tooltiptext">
-                      View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[chainId].name}
+                <div className="space-y-1">
+                  <div className="text-[16px] flex items-center gap-1">
+                    <p>
+                      #{i + 1} {market.outcomes[i]}{" "}
+                      {i <= 1 &&
+                        getMarketType(market) === MarketTypes.SCALAR &&
+                        `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
                     </p>
-                    <EtherscanIcon width="12" height="12" />
-                  </a>
-
-                  {!isUndefined(pools[i]) && pools[i].length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActivePool(i);
-                        openModal();
-                      }}
-                      className="text-purple-primary hover:underline"
-                    >
-                      Add Liquidity
-                    </button>
-                  ) : (
+                    {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
+                      <span className="tooltip">
+                        <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
+                          {getTooltipContent(market, i)}
+                        </p>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                    )}
+                    {i === market.wrappedTokens.length - 1 && (
+                      <span className="tooltip">
+                        <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
+                          Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved
+                          to invalid.
+                        </p>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[12px] text-black-secondary">
+                    {balances && balances[i] > 0n && (
+                      <div className="w-full">
+                        {displayBalance(balances[i], 18, true)} {tokensInfo?.[i]?.symbol}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap">
+                    {balances && balances[i] > 0n && (
+                      <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
+                        Add token to wallet
+                      </button>
+                    )}
                     <a
-                      href={getLiquidityUrl(
-                        chainId,
-                        wrappedAddress,
-                        market.parentMarket === zeroAddress
-                          ? COLLATERAL_TOKENS[chainId].primary.address
-                          : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
-                      )}
+                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-primary flex items-center space-x-2 hover:underline"
+                      className="text-purple-primary tooltip"
                     >
-                      <span>Add Liquidity</span>
+                      <p className="tooltiptext">
+                        View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[chainId].name}
+                      </p>
+                      <EtherscanIcon width="12" height="12" />
                     </a>
-                  )}
 
-                  <Link
-                    to={`/create-market?shMarket=${market.id}&shOutcome=${i}`}
-                    className="text-purple-primary hover:underline"
-                  >
-                    New conditional market
-                  </Link>
+                    {!isUndefined(pools[i]) && pools[i].length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePool(i);
+                          openModal();
+                        }}
+                        className="text-purple-primary hover:underline"
+                      >
+                        Add Liquidity
+                      </button>
+                    ) : (
+                      <a
+                        href={getLiquidityUrl(
+                          chainId,
+                          wrappedAddress,
+                          market.parentMarket === zeroAddress
+                            ? COLLATERAL_TOKENS[chainId].primary.address
+                            : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-primary flex items-center space-x-2 hover:underline"
+                      >
+                        <span>Add Liquidity</span>
+                      </a>
+                    )}
+
+                    <Link
+                      to={`/create-market?shMarket=${market.id}&shOutcome=${i}`}
+                      className="text-purple-primary hover:underline"
+                    >
+                      New conditional market
+                    </Link>
+                  </div>
+                  <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
                 </div>
-                <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
+              </div>
+              <div className="flex space-x-10 items-center">
+                <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
+
+                <input
+                  type="radio"
+                  name="outcome"
+                  className="radio"
+                  onChange={outcomeClick(i)}
+                  checked={activeOutcome === i}
+                />
               </div>
             </div>
-            <div className="flex space-x-10 items-center">
-              <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
-
-              <input
-                type="radio"
-                name="outcome"
-                className="radio"
-                onChange={outcomeClick(i)}
-                checked={activeOutcome === i}
-              />
-            </div>
-          </div>
-        ))}
+          )
+        })}
         <Modal
           title="Add Liquidity"
           content={<AddLiquidityInfo chainId={chainId} pools={pools[activePool] || []} closeModal={closeModal} />}
