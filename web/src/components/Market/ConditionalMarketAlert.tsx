@@ -4,6 +4,7 @@ import { paths } from "@/lib/paths";
 import { Link } from "react-router-dom";
 import { Address } from "viem";
 import { Alert } from "../Alert";
+import { toSnakeCase } from "@/lib/utils";
 
 export function ConditionalMarketAlert({
   parentMarket: parentMarketAddress,
@@ -19,7 +20,7 @@ export function ConditionalMarketAlert({
   if (!parentMarket) {
     return null;
   }
-
+  const parentOutcomeText = parentMarket.outcomes[Number(parentOutcome)];
   return (
     <Alert type="info" title="Conditional Market">
       This market is conditional on the resolution of{" "}
@@ -28,11 +29,11 @@ export function ConditionalMarketAlert({
       </Link>{" "}
       being{" "}
       <Link
-        to={`${paths.market(parentMarket.id, chainId)}?outcome=${parentOutcome}`}
+        to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(parentOutcomeText)}`}
         target="_blank"
         className="text-purple-primary font-medium"
       >
-        "{parentMarket.outcomes[Number(parentOutcome)]}"
+        "{parentOutcomeText}"
       </Link>
       . <br />
       If the main market resolves to a different outcome, the tokens of this market will be worthless.

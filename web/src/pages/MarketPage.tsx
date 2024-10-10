@@ -14,7 +14,8 @@ import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
-import { useState } from "react";
+import { toSnakeCase } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -62,9 +63,6 @@ function MarketPage() {
   const { address: account } = useAccount();
   const [searchParams] = useSearchParams();
 
-  const outcomeIndexFromSearch = Number(searchParams.get("outcome"));
-  const [outcomeIndex, setOutcomeIndex] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
-
   const params = useParams();
   const id = params.id as Address;
   const chainId = Number(params.chainId) as SupportedChain;
@@ -75,6 +73,12 @@ function MarketPage() {
   const { data: images } = useMarketImages(id as Address, chainId);
   const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
+  const outcomeIndexFromSearch =
+    market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
+  const [outcomeIndex, setOutcomeIndex] = useState(Math.max(outcomeIndexFromSearch, 0));
+  useEffect(() => {
+    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
+  }, [market]);
   if (isMarketError) {
     return (
       <div className="container py-10">

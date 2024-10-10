@@ -18,43 +18,38 @@ export interface PortfolioPosition {
   tokenBalance: number;
   tokenValue?: number;
   tokenPrice?: number;
+  outcome: string;
 }
 export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
   const markets = await fetchMarkets(chainId);
-  const marketIdToMarket = markets.reduce(
-    (acum, market) => {
-      acum[market.id] = {
-        ...market,
-        marketStatus: getMarketStatus(market),
-      };
-      return acum;
-    },
-    {} as Record<Address, Market & { marketStatus: string }>,
-  );
+  const marketIdToMarket = markets.reduce((acum, market) => {
+    acum[market.id] = {
+      ...market,
+      marketStatus: getMarketStatus(market),
+    };
+    return acum;
+  }, {} as Record<Address, Market & { marketStatus: string }>);
 
-  const tokenToMarket = markets.reduce(
-    (acum, market) => {
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum[tokenId] = {
-          marketAddress: market.id,
-          tokenIndex: i,
-        };
-      }
-      return acum;
-    },
-    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
-  );
+  const tokenToMarket = markets.reduce((acum, market) => {
+    for (let i = 0; i < market.wrappedTokens.length; i++) {
+      const tokenId = market.wrappedTokens[i];
+      acum[tokenId] = {
+        marketAddress: market.id,
+        tokenIndex: i,
+      };
+    }
+    return acum;
+  }, {} as Record<Address, { marketAddress: Address; tokenIndex: number }>);
 
   // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
 
   // [tokenBalance, ..., ...]
   const balances = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddresses) => ({
+    contracts: allTokensIds.map((wrappedAddress) => ({
       abi: erc20Abi,
-      address: wrappedAddresses,
+      address: wrappedAddress,
       functionName: "balanceOf",
       args: [address],
     })),
@@ -63,9 +58,9 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
 
   // tokenNames
   const tokenNames = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddresses) => ({
+    contracts: allTokensIds.map((wrappedAddress) => ({
       abi: erc20Abi,
-      address: wrappedAddresses,
+      address: wrappedAddress,
       functionName: "name",
       args: [],
     })),
@@ -74,9 +69,9 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
 
   // decimals
   const tokenDecimals = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddresses) => ({
+    contracts: allTokensIds.map((wrappedAddress) => ({
       abi: erc20Abi,
-      address: wrappedAddresses,
+      address: wrappedAddress,
       functionName: "decimals",
       args: [],
     })),
@@ -94,6 +89,10 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
         marketName: marketIdToMarket[marketAddress].marketName,
         marketStatus: marketIdToMarket[marketAddress].marketStatus,
+        outcome:
+          marketIdToMarket[marketAddress].outcomes[
+            marketIdToMarket[marketAddress].wrappedTokens.indexOf(allTokensIds[index])
+          ],
       });
     }
     return acumm;
@@ -103,13 +102,10 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   const marketsPayouts = await Promise.all(
     marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress], chainId)),
   );
-  const marketToMarketPayouts = marketsWithPositions.reduce(
-    (acc, marketAddress, index) => {
-      acc[marketAddress] = marketsPayouts[index];
-      return acc;
-    },
-    {} as { [key: Address]: bigint[] },
-  );
+  const marketToMarketPayouts = marketsWithPositions.reduce((acc, marketAddress, index) => {
+    acc[marketAddress] = marketsPayouts[index];
+    return acc;
+  }, {} as { [key: Address]: bigint[] });
   return positions.filter((position) => {
     const payouts = marketToMarketPayouts[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {

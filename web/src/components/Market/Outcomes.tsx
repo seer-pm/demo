@@ -11,7 +11,7 @@ import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -185,15 +185,17 @@ function AddLiquidityInfo({
 
 export function Outcomes({ chainId, market, images, tradeCallback }: PositionsProps) {
   const { address } = useAccount();
-  const [searchParams] = useSearchParams();
-  const outcomeIndexFromSearch = Number(searchParams.get("outcome"));
-  const [activeOutcome, setActiveOutcome] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const outcomeIndexFromSearch = market.outcomes.findIndex(
+    (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
+  );
+  const [activeOutcome, setActiveOutcome] = useState(Math.max(outcomeIndexFromSearch, 0));
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
-  const [activePool, setActivePool] = useState(Number.isNaN(outcomeIndexFromSearch) ? 0 : outcomeIndexFromSearch);
+  const [activePool, setActivePool] = useState(Math.max(outcomeIndexFromSearch, 0));
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
@@ -209,6 +211,13 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     return () => {
       setActiveOutcome(i);
       tradeCallback(i);
+      setSearchParams(
+        (params) => {
+          params.set("outcome", toSnakeCase(market.outcomes[i]));
+          return params;
+        },
+        { replace: true },
+      );
     };
   };
 
@@ -247,9 +256,10 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
       <div className="space-y-3">
         {market.wrappedTokens.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+          const wrappedAddress = market.wrappedTokens[i];
           return (
             <div
-              key={market.wrappedTokens[i]}
+              key={wrappedAddress}
               onClick={outcomeClick(i)}
               className={clsx(
                 "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
@@ -304,7 +314,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       </button>
                     )}
                     <a
-                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[i]}`}
+                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary tooltip"
@@ -330,7 +340,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <a
                         href={getLiquidityUrl(
                           chainId,
-                          market.wrappedTokens[i],
+                          wrappedAddress,
                           market.parentMarket === zeroAddress
                             ? COLLATERAL_TOKENS[chainId].primary.address
                             : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
@@ -345,6 +355,16 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
 
                     <Link
                       to={`/create-market?shMarket=${market.id}&shOutcome=${i}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearchParams(
+                          (params) => {
+                            params.set("outcome", toSnakeCase(market.outcomes[i]));
+                            return params;
+                          },
+                          { replace: true },
+                        );
+                      }}
                       className="text-purple-primary hover:underline"
                     >
                       New conditional market

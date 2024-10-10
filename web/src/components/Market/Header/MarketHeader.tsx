@@ -20,7 +20,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -51,7 +51,7 @@ function OutcomesInfo({
   outcomesCount?: number;
   images?: string[];
 }) {
-  const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : (market.outcomes.length - 1);
+  const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
@@ -68,19 +68,19 @@ function OutcomesInfo({
   return (
     <div ref={ref}>
       <div className="space-y-3">
-        {market.outcomes.map((outcome, j) => {
+        {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
 
           if (j >= visibleOutcomesLimit) {
             // render the first `visibleOutcomesLimit` outcomes
             return null;
           }
-
+          const outcome = market.outcomes[i];
           return (
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, chainId)}?outcome=${i}`}
+              to={`${paths.market(market.id, chainId)}?outcome=${toSnakeCase(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
@@ -198,7 +198,7 @@ export function MarketHeader({
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, chainId)}?outcome=${market.parentOutcome}`}
+                to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(parentMarket.outcomes[Number(market.parentOutcome)])}`}
                 target="_blank"
                 className="text-purple-primary font-medium"
               >

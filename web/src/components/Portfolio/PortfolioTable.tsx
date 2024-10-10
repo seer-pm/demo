@@ -11,6 +11,7 @@ import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import { Address } from "viem";
 import TextOverflowTooltip from "../TextOverflowTooltip";
+import { toSnakeCase } from "@/lib/utils";
 
 export function MarketImage({
   marketAddress,
@@ -121,8 +122,8 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
                           ? header.column.getNextSortingOrder() === "asc"
                             ? "Sort ascending"
                             : header.column.getNextSortingOrder() === "desc"
-                              ? "Sort descending"
-                              : "Clear sort"
+                            ? "Sort descending"
+                            : "Clear sort"
                           : undefined
                       }
                     >
@@ -148,7 +149,7 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
               key={row.id}
               onClick={() => {
                 const position = row.original;
-                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${position.tokenIndex}`);
+                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
               }}
             >
               {row.getVisibleCells().map((cell) => {
