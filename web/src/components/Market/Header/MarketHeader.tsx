@@ -204,13 +204,15 @@ export function MarketHeader({
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <p>Market Estimate: {marketEstimate}</p>
-          <span className="tooltip">
-            <p className="tooltiptext !whitespace-pre-wrap w-[400px]">
-              The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
-            </p>
-            <QuestionIcon fill="#9747FF" />
-          </span>
+          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
+          {!isPendingOdds && (
+            <span className="tooltip">
+              <p className="tooltiptext !whitespace-pre-wrap w-[400px]">
+                The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
+              </p>
+              <QuestionIcon fill="#9747FF" />
+            </span>
+          )}
         </div>
       )}
       {type === "preview" && (
