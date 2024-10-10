@@ -45,6 +45,9 @@ function OutcomeFields({
           {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
             validate: (v) => {
+              if (isTwoStringsEqual(v, "invalid")) {
+                return "Invalid Outcome.";
+              }
               if (outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value))) {
                 return "Duplicated outcome.";
               }
@@ -124,6 +127,9 @@ function TokenNameField({
             {...useFormReturn.register(fieldName, {
               required: "This field is required.",
               validate: (v, formValues) => {
+                if (isTwoStringsEqual(v as string, "invalid")) {
+                  return "Invalid Token Name.";
+                }
                 if (
                   (fieldName === "lowerBound.token" && isTwoStringsEqual(v as string, formValues.upperBound.token)) ||
                   (fieldName === "upperBound.token" && isTwoStringsEqual(v as string, formValues.lowerBound.token))

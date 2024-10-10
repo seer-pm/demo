@@ -354,7 +354,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                     )}
 
                     <Link
-                      to={`/create-market?shMarket=${market.id}&shOutcome=${i}`}
+                      to={`/create-market?parentMarket=${market.id}&parentOutcome=${toSnakeCase(market.outcomes[i])}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSearchParams(

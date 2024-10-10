@@ -1,7 +1,7 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market } from "@/hooks/useMarket";
+import { Market, useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
@@ -9,7 +9,7 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc, toSnakeCase } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -231,9 +231,12 @@ export function PreviewForm({
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [searchParams] = useSearchParams();
-  const shMarket = searchParams.get("shMarket") || "";
-  const parentMarket = isAddress(shMarket) ? shMarket : zeroAddress;
-  const parentOutcome = BigInt(searchParams.get("shOutcome") || 0);
+  let parentMarketAddress = searchParams.get("parentMarket") ?? "";
+  parentMarketAddress = isAddress(parentMarketAddress) ? parentMarketAddress : zeroAddress;
+  const { data: parentMarket } = useMarket(parentMarketAddress as Address, chainId);
+  let parentOutcomeIndex =
+    parentMarket?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("parentOutcome")) ?? -1;
+  parentOutcomeIndex = Math.max(parentOutcomeIndex, 0);
 
   const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
@@ -285,8 +288,8 @@ export function PreviewForm({
       questionStart: questionParts?.questionStart || "",
       questionEnd: questionParts?.questionEnd || "",
       outcomeType: questionParts?.outcomeType || "",
-      parentMarket,
-      parentOutcome,
+      parentMarket: parentMarketAddress as Address,
+      parentOutcome: BigInt(parentOutcomeIndex),
       lowerBound: outcomesValues.lowerBound.value,
       upperBound: outcomesValues.upperBound.value,
       unit: outcomesValues.unit,
@@ -319,8 +322,8 @@ export function PreviewForm({
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: getOutcomes(outcomes, marketTypeValues.marketType).concat(INVALID_RESULT_OUTCOME_TEXT),
-    parentMarket,
-    parentOutcome,
+    parentMarket: parentMarketAddress as Address,
+    parentOutcome: BigInt(parentOutcomeIndex),
     wrappedTokens: ["0x000", "0x000"],
     outcomesSupply: 0n,
     parentCollectionId: "0x000",
@@ -359,7 +362,11 @@ export function PreviewForm({
       )}
 
       <DashedBox className="max-w-[644px] p-[32px] mx-auto space-y-[24px]">
-        <ConditionalMarketAlert parentMarket={parentMarket} parentOutcome={parentOutcome} chainId={chainId} />
+        <ConditionalMarketAlert
+          parentMarket={parentMarketAddress as Address}
+          parentOutcome={BigInt(parentOutcomeIndex)}
+          chainId={chainId}
+        />
         <MarketHeader
           market={dummyMarket}
           images={images === false ? undefined : images.url}
