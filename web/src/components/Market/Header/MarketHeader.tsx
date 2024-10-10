@@ -62,7 +62,6 @@ function OutcomesInfo({
     if (oddsPending || odds.length === 0) return null;
     else {
       const oddsAndIndexes = odds.map((odd, i) => ({odd, i})).sort((a, b) => b.odd-a.odd)
-      console.log({odds, oddsAndIndexes, market})
       return oddsAndIndexes.map(obj => obj.i)
     }
   }, [odds])
