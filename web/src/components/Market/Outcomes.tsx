@@ -34,7 +34,7 @@ interface PositionsProps {
 
 function poolRewardsInfo(poolIncentive: PoolIncentive) {
   if (poolIncentive.apr === 0) {
-    return `${displayBalance(poolIncentive.reward, 17)} SEER / day`;
+    return `${displayBalance(poolIncentive.reward / 365n, 17)} SEER / day`;
   }
 
   return `${poolIncentive.apr.toFixed(2)}% APR`;
