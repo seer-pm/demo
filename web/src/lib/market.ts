@@ -122,8 +122,8 @@ export function isMarketReliable(market: Market) {
 
 export function formatOdds(odds: number, marketType: MarketTypes) {
   if (marketType === MarketTypes.SCALAR) {
-    return odds === 0 ? 0 : (odds/100).toFixed(3);
+    return odds === 0 ? 0 : (odds / 100).toFixed(3);
   }
 
-  return `${odds}%`
+  return `${odds}%`;
 }

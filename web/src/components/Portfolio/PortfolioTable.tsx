@@ -6,12 +6,12 @@ import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { toSnakeCase } from "@/lib/utils";
 import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import { Address } from "viem";
 import TextOverflowTooltip from "../TextOverflowTooltip";
-import { toSnakeCase } from "@/lib/utils";
 
 export function MarketImage({
   marketAddress,
@@ -122,8 +122,8 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
                           ? header.column.getNextSortingOrder() === "asc"
                             ? "Sort ascending"
                             : header.column.getNextSortingOrder() === "desc"
-                            ? "Sort descending"
-                            : "Clear sort"
+                              ? "Sort descending"
+                              : "Clear sort"
                           : undefined
                       }
                     >

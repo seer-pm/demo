@@ -23,24 +23,30 @@ export interface PortfolioPosition {
 export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
   const markets = await fetchMarkets(chainId);
-  const marketIdToMarket = markets.reduce((acum, market) => {
-    acum[market.id] = {
-      ...market,
-      marketStatus: getMarketStatus(market),
-    };
-    return acum;
-  }, {} as Record<Address, Market & { marketStatus: string }>);
-
-  const tokenToMarket = markets.reduce((acum, market) => {
-    for (let i = 0; i < market.wrappedTokens.length; i++) {
-      const tokenId = market.wrappedTokens[i];
-      acum[tokenId] = {
-        marketAddress: market.id,
-        tokenIndex: i,
+  const marketIdToMarket = markets.reduce(
+    (acum, market) => {
+      acum[market.id] = {
+        ...market,
+        marketStatus: getMarketStatus(market),
       };
-    }
-    return acum;
-  }, {} as Record<Address, { marketAddress: Address; tokenIndex: number }>);
+      return acum;
+    },
+    {} as Record<Address, Market & { marketStatus: string }>,
+  );
+
+  const tokenToMarket = markets.reduce(
+    (acum, market) => {
+      for (let i = 0; i < market.wrappedTokens.length; i++) {
+        const tokenId = market.wrappedTokens[i];
+        acum[tokenId] = {
+          marketAddress: market.id,
+          tokenIndex: i,
+        };
+      }
+      return acum;
+    },
+    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
+  );
 
   // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
@@ -102,10 +108,13 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   const marketsPayouts = await Promise.all(
     marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress], chainId)),
   );
-  const marketToMarketPayouts = marketsWithPositions.reduce((acc, marketAddress, index) => {
-    acc[marketAddress] = marketsPayouts[index];
-    return acc;
-  }, {} as { [key: Address]: bigint[] });
+  const marketToMarketPayouts = marketsWithPositions.reduce(
+    (acc, marketAddress, index) => {
+      acc[marketAddress] = marketsPayouts[index];
+      return acc;
+    },
+    {} as { [key: Address]: bigint[] },
+  );
   return positions.filter((position) => {
     const payouts = marketToMarketPayouts[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {

@@ -1,10 +1,10 @@
 import { useMarket } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
+import { toSnakeCase } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Address } from "viem";
 import { Alert } from "../Alert";
-import { toSnakeCase } from "@/lib/utils";
 
 export function ConditionalMarketAlert({
   parentMarket: parentMarketAddress,
