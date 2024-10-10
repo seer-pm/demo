@@ -198,12 +198,12 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
   const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) return null;
-    else {
-      const oddsAndIndexes = odds.map((odd, i) => ({odd, i})).sort((a, b) => b.odd-a.odd)
-      return oddsAndIndexes.map(obj => obj.i)
+    if (oddsPending || odds.length === 0) {
+      return null;
     }
-  }, [odds])
+    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
+    return oddsAndIndexes.map((obj) => obj.i);
+  }, [odds]);
 
   const outcomeClick = (i: number) => {
     return () => {
@@ -245,8 +245,8 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {market.wrappedTokens.map((wrappedAddress, i) => {
-          i = indexesOrderedByOdds ? indexesOrderedByOdds[i] : i
+        {market.wrappedTokens.map((wrappedAddress, j) => {
+          const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           return (
             <div
               key={wrappedAddress}
@@ -365,7 +365,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                 />
               </div>
             </div>
-          )
+          );
         })}
         <Modal
           title="Add Liquidity"

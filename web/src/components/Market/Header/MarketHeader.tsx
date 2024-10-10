@@ -59,18 +59,18 @@ function OutcomesInfo({
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, isIntersecting);
 
   const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) return null;
-    else {
-      const oddsAndIndexes = odds.map((odd, i) => ({odd, i})).sort((a, b) => b.odd-a.odd)
-      return oddsAndIndexes.map(obj => obj.i)
+    if (oddsPending || odds.length === 0) {
+      return null;
     }
-  }, [odds])
+    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
+    return oddsAndIndexes.map((obj) => obj.i);
+  }, [odds]);
 
   return (
     <div ref={ref}>
       <div className="space-y-3">
-        {outcomes.map((outcome, i) => {
-          i = indexesOrderedByOdds ? indexesOrderedByOdds[i] : i
+        {outcomes.map((outcome, j) => {
+          const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           return (
             <Link
               key={`${outcome}_${i}`}
@@ -79,7 +79,11 @@ function OutcomesInfo({
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
-                  <OutcomeImage image={images?.[i]} isInvalidResult={i === market.outcomes.length - 1} title={outcome} />
+                  <OutcomeImage
+                    image={images?.[i]}
+                    isInvalidResult={i === market.outcomes.length - 1}
+                    title={outcome}
+                  />
                 </div>
                 <div className="space-y-1">
                   <div className="group-hover:underline">
@@ -95,7 +99,7 @@ function OutcomesInfo({
                 <div className="text-[24px] font-semibold">{oddsPending ? <Spinner /> : `${odds?.[i] || 0}%`}</div>
               </div>
             </Link>
-          )
+          );
         })}
       </div>
     </div>
