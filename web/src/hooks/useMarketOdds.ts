@@ -59,7 +59,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
     queryFn: async () => {
       // this amount is small, to minimize the effect of slippage.
       // in case the token is valuable like eth, 1 unit can slip a lot.
-      const BUY_AMOUNT = 0.001;
+      const BUY_AMOUNT = 1;
 
       const prices = await Promise.all(
         market.wrappedTokens.map(async (wrappedAddress) => {
