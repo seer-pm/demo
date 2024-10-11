@@ -188,7 +188,7 @@ export function QuestionLine({
 
   if (questionStatus === MarketStatus.IN_DISPUTE) {
     return (
-      <div className={clsx("flex items-center space-x-[12px]", COLORS[questionStatus]?.text)}>
+      <div className={clsx("flex flex-wrap items-center space-x-[12px]", COLORS[questionStatus]?.text)}>
         <AnswerColumn {...{ marketStatus, marketType, question, questionStatus, questionIndex, market, isPreview }} />
 
         <div className="text-black-medium">|</div>
@@ -207,7 +207,7 @@ export function QuestionLine({
     return (
       <div
         className={clsx(
-          "flex items-center space-x-[12px]",
+          "flex flex-wrap items-center space-x-[12px]",
           isQuestionFinalized ? "text-success-primary" : COLORS[questionStatus]?.text,
           isPreviewWithMultiQuestions && "flex-wrap",
         )}
@@ -248,7 +248,7 @@ export function QuestionLine({
   return (
     <div
       className={clsx(
-        "flex items-center space-x-[12px]",
+        "flex flex-wrap items-center space-x-[12px]",
         COLORS[marketStatus === MarketStatus.PENDING_EXECUTION ? MarketStatus.PENDING_EXECUTION : questionStatus]?.text,
       )}
     >
