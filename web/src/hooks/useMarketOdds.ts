@@ -9,11 +9,23 @@ import useMarketHasLiquidity from "./useMarketHasLiquidity";
 import { useTokenInfo } from "./useTokenInfo";
 
 function normalizeOdds(prices: number[]): number[] {
-  const sum = prices.reduce((acc, curr) => {
-    return acc + curr;
-  }, 0);
+  const sumArray = (data: number[]) =>
+    data.reduce((acc, curr) => {
+      return acc + curr;
+    }, 0);
 
-  return prices.map((price) => Number(((price / sum) * 100).toFixed(1)));
+  const pricesSum = sumArray(prices);
+
+  const odds = prices.map((price) => Number(((price / pricesSum) * 100).toFixed(1)));
+
+  const oddsSum = sumArray(odds);
+
+  if (oddsSum > 100) {
+    const maxIndex = odds.indexOf(Math.max(...odds));
+    odds[maxIndex] = Number((odds[maxIndex] - (oddsSum - 100)).toFixed(1));
+  }
+
+  return odds;
 }
 
 async function getTokenPrice(
