@@ -54,6 +54,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
   return useQuery<number[] | undefined, Error>({
     enabled: hasLiquidity && enabled,
     queryKey: ["useMarketOdds", market.id, chainId, hasLiquidity],
+    staleTime: 0,
     queryFn: async () => {
       // this amount is small, to minimize the effect of slippage.
       // in case the token is valuable like eth, 1 unit can slip a lot.
