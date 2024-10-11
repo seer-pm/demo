@@ -1,7 +1,7 @@
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
 import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
@@ -45,7 +45,7 @@ function OutcomeFields({
           {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
             validate: (v) => {
-              if (isTwoStringsEqual(v, "invalid")) {
+              if (isTwoStringsEqual(v, INVALID_RESULT_OUTCOME_TEXT)) {
                 return "Invalid Outcome.";
               }
               if (outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value))) {
@@ -127,7 +127,7 @@ function TokenNameField({
             {...useFormReturn.register(fieldName, {
               required: "This field is required.",
               validate: (v, formValues) => {
-                if (isTwoStringsEqual(v as string, "invalid")) {
+                if (isTwoStringsEqual(v as string, INVALID_RESULT_OUTCOME_TEXT)) {
                   return "Invalid Token Name.";
                 }
                 if (

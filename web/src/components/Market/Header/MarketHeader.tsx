@@ -20,7 +20,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -70,12 +70,15 @@ function OutcomesInfo({
       <div className="space-y-3">
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+          const outcome = market.outcomes[i];
 
           if (j >= visibleOutcomesLimit) {
             // render the first `visibleOutcomesLimit` outcomes
             return null;
           }
-          const outcome = market.outcomes[i];
+          if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
+            return null;
+          }
           return (
             <Link
               key={`${outcome}_${i}`}
@@ -198,7 +201,9 @@ export function MarketHeader({
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(parentMarket.outcomes[Number(market.parentOutcome)])}`}
+                to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(
+                  parentMarket.outcomes[Number(market.parentOutcome)],
+                )}`}
                 target="_blank"
                 className="text-purple-primary font-medium"
               >

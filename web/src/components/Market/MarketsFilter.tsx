@@ -41,7 +41,12 @@ export function MarketsFilter() {
         )}
 
         <div>
-          <LinkButton to={"/create-market"} text="Create New Market" icon={<PlusIcon />} className="max-lg:w-full" />
+          <LinkButton
+            to={"/create-market"}
+            text="Create New Market"
+            icon={<PlusIcon />}
+            className="max-lg:w-full min-w-[256px]"
+          />
         </div>
       </div>
       <div className="flex items-center justify-end gap-4">

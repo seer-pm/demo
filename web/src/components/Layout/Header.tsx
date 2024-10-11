@@ -48,7 +48,7 @@ export default function Header() {
   return (
     <header>
       <nav className="navbar justify-between bg-purple-dark px-[24px] text-white gap-4">
-        <div className="w-1/3">
+        <div className="min-[1150px]:w-1/3 w-1/4">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
@@ -324,17 +324,6 @@ function MobileMenu() {
               >
                 <EthIcon />
                 Crypto Beginner's Guide
-              </Link>
-            </li>
-            <li>
-              <Link
-                to={paths.faq()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
-              >
-                <QuestionIcon />
-                FAQ
               </Link>
             </li>
           </ul>
