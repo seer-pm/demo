@@ -23,7 +23,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         client={queryClient}
         persistOptions={{
           persister,
-          maxAge: 60 * 2 * 1000,
+          maxAge: 1000 * 60 * 60 * 24, //24 hours
           dehydrateOptions: {
             shouldDehydrateQuery: (query: Query) => {
               if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useMarketOdds")) {
