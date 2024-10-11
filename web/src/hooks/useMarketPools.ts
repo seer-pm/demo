@@ -18,6 +18,7 @@ import { getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
 
 export interface PoolIncentive {
   reward: bigint;
+  rewardRate: bigint;
   apr: number;
   rewardToken: Address;
   bonusRewardToken: Address;
@@ -45,7 +46,8 @@ function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
 function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmings"][0]): PoolIncentive {
   return {
     reward: BigInt(eternalFarming.reward),
-    apr: getPoolApr(Number(formatUnits(BigInt(eternalFarming.reward), 17))),
+    rewardRate: BigInt(eternalFarming.rewardRate),
+    apr: getPoolApr(Number(formatUnits(BigInt(eternalFarming.reward), 18))),
     rewardToken: eternalFarming.rewardToken,
     bonusRewardToken: eternalFarming.bonusRewardToken,
     startTime: BigInt(eternalFarming.startTime),
