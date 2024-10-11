@@ -55,7 +55,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
     enabled: hasLiquidity && enabled,
     queryKey: ["useMarketOdds", market.id, chainId, hasLiquidity],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
-    staleTime: 1000 * 60 * 2, //2 minutes
+    staleTime: 0,
     queryFn: async () => {
       // this amount is small, to minimize the effect of slippage.
       // in case the token is valuable like eth, 1 unit can slip a lot.
