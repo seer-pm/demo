@@ -110,7 +110,9 @@ async function getPoolInfo(
   collateralToken: Address,
 ): Promise<PoolInfo[]> {
   const [token0, token1] =
-    outcomeToken > collateralToken ? [collateralToken, outcomeToken] : [outcomeToken, collateralToken];
+    outcomeToken.toLocaleLowerCase() > collateralToken.toLocaleLowerCase()
+      ? [collateralToken, outcomeToken]
+      : [outcomeToken, collateralToken];
 
   const pools = await getPools(chainId).fetch({ token0, token1 });
 
