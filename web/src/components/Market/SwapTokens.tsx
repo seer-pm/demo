@@ -316,9 +316,9 @@ export function SwapTokens({
                   <>
                     {swapType === "sell"
                       ? collateralPerShare > 0
-                        ? (1 / collateralPerShare).toFixed(2)
+                        ? (1 / collateralPerShare).toFixed(3)
                         : 0
-                      : collateralPerShare.toFixed(2)}{" "}
+                      : collateralPerShare.toFixed(3)}{" "}
                     {selectedCollateral.symbol}
                   </>
                 )}
