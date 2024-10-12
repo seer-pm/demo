@@ -124,7 +124,7 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
             {isFetchingPositions ? (
               <div className="shimmer-container w-[80px] h-[13px]" />
             ) : (
-              <>
+              <div className="max-h-[80px] overflow-y-auto custom-scrollbar">
                 {positions.map((position) => {
                   return (
                     <div key={position.tokenId}>
@@ -132,7 +132,7 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
                     </div>
                   );
                 })}
-              </>
+              </div>
             )}
           </div>
         </div>
