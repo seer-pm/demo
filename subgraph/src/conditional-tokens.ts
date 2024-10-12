@@ -1,51 +1,58 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
 import {
   ConditionResolution,
-  TransferSingle,
-  TransferBatch,
+  PositionSplit,
+  PositionsMerge,
+  PayoutRedemption,
 } from "../generated/ConditionalTokens/ConditionalTokens";
-import { Condition, Position, Market } from "../generated/schema";
+import { Condition } from "../generated/schema";
 
-function processTransfer(
-  positionId: string,
-  from: Address,
-  to: Address,
-  value: BigInt
-): void {
-  if (from.notEqual(Address.zero()) && to.notEqual(Address.zero())) {
+export function handlePositionSplit(evt: PositionSplit): void {
+  const condition = Condition.load(evt.params.conditionId.toHexString());
+
+  if (condition === null) {
     return;
   }
 
-  const position = Position.load(positionId);
-  if (position === null) {
+  let markets = condition.markets.load();
+
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.plus(evt.params.amount);
+      market.save();
+    }
+  }
+}
+
+export function handlePositionsMerge(evt: PositionsMerge): void {
+  const condition = Condition.load(evt.params.conditionId.toHexString());
+  if (condition === null) {
     return;
   }
 
-  // minting or burning
-  const market = Market.load(position.market)!;
-  market.outcomesSupply = to.equals(Address.zero())
-    ? market.outcomesSupply.minus(value)
-    : market.outcomesSupply.plus(value);
-  market.save();
+  let markets = condition.markets.load();
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.minus(evt.params.amount);
+      market.save();
+    }
+  }
 }
 
-export function handleTransferSingle(evt: TransferSingle): void {
-  processTransfer(
-    evt.params.id.toHexString(),
-    evt.params.from,
-    evt.params.to,
-    evt.params.value
-  );
-}
+export function handlePayoutRedemption(evt: PayoutRedemption): void {
+  const condition = Condition.load(evt.params.conditionId.toHexString());
+  if (condition === null) {
+    return;
+  }
 
-export function handleTransferBatch(evt: TransferBatch): void {
-  for (let i = 0; i < evt.params.ids.length; i++) {
-    processTransfer(
-      evt.params.ids[i].toHexString(),
-      evt.params.from,
-      evt.params.to,
-      evt.params.values[i]
-    );
+  let markets = condition.markets.load();
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.minus(evt.params.payout);
+      market.save();
+    }
   }
 }
 
@@ -55,7 +62,8 @@ export function handleConditionResolution(evt: ConditionResolution): void {
     return;
   }
 
-  const market = Market.load(condition.market)!;
-  market.payoutReported = true;
-  market.save();
+  condition.markets.load().forEach((market) => {
+    market.payoutReported = true;
+    market.save();
+  });
 }
