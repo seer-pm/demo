@@ -70,6 +70,16 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
       </div>
 
       <div>
+        <div className="text-[24px] font-semibold mb-[16px]">Condition Id</div>
+        <div>{market.conditionId}</div>
+      </div>
+
+      <div>
+        <div className="text-[24px] font-semibold mb-[16px]">Parent Collection Id</div>
+        <div>{market.parentCollectionId}</div>
+      </div>
+
+      <div>
         <div className="text-[24px] font-semibold mb-[16px]">Outcomes</div>
         <div>
           {market.outcomes.map((outcome, i) => (
