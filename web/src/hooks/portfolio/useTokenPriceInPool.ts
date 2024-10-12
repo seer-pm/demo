@@ -4,7 +4,11 @@ import { gnosis, mainnet } from "viem/chains";
 import { getSwaprCurrentTokensPrices, getSwaprHistoryTokensPrices } from "./getSwaprPrices";
 import { getUniswapCurrentTokensPrices, getUniswapHistoryTokensPrices } from "./getUniswapPrices";
 
-export const useHistoryTokensPrices = (tokens: string[], chainId: SupportedChain, startTime: number) => {
+export const useHistoryTokensPrices = (
+  tokens: { tokenId: string; parentTokenId?: string }[],
+  chainId: SupportedChain,
+  startTime: number,
+) => {
   return useQuery<{ [key: string]: number } | undefined, Error>({
     enabled: tokens.length > 0,
     queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
@@ -20,7 +24,10 @@ export const useHistoryTokensPrices = (tokens: string[], chainId: SupportedChain
   });
 };
 
-export const useCurrentTokensPrices = (tokens: string[] | undefined, chainId: SupportedChain) => {
+export const useCurrentTokensPrices = (
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  chainId: SupportedChain,
+) => {
   return useQuery<{ [key: string]: number } | undefined, Error>({
     enabled: !!tokens?.length,
     queryKey: ["useCurrentTokensPrice", tokens, chainId],

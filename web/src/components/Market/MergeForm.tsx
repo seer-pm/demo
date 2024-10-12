@@ -9,9 +9,12 @@ import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { displayBalance } from "@/lib/utils";
+import clsx from "clsx";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 
 export interface MergeFormValues {
@@ -27,7 +30,7 @@ interface MergeFormProps {
 }
 
 export function MergeForm({ account, market, chainId, router }: MergeFormProps) {
-  const { data: positions = [] } = useMarketPositions(account, market);
+  const { data: positions = [], isFetching: isFetchingPositions } = useMarketPositions(account, market);
 
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
@@ -83,7 +86,12 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
   }, BigInt(0));
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-2">
+      <div>
+        <div className="mb-4">
+          <Alert type="info">
+            <p className="text-[14px]">To merge, provide an equal number of tokens for each outcome.</p>
+          </Alert>
+        </div>
         <div className="flex justify-between items-center">
           <div className="text-[14px]">Amount</div>
           <div
@@ -103,6 +111,29 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
             }}
           >
             Max
+          </div>
+        </div>
+        <div
+          className={clsx(
+            "text-[12px] text-black-secondary mb-2 flex gap-1",
+            isFetchingPositions ? "items-center" : "",
+          )}
+        >
+          Balance:{" "}
+          <div>
+            {isFetchingPositions ? (
+              <div className="shimmer-container w-[80px] h-[13px]" />
+            ) : (
+              <>
+                {positions.map((position) => {
+                  return (
+                    <div key={position.tokenId}>
+                      {displayBalance(position.balance, Number(position.decimals))} {position.symbol}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
         <Input

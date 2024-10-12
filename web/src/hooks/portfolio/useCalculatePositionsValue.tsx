@@ -1,6 +1,7 @@
 import { usePositions } from "@/hooks/portfolio/usePortfolioPositions";
 import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/portfolio/useTokenPriceInPool";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { isUndefined } from "@/lib/utils";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
 import { Address } from "viem";
@@ -10,13 +11,23 @@ function useCalculatePositionsValue() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
   const { data: positions = [], isPending } = usePositions(address as Address, chainId as SupportedChain);
   const { data: tokenIdToTokenCurrentPrice, isPending: isPendingCurrentPrices } = useCurrentTokensPrices(
-    positions?.map((position) => position.tokenId),
+    positions?.map((position) => {
+      return {
+        tokenId: position.tokenId,
+        parentTokenId: position.parentTokenId,
+      };
+    }),
     chainId as SupportedChain,
   );
 
   const yesterdayInSeconds = useMemo(() => Math.floor(subDays(new Date(), 1).getTime() / 1000), []);
   const { data: tokenIdToTokenHistoryPrice, isPending: isPendingHistoryPrices } = useHistoryTokensPrices(
-    positions?.map((position) => position.tokenId),
+    positions?.map((position) => {
+      return {
+        tokenId: position.tokenId,
+        parentTokenId: position.parentTokenId,
+      };
+    }),
     chainId as SupportedChain,
     yesterdayInSeconds,
   );
@@ -43,7 +54,7 @@ function useCalculatePositionsValue() {
     return {
       ...position,
       tokenPrice,
-      tokenValue: tokenPrice ? tokenPrice * position.tokenBalance : undefined,
+      tokenValue: !isUndefined(tokenPrice) ? tokenPrice * position.tokenBalance : undefined,
     };
   });
 

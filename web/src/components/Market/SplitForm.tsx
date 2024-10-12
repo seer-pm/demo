@@ -8,7 +8,7 @@ import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
-import { NATIVE_TOKEN } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
@@ -48,7 +48,10 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
-  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
+  const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
+    account,
+    selectedCollateral?.address,
+  );
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
   const { data: missingApprovals = [] } = useMissingApprovals(
@@ -81,19 +84,37 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-2">
+      <div>
         <div className="flex justify-between items-center">
           <div className="text-[14px]">Amount</div>
           <div
             className="text-purple-primary cursor-pointer"
-            onClick={() =>
-              setValue("amount", Number(formatUnits(balance, selectedCollateral.decimals)), {
+            onClick={() => {
+              const maxJsDecimals = 16;
+              const roundTo =
+                selectedCollateral.decimals > maxJsDecimals
+                  ? BigInt(10 ** (selectedCollateral.decimals - maxJsDecimals))
+                  : 1n;
+              const max = Number(formatUnits((balance / roundTo) * roundTo, selectedCollateral.decimals));
+              setValue("amount", max, {
                 shouldValidate: true,
                 shouldDirty: true,
-              })
-            }
+              });
+            }}
           >
             Max
+          </div>
+        </div>
+        <div className="text-[12px] text-black-secondary mb-2 flex items-center gap-1">
+          Balance:{" "}
+          <div>
+            {isFetchingBalance ? (
+              <div className="shimmer-container w-[80px] h-[13px]" />
+            ) : (
+              <>
+                {displayBalance(balance, selectedCollateral.decimals)} {selectedCollateral.symbol}
+              </>
+            )}
           </div>
         </div>
         <Input

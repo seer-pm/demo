@@ -19,6 +19,10 @@ export interface PortfolioPosition {
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
+  parentTokenId?: string;
+  parentMarketId?: string;
+  parentMarketName?: string;
+  parentOutcome?: string;
 }
 export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
@@ -87,23 +91,25 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   const positions = balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {
       const { marketAddress, tokenIndex } = tokenToMarket[allTokensIds[index]];
+      const market = marketIdToMarket[marketAddress];
+      const parentMarket = marketIdToMarket[market.parentMarket];
       acumm.push({
         marketAddress,
         tokenIndex,
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
-        marketName: marketIdToMarket[marketAddress].marketName,
-        marketStatus: marketIdToMarket[marketAddress].marketStatus,
-        outcome:
-          marketIdToMarket[marketAddress].outcomes[
-            marketIdToMarket[marketAddress].wrappedTokens.indexOf(allTokensIds[index])
-          ],
+        marketName: market.marketName,
+        marketStatus: market.marketStatus,
+        outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
+        parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
+        parentMarketName: parentMarket?.marketName,
+        parentMarketId: parentMarket?.id,
+        parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
       });
     }
     return acumm;
   }, [] as PortfolioPosition[]);
-
   const marketsWithPositions = [...new Set(positions.map((position) => position.marketAddress))] as Address[];
   const marketsPayouts = await Promise.all(
     marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress], chainId)),

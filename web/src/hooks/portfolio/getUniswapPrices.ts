@@ -1,9 +1,8 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { uniswapGraphQLClient } from "@/lib/subgraph";
-import { isTwoStringsEqual } from "@/lib/utils";
 import { ethers } from "ethers";
 import { getSdk } from "../queries/gql-generated-uniswap";
+import { getTokenPricesMapping } from "./utils";
 
 async function getBlockNumberAtTime(timestamp: number) {
   // Connect to an Ethereum node (replace with your own provider URL)
@@ -35,7 +34,7 @@ async function getBlockNumberAtTime(timestamp: number) {
 }
 
 export async function getUniswapHistoryTokensPrices(
-  tokens: string[] | undefined,
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
   chainId: SupportedChain,
   startTime: number,
 ) {
@@ -47,10 +46,12 @@ export async function getUniswapHistoryTokensPrices(
   const blockNumber = await getBlockNumberAtTime(startTime);
   const { pools } = await getSdk(subgraphClient).GetPools({
     where: {
-      or: tokens.map((token) =>
-        token.toLocaleLowerCase() > COLLATERAL_TOKENS[chainId].primary.address
-          ? { token1: token.toLocaleLowerCase(), token0: COLLATERAL_TOKENS[chainId].primary.address }
-          : { token0: token.toLocaleLowerCase(), token1: COLLATERAL_TOKENS[chainId].primary.address },
+      or: tokens.reduce(
+        (acc, { tokenId }) => {
+          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+          return acc;
+        },
+        [] as { [key: string]: string }[],
       ),
     },
     block: {
@@ -58,19 +59,13 @@ export async function getUniswapHistoryTokensPrices(
     },
   });
 
-  return pools.reduce(
-    (acc, curr) => {
-      const isToken0SDAI = isTwoStringsEqual(curr.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
-      const outcomeTokenAddress = isToken0SDAI ? curr.token1.id : curr.token0.id;
-      const outcomeTokenPrice = isToken0SDAI ? Number(curr.token0Price) : Number(curr.token1Price);
-      acc[outcomeTokenAddress] = outcomeTokenPrice;
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
+  return getTokenPricesMapping(tokens, pools, chainId);
 }
 
-export async function getUniswapCurrentTokensPrices(tokens: string[] | undefined, chainId: SupportedChain) {
+export async function getUniswapCurrentTokensPrices(
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  chainId: SupportedChain,
+) {
   if (!tokens) return {};
   const subgraphClient = uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
@@ -79,22 +74,15 @@ export async function getUniswapCurrentTokensPrices(tokens: string[] | undefined
 
   const { pools } = await getSdk(subgraphClient).GetPools({
     where: {
-      or: tokens.map((token) =>
-        token.toLocaleLowerCase() > COLLATERAL_TOKENS[chainId].primary.address
-          ? { token1: token.toLocaleLowerCase(), token0: COLLATERAL_TOKENS[chainId].primary.address }
-          : { token0: token.toLocaleLowerCase(), token1: COLLATERAL_TOKENS[chainId].primary.address },
+      or: tokens.reduce(
+        (acc, { tokenId }) => {
+          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+          return acc;
+        },
+        [] as { [key: string]: string }[],
       ),
     },
   });
 
-  return pools.reduce(
-    (acc, curr) => {
-      const isToken0SDAI = isTwoStringsEqual(curr.token0.id, COLLATERAL_TOKENS[chainId].primary.address);
-      const outcomeTokenAddress = isToken0SDAI ? curr.token1.id : curr.token0.id;
-      const outcomeTokenPrice = isToken0SDAI ? Number(curr.token0Price) : Number(curr.token1Price);
-      acc[outcomeTokenAddress] = outcomeTokenPrice;
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
+  return getTokenPricesMapping(tokens, pools, chainId);
 }

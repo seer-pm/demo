@@ -4,7 +4,7 @@ import { PortfolioPosition } from "@/hooks/portfolio/usePortfolioPositions";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain } from "@/lib/chains";
-import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp, ArrowSwap, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { toSnakeCase } from "@/lib/utils";
 import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
@@ -47,7 +47,12 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <div className="flex gap-2 items-center text-[14px]">
+            <div
+              className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
+              onClick={() => {
+                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
+              }}
+            >
               <MarketImage
                 marketAddress={position.marketAddress as Address}
                 marketName={position.marketName}
@@ -60,15 +65,65 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
         header: "Market Name",
       },
       {
+        accessorFn: (position) => position.parentMarketName ?? "",
+        id: "parentMarket",
+        cell: (info) => {
+          const position = info.row.original;
+          if (!position.parentMarketId) return "-";
+          return (
+            <div
+              className="flex text-[14px] cursor-pointer hover:underline"
+              onClick={() => {
+                navigate(
+                  `${paths.market(position.parentMarketId!, chainId)}?outcome=${toSnakeCase(position.parentOutcome!)}`,
+                );
+              }}
+            >
+              <TextOverflowTooltip text={info.getValue<string>()} maxChar={30} />
+            </div>
+          );
+        },
+        header: "Parent Market",
+        enableSorting: true,
+      },
+      {
         accessorFn: (position) => `${position.tokenBalance.toFixed(2)} ${position.tokenName}`,
         id: "position",
-        cell: (info) => <p className="text-purple-primary font-semibold text-[14px]">{info.getValue<string>()}</p>,
+        cell: (info) => {
+          const position = info.row.original;
+          return (
+            <p
+              className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
+              onClick={() => {
+                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
+              }}
+            >
+              {info.getValue<string>()}
+            </p>
+          );
+        },
         header: "Position",
         enableSorting: false,
       },
       {
         accessorKey: "tokenPrice",
-        cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
+        cell: (info) => {
+          const position = info.row.original;
+          if (position.parentMarketId) {
+            return (
+              <div className="font-semibold text-[14px] flex items-center gap-2">
+                <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+                <span className="tooltip">
+                  <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
+                    = relative price to parent outcome &times; parent's sDAI price
+                  </p>
+                  <QuestionIcon fill="#9747FF" />
+                </span>
+              </div>
+            );
+          }
+          return <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>;
+        },
         header: "Current Token Price (sDAI)",
       },
 
@@ -78,17 +133,23 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
         header: "Position Value (sDAI)",
       },
       {
-        accessorFn: (position) => (position.marketStatus === MarketStatus.CLOSED ? "Redeemable" : "Not yet"),
-        cell: (info) => (
-          <p
-            className={clsx(
-              "text-[14px]",
-              info.row.original.marketStatus === MarketStatus.CLOSED ? "text-success-primary" : "text-black-secondary",
-            )}
-          >
-            {info.getValue<string>()}
-          </p>
-        ),
+        accessorKey: "marketStatus",
+        cell: (info) => {
+          const position = info.row.original;
+          if (info.getValue<string>() === MarketStatus.CLOSED) {
+            return (
+              <p
+                className="text-[14px] text-success-primary cursor-pointer"
+                onClick={() => {
+                  navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
+                }}
+              >
+                Redeemable
+              </p>
+            );
+          }
+          return <p className="text-[14px] text-black-secondary">Not yet</p>;
+        },
         header: "Redeem Status",
       },
     ],
@@ -128,11 +189,13 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
                       }
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
-                      {{
-                        asc: <ArrowDropUp fill="currentColor" />,
-                        desc: <ArrowDropDown fill="currentColor" />,
-                        false: header.column.getCanSort() && <ArrowSwap />,
-                      }[header.column.getIsSorted() as string] ?? null}
+                      <div className="flex-shrink-0">
+                        {{
+                          asc: <ArrowDropUp fill="currentColor" />,
+                          desc: <ArrowDropDown fill="currentColor" />,
+                          false: header.column.getCanSort() && <ArrowSwap />,
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </div>
                     </div>
                   )}
                 </th>
@@ -144,14 +207,7 @@ export default function PortfolioTable({ data, chainId }: { data: PortfolioPosit
       <tbody>
         {table.getRowModel().rows.map((row) => {
           return (
-            <tr
-              className="cursor-pointer hover:bg-white"
-              key={row.id}
-              onClick={() => {
-                const position = row.original;
-                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
-              }}
-            >
+            <tr key={row.id}>
               {row.getVisibleCells().map((cell) => {
                 return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
               })}

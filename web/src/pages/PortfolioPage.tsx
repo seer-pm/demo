@@ -2,7 +2,6 @@ import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import Input from "@/components/Form/Input";
 import PortfolioTable from "@/components/Portfolio/PortfolioTable";
-import { Spinner } from "@/components/Spinner";
 import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
 
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
@@ -45,9 +44,7 @@ function PortfolioPage() {
         <div>
           <p className="text-[16px] text-black-secondary">Total</p>
           {isCalculating ? (
-            <div className="mt-3">
-              <Spinner />
-            </div>
+            <div className="mt-3 shimmer-container h-[48px] w-[300px]" />
           ) : (
             <p className="text-[32px] text-[#333333] font-semibold">
               {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
@@ -72,11 +69,7 @@ function PortfolioPage() {
         </div>
       </div>
 
-      {isGettingPositions && (
-        <div>
-          <Spinner />
-        </div>
-      )}
+      {isGettingPositions && <div className="shimmer-container w-full h-[200px]" />}
 
       {!isGettingPositions && !positions?.length && <Alert type="warning">No positions found.</Alert>}
       {!!filteredPositions?.length && (
@@ -89,7 +82,9 @@ function PortfolioPage() {
               onKeyUp={marketNameCallback}
             />
           </div>
-          <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
+          <div className="w-full overflow-x-auto">
+            <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
+          </div>
         </>
       )}
     </div>
