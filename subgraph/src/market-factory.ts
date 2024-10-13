@@ -6,7 +6,6 @@ import {
   ethereum,
 } from "@graphprotocol/graph-ts";
 import {
-  MarketFactory,
   NewMarket as NewMarketEvent,
 } from "../generated/MarketFactory/MarketFactory";
 import { MarketView } from "../generated/MarketFactory/MarketView";
@@ -15,11 +14,9 @@ import {
   Market,
   MarketQuestion,
   MarketsCount,
-  Position,
   Question,
 } from "../generated/schema";
 import { DEFAULT_FINALIZE_TS } from "./reality";
-import { ConditionalTokens } from "../generated/ConditionalTokens/ConditionalTokens";
 
 const MARKET_VIEW_ADDRESS =
   dataSource.network() == "mainnet"
@@ -67,7 +64,6 @@ class MarketData {
 }
 
 export function handleNewMarket(event: NewMarketEvent): void {
-  const marketFactory = MarketFactory.bind(event.address);
   const marketView = MarketView.bind(Address.fromString(MARKET_VIEW_ADDRESS));
 
   const data = marketView.getMarket(
@@ -101,19 +97,18 @@ export function handleNewMarket(event: NewMarketEvent): void {
         bond: q.bond,
         min_bond: q.min_bond,
       })),
-    },
-    marketFactory.conditionalTokens(),
-    marketFactory.collateralToken()
+    }
   );
 }
 
 function processMarket(
   event: ethereum.Event,
-  data: MarketData,
-  conditionalTokensAddress: Address,
-  collateralToken: Address
+  data: MarketData
 ): void {
   const market = new Market(data.id);
+
+  const condition = new Condition(data.conditionId.toHexString());
+  condition.save();
 
   market.factory = event.address;
   market.creator = event.transaction.from;
@@ -126,6 +121,7 @@ function processMarket(
   market.parentOutcome = data.parentOutcome;
   market.parentMarket = data.parentMarket;
   market.conditionId = data.conditionId;
+  market.condition = condition.id;
   market.questionId = data.questionId;
   market.questionsIds = data.questionsIds;
   market.templateId = data.templateId;
@@ -174,21 +170,4 @@ function processMarket(
   market.transactionHash = event.transaction.hash;
 
   market.save();
-
-  const condition = new Condition(market.conditionId.toHexString());
-  condition.market = market.id;
-  condition.save();
-
-  const conditionalTokens = ConditionalTokens.bind(conditionalTokensAddress);
-  // we only need to track the first position
-  const collectionId = conditionalTokens.getCollectionId(
-    data.parentCollectionId,
-    data.conditionId,
-    BigInt.fromI32(1 << 0)
-  );
-  const position = new Position(
-    conditionalTokens.getPositionId(collateralToken, collectionId).toHexString()
-  );
-  position.market = market.id;
-  position.save();
 }

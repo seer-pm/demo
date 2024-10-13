@@ -77,12 +77,12 @@ export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filte
 
   // add creator field to market to sort
   // create marketId-creator mapping for quick add to market
-  const creatorMapping = markets.reduce(
+  const subgraphFieldsMapping = markets.reduce(
     (obj, item) => {
-      obj[item.id.toLowerCase()] = item.creator;
+      obj[item.id.toLowerCase()] = { creator: item.creator, outcomesSupply: BigInt(item.outcomesSupply) };
       return obj;
     },
-    {} as { [key: string]: string | null | undefined },
+    {} as { [key: string]: { creator: Address; outcomesSupply: bigint } },
   );
 
   const onChainMarkets = (await readContracts(config, {
@@ -99,7 +99,7 @@ export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filte
   return onChainMarkets.map((market) => {
     return mapOnChainMarket({
       ...market,
-      creator: creatorMapping[market.id.toLowerCase()],
+      ...subgraphFieldsMapping[market.id.toLowerCase()],
     });
   });
 };

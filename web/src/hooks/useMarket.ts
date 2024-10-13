@@ -109,6 +109,8 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           chainId,
         })),
         creator: graphMarket?.creator,
+        //MarketView's outcomesSupply is buggy
+        outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
       });
     },
     refetchOnWindowFocus: true,

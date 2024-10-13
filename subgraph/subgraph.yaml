@@ -23,8 +23,6 @@ dataSources:
           file: ./abis/Realitiy.json
         - name: MarketView
           file: ./abis/MarketView.json
-        - name: ConditionalTokens
-          file: ./abis/ConditionalTokens.json
       eventHandlers:
         - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
           handler: handleNewMarket
@@ -73,12 +71,15 @@ dataSources:
           file: ./abis/ConditionalTokens.json
       entities: []
       eventHandlers:
-        - event: TransferSingle(indexed address,indexed address,indexed
-            address,uint256,uint256)
-          handler: handleTransferSingle
-        - event: TransferBatch(indexed address,indexed address,indexed
-            address,uint256[],uint256[])
-          handler: handleTransferBatch
+        - event: PositionSplit(indexed address,address,indexed bytes32,indexed
+            bytes32,uint256[],uint256)
+          handler: handlePositionSplit
+        - event: PositionsMerge(indexed address,address,indexed bytes32,indexed
+            bytes32,uint256[],uint256)
+          handler: handlePositionsMerge
+        - event: PayoutRedemption(indexed address,indexed address,indexed
+            bytes32,bytes32,uint256[],uint256)
+          handler: handlePayoutRedemption
         - event: ConditionResolution(indexed bytes32,indexed address,indexed
             bytes32,uint256,uint256[])
           handler: handleConditionResolution
