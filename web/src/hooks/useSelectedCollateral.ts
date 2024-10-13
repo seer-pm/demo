@@ -2,16 +2,13 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { Market, useMarket } from "./useMarket";
+import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, chainId: SupportedChain, useAltCollateral: boolean): Token {
-  const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-
-  if (conditionalMarket) {
-    return {
-      address: conditionalMarket.wrappedTokens[Number(market.parentOutcome)],
-      symbol: conditionalMarket.outcomes[Number(market.parentOutcome)],
-      decimals: 18,
-    };
+  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
+  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
+  if (parentCollateral) {
+    return parentCollateral;
   }
 
   return (

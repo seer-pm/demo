@@ -125,13 +125,15 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
               <div className="shimmer-container w-[80px] h-[13px]" />
             ) : (
               <div className="max-h-[80px] overflow-y-auto custom-scrollbar">
-                {positions.map((position) => {
-                  return (
-                    <div key={position.tokenId}>
-                      {displayBalance(position.balance, Number(position.decimals))} {position.symbol}
-                    </div>
-                  );
-                })}
+                {positions.length > 0
+                  ? positions.map((position) => {
+                      return (
+                        <div key={position.tokenId}>
+                          {displayBalance(position.balance, Number(position.decimals))} {position.symbol}
+                        </div>
+                      );
+                    })
+                  : 0}
               </div>
             )}
           </div>
