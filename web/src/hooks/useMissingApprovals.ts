@@ -1,7 +1,9 @@
+import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
+import { useAccount } from "wagmi";
 import { getTokenInfo } from "./useTokenInfo";
 
 interface ApprovalInfo {
@@ -51,6 +53,7 @@ export const useMissingApprovals = (
   spender: Address,
   amounts: bigint | bigint[],
 ) => {
+  const { chainId } = useAccount();
   let approvalAmounts: bigint[];
   if (typeof amounts === "bigint") {
     // approve the same amount for every token
@@ -60,12 +63,14 @@ export const useMissingApprovals = (
   }
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
-    enabled: tokensAddresses.length > 0 && !!account,
+    enabled: tokensAddresses.length > 0 && !!account && !!chainId,
     queryKey: ["useMissingApprovals", tokensAddresses, account, spender, approvalAmounts.map((a) => a.toString())],
     queryFn: async () => {
       const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, spender, approvalAmounts);
       const tokensInfo = await Promise.all(
-        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress)),
+        missingApprovals.map((missingApproval) =>
+          getTokenInfo(missingApproval.tokenAddress, chainId! as SupportedChain),
+        ),
       );
 
       return missingApprovals.map((missingApproval, i) => ({

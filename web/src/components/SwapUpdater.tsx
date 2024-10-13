@@ -1,5 +1,6 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { getTokenInfo } from "@/hooks/useTokenInfo";
+import { SupportedChain } from "@/lib/chains";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
@@ -24,8 +25,8 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       }
 
       const [buyToken, sellToken] = await Promise.all([
-        getTokenInfo(order.buyToken as `0x${string}`),
-        getTokenInfo(order.sellToken as `0x${string}`),
+        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain),
+        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain),
       ]);
 
       if (order.status === OrderStatus.FULFILLED) {

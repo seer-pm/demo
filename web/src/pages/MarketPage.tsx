@@ -35,9 +35,9 @@ function SwapWidget({
   images?: string[];
 }) {
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex]);
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], chainId);
   // on child markets we want to buy/sell using parent outcomes
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
+  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
 
   const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
 

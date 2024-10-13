@@ -59,8 +59,12 @@ async function getTokenPrice(
 
 export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
   const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-  const { data: parentCollateral } = useTokenInfo(conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
+  const { data: parentCollateral } = useTokenInfo(
+    conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    chainId,
+  );
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[chainId].primary;
+
   const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);
 
   return useQuery<number[] | undefined, Error>({

@@ -128,7 +128,7 @@ export function MarketHeader({
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, chainId);
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)]);
+  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];

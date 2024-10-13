@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,7 @@ interface GetTokenResult {
   symbol: string;
 }
 
-export async function getTokenInfo(address: Address): Promise<GetTokenResult> {
+export async function getTokenInfo(address: Address, chainId: SupportedChain): Promise<GetTokenResult> {
   const [decimals, name, symbol] = await readContracts(config, {
     allowFailure: false,
     contracts: [
@@ -19,16 +20,19 @@ export async function getTokenInfo(address: Address): Promise<GetTokenResult> {
         address,
         abi: erc20Abi,
         functionName: "decimals",
+        chainId,
       },
       {
         address,
         abi: erc20Abi,
         functionName: "name",
+        chainId,
       },
       {
         address,
         abi: erc20Abi,
         functionName: "symbol",
+        chainId,
       },
     ],
   });
@@ -36,22 +40,22 @@ export async function getTokenInfo(address: Address): Promise<GetTokenResult> {
   return { address, decimals, name, symbol };
 }
 
-export const useTokensInfo = (tokens?: Address[]) => {
+export const useTokensInfo = (tokens: Address[] | undefined, chainId: SupportedChain) => {
   return useQuery<GetTokenResult[] | undefined, Error>({
     enabled: !isUndefined(tokens) && tokens.length > 0,
-    queryKey: ["useTokens", tokens],
+    queryKey: ["useTokens", tokens, chainId],
     queryFn: async () => {
-      return await Promise.all(tokens!.map((token) => getTokenInfo(token)));
+      return await Promise.all(tokens!.map((token) => getTokenInfo(token, chainId)));
     },
   });
 };
 
-export const useTokenInfo = (token?: Address) => {
+export const useTokenInfo = (token: Address | undefined, chainId: SupportedChain) => {
   return useQuery<GetTokenResult | undefined, Error>({
     enabled: !isUndefined(token),
-    queryKey: ["useToken", token],
+    queryKey: ["useToken", token, chainId],
     queryFn: async () => {
-      return await getTokenInfo(token!);
+      return await getTokenInfo(token!, chainId);
     },
   });
 };

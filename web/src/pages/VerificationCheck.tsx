@@ -22,7 +22,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
 
   const { data: images } = useMarketImages(id, chainId, false);
-  const { data: tokens } = useTokensInfo(market?.wrappedTokens || []);
+  const { data: tokens } = useTokensInfo(market?.wrappedTokens || [], chainId);
 
   if (isMarketError) {
     return (

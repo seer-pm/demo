@@ -196,7 +196,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
   );
   const [activeOutcome, setActiveOutcome] = useState(Math.max(outcomeIndexFromSearch, 0));
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens);
+  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
