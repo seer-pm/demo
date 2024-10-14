@@ -11,7 +11,7 @@ type Market @entity {
   parentOutcome: BigInt!
   parentMarket: Bytes!
   conditionId: Bytes!
-  condition: Condition!
+  ctfCondition: Condition!
   questionId: Bytes!
   questionsIds: [Bytes!]!
   templateId: BigInt!
@@ -60,5 +60,5 @@ type MarketQuestion @entity {
 type Condition @entity {
   " Conditional token conditionId "
   id: ID!
-  markets: [Market!]! @derivedFrom(field: "condition")
+  markets: [Market!]! @derivedFrom(field: "ctfCondition")
 }

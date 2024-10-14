@@ -121,7 +121,7 @@ function processMarket(
   market.parentOutcome = data.parentOutcome;
   market.parentMarket = data.parentMarket;
   market.conditionId = data.conditionId;
-  market.condition = condition.id;
+  market.ctfCondition = condition.id;
   market.questionId = data.questionId;
   market.questionsIds = data.questionsIds;
   market.templateId = data.templateId;
