@@ -11,10 +11,12 @@ import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useVerificationStatus } from "@/hooks/useVerificationStatus";
-import { SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
 import { toSnakeCase } from "@/lib/utils";
+import { config } from "@/wagmi";
+import { switchChain } from "@wagmi/core";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -59,7 +61,7 @@ function SwapWidget({
 }
 
 function MarketPage() {
-  const { address: account } = useAccount();
+  const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
 
   const params = useParams();
@@ -111,7 +113,18 @@ function MarketPage() {
     <div className="container-fluid py-10">
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
-
+        {chainId && connectedChainId && chainId !== connectedChainId && (
+          <Alert type="warning">
+            This market does not exist on the selected network. Switch to{" "}
+            <span
+              className="font-semibold cursor-pointer text-purple-primary"
+              onClick={() => switchChain(config, { chainId })}
+            >
+              {SUPPORTED_CHAINS[chainId].name}
+            </span>
+            .
+          </Alert>
+        )}
         {verificationStatusResult?.status === "not_verified" && (
           <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
