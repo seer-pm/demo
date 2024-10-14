@@ -15,7 +15,7 @@ import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
@@ -29,7 +29,6 @@ interface PositionsProps {
   chainId: SupportedChain;
   market: Market;
   images?: string[];
-  tradeCallback: (poolIndex: number) => void;
 }
 
 function poolRewardsInfo(poolIncentive: PoolIncentive) {
@@ -188,19 +187,18 @@ function AddLiquidityInfo({
   );
 }
 
-export function Outcomes({ chainId, market, images, tradeCallback }: PositionsProps) {
+export function Outcomes({ chainId, market, images }: PositionsProps) {
   const { address } = useAccount();
   const [searchParams, setSearchParams] = useSearchParams();
   const outcomeIndexFromSearch = market.outcomes.findIndex(
     (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
   );
-  const [activeOutcome, setActiveOutcome] = useState(Math.max(outcomeIndexFromSearch, 0));
+  const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
   const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
-  const [activePool, setActivePool] = useState(Math.max(outcomeIndexFromSearch, 0));
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
 
@@ -212,17 +210,16 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
     return oddsAndIndexes.map((obj) => obj.i);
   }, [odds]);
 
+  useEffect(() => {
+    if (!searchParams.get("outcome") && indexesOrderedByOdds) {
+      const i = indexesOrderedByOdds[0];
+      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { replace: true });
+    }
+  }, [indexesOrderedByOdds]);
+
   const outcomeClick = (i: number) => {
     return () => {
-      setActiveOutcome(i);
-      tradeCallback(i);
-      setSearchParams(
-        (params) => {
-          params.set("outcome", toSnakeCase(market.outcomes[i]));
-          return params;
-        },
-        { replace: true },
-      );
+      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { replace: true });
     };
   };
 
@@ -334,7 +331,6 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
                       <button
                         type="button"
                         onClick={() => {
-                          setActivePool(i);
                           openModal();
                         }}
                         className="text-purple-primary hover:underline"
@@ -396,7 +392,7 @@ export function Outcomes({ chainId, market, images, tradeCallback }: PositionsPr
         })}
         <Modal
           title="Add Liquidity"
-          content={<AddLiquidityInfo chainId={chainId} pools={pools[activePool] || []} closeModal={closeModal} />}
+          content={<AddLiquidityInfo chainId={chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />}
         />
       </div>
     </div>

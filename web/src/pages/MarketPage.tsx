@@ -15,7 +15,6 @@ import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
 import { toSnakeCase } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -75,10 +74,7 @@ function MarketPage() {
 
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
-  const [outcomeIndex, setOutcomeIndex] = useState(Math.max(outcomeIndexFromSearch, 0));
-  useEffect(() => {
-    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
-  }, [market]);
+  const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -108,10 +104,6 @@ function MarketPage() {
       </div>
     );
   }
-
-  const tradeCallback = (poolIndex: number) => {
-    setOutcomeIndex(poolIndex);
-  };
 
   const reliableMarket = isMarketReliable(market);
 
@@ -152,7 +144,7 @@ function MarketPage() {
           <div className="col-span-1 lg:col-span-8 space-y-16">
             {market && (
               <>
-                <Outcomes chainId={chainId} market={market} images={images?.outcomes} tradeCallback={tradeCallback} />
+                <Outcomes chainId={chainId} market={market} images={images?.outcomes} />
                 <RelatedMarkets chainId={chainId} market={market} />
               </>
             )}
