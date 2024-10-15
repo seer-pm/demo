@@ -1,4 +1,3 @@
-import { pollForOrder } from "@/components/SwapUpdater";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastify } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
@@ -18,7 +17,7 @@ import {
   redeemFromSDAI,
   redeemFromSDAIToNative,
 } from "./handleSDAI";
-import { getConvertedShares, setCowTradeLimit } from "./utils";
+import { getConvertedShares, pollForOrder, setCowTradeLimit } from "./utils";
 
 function clientToSigner(client: Client<Transport, Chain, Account>) {
   const { account, chain, transport } = client;
