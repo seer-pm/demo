@@ -7,7 +7,7 @@ import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
-const SWAP_STATUS_CHECK_INTERVAL = 5000;
+const SWAP_STATUS_CHECK_INTERVAL = 3000;
 
 async function updateOrders(pendingOrders: string[], chainId: number, removePendingOrder: (orderId: string) => void) {
   if (pendingOrders.length === 0) {

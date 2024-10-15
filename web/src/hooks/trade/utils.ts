@@ -1,5 +1,6 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
+import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
+import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
 import { ethers } from "ethers";
 import { TransactionReceipt } from "viem";
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
@@ -51,6 +52,30 @@ export async function setUniswapTradeLimit(trade: UniswapTrade, newInputValue: b
   return trade;
 }
 
+export async function setCowTradeLimit(trade: CoWTrade, newInputValue: bigint, account: string) {
+  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
+    const newInputAmount = new TokenAmount(
+      new SwaprToken(
+        trade.chainId,
+        trade.inputAmount.currency.address ?? sDAIAddress,
+        trade.inputAmount.currency.decimals,
+        trade.inputAmount.currency.symbol,
+      ),
+      newInputValue,
+    );
+    const newQuoteTradeResult = await CoWTrade.bestTradeExactIn({
+      currencyAmountIn: newInputAmount,
+      currencyOut: trade.outputAmount.currency,
+      maximumSlippage: trade.maximumSlippage,
+      user: account,
+      receiver: account,
+    });
+    return newQuoteTradeResult ?? trade;
+  }
+  return trade;
+}
+
 export function getConvertedShares(receipt: TransactionReceipt) {
   try {
     const depositEventTopic = ethers.utils.id("Deposit(address,address,uint256,uint256)");
@@ -60,4 +85,33 @@ export function getConvertedShares(receipt: TransactionReceipt) {
       return shares ? BigInt(shares) : undefined;
     }
   } catch (e) {}
+}
+
+export async function pollForOrder(orderId: string, chainId: number, maxAttempts = 7, initialInterval = 1000) {
+  const orderBookApi = new OrderBookApi({ chainId });
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const order = await orderBookApi.getOrder(orderId);
+      switch (order.status) {
+        case OrderStatus.FULFILLED: {
+          return {};
+        }
+        case OrderStatus.EXPIRED: {
+          return { error: "Swap expired" };
+        }
+        case OrderStatus.CANCELLED: {
+          return { error: "Swap cancelled" };
+        }
+      }
+      // biome-ignore lint/suspicious/noExplicitAny:
+    } catch (e: any) {
+      return { error: e?.message || e };
+    }
+    const backoffTime = initialInterval * 2 ** i;
+    const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries
+    await new Promise((resolve) => setTimeout(resolve, backoffTime + jitter));
+  }
+  return {
+    error: "Get order timeout",
+  };
 }

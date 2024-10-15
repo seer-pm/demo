@@ -2,11 +2,13 @@ import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
+import { subDays } from "date-fns";
 import { Address, erc20Abi, formatUnits } from "viem";
 import { readConditionalTokensPayoutNumerators } from "../contracts/generated";
 import { Market } from "../useMarket";
 import { MarketStatus, getMarketStatus } from "../useMarketStatus";
 import { fetchMarkets } from "../useMarkets";
+import { getBlockNumberAtTime } from "./utils";
 
 export interface PortfolioPosition {
   tokenName: string;
@@ -16,6 +18,7 @@ export interface PortfolioPosition {
   marketName: string;
   marketStatus: string;
   tokenBalance: number;
+  tokenHistoryBalance: number;
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
@@ -66,6 +69,20 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
     allowFailure: false,
   })) as bigint[];
 
+  // history balance
+  const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
+  const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
+  const historyBalances = (await readContracts(config, {
+    contracts: allTokensIds.map((wrappedAddress) => ({
+      abi: erc20Abi,
+      address: wrappedAddress,
+      functionName: "balanceOf",
+      args: [address],
+    })),
+    allowFailure: false,
+    blockNumber: BigInt(blockNumber),
+  })) as bigint[];
+
   // tokenNames
   const tokenNames = (await readContracts(config, {
     contracts: allTokensIds.map((wrappedAddress) => ({
@@ -99,6 +116,7 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
+        tokenHistoryBalance: Number(formatUnits(historyBalances[index] ?? 0n, Number(tokenDecimals[index]))),
         marketName: market.marketName,
         marketStatus: market.marketStatus,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],

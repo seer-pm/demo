@@ -310,14 +310,14 @@ export function useQuoteTrade(
 }
 
 export function useMissingTradeApproval(account: Address, trade: Trade) {
-  const { data: missingApprovals } = useMissingApprovals(
+  const { data: missingApprovals, isLoading } = useMissingApprovals(
     [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
     trade.approveAddress as `0x${string}`,
     BigInt(trade.inputAmount.raw.toString()),
   );
 
-  return missingApprovals;
+  return { missingApprovals, isLoading };
 }
 
 async function tradeTokens({
@@ -332,7 +332,7 @@ async function tradeTokens({
   originalAmount: string;
 }): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
-    return executeCoWTrade(trade);
+    return executeCoWTrade(trade, account, collateral, originalAmount);
   }
 
   if (trade instanceof UniswapTrade) {

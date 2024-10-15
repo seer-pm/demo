@@ -43,7 +43,7 @@ function useCalculatePositionsValue() {
       tokenIdToTokenHistoryPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       0;
-    const tokenValue = tokenPrice * curr.tokenBalance;
+    const tokenValue = tokenPrice * curr.tokenHistoryBalance;
     return acc + tokenValue;
   }, 0);
 
@@ -64,7 +64,7 @@ function useCalculatePositionsValue() {
     delta,
     positions: positionsWithTokenValue,
     currentPortfolioValue,
-    deltaPercent: Number.isNaN(delta / currentPortfolioValue) ? 0 : (delta / currentPortfolioValue) * 100,
+    deltaPercent: Number.isNaN(delta / historyPortfolioValue) ? 0 : (delta / historyPortfolioValue) * 100,
   };
 }
 

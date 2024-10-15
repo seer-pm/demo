@@ -67,11 +67,12 @@ function SwapButtons({
   isLoading: boolean;
   isCollateralDai: boolean;
 }) {
-  const missingApprovals = useMissingTradeApproval(account!, trade);
+  const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
   const isShowApproval =
     missingApprovals &&
     missingApprovals.length > 0 &&
     (swapType === "sell" || (swapType === "buy" && !isCollateralDai));
+
   return (
     <div>
       {!isShowApproval && (
@@ -79,7 +80,7 @@ function SwapButtons({
           variant="primary"
           type="submit"
           disabled={isDisabled}
-          isLoading={isLoading}
+          isLoading={isLoading || isLoadingApprovals}
           text={swapType === "buy" ? "Buy" : "Sell"}
         />
       )}
