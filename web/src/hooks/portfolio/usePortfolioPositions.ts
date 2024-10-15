@@ -27,6 +27,59 @@ export interface PortfolioPosition {
   parentMarketName?: string;
   parentOutcome?: string;
 }
+
+const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Address[], address: Address) => {
+  let blockNumber = initialBlockNumber;
+  const maxAttempts = 10; // Limit the number of attempts
+  let attempts = 0;
+
+  // Initialize results array with null values
+  const results = new Array(allTokensIds.length).fill(null) as bigint[];
+  let remainingIndices = allTokensIds.map((_, index) => index);
+
+  while (attempts < maxAttempts && remainingIndices.length > 0) {
+    try {
+      const batchResults = await readContracts(config, {
+        contracts: remainingIndices.map((index) => ({
+          abi: erc20Abi,
+          address: allTokensIds[index],
+          functionName: "balanceOf",
+          args: [address],
+        })),
+        allowFailure: true,
+        blockNumber: BigInt(blockNumber),
+      });
+      console.log(batchResults, remainingIndices);
+      const newRemainingIndices: number[] = [];
+      // Process results
+      batchResults.forEach((result, batchIndex) => {
+        const originalIndex = remainingIndices[batchIndex];
+        if (!("error" in result)) {
+          results[originalIndex] = BigInt(result.result);
+        } else {
+          newRemainingIndices.push(originalIndex);
+        }
+      });
+
+      remainingIndices = newRemainingIndices;
+
+      // If all succeeded, return the results
+      if (remainingIndices.length === 0) {
+        return results;
+      }
+
+      // Increment block number and attempts
+      blockNumber++;
+      attempts++;
+    } catch (error) {
+      blockNumber++;
+      attempts++;
+    }
+  }
+
+  return results;
+};
+
 export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
   const markets = await fetchMarkets(chainId);
@@ -72,20 +125,9 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   // history balance
   const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
   const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
-  let historyBalances = [] as bigint[];
-  try {
-    historyBalances = (await readContracts(config, {
-      contracts: allTokensIds.map((wrappedAddress) => ({
-        abi: erc20Abi,
-        address: wrappedAddress,
-        functionName: "balanceOf",
-        args: [address],
-      })),
-      allowFailure: false,
-      blockNumber: BigInt(blockNumber),
-    })) as bigint[];
-  } catch (e) {}
-
+  console.log(blockNumber);
+  const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
+  console.log(historyBalances);
   // tokenNames
   const tokenNames = (await readContracts(config, {
     contracts: allTokensIds.map((wrappedAddress) => ({
