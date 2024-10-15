@@ -269,7 +269,7 @@
   font-size: 14px;
   white-space: nowrap;
 
-  @media (max-width: 1024px) { /* For screens smaller than 640px (sm breakpoint) */
+  @media (max-width: 1024px) { /* For screens smaller than 1024px (md breakpoint) */
     white-space: normal;
    }
 }
