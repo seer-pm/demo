@@ -72,16 +72,19 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   // history balance
   const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
   const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
-  const historyBalances = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddress) => ({
-      abi: erc20Abi,
-      address: wrappedAddress,
-      functionName: "balanceOf",
-      args: [address],
-    })),
-    allowFailure: false,
-    blockNumber: BigInt(blockNumber),
-  })) as bigint[];
+  let historyBalances = [] as bigint[];
+  try {
+    historyBalances = (await readContracts(config, {
+      contracts: allTokensIds.map((wrappedAddress) => ({
+        abi: erc20Abi,
+        address: wrappedAddress,
+        functionName: "balanceOf",
+        args: [address],
+      })),
+      allowFailure: false,
+      blockNumber: BigInt(blockNumber),
+    })) as bigint[];
+  } catch (e) {}
 
   // tokenNames
   const tokenNames = (await readContracts(config, {
@@ -116,7 +119,7 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
-        tokenHistoryBalance: Number(formatUnits(historyBalances[index] ?? 0n, Number(tokenDecimals[index]))),
+        tokenHistoryBalance: Number(formatUnits(historyBalances[index] ?? balance, Number(tokenDecimals[index]))),
         marketName: market.marketName,
         marketStatus: market.marketStatus,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
