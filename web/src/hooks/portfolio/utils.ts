@@ -1,7 +1,11 @@
+import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { ChainId } from "@swapr/sdk";
 import { ethers } from "ethers";
+import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
+import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 
 export function getTokenPricesMapping(
   tokens: { tokenId: string; parentTokenId?: string }[],
@@ -115,4 +119,32 @@ export async function getBlockTimestamp(initialBlockNumber: number) {
       attempts++;
     }
   }
+}
+
+export async function getAllPools(
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  chainId: SupportedChain,
+) {
+  if (!tokens) return [];
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+  if (!graphQLClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+
+  const { pools } = await graphQLSdk(graphQLClient).GetPools({
+    where: {
+      or: tokens.reduce(
+        (acc, { tokenId }) => {
+          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+          return acc;
+        },
+        [] as { [key: string]: string }[],
+      ),
+    },
+  });
+
+  return pools;
 }

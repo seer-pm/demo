@@ -8,22 +8,20 @@ import { ethers } from "ethers";
 import { Address, erc20Abi } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { conditionalTokensAbi, conditionalTokensAddress } from "../contracts/generated";
-import { GetPoolsQuery } from "../queries/gql-generated-uniswap";
 import { Market } from "../useMarket";
 import { fetchMarkets } from "../useMarkets";
 import {
-  ALGEBRA_POOL_ADDRESS,
   BUNNI_HUB_ADDRESS,
   MAINNET_SWAP_ROUTER_ADDRESS,
   POSITION_MANAGER_ADDRESS,
+  SWAP_ROUTER_ADDRESS,
   algebraPoolAbi,
   nonfungiblePositionManagerAbi,
   swapRouterApi,
   uniswapPoolAbi,
   uniswapRouterAbi,
 } from "./abis";
-import { getUniswapPools } from "./getUniswapPrices";
-import { getBlockTimestamp } from "./utils";
+import { getAllPools, getBlockTimestamp } from "./utils";
 
 type TransactionType = "split" | "merge" | "redeem" | "swap" | "lp";
 
@@ -74,25 +72,29 @@ async function getUserEventsByType(
   const events = (
     await Promise.all(data.map(({ contract, filter }) => contract.queryFilter(filter, startBlock, latestBlock)))
   ).flat();
+
   const results: ethers.providers.TransactionResponse[] = Array(events.length).fill(null);
-  const maxAttempts = 100; // Limit the number of attempts
+  const maxAttempts = 50; // Limit the number of attempts
   let attempts = 0;
   let remainingIndices = events.map((_, index) => index);
+
   while (attempts < maxAttempts && remainingIndices.length > 0) {
     try {
-      const eventTransactions = await Promise.all(remainingIndices.map((index) => events[index].getTransaction()));
+      const eventTransactions = await Promise.allSettled(
+        remainingIndices.map((index) => events[index].getTransaction()),
+      );
       const newRemainingIndices: number[] = [];
       // Process results
       eventTransactions.forEach((result, batchIndex) => {
         const originalIndex = remainingIndices[batchIndex];
-        if (result?.hash) {
-          results[originalIndex] = result;
+        if (result.status === "fulfilled" && result.value) {
+          results[originalIndex] = result.value;
         } else {
           newRemainingIndices.push(originalIndex);
         }
       });
-      remainingIndices = newRemainingIndices;
 
+      remainingIndices = newRemainingIndices;
       // If all succeeded, break early
       if (remainingIndices.length === 0) {
         break;
@@ -100,7 +102,6 @@ async function getUserEventsByType(
 
       attempts++;
     } catch (error) {
-      console.log(error);
       attempts++;
     }
     await new Promise((resolve) => setTimeout(resolve, 500)); //wait 500ms between attempts;
@@ -137,10 +138,14 @@ function getEventFilters(chainId: SupportedChain, type: TransactionType, account
       return [{ contract, filter }];
     }
     case "swap": {
-      if (chainId === gnosis.id) {
-        const contract = new ethers.Contract(ALGEBRA_POOL_ADDRESS, algebraPoolAbi, provider);
-        const filter = contract.filters.Swap(null, account);
-        return [{ contract, filter }];
+      if (chainId === gnosis.id && poolIds) {
+        return poolIds.map((x) => {
+          const contract = new ethers.Contract(x, algebraPoolAbi, provider);
+          return {
+            contract,
+            filter: contract.filters.Swap(SWAP_ROUTER_ADDRESS, account),
+          };
+        });
       }
       if (chainId === mainnet.id && poolIds?.length) {
         return poolIds.map((x) => {
@@ -235,20 +240,16 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
     {} as { [key: string]: Address },
   );
 
-  let poolIds: string[] = [];
-  let pools: GetPoolsQuery["pools"] = [];
-  if (chainId === mainnet.id) {
-    pools = await getUniswapPools(
-      Object.keys(outcomeTokenToCollateral).map((x) => {
-        return {
-          tokenId: x,
-          parentTokenId: outcomeTokenToCollateral[x],
-        };
-      }),
-      chainId,
-    );
-    poolIds = pools.map((x) => x.id);
-  }
+  const pools = await getAllPools(
+    Object.keys(outcomeTokenToCollateral).map((x) => {
+      return {
+        tokenId: x,
+        parentTokenId: outcomeTokenToCollateral[x],
+      };
+    }),
+    chainId,
+  );
+  const poolIds = pools.map((x) => x.id);
 
   const allTokensIds = markets.reduce((acc, market) => {
     for (let i = 0; i < market.wrappedTokens.length; i++) {
@@ -257,7 +258,6 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
     }
     return acc;
   }, [] as Address[]);
-
   const transactionTypes = ["split", "merge", "redeem", "swap", "lp"] as const;
   const historyTransactions = await Promise.all(
     transactionTypes.map(async (type) => {
@@ -383,7 +383,6 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
             return data.filter((x) => x) as TransactionData[];
           }
           if (chainId === mainnet.id) {
-            console.log(userEvents);
             const data = await Promise.all(
               userEvents.map(async (event) => {
                 const pool = new ethers.Contract(event.address, uniswapPoolAbi, provider);
