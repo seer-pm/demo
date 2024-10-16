@@ -2,7 +2,9 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
 import { ethers } from "ethers";
-import { TransactionReceipt } from "viem";
+import { Address, TransactionReceipt } from "viem";
+import { approveTokens } from "../useApproveTokens";
+import { fetchNeededApprovals } from "../useMissingApprovals";
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
   const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
@@ -114,4 +116,15 @@ export async function pollForOrder(orderId: string, chainId: number, maxAttempts
   return {
     error: "Get order timeout",
   };
+}
+
+export async function approveIfNeeded(tokensAddress: Address, account: Address, spender: Address, amount: bigint) {
+  const missingApprovals = await fetchNeededApprovals([tokensAddress], account, spender, [amount]);
+  if (missingApprovals.length > 0) {
+    await approveTokens({
+      amount,
+      tokenAddress: tokensAddress,
+      spender: spender,
+    });
+  }
 }

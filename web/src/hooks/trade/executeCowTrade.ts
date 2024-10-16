@@ -8,8 +8,6 @@ import { getConnectorClient } from "@wagmi/core";
 import { providers } from "ethers";
 import { Account, Address, Chain, Client, Transport, parseUnits } from "viem";
 import { gnosis, mainnet } from "viem/chains";
-import { approveTokens } from "../useApproveTokens";
-import { fetchNeededApprovals } from "../useMissingApprovals";
 import {
   S_DAI_ADAPTER,
   depositFromNativeToSDAI,
@@ -17,7 +15,7 @@ import {
   redeemFromSDAI,
   redeemFromSDAIToNative,
 } from "./handleSDAI";
-import { getConvertedShares, pollForOrder, setCowTradeLimit } from "./utils";
+import { approveIfNeeded, getConvertedShares, pollForOrder, setCowTradeLimit } from "./utils";
 
 function clientToSigner(client: Client<Transport, Chain, Account>) {
   const { account, chain, transport } = client;
@@ -44,17 +42,11 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
     isTwoStringsEqual(collateral.address, DAIAddress)
   ) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    const missingApprovals = await fetchNeededApprovals([DAIAddress], account, sDAIAddress, [amount]);
-    if (missingApprovals.length > 0) {
-      await approveTokens({
-        amount,
-        tokenAddress: DAIAddress,
-        spender: sDAIAddress,
-      });
-    }
+    await approveIfNeeded(DAIAddress, account, sDAIAddress, amount);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
+      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -62,11 +54,11 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
 
   // gnosis: xdai to sdai
   if (trade.chainId && gnosis.id && isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    console.log("here");
     const amount = parseUnits(originalAmount, collateral.decimals);
     const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
+      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -75,17 +67,11 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
   // gnosis: wxdai to sdai
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    const missingApprovals = await fetchNeededApprovals([wxDAIAddress], account, sDAIAddress, [amount]);
-    if (missingApprovals.length > 0) {
-      await approveTokens({
-        amount,
-        tokenAddress: wxDAIAddress,
-        spender: sDAIAddress,
-      });
-    }
+    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
+      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -142,14 +128,7 @@ export async function executeCoWTrade(
 
   // gnosis: sdai to xdai
   if (newTrade.chainId === gnosis.id && isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    const missingApprovals = await fetchNeededApprovals([sDAIAddress], account, S_DAI_ADAPTER, [receivedAmount]);
-    if (missingApprovals.length > 0) {
-      await approveTokens({
-        amount: receivedAmount,
-        tokenAddress: sDAIAddress,
-        spender: S_DAI_ADAPTER,
-      });
-    }
+    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount);
     await redeemFromSDAIToNative({
       amount: receivedAmount,
       chainId: newTrade.chainId,

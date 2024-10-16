@@ -6,8 +6,6 @@ import { config } from "@/wagmi";
 import { SwaprV3Trade, WXDAI } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, parseUnits } from "viem";
-import { approveTokens } from "../useApproveTokens";
-import { fetchNeededApprovals } from "../useMissingApprovals";
 import {
   S_DAI_ADAPTER,
   depositFromNativeToSDAI,
@@ -15,18 +13,7 @@ import {
   redeemFromSDAI,
   redeemFromSDAIToNative,
 } from "./handleSDAI";
-import { getConvertedShares, setSwaprTradeLimit } from "./utils";
-
-async function approveIfNeeded(tokensAddress: Address, account: Address, spender: Address, amount: bigint) {
-  const missingApprovals = await fetchNeededApprovals([tokensAddress], account, spender, [amount]);
-  if (missingApprovals.length > 0) {
-    await approveTokens({
-      amount,
-      tokenAddress: tokensAddress,
-      spender: spender,
-    });
-  }
-}
+import { approveIfNeeded, getConvertedShares, setSwaprTradeLimit } from "./utils";
 
 async function getPopulatedTransaction(
   trade: SwaprV3Trade,
