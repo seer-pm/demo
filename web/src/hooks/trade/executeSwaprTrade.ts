@@ -17,6 +17,17 @@ import {
 } from "./handleSDAI";
 import { getConvertedShares, setSwaprTradeLimit } from "./utils";
 
+async function approveIfNeeded(tokensAddress: Address, account: Address, spender: Address, amount: bigint) {
+  const missingApprovals = await fetchNeededApprovals([tokensAddress], account, spender, [amount]);
+  if (missingApprovals.length > 0) {
+    await approveTokens({
+      amount,
+      tokenAddress: tokensAddress,
+      spender: spender,
+    });
+  }
+}
+
 async function getPopulatedTransaction(
   trade: SwaprV3Trade,
   account: Address,
@@ -32,6 +43,7 @@ async function getPopulatedTransaction(
     const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
+      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
       const newTrade = setSwaprTradeLimit(trade, shares);
       return newTrade.swapTransaction({
         recipient: account,
@@ -43,17 +55,11 @@ async function getPopulatedTransaction(
 
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    const missingApprovals = await fetchNeededApprovals([wxDAIAddress], account, sDAIAddress, [amount]);
-    if (missingApprovals.length > 0) {
-      await approveTokens({
-        amount,
-        tokenAddress: wxDAIAddress,
-        spender: sDAIAddress,
-      });
-    }
+    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
+      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
       const newTrade = setSwaprTradeLimit(trade, shares);
       return newTrade.swapTransaction({
         recipient: account,
@@ -93,14 +99,7 @@ export async function executeSwaprTrade(
   const receivedAmount = BigInt(trade.outputAmount.raw.toString());
   // sdai to xdai
   if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    const missingApprovals = await fetchNeededApprovals([sDAIAddress], account, S_DAI_ADAPTER, [receivedAmount]);
-    if (missingApprovals.length > 0) {
-      await approveTokens({
-        amount: receivedAmount,
-        tokenAddress: sDAIAddress,
-        spender: S_DAI_ADAPTER,
-      });
-    }
+    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount);
     await redeemFromSDAIToNative({
       amount: receivedAmount,
       chainId: trade.chainId,
