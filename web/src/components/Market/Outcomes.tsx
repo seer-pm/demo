@@ -286,7 +286,7 @@ export function Outcomes({ chainId, market, images }: PositionsProps) {
                     </p>
                     {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
                       <span className="tooltip">
-                        <p className="tooltiptext !whitespace-pre-wrap w-[400px] !text-left">
+                        <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
                           {getTooltipContent(market, i)}
                         </p>
                         <QuestionIcon fill="#9747FF" />
