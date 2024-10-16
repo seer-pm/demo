@@ -6,11 +6,20 @@ import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
-import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  ColumnDef,
+  PaginationState,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Address } from "viem";
+import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
 export function MarketImage({
@@ -182,7 +191,7 @@ export default function TransactionsTable({ data, chainId }: { data: Transaction
               rel="noopener noreferrer"
               className="text-[14px] font-semibold text-purple-primary"
             >
-              <TextOverflowTooltip text={info.getValue<string>()} maxChar={20} />
+              <TextOverflowTooltip text={info.getValue<string>()} maxChar={20} isUseTitle={true} />
             </a>
           );
         },
@@ -191,66 +200,83 @@ export default function TransactionsTable({ data, chainId }: { data: Transaction
     ],
     [],
   );
-
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   const table = useReactTable({
     columns,
     data,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(), //client-side sorting
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: setPagination,
+    state: {
+      pagination,
+    },
   });
 
   return (
-    <table className="simple-table">
-      <thead>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              return (
-                <th key={header.id} colSpan={header.colSpan}>
-                  {header.isPlaceholder ? null : (
-                    <div
-                      className={clsx(
-                        header.column.getCanSort() ? "cursor-pointer select-none" : "",
-                        "flex items-center gap-2",
+    <>
+      <div className="w-full overflow-x-auto mb-6">
+        <table className="simple-table">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <th key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={clsx(
+                            header.column.getCanSort() ? "cursor-pointer select-none" : "",
+                            "flex items-center gap-2",
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                          title={
+                            header.column.getCanSort()
+                              ? header.column.getNextSortingOrder() === "asc"
+                                ? "Sort ascending"
+                                : header.column.getNextSortingOrder() === "desc"
+                                  ? "Sort descending"
+                                  : "Clear sort"
+                              : undefined
+                          }
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <div className="flex-shrink-0">
+                            {{
+                              asc: <ArrowDropUp fill="currentColor" />,
+                              desc: <ArrowDropDown fill="currentColor" />,
+                              false: header.column.getCanSort() && <ArrowSwap />,
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </div>
+                        </div>
                       )}
-                      onClick={header.column.getToggleSortingHandler()}
-                      title={
-                        header.column.getCanSort()
-                          ? header.column.getNextSortingOrder() === "asc"
-                            ? "Sort ascending"
-                            : header.column.getNextSortingOrder() === "desc"
-                              ? "Sort descending"
-                              : "Clear sort"
-                          : undefined
-                      }
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      <div className="flex-shrink-0">
-                        {{
-                          asc: <ArrowDropUp fill="currentColor" />,
-                          desc: <ArrowDropDown fill="currentColor" />,
-                          false: header.column.getCanSort() && <ArrowSwap />,
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
-                    </div>
-                  )}
-                </th>
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              return (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => {
+                    return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
+                  })}
+                </tr>
               );
             })}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map((row) => {
-          return (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => {
-                return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
-              })}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      </div>
+      <MarketsPagination
+        pageCount={table.getPageCount()}
+        handlePageClick={({ selected }) => table.setPageIndex(selected)}
+        page={table.getState().pagination.pageIndex + 1}
+      />
+    </>
   );
 }

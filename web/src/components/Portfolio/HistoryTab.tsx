@@ -36,9 +36,7 @@ function HistoryTab() {
               onKeyUp={marketNameCallback}
             />
           </div>
-          <div className="w-full overflow-x-auto">
-            <TransactionsTable chainId={chainId as SupportedChain} data={filteredTransactions} />
-          </div>
+          <TransactionsTable chainId={chainId as SupportedChain} data={filteredTransactions} />
         </div>
       )}
     </>

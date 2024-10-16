@@ -32,9 +32,7 @@ function PositionsTab() {
               onKeyUp={marketNameCallback}
             />
           </div>
-          <div className="w-full overflow-x-auto">
-            <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
-          </div>
+          <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
         </div>
       )}
     </>
