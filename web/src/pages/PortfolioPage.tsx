@@ -1,28 +1,21 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
-import Input from "@/components/Form/Input";
-import PortfolioTable from "@/components/Portfolio/PortfolioTable";
+import HistoryTab from "@/components/Portfolio/HistoryTab";
+import PositionsTab from "@/components/Portfolio/PositionsTab";
 import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
 
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { ArrowDropDown, ArrowDropUp, SearchIcon, Union } from "@/lib/icons";
-import { useState } from "react";
+import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 function PortfolioPage() {
-  const { chainId = DEFAULT_CHAIN, address } = useAccount();
+  const { address } = useAccount();
 
-  const [filterMarketName, setFilterMarketName] = useState("");
-  const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    setFilterMarketName((event.target as HTMLInputElement).value);
-  };
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { isCalculating, isGettingPositions, delta, positions, currentPortfolioValue, deltaPercent } =
-    useCalculatePositionsValue();
+  const activeTab = searchParams.get("tab") || "positions";
 
-  const filteredPositions = positions?.filter((position) =>
-    position.marketName.toLowerCase().includes(filterMarketName.toLowerCase()),
-  );
+  const { isCalculating, delta, currentPortfolioValue, deltaPercent } = useCalculatePositionsValue();
 
   if (!address) {
     return (
@@ -69,24 +62,39 @@ function PortfolioPage() {
         </div>
       </div>
 
-      {isGettingPositions && <div className="shimmer-container w-full h-[200px]" />}
-
-      {!isGettingPositions && !positions?.length && <Alert type="warning">No positions found.</Alert>}
-      {!!filteredPositions?.length && (
-        <>
-          <div className="grow">
-            <Input
-              placeholder="Search by Market Name"
-              className="w-full"
-              icon={<SearchIcon />}
-              onKeyUp={marketNameCallback}
-            />
-          </div>
-          <div className="w-full overflow-x-auto">
-            <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
-          </div>
-        </>
-      )}
+      <div>
+        <div
+          role="tablist"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-[300px] mb-6"
+        >
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${activeTab === "positions" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "positions",
+              })
+            }
+          >
+            Positions
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${activeTab === "history" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "history",
+              })
+            }
+          >
+            History
+          </button>
+        </div>
+        {activeTab === "positions" && <PositionsTab />}
+        {activeTab === "history" && <HistoryTab />}
+      </div>
     </div>
   );
 }

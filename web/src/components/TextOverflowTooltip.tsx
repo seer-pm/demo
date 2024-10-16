@@ -15,7 +15,7 @@ function TextOverflowTooltip({
   }
   return (
     <div className="tooltip">
-      <p className="tooltiptext !w-[100%] !whitespace-pre-wrap">{text}</p>
+      <p className="tooltiptext !w-[100%] !whitespace-pre-wrap break-words">{text}</p>
       <p className={clsx("whitespace-nowrap", className)}>{text.slice(0, maxChar - 3)}...</p>
     </div>
   );

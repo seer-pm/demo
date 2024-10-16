@@ -56,3 +56,28 @@ export async function getUniswapCurrentTokensPrices(
 
   return getTokenPricesMapping(tokens, pools, chainId);
 }
+
+export async function getUniswapPools(
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  chainId: SupportedChain,
+) {
+  if (!tokens) return [];
+  const subgraphClient = uniswapGraphQLClient(chainId);
+  if (!subgraphClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const { pools } = await getSdk(subgraphClient).GetPools({
+    where: {
+      or: tokens.reduce(
+        (acc, { tokenId }) => {
+          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+          return acc;
+        },
+        [] as { [key: string]: string }[],
+      ),
+    },
+  });
+
+  return pools;
+}

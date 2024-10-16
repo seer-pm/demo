@@ -29,6 +29,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useMarketOdds")) {
                 return true;
               }
+              if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("usePositions")) {
+                return true;
+              }
+              if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useHistoryTransactions")) {
+                return true;
+              }
               return false;
             },
           },

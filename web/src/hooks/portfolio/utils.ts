@@ -94,3 +94,25 @@ export async function getBlockNumberAtTime(timestamp: number) {
   // Return the closest block number
   return right;
 }
+
+export async function getBlockTimestamp(initialBlockNumber: number) {
+  let blockNumber = initialBlockNumber;
+  const maxAttempts = 10; // Limit the number of attempts
+  let attempts = 0;
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+
+  while (attempts < maxAttempts) {
+    try {
+      const block = await provider.getBlock(blockNumber);
+      if (block.timestamp) {
+        return block.timestamp;
+      }
+      // Increment block number and attempts
+      blockNumber++;
+      attempts++;
+    } catch (error) {
+      blockNumber++;
+      attempts++;
+    }
+  }
+}

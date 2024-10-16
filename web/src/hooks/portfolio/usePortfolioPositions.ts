@@ -49,7 +49,6 @@ const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Addr
         allowFailure: true,
         blockNumber: BigInt(blockNumber),
       });
-      console.log(batchResults, remainingIndices);
       const newRemainingIndices: number[] = [];
       // Process results
       batchResults.forEach((result, batchIndex) => {
@@ -125,9 +124,7 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   // history balance
   const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
   const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
-  console.log(blockNumber);
   const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
-  console.log(historyBalances);
   // tokenNames
   const tokenNames = (await readContracts(config, {
     contracts: allTokensIds.map((wrappedAddress) => ({
@@ -209,6 +206,8 @@ export const usePositions = (address: Address, chainId: SupportedChain) => {
   return useQuery<PortfolioPosition[] | undefined, Error>({
     enabled: !!address,
     queryKey: ["usePositions", address, chainId],
+    gcTime: 1000 * 60 * 60 * 24, //24 hours
+    staleTime: 0,
     queryFn: async () => fetchPositions(address, chainId),
   });
 };
