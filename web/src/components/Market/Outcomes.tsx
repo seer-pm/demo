@@ -111,7 +111,7 @@ function AddLiquidityInfo({
           <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
             <div className="flex justify-between items-center">
               <div>
-                <span className="font-semibold">Swapr</span> ~{" "}
+                <span className="font-semibold">{pool.dex}</span> ~{" "}
                 {pool.incentives.length > 0 ? poolRewardsInfo(pool.incentives[0]) : "0 SEER / day"}
               </div>
               <div>

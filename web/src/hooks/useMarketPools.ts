@@ -11,10 +11,10 @@ import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
   OrderDirection,
-  Pool_OrderBy,
+  Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
+import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -28,6 +28,7 @@ export interface PoolIncentive {
 
 export interface PoolInfo {
   id: Address;
+  dex: string;
   fee: number;
   token0: Address;
   token1: Address;
@@ -76,60 +77,81 @@ const eternalFarming = memoize((chainId: SupportedChain) => {
   });
 });
 
+async function getSwaprPools(
+  chainId: SupportedChain,
+  tokens: { token0: Address; token1: Address }[],
+): Promise<PoolInfo[]> {
+  const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+  if (!algebraClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const { pools } = await getSwaprSdk(algebraClient).GetPools({
+    where: {
+      or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
+    },
+    orderBy: SwaprPool_OrderBy.TotalValueLockedUsd,
+    orderDirection: OrderDirection.Desc,
+  });
+
+  return await Promise.all(
+    pools.map(async (pool) => ({
+      id: pool.id as Address,
+      dex: "Swapr",
+      fee: Number(pool.fee),
+      token0: pool.token0.id as Address,
+      token1: pool.token1.id as Address,
+      incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
+        mapEternalFarming(eternalFarming),
+      ),
+    })),
+  );
+}
+
+async function getUniswapPools(
+  chainId: SupportedChain,
+  tokens: { token0: Address; token1: Address }[],
+): Promise<PoolInfo[]> {
+  const uniswapClient = uniswapGraphQLClient(chainId);
+
+  if (!uniswapClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const { pools } = await getUniswapSdk(uniswapClient).GetPools({
+    where: {
+      or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
+    },
+    orderBy: UniswapPool_OrderBy.Liquidity,
+    orderDirection: OrderDirection.Desc,
+  });
+
+  return await Promise.all(
+    pools.map(async (pool) => ({
+      id: pool.id as Address,
+      dex: "Bunni",
+      fee: Number(pool.fee),
+      token0: pool.token0.id as Address,
+      token1: pool.token1.id as Address,
+      incentives: [], // TODO
+    })),
+  );
+}
+
 const getPools = memoize((chainId: SupportedChain) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
-      const algebraClient = swaprGraphQLClient(chainId, "algebra");
-
-      if (!algebraClient) {
-        throw new Error("Subgraph not available");
-      }
-
-      const { pools } = await getSwaprSdk(algebraClient).GetPools({
-        where: {
-          or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
-        },
-        orderBy: Pool_OrderBy.TotalValueLockedUsd,
-        orderDirection: OrderDirection.Desc,
-      });
-
-      return pools;
+      return chainId === gnosis.id ? getSwaprPools(chainId, tokens) : getUniswapPools(chainId, tokens);
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (pools, tokens) =>
       pools.filter(
-        (p) => p.token0.id === tokens.token0.toLocaleLowerCase() && p.token1.id === tokens.token1.toLocaleLowerCase(),
+        (p) => p.token0 === tokens.token0.toLocaleLowerCase() && p.token1 === tokens.token1.toLocaleLowerCase(),
       ),
   });
 });
-
-async function getPoolInfo(
-  chainId: SupportedChain,
-  outcomeToken: Address,
-  collateralToken: Address,
-): Promise<PoolInfo[]> {
-  const [token0, token1] =
-    outcomeToken.toLocaleLowerCase() > collateralToken.toLocaleLowerCase()
-      ? [collateralToken, outcomeToken]
-      : [outcomeToken, collateralToken];
-
-  const pools = await getPools(chainId).fetch({ token0, token1 });
-
-  return await Promise.all(
-    pools.map(async (pool) => {
-      const eternalFarmings = await eternalFarming(chainId).fetch(pool.id as Address);
-
-      return {
-        id: pool.id as Address,
-        fee: Number(pool.fee),
-        token0,
-        token1,
-        incentives: eternalFarmings.map((eternalFarming) => mapEternalFarming(eternalFarming)),
-      };
-    }),
-  );
-}
 
 export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
@@ -139,7 +161,12 @@ export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
     queryFn: async () => {
       return await Promise.all(
         tokens!.map(async (outcomeToken) => {
-          return getPoolInfo(chainId, outcomeToken, COLLATERAL_TOKENS[chainId].primary.address);
+          const collateralToken = COLLATERAL_TOKENS[chainId].primary.address;
+          const [token0, token1] =
+            outcomeToken.toLocaleLowerCase() > collateralToken.toLocaleLowerCase()
+              ? [collateralToken, outcomeToken]
+              : [outcomeToken, collateralToken];
+          return await getPools(chainId).fetch({ token0, token1 });
         }),
       );
     },

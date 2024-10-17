@@ -17,6 +17,7 @@ query GetPools(
     subgraphError: $subgraphError
   ) {
     id
+    fee
     liquidity
     tick
     token0 {
