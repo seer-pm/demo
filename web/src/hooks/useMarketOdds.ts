@@ -8,7 +8,7 @@ import { Market, useMarket } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 import { useTokenInfo } from "./useTokenInfo";
 
-function normalizeOdds(prices: number[]): number[] {
+export function normalizeOdds(prices: number[]): number[] {
   const sumArray = (data: number[]) =>
     data.reduce((acc, curr) => {
       return acc + curr;
@@ -58,11 +58,8 @@ async function getTokenPrice(
 }
 
 export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
-  const { data: conditionalMarket } = useMarket(market.parentMarket, chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    conditionalMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    chainId,
-  );
+  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
+  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[chainId].primary;
 
   const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);

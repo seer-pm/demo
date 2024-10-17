@@ -16,6 +16,7 @@ fragment Market on Market {
   factory
   creator
   outcomesSupply
+  blockTimestamp
 }
 
 query GetMarkets(

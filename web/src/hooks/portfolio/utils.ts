@@ -70,10 +70,10 @@ export function getTokenPricesMapping(
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }
 
-export async function getBlockNumberAtTime(timestamp: number) {
+export async function getBlockNumberAtTime(timestamp: number, parentBlockCache?: Map<number, ethers.providers.Block>) {
   // Connect to an Ethereum node (replace with your own provider URL)
   const provider = new ethers.providers.Web3Provider(window.ethereum);
-
+  const blockCache = parentBlockCache ?? new Map<number, ethers.providers.Block>();
   // Get the latest block
   const latestBlock = await provider.getBlock("latest");
 
@@ -83,7 +83,13 @@ export async function getBlockNumberAtTime(timestamp: number) {
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
-    const block = await provider.getBlock(mid);
+    let block: ethers.providers.Block;
+    if (blockCache.has(mid)) {
+      block = blockCache.get(mid)!;
+    } else {
+      block = await provider.getBlock(mid);
+      blockCache.set(mid, block);
+    }
 
     if (block.timestamp === timestamp) {
       return block.number;
@@ -97,6 +103,11 @@ export async function getBlockNumberAtTime(timestamp: number) {
 
   // Return the closest block number
   return right;
+}
+
+export async function getBlockNumbersAtTimes(timestamps: number[]) {
+  const blockCache = new Map();
+  return await Promise.all(timestamps.map((timestamp) => getBlockNumberAtTime(timestamp, blockCache)));
 }
 
 export async function getBlockTimestamp(initialBlockNumber: number) {

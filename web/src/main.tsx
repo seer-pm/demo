@@ -35,6 +35,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useHistoryTransactions")) {
                 return true;
               }
+              if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useOddChartData")) {
+                return true;
+              }
               return false;
             },
           },

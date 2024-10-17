@@ -40,10 +40,12 @@ export interface Market {
   upperBound: bigint;
   payoutReported: boolean;
   index?: number;
+  blockTimestamp?: number;
 }
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>> & {
   creator?: string | null;
+  blockTimestamp?: number;
 };
 
 export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
@@ -111,6 +113,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
         creator: graphMarket?.creator,
         //MarketView's outcomesSupply is buggy
         outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
+        blockTimestamp: graphMarket?.blockTimestamp ? Number(graphMarket?.blockTimestamp) : undefined,
       });
     },
     refetchOnWindowFocus: true,
