@@ -170,18 +170,34 @@ export function MarketHeader({
 
       <div className={clsx("flex space-x-3 p-[24px]", market.questions.length > 1 && "pb-[16px]")}>
         <div>
+        {type == "default" && (
+          <div>
+              {images?.market ? (
+                <img
+                  src={images.market}
+                  alt={market.marketName}
+                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
+                />
+              ) : (
+                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+              )}
+            </div>
+        )}
+        {type !== "default" && (
+          <Link className="hover:underline" to={paths.market(market.id, chainId)}>
           {images?.market ? (
-            <img
-              src={images.market}
-              alt={market.marketName}
-              className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
-            />
-          ) : (
-            <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
-          )}
+              <img
+                src={images.market}
+                alt={market.marketName}
+                className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
+              />
+            ) : (
+              <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+            )}
+          </Link>)}
         </div>
         <div className="grow min-w-0">
-          <div className={clsx("font-semibold mb-1 text-[16px]", type === "default" && "lg:text-[24px]")}>
+          <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
               <Link className="hover:underline" to={paths.market(market.id, chainId)}>
