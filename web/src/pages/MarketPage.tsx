@@ -3,7 +3,6 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import MarketChart from "@/components/Market/MarketChart";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens";
@@ -153,7 +152,7 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        {market && <MarketChart chainId={chainId} market={market} />}
+        {/* {market && <MarketChart chainId={chainId} market={market} />} */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 space-y-16">
             {market && (
