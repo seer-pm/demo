@@ -181,7 +181,7 @@ export function MarketHeader({
           )}
         </div>
         <div className="grow min-w-0">
-          <div className={clsx("font-semibold mb-1 text-[16px]", type === "default" && "lg:text-[24px]")}>
+          <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
               <Link className="hover:underline" to={paths.market(market.id, chainId)}>
