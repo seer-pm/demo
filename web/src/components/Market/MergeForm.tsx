@@ -7,7 +7,6 @@ import { useMergePositions } from "@/hooks/useMergePositions";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
@@ -16,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 export interface MergeFormValues {
   amount: number;
@@ -25,11 +25,10 @@ export interface MergeFormValues {
 interface MergeFormProps {
   account?: Address;
   market: Market;
-  chainId: SupportedChain;
   router: Address;
 }
 
-export function MergeForm({ account, market, chainId, router }: MergeFormProps) {
+export function MergeForm({ account, market, router }: MergeFormProps) {
   const { data: positions = [], isFetching: isFetchingPositions } = useMarketPositions(account, market);
 
   const useFormReturn = useForm<MergeFormValues>({
@@ -51,11 +50,13 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
+  const chainId = market.chainId;
+
   const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
-  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address);
+  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, chainId);
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
-  const { data: missingApprovals } = useMissingApprovals(market.wrappedTokens, account, router, parsedAmount);
+  const { data: missingApprovals } = useMissingApprovals(market.wrappedTokens, account, router, parsedAmount, chainId);
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -167,7 +168,7 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
       )}
 
       {missingApprovals && (
-        <div>
+        <SwitchChainButtonWrapper chainId={chainId}>
           {missingApprovals.length === 0 && (
             <Button
               variant="primary"
@@ -190,7 +191,7 @@ export function MergeForm({ account, market, chainId, router }: MergeFormProps) 
               ))}
             </div>
           )}
-        </div>
+        </SwitchChainButtonWrapper>
       )}
     </form>
   );

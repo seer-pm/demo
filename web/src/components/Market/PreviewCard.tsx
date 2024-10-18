@@ -18,7 +18,6 @@ export function PreviewCard({
   return (
     <MarketHeader
       market={market}
-      chainId={chainId}
       type="preview"
       outcomesCount={3}
       images={images}

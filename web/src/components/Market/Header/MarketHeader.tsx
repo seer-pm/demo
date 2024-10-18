@@ -7,6 +7,7 @@ import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
+import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -34,7 +35,6 @@ import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./
 interface MarketHeaderProps {
   market: Market & { creator?: string };
   images?: { market: string; outcomes: string[] };
-  chainId: SupportedChain;
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
   verificationStatusResult?: VerificationStatusResult;
@@ -55,7 +55,7 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, isIntersecting);
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, isIntersecting);
 
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
@@ -119,11 +119,11 @@ function OutcomesInfo({
 export function MarketHeader({
   market,
   images,
-  chainId,
   type = "default",
   outcomesCount = 0,
   verificationStatusResult,
 }: MarketHeaderProps) {
+  const chainId = market.chainId;
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: marketStatus } = useMarketStatus(market, chainId);
@@ -133,7 +133,7 @@ export function MarketHeader({
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, chainId, true);
+  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate =
     ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
@@ -162,6 +162,8 @@ export function MarketHeader({
                 <MyMarket />
               </div>
             )}
+
+            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[chainId]} />
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
