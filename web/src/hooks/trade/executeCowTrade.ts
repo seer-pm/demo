@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastify } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
@@ -42,11 +43,17 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
     isTwoStringsEqual(collateral.address, DAIAddress)
   ) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveIfNeeded(DAIAddress, account, sDAIAddress, amount);
+    await approveIfNeeded(DAIAddress, account, sDAIAddress, amount, trade.chainId as SupportedChain);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
-      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        trade.approveAddress as Address,
+        shares,
+        trade.chainId as SupportedChain,
+      );
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -58,7 +65,13 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
     const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
-      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        trade.approveAddress as Address,
+        shares,
+        trade.chainId as SupportedChain,
+      );
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -67,11 +80,17 @@ async function getPopulatedTransaction(trade: CoWTrade, account: Address, collat
   // gnosis: wxdai to sdai
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount);
+    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount, trade.chainId as SupportedChain);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
-      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        trade.approveAddress as Address,
+        shares,
+        trade.chainId as SupportedChain,
+      );
       const newTrade = await setCowTradeLimit(trade, shares, account);
       return newTrade;
     }
@@ -128,7 +147,7 @@ export async function executeCoWTrade(
 
   // gnosis: sdai to xdai
   if (newTrade.chainId === gnosis.id && isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount);
+    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount, trade.chainId as SupportedChain);
     await redeemFromSDAIToNative({
       amount: receivedAmount,
       chainId: newTrade.chainId,

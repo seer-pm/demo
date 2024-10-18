@@ -23,25 +23,24 @@ import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 function SwapWidget({
-  chainId,
   market,
   account,
   outcomeIndex,
   images,
 }: {
-  chainId: SupportedChain;
   router: Address;
   market: Market;
   account?: Address;
   outcomeIndex: number;
   images?: string[];
 }) {
+  const chainId = market.chainId;
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], chainId);
   // on child markets we want to buy/sell using parent outcomes
   const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
 
-  const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
+  const { data: odds = [], isLoading } = useMarketOdds(market, true);
 
   if (!outcomeToken) {
     return null;
@@ -138,12 +137,7 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader
-          market={market}
-          chainId={chainId}
-          images={images}
-          verificationStatusResult={verificationStatusResult}
-        />
+        <MarketHeader market={market} images={images} verificationStatusResult={verificationStatusResult} />
 
         {!reliableMarket && (
           <Alert
@@ -165,7 +159,6 @@ function MarketPage() {
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">
             <SwapWidget
-              chainId={chainId}
               router={router}
               market={market}
               account={account}
@@ -173,7 +166,7 @@ function MarketPage() {
               images={images?.outcomes}
             />
 
-            <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />
+            <ConditionalTokenActions router={router} market={market} account={account} />
           </div>
         </div>
       </div>

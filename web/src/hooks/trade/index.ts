@@ -1,6 +1,7 @@
 import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
@@ -196,7 +197,7 @@ export function iswxsDAI(token: Token, chainId: number) {
   return (
     isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
     (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
-    isTwoStringsEqual(token.address, WXDAI[chainId].address) // wxDAI
+    isTwoStringsEqual(token.address, WXDAI[chainId]?.address) // wxDAI
   );
 }
 
@@ -315,6 +316,7 @@ export function useMissingTradeApproval(account: Address, trade: Trade) {
     account,
     trade.approveAddress as `0x${string}`,
     BigInt(trade.inputAmount.raw.toString()),
+    trade.chainId as SupportedChain,
   );
 
   return { missingApprovals, isLoading };

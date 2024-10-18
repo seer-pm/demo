@@ -16,7 +16,7 @@ function Home() {
     isPending,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterMarkets({
-    chainId: chainId as SupportedChain,
+    chainId: "all",
     marketName,
     marketStatusList,
     orderBy,
