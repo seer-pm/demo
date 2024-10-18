@@ -6,8 +6,9 @@ import { Token } from "@/lib/tokens";
 import { subDays } from "date-fns";
 import combineQuery from "graphql-combine-query";
 import { gnosis } from "viem/chains";
-import { OrderDirection, PoolHourData_OrderBy } from "../queries/generated";
 import {
+  OrderDirection,
+  PoolHourData_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
 } from "../queries/gql-generated-swapr";
