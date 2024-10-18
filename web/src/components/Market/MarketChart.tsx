@@ -28,7 +28,7 @@ const chartOptions = {
 type ChartOptionPeriod = keyof typeof chartOptions;
 
 function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Market }) {
-  const { data: odds = [], isLoading: isLoadingOdds } = useMarketOdds(market, chainId, true);
+  const { data: odds = [], isLoading: isLoadingOdds } = useMarketOdds(market, true);
   const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
   const { data, isLoading: isLoadingChart } = useOddChartData(
     chainId,

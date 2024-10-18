@@ -20,7 +20,7 @@ export function RelatedMarkets({ chainId, market }: RelatedMarketsProps) {
       <div className="font-[16px] font-semibold mb-[24px]">Related Conditional Markets</div>
       <div className="space-y-3">
         {markets.map((market) => (
-          <MarketHeader market={market} chainId={chainId} type="small" key={market.id} />
+          <MarketHeader market={market} type="small" key={market.id} />
         ))}
       </div>
     </div>

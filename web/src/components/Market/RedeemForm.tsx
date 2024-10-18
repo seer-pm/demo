@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 
 export interface RedeemFormValues {
@@ -18,11 +19,10 @@ export interface RedeemFormValues {
 interface RedeemFormProps {
   account?: Address;
   market: Market;
-  chainId: number;
   router: Address;
 }
 
-export function RedeemForm({ account, market, chainId, router }: RedeemFormProps) {
+export function RedeemForm({ account, market, router }: RedeemFormProps) {
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -40,11 +40,14 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
 
   const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
 
+  const chainId = market.chainId;
+
   const { data: missingApprovals } = useMissingApprovals(
     filteredWinningPositions.map((wp) => wp.tokenId),
     account,
     router,
     redeemAmounts,
+    chainId,
   );
 
   if (winningOutcomeIndexes.length === 0) {
@@ -59,7 +62,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
       isMainCollateral: !values.useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId!],
+      routerType: CHAIN_ROUTERS[chainId],
     });
   };
 
@@ -70,7 +73,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
       )}
 
       {missingApprovals && (
-        <div>
+        <SwitchChainButtonWrapper chainId={chainId}>
           {missingApprovals.length === 0 && (
             <Button
               variant="primary"
@@ -93,7 +96,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
               ))}
             </div>
           )}
-        </div>
+        </SwitchChainButtonWrapper>
       )}
     </form>
   );

@@ -1,4 +1,5 @@
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
@@ -27,13 +28,13 @@ export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }
   return <div>{data ?? (isAddress(address) ? shortenAddress(address) : address)}</div>;
 };
 
-export const CollateralBalance: React.FC<{ chainId: number; address?: Address }> = ({
+export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Address }> = ({
   chainId,
   address: propAddress,
 }) => {
   const { address: defaultAddress } = useAccount();
   const address = propAddress || defaultAddress;
-  const { data: balance } = useTokenBalance(address, COLLATERAL_TOKENS[chainId].primary.address);
+  const { data: balance } = useTokenBalance(address, COLLATERAL_TOKENS[chainId].primary.address, chainId);
 
   if (isUndefined(balance)) {
     return null;

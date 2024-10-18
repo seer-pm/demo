@@ -48,11 +48,11 @@ contract MarketFactoryTest is BaseTest {
         categoricalMarket.resolve();
 
         vm.startPrank(msg.sender);
-        console.log("aaa");
+
         splitMergeAndRedeem(
             categoricalMarket, getPartition(numOutcomes + 1), getOutcomesIndex(numOutcomes + 1), splitAmount
         );
-        console.log("bbb");
+
         vm.stopPrank();
     }
 

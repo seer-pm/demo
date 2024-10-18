@@ -24,6 +24,7 @@ export interface Question {
 
 export interface Market {
   id: Address;
+  chainId: SupportedChain;
   marketName: string;
   outcomes: readonly string[];
   wrappedTokens: Address[];
@@ -44,6 +45,7 @@ export interface Market {
 }
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>> & {
+  chainId: SupportedChain;
   creator?: string | null;
   blockTimestamp?: number;
 };
@@ -110,6 +112,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           args: [factory!, marketId],
           chainId,
         })),
+        chainId,
         creator: graphMarket?.creator,
         //MarketView's outcomesSupply is buggy
         outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),

@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastifyTx } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
@@ -30,7 +31,13 @@ async function getPopulatedTransaction(
     const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
-      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        trade.approveAddress as Address,
+        shares,
+        trade.chainId as SupportedChain,
+      );
       const newTrade = setSwaprTradeLimit(trade, shares);
       return newTrade.swapTransaction({
         recipient: account,
@@ -42,11 +49,17 @@ async function getPopulatedTransaction(
 
   if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
     const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount);
+    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount, trade.chainId as SupportedChain);
     const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
     const shares = getConvertedShares(receipt);
     if (shares) {
-      await approveIfNeeded(sDAIAddress, account, trade.approveAddress as Address, shares);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        trade.approveAddress as Address,
+        shares,
+        trade.chainId as SupportedChain,
+      );
       const newTrade = setSwaprTradeLimit(trade, shares);
       return newTrade.swapTransaction({
         recipient: account,
@@ -86,7 +99,7 @@ export async function executeSwaprTrade(
   const receivedAmount = BigInt(trade.outputAmount.raw.toString());
   // sdai to xdai
   if (isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount);
+    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount, trade.chainId as SupportedChain);
     await redeemFromSDAIToNative({
       amount: receivedAmount,
       chainId: trade.chainId,
