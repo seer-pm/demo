@@ -57,16 +57,19 @@ async function getTokenPrice(
   return 0n;
 }
 
-export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: boolean) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[chainId].primary;
+export const useMarketOdds = (market: Market, enabled: boolean) => {
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
+  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
 
-  const hasLiquidity = useMarketHasLiquidity(chainId, market.wrappedTokens, collateralToken);
+  const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
 
   return useQuery<number[] | undefined, Error>({
     enabled: hasLiquidity && enabled,
-    queryKey: ["useMarketOdds", market.id, chainId, hasLiquidity],
+    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     queryFn: async () => {
@@ -77,7 +80,7 @@ export const useMarketOdds = (market: Market, chainId: SupportedChain, enabled: 
       const prices = await Promise.all(
         market.wrappedTokens.map(async (wrappedAddress) => {
           try {
-            const price = await getTokenPrice(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT));
+            const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
 
             if (price === 0n) {
               return 0;

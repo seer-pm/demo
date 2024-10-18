@@ -14,7 +14,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
   };
   return (
     <>
-      <div onClick={address ? setFavorite : () => {}} className="cursor-pointer !ml-auto">
+      <div onClick={address ? setFavorite : () => {}} className="cursor-pointer !ml-auto flex items-center">
         {isFavorite ? (
           <div className="tooltip">
             <p className="tooltiptext">Remove from favorite</p>

@@ -18,6 +18,7 @@ import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 import { OutcomeImage } from "./OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
@@ -74,7 +75,7 @@ function SwapButtons({
     (swapType === "sell" || (swapType === "buy" && !isCollateralDai));
 
   return (
-    <div>
+    <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
       {!isShowApproval && (
         <Button
           variant="primary"
@@ -97,7 +98,7 @@ function SwapButtons({
           ))}
         </div>
       )}
-    </div>
+    </SwitchChainButtonWrapper>
   );
 }
 
@@ -140,14 +141,22 @@ export function SwapTokens({
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
-  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(account, WXDAI[chainId]?.address as `0x${string}`);
-  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN);
+  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(
+    account,
+    WXDAI[chainId]?.address as `0x${string}`,
+    chainId,
+  );
+  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
   const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
   const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
-  const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(account, sellToken.address);
+  const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
+    account,
+    sellToken.address,
+    chainId,
+  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
