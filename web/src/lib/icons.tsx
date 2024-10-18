@@ -714,7 +714,7 @@ export const SeerLogo = ({ width = "141.73px", height = "65.76px", fill = "#fff"
 
 export const LawBalanceIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g clip-path="url(#clip0_25419_10093)">
+    <g clipPath="url(#clip0_25419_10093)">
       <path
         fillRule="evenodd"
         clipRule="evenodd"

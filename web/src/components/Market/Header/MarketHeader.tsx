@@ -5,7 +5,6 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
-import { VerificationStatusResult } from "@/hooks/useVerificationStatus";
 import { SupportedChain } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
@@ -33,11 +32,10 @@ import { MarketInfo } from "./MarketInfo";
 import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
 
 interface MarketHeaderProps {
-  market: Market & { creator?: string };
+  market: Market;
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
-  verificationStatusResult?: VerificationStatusResult;
 }
 
 function OutcomesInfo({
@@ -116,13 +114,7 @@ function OutcomesInfo({
   );
 }
 
-export function MarketHeader({
-  market,
-  images,
-  type = "default",
-  outcomesCount = 0,
-  verificationStatusResult,
-}: MarketHeaderProps) {
+export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const chainId = market.chainId;
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
@@ -295,43 +287,43 @@ export function MarketHeader({
               </div>
             )}
           </div>
-          {!isUndefined(verificationStatusResult) && (
+          {!isUndefined(market.verification) && (
             <Link
               className={clsx(
                 "flex items-center space-x-2",
-                verificationStatusResult.status === "verified" && "text-success-primary",
-                verificationStatusResult.status === "verifying" && "text-blue-primary",
-                verificationStatusResult.status === "challenged" && "text-warning-primary",
-                verificationStatusResult.status === "not_verified" && "text-purple-primary",
+                market.verification.status === "verified" && "text-success-primary",
+                market.verification.status === "verifying" && "text-blue-primary",
+                market.verification.status === "challenged" && "text-warning-primary",
+                market.verification.status === "not_verified" && "text-purple-primary",
               )}
               to={
-                verificationStatusResult.status === "not_verified"
+                market.verification.status === "not_verified"
                   ? paths.verifyMarket(market.id, chainId)
-                  : paths.curateVerifiedList(chainId, verificationStatusResult.itemID)
+                  : paths.curateVerifiedList(chainId, market.verification.itemID)
               }
-              {...(verificationStatusResult.status === "not_verified"
+              {...(market.verification.status === "not_verified"
                 ? {}
                 : { target: "_blank", rel: "noopener noreferrer" })}
             >
-              {verificationStatusResult.status === "verified" && (
+              {market.verification.status === "verified" && (
                 <>
                   <CheckCircleIcon />
                   <div className="max-lg:hidden">Verified</div>
                 </>
               )}
-              {verificationStatusResult.status === "verifying" && (
+              {market.verification.status === "verifying" && (
                 <>
                   <ClockIcon />
                   <div className="max-lg:hidden">Verifying</div>
                 </>
               )}
-              {verificationStatusResult.status === "challenged" && (
+              {market.verification.status === "challenged" && (
                 <>
                   <LawBalanceIcon />
                   <div className="max-lg:hidden">Challenged</div>
                 </>
               )}
-              {verificationStatusResult.status === "not_verified" && (
+              {market.verification.status === "not_verified" && (
                 <>
                   <ExclamationCircleIcon width="14" height="14" />
                   <div className="max-lg:hidden">Verify it</div>

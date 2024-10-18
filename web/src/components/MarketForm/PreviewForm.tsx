@@ -347,9 +347,14 @@ export function PreviewForm({
         min_bond: 100000000000000000n,
       }),
     ),
+    openingTs: 0,
     encodedQuestions: [
       ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
     ].map((_) => ""),
+    verification: {
+      status: marketReadyToVerify && verifyNow ? "verified" : "not_verified",
+      itemID: "",
+    },
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
@@ -368,12 +373,7 @@ export function PreviewForm({
           parentOutcome={BigInt(parentOutcomeIndex)}
           chainId={chainId}
         />
-        <MarketHeader
-          market={dummyMarket}
-          images={images === false ? undefined : images.url}
-          type="preview"
-          verificationStatusResult={marketReadyToVerify && verifyNow ? { status: "verified" } : undefined}
-        />
+        <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
       </DashedBox>
 
       <Modal
