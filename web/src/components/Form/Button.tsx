@@ -20,8 +20,8 @@ const variants: Record<ButtonVariant, string> = {
 };
 
 const sizes: Record<ButtonSize, string> = {
-  small: "text-[14px] min-w-[80px] min-h-[32px] px-[24px] py-[6px]",
-  large: "text-[16px] min-w-[140px] min-h-[45px] px-[32px] py-[6px]",
+  small: "text-[14px] min-w-[80px] h-[32px] min-h-[32px] px-[24px] py-[6px]",
+  large: "text-[16px] min-w-[140px] h-[45px] min-h-[45px] px-[32px] py-[6px]",
 };
 
 const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLAttributes<HTMLButtonElement>>(

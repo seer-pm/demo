@@ -7,7 +7,12 @@ export function ApproveButton({
   tokenName,
   spender,
   amount,
-}: { tokenAddress: Address; tokenName: string; spender: Address; amount: bigint }) {
+}: {
+  tokenAddress: Address;
+  tokenName: string;
+  spender: Address;
+  amount: bigint;
+}) {
   const approveTokens = useApproveTokens();
 
   const approveTokensHandler = async () => {
@@ -25,7 +30,7 @@ export function ApproveButton({
       onClick={approveTokensHandler}
       isLoading={approveTokens.isPending}
       text={`Approve ${tokenName}`}
-      className="w-full"
+      className="w-full h-auto"
     />
   );
 }
