@@ -125,6 +125,7 @@ query GetPoolHourDatas(
   ) {
     token0Price
     token1Price
+    periodStartUnix
     pool {
       id
       token0 {

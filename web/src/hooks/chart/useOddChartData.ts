@@ -1,9 +1,11 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
+import { gnosis, mainnet } from "viem/chains";
 import { Market, useMarket } from "../useMarket";
 import { useTokenInfo } from "../useTokenInfo";
-import { getOutcomeTokensOddChart } from "./utils";
+import { getSwaprOddChart } from "./getSwaprOddChart";
+import { getUniswapOddChart } from "./getUniswapOddChart";
 
 export const useOddChartData = (chainId: SupportedChain, market: Market, dayCount: number, intervalSeconds: number) => {
   const { data: parentMarket } = useMarket(market.parentMarket, chainId);
@@ -31,14 +33,27 @@ export const useOddChartData = (chainId: SupportedChain, market: Market, dayCoun
     staleTime: 0,
     queryKey: ["useOddChartData", chainId, outcomeTokens, collateralToken, dayCount, intervalSeconds],
     retry: false,
-    queryFn: async () =>
-      getOutcomeTokensOddChart(
-        chainId,
-        outcomeTokens,
-        collateralToken,
-        dayCount,
-        intervalSeconds,
-        marketBlockTimestamp,
-      ),
+    queryFn: async () => {
+      if (chainId === gnosis.id) {
+        return getSwaprOddChart(
+          chainId,
+          outcomeTokens,
+          collateralToken,
+          dayCount,
+          intervalSeconds,
+          marketBlockTimestamp,
+        );
+      }
+      if (chainId === mainnet.id) {
+        return getUniswapOddChart(
+          chainId,
+          outcomeTokens,
+          collateralToken,
+          dayCount,
+          intervalSeconds,
+          marketBlockTimestamp,
+        );
+      }
+    },
   });
 };

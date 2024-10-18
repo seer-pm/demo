@@ -131,7 +131,7 @@ async function getUniswapPools(
     pools.map(async (pool) => ({
       id: pool.id as Address,
       dex: "Bunni",
-      fee: Number(pool.fee),
+      fee: Number(pool.feeTier),
       token0: pool.token0.id as Address,
       token1: pool.token1.id as Address,
       incentives: [], // TODO

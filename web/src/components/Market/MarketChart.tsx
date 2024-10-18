@@ -29,7 +29,7 @@ type ChartOptionPeriod = keyof typeof chartOptions;
 
 function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Market }) {
   const { data: odds = [], isLoading: isLoadingOdds } = useMarketOdds(market, chainId, true);
-  const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
+  const [period, setPeriod] = useState<ChartOptionPeriod>("1M");
   const { data, isLoading: isLoadingChart } = useOddChartData(
     chainId,
     market,
@@ -48,7 +48,6 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
     })
     .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
     .sort((a, b) => odds[b.originalIndex] - odds[a.originalIndex]);
-
   const option = {
     color: [
       "#f58231",
@@ -138,7 +137,7 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
         </div>
         {isLoadingChart || isLoadingOdds ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
-        ) : finalChartData?.length ? (
+        ) : chartData?.length ? (
           <ReactECharts option={option} />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>

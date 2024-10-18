@@ -17,8 +17,9 @@ query GetPools(
     subgraphError: $subgraphError
   ) {
     id
-    fee
+    feeTier
     liquidity
+    sqrtPrice
     tick
     token0 {
       id
@@ -36,7 +37,49 @@ query GetPools(
     }
     token0Price
     token1Price
-
+    volumeUSD
+    txCount
+    totalValueLockedToken0
+    totalValueLockedToken1
+    totalValueLockedUSD
+    totalValueLockedUSDUntracked
+    untrackedVolumeUSD
+    feesUSD
     __typename
+  }
+}
+
+query GetPoolHourDatas(
+  $skip: Int = 0
+  $first: Int
+  $where: PoolHourData_filter
+  $orderBy: PoolHourData_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  poolHourDatas(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    token0Price
+    token1Price
+    periodStartUnix
+    pool {
+      id
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
+    }
   }
 }
