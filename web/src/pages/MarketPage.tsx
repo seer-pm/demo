@@ -11,7 +11,6 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
-import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
@@ -72,7 +71,6 @@ function MarketPage() {
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
-  const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
@@ -125,7 +123,7 @@ function MarketPage() {
             .
           </Alert>
         )}
-        {verificationStatusResult?.status === "not_verified" && (
+        {market.verification.status === "not_verified" && (
           <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
           </Alert>
@@ -137,7 +135,7 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader market={market} images={images} verificationStatusResult={verificationStatusResult} />
+        <MarketHeader market={market} images={images} />
 
         {!reliableMarket && (
           <Alert

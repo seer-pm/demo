@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
+import { VerificationStatus } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
-import { VerificationStatus } from "./useVerificationStatus";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();

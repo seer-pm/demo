@@ -1,4 +1,4 @@
-import { Market, Question } from "@/hooks/useMarket";
+import { DEFAULT_VERIFICATION_RESULT, Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
@@ -21,7 +21,9 @@ const baseMarket: Market = {
   upperBound: 0n,
   payoutReported: true,
   questions: [],
+  openingTs: 0,
   encodedQuestions: [],
+  verification: DEFAULT_VERIFICATION_RESULT,
 };
 
 const baseQuestion: Question = {

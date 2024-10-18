@@ -7,7 +7,6 @@ import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
-import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
@@ -27,7 +26,6 @@ function MarkeVerifyPage() {
   const navigate = useNavigate();
   const { chain, address: currentUserAddress } = useAccount();
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
-  const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
   const { data: submissionDeposit } = useSubmissionDeposit();
   const { Modal, openModal } = useModal("verification-modal");
   const [hideForm, setHideForm] = useState(false);
@@ -101,11 +99,11 @@ function MarkeVerifyPage() {
     <div className="container-fluid w-[924px] py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
-      {(verificationStatusResult?.status === "verifying" || verificationStatusResult?.status === "verified") && (
+      {(market.verification.status === "verifying" || market.verification.status === "verified") && (
         <Alert type="success" title="This market has already been submitted for verification" className="mb-[24px]">
           You can check the submission on the{" "}
           <a
-            href={paths.curateVerifiedList(chainId, verificationStatusResult.itemID)}
+            href={paths.curateVerifiedList(chainId, market.verification.itemID)}
             className="text-purple-primary"
             target="_blank"
             rel="noopener noreferrer"

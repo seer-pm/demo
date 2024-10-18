@@ -1,7 +1,7 @@
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
+import { VerificationStatus } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
-import { VerificationStatus } from "@/hooks/useVerificationStatus";
 import {
   ArrowSwap,
   CheckCircleIcon,
@@ -114,12 +114,12 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
       <div className="flex justify-start mb-6 flex-wrap flex-col @[620px]:flex-row ">
         <div className=" border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 flex-shrink-0 @[620px]:border-r">
-          <p className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-5">
             Market States{" "}
             <div className="flex-shrink-0">
               <Filter />
             </div>
-          </p>
+          </div>
           <Controller
             name="marketStatusList"
             control={control}
@@ -175,12 +175,12 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="flex-shrink-0 border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 @[920px]:border-r">
-          <p className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-5">
             Verification Status{" "}
             <div className="flex-shrink-0">
               <Filter />
             </div>
-          </p>
+          </div>
           <Controller
             name="verificationStatusList"
             control={control}
@@ -236,9 +236,9 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3">
-          <p className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-5">
             Sort By <ArrowSwap />
-          </p>
+          </div>
           <Controller
             name="orderBy"
             control={control}

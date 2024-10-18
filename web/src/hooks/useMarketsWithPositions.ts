@@ -1,9 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
+import { fetchMarkets } from "@/lib/markets-search";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { fetchMarkets } from "./useMarkets";
 
 export const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId

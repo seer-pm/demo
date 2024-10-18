@@ -1,13 +1,12 @@
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
+import { fetchMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
-import { graphQLClient } from "@/lib/subgraph";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
-import { GetMarketQuery, getSdk } from "./queries/gql-generated-seer";
 import { getOutcomes } from "./useCreateMarket";
 
 export interface Question {
@@ -22,35 +21,43 @@ export interface Question {
   min_bond: bigint;
 }
 
-export interface Market {
-  id: Address;
+export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
+export type VerificationResult = { status: VerificationStatus; itemID?: string };
+export const DEFAULT_VERIFICATION_RESULT: VerificationResult = { status: "not_verified", itemID: "" };
+
+interface MarketOffChainFields {
   chainId: SupportedChain;
+  outcomesSupply: bigint;
+  creator?: string | null;
+  blockTimestamp?: number;
+  verification: VerificationResult;
+  index?: number;
+}
+
+export interface Market extends MarketOffChainFields {
+  id: Address;
   marketName: string;
   outcomes: readonly string[];
   wrappedTokens: Address[];
   parentMarket: Address;
   parentOutcome: bigint;
-  outcomesSupply: bigint;
+  //MarketView's outcomesSupply is buggy
+  //outcomesSupply: bigint;
   parentCollectionId: `0x${string}`;
   conditionId: `0x${string}`;
   questionId: `0x${string}`;
   templateId: bigint;
   questions: readonly Question[];
+  openingTs: number;
   encodedQuestions: readonly string[];
   lowerBound: bigint;
   upperBound: bigint;
   payoutReported: boolean;
-  index?: number;
-  blockTimestamp?: number;
 }
 
-export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>> & {
-  chainId: SupportedChain;
-  creator?: string | null;
-  blockTimestamp?: number;
-};
+export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 
-export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
+export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: MarketOffChainFields): Market {
   const market: Market = {
     ...onChainMarket,
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
@@ -68,6 +75,8 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
           ...question,
         }) as Question,
     ),
+    openingTs: onChainMarket.questions[0].opening_ts,
+    ...offChainFields,
   };
 
   if (getMarketType(market) === MarketTypes.SCALAR) {
@@ -77,23 +86,17 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket): Market {
 }
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
-  return useQuery<GetMarketQuery["market"] | undefined, Error>({
+  return useQuery<Market | undefined, Error>({
     queryKey: ["useMarket", "useGraphMarket", marketId.toLocaleLowerCase()],
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
-      const client = graphQLClient(chainId);
+      const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
 
-      if (client) {
-        const { market } = await getSdk(client).GetMarket({ id: marketId.toLocaleLowerCase() });
-
-        if (!market) {
-          throw new Error("Market not found");
-        }
-
-        return market;
+      if (markets.length === 0) {
+        throw new Error("Market not found");
       }
 
-      throw new Error("Subgraph not available");
+      return markets[0];
     },
   });
 };
@@ -107,22 +110,27 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
     queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId, factory?.toLocaleLowerCase()],
     enabled: marketId && marketId !== zeroAddress && !isUndefined(factory),
     queryFn: async () => {
-      return mapOnChainMarket({
-        ...(await readMarketViewGetMarket(config, {
+      return mapOnChainMarket(
+        await readMarketViewGetMarket(config, {
           args: [factory!, marketId],
           chainId,
-        })),
-        chainId,
-        creator: graphMarket?.creator,
-        //MarketView's outcomesSupply is buggy
-        outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
-        blockTimestamp: graphMarket?.blockTimestamp ? Number(graphMarket?.blockTimestamp) : undefined,
-      });
+        }),
+        {
+          chainId,
+          creator: graphMarket?.creator,
+          outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
+          blockTimestamp: graphMarket?.blockTimestamp ? Number(graphMarket?.blockTimestamp) : undefined,
+          verification: graphMarket?.verification || DEFAULT_VERIFICATION_RESULT,
+        },
+      );
     },
     refetchOnWindowFocus: true,
   });
 };
 
 export const useMarket = (marketId: Address, chainId: SupportedChain) => {
-  return useOnChainMarket(marketId, chainId);
+  const onChainMarket = useOnChainMarket(marketId, chainId);
+  const graphMarket = useGraphMarket(marketId, chainId);
+
+  return graphMarket.isError ? onChainMarket : graphMarket;
 };
