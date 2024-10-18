@@ -2,7 +2,7 @@ import { useOddChartData } from "@/hooks/chart/useOddChartData";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { SupportedChain } from "@/lib/chains";
-import { formatOdds, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -29,7 +29,7 @@ type ChartOptionPeriod = keyof typeof chartOptions;
 
 function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Market }) {
   const { data: odds = [], isLoading: isLoadingOdds } = useMarketOdds(market, chainId, true);
-  const [period, setPeriod] = useState<ChartOptionPeriod>("1M");
+  const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
   const { data, isLoading: isLoadingChart } = useOddChartData(
     chainId,
     market,
@@ -38,16 +38,27 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
   );
   const { chartData = [], timestamps = [] } = data ?? {};
   const currentTimestamp = useMemo(() => Math.floor(new Date().getTime() / 1000), []);
-  const finalChartData = chartData
-    .map((x, index) => {
-      return {
-        ...x,
-        data: [...x.data, [currentTimestamp, Number.isNaN(odds[index]) ? 0 : odds[index]]],
-        originalIndex: index,
-      };
-    })
-    .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
-    .sort((a, b) => odds[b.originalIndex] - odds[a.originalIndex]);
+  const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
+  const marketEstimate =
+    ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
+  const finalChartData = isScalarMarket
+    ? chartData.map((x) => {
+        return {
+          ...x,
+          data: [...x.data, [currentTimestamp, marketEstimate]],
+        };
+      })
+    : chartData
+        .map((x, index) => {
+          return {
+            ...x,
+            data: [...x.data, [currentTimestamp, Number.isNaN(odds[index]) ? 0 : odds[index]]],
+            originalIndex: index,
+          };
+        })
+        .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
+        .sort((a, b) => odds[b.originalIndex] - odds[a.originalIndex]);
+
   const option = {
     color: [
       "#f58231",
@@ -63,14 +74,17 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
     ],
     tooltip: {
       trigger: "axis",
-      valueFormatter: (value: number) => formatOdds(Number.isNaN(value) ? 0 : (value ?? 0), getMarketType(market)),
+      valueFormatter: (value: number) => (isScalarMarket ? value : `${value}%`),
     },
     legend: {
       formatter: (name: string) => {
+        if (isScalarMarket) {
+          return `${name} ${marketEstimate}`;
+        }
         for (let i = 0; i < market.outcomes.length; i++) {
           const outcome = market.outcomes[i];
           if (name === outcome) {
-            return `${name} ${formatOdds(Number.isNaN(odds[i]) ? 0 : (odds[i] ?? 0), getMarketType(market))}`;
+            return `${name} ${Number.isNaN(odds[i]) ? 0 : (odds[i] ?? 0)}%`;
           }
         }
         return name;
@@ -78,8 +92,8 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
     },
 
     grid: {
-      left: 50,
-      right: 50,
+      left: 80,
+      right: 80,
       top: "15%",
       bottom: "15%",
     },
@@ -110,7 +124,7 @@ function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Mar
       max: "dataMax",
 
       axisLabel: {
-        formatter: (value: number) => formatOdds(Number.isNaN(value) ? 0 : (value ?? 0), getMarketType(market)),
+        formatter: (value: number) => (isScalarMarket ? value : `${value}%`),
       },
     },
     series: finalChartData,
