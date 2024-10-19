@@ -101,15 +101,7 @@ export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
         throw new Error("Market not found");
       }
 
-      return {
-        ...markets[0],
-        outcomes: markets[0].outcomes.map((outcome) => {
-          if (outcome === INVALID_RESULT_OUTCOME) {
-            return INVALID_RESULT_OUTCOME_TEXT;
-          }
-          return unescapeJson(outcome);
-        }),
-      };
+      return markets[0];
     },
   });
 };

@@ -19,7 +19,8 @@ import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
 import { Address } from "viem";
-import { isUndefined } from "./utils";
+import { unescapeJson } from "./reality";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "./utils";
 
 export const ITEMS_PER_PAGE = 10;
 export const MARKETS_COUNT_PER_QUERY = 1000;
@@ -103,6 +104,12 @@ function mapGraphMarket(
   return {
     ...market,
     id: market.id as Address,
+    outcomes: market.outcomes.map((outcome) => {
+      if (outcome === INVALID_RESULT_OUTCOME) {
+        return INVALID_RESULT_OUTCOME_TEXT;
+      }
+      return unescapeJson(outcome);
+    }),
     parentMarket: market.parentMarket as Address,
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),

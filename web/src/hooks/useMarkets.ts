@@ -1,8 +1,6 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
-import { unescapeJson } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -50,7 +48,7 @@ const useGraphMarkets = (
   return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
-      let markets = (
+      const markets = (
         await Promise.all(
           chainIds.map((chainId) =>
             searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
@@ -61,15 +59,6 @@ const useGraphMarkets = (
         // sort again because we are merging markets from multiple chains
         .sort(sortMarkets(orderBy));
 
-      markets = markets.map((market) => ({
-        ...market,
-        outcomes: market.outcomes.map((outcome) => {
-          if (outcome === INVALID_RESULT_OUTCOME) {
-            return INVALID_RESULT_OUTCOME_TEXT;
-          }
-          return unescapeJson(outcome);
-        }),
-      }));
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
       }
