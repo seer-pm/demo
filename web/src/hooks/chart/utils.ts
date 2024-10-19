@@ -2,14 +2,14 @@ export function getNearestRoundedDownTimestamp(timestamp: number, interval: numb
   return Math.floor(timestamp / interval) * interval;
 }
 
-export function findClosestLesserTimestamp(sortedTimestamps: number[], targetTimestamp: number) {
+export function findClosestLessThanOrEqualToTimestamp(sortedTimestamps: number[], targetTimestamp: number) {
   let left = 0;
   let right = sortedTimestamps.length - 1;
   let result = -1;
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
-    if (sortedTimestamps[mid] < targetTimestamp) {
+    if (sortedTimestamps[mid] <= targetTimestamp) {
       result = mid;
       left = mid + 1;
     } else {

@@ -56,7 +56,6 @@ function MarketChart({ market }: { market: Market }) {
         })
         .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
         .sort((a, b) => odds[b.originalIndex] - odds[a.originalIndex]);
-
   const option = {
     color: [
       "#f58231",
@@ -150,7 +149,7 @@ function MarketChart({ market }: { market: Market }) {
         {isLoadingChart || isLoadingOdds ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
         ) : chartData?.length ? (
-          <ReactECharts option={option} />
+          <ReactECharts key={finalChartData[0].name} option={option} />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}

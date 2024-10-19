@@ -18,7 +18,7 @@ import {
 } from "../queries/gql-generated-uniswap";
 import { Market } from "../useMarket";
 import { normalizeOdds } from "../useMarketOdds";
-import { findClosestLesserTimestamp, getNearestRoundedDownTimestamp } from "./utils";
+import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
 
 export async function getLastNotEmptyStartTime(
   tokens: { tokenId: string; parentTokenId?: string }[],
@@ -54,6 +54,7 @@ export async function getLastNotEmptyStartTime(
                 ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
                 : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
             periodStartUnix_lte: startTime,
+            periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
           },
         };
       }),
@@ -87,7 +88,14 @@ export async function getHistoryOdds(
   const GetPoolHourDatasDocument =
     chainId === gnosis.id ? SwaprGetPoolHourDatasDocument : UniswapGetPoolHourDatasDocument;
 
-  const lastNotEmptyStartTimes = await getLastNotEmptyStartTime(tokens, chainId, startTime);
+  const lastNotEmptyStartTimes = await Promise.any([
+    getLastNotEmptyStartTime(tokens, chainId, startTime),
+    new Promise<number[]>((resolve) => {
+      setTimeout(() => {
+        resolve([]);
+      }, 8000);
+    }),
+  ]);
   const { document, variables } = (() =>
     combineQuery("GetPoolHourDatas").addN(
       GetPoolHourDatasDocument,
@@ -155,7 +163,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
         const tokenPrices = outcomeTokens.map((token, tokenindex) => {
           const poolHourDatas = [...poolHourDatasSets[tokenindex]].reverse();
           const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
-          const poolHourDataIndex = findClosestLesserTimestamp(poolHourTimestamps, timestamp);
+          const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
           const { token0Price = "0", token1Price = "0" } = poolHourDatas[poolHourDataIndex] ?? {};
           return token.tokenId.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
             ? Number(token0Price)
