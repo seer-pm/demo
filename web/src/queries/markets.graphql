@@ -13,6 +13,33 @@ fragment Question on Question {
 
 fragment Market on Market {
   id
+  marketName
+  outcomes
+  wrappedTokens
+  parentMarket
+  parentOutcome
+  parentCollectionId
+  conditionId
+  questionId
+  templateId
+  questions {
+    question {
+      id
+      arbitrator
+      opening_ts
+      timeout
+      finalize_ts
+      is_pending_arbitration
+      best_answer
+      bond
+      min_bond
+    }
+  }
+  openingTs
+  encodedQuestions
+  lowerBound
+  upperBound
+  payoutReported
   factory
   creator
   outcomesSupply

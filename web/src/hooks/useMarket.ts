@@ -2,7 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
@@ -101,25 +101,19 @@ export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
 };
 
 const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
-  const { data: graphMarket } = useGraphMarket(marketId, chainId);
-  // @ts-ignore
-  const factory = chainId === 31337 && !graphMarket?.factory ? marketFactoryAddress[31337] : graphMarket?.factory;
-
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId, factory?.toLocaleLowerCase()],
-    enabled: marketId && marketId !== zeroAddress && !isUndefined(factory),
+    queryKey: ["useMarket", "useOnChainMarket", marketId.toLocaleLowerCase(), chainId],
+    enabled: marketId && marketId !== zeroAddress,
     queryFn: async () => {
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {
-          args: [factory!, marketId],
+          // TODO: we should have an array of all the existing marketFactories for a given chain and read from all of them
+          args: [marketFactoryAddress[chainId], marketId],
           chainId,
         }),
         {
           chainId,
-          creator: graphMarket?.creator,
-          outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
-          blockTimestamp: graphMarket?.blockTimestamp ? Number(graphMarket?.blockTimestamp) : undefined,
-          verification: graphMarket?.verification,
+          outcomesSupply: 0n,
         },
       );
     },

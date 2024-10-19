@@ -55,6 +55,7 @@ class MarketData {
   public parentCollectionId: Bytes;
   public parentOutcome: BigInt;
   public parentMarket: Address;
+  public wrappedTokens: Address[];
   public conditionId: Bytes;
   public questionId: Bytes;
   public questionsIds: Bytes[];
@@ -82,6 +83,7 @@ export function handleNewMarket(event: NewMarketEvent): void {
       parentCollectionId: data.parentCollectionId,
       parentOutcome: data.parentOutcome,
       parentMarket: data.parentMarket,
+      wrappedTokens: data.wrappedTokens,
       conditionId: data.conditionId,
       questionId: data.questionId,
       questionsIds: data.questionsIds,
@@ -119,6 +121,7 @@ function processMarket(
   market.upperBound = data.upperBound;
   market.parentCollectionId = data.parentCollectionId;
   market.parentOutcome = data.parentOutcome;
+  market.wrappedTokens = changetype<Bytes[]>(data.wrappedTokens);
   market.parentMarket = data.parentMarket;
   market.conditionId = data.conditionId;
   market.ctfCondition = condition.id;

@@ -10,6 +10,7 @@ type Market @entity {
   parentCollectionId: Bytes!
   parentOutcome: BigInt!
   parentMarket: Bytes!
+  wrappedTokens: [Bytes!]!
   conditionId: Bytes!
   ctfCondition: Condition!
   questionId: Bytes!

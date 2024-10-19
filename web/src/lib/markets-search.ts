@@ -1,25 +1,23 @@
 import {
   lightGeneralizedTcrAddress,
   marketFactoryAddress,
-  marketViewAbi,
-  marketViewAddress,
   readMarketViewGetMarkets,
 } from "@/hooks/contracts/generated";
 import { getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
 import {
+  GetMarketQuery,
   GetMarketsQuery,
   Market_Filter,
   Market_OrderBy,
   OrderDirection,
   getSdk as getSeerSdk,
 } from "@/hooks/queries/gql-generated-seer";
-import { Market, OnChainMarket, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
+import { Market, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
-import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 import { isUndefined } from "./utils";
 
@@ -98,6 +96,36 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
   };
 }
 
+function mapGraphMarket(
+  market: NonNullable<GetMarketQuery["market"]>,
+  extra: { chainId: SupportedChain; verification: VerificationResult | undefined },
+): Market {
+  return {
+    ...market,
+    id: market.id as Address,
+    parentMarket: market.parentMarket as Address,
+    parentOutcome: BigInt(market.parentOutcome),
+    templateId: BigInt(market.templateId),
+    openingTs: Number(market.openingTs),
+    questions: market.questions.map((question) => {
+      return {
+        ...question.question,
+        id: question.question.id as `0x${string}`,
+        opening_ts: Number(question.question.opening_ts),
+        timeout: Number(question.question.timeout),
+        finalize_ts: Number(question.question.finalize_ts),
+        bond: BigInt(question.question.bond),
+        min_bond: BigInt(question.question.min_bond),
+      };
+    }),
+    outcomesSupply: BigInt(market.outcomesSupply),
+    lowerBound: BigInt(market.lowerBound),
+    upperBound: BigInt(market.upperBound),
+    blockTimestamp: Number(market.blockTimestamp),
+    ...extra,
+  };
+}
+
 export const fetchMarkets = async (
   chainId: SupportedChain,
   where?: Market_Filter,
@@ -130,35 +158,12 @@ export const fetchMarkets = async (
     skip += MARKETS_COUNT_PER_QUERY;
   }
 
-  // add creator field to market to sort
-  // create marketId-creator mapping for quick add to market
-  const subgraphFieldsMapping = markets.reduce(
-    (obj, item) => {
-      obj[item.id.toLowerCase()] = { creator: item.creator, outcomesSupply: BigInt(item.outcomesSupply) };
-      return obj;
-    },
-    {} as { [key: string]: { creator: Address; outcomesSupply: bigint } },
-  );
-
-  const onChainMarkets = (await readContracts(config, {
-    allowFailure: false,
-    contracts: markets.map((market) => ({
-      abi: marketViewAbi,
-      address: marketViewAddress[chainId],
-      chainId,
-      functionName: "getMarket",
-      args: [market.factory, market.id],
-    })),
-  })) as OnChainMarket[];
-
   const verificationStatusList = await getVerificationStatusList(chainId);
 
-  // add additional fields to each market
-  return onChainMarkets
+  return markets
     .map((market) => {
-      return mapOnChainMarket(market, {
+      return mapGraphMarket(market, {
         chainId,
-        ...subgraphFieldsMapping[market.id.toLowerCase()],
         verification: verificationStatusList?.[market.id.toLowerCase() as Address],
       });
     })
@@ -246,15 +251,12 @@ export async function searchGraphMarkets(
 }
 
 export async function searchOnChainMarkets(chainId: SupportedChain) {
-  const markets = (
+  return (
     await readMarketViewGetMarkets(config, {
       args: [BigInt(50), marketFactoryAddress[chainId]],
       chainId,
     })
-  ).map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
-
-  return markets.filter((m) => {
-    const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
-    return hasOpenQuestions;
-  });
+  )
+    .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
+    .map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
 }
