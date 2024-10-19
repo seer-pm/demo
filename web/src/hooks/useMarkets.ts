@@ -1,11 +1,12 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
+import { queryClient } from "@/lib/query-client";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { useGlobalState } from "./useGlobalState";
-import { Market, VerificationStatus } from "./useMarket";
+import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
 
@@ -47,18 +48,22 @@ const useGraphMarkets = (
   return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
-      return (
-        (
-          await Promise.all(
-            chainIds.map((chainId) =>
-              searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
-            ),
-          )
+      const markets = (
+        await Promise.all(
+          chainIds.map((chainId) =>
+            searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
+          ),
         )
-          .flat()
-          // sort again because we are merging markets from multiple chains
-          .sort(sortMarkets(orderBy))
-      );
+      )
+        .flat()
+        // sort again because we are merging markets from multiple chains
+        .sort(sortMarkets(orderBy));
+
+      for (const market of markets) {
+        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+      }
+
+      return markets;
     },
     retry: false,
   });

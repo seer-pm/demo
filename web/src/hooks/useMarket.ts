@@ -84,9 +84,15 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
   return market;
 }
 
+export const getUseGraphMarketKey = (marketId: Address) => [
+  "useMarket",
+  "useGraphMarket",
+  marketId.toLocaleLowerCase(),
+];
+
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useGraphMarket", marketId.toLocaleLowerCase()],
+    queryKey: getUseGraphMarketKey(marketId),
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
       const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
