@@ -40,14 +40,12 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
 
   const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
 
-  const chainId = market.chainId;
-
   const { data: missingApprovals } = useMissingApprovals(
     filteredWinningPositions.map((wp) => wp.tokenId),
     account,
     router,
     redeemAmounts,
-    chainId,
+    market.chainId,
   );
 
   if (winningOutcomeIndexes.length === 0) {
@@ -58,22 +56,22 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
     await redeemPositions.mutateAsync({
       router,
       market: market.id,
-      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
       isMainCollateral: !values.useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId],
+      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {market.parentMarket === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 
       {missingApprovals && (
-        <SwitchChainButtonWrapper chainId={chainId}>
+        <SwitchChainButtonWrapper chainId={market.chainId}>
           {missingApprovals.length === 0 && (
             <Button
               variant="primary"

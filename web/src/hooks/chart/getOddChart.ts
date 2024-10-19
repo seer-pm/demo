@@ -119,13 +119,7 @@ export async function getHistoryOdds(
   );
 }
 
-export async function getOddChart(
-  chainId: SupportedChain,
-  market: Market,
-  collateralToken: Token,
-  dayCount: number,
-  interval: number,
-) {
+export async function getOddChart(market: Market, collateralToken: Token, dayCount: number, interval: number) {
   if (!interval) return;
   const outcomeTokens = market.wrappedTokens.map((token, index) => ({
     tokenId: token,
@@ -153,7 +147,7 @@ export async function getOddChart(
 
     const poolHourDatasSets = await getHistoryOdds(
       outcomeTokens.map(({ tokenId }) => ({ tokenId, parentTokenId: collateralToken.address })),
-      chainId,
+      market.chainId,
       firstTimestamp,
     );
     const oddsMapping = timestamps.reduce(

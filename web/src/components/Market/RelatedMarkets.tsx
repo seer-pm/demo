@@ -1,15 +1,13 @@
 import { Market } from "@/hooks/useMarket";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
-import { SupportedChain } from "@/lib/chains";
 import { MarketHeader } from "./Header/MarketHeader";
 
 interface RelatedMarketsProps {
-  chainId: SupportedChain;
   market: Market;
 }
 
-export function RelatedMarkets({ chainId, market }: RelatedMarketsProps) {
-  const { data: markets = [] } = useRelatedMarkets(chainId, market.id);
+export function RelatedMarkets({ market }: RelatedMarketsProps) {
+  const { data: markets = [] } = useRelatedMarkets(market.chainId, market.id);
 
   if (markets.length === 0) {
     return null;

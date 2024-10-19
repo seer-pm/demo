@@ -5,7 +5,6 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
-import { SupportedChain } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
@@ -40,12 +39,10 @@ interface MarketHeaderProps {
 
 function OutcomesInfo({
   market,
-  chainId,
   outcomesCount = 0,
   images = [],
 }: {
   market: Market;
-  chainId: SupportedChain;
   outcomesCount?: number;
   images?: string[];
 }) {
@@ -81,7 +78,7 @@ function OutcomesInfo({
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, chainId)}?outcome=${toSnakeCase(outcome)}`}
+              to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
@@ -115,12 +112,14 @@ function OutcomesInfo({
 }
 
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
-  const chainId = market.chainId;
   const { address } = useAccount();
-  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: marketStatus } = useMarketStatus(market, chainId);
-  const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, chainId);
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: marketStatus } = useMarketStatus(market);
+  const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
@@ -155,7 +154,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
             )}
 
-            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[chainId]} />
+            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
@@ -178,7 +177,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
           )}
           {type !== "default" && (
-            <Link to={paths.market(market.id, chainId)}>
+            <Link to={paths.market(market.id, market.chainId)}>
               {images?.market ? (
                 <img
                   src={images.market}
@@ -195,7 +194,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market.id, chainId)}>
+              <Link className="hover:underline" to={paths.market(market.id, market.chainId)}>
                 {market.marketName}
               </Link>
             )}
@@ -204,7 +203,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <p className="text-[14px] my-2">
               Conditional on{" "}
               <Link
-                to={paths.market(parentMarket.id, chainId)}
+                to={paths.market(parentMarket.id, market.chainId)}
                 target="_blank"
                 className="text-purple-primary font-medium"
               >
@@ -212,7 +211,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(
+                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${toSnakeCase(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"
@@ -223,7 +222,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </p>
           )}
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
-            <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} chainId={chainId} />
+            <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
           ) : (
             <div className="flex space-x-2 items-center text-[14px]">
               <EyeIcon />{" "}
@@ -237,7 +236,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
-          <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} chainId={chainId} />
+          <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
         </div>
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
@@ -255,7 +254,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo market={market} chainId={chainId} outcomesCount={outcomesCount} images={images?.outcomes} />
+          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} />
         </div>
       )}
       {type !== "small" && (
@@ -275,7 +274,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
                 {!parentMarket && (
                   <>
-                    {displayBalance(daiAmount, 18, true)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+                    {displayBalance(daiAmount, 18, true)} {market.chainId === gnosis.id ? "xDAI" : "DAI"}
                     <DaiLogo />
                   </>
                 )}
@@ -298,8 +297,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               )}
               to={
                 market.verification.status === "not_verified"
-                  ? paths.verifyMarket(market.id, chainId)
-                  : paths.curateVerifiedList(chainId, market.verification.itemID)
+                  ? paths.verifyMarket(market.id, market.chainId)
+                  : paths.curateVerifiedList(market.chainId, market.verification.itemID)
               }
               {...(market.verification.status === "not_verified"
                 ? {}

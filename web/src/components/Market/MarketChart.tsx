@@ -1,7 +1,6 @@
 import { useOddChartData } from "@/hooks/chart/useOddChartData";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
@@ -27,11 +26,10 @@ const chartOptions = {
 
 type ChartOptionPeriod = keyof typeof chartOptions;
 
-function MarketChart({ chainId, market }: { chainId: SupportedChain; market: Market }) {
+function MarketChart({ market }: { market: Market }) {
   const { data: odds = [], isLoading: isLoadingOdds } = useMarketOdds(market, true);
   const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
   const { data, isLoading: isLoadingChart } = useOddChartData(
-    chainId,
     market,
     chartOptions[period].dayCount,
     chartOptions[period].interval,

@@ -46,13 +46,11 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
-  const chainId = market.chainId;
-
-  const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
+  const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     selectedCollateral?.address,
-    chainId,
+    market.chainId,
   );
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
@@ -61,7 +59,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
     account,
     router,
     parsedAmount,
-    chainId,
+    market.chainId,
   );
 
   useEffect(() => {
@@ -77,11 +75,11 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
       account: account!,
       router: router,
       market: market.id,
-      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId!],
+      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
@@ -146,11 +144,11 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
       </div>
 
       {market.parentMarket === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 
       {missingApprovals && (
-        <SwitchChainButtonWrapper chainId={chainId}>
+        <SwitchChainButtonWrapper chainId={market.chainId}>
           {missingApprovals.length === 0 || !isValid ? (
             <Button
               variant="primary"

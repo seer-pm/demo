@@ -172,7 +172,7 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   }, [] as PortfolioPosition[]);
   const marketsWithPositions = [...new Set(positions.map((position) => position.marketAddress))] as Address[];
   const marketsPayouts = await Promise.all(
-    marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress], chainId)),
+    marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress])),
   );
   const marketToMarketPayouts = marketsWithPositions.reduce(
     (acc, marketAddress, index) => {
@@ -190,13 +190,13 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   });
 };
 
-export const fetchMarketPayouts = async (market: Market | undefined, chainId: SupportedChain) => {
+export const fetchMarketPayouts = async (market: Market | undefined) => {
   if (!market) return [];
   return await Promise.all(
     market.outcomes.map((_, index) =>
       readConditionalTokensPayoutNumerators(config, {
         args: [market.conditionId, BigInt(index)],
-        chainId,
+        chainId: market.chainId,
       }),
     ),
   );

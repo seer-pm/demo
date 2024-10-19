@@ -2,7 +2,6 @@ import Button from "@/components/Form/Button";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
-import { SupportedChain } from "@/lib/chains";
 import { CalendarIcon } from "@/lib/icons";
 import { getMarketType, getOpeningTime } from "@/lib/market";
 import { getRealityLink } from "@/lib/reality";
@@ -17,11 +16,10 @@ interface MarketInfoProps {
   market: Market;
   marketStatus: MarketStatus;
   isPreview: boolean;
-  chainId: SupportedChain;
   openAnswerModal: (question: Question) => void;
 }
 
-function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openAnswerModal }: MarketInfoProps) {
+function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModal }: MarketInfoProps) {
   const {
     Modal: QuestionsModal,
     openModal: openQuestionsModal,
@@ -35,7 +33,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openA
 
         {market.questions.length === 1 ? (
           <div>
-            <a href={getRealityLink(chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
+            <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
               Opening at {getOpeningTime(market)}
             </a>
           </div>
@@ -49,7 +47,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openA
                     {market.questions.map((question, i) => (
                       <div key={question.id}>
                         <a
-                          href={getRealityLink(chainId, question.id)}
+                          href={getRealityLink(market.chainId, question.id)}
                           target="_blank"
                           rel="noreferrer"
                           className="hover:underline"
@@ -81,7 +79,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, chainId, openA
       {market.questions.map((question, i) => (
         <QuestionLine
           key={question.id}
-          {...{ question, questionIndex: i, openAnswerModal, market, marketType, marketStatus, chainId, isPreview }}
+          {...{ question, questionIndex: i, openAnswerModal, market, marketType, marketStatus, isPreview }}
         />
       ))}
     </div>
@@ -92,8 +90,7 @@ export function MarketInfo({
   market,
   marketStatus,
   isPreview,
-  chainId,
-}: { market: Market; marketStatus?: MarketStatus; isPreview: boolean; chainId: SupportedChain }) {
+}: { market: Market; marketStatus?: MarketStatus; isPreview: boolean }) {
   const { Modal: AnswerModal, openModal: openAnswerModal, closeModal: closeAnswerModal } = useModal("answer-modal");
   const {
     Modal: RaiseDisputeModal,
@@ -117,13 +114,14 @@ export function MarketInfo({
         market={market}
         marketStatus={marketStatus}
         isPreview={isPreview}
-        chainId={chainId}
         openAnswerModal={showAnswerModal}
       />
       {modalQuestion && (
         <RaiseDisputeModal
           title="Raise a Dispute"
-          content={<RaiseDisputeForm question={modalQuestion} closeModal={closeRaiseDisputeModal} chainId={chainId} />}
+          content={
+            <RaiseDisputeForm question={modalQuestion} closeModal={closeRaiseDisputeModal} chainId={market.chainId} />
+          }
         />
       )}
       {modalQuestion && (
@@ -139,7 +137,6 @@ export function MarketInfo({
                 closeAnswerModal();
                 openRaiseDisputeModal();
               }}
-              chainId={chainId}
             />
           }
         />

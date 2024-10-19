@@ -1,4 +1,3 @@
-import { SupportedChain } from "@/lib/chains";
 import { hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
 import { Market } from "./useMarket";
@@ -36,10 +35,10 @@ export const getMarketStatus = (market?: Market) => {
   return MarketStatus.CLOSED;
 };
 
-export const useMarketStatus = (market?: Market, chainId?: SupportedChain) => {
+export const useMarketStatus = (market?: Market) => {
   return useQuery<MarketStatus | undefined, Error>({
-    enabled: !!market && !!chainId,
-    queryKey: ["useMarketStatus", market?.id, chainId],
+    enabled: !!market,
+    queryKey: ["useMarketStatus", market?.id],
     queryFn: async () => getMarketStatus(market),
     refetchOnWindowFocus: true,
   });

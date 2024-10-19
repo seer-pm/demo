@@ -160,7 +160,6 @@ export function QuestionLine({
   market,
   marketType,
   marketStatus,
-  chainId,
   isPreview,
 }: {
   question: Question;
@@ -169,7 +168,6 @@ export function QuestionLine({
   market: Market;
   marketType: MarketTypes;
   marketStatus: MarketStatus;
-  chainId: SupportedChain;
   isPreview: boolean;
 }) {
   const questionStatus = getQuestionStatus(question);
@@ -210,10 +208,10 @@ export function QuestionLine({
 
         <div className="text-black-medium">|</div>
         <div className="flex items-center space-x-2">
-          <RealityLink chainId={chainId} questionId={question.id} />
+          <RealityLink chainId={market.chainId} questionId={question.id} />
         </div>
         <div className="text-black-medium">|</div>
-        <DisputeLink questionId={question.id} chainId={chainId} />
+        <DisputeLink questionId={question.id} chainId={market.chainId} />
       </div>
     );
   }
@@ -290,7 +288,7 @@ export function QuestionLine({
         <>
           <div className="text-black-medium">|</div>
           <div className="flex items-center space-x-2">
-            <RealityLink chainId={chainId} questionId={question.id} />
+            <RealityLink chainId={market.chainId} questionId={question.id} />
           </div>
         </>
       )}

@@ -50,13 +50,17 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
-  const chainId = market.chainId;
-
-  const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
-  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, chainId);
+  const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
-  const { data: missingApprovals } = useMissingApprovals(market.wrappedTokens, account, router, parsedAmount, chainId);
+  const { data: missingApprovals } = useMissingApprovals(
+    market.wrappedTokens,
+    account,
+    router,
+    parsedAmount,
+    market.chainId,
+  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -70,11 +74,11 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
     await mergePositions.mutateAsync({
       router,
       market: market.id,
-      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId!],
+      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
@@ -164,11 +168,11 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
       </div>
 
       {market.parentMarket === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 
       {missingApprovals && (
-        <SwitchChainButtonWrapper chainId={chainId}>
+        <SwitchChainButtonWrapper chainId={market.chainId}>
           {missingApprovals.length === 0 && (
             <Button
               variant="primary"

@@ -33,11 +33,13 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
-  const chainId = market.chainId;
-  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
 
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
 
@@ -48,7 +50,7 @@ function SwapWidget({
   return (
     <SwapTokens
       account={account}
-      chainId={chainId}
+      chainId={market.chainId}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
       outcomeImage={images?.[outcomeIndex]}
@@ -145,13 +147,13 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        {market && <MarketChart chainId={chainId} market={market} />}
+        {market && <MarketChart market={market} />}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 space-y-16">
             {market && (
               <>
-                <Outcomes chainId={chainId} market={market} images={images?.outcomes} />
-                <RelatedMarkets chainId={chainId} market={market} />
+                <Outcomes market={market} images={images?.outcomes} />
+                <RelatedMarkets market={market} />
               </>
             )}
           </div>
