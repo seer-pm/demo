@@ -50,7 +50,7 @@ const useGraphMarkets = (
   return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
-      const markets = (
+      let markets = (
         await Promise.all(
           chainIds.map((chainId) =>
             searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
@@ -61,11 +61,7 @@ const useGraphMarkets = (
         // sort again because we are merging markets from multiple chains
         .sort(sortMarkets(orderBy));
 
-      for (const market of markets) {
-        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
-      }
-
-      return markets.map((market) => ({
+      markets = markets.map((market) => ({
         ...market,
         outcomes: market.outcomes.map((outcome) => {
           if (outcome === INVALID_RESULT_OUTCOME) {
@@ -74,6 +70,11 @@ const useGraphMarkets = (
           return unescapeJson(outcome);
         }),
       }));
+      for (const market of markets) {
+        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+      }
+
+      return markets;
     },
     retry: false,
   });
