@@ -1,11 +1,12 @@
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { gnosis } from "@/lib/chains";
+import { SupportedChain, gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
 import { MarketHeader } from "./MarketHeader";
 
 const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",
+  chainId: 1,
   marketName: "Ethereum ETF approved by May 31?",
   outcomes: ["Yes", "No"],
   wrappedTokens: ["0x000", "0x000"],
@@ -20,6 +21,7 @@ const baseMarket: Market = {
   upperBound: 0n,
   payoutReported: true,
   questions: [],
+  openingTs: 0,
   encodedQuestions: [],
 };
 
@@ -73,9 +75,14 @@ function getQuestion(marketStatus: MarketStatus, bestAnswer: `0x${string}` | "" 
   return question;
 }
 
-function getMarket(marketStatus: MarketStatus | "PENDING_EXECUTION_TOO_SOON", isMultiScalar = false) {
+function getMarket(
+  marketStatus: MarketStatus | "PENDING_EXECUTION_TOO_SOON",
+  isMultiScalar: boolean,
+  chainId: SupportedChain,
+) {
   const market = {
     ...structuredClone(baseMarket),
+    chainId,
     questions: [
       marketStatus === "PENDING_EXECUTION_TOO_SOON"
         ? getQuestion(MarketStatus.PENDING_EXECUTION, isMultiScalar ? "" : ANSWERED_TOO_SOON)
@@ -136,14 +143,14 @@ export default Object.fromEntries(
   FIXTURE.map((f) => [
     f[0],
     <div className="space-y-5" key={f[0]}>
-      <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} />
+      <MarketHeader market={getMarket(f[1], false, gnosis.id)} />
       <div className="max-w-[500px] mx-auto">
-        <MarketHeader market={getMarket(f[1])} chainId={gnosis.id} type="preview" />
+        <MarketHeader market={getMarket(f[1], false, gnosis.id)} type="preview" />
       </div>
 
-      <MarketHeader market={getMarket(f[1], true)} chainId={gnosis.id} />
+      <MarketHeader market={getMarket(f[1], true, gnosis.id)} />
       <div className="max-w-[500px] mx-auto">
-        <MarketHeader market={getMarket(f[1], true)} chainId={gnosis.id} type="preview" />
+        <MarketHeader market={getMarket(f[1], true, gnosis.id)} type="preview" />
       </div>
     </div>,
   ]),

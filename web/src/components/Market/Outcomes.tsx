@@ -26,7 +26,6 @@ import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
 
 interface PositionsProps {
-  chainId: SupportedChain;
   market: Market;
   images?: string[];
 }
@@ -187,20 +186,20 @@ function AddLiquidityInfo({
   );
 }
 
-export function Outcomes({ chainId, market, images }: PositionsProps) {
+export function Outcomes({ market, images }: PositionsProps) {
   const { address } = useAccount();
   const [searchParams, setSearchParams] = useSearchParams();
   const outcomeIndexFromSearch = market.outcomes.findIndex(
     (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
   );
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
-  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, chainId);
-  const { data: balances } = useTokenBalances(address, market.wrappedTokens);
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, chainId, true);
-  const { data: pools = [] } = useMarketPools(chainId, market.wrappedTokens);
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
+  const { data: pools = [] } = useMarketPools(market.chainId, market.wrappedTokens);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
-  const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
 
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
@@ -322,7 +321,7 @@ export function Outcomes({ chainId, market, images }: PositionsProps) {
                       className="text-purple-primary tooltip"
                     >
                       <p className="tooltiptext">
-                        View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[chainId].name}
+                        View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[market.chainId].name}
                       </p>
                       <EtherscanIcon width="12" height="12" />
                     </a>
@@ -340,10 +339,10 @@ export function Outcomes({ chainId, market, images }: PositionsProps) {
                     ) : (
                       <a
                         href={getLiquidityUrl(
-                          chainId,
+                          market.chainId,
                           wrappedAddress,
                           market.parentMarket === zeroAddress
-                            ? COLLATERAL_TOKENS[chainId].primary.address
+                            ? COLLATERAL_TOKENS[market.chainId].primary.address
                             : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
                         )}
                         target="_blank"
@@ -392,7 +391,9 @@ export function Outcomes({ chainId, market, images }: PositionsProps) {
         })}
         <Modal
           title="Add Liquidity"
-          content={<AddLiquidityInfo chainId={chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />}
+          content={
+            <AddLiquidityInfo chainId={market.chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />
+          }
         />
       </div>
     </div>

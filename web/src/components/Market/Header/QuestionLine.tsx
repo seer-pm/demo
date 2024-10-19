@@ -55,11 +55,18 @@ function AnswerColumn({
 function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questionId: `0x${string}` }) {
   return (
     <>
-      <a className="text-purple-primary flex items-center" href={getRealityLink(chainId, questionId)} target="_blank" rel="noreferrer">
+      <a
+        className="text-purple-primary flex items-center"
+        href={getRealityLink(chainId, questionId)}
+        target="_blank"
+        rel="noreferrer"
+      >
         Check it on Reality.eth
-        <span className="ml-2"> <RightArrow /></span>
+        <span className="ml-2">
+          {" "}
+          <RightArrow />
+        </span>
       </a>
-     
     </>
   );
 }
@@ -82,7 +89,10 @@ function DisputeLink({ questionId, chainId }: { questionId: `0x${string}`; chain
         rel="noreferrer"
       >
         Check the case on Kleros Court
-        <span className="ml-2"> <RightArrow /></span>
+        <span className="ml-2">
+          {" "}
+          <RightArrow />
+        </span>
       </a>
     </div>
   );
@@ -150,7 +160,6 @@ export function QuestionLine({
   market,
   marketType,
   marketStatus,
-  chainId,
   isPreview,
 }: {
   question: Question;
@@ -159,7 +168,6 @@ export function QuestionLine({
   market: Market;
   marketType: MarketTypes;
   marketStatus: MarketStatus;
-  chainId: SupportedChain;
   isPreview: boolean;
 }) {
   const questionStatus = getQuestionStatus(question);
@@ -178,9 +186,16 @@ export function QuestionLine({
             <div className="text-black-medium">|</div>
           </>
         )}
-        <button type="button" className="text-purple-primary flex items-center" onClick={() => openAnswerModal(question)}>
-          Answer on Reality.eth! 
-          <span className="ml-2"> <RightArrow /></span>
+        <button
+          type="button"
+          className="text-purple-primary flex items-center"
+          onClick={() => openAnswerModal(question)}
+        >
+          Answer on Reality.eth!
+          <span className="ml-2">
+            {" "}
+            <RightArrow />
+          </span>
         </button>
       </div>
     );
@@ -193,10 +208,10 @@ export function QuestionLine({
 
         <div className="text-black-medium">|</div>
         <div className="flex items-center space-x-2">
-          <RealityLink chainId={chainId} questionId={question.id} />
+          <RealityLink chainId={market.chainId} questionId={question.id} />
         </div>
         <div className="text-black-medium">|</div>
-        <DisputeLink questionId={question.id} chainId={chainId} />
+        <DisputeLink questionId={question.id} chainId={market.chainId} />
       </div>
     );
   }
@@ -273,7 +288,7 @@ export function QuestionLine({
         <>
           <div className="text-black-medium">|</div>
           <div className="flex items-center space-x-2">
-            <RealityLink chainId={chainId} questionId={question.id} />
+            <RealityLink chainId={market.chainId} questionId={question.id} />
           </div>
         </>
       )}

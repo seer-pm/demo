@@ -6,13 +6,13 @@ import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 export interface SplitFormValues {
   amount: number;
@@ -21,12 +21,11 @@ export interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
-  chainId: SupportedChain;
   router: Address;
   market: Market;
 }
 
-export function SplitForm({ account, chainId, router, market }: SplitFormProps) {
+export function SplitForm({ account, router, market }: SplitFormProps) {
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
@@ -47,10 +46,11 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
-  const selectedCollateral = useSelectedCollateral(market, chainId, useAltCollateral);
+  const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     selectedCollateral?.address,
+    market.chainId,
   );
 
   const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
@@ -59,6 +59,7 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
     account,
     router,
     parsedAmount,
+    market.chainId,
   );
 
   useEffect(() => {
@@ -74,11 +75,11 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
       account: account!,
       router: router,
       market: market.id,
-      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId!],
+      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
@@ -143,11 +144,11 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
       </div>
 
       {market.parentMarket === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 
       {missingApprovals && (
-        <div>
+        <SwitchChainButtonWrapper chainId={market.chainId}>
           {missingApprovals.length === 0 || !isValid ? (
             <Button
               variant="primary"
@@ -164,7 +165,7 @@ export function SplitForm({ account, chainId, router, market }: SplitFormProps) 
               amount={parsedAmount}
             />
           )}
-        </div>
+        </SwitchChainButtonWrapper>
       )}
     </form>
   );

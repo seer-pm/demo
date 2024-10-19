@@ -11,7 +11,6 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
-import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
@@ -23,25 +22,26 @@ import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 function SwapWidget({
-  chainId,
   market,
   account,
   outcomeIndex,
   images,
 }: {
-  chainId: SupportedChain;
   router: Address;
   market: Market;
   account?: Address;
   outcomeIndex: number;
   images?: string[];
 }) {
-  const { data: parentMarket } = useMarket(market.parentMarket, chainId);
-  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
-  const { data: parentCollateral } = useTokenInfo(parentMarket?.wrappedTokens?.[Number(market.parentOutcome)], chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
 
-  const { data: odds = [], isLoading } = useMarketOdds(market, chainId, true);
+  const { data: odds = [], isLoading } = useMarketOdds(market, true);
 
   if (!outcomeToken) {
     return null;
@@ -50,7 +50,7 @@ function SwapWidget({
   return (
     <SwapTokens
       account={account}
-      chainId={chainId}
+      chainId={market.chainId}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
       outcomeImage={images?.[outcomeIndex]}
@@ -73,7 +73,6 @@ function MarketPage() {
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
-  const { data: verificationStatusResult } = useVerificationStatus(id as Address, chainId);
 
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
@@ -126,7 +125,7 @@ function MarketPage() {
             .
           </Alert>
         )}
-        {verificationStatusResult?.status === "not_verified" && (
+        {market.verification?.status === "not_verified" && (
           <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
           </Alert>
@@ -138,12 +137,7 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader
-          market={market}
-          chainId={chainId}
-          images={images}
-          verificationStatusResult={verificationStatusResult}
-        />
+        <MarketHeader market={market} images={images} />
 
         {!reliableMarket && (
           <Alert
@@ -153,19 +147,18 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        {market && <MarketChart chainId={chainId} market={market} />}
+        {market && <MarketChart market={market} />}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 space-y-16">
             {market && (
               <>
-                <Outcomes chainId={chainId} market={market} images={images?.outcomes} />
-                <RelatedMarkets chainId={chainId} market={market} />
+                <Outcomes market={market} images={images?.outcomes} />
+                <RelatedMarkets market={market} />
               </>
             )}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">
             <SwapWidget
-              chainId={chainId}
               router={router}
               market={market}
               account={account}
@@ -173,7 +166,7 @@ function MarketPage() {
               images={images?.outcomes}
             />
 
-            <ConditionalTokenActions chainId={chainId} router={router} market={market} account={account} />
+            <ConditionalTokenActions router={router} market={market} account={account} />
           </div>
         </div>
       </div>

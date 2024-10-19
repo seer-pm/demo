@@ -5,7 +5,7 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -317,6 +317,7 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
+    chainId,
     marketName:
       marketTypeValues.marketType === MarketTypes.SCALAR
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
@@ -346,9 +347,14 @@ export function PreviewForm({
         min_bond: 100000000000000000n,
       }),
     ),
+    openingTs: 0,
     encodedQuestions: [
       ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
     ].map((_) => ""),
+    verification: {
+      status: marketReadyToVerify && verifyNow ? "verified" : "not_verified",
+      itemID: "",
+    },
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
@@ -367,13 +373,7 @@ export function PreviewForm({
           parentOutcome={BigInt(parentOutcomeIndex)}
           chainId={chainId}
         />
-        <MarketHeader
-          market={dummyMarket}
-          images={images === false ? undefined : images.url}
-          chainId={DEFAULT_CHAIN}
-          type="preview"
-          verificationStatusResult={marketReadyToVerify && verifyNow ? { status: "verified" } : undefined}
-        />
+        <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
       </DashedBox>
 
       <Modal

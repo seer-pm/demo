@@ -1,111 +1,31 @@
-import { SupportedChain } from "@/lib/chains";
-import { graphQLClient } from "@/lib/subgraph";
-import { config } from "@/wagmi";
+import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
+import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { useQuery } from "@tanstack/react-query";
-import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import {
-  marketFactoryAddress,
-  marketViewAbi,
-  marketViewAddress,
-  readMarketViewGetMarkets,
-} from "./contracts/generated";
-import { GetMarketsQuery, Market_Filter, Market_OrderBy, OrderDirection, getSdk } from "./queries/gql-generated-seer";
-import useDefaultSortMarket from "./useDefaultSortMarket";
+import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { useGlobalState } from "./useGlobalState";
-import { Market, OnChainMarket, mapOnChainMarket } from "./useMarket";
+import { Market, VerificationStatus } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
-import { fetchMarketsWithPositions } from "./useMarketsWithPositions";
-import { VerificationStatus, defaultStatus, useVerificationStatusList } from "./useVerificationStatus";
 
-const ITEMS_PER_PAGE = 10;
-const MARKETS_COUNT_PER_QUERY = 1000;
-
-export const useOnChainMarkets = (
-  chainId: SupportedChain,
+const useOnChainMarkets = (
+  chainId: SupportedChain | "all",
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
 ) => {
   return useQuery<Market[] | undefined, Error>({
     queryKey: ["useOnChainMarkets", chainId, marketName, marketStatusList],
     queryFn: async () => {
-      const markets = (
-        await readMarketViewGetMarkets(config, {
-          args: [BigInt(50), marketFactoryAddress[chainId]],
-          chainId,
-        })
-      ).map(mapOnChainMarket);
+      const chainIds = chainId === "all" ? [gnosis.id, mainnet.id] : [chainId];
 
-      return markets.filter((m) => {
-        const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
-        return hasOpenQuestions;
-      });
+      return (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
     },
   });
 };
 
-export const fetchMarkets = async (chainId: SupportedChain, where?: Market_Filter, orderBy?: Market_OrderBy) => {
-  const client = graphQLClient(chainId);
-
-  if (!client) {
-    throw new Error("Subgraph not available");
-  }
-
-  let markets: GetMarketsQuery["markets"] = [];
-
-  let skip = 0;
-  // try to fetch all markets on subgraph
-  // skip cannot be higher than 5000
-  while (skip <= 5000) {
-    const { markets: currentMarkets } = await getSdk(client).GetMarkets({
-      where,
-      orderBy,
-      orderDirection: OrderDirection.Desc,
-      first: MARKETS_COUNT_PER_QUERY,
-      skip,
-    });
-    markets = markets.concat(currentMarkets);
-
-    if (currentMarkets.length < MARKETS_COUNT_PER_QUERY) {
-      break; // We've fetched all markets
-    }
-
-    skip += MARKETS_COUNT_PER_QUERY;
-  }
-
-  // add creator field to market to sort
-  // create marketId-creator mapping for quick add to market
-  const subgraphFieldsMapping = markets.reduce(
-    (obj, item) => {
-      obj[item.id.toLowerCase()] = { creator: item.creator, outcomesSupply: BigInt(item.outcomesSupply) };
-      return obj;
-    },
-    {} as { [key: string]: { creator: Address; outcomesSupply: bigint } },
-  );
-
-  const onChainMarkets = (await readContracts(config, {
-    allowFailure: false,
-    contracts: markets.map((market) => ({
-      abi: marketViewAbi,
-      address: marketViewAddress[chainId],
-      functionName: "getMarket",
-      args: [market.factory, market.id],
-    })),
-  })) as OnChainMarket[];
-
-  // add creator to each market
-  return onChainMarkets.map((market) => {
-    return mapOnChainMarket({
-      ...market,
-      ...subgraphFieldsMapping[market.id.toLowerCase()],
-    });
-  });
-};
-
-export const useGraphMarkets = (
-  chainId: SupportedChain,
+const useGraphMarkets = (
+  chainId: SupportedChain | "all",
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -115,83 +35,27 @@ export const useGraphMarkets = (
   return useQuery<Market[], Error>({
     queryKey: ["useGraphMarkets", chainId, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
-      const now = String(Math.round(new Date().getTime() / 1000));
+      const chainIds = chainId === "all" ? [gnosis.id, mainnet.id] : [chainId];
 
-      let where: Market_Filter = { marketName_contains_nocase: marketName };
-      const or = [];
-
-      if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
-        or.push({
-          openingTs_gt: now,
-        });
-      }
-      if (marketStatusList?.includes(MarketStatus.OPEN)) {
-        or.push({
-          openingTs_lt: now,
-          hasAnswers: false,
-        });
-      }
-      if (marketStatusList?.includes(MarketStatus.ANSWER_NOT_FINAL)) {
-        or.push({
-          openingTs_lt: now,
-          hasAnswers: true,
-          finalizeTs_gt: now,
-        });
-      }
-      if (marketStatusList?.includes(MarketStatus.IN_DISPUTE)) {
-        or.push({
-          questionsInArbitration_gt: "0",
-        });
-      }
-      if (marketStatusList?.includes(MarketStatus.PENDING_EXECUTION)) {
-        or.push({
-          finalizeTs_lt: now,
-          payoutReported: false,
-        });
-      }
-      if (marketStatusList?.includes(MarketStatus.CLOSED)) {
-        or.push({
-          payoutReported: true,
-        });
-      }
-
-      if (or.length > 0) {
-        where = {
-          and: [where, { or }],
-        };
-      }
-
-      if (participant) {
-        // markets this user is a participant in (participant = creator or trader)
-        const marketsWithUserPositions = (await fetchMarketsWithPositions(participant, chainId)).map((a) =>
-          a.toLocaleLowerCase(),
-        );
-        if (marketsWithUserPositions.length > 0) {
-          // the user is an active trader in some market
-          where = {
-            and: [
-              where,
-              {
-                or: [{ id_in: marketsWithUserPositions }, { creator: participant }],
-              },
-            ],
-          };
-        } else {
-          // the user is not trading, search only created markets
-          where["creator"] = participant;
-        }
-      } else if (creator !== "") {
-        where["creator"] = creator;
-      }
-
-      return await fetchMarkets(chainId, where, orderBy);
+      return (
+        (
+          await Promise.all(
+            chainIds.map((chainId) =>
+              searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
+            ),
+          )
+        )
+          .flat()
+          // sort again because we are merging markets from multiple chains
+          .sort(sortMarkets(orderBy))
+      );
     },
     retry: false,
   });
 };
 
 interface UseMarketsProps {
-  chainId: SupportedChain;
+  chainId: SupportedChain | "all";
   marketName?: string;
   marketStatusList?: MarketStatus[];
   creator?: Address | "";
@@ -201,7 +65,7 @@ interface UseMarketsProps {
   isShowMyMarkets: boolean;
 }
 
-export const useMarkets = ({
+const useMarkets = ({
   chainId,
   marketName = "",
   marketStatusList = [],
@@ -224,27 +88,20 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const result = useMarkets(params);
   const { address = "" } = useAccount();
   const favorites = useGlobalState((state) => state.favorites);
-  const { data: verificationStatusResultList } = useVerificationStatusList(params.chainId as SupportedChain);
   const { page, setPage } = useMarketsSearchParams();
 
-  const markets = result.data || [];
-
-  // if not orderBy, default sort by verification status -> open interest
-  const defaultSortedMarkets = useDefaultSortMarket(markets);
-  let data = params.orderBy ? markets : defaultSortedMarkets;
+  let data = result.data || [];
 
   // filter by verification status
   if (params.verificationStatusList) {
     data = data.filter((market) => {
-      const verificationStatus =
-        verificationStatusResultList?.[market.id.toLowerCase()]?.status ?? defaultStatus.status;
-      return params.verificationStatusList?.some((status) => verificationStatus === status);
+      return params.verificationStatusList?.some((status) => market.verification?.status === status);
     });
   }
 
   // filter my markets
   if (params.isShowMyMarkets) {
-    data = data.filter((market: Market & { creator?: string }) => {
+    data = data.filter((market: Market) => {
       return address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase();
     });
   }

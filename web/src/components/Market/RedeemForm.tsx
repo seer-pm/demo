@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 import AltCollateralSwitch from "./AltCollateralSwitch";
 
 export interface RedeemFormValues {
@@ -18,11 +19,10 @@ export interface RedeemFormValues {
 interface RedeemFormProps {
   account?: Address;
   market: Market;
-  chainId: number;
   router: Address;
 }
 
-export function RedeemForm({ account, market, chainId, router }: RedeemFormProps) {
+export function RedeemForm({ account, market, router }: RedeemFormProps) {
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -45,6 +45,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
     account,
     router,
     redeemAmounts,
+    market.chainId,
   );
 
   if (winningOutcomeIndexes.length === 0) {
@@ -55,22 +56,22 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
     await redeemPositions.mutateAsync({
       router,
       market: market.id,
-      collateralToken: COLLATERAL_TOKENS[chainId].primary.address,
+      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
       isMainCollateral: !values.useAltCollateral,
-      routerType: CHAIN_ROUTERS[chainId!],
+      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {market.parentMarket === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={chainId} />
+        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 
       {missingApprovals && (
-        <div>
+        <SwitchChainButtonWrapper chainId={market.chainId}>
           {missingApprovals.length === 0 && (
             <Button
               variant="primary"
@@ -93,7 +94,7 @@ export function RedeemForm({ account, market, chainId, router }: RedeemFormProps
               ))}
             </div>
           )}
-        </div>
+        </SwitchChainButtonWrapper>
       )}
     </form>
   );

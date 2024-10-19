@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
@@ -118,8 +119,14 @@ export async function pollForOrder(orderId: string, chainId: number, maxAttempts
   };
 }
 
-export async function approveIfNeeded(tokensAddress: Address, account: Address, spender: Address, amount: bigint) {
-  const missingApprovals = await fetchNeededApprovals([tokensAddress], account, spender, [amount]);
+export async function approveIfNeeded(
+  tokensAddress: Address,
+  account: Address,
+  spender: Address,
+  amount: bigint,
+  chainId: SupportedChain,
+) {
+  const missingApprovals = await fetchNeededApprovals([tokensAddress], account, spender, [amount], chainId);
   if (missingApprovals.length > 0) {
     await approveTokens({
       amount,

@@ -4,7 +4,7 @@ import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
 import {
   ANSWERED_TOO_SOON,
@@ -41,7 +41,6 @@ interface AnswerFormProps {
   question: Question;
   closeModal: () => void;
   raiseDispute: () => void;
-  chainId: SupportedChain;
 }
 
 function getOutcome(templateId: bigint, values: AnswerFormValues) {
@@ -80,14 +79,14 @@ function getOutcomesOptions(market: Market, question: Question) {
   return options;
 }
 
-export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute, chainId }: AnswerFormProps) {
+export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute }: AnswerFormProps) {
   const { address, chainId: connectedChainId } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
-  const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, market.chainId);
   const hasEnoughBalance = balance.value > currentBond;
 
-  const { data: arbitrationRequest } = useArbitrationRequest(question.id, chainId);
+  const { data: arbitrationRequest } = useArbitrationRequest(question.id, market.chainId);
 
   const useFormReturn = useForm<AnswerFormValues>({
     mode: "all",
@@ -118,7 +117,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       questionId: question.id,
       outcome: formatOutcome(getOutcome(market.templateId, values)),
       currentBond: currentBond,
-      chainId: chainId! as SupportedChain,
+      chainId: market.chainId,
     });
     closeModal();
   };
@@ -135,16 +134,16 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
     );
   }
 
-  if (chainId !== connectedChainId) {
+  if (market.chainId !== connectedChainId) {
     return (
       <>
-        <Alert type="info">Switch to {SUPPORTED_CHAINS[chainId].name} to report the answer.</Alert>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS[market.chainId].name} to report the answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button
             variant="primary"
             type="button"
-            onClick={async () => await switchChain(config, { chainId })}
+            onClick={async () => await switchChain(config, { chainId: market.chainId })}
             text="Switch network"
           />
         </div>
@@ -225,7 +224,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           This market is not resolved yet. You can provide an answer to the{" "}
           <a
             className="text-purple-primary"
-            href={getRealityLink(chainId, question.id)}
+            href={getRealityLink(market.chainId, question.id)}
             target="_blank"
             rel="noreferrer"
           >
@@ -334,7 +333,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         <Button
           variant="primary"
           type="submit"
-          disabled={!isValid || !hasEnoughBalance || submitAnswer.isPending || !address || !chainId}
+          disabled={!isValid || !hasEnoughBalance || submitAnswer.isPending || !address}
           isLoading={submitAnswer.isPending}
           text="Answer"
         />

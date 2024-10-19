@@ -1,6 +1,5 @@
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
-import { SupportedChain } from "@/lib/chains";
 import { useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
@@ -9,7 +8,6 @@ import { SplitForm } from "./SplitForm";
 
 interface ConditionalTokenActionsProps {
   account?: Address;
-  chainId: SupportedChain;
   router: Address;
   market: Market;
 }
@@ -20,10 +18,10 @@ const titles = {
   redeem: "Redeem",
 };
 
-export function ConditionalTokenActions({ account, chainId, router, market }: ConditionalTokenActionsProps) {
+export function ConditionalTokenActions({ account, router, market }: ConditionalTokenActionsProps) {
   const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
 
-  const { data: marketStatus } = useMarketStatus(market, chainId);
+  const { data: marketStatus } = useMarketStatus(market);
 
   return (
     <div className="bg-white p-[24px] drop-shadow">
@@ -55,13 +53,13 @@ export function ConditionalTokenActions({ account, chainId, router, market }: Co
         </button>
       </div>
 
-      {activeTab === "mint" && <SplitForm account={account} chainId={chainId} router={router} market={market} />}
+      {activeTab === "mint" && <SplitForm account={account} router={router} market={market} />}
 
-      {activeTab === "merge" && <MergeForm account={account} market={market} chainId={chainId} router={router} />}
+      {activeTab === "merge" && <MergeForm account={account} market={market} router={router} />}
 
       {activeTab === "redeem" &&
         (marketStatus === MarketStatus.CLOSED ? (
-          <RedeemForm account={account} market={market} chainId={chainId} router={router} />
+          <RedeemForm account={account} market={market} router={router} />
         ) : (
           "Redemptions are not available yet."
         ))}

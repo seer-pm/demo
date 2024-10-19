@@ -1,5 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
+import { fetchMarkets } from "@/lib/markets-search";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +10,6 @@ import { Address, erc20Abi } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { conditionalTokensAbi, conditionalTokensAddress } from "../contracts/generated";
 import { Market } from "../useMarket";
-import { fetchMarkets } from "../useMarkets";
 import {
   BUNNI_HUB_ADDRESS,
   MAINNET_SWAP_ROUTER_ADDRESS,
