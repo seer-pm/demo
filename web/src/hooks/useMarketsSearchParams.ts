@@ -6,17 +6,18 @@ import { MarketStatus } from "./useMarketStatus";
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
   const marketName = searchParams.get("marketName") ?? undefined;
-  const isShowMyMarkets = searchParams.get("myMarkets") === "true";
-  const verificationStatusList =
-    searchParams.getAll("verificationStatus").length === 0
-      ? undefined
-      : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
-  const orderBy = searchParams.get("orderBy") as Market_OrderBy;
   const marketStatusList =
     searchParams.getAll("marketStatus").length === 0
       ? undefined
       : (searchParams.getAll("marketStatus") as MarketStatus[]);
+  const verificationStatusList =
+    searchParams.getAll("verificationStatus").length === 0
+      ? undefined
+      : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
+  const chainsList = searchParams.getAll("chains").length === 0 ? undefined : searchParams.getAll("chains");
+  const orderBy = searchParams.get("orderBy") as Market_OrderBy;
   const page = Number(searchParams.get("page") ?? 1);
+  const isShowMyMarkets = searchParams.get("myMarkets") === "true";
 
   const setMarketName = (value: string) => {
     setSearchParams((params) => {
@@ -24,6 +25,45 @@ function useMarketsSearchParams() {
         params.delete("marketName");
       } else {
         params.set("marketName", value);
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const setMarketStatus = (statusList: MarketStatus[] | undefined) => {
+    setSearchParams((params) => {
+      params.delete("marketStatus");
+      if (statusList) {
+        statusList.map((x) => params.append("marketStatus", x));
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const setVerificationStatus = (statusList: VerificationStatus[] | undefined) => {
+    setSearchParams((params) => {
+      params.delete("verificationStatus");
+      if (statusList) {
+        statusList.map((x) => params.append("verificationStatus", x));
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const setChains = (chainsList: string[] | undefined) => {
+    setSearchParams((params) => {
+      params.delete("chains");
+      if (chainsList) {
+        chainsList.map((x) => params.append("chains", x));
       }
       if (page > 1) {
         params.set("page", "1");
@@ -46,35 +86,9 @@ function useMarketsSearchParams() {
     });
   };
 
-  const setVerificationStatus = (statusList: VerificationStatus[] | undefined) => {
-    setSearchParams((params) => {
-      params.delete("verificationStatus");
-      if (statusList) {
-        statusList.map((x) => params.append("verificationStatus", x));
-      }
-      if (page > 1) {
-        params.set("page", "1");
-      }
-      return params;
-    });
-  };
-
   const setPage = (page: number) => {
     setSearchParams((params) => {
       params.set("page", page.toString());
-      return params;
-    });
-  };
-
-  const setMarketStatus = (statusList: MarketStatus[] | undefined) => {
-    setSearchParams((params) => {
-      params.delete("marketStatus");
-      if (statusList) {
-        statusList.map((x) => params.append("marketStatus", x));
-      }
-      if (page > 1) {
-        params.set("page", "1");
-      }
       return params;
     });
   };
@@ -92,20 +106,26 @@ function useMarketsSearchParams() {
       return params;
     });
   };
+
   return {
     marketName,
-    verificationStatusList,
-    orderBy,
-    setOrderBy,
-    setVerificationStatus,
-    page,
-    setMarketName,
-    setPage,
     marketStatusList,
+    verificationStatusList,
+    chainsList,
+    orderBy,
+    page,
+
+    setMarketName,
     setMarketStatus,
+    setVerificationStatus,
+    setChains,
+    setOrderBy,
+    setPage,
+
     isShowMyMarkets,
     toggleShowMyMarkets,
-    hasFilters: marketName || verificationStatusList?.length || marketStatusList?.length || orderBy,
+    hasFilters:
+      marketName || verificationStatusList?.length || marketStatusList?.length || chainsList?.length || orderBy,
   };
 }
 

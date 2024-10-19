@@ -2,6 +2,8 @@ import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
 import { VerificationStatus } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import {
   ArrowSwap,
   CheckCircleIcon,
@@ -35,6 +37,11 @@ const VERIFY_STATUS_OPTIONS = [
     icon: <ExclamationCircleIcon width="14" height="14" />,
     colorClassName: "text-purple-primary",
   },
+];
+
+const CHAINS_OPTIONS = [
+  { value: "", text: "All" },
+  ...Object.values(SUPPORTED_CHAINS).map((chain) => ({ value: String(chain.id), text: chain.name })),
 ];
 
 const MARKET_STATUS_OPTIONS = [
@@ -74,17 +81,20 @@ const MARKET_STATUS_OPTIONS = [
 interface MarketFilters {
   marketStatusList: MarketStatus[];
   verificationStatusList: VerificationStatus[];
+  chainsList: string[];
   orderBy: Market_OrderBy | "default";
 }
 
 export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFilters: boolean) => void }) {
   const {
     marketStatusList: initialMarketStatusList,
-    orderBy: initialOrderBy,
     verificationStatusList: initialVerificationStatusList,
+    chainsList: initialChainsList,
+    orderBy: initialOrderBy,
     setMarketStatus,
-    setOrderBy,
     setVerificationStatus,
+    setChains,
+    setOrderBy,
   } = useMarketsSearchParams();
   const {
     handleSubmit,
@@ -96,16 +106,18 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       marketStatusList: initialMarketStatusList ?? MARKET_STATUS_OPTIONS.slice(1).map((x) => x.value as MarketStatus),
       verificationStatusList:
         initialVerificationStatusList ?? VERIFY_STATUS_OPTIONS.slice(1).map((x) => x.value as VerificationStatus),
+      chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
     },
   });
 
   const apply: SubmitHandler<MarketFilters> = (data) => {
-    const { marketStatusList, verificationStatusList, orderBy } = data;
+    const { marketStatusList, verificationStatusList, chainsList, orderBy } = data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
     );
+    setChains(chainsList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : chainsList);
     setOrderBy(orderBy);
     setShowFilters(false);
   };
@@ -237,6 +249,61 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         </div>
         <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3">
           <div className="font-semibold flex items-center gap-2 pb-5">
+            Chain{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <Controller
+            name="chainsList"
+            control={control}
+            rules={{
+              required: true,
+            }}
+            render={({ field }) => (
+              <div className="relative">
+                <div className="flex flex-col gap-3">
+                  {CHAINS_OPTIONS.map((option) => (
+                    <Fragment key={option.value}>
+                      <div className="flex items-center mx-1 gap-6">
+                        <input
+                          id={`chains-${option.value}`}
+                          className="cursor-pointer checkbox"
+                          type="checkbox"
+                          checked={
+                            option.value === ""
+                              ? field.value.length === CHAINS_OPTIONS.slice(1).length
+                              : field.value.includes(option.value)
+                          }
+                          onChange={(e) => {
+                            const value = option.value;
+                            const checked = e.target.checked;
+                            if (value === "") {
+                              return field.onChange(checked ? CHAINS_OPTIONS.slice(1).map((x) => x.value) : []);
+                            }
+                            field.onChange(
+                              checked ? [...field.value, value] : field.value.filter((item) => item !== value),
+                            );
+                          }}
+                        />
+                        <label className="cursor-pointer flex items-center gap-2" htmlFor={`chains-${option.value}`}>
+                          {NETWORK_ICON_MAPPING[Number(option.value)] && (
+                            <img
+                              alt="network-icon"
+                              className="w-5 h-5 rounded-full"
+                              src={NETWORK_ICON_MAPPING[Number(option.value)]}
+                            />
+                          )}
+                          {option.text}
+                        </label>
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+          />
+          <div className="font-semibold flex items-center gap-2 pb-5 mt-5">
             Sort By <ArrowSwap />
           </div>
           <Controller

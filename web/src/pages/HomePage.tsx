@@ -6,17 +6,18 @@ import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 
 function Home() {
-  const { marketName, verificationStatusList, orderBy, marketStatusList, isShowMyMarkets } = useMarketsSearchParams();
+  const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets } =
+    useMarketsSearchParams();
   const {
     data: markets = [],
     isPending,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterMarkets({
-    chainId: "all",
     marketName,
     marketStatusList,
-    orderBy,
     verificationStatusList,
+    chainsList,
+    orderBy,
     isShowMyMarkets,
   });
 

@@ -1,4 +1,4 @@
-import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -10,33 +10,43 @@ import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
 
 const useOnChainMarkets = (
-  chainId: SupportedChain | "all",
+  chainsList: Array<string | "all">,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
 ) => {
-  return useQuery<Market[] | undefined, Error>({
-    queryKey: ["useOnChainMarkets", chainId, marketName, marketStatusList],
-    queryFn: async () => {
-      const chainIds = chainId === "all" ? [gnosis.id, mainnet.id] : [chainId];
+  const chainIds = (
+    chainsList.length === 0
+      ? Object.keys(SUPPORTED_CHAINS)
+      : chainsList.filter((chain) => chain !== "all" && chain !== "31337")
+  )
+    .filter((chain) => chain !== "31337")
+    .map((chainId) => Number(chainId)) as SupportedChain[];
 
+  return useQuery<Market[] | undefined, Error>({
+    queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
+    queryFn: async () => {
       return (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
     },
   });
 };
 
 const useGraphMarkets = (
-  chainId: SupportedChain | "all",
+  chainsList: Array<string | "all">,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
 ) => {
-  return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainId, marketName, marketStatusList, creator, orderBy],
-    queryFn: async () => {
-      const chainIds = chainId === "all" ? [gnosis.id, mainnet.id] : [chainId];
+  const chainIds = (
+    chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
+  )
+    .filter((chain) => chain !== "31337")
+    .map((chainId) => Number(chainId)) as SupportedChain[];
 
+  return useQuery<Market[], Error>({
+    queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
+    queryFn: async () => {
       return (
         (
           await Promise.all(
@@ -55,26 +65,26 @@ const useGraphMarkets = (
 };
 
 interface UseMarketsProps {
-  chainId: SupportedChain | "all";
   marketName?: string;
   marketStatusList?: MarketStatus[];
+  verificationStatusList?: VerificationStatus[];
+  chainsList?: Array<string | "all">;
   creator?: Address | "";
   participant?: Address | "";
   orderBy?: Market_OrderBy;
-  verificationStatusList?: VerificationStatus[];
   isShowMyMarkets: boolean;
 }
 
 const useMarkets = ({
-  chainId,
   marketName = "",
   marketStatusList = [],
+  chainsList = [],
   creator = "",
   participant = "",
   orderBy,
 }: UseMarketsProps) => {
-  const onChainMarkets = useOnChainMarkets(chainId, marketName, marketStatusList);
-  const graphMarkets = useGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy);
+  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
+  const graphMarkets = useGraphMarkets(chainsList, marketName, marketStatusList, creator, participant, orderBy);
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;
