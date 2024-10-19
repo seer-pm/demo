@@ -4,7 +4,7 @@ import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
-import { Address } from "viem";
+import { Address, getAddress } from "viem";
 import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { Status, getSdk } from "./queries/gql-generated-curate";
@@ -26,13 +26,14 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
         where: {
           // status: registered ? Status.Registered : undefined,
           registryAddress,
-          key0_in: ids,
+          key0_in: ids.map((id) => getAddress(id)),
         },
       });
       return litems;
     },
     scheduler: batshit.windowScheduler(10),
-    resolver: (images, marketId) => images.filter((image) => image.key0 === marketId),
+    resolver: (images, marketId) =>
+      images.filter((image) => image.key0?.toLocaleLowerCase() === marketId.toLocaleLowerCase()),
   });
 });
 
