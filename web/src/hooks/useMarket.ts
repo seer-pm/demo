@@ -23,14 +23,13 @@ export interface Question {
 
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
 export type VerificationResult = { status: VerificationStatus; itemID?: string };
-export const DEFAULT_VERIFICATION_RESULT: VerificationResult = { status: "not_verified", itemID: "" };
 
 interface MarketOffChainFields {
   chainId: SupportedChain;
   outcomesSupply: bigint;
   creator?: string | null;
   blockTimestamp?: number;
-  verification: VerificationResult;
+  verification?: VerificationResult;
   index?: number;
 }
 
@@ -120,7 +119,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           creator: graphMarket?.creator,
           outcomesSupply: BigInt(graphMarket?.outcomesSupply || 0),
           blockTimestamp: graphMarket?.blockTimestamp ? Number(graphMarket?.blockTimestamp) : undefined,
-          verification: graphMarket?.verification || DEFAULT_VERIFICATION_RESULT,
+          verification: graphMarket?.verification,
         },
       );
     },

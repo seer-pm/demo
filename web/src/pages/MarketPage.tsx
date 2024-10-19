@@ -125,7 +125,7 @@ function MarketPage() {
             .
           </Alert>
         )}
-        {market.verification.status === "not_verified" && (
+        {market.verification?.status === "not_verified" && (
           <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
           </Alert>

@@ -99,7 +99,7 @@ function MarkeVerifyPage() {
     <div className="container-fluid w-[924px] py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
-      {(market.verification.status === "verifying" || market.verification.status === "verified") && (
+      {(market.verification?.status === "verifying" || market.verification?.status === "verified") && (
         <Alert type="success" title="This market has already been submitted for verification" className="mb-[24px]">
           You can check the submission on the{" "}
           <a

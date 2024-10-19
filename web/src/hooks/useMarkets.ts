@@ -95,7 +95,7 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   // filter by verification status
   if (params.verificationStatusList) {
     data = data.filter((market) => {
-      return params.verificationStatusList?.some((status) => market.verification.status === status);
+      return params.verificationStatusList?.some((status) => market.verification?.status === status);
     });
   }
 

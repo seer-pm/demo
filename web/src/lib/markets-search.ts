@@ -13,13 +13,7 @@ import {
   OrderDirection,
   getSdk as getSeerSdk,
 } from "@/hooks/queries/gql-generated-seer";
-import {
-  DEFAULT_VERIFICATION_RESULT,
-  Market,
-  OnChainMarket,
-  VerificationResult,
-  mapOnChainMarket,
-} from "@/hooks/useMarket";
+import { Market, OnChainMarket, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
@@ -83,7 +77,9 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
   return (a: Market, b: Market) => {
     if (!orderBy) {
       //by verification status
-      const statusDiff = STATUS_PRIORITY[a.verification.status] - STATUS_PRIORITY[b.verification.status];
+      const statusDiff =
+        STATUS_PRIORITY[a.verification?.status || "not_verified"] -
+        STATUS_PRIORITY[b.verification?.status || "not_verified"];
       if (statusDiff !== 0) {
         return statusDiff;
       }
@@ -163,7 +159,7 @@ export const fetchMarkets = async (
       return mapOnChainMarket(market, {
         chainId,
         ...subgraphFieldsMapping[market.id.toLowerCase()],
-        verification: verificationStatusList?.[market.id.toLowerCase() as Address] || DEFAULT_VERIFICATION_RESULT,
+        verification: verificationStatusList?.[market.id.toLowerCase() as Address],
       });
     })
     .sort(sortMarkets(orderBy));
@@ -255,9 +251,7 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
       args: [BigInt(50), marketFactoryAddress[chainId]],
       chainId,
     })
-  ).map((market) =>
-    mapOnChainMarket(market, { chainId, outcomesSupply: 0n, verification: DEFAULT_VERIFICATION_RESULT }),
-  );
+  ).map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
 
   return markets.filter((m) => {
     const hasOpenQuestions = m.questions.find((q) => q.opening_ts !== 0);
