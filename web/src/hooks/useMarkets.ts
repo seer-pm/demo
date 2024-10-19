@@ -1,6 +1,8 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
+import { unescapeJson } from "@/lib/reality";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -63,7 +65,15 @@ const useGraphMarkets = (
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
       }
 
-      return markets;
+      return markets.map((market) => ({
+        ...market,
+        outcomes: market.outcomes.map((outcome) => {
+          if (outcome === INVALID_RESULT_OUTCOME) {
+            return INVALID_RESULT_OUTCOME_TEXT;
+          }
+          return unescapeJson(outcome);
+        }),
+      }));
     },
     retry: false,
   });

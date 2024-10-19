@@ -101,7 +101,15 @@ export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
         throw new Error("Market not found");
       }
 
-      return markets[0];
+      return {
+        ...markets[0],
+        outcomes: markets[0].outcomes.map((outcome) => {
+          if (outcome === INVALID_RESULT_OUTCOME) {
+            return INVALID_RESULT_OUTCOME_TEXT;
+          }
+          return unescapeJson(outcome);
+        }),
+      };
     },
   });
 };
@@ -130,6 +138,5 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
 export const useMarket = (marketId: Address, chainId: SupportedChain) => {
   const onChainMarket = useOnChainMarket(marketId, chainId);
   const graphMarket = useGraphMarket(marketId, chainId);
-
   return graphMarket.isError ? onChainMarket : graphMarket;
 };
