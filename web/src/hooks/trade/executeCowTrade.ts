@@ -1,22 +1,10 @@
-import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastify } from "@/lib/toastify";
-import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { CoWTrade, WXDAI } from "@swapr/sdk";
+import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
 import { providers } from "ethers";
-import { Account, Address, Chain, Client, Transport, parseUnits } from "viem";
-import { gnosis, mainnet } from "viem/chains";
-import {
-  S_DAI_ADAPTER,
-  depositFromNativeToSDAI,
-  depositToSDAI,
-  redeemFromSDAI,
-  redeemFromSDAIToNative,
-} from "./handleSDAI";
-import { approveIfNeeded, getConvertedShares, pollForOrder, setCowTradeLimit } from "./utils";
+import { Account, Chain, Client, Transport } from "viem";
+import { pollForOrder } from "./utils";
 
 function clientToSigner(client: Client<Transport, Chain, Account>) {
   const { account, chain, transport } = client;
@@ -30,89 +18,13 @@ function clientToSigner(client: Client<Transport, Chain, Account>) {
   return signer;
 }
 
-async function getPopulatedTransaction(trade: CoWTrade, account: Address, collateral: Token, originalAmount: string) {
-  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
-  const DAIAddress = COLLATERAL_TOKENS[trade.chainId].secondary?.address;
-  const wxDAIAddress = WXDAI[trade.chainId].address as Address;
-  const isBuyOutcomeTokens = isTwoStringsEqual(trade.inputAmount.currency.address, sDAIAddress);
-  // mainnet: dai to sdai
-  if (
-    trade.chainId === mainnet.id &&
-    isBuyOutcomeTokens &&
-    DAIAddress &&
-    isTwoStringsEqual(collateral.address, DAIAddress)
-  ) {
-    const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveIfNeeded(DAIAddress, account, sDAIAddress, amount, trade.chainId as SupportedChain);
-    const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
-    const shares = getConvertedShares(receipt);
-    if (shares) {
-      await approveIfNeeded(
-        sDAIAddress,
-        account,
-        trade.approveAddress as Address,
-        shares,
-        trade.chainId as SupportedChain,
-      );
-      const newTrade = await setCowTradeLimit(trade, shares, account);
-      return newTrade;
-    }
-  }
-
-  // gnosis: xdai to sdai
-  if (trade.chainId && gnosis.id && isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    const amount = parseUnits(originalAmount, collateral.decimals);
-    const receipt = await depositFromNativeToSDAI({ amount, chainId: trade.chainId, owner: account });
-    const shares = getConvertedShares(receipt);
-    if (shares) {
-      await approveIfNeeded(
-        sDAIAddress,
-        account,
-        trade.approveAddress as Address,
-        shares,
-        trade.chainId as SupportedChain,
-      );
-      const newTrade = await setCowTradeLimit(trade, shares, account);
-      return newTrade;
-    }
-  }
-
-  // gnosis: wxdai to sdai
-  if (isBuyOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
-    const amount = parseUnits(originalAmount, collateral.decimals);
-    await approveIfNeeded(wxDAIAddress, account, sDAIAddress, amount, trade.chainId as SupportedChain);
-    const receipt = await depositToSDAI({ amount, chainId: trade.chainId, owner: account });
-    const shares = getConvertedShares(receipt);
-    if (shares) {
-      await approveIfNeeded(
-        sDAIAddress,
-        account,
-        trade.approveAddress as Address,
-        shares,
-        trade.chainId as SupportedChain,
-      );
-      const newTrade = await setCowTradeLimit(trade, shares, account);
-      return newTrade;
-    }
-  }
-
-  return trade;
-}
-
-export async function executeCoWTrade(
-  trade: CoWTrade,
-  account: Address,
-  collateral: Token,
-  originalAmount: string,
-): Promise<string> {
+export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);
 
-  const newTrade = await getPopulatedTransaction(trade, account, collateral, originalAmount);
+  await trade.signOrder(signer, trade.order.receiver);
 
-  await newTrade.signOrder(signer, newTrade.order.receiver);
-
-  const result = await toastify(() => newTrade.submitOrder(), {
+  const result = await toastify(() => trade.submitOrder(), {
     txSent: { title: "Confirm order..." },
     txSuccess: { title: "Order placed!" },
   });
@@ -123,45 +35,10 @@ export async function executeCoWTrade(
 
   const orderId = result.data;
 
-  const orderResult = await pollForOrder(orderId, newTrade.chainId);
+  const orderResult = await pollForOrder(orderId, trade.chainId);
 
   if (orderResult.error) {
     throw orderResult.error;
-  }
-
-  const sDAIAddress = COLLATERAL_TOKENS[newTrade.chainId].primary.address;
-  const wxDAIAddress = WXDAI[newTrade.chainId].address as Address;
-  const DAIAddress = COLLATERAL_TOKENS[newTrade.chainId].secondary?.address;
-
-  const isSellOutcomeTokens = isTwoStringsEqual(newTrade.outputAmount.currency.address, sDAIAddress);
-  const receivedAmount = BigInt(newTrade.outputAmount.raw.toString());
-
-  // mainnet: sdai to dai
-  if (newTrade.chainId === mainnet.id && isSellOutcomeTokens && isTwoStringsEqual(collateral.address, DAIAddress)) {
-    await redeemFromSDAI({
-      amount: BigInt(newTrade.outputAmount.raw.toString()),
-      chainId: newTrade.chainId,
-      owner: account,
-    });
-  }
-
-  // gnosis: sdai to xdai
-  if (newTrade.chainId === gnosis.id && isSellOutcomeTokens && isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-    await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount, trade.chainId as SupportedChain);
-    await redeemFromSDAIToNative({
-      amount: receivedAmount,
-      chainId: newTrade.chainId,
-      owner: account,
-    });
-  }
-
-  // gnosis: sdai to wxdai
-  if (newTrade.chainId === gnosis.id && isSellOutcomeTokens && isTwoStringsEqual(collateral.address, wxDAIAddress)) {
-    await redeemFromSDAI({
-      amount: receivedAmount,
-      chainId: newTrade.chainId,
-      owner: account,
-    });
   }
 
   return result.data;

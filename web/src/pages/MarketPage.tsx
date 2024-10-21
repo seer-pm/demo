@@ -6,7 +6,7 @@ import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketChart from "@/components/Market/MarketChart";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
-import { SwapTokens } from "@/components/Market/SwapTokens";
+import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";

@@ -2,9 +2,9 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import clsx from "clsx";
 import { useForm } from "react-hook-form";
-import Button from "../Form/Button";
-import FormError from "../Form/FormError";
-import Input from "../Form/Input";
+import Button from "../../Form/Button";
+import FormError from "../../Form/FormError";
+import Input from "../../Form/Input";
 
 const MAX_SLIPPAGE_OPTIONS = [
   {

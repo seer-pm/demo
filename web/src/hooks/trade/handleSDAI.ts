@@ -199,6 +199,7 @@ export async function depositToSDAI({ chainId, amount, owner }: HandleSDAIProps)
 }
 
 export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleSDAIProps) {
+  if (!owner) throw "Account not found!";
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -217,6 +218,7 @@ export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleS
 }
 
 export async function depositFromNativeToSDAI({ chainId, amount, owner }: HandleSDAIProps) {
+  if (!owner) throw "Account not found!";
   const wrappedResult = await toastifyTx(
     () =>
       writeContract(config, {

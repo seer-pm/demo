@@ -10,17 +10,17 @@ import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { Alert } from "../Alert";
-import { ApproveButton } from "../Form/ApproveButton";
-import Button from "../Form/Button";
-import Input from "../Form/Input";
-import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
-import AltCollateralSwitch from "./AltCollateralSwitch";
-import { OutcomeImage } from "./OutcomeImage";
+import { Alert } from "../../Alert";
+import { ApproveButton } from "../../Form/ApproveButton";
+import Button from "../../Form/Button";
+import Input from "../../Form/Input";
+import { SwitchChainButtonWrapper } from "../../Form/SwitchChainButtonWrapper";
+import AltCollateralSwitch from "../AltCollateralSwitch";
+import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
@@ -147,7 +147,7 @@ export function SwapTokens({
     chainId,
   );
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
-  const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
+  const isUseWrappedToken = useMemo(() => wxDAIBalance > xDAIBalance && chainId === gnosis.id, []);
 
   const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const [buyToken, sellToken] =
@@ -171,15 +171,12 @@ export function SwapTokens({
 
   const tradeTokens = useTrade(async () => {
     reset();
-    closeConfirmSwapModal();
   });
 
   const onSubmit = async () => {
     await tradeTokens.mutateAsync({
       trade: quoteData?.trade!,
       account: account!,
-      collateral: selectedCollateral,
-      originalAmount: amount,
     });
   };
   const sDAI = COLLATERAL_TOKENS[chainId].primary;

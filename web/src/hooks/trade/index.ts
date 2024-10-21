@@ -325,23 +325,19 @@ export function useMissingTradeApproval(account: Address, trade: Trade) {
 async function tradeTokens({
   trade,
   account,
-  collateral,
-  originalAmount,
 }: {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
   account: Address;
-  collateral: Token;
-  originalAmount: string;
 }): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
-    return executeCoWTrade(trade, account, collateral, originalAmount);
+    return executeCoWTrade(trade);
   }
 
   if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(trade, account, collateral, originalAmount);
+    return executeUniswapTrade(trade, account);
   }
 
-  return executeSwaprTrade(trade, account, collateral, originalAmount);
+  return executeSwaprTrade(trade, account);
 }
 
 export function useTrade(onSuccess: () => unknown) {

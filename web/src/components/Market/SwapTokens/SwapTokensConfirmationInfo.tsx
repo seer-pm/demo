@@ -8,46 +8,30 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import { Trade } from "@swapr/sdk";
 import { useState } from "react";
 import { formatUnits } from "viem";
-import { Alert } from "../Alert";
-import Button from "../Form/Button";
-import { Spinner } from "../Spinner";
+import { Alert } from "../../Alert";
+import Button from "../../Form/Button";
 
-interface SwapTokensConfirmationProps {
+interface SwapTokensConfirmationInfoProps {
   closeModal: () => void;
-  trade: Trade | undefined;
+  trade: Trade;
   isLoading: boolean;
-  onSubmit: () => Promise<void>;
+  onSubmit: () => void;
   collateral: Token;
   originalAmount: string;
 }
 
-export function SwapTokensConfirmation({
+export function SwapTokensConfirmationInfo({
   closeModal,
   trade,
   isLoading,
   onSubmit,
   collateral,
   originalAmount,
-}: SwapTokensConfirmationProps) {
+}: SwapTokensConfirmationInfoProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
-  const { data: outputToAssets } = useConvertToAssets(
-    BigInt(trade?.outputAmount?.raw?.toString() ?? "0"),
-    trade?.chainId ?? 0,
-  );
-  if (!tradeInfo) {
-    return (
-      <div className="flex flex-col justify-center items-center">
-        <div className="w-[400px] h-[150px] flex items-center justify-center">
-          <Spinner />
-        </div>
+  const { data: outputToAssets } = useConvertToAssets(BigInt(trade.outputAmount.raw.toString()), trade.chainId);
 
-        <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        </div>
-      </div>
-    );
-  }
   let {
     inputToken,
     outputToken,
@@ -59,27 +43,27 @@ export function SwapTokensConfirmation({
     invertedPrice,
     inputAddress,
     outputAddress,
-  } = tradeInfo;
+  } = tradeInfo!;
   const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
 
   const needsToConvertCollateralToShares = iswxsDAI(collateral, trade?.chainId || 0);
-  const isBuyWithOtherCollateral =
+  const isBuyWithDAI =
     isTwoStringsEqual(inputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
-  const isSellWithOtherCollateral =
+  const isSellWithDAI =
     isTwoStringsEqual(outputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
 
-  inputAmount = isBuyWithOtherCollateral ? Number(originalAmount).toFixed(6) : inputAmount;
-  inputToken = isBuyWithOtherCollateral ? collateral.symbol : inputToken;
+  inputAmount = isBuyWithDAI ? Number(originalAmount).toFixed(6) : inputAmount;
+  inputToken = isBuyWithDAI ? collateral.symbol : inputToken;
 
-  outputAmount = isSellWithOtherCollateral
+  outputAmount = isSellWithDAI
     ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
     : outputAmount;
 
-  outputToken = (isSellWithOtherCollateral ? collateral.symbol : outputToken)?.slice(0, 31);
+  outputToken = (isSellWithDAI ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
@@ -88,13 +72,13 @@ export function SwapTokensConfirmation({
 
   return (
     <div className="flex flex-col justify-center items-center">
-      {isBuyWithOtherCollateral && (
+      {isBuyWithDAI && (
         <div className="w-full mb-10 text-[14px]">
           Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
           fees and affect the final amount you receive. You also need to approve the conversion transaction.
         </div>
       )}
-      {isSellWithOtherCollateral && (
+      {isSellWithDAI && (
         <div className="w-full mb-10 text-[14px]">
           sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
           incur fees and affect the final amount you receive. You also need to approve the conversion transaction.

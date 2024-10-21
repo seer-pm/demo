@@ -1,5 +1,20 @@
 import { Trade } from "@swapr/sdk";
 
+export interface TradeInfo {
+  inputToken: string | undefined;
+  outputToken: string | undefined;
+  inputAmount: string;
+  inputAddress: string | undefined;
+  outputAddress: string | undefined;
+  outputAmount: string;
+  price: string;
+  invertedPrice: string;
+  minimumReceive: string;
+  maximumSlippage: string;
+  fee: string;
+  priceImpact: string;
+}
+
 export function useGetTradeInfo(trade: Trade | undefined) {
   if (!trade) {
     return undefined;
