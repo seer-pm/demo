@@ -8,7 +8,7 @@ import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
-import { Trade, WXDAI } from "@swapr/sdk";
+import { CoWTrade, Trade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -186,12 +186,12 @@ export function SwapTokens({
 
   // convert sell result to xdai or wxdai if collateral is not sDAI
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
-  const isSellToDai = swapType === "sell" && isCollateralDai;
+  const isSellToDai = swapType === "sell" && isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
   const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
     isSellToDai ? (quoteData?.value ?? 0n) : 0n,
     chainId,
   );
-  const assets = sharesToAssets ? Number(displayBalance(sharesToAssets, selectedCollateral.decimals)) : 0;
+  const assets = sharesToAssets ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals)) : 0;
 
   // if collateral is dai, wxdai or xdai, we have to calculate maxCollateralPerShare
   const { data: maxDAIPerShare } = useConvertToAssets(parseUnits("1", sDAI.decimals), chainId);
@@ -200,7 +200,7 @@ export function SwapTokens({
     : 1;
 
   // check if current token price higher than 1 collateral per token
-  const shares = quoteData ? Number(displayBalance(quoteData.value, quoteData.decimals)) : 0;
+  const shares = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
   const collateralPerShare = shares > 0 ? Number(amount) / (isSellToDai ? assets : shares) : 0;
   const isPriceTooHigh = collateralPerShare > maxCollateralPerShare && swapType === "buy";
 
@@ -342,7 +342,7 @@ export function SwapTokens({
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
-                    {isSellToDai ? assets : shares} {buyToken.symbol}
+                    {isSellToDai ? assets.toFixed(3) : shares.toFixed(3)} {buyToken.symbol}
                   </>
                 )}
               </div>

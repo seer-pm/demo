@@ -8,6 +8,7 @@ import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
+  CurrencyAmount,
   Percent,
   Token as SwaprToken,
   SwaprV3Trade,
@@ -153,7 +154,7 @@ export const getCowQuote: QuoteTradeFn = async (
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getCowTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
   const trade = await CoWTrade.bestTradeExactIn({
     currencyAmountIn: args.currencyAmountIn,
@@ -221,6 +222,45 @@ async function getTradeArgs(
   const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
 
   const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
+
+  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
+  const [numerator, denominator] = parseFraction(slippage) ?? [];
+  const maximumSlippage =
+    Number.isInteger(numerator) && Number.isInteger(denominator)
+      ? new Percent(String(numerator), String(denominator))
+      : new Percent("1", "100");
+
+  return {
+    buyToken,
+    sellToken,
+    sellAmount,
+    currencyIn,
+    currencyOut,
+    currencyAmountIn,
+    maximumSlippage,
+  };
+}
+
+async function getCowTradeArgs(
+  chainId: number,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) {
+  const [buyToken, sellToken] =
+    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
+
+  const sellAmount = parseUnits(String(amount), sellToken.decimals);
+
+  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
+  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
+  let currencyAmountIn: CurrencyAmount;
+  if (isTwoStringsEqual(sellToken.address, NATIVE_TOKEN)) {
+    currencyAmountIn = CurrencyAmount.nativeCurrency(parseUnits(String(amount), currencyIn.decimals), chainId);
+  } else {
+    currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
+  }
 
   const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
   const [numerator, denominator] = parseFraction(slippage) ?? [];
@@ -334,7 +374,7 @@ async function tradeTokens({
   originalAmount: string;
 }): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
-    return executeCoWTrade(trade, account, collateral, originalAmount);
+    return executeCoWTrade(trade);
   }
 
   if (trade instanceof UniswapTrade) {
