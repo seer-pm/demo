@@ -9,6 +9,7 @@ import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import {
   CoWTrade,
   CurrencyAmount,
+  DAI,
   Percent,
   Token as SwaprToken,
   SwaprV3Trade,
@@ -96,7 +97,6 @@ export const getUniswapQuote: QuoteTradeFn = async (
     account,
     chainId,
   );
-
   if (!trade) {
     throw new Error("No route found");
   }
@@ -198,7 +198,8 @@ export function iswxsDAI(token: Token, chainId: number) {
   return (
     isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
     (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
-    isTwoStringsEqual(token.address, WXDAI[chainId]?.address) // wxDAI
+    isTwoStringsEqual(token.address, WXDAI[chainId]?.address) || // wxDAI
+    isTwoStringsEqual(token.address, DAI[chainId]?.address)
   );
 }
 
