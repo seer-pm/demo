@@ -108,7 +108,9 @@ export async function pollForOrder(orderId: string, chainId: number, maxAttempts
       }
       // biome-ignore lint/suspicious/noExplicitAny:
     } catch (e: any) {
-      return { error: e?.message || e };
+      if (e?.body?.errorType !== "NotFound") {
+        return { error: e?.message || e };
+      }
     }
     const backoffTime = initialInterval * 2 ** i;
     const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries

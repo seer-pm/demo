@@ -72,7 +72,7 @@ function SwapButtons({
   const isShowApproval =
     missingApprovals &&
     missingApprovals.length > 0 &&
-    (swapType === "sell" || (swapType === "buy" && !isCollateralDai));
+    (swapType === "sell" || (swapType === "buy" && (!isCollateralDai || trade instanceof CoWTrade)));
 
   return (
     <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
