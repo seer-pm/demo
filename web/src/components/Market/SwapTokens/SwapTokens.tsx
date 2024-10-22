@@ -8,19 +8,19 @@ import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
-import { CoWTrade, Trade, WXDAI } from "@swapr/sdk";
+import { CoWTrade, SwaprV3Trade, Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { Alert } from "../Alert";
-import { ApproveButton } from "../Form/ApproveButton";
-import Button from "../Form/Button";
-import Input from "../Form/Input";
-import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
-import AltCollateralSwitch from "./AltCollateralSwitch";
-import { OutcomeImage } from "./OutcomeImage";
+import { Alert } from "../../Alert";
+import { ApproveButton } from "../../Form/ApproveButton";
+import Button from "../../Form/Button";
+import Input from "../../Form/Input";
+import { SwitchChainButtonWrapper } from "../../Form/SwitchChainButtonWrapper";
+import AltCollateralSwitch from "../AltCollateralSwitch";
+import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
@@ -174,12 +174,10 @@ export function SwapTokens({
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async () => {
+  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
     await tradeTokens.mutateAsync({
-      trade: quoteData?.trade!,
+      trade,
       account: account!,
-      collateral: selectedCollateral,
-      originalAmount: amount,
     });
   };
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
@@ -212,6 +210,7 @@ export function SwapTokens({
           <SwapTokensConfirmation
             trade={quoteData?.trade}
             closeModal={closeConfirmSwapModal}
+            reset={() => reset()}
             isLoading={tradeTokens.isPending}
             onSubmit={onSubmit}
             collateral={selectedCollateral}
