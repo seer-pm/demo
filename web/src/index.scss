@@ -349,10 +349,6 @@
     &--today {
       background-color: transparent;
       color: #9747ff;
-      &:hover {
-        border-radius: 0.3rem;
-        background-color: #f0f0f0;
-      }
     }
     &--selected {
       background-color: #9747ff;
@@ -362,6 +358,30 @@
   }
   & .react-datepicker__time-list-item--selected {
     background-color: #9747ff !important;
+  }
+
+  & .react-datepicker__day--in-range,
+  .react-datepicker__day--in-selecting-range {
+    background-color: #9747ff54;
+    color: white;
+  }
+
+  & .react-datepicker__day--range-end,
+  .react-datepicker__day--selecting-range-end {
+    border-radius: 4.8px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: #9747ff;
+  }
+  & .react-datepicker__day--range-start,
+  .react-datepicker__day--selecting-range-start {
+    border-radius: 4.8px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    background-color: #9747ff;
+  }
+  & .react-datepicker__day--range-start.react-datepicker__day--range-end {
+    border-radius: 4.8px;
   }
   ::-webkit-scrollbar {
     width: 1px;

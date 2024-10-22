@@ -17,9 +17,7 @@ import {
   SWAP_ROUTER_ADDRESS,
   algebraPoolAbi,
   nonfungiblePositionManagerAbi,
-  swapRouterApi,
   uniswapPoolAbi,
-  uniswapRouterAbi,
 } from "./abis";
 import { getAllPools, getBlockTimestamp } from "./utils";
 
@@ -69,10 +67,14 @@ async function getUserEventsByType(
 
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const latestBlock = await provider.getBlockNumber();
+
   const events = (
     await Promise.all(data.map(({ contract, filter }) => contract.queryFilter(filter, startBlock, latestBlock)))
   ).flat();
 
+  if (type === "swap") {
+    return events;
+  }
   const results: ethers.providers.TransactionResponse[] = Array(events.length).fill(null);
   const maxAttempts = 50; // Limit the number of attempts
   let attempts = 0;
@@ -109,7 +111,7 @@ async function getUserEventsByType(
   const userEvents = events.reduce(
     (acc, curr: ethers.Event, index) => {
       const transaction = results[index];
-      if (isTwoStringsEqual(transaction.from, account)) {
+      if (isTwoStringsEqual(transaction?.from, account)) {
         acc.push({ ...curr, transaction });
       }
       return acc;
@@ -180,7 +182,6 @@ function getEventFilters(chainId: SupportedChain, type: TransactionType, account
 
 async function getTransactions(account?: string, chainId?: SupportedChain) {
   if (!chainId || !account) return;
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
 
   const markets = await fetchMarkets(chainId);
 
@@ -249,6 +250,21 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
     }),
     chainId,
   );
+  const poolIdToPoolMapping = pools.reduce(
+    (acc, curr) => {
+      acc[curr.id.toLocaleLowerCase()] = curr;
+      return acc;
+    },
+    {} as {
+      [key: string]: {
+        id: string;
+        token0: { id: string };
+        token1: { id: string };
+        token0Price: string;
+        token1Price: string;
+      };
+    },
+  );
   const poolIds = pools.map((x) => x.id);
 
   const allTokensIds = markets.reduce((acc, market) => {
@@ -305,112 +321,63 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
         }
         case "swap": {
           return userEvents.reduce((acc, event) => {
-            if (event.transaction?.data) {
-              const abi = chainId === gnosis.id ? swapRouterApi : uniswapRouterAbi;
-
-              let decodedData = new ethers.utils.Interface(abi).parseTransaction({
-                data: event.transaction.data,
+            const pool = poolIdToPoolMapping[event.address.toLocaleLowerCase()];
+            const tokenIn = BigInt(event.args?.amount1 ?? 0n) < 0 ? pool.token0.id : pool.token1.id;
+            const tokenOut = BigInt(event.args?.amount1 ?? 0n) < 0 ? pool.token1.id : pool.token0.id;
+            const market =
+              tokenPairToMarketMapping[
+                tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
+                  ? `${tokenOut.toLocaleLowerCase()}-${tokenIn.toLocaleLowerCase()}`
+                  : `${tokenIn.toLocaleLowerCase()}-${tokenOut.toLocaleLowerCase()}`
+              ];
+            if (market) {
+              acc.push({
+                tokenIn,
+                tokenOut,
+                amountIn:
+                  tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
+                    ? event.args?.amount1?.toString()?.replace("-", "")
+                    : event.args?.amount0?.toString()?.replace("-", ""),
+                amountOut:
+                  tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
+                    ? event.args?.amount0?.toString()?.replace("-", "")
+                    : event.args?.amount1?.toString()?.replace("-", ""),
+                price: event.args?.price,
+                blockNumber: event.blockNumber,
+                marketName: market.marketName,
+                marketId: market.id,
+                type,
+                collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+                transactionHash: event.transactionHash,
               });
-
-              if (chainId === mainnet.id) {
-                decodedData = new ethers.utils.Interface(abi).parseTransaction({
-                  data: decodedData.args?.data?.[0],
-                });
-              }
-
-              const { tokenIn, tokenOut } = decodedData.args[0] ?? {};
-              if (tokenIn && tokenOut) {
-                const market =
-                  tokenPairToMarketMapping[
-                    tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
-                      ? `${tokenOut.toLocaleLowerCase()}-${tokenIn.toLocaleLowerCase()}`
-                      : `${tokenIn.toLocaleLowerCase()}-${tokenOut.toLocaleLowerCase()}`
-                  ];
-                if (market) {
-                  acc.push({
-                    tokenIn,
-                    tokenOut,
-                    amountIn:
-                      tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
-                        ? event.args?.amount1?.toString()?.replace("-", "")
-                        : event.args?.amount0?.toString()?.replace("-", ""),
-                    amountOut:
-                      tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
-                        ? event.args?.amount0?.toString()?.replace("-", "")
-                        : event.args?.amount1?.toString()?.replace("-", ""),
-                    price: event.args?.price,
-                    blockNumber: event.blockNumber,
-                    marketName: market.marketName,
-                    marketId: market.id,
-                    type,
-                    collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
-                    transactionHash: event.transaction?.hash,
-                  });
-                }
-              }
             }
             return acc;
           }, [] as TransactionData[]);
         }
         case "lp": {
-          if (chainId === gnosis.id) {
-            const data = await Promise.all(
-              userEvents.map(async (event) => {
-                if (!event.args?.pool) return;
-                const pool = new ethers.Contract(event.args.pool, algebraPoolAbi, provider);
-                const token0 = await pool.token0();
-                const token1 = await pool.token1();
-                if (token0 && token1) {
-                  const market =
-                    tokenPairToMarketMapping[`${token0.toLocaleLowerCase()}-${token1.toLocaleLowerCase()}`];
-                  if (market) {
-                    return {
-                      token0,
-                      token1,
-                      amount0: event.args?.amount0?.toString(),
-                      amount1: event.args?.amount1?.toString(),
-                      blockNumber: event.blockNumber,
-                      marketName: market.marketName,
-                      marketId: market.id,
-                      type,
-                      collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
-                      transactionHash: event.transaction?.hash,
-                    };
-                  }
-                }
-              }),
-            );
-            return data.filter((x) => x) as TransactionData[];
-          }
-          if (chainId === mainnet.id) {
-            const data = await Promise.all(
-              userEvents.map(async (event) => {
-                const pool = new ethers.Contract(event.address, uniswapPoolAbi, provider);
-                const token0 = await pool.token0();
-                const token1 = await pool.token1();
-                if (token0 && token1) {
-                  const market =
-                    tokenPairToMarketMapping[`${token0.toLocaleLowerCase()}-${token1.toLocaleLowerCase()}`];
-                  if (market) {
-                    return {
-                      token0,
-                      token1,
-                      amount0: event.args?.amount0?.toString(),
-                      amount1: event.args?.amount1?.toString(),
-                      blockNumber: event.blockNumber,
-                      marketName: market.marketName,
-                      marketId: market.id,
-                      type,
-                      collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
-                      transactionHash: event.transaction?.hash,
-                    };
-                  }
-                }
-              }),
-            );
-            return data.filter((x) => x) as TransactionData[];
-          }
-          return [];
+          return userEvents.reduce((acc, event) => {
+            const poolAddress = chainId === gnosis.id ? event.args?.pool : event.address;
+            if (!poolAddress) return acc;
+            const pool = poolIdToPoolMapping[poolAddress.toLocaleLowerCase()];
+            const token0 = pool.token0.id;
+            const token1 = pool.token1.id;
+            const market = tokenPairToMarketMapping[`${token0.toLocaleLowerCase()}-${token1.toLocaleLowerCase()}`];
+            if (market) {
+              acc.push({
+                token0,
+                token1,
+                amount0: event.args?.amount0?.toString(),
+                amount1: event.args?.amount1?.toString(),
+                blockNumber: event.blockNumber,
+                marketName: market.marketName,
+                marketId: market.id,
+                type,
+                collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+                transactionHash: event.transaction?.hash,
+              });
+            }
+            return acc;
+          }, [] as TransactionData[]);
         }
         default: {
           return [];

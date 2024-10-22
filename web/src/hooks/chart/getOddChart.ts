@@ -7,20 +7,23 @@ import { subDays } from "date-fns";
 import combineQuery from "graphql-combine-query";
 import { gnosis } from "viem/chains";
 import {
+  GetPoolHourDatasQuery,
   OrderDirection,
   PoolHourData_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
 } from "../queries/gql-generated-swapr";
+import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import {
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
 } from "../queries/gql-generated-uniswap";
+import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 import { Market } from "../useMarket";
 import { normalizeOdds } from "../useMarketOdds";
 import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
 
-export async function getLastNotEmptyStartTime(
+async function getLastNotEmptyStartTime(
   tokens: { tokenId: string; parentTokenId?: string }[],
   chainId: SupportedChain,
   startTime: number,
@@ -71,7 +74,49 @@ export async function getLastNotEmptyStartTime(
   return result.map((x) => x[0]?.periodStartUnix);
 }
 
-export async function getHistoryOdds(
+async function getPoolHourDatasByToken(
+  tokenId: string,
+  collateral: string,
+  initialStartTime: number,
+  chainId: SupportedChain,
+) {
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+  if (!graphQLClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+  let total: GetPoolHourDatasQuery["poolHourDatas"] = [];
+  const maxAttempts = 20;
+  let attempt = 1;
+  let startTime = initialStartTime;
+  while (attempt < maxAttempts) {
+    const { poolHourDatas } = await graphQLSdk(graphQLClient).GetPoolHourDatas({
+      first: 1000,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: PoolHourData_OrderBy.PeriodStartUnix as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Asc as any,
+      where: {
+        pool_:
+          tokenId.toLocaleLowerCase() > collateral
+            ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
+            : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+        ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
+      },
+    });
+    total = total.concat(poolHourDatas);
+    startTime = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
+    attempt++;
+    if (poolHourDatas.length < 1000) {
+      break;
+    }
+  }
+  return total;
+}
+
+async function getHistoryOdds(
   tokens: { tokenId: string; parentTokenId?: string }[],
   chainId: SupportedChain,
   startTime: number,
@@ -79,15 +124,6 @@ export async function getHistoryOdds(
   if (tokens.length === 0) {
     return [];
   }
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const GetPoolHourDatasDocument =
-    chainId === gnosis.id ? SwaprGetPoolHourDatasDocument : UniswapGetPoolHourDatasDocument;
-
   const lastNotEmptyStartTimes = await Promise.any([
     getLastNotEmptyStartTime(tokens, chainId, startTime),
     new Promise<number[]>((resolve) => {
@@ -96,34 +132,11 @@ export async function getHistoryOdds(
       }, 8000);
     }),
   ]);
-  const { document, variables } = (() =>
-    combineQuery("GetPoolHourDatas").addN(
-      GetPoolHourDatasDocument,
-      tokens.map(({ tokenId, parentTokenId }, index) => {
-        const collateral = parentTokenId
-          ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address;
-        return {
-          first: 1000,
-          orderBy: PoolHourData_OrderBy.PeriodStartUnix,
-          orderDirection: OrderDirection.Desc,
-          where: {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
-            periodStartUnix_gte: lastNotEmptyStartTimes[index] ?? startTime,
-          },
-        };
-      }),
-    ))();
-  if (chainId === gnosis.id) {
-    return Object.values(
-      await graphQLClient.request<Record<string, SwaprGetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
-    );
-  }
-  return Object.values(
-    await graphQLClient.request<Record<string, UniswapGetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
+  return await Promise.all(
+    tokens.map(({ tokenId, parentTokenId }, index) => {
+      const collateral = parentTokenId ? parentTokenId.toLocaleLowerCase() : COLLATERAL_TOKENS[chainId].primary.address;
+      return getPoolHourDatasByToken(tokenId, collateral, lastNotEmptyStartTimes[index] ?? startTime, chainId);
+    }),
   );
 }
 
@@ -161,7 +174,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
     const oddsMapping = timestamps.reduce(
       (acc, timestamp) => {
         const tokenPrices = outcomeTokens.map((token, tokenindex) => {
-          const poolHourDatas = [...poolHourDatasSets[tokenindex]].reverse();
+          const poolHourDatas = poolHourDatasSets[tokenindex];
           const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
           const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
           const { token0Price = "0", token1Price = "0" } = poolHourDatas[poolHourDataIndex] ?? {};
