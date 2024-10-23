@@ -1,4 +1,4 @@
-import { useMissingTradeApproval, useQuoteTrade, useTrade } from "@/hooks/trade";
+import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
@@ -8,21 +8,20 @@ import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
+import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { Alert } from "../../Alert";
-import { ApproveButton } from "../../Form/ApproveButton";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
-import { SwitchChainButtonWrapper } from "../../Form/SwitchChainButtonWrapper";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
+import SwapButtons from "./components/SwapButtons";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -51,55 +50,6 @@ function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolea
   }
 
   return COLLATERAL_TOKENS[chainId].primary;
-}
-
-function SwapButtons({
-  account,
-  trade,
-  swapType,
-  isDisabled,
-  isLoading,
-  isCollateralDai,
-}: {
-  account?: Address;
-  trade: Trade;
-  swapType: "buy" | "sell";
-  isDisabled: boolean;
-  isLoading: boolean;
-  isCollateralDai: boolean;
-}) {
-  const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
-  const isShowApproval =
-    missingApprovals &&
-    missingApprovals.length > 0 &&
-    (swapType === "sell" || (swapType === "buy" && (!isCollateralDai || trade instanceof CoWTrade)));
-
-  return (
-    <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
-      {!isShowApproval && (
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={isDisabled}
-          isLoading={isLoading || isLoadingApprovals}
-          text={swapType === "buy" ? "Buy" : "Sell"}
-        />
-      )}
-      {isShowApproval && (
-        <div className="space-y-[8px]">
-          {missingApprovals.map((approval) => (
-            <ApproveButton
-              key={approval.address}
-              tokenAddress={approval.address}
-              tokenName={approval.name}
-              spender={approval.spender}
-              amount={approval.amount}
-            />
-          ))}
-        </div>
-      )}
-    </SwitchChainButtonWrapper>
-  );
 }
 
 export function SwapTokens({
@@ -182,11 +132,12 @@ export function SwapTokens({
   };
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
 
-  // convert sell result to xdai or wxdai if collateral is not sDAI
+  // convert sell result to xdai or wxdai if using multisteps swap
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
-  const isSellToDai = swapType === "sell" && isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
+  const isMultiStepsSwap = isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
+  const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
   const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
-    isSellToDai ? (quoteData?.value ?? 0n) : 0n,
+    isMultiStepsSell ? (quoteData?.value ?? 0n) : 0n,
     chainId,
   );
   const assets = sharesToAssets ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals)) : 0;
@@ -199,7 +150,7 @@ export function SwapTokens({
 
   // check if current token price higher than 1 collateral per token
   const shares = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
-  const collateralPerShare = shares > 0 ? Number(amount) / (isSellToDai ? assets : shares) : 0;
+  const collateralPerShare = shares > 0 ? Number(amount) / (isMultiStepsSell ? assets : shares) : 0;
   const isPriceTooHigh = collateralPerShare > maxCollateralPerShare && swapType === "buy";
 
   return (
@@ -341,7 +292,7 @@ export function SwapTokens({
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
-                    {isSellToDai ? assets.toFixed(3) : shares.toFixed(3)} {buyToken.symbol}
+                    {isMultiStepsSell ? assets.toFixed(3) : shares.toFixed(3)} {buyToken.symbol}
                   </>
                 )}
               </div>
@@ -393,7 +344,7 @@ export function SwapTokens({
                   (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending) ||
                   isFetchingSharesToAssets
                 }
-                isCollateralDai={isCollateralDai}
+                isMultiStepsSwap={isMultiStepsSwap}
               />
             ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
               <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />

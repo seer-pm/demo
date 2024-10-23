@@ -66,23 +66,23 @@ export function SwapTokensConfirmation({
   const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
 
   const needsToConvertCollateralToShares = iswxsDAI(collateral, trade?.chainId || 0);
-  const isBuyWithDAI =
+  const isMultiStepsBuy =
     isTwoStringsEqual(inputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
-  const isSellWithDAI =
+  const isMultiStepsSell =
     isTwoStringsEqual(outputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
 
-  inputAmount = isBuyWithDAI ? Number(originalAmount).toFixed(6) : inputAmount;
-  inputToken = isBuyWithDAI ? collateral.symbol : inputToken;
+  inputAmount = isMultiStepsBuy ? Number(originalAmount).toFixed(6) : inputAmount;
+  inputToken = isMultiStepsBuy ? collateral.symbol : inputToken;
 
-  outputAmount = isSellWithDAI
+  outputAmount = isMultiStepsSell
     ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
     : outputAmount;
 
-  outputToken = (isSellWithDAI ? collateral.symbol : outputToken)?.slice(0, 31);
+  outputToken = (isMultiStepsSell ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
@@ -91,13 +91,13 @@ export function SwapTokensConfirmation({
 
   return (
     <div className="flex flex-col justify-center items-center">
-      {isBuyWithDAI && (
+      {isMultiStepsBuy && (
         <div className="w-full mb-10 text-[14px]">
           Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
           fees and affect the final amount you receive. You also need to approve the conversion transaction.
         </div>
       )}
-      {isSellWithDAI && (
+      {isMultiStepsSell && (
         <div className="w-full mb-10 text-[14px]">
           sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
           incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
@@ -160,14 +160,14 @@ export function SwapTokensConfirmation({
 
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        {isBuyWithDAI || isSellWithDAI ? (
+        {isMultiStepsBuy || isMultiStepsSell ? (
           <SwapTokensConfirmationInSteps
             trade={trade!}
             isLoading={isLoading}
             collateral={collateral}
             originalAmount={originalAmount}
             onSubmit={onSubmit}
-            swapType={isBuyWithDAI ? "buy" : "sell"}
+            swapType={isMultiStepsBuy ? "buy" : "sell"}
             closeModalAndReset={() => {
               closeModal();
               reset();

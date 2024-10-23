@@ -30,7 +30,6 @@ export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
   if (isTwoStringsEqual(trade.inputAmount.currency.address, NATIVE_TOKEN)) {
     const ethOrder = {
       ...trade.quote.quote,
-      buyAmount: BigNumber.from(trade.quote.quote.buyAmount).mul(9950).div(10000).toString(),
       quoteId: trade.quote.id,
     };
     const orderDigest = await ethFlowContract.callStatic["createOrder"](ethOrder, { value: ethOrder.sellAmount });
