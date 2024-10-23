@@ -9,7 +9,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
-import TransactionsTable from "./TransactionsTable";
+import HistoryTable from "./HistoryTable";
 
 function HistoryTab() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
@@ -79,7 +79,7 @@ function HistoryTab() {
               )}
             </div>
           </div>
-          <TransactionsTable chainId={chainId as SupportedChain} data={filteredTransactions} />
+          <HistoryTable chainId={chainId as SupportedChain} data={filteredTransactions} />
         </div>
       )}
     </>

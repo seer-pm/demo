@@ -47,7 +47,7 @@ export function MarketImage({
   );
 }
 
-export default function PortfolioTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
+export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
   const navigate = useNavigate();
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [

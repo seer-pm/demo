@@ -47,7 +47,7 @@ export function MarketImage({
   );
 }
 
-export default function TransactionsTable({ data, chainId }: { data: TransactionData[]; chainId: SupportedChain }) {
+export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: SupportedChain }) {
   const navigate = useNavigate();
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
     () => [

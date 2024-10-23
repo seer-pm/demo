@@ -1,8 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
 import { fetchMarkets } from "@/lib/markets-search";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { OrderBookApi } from "@cowprotocol/cow-sdk";
+import { DAI, WXDAI } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { ethers } from "ethers";
@@ -320,7 +322,7 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
           }, [] as TransactionData[]);
         }
         case "swap": {
-          return userEvents.reduce((acc, event) => {
+          const swaps = userEvents.reduce((acc, event) => {
             const pool = poolIdToPoolMapping[event.address.toLocaleLowerCase()];
             const tokenIn = BigInt(event.args?.amount1 ?? 0n) < 0 ? pool.token0.id : pool.token1.id;
             const tokenOut = BigInt(event.args?.amount1 ?? 0n) < 0 ? pool.token1.id : pool.token0.id;
@@ -353,6 +355,59 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
             }
             return acc;
           }, [] as TransactionData[]);
+          // get cowswap trades
+          const orderBookApi = new OrderBookApi({ chainId });
+          const trades = await orderBookApi.getTrades({ owner: account });
+          const isWXDAI = (tokenAddress: string) =>
+            isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||
+            isTwoStringsEqual(tokenAddress, DAI[chainId]?.address) ||
+            isTwoStringsEqual(tokenAddress, NATIVE_TOKEN);
+          const getWXDAISymbol = (tokenAddress: string, owner: string) => {
+            if (isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address)) {
+              if (!isTwoStringsEqual(owner, account) && chainId === gnosis.id) {
+                return "xDAI";
+              }
+              return WXDAI[chainId]?.symbol;
+            }
+            if (isTwoStringsEqual(tokenAddress, DAI[chainId]?.address)) {
+              return DAI[chainId]?.symbol;
+            }
+            if (isTwoStringsEqual(tokenAddress, NATIVE_TOKEN) && chainId === gnosis.id) {
+              return "xDAI";
+            }
+          };
+          const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+          const cowSwaps = trades.reduce((acc, trade) => {
+            const tokenIn = isWXDAI(trade.sellToken) ? sDAIAddress : trade.sellToken;
+            const tokenOut = isWXDAI(trade.buyToken) ? sDAIAddress : trade.buyToken;
+            const tokenInSymbol = getWXDAISymbol(trade.sellToken, trade.owner);
+            const tokenOutSymbol = getWXDAISymbol(trade.buyToken, trade.owner);
+
+            const market =
+              tokenPairToMarketMapping[
+                tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
+                  ? `${tokenOut.toLocaleLowerCase()}-${tokenIn.toLocaleLowerCase()}`
+                  : `${tokenIn.toLocaleLowerCase()}-${tokenOut.toLocaleLowerCase()}`
+              ];
+            if (market) {
+              acc.push({
+                tokenIn,
+                tokenOut,
+                amountIn: trade.sellAmount,
+                amountOut: trade.buyAmount,
+                blockNumber: trade.blockNumber,
+                marketName: market.marketName,
+                marketId: market.id,
+                type,
+                collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+                transactionHash: trade.txHash ?? undefined,
+                tokenInSymbol,
+                tokenOutSymbol,
+              });
+            }
+            return acc;
+          }, [] as TransactionData[]);
+          return swaps.concat(cowSwaps);
         }
         case "lp": {
           return userEvents.reduce((acc, event) => {
@@ -421,8 +476,8 @@ async function getTransactions(account?: string, chainId?: SupportedChain) {
       timestamp: timestamps[index],
       token0Symbol: parseSymbol(x.token0),
       token1Symbol: parseSymbol(x.token1),
-      tokenInSymbol: parseSymbol(x.tokenIn),
-      tokenOutSymbol: parseSymbol(x.tokenOut),
+      tokenInSymbol: x.tokenInSymbol ?? parseSymbol(x.tokenIn),
+      tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
     };
   });
 

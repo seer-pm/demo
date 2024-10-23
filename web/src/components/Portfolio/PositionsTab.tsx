@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
-import PortfolioTable from "./PortfolioTable";
+import PositionsTable from "./PositionsTable";
 
 function PositionsTab() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
@@ -32,7 +32,7 @@ function PositionsTab() {
               onKeyUp={marketNameCallback}
             />
           </div>
-          <PortfolioTable chainId={chainId as SupportedChain} data={filteredPositions} />
+          <PositionsTable chainId={chainId as SupportedChain} data={filteredPositions} />
         </div>
       )}
     </>
