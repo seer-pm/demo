@@ -70,8 +70,11 @@ query GetPoolHourDatas(
     token0Price
     token1Price
     periodStartUnix
+    sqrtPrice
+    liquidity
     pool {
       id
+      liquidity
       token0 {
         id
         name

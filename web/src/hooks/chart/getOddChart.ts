@@ -4,7 +4,9 @@ import { MarketTypes, getMarketType } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { subDays } from "date-fns";
+import { BigNumber } from "ethers";
 import combineQuery from "graphql-combine-query";
+import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import {
   GetPoolHourDatasQuery,
@@ -22,6 +24,13 @@ import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 import { Market } from "../useMarket";
 import { normalizeOdds } from "../useMarketOdds";
 import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
+
+function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
+  const sqrtPriceBN = BigNumber.from(sqrtPrice);
+  const token0PriceBN = BigNumber.from(2).pow(192).mul(BigNumber.from(10).pow(18)).div(sqrtPriceBN.mul(sqrtPriceBN));
+  const token1PriceBN = sqrtPriceBN.mul(sqrtPriceBN).mul(BigNumber.from(10).pow(18)).div(BigNumber.from(2).pow(192));
+  return { token0PriceBN, token1PriceBN };
+}
 
 async function getLastNotEmptyStartTime(
   tokens: { tokenId: string; parentTokenId?: string }[],
@@ -52,12 +61,17 @@ async function getLastNotEmptyStartTime(
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
           orderDirection: OrderDirection.Desc,
           where: {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
-            periodStartUnix_lte: startTime,
-            periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
+            and: [
+              { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
+              {
+                pool_:
+                  tokenId.toLocaleLowerCase() > collateral
+                    ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
+                    : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+                periodStartUnix_lte: startTime,
+                periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
+              },
+            ],
           },
         };
       }),
@@ -99,11 +113,16 @@ async function getPoolHourDatasByToken(
       // biome-ignore lint/suspicious/noExplicitAny:
       orderDirection: OrderDirection.Asc as any,
       where: {
-        pool_:
-          tokenId.toLocaleLowerCase() > collateral
-            ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-            : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
-        ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
+        and: [
+          { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
+          {
+            pool_:
+              tokenId.toLocaleLowerCase() > collateral
+                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
+                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+            ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
+          },
+        ],
       },
     });
     total = total.concat(poolHourDatas);
@@ -177,7 +196,14 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
           const poolHourDatas = poolHourDatasSets[tokenindex];
           const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
           const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
-          const { token0Price = "0", token1Price = "0" } = poolHourDatas[poolHourDataIndex] ?? {};
+          let { token0Price = "0", token1Price = "0", sqrtPrice } = poolHourDatas[poolHourDataIndex] ?? {};
+
+          if (token0Price === "0" && token1Price === "0" && sqrtPrice && sqrtPrice !== "0") {
+            const { token0PriceBN, token1PriceBN } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
+            token0Price = formatUnits(token0PriceBN.toBigInt(), 18);
+            token1Price = formatUnits(token1PriceBN.toBigInt(), 18);
+          }
+
           return token.tokenId.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
             ? Number(token0Price)
             : Number(token1Price);

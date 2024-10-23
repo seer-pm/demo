@@ -26,6 +26,7 @@ export const useOddChartData = (market: Market, dayCount: number, intervalSecond
   >({
     enabled: !!market,
     gcTime: 1000 * 60 * 60 * 24, //24 hours
+    staleTime: 0,
     queryKey: ["useOddChartData", market.chainId, market.id, collateralToken, dayCount, intervalSeconds],
     retry: false,
     queryFn: async () => getOddChart(market, collateralToken, dayCount, intervalSeconds),

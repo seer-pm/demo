@@ -10,7 +10,10 @@ function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${s
       const outcomeTokenId = isTwoStringsEqual(item.token0.id, collateralToken.address)
         ? item.token1.id
         : item.token0.id;
-      obj[outcomeTokenId.toLowerCase()] = BigInt(item.liquidity);
+      obj[outcomeTokenId.toLowerCase()] =
+        obj[outcomeTokenId.toLowerCase()] > BigInt(item.liquidity)
+          ? obj[outcomeTokenId.toLowerCase()]
+          : BigInt(item.liquidity);
       return obj;
     },
     {} as { [key: string]: bigint },
