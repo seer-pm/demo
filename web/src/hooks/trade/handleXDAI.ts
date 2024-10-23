@@ -32,7 +32,7 @@ export async function unwrapXDAI({ chainId, amount }: HandleXDAIProps) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
-        address: WXDAI[chainId].address as `0x${string}`,
+        address: WXDAI[chainId]?.address as `0x${string}`,
         abi: WXDAI_ABI,
         functionName: "withdraw",
         args: [amount],
@@ -50,7 +50,7 @@ export async function wrapXDAI({ chainId, amount }: HandleXDAIProps) {
   const wrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
-        address: WXDAI[chainId].address as `0x${string}`,
+        address: WXDAI[chainId]?.address as `0x${string}`,
         abi: WXDAI_ABI,
         functionName: "deposit",
         args: [],

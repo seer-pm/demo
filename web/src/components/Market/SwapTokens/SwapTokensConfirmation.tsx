@@ -5,24 +5,27 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
-import { Trade } from "@swapr/sdk";
+import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import { useState } from "react";
 import { formatUnits } from "viem";
-import { Alert } from "../Alert";
-import Button from "../Form/Button";
-import { Spinner } from "../Spinner";
+import { Alert } from "../../Alert";
+import Button from "../../Form/Button";
+import { Spinner } from "../../Spinner";
+import { SwapTokensConfirmationInSteps } from "./SwapTokensConfirmationInSteps";
 
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
-  trade: Trade | undefined;
+  reset: () => void;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade | undefined;
   isLoading: boolean;
-  onSubmit: () => Promise<void>;
+  onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
 }
 
 export function SwapTokensConfirmation({
   closeModal,
+  reset,
   trade,
   isLoading,
   onSubmit,
@@ -63,23 +66,23 @@ export function SwapTokensConfirmation({
   const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
 
   const needsToConvertCollateralToShares = iswxsDAI(collateral, trade?.chainId || 0);
-  const isBuyWithOtherCollateral =
+  const isMultiStepsBuy =
     isTwoStringsEqual(inputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
-  const isSellWithOtherCollateral =
+  const isMultiStepsSell =
     isTwoStringsEqual(outputAddress, sDAI) &&
     !isTwoStringsEqual(collateral.address, sDAI) &&
     needsToConvertCollateralToShares;
 
-  inputAmount = isBuyWithOtherCollateral ? Number(originalAmount).toFixed(6) : inputAmount;
-  inputToken = isBuyWithOtherCollateral ? collateral.symbol : inputToken;
+  inputAmount = isMultiStepsBuy ? Number(originalAmount).toFixed(6) : inputAmount;
+  inputToken = isMultiStepsBuy ? collateral.symbol : inputToken;
 
-  outputAmount = isSellWithOtherCollateral
+  outputAmount = isMultiStepsSell
     ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
     : outputAmount;
 
-  outputToken = (isSellWithOtherCollateral ? collateral.symbol : outputToken)?.slice(0, 31);
+  outputToken = (isMultiStepsSell ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
@@ -88,13 +91,13 @@ export function SwapTokensConfirmation({
 
   return (
     <div className="flex flex-col justify-center items-center">
-      {isBuyWithOtherCollateral && (
+      {isMultiStepsBuy && (
         <div className="w-full mb-10 text-[14px]">
           Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
           fees and affect the final amount you receive. You also need to approve the conversion transaction.
         </div>
       )}
-      {isSellWithOtherCollateral && (
+      {isMultiStepsSell && (
         <div className="w-full mb-10 text-[14px]">
           sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
           incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
@@ -157,7 +160,28 @@ export function SwapTokensConfirmation({
 
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        <Button variant="primary" type="submit" isLoading={isLoading} text="Continue" onClick={onSubmit} />
+        {isMultiStepsBuy || isMultiStepsSell ? (
+          <SwapTokensConfirmationInSteps
+            trade={trade!}
+            isLoading={isLoading}
+            collateral={collateral}
+            originalAmount={originalAmount}
+            onSubmit={onSubmit}
+            swapType={isMultiStepsBuy ? "buy" : "sell"}
+            closeModalAndReset={() => {
+              closeModal();
+              reset();
+            }}
+          />
+        ) : (
+          <Button
+            variant="primary"
+            type="submit"
+            isLoading={isLoading}
+            text="Continue"
+            onClick={() => onSubmit(trade!)}
+          />
+        )}
       </div>
     </div>
   );
