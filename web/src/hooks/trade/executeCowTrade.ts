@@ -3,7 +3,7 @@ import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
-import { BigNumber, Contract, providers } from "ethers";
+import { Contract, providers } from "ethers";
 import { Account, Chain, Client, Transport } from "viem";
 import { ethFlowAbi } from "./abis";
 import { pollForOrder } from "./utils";
