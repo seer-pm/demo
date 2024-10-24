@@ -1,4 +1,4 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import CreateMarketPage from "./pages/CreateMarkePage";
 import HomePage from "./pages/HomePage";
@@ -9,7 +9,7 @@ import VerificationCheckPage from "./pages/VerificationCheck";
 
 function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
@@ -21,7 +21,7 @@ function App() {
           <Route path="markets/:chainId/:id/verify" element={<MarketVerifyPage />} />
         </Route>
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 
