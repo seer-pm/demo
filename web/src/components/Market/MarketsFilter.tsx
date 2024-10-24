@@ -1,7 +1,8 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
-import { useState } from "react";
+import debounce from "lodash.debounce";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
@@ -9,16 +10,41 @@ import { MarketsFilterBox } from "./MarketsFilterBox";
 
 export function MarketsFilter() {
   const { address } = useAccount();
-  const { setMarketName, isShowMyMarkets, toggleShowMyMarkets, hasFilters } = useMarketsSearchParams();
-  const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    setMarketName((event.target as HTMLInputElement).value);
+  const {
+    setMarketName: setMarketNameParam,
+    isShowMyMarkets,
+    toggleShowMyMarkets,
+    hasFilters,
+    marketName: marketNameParam,
+  } = useMarketsSearchParams();
+  const [marketName, setMarketName] = useState(marketNameParam);
+  useEffect(() => {
+    setMarketName(marketNameParam ?? "");
+  }, [marketNameParam]);
+  const debounceSetMarketNameParams = useCallback(
+    debounce((value) => {
+      setMarketNameParam(value);
+    }, 300),
+    [],
+  );
+  const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = (event.target as HTMLInputElement).value;
+    setMarketName(value);
+    debounceSetMarketNameParams(value);
   };
+
   const [isShowFilters, setShowFilters] = useState(false);
   return (
     <div>
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
         <div className="grow">
-          <Input placeholder="Search" className="w-full" icon={<SearchIcon />} onKeyUp={marketNameCallback} />
+          <Input
+            placeholder="Search"
+            className="w-full"
+            icon={<SearchIcon />}
+            value={marketName}
+            onChange={onChangeName}
+          />
         </div>
         <button
           type="button"

@@ -117,7 +117,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
     );
-    setChains(chainsList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : chainsList);
+    setChains(chainsList.length === CHAINS_OPTIONS.slice(1).length ? undefined : chainsList);
     setOrderBy(orderBy);
     setShowFilters(false);
   };
@@ -258,7 +258,9 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             name="chainsList"
             control={control}
             rules={{
-              required: true,
+              validate: {
+                arrayNotEmpty: (v) => v.length > 0 || "Select at least one.",
+              },
             }}
             render={({ field }) => (
               <div className="relative">
@@ -300,10 +302,13 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
                     </Fragment>
                   ))}
                 </div>
+                <div className="absolute">
+                  <FormError errors={errors} name="chainsList" />
+                </div>
               </div>
             )}
           />
-          <div className="font-semibold flex items-center gap-2 pb-5 mt-5">
+          <div className="font-semibold flex items-center gap-2 pb-5 mt-12">
             Sort By <ArrowSwap />
           </div>
           <Controller

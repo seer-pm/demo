@@ -124,8 +124,7 @@ function useMarketsSearchParams() {
 
     isShowMyMarkets,
     toggleShowMyMarkets,
-    hasFilters:
-      marketName || verificationStatusList?.length || marketStatusList?.length || chainsList?.length || orderBy,
+    hasFilters: verificationStatusList?.length || marketStatusList?.length || chainsList?.length || orderBy,
   };
 }
 
