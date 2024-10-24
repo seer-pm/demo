@@ -105,7 +105,7 @@ export const toastify: ToastifyFn<any> = async (execute, config) => {
     return { status: true, data: result };
     // biome-ignore lint/suspicious/noExplicitAny:
   } catch (error: any) {
-    toastError({ title: error.shortMessage ?? error.body?.description ?? error.message });
+    toastError({ title: error.reason ?? error.shortMessage ?? error.body?.description ?? error.message });
 
     return { status: false, error };
   }

@@ -171,7 +171,7 @@ export const fetchMarkets = async (
     .map((market) => {
       return mapGraphMarket(market, {
         chainId,
-        verification: verificationStatusList?.[market.id.toLowerCase() as Address],
+        verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
       });
     })
     .sort(sortMarkets(orderBy));
