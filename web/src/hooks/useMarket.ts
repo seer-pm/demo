@@ -90,18 +90,22 @@ export const getUseGraphMarketKey = (marketId: Address) => [
   marketId.toLocaleLowerCase(),
 ];
 
+export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) => {
+  const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
+
+  if (markets.length === 0) {
+    throw new Error("Market not found");
+  }
+
+  return markets[0];
+};
+
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
     queryKey: getUseGraphMarketKey(marketId),
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
-      const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
-
-      if (markets.length === 0) {
-        throw new Error("Market not found");
-      }
-
-      return markets[0];
+      return useGraphMarketQueryFn(marketId, chainId);
     },
   });
 };

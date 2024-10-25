@@ -1,8 +1,10 @@
 import { Buffer } from "buffer";
+import { HydrationBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import React from "react";
 import { ToastContainer } from "react-toastify";
+import { usePageContext } from "vike-react/usePageContext";
 import { WagmiProvider } from "wagmi";
 import { persister, queryClient } from "../../lib/query-client.ts";
 import { config } from "../../wagmi.ts";
@@ -15,6 +17,8 @@ import { Query, defaultShouldDehydrateQuery } from "@tanstack/react-query";
 globalThis.Buffer = Buffer;
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const pageContext = usePageContext();
+  const { dehydratedState } = pageContext;
   return (
     <React.StrictMode>
       <WagmiProvider config={config}>
@@ -44,7 +48,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
           <SwapUpdater />
           <ToastContainer />
-          {children}
+          <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
           <ReactQueryDevtools initialIsOpen={false} />
         </PersistQueryClientProvider>
       </WagmiProvider>

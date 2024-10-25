@@ -1,21 +1,14 @@
-export default function HeadDefault() {
+export default () => {
   return (
     <>
-      <meta charSet="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400..700&display=swap" rel="stylesheet" />
-      <title>Seer | A Next Generation Prediction Marketplace</title>
-      <meta name="description" content="Efficient on-chain prediction markets." />
       <meta property="og:type" content="website" />
-      <meta property="og:title" content="Seer | A Next Generation Prediction Marketplace" />
-      <meta property="og:description" content="Efficient on-chain prediction markets." />
-      <meta
-        property="og:image"
-        content="https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg"
-      />
       <meta property="og:site_name" content="Seer" />
+
+      <meta name="twitter:site" content="@seer_pm" />
+      {/*
       <meta name="twitter:title" content="Seer | A Next Generation Prediction Marketplace" />
       <meta name="twitter:description" content="Efficient on-chain prediction markets." />
       <meta
@@ -26,8 +19,8 @@ export default function HeadDefault() {
         name="twitter:image"
         content="https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg"
       />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site" content="@seer_pm" />
+      */}
+
       <meta name="application-name" content="Seer" />
 
       <link rel="apple-touch-icon" sizes="57x57" href="/assets/apple-icon-57x57.png" />
@@ -50,4 +43,4 @@ export default function HeadDefault() {
       <meta name="theme-color" content="#ffffff" />
     </>
   );
-}
+};
