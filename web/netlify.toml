@@ -1,0 +1,17 @@
+[build]
+  publish = "/web/dist/client/"
+  command = "NODE_ENV=production yarn workspace @seer-pm/web build"
+
+[build.environment]
+  NODE_VERSION = "20.18.0"
+
+[functions]
+  directory = "web/netlify/functions"
+
+[build.processing.html]
+  pretty_urls = true
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/index"
+  status = 200
