@@ -27,6 +27,7 @@ export const config = defaultWagmiConfig({
     [sepolia.id]: http(),
     [hardhat.id]: http(),
   },
+  ssr: true,
 });
 
 createWeb3Modal({

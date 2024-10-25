@@ -1,3 +1,4 @@
+import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
@@ -22,7 +23,6 @@ import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";

@@ -12,5 +12,5 @@ export const queryClient = new QueryClient({
 });
 
 export const persister = createSyncStoragePersister({
-  storage: window.localStorage,
+  storage: typeof window !== "undefined" ? window.localStorage : null,
 });

@@ -3,6 +3,7 @@ import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
@@ -12,9 +13,9 @@ import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc, toSnakeCase } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
 import { parseEventLogs } from "viem/utils";
+import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 import {
   DateFormValues,
@@ -66,8 +67,6 @@ function PreviewButton({
   marketReadyToVerify,
   newMarketId,
 }: PreviewButtonProps) {
-  const navigate = useNavigate();
-
   if (newMarketId === "") {
     const text = `${createMarketIsPending ? "Creating Market" : "Create Market"} ${verifyNow ? "1/2" : ""}`;
     return (

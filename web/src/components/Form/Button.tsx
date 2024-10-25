@@ -1,6 +1,6 @@
+import { Link, LinkProps } from "@/components/Link";
 import clsx from "clsx";
 import React from "react";
-import { Link, LinkProps } from "react-router-dom";
 
 type ButtonSize = "small" | "large";
 type ButtonVariant = "primary" | "secondary" | "tertiary";

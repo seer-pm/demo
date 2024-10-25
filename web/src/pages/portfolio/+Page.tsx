@@ -4,8 +4,8 @@ import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
 
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
-import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 function PortfolioPage() {

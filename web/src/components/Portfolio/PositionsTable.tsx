@@ -17,8 +17,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useNavigate } from "react-router-dom";
 import { Address } from "viem";
+import { navigate } from "vike/client/router";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
@@ -48,7 +48,6 @@ export function MarketImage({
 }
 
 export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
-  const navigate = useNavigate();
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
       {

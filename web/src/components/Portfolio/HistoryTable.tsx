@@ -17,8 +17,8 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
 import { Address } from "viem";
+import { navigate } from "vike/client/router";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
@@ -48,7 +48,6 @@ export function MarketImage({
 }
 
 export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: SupportedChain }) {
-  const navigate = useNavigate();
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
     () => [
       {

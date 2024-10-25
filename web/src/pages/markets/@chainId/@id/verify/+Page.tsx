@@ -14,16 +14,16 @@ import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
+import { usePageContext } from "vike-react/usePageContext";
+import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
 function MarkeVerifyPage() {
-  const params = useParams();
-  const id = params.id as Address;
-  const chainId = Number(params.chainId) as SupportedChain;
-  const navigate = useNavigate();
+  const { routeParams } = usePageContext();
+  const id = routeParams.id as Address;
+  const chainId = Number(routeParams.chainId) as SupportedChain;
   const { chain, address: currentUserAddress } = useAccount();
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: submissionDeposit } = useSubmissionDeposit();

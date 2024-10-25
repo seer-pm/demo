@@ -1,4 +1,5 @@
 import ConnectWallet from "@/components/ConnectWallet";
+import { Link } from "@/components/Link";
 import {
   BookIcon,
   BugIcon,
@@ -13,10 +14,10 @@ import {
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { usePageContext } from "vike-react/usePageContext";
 
 export default function Header() {
-  const location = useLocation();
+  const pageContext = usePageContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -33,7 +34,7 @@ export default function Header() {
     if (mobileMenuOpen) {
       toggleMenu();
     }
-  }, [location]);
+  }, [pageContext.urlParsed.pathname]);
 
   useEffect(() => {
     function handleResize() {

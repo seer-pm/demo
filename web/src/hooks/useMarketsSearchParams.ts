@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { VerificationStatus } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
