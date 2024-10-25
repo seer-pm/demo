@@ -5,6 +5,7 @@ declare global {
     interface PageContext {
       dehydratedState: DehydratedState;
       title?: string;
+      description?: string;
     }
   }
 }

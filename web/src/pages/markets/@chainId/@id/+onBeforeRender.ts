@@ -1,5 +1,6 @@
 import { getUseGraphMarketKey, useGraphMarketQueryFn } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
+import { getOpeningTime } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { dehydrate } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -21,7 +22,8 @@ export default async function onBeforeRender(pageContext: PageContext) {
   return {
     pageContext: {
       dehydratedState,
-      title: market.marketName,
+      title: `Seer | ${market.marketName}`,
+      description: `Answer opening date: ${getOpeningTime(market)}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`,
     },
   };
 }

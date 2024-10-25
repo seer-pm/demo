@@ -27,6 +27,10 @@
   --toastify-icon-color-error: oklch(var(--white));
 }
 
+#root {
+  @apply flex flex-col min-h-screen;
+}
+
 .container-fluid {
   max-width: 100%;
   padding-left: 18px;
