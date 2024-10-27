@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* increase root specificity */
+:root:root {
   --rounded-btn: 3px;
 
   --white: 100% 0 0;
