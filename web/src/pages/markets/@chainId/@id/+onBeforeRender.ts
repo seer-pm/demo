@@ -12,7 +12,7 @@ export default async function onBeforeRender(pageContext: PageContext) {
     queryFn: async () => {
       return useGraphMarketQueryFn(
         pageContext.routeParams.id as Address,
-        pageContext.routeParams.chainId as unknown as SupportedChain,
+        Number(pageContext.routeParams.chainId) as SupportedChain,
       );
     },
   });
