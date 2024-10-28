@@ -3,7 +3,7 @@ import { Address } from "viem";
 import { SupportedChain } from "./chains";
 
 export const paths = {
-  market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/`,
+  market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}`,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   verifiedMarketPolicy: () =>
