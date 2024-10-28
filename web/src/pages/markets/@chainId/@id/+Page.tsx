@@ -10,6 +10,7 @@ import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
@@ -17,8 +18,9 @@ import { isMarketReliable } from "@/lib/market";
 import { toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useParams, useSearchParams } from "react-router-dom";
 import { Address } from "viem";
+import { Head } from "vike-react/Head";
+import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 function SwapWidget({
@@ -62,12 +64,12 @@ function SwapWidget({
 }
 
 function MarketPage() {
+  const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
 
-  const params = useParams();
-  const id = params.id as Address;
-  const chainId = Number(params.chainId) as SupportedChain;
+  const id = routeParams.id as Address;
+  const chainId = Number(routeParams.chainId) as SupportedChain;
 
   const router = getRouterAddress(chainId);
 
@@ -111,6 +113,9 @@ function MarketPage() {
 
   return (
     <div className="container-fluid py-10">
+      <Head>
+        <meta property="og:image" content={`https://seer.pm/og-image/markets/${market.chainId}/${market.id}/`} />
+      </Head>
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         {chainId && connectedChainId && chainId !== connectedChainId && (

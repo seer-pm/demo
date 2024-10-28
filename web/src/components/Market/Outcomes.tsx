@@ -1,8 +1,10 @@
+import { Link } from "@/components/Link";
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
@@ -16,7 +18,6 @@ import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect, useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
 import { RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -212,13 +213,13 @@ export function Outcomes({ market, images }: PositionsProps) {
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
       const i = indexesOrderedByOdds[0];
-      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { replace: true });
+      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
     }
   }, [indexesOrderedByOdds]);
 
   const outcomeClick = (i: number) => {
     return () => {
-      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { replace: true });
+      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
     };
   };
 
@@ -362,7 +363,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                             params.set("outcome", toSnakeCase(market.outcomes[i]));
                             return params;
                           },
-                          { replace: true },
+                          { overwriteLastHistoryEntry: true },
                         );
                       }}
                       className="text-purple-primary hover:underline"

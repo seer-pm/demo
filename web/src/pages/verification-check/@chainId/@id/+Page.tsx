@@ -10,8 +10,9 @@ import { EtherscanIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { getRealityLink } from "@/lib/reality";
 import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
 import { Address, isAddress } from "viem";
+import { usePageContext } from "vike-react/usePageContext";
+import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
 interface VerificationCheckFormValues {
@@ -135,9 +136,8 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
 }
 
 function VerificationCheckPage() {
-  const navigate = useNavigate();
-  const params = useParams();
-  const id = params.id as Address;
+  const { routeParams } = usePageContext();
+  const id = routeParams.id as Address;
   const { chain } = useAccount();
 
   const useFormReturn = useForm<VerificationCheckFormValues>({
@@ -148,7 +148,7 @@ function VerificationCheckPage() {
   });
 
   if (isAddress(id)) {
-    return <MarketCheck id={id} chainId={Number(params.chainId) as SupportedChain} />;
+    return <MarketCheck id={id} chainId={Number(routeParams.chainId) as SupportedChain} />;
   }
 
   const onSubmit = async (values: VerificationCheckFormValues) => {

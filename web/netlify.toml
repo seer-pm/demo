@@ -1,0 +1,23 @@
+[build]
+  publish = "/web/dist/client/"
+  command = "NODE_ENV=production yarn workspace @seer-pm/web build"
+  edge_functions = "web/netlify/edge-functions"
+
+[build.environment]
+  NODE_VERSION = "20.18.0"
+
+[dev]
+  command = "yarn"
+  targetPort = 5173
+  port = 8888
+
+[functions]
+  directory = "web/netlify/functions"
+
+[build.processing.html]
+  pretty_urls = true
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/index"
+  status = 200

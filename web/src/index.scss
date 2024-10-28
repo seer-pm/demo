@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* increase root specificity */
+:root:root {
   --rounded-btn: 3px;
 
   --white: 100% 0 0;
@@ -25,6 +26,10 @@
   --toastify-icon-color-success: oklch(var(--white));
   --toastify-icon-color-warning: oklch(var(--white));
   --toastify-icon-color-error: oklch(var(--white));
+}
+
+#root {
+  @apply flex flex-col min-h-screen;
 }
 
 .container-fluid {
