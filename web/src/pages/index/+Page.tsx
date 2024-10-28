@@ -4,6 +4,8 @@ import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { useEffect } from "react";
+import { navigate } from "vike/client/router";
 
 function Home() {
   const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets } =
@@ -20,6 +22,13 @@ function Home() {
     orderBy,
     isShowMyMarkets,
   });
+
+  useEffect(() => {
+    if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
+      // redirect old client urls
+      navigate(window.location.hash.slice(1));
+    }
+  }, []);
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">

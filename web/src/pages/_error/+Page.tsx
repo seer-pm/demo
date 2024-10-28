@@ -1,4 +1,4 @@
-import Button from "@/components/Form/Button";
+import { LinkButton } from "@/components/Form/Button";
 import { paths } from "@/lib/paths";
 
 function ErrorPage() {
@@ -15,7 +15,7 @@ function ErrorPage() {
         </a>
       </div>
       <div>
-        <Button text="Go to home" variant="primary" />
+        <LinkButton text="Go to home" to="/" variant="primary" />
       </div>
     </div>
   );
