@@ -1,6 +1,6 @@
 import React from "react";
 
-import { PortfolioPosition } from "@/hooks/portfolio/usePortfolioPositions";
+import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain } from "@/lib/chains";
@@ -26,11 +26,7 @@ export function MarketImage({
   marketAddress,
   marketName,
   chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
+}: { marketAddress: Address; marketName: string; chainId: SupportedChain }) {
   const { data: images } = useMarketImages(marketAddress, chainId);
   return (
     <div>

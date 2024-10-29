@@ -1,4 +1,4 @@
-import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
+import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { useState } from "react";

@@ -1,4 +1,4 @@
-import { useHistoryTransactions } from "@/hooks/portfolio/useHistoryTransactions";
+import { useHistoryTransactions } from "@/hooks/portfolio/historyTab/useHistoryTransactions";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { endOfDay, format, startOfDay } from "date-fns";
@@ -61,9 +61,7 @@ function HistoryTab() {
                 text={
                   !startDate && !endDate
                     ? "Filter By Date"
-                    : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
-                        endDate ? format(endDate, "MMM d, yyyy") : "_"
-                      }`
+                    : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${endDate ? format(endDate, "MMM d, yyyy") : "_"}`
                 }
                 onClick={() => setShowDateRangePicker((state) => !state)}
               />

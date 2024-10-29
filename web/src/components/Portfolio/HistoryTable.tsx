@@ -1,6 +1,6 @@
 import React from "react";
 
-import { TransactionData } from "@/hooks/portfolio/useHistoryTransactions";
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
@@ -26,11 +26,7 @@ export function MarketImage({
   marketAddress,
   marketName,
   chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
+}: { marketAddress: Address; marketName: string; chainId: SupportedChain }) {
   const { data: images } = useMarketImages(marketAddress, chainId);
   return (
     <div>
@@ -158,6 +154,21 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
                     {displayBalance(BigInt(data.amount1 ?? "0n"), 18)} {data.token1Symbol}
                   </span>{" "}
                   to liquidity pool.
+                </p>
+              );
+            }
+            case "lp-burn": {
+              return (
+                <p className="text-[14px] min-w-[200px]">
+                  Remove{" "}
+                  <span className="font-semibold">
+                    {displayBalance(BigInt(data.amount0 ?? "0n"), 18)} {data.token0Symbol}
+                  </span>{" "}
+                  and{" "}
+                  <span className="font-semibold">
+                    {displayBalance(BigInt(data.amount1 ?? "0n"), 18)} {data.token1Symbol}
+                  </span>{" "}
+                  from liquidity pool.
                 </p>
               );
             }

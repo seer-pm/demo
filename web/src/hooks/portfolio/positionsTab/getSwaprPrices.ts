@@ -1,15 +1,15 @@
-import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient } from "@/lib/subgraph";
-import combineQuery from "graphql-combine-query";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
   OrderDirection,
   PoolHourData_OrderBy,
   getSdk,
-} from "../queries/gql-generated-swapr";
-import { getTokenPricesMapping } from "./utils";
+} from "@/hooks/queries/gql-generated-swapr";
+import { SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
+import { swaprGraphQLClient } from "@/lib/subgraph";
+import combineQuery from "graphql-combine-query";
+import { getTokenPricesMapping } from "../utils";
 
 export async function getSwaprHistoryTokensPrices(
   tokens: { tokenId: string; parentTokenId?: string }[],

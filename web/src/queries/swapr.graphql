@@ -1,21 +1,5 @@
-query GetPools(
-  $skip: Int = 0
-  $first: Int
-  $orderBy: Pool_orderBy
-  $orderDirection: OrderDirection
-  $where: Pool_filter
-  $block: Block_height
-  $subgraphError: _SubgraphErrorPolicy_! = deny
-) {
-  pools(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
+query GetPools($skip: Int = 0, $first: Int, $orderBy: Pool_orderBy, $orderDirection: OrderDirection, $where: Pool_filter, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
+  pools(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
     id
     fee
     liquidity
@@ -58,15 +42,7 @@ query GetEternalFarmings(
   $block: Block_height
   $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-  eternalFarmings(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
+  eternalFarmings(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
     id
     pool
     rewardToken
@@ -87,15 +63,7 @@ query GetDeposits(
   $block: Block_height
   $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-  deposits(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
+  deposits(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
     id
     owner
     pool
@@ -114,15 +82,7 @@ query GetPoolHourDatas(
   $block: Block_height
   $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-  poolHourDatas(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
+  poolHourDatas(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
     token0Price
     token1Price
     periodStartUnix
@@ -139,6 +99,79 @@ query GetPoolHourDatas(
         id
         name
       }
+    }
+  }
+}
+
+query GetSwaps($skip: Int = 0, $first: Int, $where: Swap_filter, $orderBy: Swap_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
+  swaps(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+    id
+    sender
+    recipient
+    amount0
+    amount1
+    token0 {
+      id
+      symbol
+      decimals
+    }
+    token1 {
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction {
+      id
+      blockNumber
+    }
+  }
+}
+
+query GetMints($skip: Int = 0, $first: Int, $where: Mint_filter, $orderBy: Mint_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
+  mints(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+    id
+    owner
+    amount0
+    amount1
+    token0{
+      id
+      symbol
+      decimals
+    }
+    token1{
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction{
+      id
+      blockNumber
+    }
+  }
+}
+
+query GetBurns($skip: Int = 0, $first: Int, $where: Burn_filter, $orderBy: Burn_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
+  burns(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+    id
+    owner
+    amount0
+    amount1
+    token0{
+      id
+      symbol
+      decimals
+    }
+    token1{
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction{
+      id
+      blockNumber
     }
   }
 }

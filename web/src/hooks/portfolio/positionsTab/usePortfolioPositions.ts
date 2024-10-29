@@ -1,14 +1,15 @@
-import { SupportedChain } from "@/lib/chains";
-import { fetchMarkets } from "@/lib/markets-search";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { subDays } from "date-fns";
 import { Address, erc20Abi, formatUnits } from "viem";
-import { readConditionalTokensPayoutNumerators } from "../contracts/generated";
-import { Market } from "../useMarket";
-import { MarketStatus, getMarketStatus } from "../useMarketStatus";
-import { getBlockNumberAtTime } from "./utils";
+
+import { readConditionalTokensPayoutNumerators } from "@/hooks/contracts/generated";
+import { Market } from "@/hooks/useMarket";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useMarkets } from "@/hooks/useMarkets";
+import { SupportedChain } from "@/lib/chains";
+import { getBlockNumberAtTime, getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
   tokenName: string;
@@ -18,7 +19,6 @@ export interface PortfolioPosition {
   marketName: string;
   marketStatus: string;
   tokenBalance: number;
-  tokenHistoryBalance: number;
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
@@ -79,9 +79,58 @@ const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Addr
   return results;
 };
 
-export const fetchPositions = async (address: Address, chainId: SupportedChain) => {
+const getHistoryBalanceMapping = async (
+  initialMarkets: Market[] | undefined,
+  address: Address,
+  chainId: SupportedChain,
+) => {
+  if (!initialMarkets) return {};
+  const markets = initialMarkets.filter((x) => x.chainId === chainId);
+  const tokenToMarket = markets.reduce(
+    (acum, market) => {
+      for (let i = 0; i < market.wrappedTokens.length; i++) {
+        const tokenId = market.wrappedTokens[i];
+        acum[tokenId] = {
+          marketAddress: market.id,
+          tokenIndex: i,
+        };
+      }
+      return acum;
+    },
+    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
+  );
+
+  const allTokensIds = Object.keys(tokenToMarket) as Address[];
+  const tokenDecimals = (await readContracts(config, {
+    contracts: allTokensIds.map((wrappedAddress) => ({
+      abi: erc20Abi,
+      address: wrappedAddress,
+      functionName: "decimals",
+      args: [],
+    })),
+    allowFailure: false,
+  })) as bigint[];
+  // history balance
+  const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
+  const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
+  const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
+  return historyBalances.reduce(
+    (acc, balance, index) => {
+      acc[allTokensIds[index]] = balance > 0n ? Number(formatUnits(balance, Number(tokenDecimals[index]))) : undefined;
+      return acc;
+    },
+    {} as { [key: string]: number | undefined },
+  );
+};
+
+export const fetchPositions = async (
+  initialMarkets: Market[] | undefined,
+  address: Address,
+  chainId: SupportedChain,
+) => {
+  if (!initialMarkets) return [];
+  const markets = initialMarkets.filter((x) => x.chainId === chainId);
   // tokenId => marketId
-  const markets = await fetchMarkets(chainId);
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
       acum[market.id] = {
@@ -107,45 +156,8 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
     {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
   );
 
-  // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
-
-  // [tokenBalance, ..., ...]
-  const balances = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddress) => ({
-      abi: erc20Abi,
-      address: wrappedAddress,
-      functionName: "balanceOf",
-      args: [address],
-    })),
-    allowFailure: false,
-  })) as bigint[];
-
-  // history balance
-  const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
-  const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
-  const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
-  // tokenNames
-  const tokenNames = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddress) => ({
-      abi: erc20Abi,
-      address: wrappedAddress,
-      functionName: "name",
-      args: [],
-    })),
-    allowFailure: false,
-  })) as string[];
-
-  // decimals
-  const tokenDecimals = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddress) => ({
-      abi: erc20Abi,
-      address: wrappedAddress,
-      functionName: "decimals",
-      args: [],
-    })),
-    allowFailure: false,
-  })) as bigint[];
+  const { balances, names: tokenNames, decimals: tokenDecimals } = await getTokensInfo(allTokensIds, address);
 
   const positions = balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {
@@ -158,7 +170,6 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
-        tokenHistoryBalance: Number(formatUnits(historyBalances[index] ?? balance, Number(tokenDecimals[index]))),
         marketName: market.marketName,
         marketStatus: market.marketStatus,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
@@ -190,7 +201,7 @@ export const fetchPositions = async (address: Address, chainId: SupportedChain) 
   });
 };
 
-export const fetchMarketPayouts = async (market: Market | undefined) => {
+const fetchMarketPayouts = async (market: Market | undefined) => {
   if (!market) return [];
   return await Promise.all(
     market.outcomes.map((_, index) =>
@@ -203,11 +214,21 @@ export const fetchMarketPayouts = async (market: Market | undefined) => {
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {
+  const { data: markets } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
     enabled: !!address,
-    queryKey: ["usePositions", address, chainId],
+    queryKey: ["usePositions", address, !!markets, chainId],
+    queryFn: async () => fetchPositions(markets, address, chainId),
+  });
+};
+
+export const useGetHistoryBalances = (address: Address | undefined, chainId: SupportedChain) => {
+  const { data: markets } = useMarkets({});
+  return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
+    enabled: !!address,
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
-    queryFn: async () => fetchPositions(address, chainId),
+    queryKey: ["useGetHistoryBalances", address, !!markets],
+    queryFn: async () => getHistoryBalanceMapping(markets, address!, chainId),
   });
 };

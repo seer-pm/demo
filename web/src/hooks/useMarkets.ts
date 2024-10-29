@@ -77,10 +77,10 @@ interface UseMarketsProps {
   creator?: Address | "";
   participant?: Address | "";
   orderBy?: Market_OrderBy;
-  isShowMyMarkets: boolean;
+  isShowMyMarkets?: boolean;
 }
 
-const useMarkets = ({
+export const useMarkets = ({
   marketName = "",
   marketStatusList = [],
   chainsList = [],

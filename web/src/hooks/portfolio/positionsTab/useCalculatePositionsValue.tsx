@@ -1,16 +1,16 @@
-import { usePositions } from "@/hooks/portfolio/usePortfolioPositions";
-import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/portfolio/useTokenPriceInPool";
+import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/portfolio/positionsTab/useTokenPriceInPool";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
+import { useGetHistoryBalances, usePositions } from "./usePortfolioPositions";
 
 function useCalculatePositionsValue() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
   const { data: positions = [], isPending } = usePositions(address as Address, chainId as SupportedChain);
-  const { data: tokenIdToTokenCurrentPrice, isPending: isPendingCurrentPrices } = useCurrentTokensPrices(
+  const { data: tokenIdToTokenCurrentPrice, isLoading: isLoadingCurrentPrices } = useCurrentTokensPrices(
     positions?.map((position) => {
       return {
         tokenId: position.tokenId,
@@ -21,7 +21,7 @@ function useCalculatePositionsValue() {
   );
 
   const yesterdayInSeconds = useMemo(() => Math.floor(subDays(new Date(), 1).getTime() / 1000), []);
-  const { data: tokenIdToTokenHistoryPrice, isPending: isPendingHistoryPrices } = useHistoryTokensPrices(
+  const { data: tokenIdToTokenHistoryPrice, isLoading: isLoadingHistoryPrices } = useHistoryTokensPrices(
     positions?.map((position) => {
       return {
         tokenId: position.tokenId,
@@ -32,6 +32,10 @@ function useCalculatePositionsValue() {
     yesterdayInSeconds,
   );
 
+  const { data: historyBalanceMapping, isLoading: isGettingHistoryBalance } = useGetHistoryBalances(
+    address,
+    chainId as SupportedChain,
+  );
   const currentPortfolioValue = (positions ?? []).reduce((acc, curr) => {
     const tokenPrice = tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ?? 0;
     const tokenValue = tokenPrice * curr.tokenBalance;
@@ -43,7 +47,7 @@ function useCalculatePositionsValue() {
       tokenIdToTokenHistoryPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       0;
-    const tokenValue = tokenPrice * curr.tokenHistoryBalance;
+    const tokenValue = tokenPrice * (historyBalanceMapping?.[curr.tokenId.toLocaleLowerCase()] ?? curr.tokenBalance);
     return acc + tokenValue;
   }, 0);
 
@@ -59,7 +63,8 @@ function useCalculatePositionsValue() {
   });
 
   return {
-    isCalculating: isPendingCurrentPrices || isPendingHistoryPrices,
+    isCalculating: isLoadingCurrentPrices || isLoadingHistoryPrices,
+    isCalculatingDelta: isGettingHistoryBalance,
     isGettingPositions: isPending,
     delta,
     positions: positionsWithTokenValue,

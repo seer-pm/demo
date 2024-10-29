@@ -2,7 +2,7 @@ import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
-import useCalculatePositionsValue from "@/hooks/portfolio/useCalculatePositionsValue";
+import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
 
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
@@ -15,7 +15,8 @@ function PortfolioPage() {
 
   const activeTab = searchParams.get("tab") || "positions";
 
-  const { isCalculating, delta, currentPortfolioValue, deltaPercent } = useCalculatePositionsValue();
+  const { isCalculating, delta, currentPortfolioValue, deltaPercent, isCalculatingDelta } =
+    useCalculatePositionsValue();
 
   if (!address) {
     return (
@@ -37,28 +38,29 @@ function PortfolioPage() {
         <div>
           <p className="text-[16px] text-black-secondary">Total</p>
           {isCalculating ? (
-            <div className="mt-3 shimmer-container h-[48px] w-[300px]" />
+            <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
           ) : (
             <p className="text-[32px] text-[#333333] font-semibold">
               {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
             </p>
           )}
-          {!isCalculating &&
-            (delta >= 0 ? (
-              <p className="text-[#00C42B] flex gap-2">
-                <span>
-                  <ArrowDropUp fill="#00C42B" />
-                </span>
-                {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
-              </p>
-            ) : (
-              <p className="text-[#c40000] flex gap-2">
-                <span>
-                  <ArrowDropDown fill="#c40000" />
-                </span>
-                {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
-              </p>
-            ))}
+          {isCalculatingDelta ? (
+            <div className="shimmer-container h-[20px] w-[300px]" />
+          ) : delta >= 0 ? (
+            <p className="text-[#00C42B] flex gap-2">
+              <span>
+                <ArrowDropUp fill="#00C42B" />
+              </span>
+              {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
+            </p>
+          ) : (
+            <p className="text-[#c40000] flex gap-2">
+              <span>
+                <ArrowDropDown fill="#c40000" />
+              </span>
+              {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
+            </p>
+          )}
         </div>
       </div>
 

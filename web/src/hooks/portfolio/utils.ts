@@ -2,8 +2,11 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { config } from "@/wagmi";
 import { ChainId } from "@swapr/sdk";
+import { readContracts } from "@wagmi/core";
 import { ethers } from "ethers";
+import { Address, erc20Abi } from "viem";
 import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 
@@ -148,8 +151,16 @@ export async function getAllPools(
   const { pools } = await graphQLSdk(graphQLClient).GetPools({
     where: {
       or: tokens.reduce(
-        (acc, { tokenId }) => {
-          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+        (acc, { tokenId, parentTokenId }) => {
+          if (parentTokenId) {
+            acc.push(
+              tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
+                ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
+                : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
+            );
+          } else {
+            acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+          }
           return acc;
         },
         [] as { [key: string]: string }[],
@@ -158,4 +169,38 @@ export async function getAllPools(
   });
 
   return pools;
+}
+
+export async function getTokensInfo(tokenAddresses: readonly Address[], account: Address) {
+  const functions = [
+    {
+      name: "balanceOf",
+      args: [account],
+    },
+    {
+      name: "name",
+      args: [],
+    },
+    {
+      name: "decimals",
+      args: [],
+    },
+  ];
+  const data = await Promise.all(
+    functions.map(({ name, args }) =>
+      readContracts(config, {
+        contracts: tokenAddresses.map((wrappedAddress) => ({
+          abi: erc20Abi,
+          address: wrappedAddress,
+          functionName: name,
+          args,
+        })),
+        allowFailure: false,
+      }),
+    ),
+  );
+  const balances = data[0] as bigint[];
+  const names = data[1] as string[];
+  const decimals = data[2] as bigint[];
+  return { balances, names, decimals };
 }
