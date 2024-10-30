@@ -1,13 +1,16 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated";
 import { Address } from "viem";
+import { gnosis } from "viem/chains";
 import { SupportedChain } from "./chains";
 
 export const paths = {
   market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}`,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
-  verifiedMarketPolicy: () =>
-    "https://cdn.kleros.link/ipfs/QmP1JMDd1EP1uR4ski5PQTJWyYsaafnsLyzYscD8fdpd8v/seer-verified-markets-on-gnosis-policy.pdf",
+  verifiedMarketPolicy: (chainId: number | undefined) =>
+    chainId === gnosis.id
+      ? "https://cdn.kleros.link/ipfs/QmaKDV8ozMHCBk7KMWUKd33pJ4nixbffnKodXxsBbx49Xm/seer-verified-markets-on-gnosis-compressed.pdf"
+      : "https://cdn.kleros.link/ipfs/QmbCGP6uY3GMgDgn2wSTZs8HL4muSTQ6Hn6fZ4rn3mZvUC/seer-verified-markets-on-ethereum-compressed.pdf",
   marketRulesPolicy: () =>
     "https://cdn.kleros.link/ipfs/QmPmRkXFUmzP4rq2YfD3wNwL8bg3WDxkYuvTP9A9UZm9gJ/seer-markets-resolution-policy.pdf",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>

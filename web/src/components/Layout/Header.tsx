@@ -15,10 +15,12 @@ import {
 import { paths } from "@/lib/paths";
 import { useEffect, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
+import { useAccount } from "wagmi";
 
 export default function Header() {
   const pageContext = usePageContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { chainId } = useAccount();
 
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
@@ -76,7 +78,7 @@ export default function Header() {
               <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary font-normal">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <a
-                    href={paths.verifiedMarketPolicy()}
+                    href={paths.verifiedMarketPolicy(chainId)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"
@@ -221,6 +223,7 @@ function BetaWarning() {
 }
 
 function MobileMenu() {
+  const { chainId } = useAccount();
   return (
     <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
       <div className="px-[24px] py-[48px]">
@@ -242,7 +245,7 @@ function MobileMenu() {
               <ul className="z-[1] w-[248px] [&_svg]:text-purple-primary font-normal !left-0">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px]">
                   <a
-                    href={paths.verifiedMarketPolicy()}
+                    href={paths.verifiedMarketPolicy(chainId)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"

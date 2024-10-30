@@ -140,6 +140,7 @@ interface ModalContentCreateMarketProps {
   marketReadyToVerify: boolean;
   submissionDeposit: bigint | undefined;
   useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
+  chainId: SupportedChain;
 }
 
 function ModalContentCreateMarket({
@@ -148,6 +149,7 @@ function ModalContentCreateMarket({
   marketReadyToVerify,
   submissionDeposit,
   useOutcomesFormReturn,
+  chainId,
 }: ModalContentCreateMarketProps) {
   return (
     <>
@@ -182,7 +184,7 @@ function ModalContentCreateMarket({
           <div className="flex space-x-[24px] items-center">
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
-              <a href={paths.verifiedMarketPolicy()} className="text-purple-primary">
+              <a href={paths.verifiedMarketPolicy(chainId)} className="text-purple-primary">
                 Verified Market Policy
               </a>
             </div>
@@ -388,6 +390,7 @@ export function PreviewForm({
                 marketReadyToVerify={marketReadyToVerify}
                 submissionDeposit={submissionDeposit}
                 useOutcomesFormReturn={useOutcomesFormReturn}
+                chainId={chainId}
               />
             )}
 
