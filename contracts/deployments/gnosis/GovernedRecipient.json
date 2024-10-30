@@ -1,5 +1,5 @@
 {
-  "address": "0x8Da08aA544b8016fF9530F625aE8C6c0dfd4792A",
+  "address": "0x9E850eB9699AC8417D3401ff1d89115214667b19",
   "abi": [
     {
       "inputs": [],
@@ -96,104 +96,5 @@
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ],
-  "transactionHash": "0x23c08f77707ca8761c9e58d2e858a16d497bebb8a52f9522aca490688820904f",
-  "receipt": {
-    "to": null,
-    "from": "0xB972788fD94972D673eB3aF068df1Dfe11A2ec37",
-    "contractAddress": "0x8Da08aA544b8016fF9530F625aE8C6c0dfd4792A",
-    "transactionIndex": 5,
-    "gasUsed": "536731",
-    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "blockHash": "0xad56e29299a204bbbc0cdaa3d6c9e1d50ab74287ddd5a3db6a4cc125b63a9e34",
-    "transactionHash": "0x23c08f77707ca8761c9e58d2e858a16d497bebb8a52f9522aca490688820904f",
-    "logs": [],
-    "blockNumber": 36727332,
-    "cumulativeGasUsed": "865453",
-    "status": 1,
-    "byzantium": true
-  },
-  "args": [],
-  "numDeployments": 1,
-  "solcInputHash": "34e5037251800ac200fb66d2ef6e4b12",
-  "metadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_newRecipients\",\"type\":\"address[]\"}],\"name\":\"addRecipients\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_governor\",\"type\":\"address\"}],\"name\":\"changeGovernor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"governor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"isEligible\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"recipients\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_oldRecipients\",\"type\":\"address[]\"}],\"name\":\"removeRecipients\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"addRecipients(address[])\":{\"details\":\"Add recipients.\",\"params\":{\"_newRecipients\":\"The recipients to add.\"}},\"changeGovernor(address)\":{\"details\":\"Change the governor of the contract.\",\"params\":{\"_governor\":\"The address of the new governor.\"}},\"constructor\":{\"details\":\"Constructor.\"},\"isEligible(address)\":{\"details\":\"Check if an address is elibigle.\",\"params\":{\"_user\":\"The address to check if eligible.\"}},\"removeRecipients(address[])\":{\"details\":\"Remove recipients.\",\"params\":{\"_oldRecipients\":\"The recipients to remove.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/airdrop/GovernedRecipient.sol\":\"GovernedRecipient\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"src/airdrop/GovernedRecipient.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity 0.8.28;\\r\\n\\r\\nimport \\\"./IRecipient.sol\\\";\\r\\n\\r\\ncontract GovernedRecipient is IRecipient {\\r\\n    address public governor; // The address that can make governance changes to the parameters of the contract.\\r\\n    mapping(address => bool) public recipients; // True if the address is a recipient. \\r\\n\\r\\n    modifier onlyGovernor() {\\r\\n        require(msg.sender == governor, \\\"The caller must be the governor\\\");\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    /// @dev Constructor.\\r\\n    constructor() {\\r\\n        governor = msg.sender;\\r\\n    }\\r\\n\\r\\n    /// @dev Change the governor of the contract.\\r\\n    /// @param _governor The address of the new governor.\\r\\n    function changeGovernor(address _governor) external onlyGovernor {\\r\\n        governor = _governor;\\r\\n    }\\r\\n\\r\\n    /// @dev Check if an address is elibigle.\\r\\n    /// @param _user The address to check if eligible.\\r\\n    function isEligible(address _user) external view returns (bool) {\\r\\n        return recipients[_user];\\r\\n    }\\r\\n\\r\\n    /// @dev Add recipients.\\r\\n    /// @param _newRecipients The recipients to add.\\r\\n    function addRecipients(address[] memory _newRecipients) onlyGovernor external {\\r\\n        for (uint i; i<_newRecipients.length; ++i) {\\r\\n            recipients[_newRecipients[i]] = true;\\r\\n        }\\r\\n    }\\r\\n\\r\\n    /// @dev Remove recipients.\\r\\n    /// @param _oldRecipients The recipients to remove.\\r\\n    function removeRecipients(address[] memory _oldRecipients) onlyGovernor external {\\r\\n        for (uint i; i<_oldRecipients.length; ++i) {\\r\\n            recipients[_oldRecipients[i]] = false;\\r\\n        }\\r\\n    }\\r\\n\\r\\n}\",\"keccak256\":\"0x2a0ea59f882b56f54b0d46554f590a553a17858d519e4c70b881383728cffe83\",\"license\":\"MIT\"},\"src/airdrop/IRecipient.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity 0.8.28;\\r\\n\\r\\ninterface IRecipient {\\r\\n    /// @dev Check if an address is eligible.\\r\\n    /// @param _user The address to check if eligible.\\r\\n    function isEligible(address _user) external view returns (bool);\\r\\n}\",\"keccak256\":\"0x7fe8af89e7dcfb66fd9ec2e07854883fc7fea8f824e529ce5e43d4955a6bff79\",\"license\":\"MIT\"}},\"version\":1}",
-  "bytecode": "0x6080604052348015600f57600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555061085c8061005f6000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c80630c340a241461006757806329af54cc14610085578063639ab82f146100a157806366e305fd146100bd578063e4c0aaf4146100ed578063eb82031214610109575b600080fd5b61006f610139565b60405161007c919061051a565b60405180910390f35b61009f600480360381019061009a91906106ce565b61015d565b005b6100bb60048036038101906100b691906106ce565b610277565b005b6100d760048036038101906100d29190610717565b610392565b6040516100e4919061075f565b60405180910390f35b61010760048036038101906101029190610717565b6103e8565b005b610123600480360381019061011e9190610717565b6104b9565b604051610130919061075f565b60405180910390f35b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101eb576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016101e2906107d7565b60405180910390fd5b60005b815181101561027357600180600084848151811061020f5761020e6107f7565b5b602002602001015173ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055508060010190506101ee565b5050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610305576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102fc906107d7565b60405180910390fd5b60005b815181101561038e5760006001600084848151811061032a576103296107f7565b5b602002602001015173ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff021916908315150217905550806001019050610308565b5050565b6000600160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff169050919050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610476576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161046d906107d7565b60405180910390fd5b806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050565b60016020528060005260406000206000915054906101000a900460ff1681565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610504826104d9565b9050919050565b610514816104f9565b82525050565b600060208201905061052f600083018461050b565b92915050565b6000604051905090565b600080fd5b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6105978261054e565b810181811067ffffffffffffffff821117156105b6576105b561055f565b5b80604052505050565b60006105c9610535565b90506105d5828261058e565b919050565b600067ffffffffffffffff8211156105f5576105f461055f565b5b602082029050602081019050919050565b600080fd5b610614816104f9565b811461061f57600080fd5b50565b6000813590506106318161060b565b92915050565b600061064a610645846105da565b6105bf565b9050808382526020820190506020840283018581111561066d5761066c610606565b5b835b8181101561069657806106828882610622565b84526020840193505060208101905061066f565b5050509392505050565b600082601f8301126106b5576106b4610549565b5b81356106c5848260208601610637565b91505092915050565b6000602082840312156106e4576106e361053f565b5b600082013567ffffffffffffffff81111561070257610701610544565b5b61070e848285016106a0565b91505092915050565b60006020828403121561072d5761072c61053f565b5b600061073b84828501610622565b91505092915050565b60008115159050919050565b61075981610744565b82525050565b60006020820190506107746000830184610750565b92915050565b600082825260208201905092915050565b7f5468652063616c6c6572206d7573742062652074686520676f7665726e6f7200600082015250565b60006107c1601f8361077a565b91506107cc8261078b565b602082019050919050565b600060208201905081810360008301526107f0816107b4565b9050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fdfea264697066735822122029247e16b6634ad6ccddd1585e196e05ca64911d4b8d495a24fc857425cd862264736f6c634300081c0033",
-  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100625760003560e01c80630c340a241461006757806329af54cc14610085578063639ab82f146100a157806366e305fd146100bd578063e4c0aaf4146100ed578063eb82031214610109575b600080fd5b61006f610139565b60405161007c919061051a565b60405180910390f35b61009f600480360381019061009a91906106ce565b61015d565b005b6100bb60048036038101906100b691906106ce565b610277565b005b6100d760048036038101906100d29190610717565b610392565b6040516100e4919061075f565b60405180910390f35b61010760048036038101906101029190610717565b6103e8565b005b610123600480360381019061011e9190610717565b6104b9565b604051610130919061075f565b60405180910390f35b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101eb576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016101e2906107d7565b60405180910390fd5b60005b815181101561027357600180600084848151811061020f5761020e6107f7565b5b602002602001015173ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055508060010190506101ee565b5050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610305576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102fc906107d7565b60405180910390fd5b60005b815181101561038e5760006001600084848151811061032a576103296107f7565b5b602002602001015173ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff021916908315150217905550806001019050610308565b5050565b6000600160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff169050919050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610476576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161046d906107d7565b60405180910390fd5b806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050565b60016020528060005260406000206000915054906101000a900460ff1681565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610504826104d9565b9050919050565b610514816104f9565b82525050565b600060208201905061052f600083018461050b565b92915050565b6000604051905090565b600080fd5b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6105978261054e565b810181811067ffffffffffffffff821117156105b6576105b561055f565b5b80604052505050565b60006105c9610535565b90506105d5828261058e565b919050565b600067ffffffffffffffff8211156105f5576105f461055f565b5b602082029050602081019050919050565b600080fd5b610614816104f9565b811461061f57600080fd5b50565b6000813590506106318161060b565b92915050565b600061064a610645846105da565b6105bf565b9050808382526020820190506020840283018581111561066d5761066c610606565b5b835b8181101561069657806106828882610622565b84526020840193505060208101905061066f565b5050509392505050565b600082601f8301126106b5576106b4610549565b5b81356106c5848260208601610637565b91505092915050565b6000602082840312156106e4576106e361053f565b5b600082013567ffffffffffffffff81111561070257610701610544565b5b61070e848285016106a0565b91505092915050565b60006020828403121561072d5761072c61053f565b5b600061073b84828501610622565b91505092915050565b60008115159050919050565b61075981610744565b82525050565b60006020820190506107746000830184610750565b92915050565b600082825260208201905092915050565b7f5468652063616c6c6572206d7573742062652074686520676f7665726e6f7200600082015250565b60006107c1601f8361077a565b91506107cc8261078b565b602082019050919050565b600060208201905081810360008301526107f0816107b4565b9050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fdfea264697066735822122029247e16b6634ad6ccddd1585e196e05ca64911d4b8d495a24fc857425cd862264736f6c634300081c0033",
-  "devdoc": {
-    "kind": "dev",
-    "methods": {
-      "addRecipients(address[])": {
-        "details": "Add recipients.",
-        "params": {
-          "_newRecipients": "The recipients to add."
-        }
-      },
-      "changeGovernor(address)": {
-        "details": "Change the governor of the contract.",
-        "params": {
-          "_governor": "The address of the new governor."
-        }
-      },
-      "constructor": {
-        "details": "Constructor."
-      },
-      "isEligible(address)": {
-        "details": "Check if an address is elibigle.",
-        "params": {
-          "_user": "The address to check if eligible."
-        }
-      },
-      "removeRecipients(address[])": {
-        "details": "Remove recipients.",
-        "params": {
-          "_oldRecipients": "The recipients to remove."
-        }
-      }
-    },
-    "version": 1
-  },
-  "userdoc": {
-    "kind": "user",
-    "methods": {},
-    "version": 1
-  },
-  "storageLayout": {
-    "storage": [
-      {
-        "astId": 7304,
-        "contract": "src/airdrop/GovernedRecipient.sol:GovernedRecipient",
-        "label": "governor",
-        "offset": 0,
-        "slot": "0",
-        "type": "t_address"
-      },
-      {
-        "astId": 7308,
-        "contract": "src/airdrop/GovernedRecipient.sol:GovernedRecipient",
-        "label": "recipients",
-        "offset": 0,
-        "slot": "1",
-        "type": "t_mapping(t_address,t_bool)"
-      }
-    ],
-    "types": {
-      "t_address": {
-        "encoding": "inplace",
-        "label": "address",
-        "numberOfBytes": "20"
-      },
-      "t_bool": {
-        "encoding": "inplace",
-        "label": "bool",
-        "numberOfBytes": "1"
-      },
-      "t_mapping(t_address,t_bool)": {
-        "encoding": "mapping",
-        "key": "t_address",
-        "label": "mapping(address => bool)",
-        "numberOfBytes": "32",
-        "value": "t_bool"
-      }
-    }
-  }
+  ]
 }
