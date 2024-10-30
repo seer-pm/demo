@@ -222,7 +222,7 @@ function BetaWarning() {
 
 function MobileMenu() {
   return (
-    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100]">
+    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
       <div className="px-[24px] py-[48px]">
         <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
         <ul className="space-y-[24px]">
