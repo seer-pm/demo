@@ -27,7 +27,7 @@ export async function getUniswapHistoryTokensPrices(
       tokens.map(({ tokenId, parentTokenId }) => {
         const collateral = parentTokenId
           ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address;
+          : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
         return {
           first: 1,
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
@@ -38,6 +38,7 @@ export async function getUniswapHistoryTokensPrices(
                 ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
                 : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
             periodStartUnix_lte: startTime,
+            periodStartUnix_gte: startTime - 60 * 60 * 24 * 30 * 3,
           },
         };
       }),

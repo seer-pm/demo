@@ -41,7 +41,6 @@ function useCalculatePositionsValue() {
     const tokenValue = tokenPrice * curr.tokenBalance;
     return acc + tokenValue;
   }, 0);
-
   const historyPortfolioValue = (positions ?? []).reduce((acc, curr) => {
     const tokenPrice =
       tokenIdToTokenHistoryPrice?.[curr.tokenId.toLocaleLowerCase()] ??
@@ -52,7 +51,6 @@ function useCalculatePositionsValue() {
   }, 0);
 
   const delta = currentPortfolioValue - historyPortfolioValue;
-
   const positionsWithTokenValue = positions?.map((position) => {
     const tokenPrice = tokenIdToTokenCurrentPrice?.[position.tokenId.toLocaleLowerCase()];
     return {
@@ -63,8 +61,8 @@ function useCalculatePositionsValue() {
   });
 
   return {
-    isCalculating: isLoadingCurrentPrices || isLoadingHistoryPrices,
-    isCalculatingDelta: isGettingHistoryBalance,
+    isCalculating: isLoadingCurrentPrices,
+    isCalculatingDelta: isGettingHistoryBalance || isLoadingHistoryPrices,
     isGettingPositions: isPending,
     delta,
     positions: positionsWithTokenValue,

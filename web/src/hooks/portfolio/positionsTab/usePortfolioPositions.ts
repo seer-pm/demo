@@ -9,6 +9,8 @@ import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { isUndefined } from "@/lib/utils";
+import { BigNumber, ethers } from "ethers";
 import { getBlockNumberAtTime, getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
@@ -75,7 +77,28 @@ const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Addr
       attempts++;
     }
   }
-
+  // if no result try one last time with ethers
+  if (!results.filter((x) => x).length) {
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const data = await Promise.allSettled(
+        allTokensIds.map((tokenId) => {
+          const contract = new ethers.Contract(tokenId, erc20Abi, provider);
+          return contract
+            .balanceOf(address, {
+              blockTag: initialBlockNumber,
+            })
+            .then((data: BigNumber) => data.toBigInt());
+        }),
+      );
+      return data.map((result) => {
+        if (result.status === "fulfilled" && !isUndefined(result.value)) {
+          return result.value;
+        }
+        return null;
+      });
+    } catch (e) {}
+  }
   return results;
 };
 
@@ -228,7 +251,7 @@ export const useGetHistoryBalances = (address: Address | undefined, chainId: Sup
     enabled: !!address,
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
-    queryKey: ["useGetHistoryBalances", address, !!markets],
+    queryKey: ["useGetHistoryBalances", address, !!markets, chainId],
     queryFn: async () => getHistoryBalanceMapping(markets, address!, chainId),
   });
 };

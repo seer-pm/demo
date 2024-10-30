@@ -153,7 +153,9 @@ async function getHistoryOdds(
   ]);
   return await Promise.all(
     tokens.map(({ tokenId, parentTokenId }, index) => {
-      const collateral = parentTokenId ? parentTokenId.toLocaleLowerCase() : COLLATERAL_TOKENS[chainId].primary.address;
+      const collateral = parentTokenId
+        ? parentTokenId.toLocaleLowerCase()
+        : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
       return getPoolHourDatasByToken(tokenId, collateral, lastNotEmptyStartTimes[index] ?? startTime, chainId);
     }),
   );
