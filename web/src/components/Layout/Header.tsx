@@ -100,7 +100,10 @@ export default function Header() {
             </div>
           </li>
           <li>
-            <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
+            {/* <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
+              Airdrop
+            </Link> */}
+            <Link to={"/airdrop"} className="hover:opacity-85">
               Airdrop
             </Link>
           </li>
