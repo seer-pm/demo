@@ -64,7 +64,7 @@ function AirdropPage() {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px]">
         <Alert type="warning" title="Not eligible">
-          <p className="leading-6">
+          <p className="text-left leading-6">
             This wallet is not eligible for the US Election airdrop. Only addresses of{" "}
             <a className="font-semibold text-purple-primary" href="https://kleros.io/">
               Kleros
