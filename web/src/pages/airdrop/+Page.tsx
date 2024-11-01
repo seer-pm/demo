@@ -64,7 +64,26 @@ function AirdropPage() {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px]">
         <Alert type="warning" title="Not eligible">
-          This wallet is not eligible for airdrop.
+          <p className="leading-6">
+            This wallet is not eligible for the US Election airdrop. Only addresses of{" "}
+            <a className="font-semibold text-purple-primary" href="https://kleros.io/">
+              Kleros
+            </a>{" "}
+            jurors (as of 2024-10-31) and of people who previously registered in{" "}
+            <a className="font-semibold text-purple-primary" href="https://proofofhumanity.id/">
+              Proof Of Humanity
+            </a>{" "}
+            are eligible.
+            <br />
+            To be eligible for further airdrop, you can look at this{" "}
+            <a
+              className="font-semibold text-purple-primary"
+              href="https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9"
+            >
+              article
+            </a>
+            .
+          </p>
         </Alert>
       </div>
     );
@@ -74,10 +93,18 @@ function AirdropPage() {
       <Breadcrumb links={[{ title: "Airdrop" }]} />
       <Alert type="info" title="Outcome Tokens Airdrop">
         <div className="space-y-2 mt-2">
-          <p>
-            You'll receive tokens representing all outcomes in the incentivized markets (check the table below). We
-            recommend keeping only the tokens for your preferred outcome and selling the rest. This way, you'll remain
-            eligible for future airdrops.
+          <p className="text-left leading-6">
+            {isClaimed ? "You've received" : "You'll receive"} tokens representing outcomes in the following markets
+            (check the table below).
+            <br />
+            You should keep tokens of outcomes you believe are underpriced and sell the tokens of outcomes you believe
+            are currently overpriced.
+            <br />
+            In order to be fully eligible for further airdrops, each of the eight markets should have:
+            <br />- One token that you completely sold (balance of 0).
+            <br />- One token that you completely kept (balance of 1 or greater) until the market resolves.
+            <br />
+            After the result of those markets become known, you can redeem tokens of correct outcomes for sDAI.
           </p>
           <div>
             <Button
