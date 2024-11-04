@@ -50,5 +50,19 @@
       "address": "0xFe0eb5fC686f929Eb26D541D75Bb59F816c0Aa68",
       "startBlock": 20922529
     }
+  },
+  "sepolia": {
+    "MarketFactory": {
+      "address": "0x221456ACFD185EE168052B3DA899939303775C7a",
+      "startBlock": 6992825
+    },
+    "Reality": {
+      "address": "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA",
+      "startBlock": 6992825
+    },
+    "ConditionalTokens": {
+      "address": "0x8bdC504dC3A05310059c1c67E0A2667309D27B93",
+      "startBlock": 6992825
+    }
   }
 }
