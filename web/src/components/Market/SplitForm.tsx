@@ -15,7 +15,7 @@ import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 export interface SplitFormValues {
-  amount: number;
+  amount: string;
   useAltCollateral: boolean;
 }
 
@@ -29,7 +29,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
-      amount: 0,
+      amount: "",
       useAltCollateral: false,
     },
   });
@@ -53,7 +53,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
     market.chainId,
   );
 
-  const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
+  const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
   const { data: missingApprovals = [] } = useMissingApprovals(
     selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
     account,
@@ -91,13 +91,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
           <div
             className="text-purple-primary cursor-pointer"
             onClick={() => {
-              const maxJsDecimals = 16;
-              const roundTo =
-                selectedCollateral.decimals > maxJsDecimals
-                  ? BigInt(10 ** (selectedCollateral.decimals - maxJsDecimals))
-                  : 1n;
-              const max = Number(formatUnits((balance / roundTo) * roundTo, selectedCollateral.decimals));
-              setValue("amount", max, {
+              setValue("amount", formatUnits(balance, selectedCollateral.decimals), {
                 shouldValidate: true,
                 shouldDirty: true,
               });
@@ -125,12 +119,11 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
           step="any"
           {...register("amount", {
             required: "This field is required.",
-            valueAsNumber: true,
+            // valueAsNumber: true,
             validate: (v) => {
               if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";
               }
-
               if (parseUnits(String(v), selectedCollateral.decimals) > balance) {
                 return "Not enough balance.";
               }

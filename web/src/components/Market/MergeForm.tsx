@@ -2,7 +2,7 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { Market } from "@/hooks/useMarket";
-import { Position, useMarketPositions } from "@/hooks/useMarketPositions";
+import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
@@ -18,7 +18,7 @@ import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 export interface MergeFormValues {
-  amount: number;
+  amount: string;
   useAltCollateral: boolean;
 }
 
@@ -34,7 +34,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
-      amount: 0,
+      amount: "",
     },
   });
 
@@ -53,7 +53,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
-  const parsedAmount = parseUnits(String(amount || 0), selectedCollateral.decimals);
+  const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
   const { data: missingApprovals } = useMissingApprovals(
     market.wrappedTokens,
     account,
@@ -82,13 +82,10 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
     });
   };
 
-  const maxPositionAmount = positions.reduce((acum, curr: Position) => {
-    if (acum === 0n || curr.balance < acum) {
-      // biome-ignore lint/style/noParameterAssign:
-      acum = curr.balance;
-    }
-    return acum;
-  }, BigInt(0));
+  const maxPositionAmount = positions.reduce(
+    (min, curr) => (min < curr.balance ? min : curr.balance),
+    positions?.[0]?.balance ?? 0n,
+  );
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
@@ -102,14 +99,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
           <div
             className="text-purple-primary cursor-pointer"
             onClick={() => {
-              // round down maxPositionAmount
-              const maxJsDecimals = 16;
-              const roundTo =
-                selectedCollateral.decimals > maxJsDecimals
-                  ? BigInt(10 ** (selectedCollateral.decimals - maxJsDecimals))
-                  : 1n;
-              const max = Number(formatUnits((maxPositionAmount / roundTo) * roundTo, selectedCollateral.decimals));
-              setValue("amount", max, {
+              setValue("amount", formatUnits(maxPositionAmount, selectedCollateral.decimals), {
                 shouldValidate: true,
                 shouldDirty: true,
               });
@@ -150,7 +140,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
           step="any"
           {...register("amount", {
             required: "This field is required.",
-            valueAsNumber: true,
+            // valueAsNumber: true,
             validate: (v) => {
               if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";
