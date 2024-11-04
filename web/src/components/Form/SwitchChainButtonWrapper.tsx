@@ -20,7 +20,7 @@ export function SwitchChainButtonWrapper({
       type="button"
       onClick={() => switchChain({ chainId })}
       isLoading={isPending}
-      text={`Switch to ${SUPPORTED_CHAINS[chainId].name}`}
+      text={`Switch to ${SUPPORTED_CHAINS?.[chainId]?.name}`}
       className="w-full"
     />
   );

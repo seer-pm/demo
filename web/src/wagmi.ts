@@ -15,7 +15,10 @@ const metadata = {
 export const config = defaultWagmiConfig({
   metadata,
   projectId: import.meta.env.VITE_WC_PROJECT_ID,
-  chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
+  chains:
+    import.meta.env.VITE_TESTNET_WEBSITE === "1"
+      ? [sepolia]
+      : (Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]]),
   connectors: [
     injected(),
     coinbaseWallet({ appName: "Seer" }),

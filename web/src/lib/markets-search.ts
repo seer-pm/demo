@@ -29,7 +29,7 @@ async function getVerificationStatusList(
   chainId: SupportedChain,
 ): Promise<Record<Address, VerificationResult | undefined>> {
   const client = curateGraphQLClient(chainId);
-
+  // @ts-ignore
   const registryAddress = lightGeneralizedTcrAddress[chainId];
 
   if (client && !isUndefined(registryAddress)) {

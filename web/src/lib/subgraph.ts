@@ -1,5 +1,5 @@
 import { GraphQLClient } from "graphql-request";
-import { SupportedChain, gnosis, mainnet } from "./chains";
+import { SupportedChain, gnosis, mainnet, sepolia } from "./chains";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
@@ -8,6 +8,7 @@ export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
     (typeof window !== "undefined" && import.meta.env.VITE_SUBGRAPH_GNOSIS) ||
     `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
   [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
+  [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/D3GwDsD5uH2W96suKJcUtKAGmYSs5zLs7TpiVtd5G4uk`,
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp`,
