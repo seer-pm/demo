@@ -26,7 +26,10 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
         where: {
           // status: registered ? Status.Registered : undefined,
           registryAddress,
-          key0_in: ids.map((id) => getAddress(id)),
+          key0_in: ids.reduce((acc, id) => {
+            acc.push(id, getAddress(id));
+            return acc;
+          }, [] as string[]),
         },
       });
       return litems;
@@ -55,19 +58,19 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain, regi
 
       const item = litems[0];
 
-      const metadataResult = await fetch(`https://ipfs.kleros.io${item.data}`);
+      const metadataResult = await fetch(`https://cdn.kleros.link${item.data}`);
       const imagesIpfsPath = (await metadataResult.json())?.values?.Images;
 
       if (!imagesIpfsPath) {
         throw new Error("Market images not found");
       }
 
-      const imagesResult = await fetch(`https://ipfs.kleros.io${imagesIpfsPath}`);
+      const imagesResult = await fetch(`https://cdn.kleros.link${imagesIpfsPath}`);
       const imagesMetadata = await imagesResult.json();
 
       return {
-        market: `https://ipfs.kleros.io${imagesMetadata.market}`,
-        outcomes: ((imagesMetadata.outcomes || []) as string[]).map((path) => `https://ipfs.kleros.io${path}`),
+        market: `https://cdn.kleros.link${imagesMetadata.market}`,
+        outcomes: ((imagesMetadata.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
       };
     },
     retry: false,
