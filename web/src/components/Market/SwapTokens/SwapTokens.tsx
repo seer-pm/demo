@@ -1,5 +1,5 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
-import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
+import { useConvertToAssets, useConvertToShares } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
@@ -136,22 +136,45 @@ export function SwapTokens({
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
   const isMultiStepsSwap = isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
   const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
+  const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
+
   const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
     isMultiStepsSell ? (quoteData?.value ?? 0n) : 0n,
     chainId,
   );
-  const assets = sharesToAssets ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals)) : 0;
+  const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
+    isCowSwapDai
+      ? swapType === "buy"
+        ? parseUnits(amount, selectedCollateral.decimals)
+        : (quoteData?.value ?? 0n)
+      : 0n,
+    chainId,
+  );
+  const cowSwapDaiAmount = assetsToShares ? Number(formatUnits(assetsToShares, selectedCollateral.decimals)) : 0;
 
-  // if collateral is dai, wxdai or xdai, we have to calculate maxCollateralPerShare
-  const { data: maxDAIPerShare } = useConvertToAssets(parseUnits("1", sDAI.decimals), chainId);
-  const maxCollateralPerShare = isCollateralDai
-    ? Number(formatUnits(maxDAIPerShare ?? 0n, selectedCollateral.decimals))
-    : 1;
+  // calculate price per share
+  const multiStepSellDaiReceived = sharesToAssets
+    ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals))
+    : 0;
+  const inputAmount = quoteData
+    ? Number(
+        formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
+      )
+    : 0;
+  const receivedAmount = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
+  const collateralPerShare = (() => {
+    if (!quoteData) return 0;
+    if (!isCowSwapDai) {
+      return Number(inputAmount) / receivedAmount;
+    }
+    if (swapType === "buy") {
+      return cowSwapDaiAmount / receivedAmount;
+    }
+    return Number(inputAmount) / cowSwapDaiAmount;
+  })();
 
   // check if current token price higher than 1 collateral per token
-  const shares = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
-  const collateralPerShare = shares > 0 ? Number(amount) / (isMultiStepsSell ? assets : shares) : 0;
-  const isPriceTooHigh = collateralPerShare > maxCollateralPerShare && swapType === "buy";
+  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
   return (
     <>
@@ -270,7 +293,7 @@ export function SwapTokens({
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
                 Price per share ={" "}
-                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets ? (
+                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
@@ -279,7 +302,7 @@ export function SwapTokens({
                         ? (1 / collateralPerShare).toFixed(3)
                         : 0
                       : collateralPerShare.toFixed(3)}{" "}
-                    {selectedCollateral.symbol}
+                    {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
                   </>
                 )}
               </div>
@@ -292,7 +315,8 @@ export function SwapTokens({
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
-                    {isMultiStepsSell ? assets.toFixed(3) : shares.toFixed(3)} {buyToken.symbol}
+                    {isMultiStepsSell ? multiStepSellDaiReceived.toFixed(3) : receivedAmount.toFixed(3)}{" "}
+                    {buyToken.symbol}
                   </>
                 )}
               </div>
@@ -300,8 +324,8 @@ export function SwapTokens({
 
             {isPriceTooHigh && (
               <Alert type="warning">
-                Price exceeds {maxCollateralPerShare.toFixed(2)} {selectedCollateral.symbol} per share. Try to reduce
-                the input amount.
+                Price exceeds 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the
+                input amount.
               </Alert>
             )}
             {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
