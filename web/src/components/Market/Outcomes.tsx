@@ -219,7 +219,10 @@ export function Outcomes({ market, images }: PositionsProps) {
 
   const outcomeClick = (i: number) => {
     return () => {
-      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
+      setSearchParams(
+        { outcome: toSnakeCase(market.outcomes[i]) },
+        { overwriteLastHistoryEntry: true, keepScrollPosition: true },
+      );
     };
   };
 

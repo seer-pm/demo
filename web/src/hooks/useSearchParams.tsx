@@ -6,6 +6,7 @@ import { navigate } from "vike/client/router";
 
 interface NavigateOptions {
   overwriteLastHistoryEntry?: boolean;
+  keepScrollPosition?: boolean;
 }
 
 type ParamKeyValuePair = [string, string];
