@@ -7,7 +7,7 @@ export default {
   Layout,
   extends: vikeReact,
   passToClient: ["dehydratedState"],
-  title: "A Next Generation Prediction Marketplace",
+  title: "Seer | A Next Generation Prediction Marketplace",
   description: "Efficient on-chain prediction markets.",
   image: "https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg",
   bodyAttributes: {

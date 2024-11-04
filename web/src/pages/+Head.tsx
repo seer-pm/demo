@@ -37,7 +37,7 @@ export default () => {
       <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon-96x96.png" />
       <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
       <link rel="manifest" href="/assets/manifest.json" />
-      <meta name="msapplication-config" content="/assers/browserconfig.xml" />
+      <meta name="msapplication-config" content="/assets/browserconfig.xml" />
       <meta name="msapplication-TileColor" content="#ffffff" />
       <meta name="msapplication-TileImage" content="/assets/ms-icon-144x144.png" />
       <meta name="theme-color" content="#ffffff" />

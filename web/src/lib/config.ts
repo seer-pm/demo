@@ -1,13 +1,11 @@
 import * as generatedHooks from "@/hooks/contracts/generated";
-// to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
-const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
-import ethereumIcon from "../../assets/images/ethereum.webp";
-import gnosisIcon from "../../assets/images/gnosis.webp";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
+// to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
+const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 
 type BigInt = Record<number, bigint>;
 
@@ -106,6 +104,6 @@ export const getFarmingUrl = (chainId: number, farmId: string) => {
 };
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
-  [gnosis.id]: gnosisIcon,
-  [mainnet.id]: ethereumIcon,
+  [gnosis.id]: "/assets/images/gnosis.webp",
+  [mainnet.id]: "/assets/images/ethereum.webp",
 };
