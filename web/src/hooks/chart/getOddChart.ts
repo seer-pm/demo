@@ -241,7 +241,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
             const odds = oddsMapping[String(timestamp)]!;
             const marketEstimate =
               ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
-            return [timestamp, marketEstimate];
+            return [timestamp, Number(marketEstimate.toFixed(2))];
           }),
         },
       ];

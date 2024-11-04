@@ -241,7 +241,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
+          <div className="flex items-center gap-2">
+            Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate.toFixed(2)}
+          </div>
           {!isPendingOdds && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w[400px] ">
