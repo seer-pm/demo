@@ -213,7 +213,7 @@ export default async (request: Request, context: Context) => {
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", width: "88%" }}>
-          <div style={{ display: "flex", fontSize: 62, fontWeight: "bold", wordBreak: "break-all" }}>
+          <div style={{ display: "flex", fontSize: 62, fontWeight: "bold" }}>
             {market.marketName.length > 90 ? `${market.marketName.substring(0, 90)}...` : market.marketName}
           </div>
           <div style={{ display: "flex", fontSize: 24 }}>{market.outcomes.slice(0, -1).join(", ")}</div>
