@@ -103,7 +103,9 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: [...timestamps, currentTimestamp].filter((_, index) => index % 4 === 0),
+        customValues: (hasLiquidity ? [...timestamps, currentTimestamp] : timestamps).filter(
+          (_, index) => index % 4 === 0,
+        ),
       },
       axisPointer: {
         label: {
@@ -113,7 +115,9 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: [...timestamps, currentTimestamp].filter((_, index) => index % 4 === 0),
+        customValues: (hasLiquidity ? [...timestamps, currentTimestamp] : timestamps).filter(
+          (_, index) => index % 4 === 0,
+        ),
       },
     },
     yAxis: {
