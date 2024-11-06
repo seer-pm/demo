@@ -1,7 +1,7 @@
 import { useOddChartData } from "@/hooks/chart/useOddChartData";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -36,26 +36,26 @@ function MarketChart({ market }: { market: Market }) {
   );
   const { chartData = [], timestamps = [] } = data ?? {};
   const currentTimestamp = useMemo(() => Math.floor(new Date().getTime() / 1000), []);
+  const hasLiquidity = odds.some((odd) => isOdd(odd));
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
-  const marketEstimate =
-    ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
+  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
   const finalChartData = isScalarMarket
     ? chartData.map((x) => {
         return {
           ...x,
-          data: [...x.data, [currentTimestamp, marketEstimate]],
+          data: hasLiquidity ? [...x.data, [currentTimestamp, marketEstimate]] : x.data,
         };
       })
     : chartData
         .map((x, index) => {
           return {
             ...x,
-            data: [...x.data, [currentTimestamp, Number.isNaN(odds[index]) ? 0 : odds[index]]],
+            data: hasLiquidity ? [...x.data, [currentTimestamp, Number.isNaN(odds[index]) ? 0 : odds[index]]] : x.data,
             originalIndex: index,
           };
         })
         .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
-        .sort((a, b) => odds[b.originalIndex] - odds[a.originalIndex]);
+        .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
   const option = {
     color: [
       "#f58231",
@@ -81,7 +81,7 @@ function MarketChart({ market }: { market: Market }) {
         for (let i = 0; i < market.outcomes.length; i++) {
           const outcome = market.outcomes[i];
           if (name === outcome) {
-            return `${name} ${Number.isNaN(odds[i]) ? 0 : (odds[i] ?? 0)}%`;
+            return `${name} ${!isOdd(odds[i]) ? "NA" : `${odds[i]}%`}`;
           }
         }
         return name;

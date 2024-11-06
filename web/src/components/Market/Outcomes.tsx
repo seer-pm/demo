@@ -216,7 +216,6 @@ export function Outcomes({ market, images }: PositionsProps) {
       setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
     }
   }, [indexesOrderedByOdds]);
-
   const outcomeClick = (i: number) => {
     return () => {
       setSearchParams(
@@ -379,7 +378,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i] || 0, getMarketType(market))}
+                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
                 </div>
 
                 <input

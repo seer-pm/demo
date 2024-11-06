@@ -66,16 +66,16 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
 
   const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
-
   return useQuery<number[] | undefined, Error>({
-    enabled: hasLiquidity && enabled,
+    enabled,
     queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     queryFn: async () => {
-      // this amount is small, to minimize the effect of slippage.
-      // in case the token is valuable like eth, 1 unit can slip a lot.
-      const BUY_AMOUNT = 1;
+      if (!hasLiquidity) {
+        return Array(market.wrappedTokens.length).fill(Number.NaN);
+      }
+      const BUY_AMOUNT = 100; //collateral token
 
       const prices = await Promise.all(
         market.wrappedTokens.map(async (wrappedAddress) => {
@@ -92,7 +92,9 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
           }
         }),
       );
-
+      if (prices.some((price) => price > 1)) {
+        return Array(market.wrappedTokens.length).fill(Number.NaN);
+      }
       return normalizeOdds(prices);
     },
   });

@@ -26,7 +26,16 @@ function AirdropPage() {
     queryClient.invalidateQueries({ queryKey: ["useGetClaimStatus"] });
   });
   const { data: tokens = [], isLoading: isLoadingTokens } = useGetListAirdropTokens(address, chainId as SupportedChain);
-
+  const isHideAirdropProgram = true;
+  if (isHideAirdropProgram) {
+    return (
+      <div className="container-fluid py-[24px] lg:py-[65px]">
+        <Alert type="info" title="Not available">
+          Currently, there is no airdrop program available. Please check back again later.
+        </Alert>
+      </div>
+    );
+  }
   if (chainId !== gnosis.id) {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px]">

@@ -120,10 +120,24 @@ export function isMarketReliable(market: Market) {
   });
 }
 
-export function formatOdds(odds: number, marketType: MarketTypes) {
+export function formatOdds(odd: number | undefined | null, marketType: MarketTypes) {
+  if (!isOdd(odd)) {
+    return "NA";
+  }
   if (marketType === MarketTypes.SCALAR) {
-    return odds === 0 ? 0 : (odds / 100).toFixed(3);
+    return odd === 0 ? 0 : (odd! / 100).toFixed(3);
   }
 
-  return `${odds}%`;
+  return `${odd}%`;
+}
+
+export function isOdd(odd: number | undefined | null) {
+  return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
+}
+
+export function getMarketEstimate(odds: number[], lowerBound: bigint, upperBound: bigint) {
+  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
+    return "NA";
+  }
+  return ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(2);
 }

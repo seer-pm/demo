@@ -18,7 +18,7 @@ import {
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
+import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
 import clsx from "clsx";
@@ -100,7 +100,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i] || 0, getMarketType(market))}
+                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
                 </div>
               </div>
             </Link>
@@ -126,8 +126,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-  const marketEstimate =
-    ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
+  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
   return (
     <div
       className={clsx(
@@ -241,9 +240,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate.toFixed(2)}
-          </div>
+          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
           {!isPendingOdds && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w[400px] ">
