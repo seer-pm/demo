@@ -80,7 +80,7 @@ function getOutcomesOptions(market: Market, question: Question) {
 }
 
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute }: AnswerFormProps) {
-  const { address, chainId: connectedChainId } = useAccount();
+  const { address, chainId: connectedChainId, chain } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
   const currentBond = getCurrentBond(question.bond, question.min_bond, market.chainId);
@@ -231,7 +231,10 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
             Reality question
           </a>{" "}
           by depositing a bond of{" "}
-          <span className="text-purple-primary font-semibold">{displayBalance(currentBond, 18)} DAI</span>.
+          <span className="text-purple-primary font-semibold">
+            {displayBalance(currentBond, 18)} {chain?.nativeCurrency?.symbol ?? "Native Tokens"}
+          </span>
+          .
         </div>
         <div>
           Current answer:{" "}
