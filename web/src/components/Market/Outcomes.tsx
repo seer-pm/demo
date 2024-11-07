@@ -200,7 +200,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market.chainId, market.wrappedTokens);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
-  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
@@ -324,7 +324,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       className="text-purple-primary tooltip"
                     >
                       <p className="tooltiptext">
-                        View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS[market.chainId].name}
+                        View {tokensInfo?.[i]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
                       </p>
                       <EtherscanIcon width="12" height="12" />
                     </a>

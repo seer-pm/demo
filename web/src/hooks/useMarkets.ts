@@ -1,4 +1,4 @@
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
 import { useQuery } from "@tanstack/react-query";
@@ -100,6 +100,11 @@ export const useMarkets = ({
 };
 
 export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
+  if (import.meta.env.VITE_TESTNET_WEBSITE === "1") {
+    // show only sepolia markets
+    params.chainsList = [String(sepolia.id)];
+  }
+
   const result = useMarkets(params);
   const { address = "" } = useAccount();
   const favorites = useGlobalState((state) => state.favorites);

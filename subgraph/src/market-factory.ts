@@ -5,9 +5,7 @@ import {
   dataSource,
   ethereum,
 } from "@graphprotocol/graph-ts";
-import {
-  NewMarket as NewMarketEvent,
-} from "../generated/MarketFactory/MarketFactory";
+import { NewMarket as NewMarketEvent } from "../generated/MarketFactory/MarketFactory";
 import { MarketView } from "../generated/MarketFactory/MarketView";
 import {
   Condition,
@@ -18,10 +16,17 @@ import {
 } from "../generated/schema";
 import { DEFAULT_FINALIZE_TS } from "./reality";
 
-const MARKET_VIEW_ADDRESS =
-  dataSource.network() == "mainnet"
-    ? "0xAb797C4C6022A401c31543E316D3cd04c67a87fC"
-    : "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+function getMarketViewAddress(network: string): string {
+  if (network == "sepolia") {
+    return "0x03d03464BF9Eb20059Ca6eF6391E9C5d79d5E012";
+  }
+
+  if (network == "mainnet") {
+    return "0xAb797C4C6022A401c31543E316D3cd04c67a87fC";
+  }
+
+  return "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+}
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");
@@ -65,48 +70,44 @@ class MarketData {
 }
 
 export function handleNewMarket(event: NewMarketEvent): void {
-  const marketView = MarketView.bind(Address.fromString(MARKET_VIEW_ADDRESS));
+  const marketView = MarketView.bind(
+    Address.fromString(getMarketViewAddress(dataSource.network()))
+  );
 
   const data = marketView.getMarket(
     event.address,
     Address.fromString(event.params.market.toHexString())
   );
 
-  processMarket(
-    event,
-    {
-      id: event.params.market.toHexString(),
-      marketName: data.marketName,
-      outcomes: data.outcomes,
-      lowerBound: data.lowerBound,
-      upperBound: data.upperBound,
-      parentCollectionId: data.parentCollectionId,
-      parentOutcome: data.parentOutcome,
-      parentMarket: data.parentMarket,
-      wrappedTokens: data.wrappedTokens,
-      conditionId: data.conditionId,
-      questionId: data.questionId,
-      questionsIds: data.questionsIds,
-      templateId: data.templateId,
-      encodedQuestions: data.encodedQuestions,
-      questions: data.questions.map<MarketDataQuestion>((q) => ({
-        opening_ts: q.opening_ts,
-        arbitrator: q.arbitrator,
-        timeout: q.timeout,
-        finalize_ts: q.finalize_ts,
-        is_pending_arbitration: q.is_pending_arbitration,
-        best_answer: q.best_answer,
-        bond: q.bond,
-        min_bond: q.min_bond,
-      })),
-    }
-  );
+  processMarket(event, {
+    id: event.params.market.toHexString(),
+    marketName: data.marketName,
+    outcomes: data.outcomes,
+    lowerBound: data.lowerBound,
+    upperBound: data.upperBound,
+    parentCollectionId: data.parentCollectionId,
+    parentOutcome: data.parentOutcome,
+    parentMarket: data.parentMarket,
+    wrappedTokens: data.wrappedTokens,
+    conditionId: data.conditionId,
+    questionId: data.questionId,
+    questionsIds: data.questionsIds,
+    templateId: data.templateId,
+    encodedQuestions: data.encodedQuestions,
+    questions: data.questions.map<MarketDataQuestion>((q) => ({
+      opening_ts: q.opening_ts,
+      arbitrator: q.arbitrator,
+      timeout: q.timeout,
+      finalize_ts: q.finalize_ts,
+      is_pending_arbitration: q.is_pending_arbitration,
+      best_answer: q.best_answer,
+      bond: q.bond,
+      min_bond: q.min_bond,
+    })),
+  });
 }
 
-function processMarket(
-  event: ethereum.Event,
-  data: MarketData
-): void {
+function processMarket(event: ethereum.Event, data: MarketData): void {
   const market = new Market(data.id);
 
   const condition = new Condition(data.conditionId.toHexString());

@@ -62,7 +62,7 @@ export async function getSwaprHistoryTokensPrices(
         token1Price: data.token1Price,
       };
     }),
-    chainId,
+    chainId as number,
   );
 }
 
@@ -88,5 +88,5 @@ export async function getSwaprCurrentTokensPrices(
     },
   });
 
-  return getTokenPricesMapping(tokens, pools, chainId);
+  return getTokenPricesMapping(tokens, pools, chainId as number);
 }

@@ -137,7 +137,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   if (market.chainId !== connectedChainId) {
     return (
       <>
-        <Alert type="info">Switch to {SUPPORTED_CHAINS[market.chainId].name} to report the answer.</Alert>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS?.[market.chainId]?.name} to report the answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button
