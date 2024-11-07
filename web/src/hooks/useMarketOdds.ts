@@ -75,7 +75,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
       if (!hasLiquidity) {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
-      const BUY_AMOUNT = 100; //collateral token
+      const BUY_AMOUNT = 10; //collateral token
 
       const prices = await Promise.all(
         market.wrappedTokens.map(async (wrappedAddress) => {
