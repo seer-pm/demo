@@ -193,10 +193,10 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
       firstTimestamp,
     );
     const latestPoolHourDataTimestamp = Math.max(...poolHourDatasSets.flat().map((x) => x.periodStartUnix));
-    timestamps = [
-      ...timestamps.filter((timestamp) => timestamp < latestPoolHourDataTimestamp),
-      latestPoolHourDataTimestamp,
-    ];
+    timestamps = timestamps.filter((timestamp) => timestamp < latestPoolHourDataTimestamp);
+    if (timestamps.length) {
+      timestamps = [...timestamps, latestPoolHourDataTimestamp];
+    }
     const oddsMapping = timestamps.reduce(
       (acc, timestamp) => {
         const tokenPrices = outcomeTokens.map((token, tokenindex) => {
