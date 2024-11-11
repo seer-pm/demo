@@ -40,22 +40,23 @@ async function getVerificationStatusList(
     });
     return litems.reduce(
       (obj, item) => {
-        if (!item.key0) {
+        const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+        if (!marketId) {
           return obj;
         }
         if (item.status === "Registered") {
-          obj[item.key0.toLowerCase()] = { status: "verified", itemID: item.itemID };
+          obj[marketId] = { status: "verified", itemID: item.itemID };
           return obj;
         }
         if (item.status === "RegistrationRequested") {
           if (item.disputed) {
-            obj[item.key0.toLowerCase()] = { status: "challenged", itemID: item.itemID };
+            obj[marketId] = { status: "challenged", itemID: item.itemID };
           } else {
-            obj[item.key0.toLowerCase()] = { status: "verifying", itemID: item.itemID };
+            obj[marketId] = { status: "verifying", itemID: item.itemID };
           }
           return obj;
         }
-        obj[item.key0.toLowerCase()] = { status: "not_verified" };
+        obj[marketId] = { status: "not_verified" };
         return obj;
       },
       {} as { [key: string]: VerificationResult },

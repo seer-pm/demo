@@ -78,10 +78,13 @@ async function fetchMarket(marketId: string, chainId: string) {
 
 async function fetchMarketImages(marketId: string, chainId: string) {
   const query = `{
-  litems(where: {registryAddress: "${
-    CURATE_REGISTRY_ADDRESSES[chainId]
-  }", key0_contains_nocase: "${marketId.toLocaleLowerCase()}"}) {
+  litems(where: {registryAddress: "${CURATE_REGISTRY_ADDRESSES[chainId]}"}) {
     data
+    metadata {
+      props{
+        value
+      }
+    }
   }
 }`;
 
@@ -96,7 +99,9 @@ async function fetchMarketImages(marketId: string, chainId: string) {
   });
 
   const json = await results.json();
-  const item = json?.data?.litems?.[0];
+  const item = json?.data?.litems?.find((litem) =>
+    litem.metadata?.props?.some((prop) => prop.value?.toLocaleLowerCase() === marketId.toLocaleLowerCase()),
+  );
 
   if (!item) {
     return;

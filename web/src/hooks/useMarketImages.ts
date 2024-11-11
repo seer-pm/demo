@@ -1,10 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
-import { isUndefined } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
-import { Address, getAddress } from "viem";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
 import { Status, getSdk } from "./queries/gql-generated-curate";
@@ -12,7 +12,7 @@ import { Status, getSdk } from "./queries/gql-generated-curate";
 export const getMarketImages = memoize((chainId: SupportedChain) => {
   return batshit.create({
     name: "images",
-    fetcher: async (ids: Address[]) => {
+    fetcher: async (_ids: Address[]) => {
       // @ts-ignore
       const registryAddress = lightGeneralizedTcrAddress[chainId];
 
@@ -26,17 +26,13 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
         where: {
           // status: registered ? Status.Registered : undefined,
           registryAddress,
-          key0_in: ids.reduce((acc, id) => {
-            acc.push(id, getAddress(id));
-            return acc;
-          }, [] as string[]),
         },
       });
       return litems;
     },
     scheduler: batshit.windowScheduler(10),
-    resolver: (images, marketId) =>
-      images.filter((image) => image.key0?.toLocaleLowerCase() === marketId.toLocaleLowerCase()),
+    resolver: (litems, marketId) =>
+      litems.filter((litem) => litem.metadata?.props?.some((prop) => isTwoStringsEqual(prop.value, marketId))),
   });
 });
 

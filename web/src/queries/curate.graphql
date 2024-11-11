@@ -3,7 +3,13 @@ query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _Sub
     itemID
     status
     registryAddress
-    key0
+    metadata {
+      props{
+        value
+        description
+        label
+      }
+    }
     data
     latestRequester
     disputed
