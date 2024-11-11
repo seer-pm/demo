@@ -4,7 +4,7 @@ query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _Sub
     status
     registryAddress
     metadata {
-      props{
+      props {
         value
         description
         label

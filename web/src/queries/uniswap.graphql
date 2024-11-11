@@ -1,5 +1,21 @@
-query GetPools($skip: Int = 0, $first: Int, $orderBy: Pool_orderBy, $orderDirection: OrderDirection, $where: Pool_filter, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
-  pools(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+query GetPools(
+  $skip: Int = 0
+  $first: Int
+  $orderBy: Pool_orderBy
+  $orderDirection: OrderDirection
+  $where: Pool_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  pools(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
     id
     feeTier
     liquidity
@@ -42,7 +58,15 @@ query GetPoolHourDatas(
   $block: Block_height
   $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-  poolHourDatas(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+  poolHourDatas(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
     token0Price
     token1Price
     periodStartUnix
@@ -63,8 +87,24 @@ query GetPoolHourDatas(
   }
 }
 
-query GetSwaps($skip: Int = 0, $first: Int, $where: Swap_filter, $orderBy: Swap_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
-  swaps(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+query GetSwaps(
+  $skip: Int = 0
+  $first: Int
+  $where: Swap_filter
+  $orderBy: Swap_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  swaps(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
     id
     sender
     recipient
@@ -88,8 +128,24 @@ query GetSwaps($skip: Int = 0, $first: Int, $where: Swap_filter, $orderBy: Swap_
   }
 }
 
-query GetMints($skip: Int = 0, $first: Int, $where: Mint_filter, $orderBy: Mint_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
-  mints(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+query GetMints(
+  $skip: Int = 0
+  $first: Int
+  $where: Mint_filter
+  $orderBy: Mint_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  mints(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
     id
     owner
     amount0
@@ -112,8 +168,24 @@ query GetMints($skip: Int = 0, $first: Int, $where: Mint_filter, $orderBy: Mint_
   }
 }
 
-query GetBurns($skip: Int = 0, $first: Int, $where: Burn_filter, $orderBy: Burn_orderBy, $orderDirection: OrderDirection, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
-  burns(skip: $skip, first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: $where, block: $block, subgraphError: $subgraphError) {
+query GetBurns(
+  $skip: Int = 0
+  $first: Int
+  $where: Burn_filter
+  $orderBy: Burn_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  burns(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
     id
     owner
     amount0

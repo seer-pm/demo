@@ -21,8 +21,8 @@ const SEER_SUBGRAPH_URLS: Partial<Record<string, string>> = {
 };
 
 export const CURATE_SUBGRAPH_URLS: Partial<Record<string, string>> = {
-  "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/GQSb43FupQuxN11QaSVfTt5DytccLMsXKCrzuGuY7ZTD`,
-  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp`,
+  "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
+  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
 };
 
 export const CURATE_REGISTRY_ADDRESSES: Partial<Record<string, string>> = {
