@@ -45,7 +45,7 @@ export function getTokenPricesMapping(
         : 0;
       return acc;
     },
-    {} as { [key: string]: number },
+    {} as { [key: string]: number | undefined },
   );
 
   const conditionalTokensMapping = conditionalTokens.reduce(
@@ -64,7 +64,9 @@ export function getTokenPricesMapping(
           ? Number(correctPool.token0Price)
           : Number(correctPool.token1Price)
         : 0;
-      acc[tokenId.toLocaleLowerCase()] = relativePrice * simpleTokensMapping[parentTokenId!.toLocaleLowerCase()];
+
+      acc[tokenId.toLocaleLowerCase()] =
+        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
       return acc;
     },
     {} as { [key: string]: number },

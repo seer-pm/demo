@@ -63,3 +63,14 @@ type Condition @entity {
   id: ID!
   markets: [Market!]! @derivedFrom(field: "ctfCondition")
 }
+
+type ConditionalEvent @entity {
+  id: Bytes!
+  market: Market!
+  accountId: Bytes!
+  type: String!
+  amount: BigInt!
+  blockNumber: BigInt!
+  collateral: Bytes!
+  transactionHash: Bytes!
+}

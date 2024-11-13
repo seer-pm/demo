@@ -18,7 +18,6 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { Address } from "viem";
-import { navigate } from "vike/client/router";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
@@ -51,11 +50,9 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <div
+            <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
-              onClick={() => {
-                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
-              }}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
             >
               <MarketImage
                 marketAddress={position.marketAddress as Address}
@@ -63,7 +60,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 chainId={chainId as SupportedChain}
               />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
-            </div>
+            </a>
           );
         },
         header: "Market Name",
@@ -75,16 +72,12 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           const position = info.row.original;
           if (!position.parentMarketId) return "-";
           return (
-            <div
+            <a
               className="flex text-[14px] cursor-pointer hover:underline"
-              onClick={() => {
-                navigate(
-                  `${paths.market(position.parentMarketId!, chainId)}?outcome=${toSnakeCase(position.parentOutcome!)}`,
-                );
-              }}
+              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${toSnakeCase(position.parentOutcome!)}`}
             >
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={30} />
-            </div>
+            </a>
           );
         },
         header: "Parent Market",
@@ -96,14 +89,12 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <p
+            <a
               className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
-              onClick={() => {
-                navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
-              }}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
             >
               {info.getValue<string>()}
-            </p>
+            </a>
           );
         },
         header: "Position",
@@ -142,14 +133,12 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           const position = info.row.original;
           if (info.getValue<string>() === MarketStatus.CLOSED) {
             return (
-              <p
+              <a
                 className="text-[14px] text-success-primary cursor-pointer"
-                onClick={() => {
-                  navigate(`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`);
-                }}
+                href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
               >
                 Redeemable
-              </p>
+              </a>
             );
           }
           return <p className="text-[14px] text-black-secondary">Not yet</p>;

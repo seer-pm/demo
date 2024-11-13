@@ -73,3 +73,35 @@ query GetMarket($id: ID!) {
     ...Market
   }
 }
+
+query GetConditionalEvents(
+  $skip: Int = 0
+  $first: Int = 100
+  $orderBy: ConditionalEvent_orderBy
+  $orderDirection: OrderDirection
+  $where: ConditionalEvent_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  conditionalEvents(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    id
+    market {
+      id
+      marketName
+    }
+    accountId
+    type
+    amount
+    blockNumber
+    collateral
+    transactionHash
+  }
+}

@@ -9,7 +9,7 @@ export const useHistoryTokensPrices = (
   chainId: SupportedChain,
   startTime: number,
 ) => {
-  return useQuery<{ [key: string]: number } | undefined, Error>({
+  return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
     enabled: tokens.length > 0,
     queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
     retry: false,
@@ -28,7 +28,7 @@ export const useCurrentTokensPrices = (
   tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
   chainId: SupportedChain,
 ) => {
-  return useQuery<{ [key: string]: number } | undefined, Error>({
+  return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
     enabled: !!tokens?.length,
     queryKey: ["useCurrentTokensPrice", tokens, chainId],
     retry: false,

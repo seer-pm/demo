@@ -18,7 +18,6 @@ import {
 import clsx from "clsx";
 import { format } from "date-fns";
 import { Address } from "viem";
-import { navigate } from "vike/client/router";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
@@ -68,11 +67,9 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         cell: (info) => {
           const data = info.row.original;
           return (
-            <div
+            <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer whitespace-nowrap"
-              onClick={() => {
-                navigate(`${paths.market(data.marketId, chainId)}`);
-              }}
+              href={`${paths.market(data.marketId, chainId)}`}
             >
               <MarketImage
                 marketAddress={data.marketId as Address}
@@ -80,7 +77,7 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
                 chainId={chainId as SupportedChain}
               />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
-            </div>
+            </a>
           );
         },
         header: "Market Name",
