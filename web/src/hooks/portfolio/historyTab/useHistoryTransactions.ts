@@ -13,7 +13,11 @@ import { getSplitMergeRedeemEvents } from "./getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./getSwapEvents";
 import { TransactionData } from "./types";
 
-async function getTransactions(initialMarkets: Market[] | undefined, account?: string, chainId?: SupportedChain) {
+async function getTransactions(
+  initialMarkets: Market[] | undefined,
+  account?: string,
+  chainId?: SupportedChain,
+): Promise<TransactionData[]> {
   if (!chainId || !account || !initialMarkets) return [];
   const markets = initialMarkets.filter((x) => x.chainId === chainId);
 
@@ -26,29 +30,29 @@ async function getTransactions(initialMarkets: Market[] | undefined, account?: s
     getSplitMergeRedeemEvents(account, chainId),
   ]);
 
-  let data = events.flat();
+  const data = events.flat();
   // get timestamp
   const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(x.blockNumber)));
 
-  data = data.map((x, index) => {
-    function parseSymbol(tokenAddress?: string) {
-      if (!tokenAddress) return;
-      return isTwoStringsEqual(tokenAddress, COLLATERAL_TOKENS[chainId!].primary.address)
-        ? "sDAI"
-        : tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()];
-    }
-    return {
-      ...x,
-      timestamp: timestamps[index],
-      collateralSymbol: parseSymbol(x.collateral),
-      token0Symbol: x.token0Symbol ?? parseSymbol(x.token0),
-      token1Symbol: x.token1Symbol ?? parseSymbol(x.token1),
-      tokenInSymbol: x.tokenInSymbol ?? parseSymbol(x.tokenIn),
-      tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
-    };
-  });
-
-  return data.sort((a, b) => b.blockNumber - a.blockNumber);
+  return data
+    .map((x, index) => {
+      function parseSymbol(tokenAddress?: string) {
+        if (!tokenAddress) return;
+        return isTwoStringsEqual(tokenAddress, COLLATERAL_TOKENS[chainId!].primary.address)
+          ? "sDAI"
+          : tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()];
+      }
+      return {
+        ...x,
+        timestamp: Number(timestamps[index]),
+        collateralSymbol: parseSymbol(x.collateral),
+        token0Symbol: x.token0Symbol ?? parseSymbol(x.token0),
+        token1Symbol: x.token1Symbol ?? parseSymbol(x.token1),
+        tokenInSymbol: x.tokenInSymbol ?? parseSymbol(x.tokenIn),
+        tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
+      };
+    })
+    .sort((a, b) => b.blockNumber - a.blockNumber);
 }
 
 export const useHistoryTransactions = (address: Address, chainId: SupportedChain) => {

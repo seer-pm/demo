@@ -4,7 +4,6 @@ import { MarketTypes, getMarketType } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { subDays } from "date-fns";
-import { BigNumber } from "ethers";
 import combineQuery from "graphql-combine-query";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
@@ -25,10 +24,9 @@ import { Market } from "../useMarket";
 import { normalizeOdds } from "../useMarketOdds";
 import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
 
-function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
-  const sqrtPriceBN = BigNumber.from(sqrtPrice);
-  const token0PriceBN = BigNumber.from(2).pow(192).mul(BigNumber.from(10).pow(18)).div(sqrtPriceBN.mul(sqrtPriceBN));
-  const token1PriceBN = sqrtPriceBN.mul(sqrtPriceBN).mul(BigNumber.from(10).pow(18)).div(BigNumber.from(2).pow(192));
+function calculateTokenPricesFromSqrtPrice(sqrtPrice: bigint) {
+  const token0PriceBN = (2n ** 192n * 10n ** 18n) / (sqrtPrice * sqrtPrice);
+  const token1PriceBN = (sqrtPrice * sqrtPrice * 10n ** 18n) / 2n ** 192n;
   return { token0PriceBN, token1PriceBN };
 }
 
@@ -206,9 +204,9 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
           let { token0Price = "0", token1Price = "0", sqrtPrice } = poolHourDatas[poolHourDataIndex] ?? {};
 
           if (token0Price === "0" && token1Price === "0" && sqrtPrice && sqrtPrice !== "0") {
-            const { token0PriceBN, token1PriceBN } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
-            token0Price = formatUnits(token0PriceBN.toBigInt(), 18);
-            token1Price = formatUnits(token1PriceBN.toBigInt(), 18);
+            const { token0PriceBN, token1PriceBN } = calculateTokenPricesFromSqrtPrice(BigInt(sqrtPrice));
+            token0Price = formatUnits(token0PriceBN, 18);
+            token1Price = formatUnits(token1PriceBN, 18);
           }
 
           return token.tokenId.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
