@@ -35,15 +35,15 @@ function getNextMarketIndex(): BigInt {
   return marketsCount.count;
 }
 
-class MarketDataQuestion {
-  public opening_ts: BigInt;
-  public arbitrator: Address;
-  public timeout: BigInt;
-  public finalize_ts: BigInt;
+export class MarketDataQuestion {
+  public opening_ts!: BigInt;
+  public arbitrator!: Address;
+  public timeout!: BigInt;
+  public finalize_ts!: BigInt;
   public is_pending_arbitration: boolean;
-  public best_answer: Bytes;
-  public bond: BigInt;
-  public min_bond: BigInt;
+  public best_answer!: Bytes;
+  public bond!: BigInt;
+  public min_bond!: BigInt;
 }
 
 class MarketData {
@@ -103,7 +103,7 @@ export function handleNewMarket(event: NewMarketEvent): void {
   );
 }
 
-function processMarket(
+export function processMarket(
   event: ethereum.Event,
   data: MarketData
 ): void {
@@ -126,7 +126,6 @@ function processMarket(
   market.conditionId = data.conditionId;
   market.ctfCondition = condition.id;
   market.questionId = data.questionId;
-  market.questionsIds = data.questionsIds;
   market.templateId = data.templateId;
   market.encodedQuestions = data.encodedQuestions;
   market.payoutReported = false;
@@ -136,7 +135,7 @@ function processMarket(
   market.hasAnswers = false;
   market.index = getNextMarketIndex();
 
-  for (let i = 0; i < market.questionsIds.length; i++) {
+  for (let i = 0; i < data.questionsIds.length; i++) {
     const questionResult = data.questions[i];
 
     if (i === 0) {
@@ -144,7 +143,7 @@ function processMarket(
       market.openingTs = questionResult.opening_ts;
     }
 
-    const question = new Question(market.questionsIds[i].toHexString());
+    const question = new Question(data.questionsIds[i].toHexString());
     question.index = i;
     question.arbitrator = questionResult.arbitrator;
     question.opening_ts = questionResult.opening_ts;
@@ -159,7 +158,7 @@ function processMarket(
 
     const marketQuestion = new MarketQuestion(
       market.id
-        .concat(market.questionsIds[i].toHexString())
+        .concat(data.questionsIds[i].toHexString())
         .concat(i.toString())
     );
     marketQuestion.market = market.id;

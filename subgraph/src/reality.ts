@@ -1,4 +1,4 @@
-import { BigInt, store, Bytes } from "@graphprotocol/graph-ts";
+import { BigInt, store, Bytes, log } from "@graphprotocol/graph-ts";
 import {
   LogCancelArbitration,
   LogFinalize,
@@ -6,7 +6,7 @@ import {
   LogNotifyOfArbitrationRequest,
   LogReopenQuestion,
 } from "../generated/Reality/Reality";
-import { Question, Market, MarketQuestion } from "../generated/schema";
+import { Question, Market } from "../generated/schema";
 
 export const DEFAULT_FINALIZE_TS = BigInt.fromI64(33260976000);
 
@@ -40,9 +40,9 @@ export function handleNewAnswer(evt: LogNewAnswer): void {
   question.bond = evt.params.bond;
   question.save();
 
-  const markets = question.markets.load();
-  for (let i = 0; i < markets.length; i++) {
-    const market = Market.load(markets[i].market)!;
+  const marketsQuestions = question.marketQuestions.load();
+  for (let i = 0; i < marketsQuestions.length; i++) {
+    const market = Market.load(marketsQuestions[i].market)!;
 
     market.hasAnswers = true;
     market.finalizeTs = getFinalizeTs(market);
@@ -61,9 +61,9 @@ export function handleArbitrationRequest(
   question.is_pending_arbitration = true;
   question.save();
 
-  const markets = question.markets.load();
-  for (let i = 0; i < markets.length; i++) {
-    const market = Market.load(markets[i].market)!;
+  const marketsQuestions = question.marketQuestions.load();
+  for (let i = 0; i < marketsQuestions.length; i++) {
+    const market = Market.load(marketsQuestions[i].market)!;
     market.questionsInArbitration = market.questionsInArbitration.plus(
       BigInt.fromI32(1)
     );
@@ -80,9 +80,9 @@ export function handleCancelArbitration(evt: LogCancelArbitration): void {
   question.is_pending_arbitration = false;
   question.save();
 
-  const markets = question.markets.load();
-  for (let i = 0; i < markets.length; i++) {
-    const market = Market.load(markets[i].market)!;
+  const marketsQuestions = question.marketQuestions.load();
+  for (let i = 0; i < marketsQuestions.length; i++) {
+    const market = Market.load(marketsQuestions[i].market)!;
     market.questionsInArbitration = market.questionsInArbitration.minus(
       BigInt.fromI32(1)
     );
@@ -101,9 +101,9 @@ export function handleFinalize(evt: LogFinalize): void {
   question.arbitration_occurred = true;
   question.save();
 
-  const markets = question.markets.load();
-  for (let i = 0; i < markets.length; i++) {
-    const market = Market.load(markets[i].market)!;
+  const marketsQuestions = question.marketQuestions.load();
+  for (let i = 0; i < marketsQuestions.length; i++) {
+    const market = Market.load(marketsQuestions[i].market)!;
     market.questionsInArbitration = market.questionsInArbitration.minus(
       BigInt.fromI32(1)
     );
@@ -120,25 +120,22 @@ export function processReopenedQuestion(
   newQuestion.arbitrator = oldQuestion.arbitrator;
   newQuestion.opening_ts = oldQuestion.opening_ts;
   newQuestion.timeout = oldQuestion.timeout;
-  newQuestion.finalize_ts = oldQuestion.finalize_ts;
+  newQuestion.finalize_ts = BigInt.zero();
   newQuestion.is_pending_arbitration = false;
   newQuestion.best_answer = Bytes.empty();
   newQuestion.bond = BigInt.zero();
   newQuestion.min_bond = oldQuestion.min_bond;
   newQuestion.arbitration_occurred = false;
 
-  const marketsQuestions = oldQuestion.markets.load();
-  for (let i = 0; i < marketsQuestions.length; i++) {
-    // add new question to existing makets
-    const marketQuestion = new MarketQuestion(
-      marketsQuestions[i].id
-    );
-    marketQuestion.question = newQuestionId;
-    marketQuestion.save();
-  }
-
   // save new question
   newQuestion.save();
+
+  const marketQuestions = oldQuestion.marketQuestions.load();
+  for (let i = 0; i < marketQuestions.length; i++) {
+    // replace with new question
+    marketQuestions[i].question = newQuestion.id;
+    marketQuestions[i].save();
+  }
 
   // remove old question
   store.remove("Question", oldQuestion.id);
