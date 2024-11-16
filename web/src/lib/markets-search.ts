@@ -105,6 +105,7 @@ function mapGraphMarket(
   return {
     ...market,
     id: market.id as Address,
+    marketName: unescapeJson(market.marketName),
     outcomes: market.outcomes.map((outcome) => {
       if (outcome === INVALID_RESULT_OUTCOME) {
         return INVALID_RESULT_OUTCOME_TEXT;
