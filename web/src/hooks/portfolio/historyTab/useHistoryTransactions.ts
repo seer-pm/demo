@@ -23,7 +23,7 @@ async function getTransactions(initialMarkets: Market[] | undefined, account?: s
     getSwapEvents(mappings, account, chainId),
     getLiquidityEvents(mappings, account, chainId),
     getLiquidityWithdrawEvents(mappings, account, chainId),
-    getSplitMergeRedeemEvents(account, chainId),
+    getSplitMergeRedeemEvents(mappings, account, chainId),
   ]);
 
   let data = events.flat();
