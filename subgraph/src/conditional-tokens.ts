@@ -40,6 +40,16 @@ export function handlePositionSplit(evt: PositionSplit): void {
   if (condition === null) {
     return;
   }
+
+  let markets = condition.markets.load();
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.plus(evt.params.amount);
+      market.save();
+    }
+  }
+
   const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
 
   if (!splitMethods.includes(methodId)) {
@@ -55,10 +65,6 @@ export function handlePositionSplit(evt: PositionSplit): void {
   const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
-  }
-  if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
-    market.outcomesSupply = market.outcomesSupply.plus(evt.params.amount);
-    market.save();
   }
 
   createConditionalEvent(
@@ -79,6 +85,16 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
   if (condition === null) {
     return;
   }
+
+  let markets = condition.markets.load();
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.minus(evt.params.amount);
+      market.save();
+    }
+  }
+
   const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
 
   if (!mergeMethods.includes(methodId)) {
@@ -94,10 +110,6 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
   const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
-  }
-  if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
-    market.outcomesSupply = market.outcomesSupply.minus(evt.params.amount);
-    market.save();
   }
 
   createConditionalEvent(
@@ -118,6 +130,16 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
   if (condition === null) {
     return;
   }
+
+  let markets = condition.markets.load();
+  for (let i = 0; i < markets.length; i++) {
+    let market = markets[i];
+    if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
+      market.outcomesSupply = market.outcomesSupply.minus(evt.params.payout);
+      market.save();
+    }
+  }
+
   const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
 
   if (!redeemMethods.includes(methodId)) {
@@ -133,10 +155,6 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
   const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
-  }
-  if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
-    market.outcomesSupply = market.outcomesSupply.minus(evt.params.payout);
-    market.save();
   }
 
   createConditionalEvent(
