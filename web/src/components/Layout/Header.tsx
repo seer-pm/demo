@@ -59,7 +59,7 @@ export default function Header() {
 
         {mobileMenuOpen && <MobileMenu />}
 
-        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center w-1/3">
+        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center w-3/3">
           <li>
             <Link to={"/"} className="hover:opacity-85">
               Markets
