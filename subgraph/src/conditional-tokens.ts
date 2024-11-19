@@ -28,11 +28,31 @@ function createConditionalEvent(
   conditionalEvent.save();
 }
 
+// splitFromBase, splitFromDai, splitPosition
 const splitMethods = ["0x50d9991c", "0x59a89d8b", "0xd5f82280"];
-
+// mergeToBase, mergeToDai, mergePosition
 const mergeMethods = ["0xd6d150d1", "0x4c95d98d", "0x7abef8d1"];
-
+// redeemToBase, redeemToDai, redeemPosition
 const redeemMethods = ["0x9fe603e8", "0xb6fefc75", "0x865955a0"];
+
+function getMarketFromTx(txInput: Bytes, methodsSignature: string[]): Market | null {
+  const methodId = Bytes.fromUint8Array(txInput.slice(0, 4)).toHexString();
+  if (!methodsSignature.includes(methodId)) {
+    return null;
+  }
+
+  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(4, 36)));
+  if (!decodedMarket) {
+    return null;
+  }
+
+  const market = Market.load(decodedMarket.toAddress().toHexString());
+  if (!market) {
+    return null;
+  }
+
+  return market;
+}
 
 export function handlePositionSplit(evt: PositionSplit): void {
   const condition = Condition.load(evt.params.conditionId.toHexString());
@@ -50,19 +70,8 @@ export function handlePositionSplit(evt: PositionSplit): void {
     }
   }
 
-  const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
+  const market = getMarketFromTx(evt.transaction.input, splitMethods);
 
-  if (!splitMethods.includes(methodId)) {
-    return;
-  }
-
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(evt.transaction.input.slice(4, 36)));
-
-  if (!decodedMarket) {
-    return;
-  }
-
-  const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
   }
@@ -95,19 +104,8 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     }
   }
 
-  const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
+  const market = getMarketFromTx(evt.transaction.input, mergeMethods);
 
-  if (!mergeMethods.includes(methodId)) {
-    return;
-  }
-
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(evt.transaction.input.slice(4, 36)));
-
-  if (!decodedMarket) {
-    return;
-  }
-
-  const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
   }
@@ -140,19 +138,8 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     }
   }
 
-  const methodId = Bytes.fromUint8Array(evt.transaction.input.slice(0, 4)).toHexString();
+  const market = getMarketFromTx(evt.transaction.input, redeemMethods);
 
-  if (!redeemMethods.includes(methodId)) {
-    return;
-  }
-
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(evt.transaction.input.slice(4, 36)));
-
-  if (!decodedMarket) {
-    return;
-  }
-
-  const market = Market.load(decodedMarket.toAddress().toHexString());
   if (!market) {
     return;
   }
