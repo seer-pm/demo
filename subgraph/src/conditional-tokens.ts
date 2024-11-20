@@ -90,7 +90,7 @@ const redeemMethods: MethodSignature[] = [
 
 function getMethodSignature(methods: MethodSignature[], methodId: string): MethodSignature | null {
   for(let i = 0; i < methods.length; i++) {
-    if (methods[i].signature === methodId) {
+    if (methods[i].signature == methodId) {
       return methods[i]
     }
   }
