@@ -316,6 +316,8 @@ export function PreviewForm({
     openModal();
   };
 
+  const dummyOutcomes = getOutcomes(outcomes, marketTypeValues.marketType).concat(INVALID_RESULT_OUTCOME_TEXT);
+
   const dummyMarket: Market = {
     id: "0x000",
     chainId,
@@ -323,10 +325,10 @@ export function PreviewForm({
       marketTypeValues.marketType === MarketTypes.SCALAR
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
-    outcomes: getOutcomes(outcomes, marketTypeValues.marketType).concat(INVALID_RESULT_OUTCOME_TEXT),
+    outcomes: dummyOutcomes,
     parentMarket: parentMarketAddress as Address,
     parentOutcome: BigInt(parentOutcomeIndex),
-    wrappedTokens: ["0x000", "0x000"],
+    wrappedTokens: dummyOutcomes.map((_) => "0x000"),
     outcomesSupply: 0n,
     parentCollectionId: "0x000",
     conditionId: "0x000",
