@@ -92,6 +92,17 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
   }
 };
 
+export const getPoolUrl = (chainId: number, poolId: string) => {
+  switch (chainId) {
+    case gnosis.id:
+      return `https://v3.swapr.eth.limo/#/info/pools/${poolId}`;
+    case mainnet.id:
+      return `https://app.uniswap.org/explore/pools/ethereum/${poolId}`;
+    default:
+      return "#";
+  }
+};
+
 export const getFarmingUrl = (chainId: number, farmId: string) => {
   switch (chainId) {
     case gnosis.id:

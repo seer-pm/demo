@@ -198,7 +198,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
-  const { data: pools = [] } = useMarketPools(market.chainId, market.wrappedTokens);
+  const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
 

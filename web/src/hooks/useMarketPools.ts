@@ -15,6 +15,8 @@ import {
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
+import { Market, useMarket } from "./useMarket";
+import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -32,6 +34,12 @@ export interface PoolInfo {
   fee: number;
   token0: Address;
   token1: Address;
+  token0Price: number;
+  token1Price: number;
+  token0Symbol: string;
+  token1Symbol: string;
+  totalValueLockedToken0: number;
+  totalValueLockedToken1: number;
   incentives: PoolIncentive[];
 }
 
@@ -102,6 +110,12 @@ async function getSwaprPools(
       fee: Number(pool.fee),
       token0: pool.token0.id as Address,
       token1: pool.token1.id as Address,
+      token0Price: Number(pool.token0Price),
+      token1Price: Number(pool.token1Price),
+      token0Symbol: pool.token0.symbol,
+      token1Symbol: pool.token1.symbol,
+      totalValueLockedToken0: Number(pool.totalValueLockedToken0),
+      totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
         mapEternalFarming(eternalFarming),
       ),
@@ -134,6 +148,12 @@ async function getUniswapPools(
       fee: Number(pool.feeTier),
       token0: pool.token0.id as Address,
       token1: pool.token1.id as Address,
+      token0Price: Number(pool.token0Price),
+      token1Price: Number(pool.token1Price),
+      token0Symbol: pool.token0.symbol,
+      token1Symbol: pool.token1.symbol,
+      totalValueLockedToken0: Number(pool.totalValueLockedToken0),
+      totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: [], // TODO
     })),
   );
@@ -153,22 +173,24 @@ const getPools = memoize((chainId: SupportedChain) => {
   });
 });
 
-export const useMarketPools = (chainId: SupportedChain, tokens?: Address[]) => {
+export const useMarketPools = (market: Market) => {
+  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentCollateral, isLoading } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
+  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
+  const tokens = market.wrappedTokens.map((outcomeToken) => {
+    return outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
+      ? [collateralToken.address, outcomeToken]
+      : [outcomeToken, collateralToken.address];
+  });
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
-    enabled: tokens && tokens.length > 0,
-    queryKey: ["useMarketPools", chainId, tokens],
+    enabled: tokens && tokens.length > 0 && !isLoading,
+    queryKey: ["useMarketPools", market.id, tokens],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(
-        tokens!.map(async (outcomeToken) => {
-          const collateralToken = COLLATERAL_TOKENS[chainId].primary.address;
-          const [token0, token1] =
-            outcomeToken.toLocaleLowerCase() > collateralToken.toLocaleLowerCase()
-              ? [collateralToken, outcomeToken]
-              : [outcomeToken, collateralToken];
-          return await getPools(chainId).fetch({ token0, token1 });
-        }),
-      );
+      return await Promise.all(tokens.map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })));
     },
   });
 };
