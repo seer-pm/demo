@@ -28,7 +28,13 @@ function createConditionalEvent(
   conditionalEvent.save();
 }
 
-const splitMethods = [
+class MethodSignature {
+  name: string;
+  signature: string;
+  marketParamPos: i32;
+}
+
+const splitMethods: MethodSignature[] = [
   {
     name: "splitFromBase",
     signature: "0x50d9991c",
@@ -46,7 +52,7 @@ const splitMethods = [
   },
 ];
 
-const mergeMethods = [
+const mergeMethods: MethodSignature[] = [
   {
     name: "mergeToBase",
     signature: "0xd6d150d1",
@@ -64,7 +70,7 @@ const mergeMethods = [
   },
 ];
 
-const redeemMethods = [
+const redeemMethods: MethodSignature[] = [
   {
     name: "redeemToBase",
     signature: "0x9fe603e8",
@@ -82,20 +88,25 @@ const redeemMethods = [
   },
 ];
 
+function getMethodSignature(methods: MethodSignature[], methodId: string): MethodSignature | null {
+  for(let i = 0; i < methods.length; i++) {
+    if (methods[i].signature === methodId) {
+      return methods[i]
+    }
+  }
+  return null;
+}
+
 function getMarketFromTx(
   txInput: Bytes,
-  methods: {
-    name: string;
-    signature: string;
-    marketParamPos: number;
-  }[],
+  methods: MethodSignature[],
 ): Market | null {
   const methodId = Bytes.fromUint8Array(txInput.slice(0, 4)).toHexString();
-  const matchingMethod = methods.filter((method) => method.signature === methodId)[0];
+  const matchingMethod = getMethodSignature(methods, methodId);
   if (!matchingMethod) {
     return null;
   }
-  const startIndex = matchingMethod.marketParamPos * 32 + 4;
+  const startIndex: i32 = matchingMethod.marketParamPos * 32 + 4;
   const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32)));
   if (!decodedMarket) {
     return null;
