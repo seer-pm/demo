@@ -97,7 +97,7 @@ export const getPoolUrl = (chainId: number, poolId: string) => {
     case gnosis.id:
       return `https://v3.swapr.eth.limo/#/info/pools/${poolId}`;
     case mainnet.id:
-      return `https://app.uniswap.org/explore/pools/ethereum/${poolId}`;
+      return `https://bunni.pro/pools/ethereum/${poolId}`;
     default:
       return "#";
   }
