@@ -28,20 +28,86 @@ function createConditionalEvent(
   conditionalEvent.save();
 }
 
-// splitFromBase, splitFromDai, splitPosition
-const splitMethods = ["0x50d9991c", "0x59a89d8b", "0xd5f82280"];
-// mergeToBase, mergeToDai, mergePosition
-const mergeMethods = ["0xd6d150d1", "0x4c95d98d", "0x7abef8d1"];
-// redeemToBase, redeemToDai, redeemPosition
-const redeemMethods = ["0x9fe603e8", "0xb6fefc75", "0x865955a0"];
+class MethodSignature {
+  name: string;
+  signature: string;
+  marketParamPos: i32;
+}
 
-function getMarketFromTx(txInput: Bytes, methodsSignature: string[]): Market | null {
+const splitMethods: MethodSignature[] = [
+  {
+    name: "splitFromBase",
+    signature: "0x50d9991c",
+    marketParamPos: 0,
+  },
+  {
+    name: "splitFromDai",
+    signature: "0x59a89d8b",
+    marketParamPos: 0,
+  },
+  {
+    name: "splitPosition",
+    signature: "0xd5f82280",
+    marketParamPos: 1,
+  },
+];
+
+const mergeMethods: MethodSignature[] = [
+  {
+    name: "mergeToBase",
+    signature: "0xd6d150d1",
+    marketParamPos: 0,
+  },
+  {
+    name: "mergeToDai",
+    signature: "0x4c95d98d",
+    marketParamPos: 0,
+  },
+  {
+    name: "mergePositions",
+    signature: "0x7abef8d1",
+    marketParamPos: 1,
+  },
+];
+
+const redeemMethods: MethodSignature[] = [
+  {
+    name: "redeemToBase",
+    signature: "0x9fe603e8",
+    marketParamPos: 0,
+  },
+  {
+    name: "redeemToDai",
+    signature: "0xb6fefc75",
+    marketParamPos: 0,
+  },
+  {
+    name: "redeemPositions",
+    signature: "0x865955a0",
+    marketParamPos: 1,
+  },
+];
+
+function getMethodSignature(methods: MethodSignature[], methodId: string): MethodSignature | null {
+  for(let i = 0; i < methods.length; i++) {
+    if (methods[i].signature == methodId) {
+      return methods[i]
+    }
+  }
+  return null;
+}
+
+function getMarketFromTx(
+  txInput: Bytes,
+  methods: MethodSignature[],
+): Market | null {
   const methodId = Bytes.fromUint8Array(txInput.slice(0, 4)).toHexString();
-  if (!methodsSignature.includes(methodId)) {
+  const matchingMethod = getMethodSignature(methods, methodId);
+  if (!matchingMethod) {
     return null;
   }
-
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(4, 36)));
+  const startIndex: i32 = matchingMethod.marketParamPos * 32 + 4;
+  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32)));
   if (!decodedMarket) {
     return null;
   }
