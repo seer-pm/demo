@@ -7,6 +7,7 @@ import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
+import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
@@ -20,9 +21,11 @@ interface RedeemFormProps {
   account?: Address;
   market: Market;
   router: Address;
+  successCallback?: () => void;
 }
 
-export function RedeemForm({ account, market, router }: RedeemFormProps) {
+export function RedeemForm({ account, market, router, successCallback }: RedeemFormProps) {
+  const { chainId } = useAccount();
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -30,23 +33,33 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
     },
   });
 
-  const { data: winningPositions = [] } = useWinningPositions(account, market, router);
+  const { data: winningPositions = [], isPending } = useWinningPositions(account, market, router);
 
   const winningOutcomeIndexes = generateWinningOutcomeIndexes(winningPositions);
 
-  const redeemPositions = useRedeemPositions();
+  const redeemPositions = useRedeemPositions(successCallback);
 
   const filteredWinningPositions = winningPositions.filter((wp) => wp.balance > 0n);
 
   const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
 
-  const { data: missingApprovals } = useMissingApprovals(
+  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
     filteredWinningPositions.map((wp) => wp.tokenId),
     account,
     router,
     redeemAmounts,
     market.chainId,
   );
+  if (isPending) {
+    if (chainId !== market.chainId) {
+      return (
+        <SwitchChainButtonWrapper chainId={market.chainId}>
+          <div></div>
+        </SwitchChainButtonWrapper>
+      );
+    }
+    return <div className="shimmer-container w-full h-6"></div>;
+  }
 
   if (winningOutcomeIndexes.length === 0) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
@@ -77,7 +90,7 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
               variant="primary"
               type="submit"
               disabled={redeemPositions.isPending || !account}
-              isLoading={redeemPositions.isPending}
+              isLoading={redeemPositions.isPending || isLoadingApprovals}
               text="Submit"
             />
           )}

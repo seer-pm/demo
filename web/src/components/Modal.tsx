@@ -7,9 +7,10 @@ export interface ModalProps {
   content: React.ReactNode;
   id: string;
   open: boolean;
+  className?: string;
 }
 
-export function Modal({ title, content, id, open }: ModalProps) {
+export function Modal({ title, content, id, open, className }: ModalProps) {
   return (
     <>
       {createPortal(
@@ -21,7 +22,7 @@ export function Modal({ title, content, id, open }: ModalProps) {
           open={open}
           aria-modal={open}
         >
-          <div className="modal-box">
+          <div className={clsx("modal-box", className)}>
             <h3
               className="text-[24px] font-semibold text-center mb-[32px]"
               dangerouslySetInnerHTML={{ __html: title }}

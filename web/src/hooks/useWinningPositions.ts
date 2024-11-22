@@ -8,10 +8,9 @@ import { Position, useMarketPositions } from "./useMarketPositions";
 
 export const useWinningPositions = (account: Address | undefined, market: Market, router: Address) => {
   const { data: positions = [] } = useMarketPositions(account, market);
-
   return useQuery<Position[] | undefined, Error>({
     enabled: !!router && positions.length > 0,
-    queryKey: ["useWinningPositions", router],
+    queryKey: ["useWinningPositions", router, positions.map((x) => ({ ...x, balance: x.balance.toString() }))],
     queryFn: async () => {
       const winningOutcomes = await readContract(config, {
         abi: RouterAbi,

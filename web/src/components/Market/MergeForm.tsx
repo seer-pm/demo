@@ -54,7 +54,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals } = useMissingApprovals(
+  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
     market.wrappedTokens,
     account,
     router,
@@ -168,7 +168,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
               variant="primary"
               type="submit"
               disabled={!isValid || parsedAmount === 0n || mergePositions.isPending || !account}
-              isLoading={mergePositions.isPending}
+              isLoading={mergePositions.isPending || isLoadingApprovals}
               text="Merge"
             />
           )}
