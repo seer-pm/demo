@@ -181,7 +181,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               <Button
                 type="button"
                 text="Redeem"
-                className="min-w-[100px] !min-h-[40px] !h-[40px]"
+                className="!min-w-[100px] !w-[100px] !min-h-[40px] !h-[40px]"
                 onClick={() => {
                   setSelectedMarketId(position.marketAddress as Address);
                   openModal();
