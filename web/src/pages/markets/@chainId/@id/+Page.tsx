@@ -4,8 +4,8 @@ import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAle
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketChart from "@/components/Market/MarketChart";
+import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
-import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
@@ -233,7 +233,7 @@ function MarketPage() {
             {market && (
               <>
                 <Outcomes market={market} images={images?.outcomes} />
-                <RelatedMarkets market={market} />
+                <MarketTabs market={market} />
               </>
             )}
           </div>
