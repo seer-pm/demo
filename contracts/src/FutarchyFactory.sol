@@ -149,7 +149,7 @@ contract FutarchyFactory {
             params.marketName,
             InternalMarketConfig({
                 encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result.
+                outcomeSlotCount: params.outcomes.length,
                 templateId: REALITY_SINGLE_SELECT_TEMPLATE
             })
         );
@@ -171,7 +171,7 @@ contract FutarchyFactory {
             params.marketName,
             InternalMarketConfig({
                 encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result.
+                outcomeSlotCount: params.outcomes.length,
                 templateId: REALITY_MULTI_SELECT_TEMPLATE
             })
         );
@@ -195,7 +195,7 @@ contract FutarchyFactory {
             params.marketName,
             InternalMarketConfig({
                 encodedQuestions: encodedQuestions,
-                outcomeSlotCount: 3, // additional outcome for Invalid Result.
+                outcomeSlotCount: 2,
                 templateId: REALITY_UINT_TEMPLATE
             })
         );
@@ -223,7 +223,7 @@ contract FutarchyFactory {
             string(abi.encodePacked(params.questionStart, "[", params.outcomeType, "]", params.questionEnd)),
             InternalMarketConfig({
                 encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length + 1, // additional outcome for Invalid Result.
+                outcomeSlotCount: params.outcomes.length,
                 templateId: REALITY_UINT_TEMPLATE
             })
         );
@@ -402,7 +402,7 @@ contract FutarchyFactory {
         return conditionId;
     }
 
-    /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
+    /// @dev Wraps the ERC1155 outcome tokens to ERC20.
     /// @param parentCollectionId The parentCollectionId.
     /// @param conditionId The conditionId.
     /// @param outcomeSlotCount The amount of outcomes.
@@ -415,8 +415,6 @@ contract FutarchyFactory {
         uint256 outcomeSlotCount,
         string[] memory tokenNames
     ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {
-        uint256 invalidResultIndex = outcomeSlotCount - 1;
-
         wrapped1155 = new IERC20[](outcomeSlotCount);
         data = new bytes[](outcomeSlotCount);
 
@@ -424,11 +422,11 @@ contract FutarchyFactory {
             bytes32 collectionId = conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << j);
             uint256 tokenId = conditionalTokens.getPositionId(collateralToken, collectionId);
 
-            require(j == invalidResultIndex || bytes(tokenNames[j]).length != 0, "Missing token name");
+            require(bytes(tokenNames[j]).length != 0, "Missing token name");
 
             bytes memory _data = abi.encodePacked(
-                toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
-                toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
+                toString31(tokenNames[j]),
+                toString31(tokenNames[j]),
                 uint8(18)
             );
 
