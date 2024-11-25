@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { DownArrow } from "@/lib/icons";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
-import React from "react";
+import React, { useEffect,useState } from "react";
 import { useAccount } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 
@@ -31,10 +31,29 @@ const ConnectButton = () => {
 const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
   const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
   const { open } = useWeb3Modal();
+
+  const [hasAccount, sethasAccount] = useState(false);
+
+  useEffect(() => {
+    const checkAccount = async () => {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        sethasAccount(accounts.length > 0);
+      }
+    };
+    
+    checkAccount();
+    window.ethereum?.on('accountsChanged', checkAccount);
+    
+    return () => {
+      window.ethereum?.removeListener('accountsChanged', checkAccount);
+    };
+  }, []);
+
   const handleSwitch = () => {
     open({ view: "Networks" });
   };
-  if (isConnected) {
+  if (isConnected && hasAccount) {
     if (!chain) {
       return <SwitchChainButton />;
     }
@@ -51,7 +70,6 @@ const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
       </div>
     );
   }
-
   return <ConnectButton />;
 };
 
