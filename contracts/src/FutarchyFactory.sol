@@ -1,6 +1,6 @@
 /**
  *  @authors: [@xyzseer]
- *  @reviewers: [@nvm1410, @madhurMongia, @unknownunknown1, @mani99brar]
+ *  @reviewers: []
  *  @auditors: []
  *  @bounties: []
  *  @deployments: []
@@ -9,62 +9,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import "./FutarchyProposal.sol";
+import "./FutarchyRealityProxy.sol";
 import {IConditionalTokens, IRealityETH_v3_0, IWrapped1155Factory} from "./Interfaces.sol";
-import "./Market.sol";
-import "./RealityProxy.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
+/// @dev MarketFactory modified to create futarchy proposals.
+/// Each proposal has four outcomes (Yes/Token1, Yes/Token2, No/Token1, No/Token2).
+/// There's one reality question asking whether or not the proposal should be accepted.
+/// If the proposal is accepted, the first two outcomes (Yes) are redeemable, otherwise, the last two are redeemable (No).
 contract FutarchyFactory {
     using Clones for address;
 
     /// @dev Workaround "stack too deep" errors.
-    /// @param marketName Used only in categorical, multi categorical, and scalar markets. In multi scalar markets, the market name is formed using questionStart + outcomeType + questionEnd.
-    /// @param outcomes The market outcomes, doesn't include the INVALID_RESULT outcome.
-    /// @param questionStart Used to build the Reality question on multi scalar markets.
-    /// @param questionEnd Used to build the Reality question on multi scalar markets.
-    /// @param outcomeType Used to build the Reality question on multi scalar markets.
+    /// @param proposalName The name of the proposal.
+    /// @param collateralToken1 First collateral token.
+    /// @param collateralToken2 Second collateral token.
     /// @param parentOutcome conditional outcome to use (optional).
-    /// @param parentMarket conditional market to use (optional). UNTRUSTED.
+    /// @param parentProposal conditional proposal to use (optional). UNTRUSTED.
     /// @param category Reality question category.
     /// @param lang Reality question language.
-    /// @param lowerBound Lower bound, only used for scalar markets.
-    /// @param upperBound Upper bound, only used for scalar markets.
     /// @param minBond Min bond to use on Reality.
     /// @param openingTime Reality question opening time.
-    /// @param tokenNames Name of the ERC20 tokens associated to each outcome.
-    struct CreateMarketParams {
-        string marketName;
-        string[] outcomes;
-        string questionStart;
-        string questionEnd;
-        string outcomeType;
+    struct CreateProposalParams {
+        string proposalName;
+        IERC20 collateralToken1;
+        IERC20 collateralToken2;
         uint256 parentOutcome;
-        address parentMarket;
+        address parentProposal;
         string category;
         string lang;
-        uint256 lowerBound;
-        uint256 upperBound;
         uint256 minBond;
         uint32 openingTime;
-        string[] tokenNames;
     }
 
-    /// @dev Workaround "stack too deep" errors.
-    /// @param encodedQuestions The encoded questions containing the Reality parameters.
-    /// @param outcomeSlotCount Conditional Tokens outcomeSlotCount.
-    /// @param templateId Reality templateId.
-    struct InternalMarketConfig {
-        string[] encodedQuestions;
-        uint256 outcomeSlotCount;
-        uint256 templateId;
-    }
-
-    /// @dev Template for scalar and multi scalar markets.
-    uint8 internal constant REALITY_UINT_TEMPLATE = 1;
-    /// @dev Template for categorical markets.
+    /// @dev Template for proposals.
     uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
-    /// @dev Template for multi categorical markets.
-    uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
     /// @dev Reality question timeout.
     uint32 public immutable questionTimeout;
@@ -77,270 +57,137 @@ contract FutarchyFactory {
     IWrapped1155Factory public immutable wrapped1155Factory;
     /// @dev Conditional Tokens contract.
     IConditionalTokens public immutable conditionalTokens;
-    /// @dev Conditional Tokens collateral token contract.
-    address public immutable collateralToken;
     /// @dev Oracle contract.
-    RealityProxy public immutable realityProxy;
-    /// @dev Markets created by this factory.
-    address[] public markets;
-    /// @dev Market contract.
-    address public immutable market;
+    FutarchyRealityProxy public immutable realityProxy;
+    /// @dev Proposals created by this factory.
+    address[] public proposals;
+    /// @dev FutarchyProposal contract.
+    address public immutable proposal;
 
-    /// @dev To be emitted when a new market is created.
-    /// @param market The new market address.
-    /// @param marketName The name of the market.
-    /// @param parentMarket Conditional market to use.
+    /// @dev To be emitted when a new proposal is created.
+    /// @param proposal The new proposal address.
+    /// @param proposalName The name of the proposal.
+    /// @param parentProposal Conditional proposal to use.
     /// @param conditionId Conditional Tokens conditionId.
-    /// @param questionId Conditional Tokens questionId.
-    /// @param questionsIds Reality questions ids.
-    event NewMarket(
-        address indexed market,
-        string marketName,
-        address parentMarket,
-        bytes32 conditionId,
-        bytes32 questionId,
-        bytes32[] questionsIds
+    /// @param questionId Conditional Tokens & Reality.eth questionId.
+    event NewProposal(
+        address indexed proposal, string proposalName, address parentProposal, bytes32 conditionId, bytes32 questionId
     );
 
     /**
      *  @dev Constructor.
-     *  @param _market Address of the market contract that is going to be used for each new deployment.
+     *  @param _proposal Address of the proposal contract that is going to be used for each new deployment.
      *  @param _arbitrator Address of the arbitrator that is going to resolve Realitio disputes.
      *  @param _realitio Address of the Realitio implementation.
      *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
-     *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
      *  @param _questionTimeout Reality question timeout.
      */
     constructor(
-        address _market,
+        address _proposal,
         address _arbitrator,
         IRealityETH_v3_0 _realitio,
         IWrapped1155Factory _wrapped1155Factory,
         IConditionalTokens _conditionalTokens,
-        address _collateralToken,
-        RealityProxy _realityProxy,
+        FutarchyRealityProxy _realityProxy,
         uint32 _questionTimeout
     ) {
-        market = _market;
+        proposal = _proposal;
         arbitrator = _arbitrator;
         realitio = _realitio;
         wrapped1155Factory = _wrapped1155Factory;
         conditionalTokens = _conditionalTokens;
-        collateralToken = _collateralToken;
         realityProxy = _realityProxy;
         questionTimeout = _questionTimeout;
     }
 
-    /// @dev Creates a Categorical market.
-    /// @notice Categorical markets are associated with a Reality question that has only one answer.
-    /// @param params CreateMarketParams instance.
-    /// @return The new market address.
-    function createCategoricalMarket(CreateMarketParams calldata params) external returns (address) {
-        require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
+    /// @dev Creates the Proposal and deploys the wrapped ERC20 tokens.
+    /// @param params CreateProposalParams instance.
+    /// @return The new proposal address.
+    function createProposal(CreateProposalParams memory params) external returns (address) {
+        (string[] memory outcomes, string[] memory tokenNames) =
+            getOutcomesAndTokens(params.collateralToken1, params.collateralToken2);
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
+        (FutarchyProposal.FutarchyProposalParams memory futarchyProposalParams) =
+            createNewProposalParams(params, tokenNames);
 
-        return createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length,
-                templateId: REALITY_SINGLE_SELECT_TEMPLATE
-            })
-        );
-    }
+        FutarchyProposal instance = FutarchyProposal(proposal.clone());
 
-    /// @dev Creates a Multi Categorical market.
-    /// @notice Multi Categorical markets are associated with a Reality question that has one or more answers.
-    /// @param params CreateMarketParams instance.
-    /// @return The new market address.
-    function createMultiCategoricalMarket(CreateMarketParams calldata params) external returns (address) {
-        require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
+        instance.initialize(params.proposalName, outcomes, futarchyProposalParams, realityProxy);
 
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
-
-        return createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length,
-                templateId: REALITY_MULTI_SELECT_TEMPLATE
-            })
-        );
-    }
-
-    /// @dev Creates a Scalar market.
-    /// @notice Scalar markets are associated with a Reality question that resolves to a numeric value.
-    /// @param params CreateMarketParams instance.
-    /// @return The new market address.
-    function createScalarMarket(CreateMarketParams calldata params) external returns (address) {
-        require(params.upperBound > params.lowerBound, "upperBound must be higher than lowerBound");
-        // values reserved by Reality for INVALID and UNRESOLVED_ANSWER.
-        require(params.upperBound < type(uint256).max - 2, "upperBound must be less than uint256.max - 2");
-        require(params.outcomes.length == 2, "Outcomes count must be 2");
-
-        string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.category, params.lang);
-
-        return createMarket(
-            params,
-            params.marketName,
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: 2,
-                templateId: REALITY_UINT_TEMPLATE
-            })
-        );
-    }
-
-    /// @dev Creates a Multi Scalar market.
-    /// @notice Multi Scalar markets are associated with two or more Reality questions, and each one of them resolves to a numeric value.
-    /// @param params CreateMarketParams instance.
-    /// @return The new market address.
-    function createMultiScalarMarket(CreateMarketParams calldata params) external returns (address) {
-        require(params.outcomes.length >= 2, "Outcomes count must be 2 or more");
-
-        string[] memory encodedQuestions = new string[](params.outcomes.length);
-
-        for (uint256 i = 0; i < params.outcomes.length; i++) {
-            encodedQuestions[i] = encodeRealityQuestionWithoutOutcomes(
-                string(abi.encodePacked(params.questionStart, params.outcomes[i], params.questionEnd)),
-                params.category,
-                params.lang
-            );
-        }
-
-        return createMarket(
-            params,
-            string(abi.encodePacked(params.questionStart, "[", params.outcomeType, "]", params.questionEnd)),
-            InternalMarketConfig({
-                encodedQuestions: encodedQuestions,
-                outcomeSlotCount: params.outcomes.length,
-                templateId: REALITY_UINT_TEMPLATE
-            })
-        );
-    }
-
-    /// @dev Creates the Market and deploys the wrapped ERC20 tokens.
-    /// @param params CreateMarketParams instance.
-    /// @param marketName The market name.
-    /// @param config InternalMarketConfig instance.
-    /// @return The new market address.
-    function createMarket(
-        CreateMarketParams memory params,
-        string memory marketName,
-        InternalMarketConfig memory config
-    ) internal returns (address) {
-        (Market.ConditionalTokensParams memory conditionalTokensParams, Market.RealityParams memory realityParams) =
-            createNewMarketParams(params, config);
-
-        Market instance = Market(market.clone());
-
-        instance.initialize(
-            marketName,
-            params.outcomes,
-            params.lowerBound,
-            params.upperBound,
-            conditionalTokensParams,
-            realityParams,
-            realityProxy
-        );
-
-        emit NewMarket(
+        emit NewProposal(
             address(instance),
-            marketName,
-            params.parentMarket,
-            conditionalTokensParams.conditionId,
-            conditionalTokensParams.questionId,
-            realityParams.questionsIds
+            params.proposalName,
+            params.parentProposal,
+            futarchyProposalParams.conditionId,
+            futarchyProposalParams.questionId
         );
 
-        markets.push(address(instance));
+        proposals.push(address(instance));
 
         return address(instance);
     }
 
-    /// @dev Creates the structures needed to initialize the new market.
-    /// @param params CreateMarketParams instance.
-    /// @param config InternalMarketConfig instance.
-    /// @return Market.ConditionalTokensParams instance.
-    /// @return Market.RealityParams instance.
-    function createNewMarketParams(
-        CreateMarketParams memory params,
-        InternalMarketConfig memory config
-    ) internal returns (Market.ConditionalTokensParams memory, Market.RealityParams memory) {
-        bytes32 parentCollectionId = params.parentMarket == address(0)
+    function getOutcomesAndTokens(
+        IERC20 collateralToken1,
+        IERC20 collateralToken2
+    ) internal view returns (string[] memory, string[] memory) {
+        string memory token1 = collateralToken1.name();
+        string memory token2 = collateralToken2.name();
+
+        string[] memory outcomes = new string[](4);
+        outcomes[0] = string(abi.encodePacked("Yes_", token1));
+        outcomes[1] = string(abi.encodePacked("No_", token1));
+        outcomes[2] = string(abi.encodePacked("Yes_", token2));
+        outcomes[3] = string(abi.encodePacked("No_", token2));
+
+        string[] memory tokenNames = new string[](4);
+        tokenNames[0] = string(abi.encodePacked("YES_", token1));
+        tokenNames[1] = string(abi.encodePacked("NO_", token1));
+        tokenNames[2] = string(abi.encodePacked("YES_", token2));
+        tokenNames[3] = string(abi.encodePacked("NO_", token2));
+
+        return (outcomes, tokenNames);
+    }
+
+    /// @dev Creates the structures needed to initialize the new proposal.
+    /// @param params CreateProposalParams instance.
+    /// @param tokenNames Token names.
+    /// @return FutarchyProposal.FutarchyProposalParams instance.
+    function createNewProposalParams(
+        CreateProposalParams memory params,
+        string[] memory tokenNames
+    ) internal returns (FutarchyProposal.FutarchyProposalParams memory) {
+        bytes32 parentCollectionId = params.parentProposal == address(0)
             ? bytes32(0)
             : conditionalTokens.getCollectionId(
-                Market(params.parentMarket).parentCollectionId(),
-                Market(params.parentMarket).conditionId(),
+                FutarchyProposal(params.parentProposal).parentCollectionId(),
+                FutarchyProposal(params.parentProposal).conditionId(),
                 1 << params.parentOutcome
             );
 
-        bytes32[] memory questionsIds = new bytes32[](config.encodedQuestions.length);
+        string memory encodedQuestion = encodeRealityQuestion(params.proposalName, params.category, params.lang);
+        bytes32 questionId =
+            askRealityQuestion(encodedQuestion, REALITY_SINGLE_SELECT_TEMPLATE, params.openingTime, params.minBond);
+        bytes32 conditionId = prepareCondition(questionId, 2); // two outcomes (YES / NO)
 
-        for (uint256 i = 0; i < config.encodedQuestions.length; i++) {
-            questionsIds[i] =
-                askRealityQuestion(config.encodedQuestions[i], config.templateId, params.openingTime, params.minBond);
-        }
-
-        // questionId must be a hash of all the values that RealityProxy.resolve() uses to resolve a market, this way if an attacker tries to resolve a fake market by changing some value its questionId will not match the id of a valid market.
-        bytes32 questionId = keccak256(
-            abi.encode(questionsIds, params.outcomes.length, config.templateId, params.lowerBound, params.upperBound)
+        (IERC20[] memory wrapped1155, bytes[] memory data) = deployERC20Positions(
+            params.collateralToken1, params.collateralToken2, parentCollectionId, conditionId, tokenNames
         );
-        bytes32 conditionId = prepareCondition(questionId, config.outcomeSlotCount);
 
-        (IERC20[] memory wrapped1155, bytes[] memory data) =
-            deployERC20Positions(parentCollectionId, conditionId, config.outcomeSlotCount, params.tokenNames);
-
-        return (
-            Market.ConditionalTokensParams({
-                conditionId: conditionId,
-                questionId: questionId,
-                parentCollectionId: parentCollectionId,
-                parentOutcome: params.parentOutcome,
-                parentMarket: params.parentMarket,
-                wrapped1155: wrapped1155,
-                data: data
-            }),
-            Market.RealityParams({
-                questionsIds: questionsIds,
-                templateId: config.templateId,
-                encodedQuestions: config.encodedQuestions
-            })
-        );
-    }
-
-    /// @dev Encodes the question, outcomes, category and language following the Reality structure.
-    /// If any parameter has a special character like quotes, it must be properly escaped.
-    /// @param question The question text.
-    /// @param outcomes[] The question outcomes.
-    /// @param category The question category.
-    /// @param lang The question language.
-    /// @return The encoded question.
-    function encodeRealityQuestionWithOutcomes(
-        string memory question,
-        string[] calldata outcomes,
-        string memory category,
-        string memory lang
-    ) internal pure returns (string memory) {
-        bytes memory separator = abi.encodePacked(unicode"\u241f");
-
-        bytes memory encodedOutcomes = abi.encodePacked('"', outcomes[0], '"');
-
-        for (uint256 i = 1; i < outcomes.length; i++) {
-            encodedOutcomes = abi.encodePacked(encodedOutcomes, ',"', outcomes[i], '"');
-        }
-
-        return string(abi.encodePacked(question, separator, encodedOutcomes, separator, category, separator, lang));
+        return FutarchyProposal.FutarchyProposalParams({
+            conditionId: conditionId,
+            collateralToken1: params.collateralToken1,
+            collateralToken2: params.collateralToken2,
+            questionId: questionId,
+            parentCollectionId: parentCollectionId,
+            parentOutcome: params.parentOutcome,
+            parentProposal: params.parentProposal,
+            wrapped1155: wrapped1155,
+            data: data,
+            encodedQuestion: encodedQuestion
+        });
     }
 
     /// @dev Encodes the question, category and language following the Reality structure.
@@ -349,14 +196,14 @@ contract FutarchyFactory {
     /// @param category The question category.
     /// @param lang The question language.
     /// @return The encoded question.
-    function encodeRealityQuestionWithoutOutcomes(
+    function encodeRealityQuestion(
         string memory question,
         string memory category,
         string memory lang
     ) internal pure returns (string memory) {
         bytes memory separator = abi.encodePacked(unicode"\u241f");
 
-        return string(abi.encodePacked(question, separator, category, separator, lang));
+        return string(abi.encodePacked(question, separator, '"Yes","No"', separator, category, separator, lang));
     }
 
     /// @dev Asks a question on reality.
@@ -403,32 +250,34 @@ contract FutarchyFactory {
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20.
+    /// @param collateralToken1 The first collateral token.
+    /// @param collateralToken2 The second collateral token.
     /// @param parentCollectionId The parentCollectionId.
     /// @param conditionId The conditionId.
-    /// @param outcomeSlotCount The amount of outcomes.
     /// @param tokenNames The name of each outcome token.
     /// @return wrapped1155 Array of outcome tokens wrapped to ERC20.
     /// @return data Array of token data used to create each ERC20.
     function deployERC20Positions(
+        IERC20 collateralToken1,
+        IERC20 collateralToken2,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256 outcomeSlotCount,
         string[] memory tokenNames
     ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {
-        wrapped1155 = new IERC20[](outcomeSlotCount);
-        data = new bytes[](outcomeSlotCount);
+        wrapped1155 = new IERC20[](tokenNames.length);
+        data = new bytes[](tokenNames.length);
 
-        for (uint256 j = 0; j < outcomeSlotCount; j++) {
-            bytes32 collectionId = conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << j);
-            uint256 tokenId = conditionalTokens.getPositionId(collateralToken, collectionId);
+        for (uint256 j = 0; j < 4; j++) {
+            // we loop over the 4 outcomes to deploy the tokens, but to build the collectionId both YES & NO outcomes have the same indexSet
+            bytes32 collectionId =
+                conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << (j < 2 ? j : j - 2));
+            // first two tokens are YES/NO for collateral1, last two tokens are YES/NO for collateral2
+            uint256 tokenId =
+                conditionalTokens.getPositionId(address(j < 2 ? collateralToken1 : collateralToken2), collectionId);
 
             require(bytes(tokenNames[j]).length != 0, "Missing token name");
 
-            bytes memory _data = abi.encodePacked(
-                toString31(tokenNames[j]),
-                toString31(tokenNames[j]),
-                uint8(18)
-            );
+            bytes memory _data = abi.encodePacked(toString31(tokenNames[j]), toString31(tokenNames[j]), uint8(18));
 
             IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(address(conditionalTokens), tokenId, _data);
 
@@ -458,15 +307,15 @@ contract FutarchyFactory {
         encodedString = encodedString | bytes32(length << 1);
     }
 
-    /// @dev Returns all the markets created by this factory.
-    /// @return The addresses of the markets.
-    function allMarkets() external view returns (address[] memory) {
-        return markets;
+    /// @dev Returns all the proposals created by this factory.
+    /// @return The addresses of the proposals.
+    function allProposals() external view returns (address[] memory) {
+        return proposals;
     }
 
-    /// @notice Returns the amount of markets created by this factory.
-    /// @return The amount of markets.
-    function marketCount() external view returns (uint256) {
-        return markets.length;
+    /// @notice Returns the amount of proposals created by this factory.
+    /// @return The amount of proposals.
+    function proposalsCount() external view returns (uint256) {
+        return proposals.length;
     }
 }
