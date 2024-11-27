@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "yarn server:dev",
     "prod": "yarn build && yarn server:prod",
-    "build": "yarn generate && tsc && vite build",
+    "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
     "lint": "biome check --write ./src",
     "generate": "yarn generate:hooks && yarn generate:gql",
     "generate:hooks": "wagmi generate",
@@ -78,6 +78,7 @@
     "@wagmi/cli": "^2.1.1",
     "autoprefixer": "^10.4.17",
     "buffer": "^6.0.3",
+    "cross-env": "^7.0.3",
     "daisyui": "^4.6.0",
     "lint-staged": "^15.2.2",
     "postcss": "^8.4.33",
