@@ -20,7 +20,6 @@ import { toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { Address } from "viem";
-import { Head } from "vike-react/Head";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
@@ -188,9 +187,6 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
   return (
     <div className="container-fluid py-10">
-      <Head>
-        <meta property="og:image" content={`https://app.seer.pm/og-images/markets/${market.chainId}/${market.id}/`} />
-      </Head>
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         {chainId && connectedChainId && chainId !== connectedChainId && (
