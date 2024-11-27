@@ -7,11 +7,13 @@
   NODE_VERSION = "20.18.0"
 
 [dev]
-  command = "yarn"
-  targetPort = 5173
+  command = "node ./web/server"
+  targetPort = 3000
   port = 8888
 
 [functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@sparticuz/chromium"]
   directory = "web/netlify/functions"
 
 [build.processing.html]
