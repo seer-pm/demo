@@ -2,9 +2,10 @@ import Button from "@/components/Form/Button";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { DownArrow } from "@/lib/icons";
+import { Orbis } from "@orbisclub/orbis-sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
-import React, { useEffect,useState } from "react";
-import { useAccount } from "wagmi";
+import React, { useEffect, useState } from "react";
+import { useAccount, useAccountEffect } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 
 export const SwitchChainButton: React.FC = () => {
@@ -37,22 +38,35 @@ const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
   useEffect(() => {
     const checkAccount = async () => {
       if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
         sethasAccount(accounts.length > 0);
       }
     };
-    
+
     checkAccount();
-    window.ethereum?.on('accountsChanged', checkAccount);
-    
+    window.ethereum?.on("accountsChanged", checkAccount);
+
     return () => {
-      window.ethereum?.removeListener('accountsChanged', checkAccount);
+      window.ethereum?.removeListener("accountsChanged", checkAccount);
     };
   }, []);
 
   const handleSwitch = () => {
     open({ view: "Networks" });
   };
+  useAccountEffect({
+    onConnect() {
+      const orbis = new Orbis();
+      if (!localStorage.getItem("ceramic-session")) {
+        orbis.connect_v2({});
+      }
+    },
+    onDisconnect() {
+      const orbis = new Orbis();
+      orbis.logout();
+    },
+  });
+
   if (isConnected && hasAccount) {
     if (!chain) {
       return <SwitchChainButton />;
