@@ -10,6 +10,11 @@ import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
+  REALITY_TEMPLATE_MULTIPLE_SELECT, getMultiSelectAnswers
+} from "@/lib/reality";
+import { hexToNumber } from "viem";
+
+import {
   CheckCircleIcon,
   ClockIcon,
   DaiLogo,
@@ -39,14 +44,17 @@ interface MarketHeaderProps {
   outcomesCount?: number;
 }
 
+
 function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
+  marketStatus,
 }: {
   market: Market;
   outcomesCount?: number;
   images?: string[];
+  marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const { isIntersecting, ref } = useIntersectionObserver({
@@ -55,12 +63,37 @@ function OutcomesInfo({
   const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
 
   const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) {
-      return null;
+    if (marketStatus === MarketStatus.CLOSED && market.questions[0].best_answer) {
+      if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+        const winningNumber = hexToNumber(market.questions[0].best_answer);
+        const winningIndexes = getMultiSelectAnswers(winningNumber);
+
+        return market.outcomes.map((_, i) => i)
+          .sort((a, b) => {
+            const aIsWinner = winningIndexes.includes(a);
+            const bIsWinner = winningIndexes.includes(b);
+            if (aIsWinner && !bIsWinner) return -1;
+            if (!aIsWinner && bIsWinner) return 1;
+            return 0;
+          });
+      }
+
+      const winningIndex = hexToNumber(market.questions[0].best_answer);
+      return market.outcomes.map((_, i) => i)
+        .sort((a, b) => (a === winningIndex ? -1 : b === winningIndex ? 1 : 0));
     }
-    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
-    return oddsAndIndexes.map((obj) => obj.i);
-  }, [odds]);
+
+    if (!oddsPending && odds.length > 0) {
+      return odds
+        .map((odd, i) => ({ odd, i }))
+        .sort((a, b) => b.odd - a.odd)
+        .map(obj => obj.i);
+    }
+
+    return null;
+  }, [odds, marketStatus, market.questions, market.outcomes, market.templateId]);
+
+
   const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
   const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
@@ -94,15 +127,29 @@ function OutcomesInfo({
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="group-hover:underline">
-                    #{j + 1} {market.outcomes[i]}{" "}
+
+                  <div className="group-hover:underline flex items-center gap-2">
+                    #{j + 1}   {market.outcomes[i]}{" "}
+                    {marketStatus === MarketStatus.CLOSED &&
+                      Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT &&
+                      getMultiSelectAnswers(hexToNumber(market.questions[0].best_answer)).includes(i) &&
+                      <CheckCircleIcon className="text-success-primary" />
+                    }
+                    {marketStatus === MarketStatus.CLOSED &&
+                      Number(market.templateId) !== REALITY_TEMPLATE_MULTIPLE_SELECT &&
+                      hexToNumber(market.questions[0].best_answer) === i &&
+                      <CheckCircleIcon className="text-success-primary" />
+                    }
+
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
                   </div>
-                  {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
+
                 </div>
               </div>
+
+
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
                   {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
@@ -259,7 +306,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} />
+          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} marketStatus={marketStatus} />
         </div>
       )}
       {type !== "small" && (

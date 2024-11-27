@@ -9,7 +9,7 @@ import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
-import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { EtherscanIcon, QuestionIcon, RightArrow, CheckCircleIcon } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
@@ -18,13 +18,16 @@ import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect, useMemo } from "react";
-import { RpcError, zeroAddress } from "viem";
+import { RpcError, zeroAddress, hexToNumber } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
+import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { REALITY_TEMPLATE_MULTIPLE_SELECT,getMultiSelectAnswers } from "@/lib/reality";
+
 
 interface PositionsProps {
   market: Market;
@@ -201,14 +204,40 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+  const { data: marketStatus } = useMarketStatus(market);
+
 
   const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) {
-      return null;
+    if (marketStatus === MarketStatus.CLOSED && market.questions[0].best_answer) {
+      if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+        const winningNumber = hexToNumber(market.questions[0].best_answer);
+        const winningIndexes = getMultiSelectAnswers(winningNumber);
+
+        return market.outcomes.map((_, i) => i)
+          .sort((a, b) => {
+            const aIsWinner = winningIndexes.includes(a);
+            const bIsWinner = winningIndexes.includes(b);
+            if (aIsWinner && !bIsWinner) return -1;
+            if (!aIsWinner && bIsWinner) return 1;
+            return 0;
+          });
+      }
+
+      const winningIndex = hexToNumber(market.questions[0].best_answer);
+      return market.outcomes.map((_, i) => i)
+        .sort((a, b) => (a === winningIndex ? -1 : b === winningIndex ? 1 : 0));
     }
-    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
-    return oddsAndIndexes.map((obj) => obj.i);
-  }, [odds]);
+
+    if (!oddsPending && odds.length > 0) {
+      return odds
+        .map((odd, i) => ({ odd, i }))
+        .sort((a, b) => b.odd - a.odd)
+        .map(obj => obj.i);
+    }
+
+    return null;
+  }, [odds, marketStatus, market.questions, market.outcomes, market.templateId]);
+
 
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
@@ -280,10 +309,19 @@ export function Outcomes({ market, images }: PositionsProps) {
                 </div>
                 <div className="space-y-1">
                   <div className="text-[16px] flex items-center gap-1">
-                    <p>
+                    <p className="flex items-center gap-2">
                       #{j + 1} {market.outcomes[i]}{" "}
-                      {i <= 1 &&
-                        getMarketType(market) === MarketTypes.SCALAR &&
+                      {marketStatus === MarketStatus.CLOSED &&
+                        Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT &&
+                        getMultiSelectAnswers(hexToNumber(market.questions[0].best_answer)).includes(i) &&
+                        <CheckCircleIcon className="text-success-primary" />
+                      }
+                      {marketStatus === MarketStatus.CLOSED &&
+                        Number(market.templateId) !== REALITY_TEMPLATE_MULTIPLE_SELECT &&
+                        hexToNumber(market.questions[0].best_answer) === i &&
+                        <CheckCircleIcon className="text-success-primary" />
+                      }
+                      {i <= 1 && getMarketType(market) === MarketTypes.SCALAR &&
                         `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
                     </p>
                     {getMarketType(market) === MarketTypes.SCALAR && i !== market.wrappedTokens.length - 1 && (
