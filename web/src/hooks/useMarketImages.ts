@@ -46,7 +46,10 @@ export const useMarketImages = (marketId: Address, chainId: SupportedChain, regi
         if (item.latestRequester && item.latestRequester.toLowerCase() === currentUserAddress?.toLowerCase()) {
           return true;
         }
-        return registered ? item.status === Status.Registered : true;
+        const isVerifiedBeforeClearing =
+          item.status === Status.ClearingRequested &&
+          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
+        return registered ? item.status === Status.Registered || isVerifiedBeforeClearing : true;
       });
       if (litems.length === 0) {
         throw new Error("Market images not found");

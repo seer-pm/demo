@@ -1,8 +1,10 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
+import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
@@ -50,7 +52,7 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, isIntersecting);
+  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
 
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
@@ -59,10 +61,13 @@ function OutcomesInfo({
     const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
     return oddsAndIndexes.map((obj) => obj.i);
   }, [odds]);
-
+  const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
+  const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
     <div ref={ref}>
-      <div className="space-y-3">
+      <div
+        className={clsx("space-y-3", isAllLoading ? "market-card__outcomes__loading" : "market-card__outcomes__loaded")}
+      >
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const outcome = market.outcomes[i];
@@ -100,7 +105,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
+                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
               </div>
             </Link>
@@ -238,7 +243,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
         </div>
       )}
-      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
+      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
           <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
           {!isPendingOdds && (
@@ -251,6 +256,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           )}
         </div>
       )}
+
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
           <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} />

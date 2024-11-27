@@ -3,7 +3,7 @@ import {
   marketFactoryAddress,
   readMarketViewGetMarkets,
 } from "@/hooks/contracts/generated";
-import { getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
+import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
 import {
   GetMarketQuery,
   GetMarketsQuery,
@@ -44,11 +44,14 @@ async function getVerificationStatusList(
         if (!marketId) {
           return obj;
         }
-        if (item.status === "Registered") {
+        const isVerifiedBeforeClearing =
+          item.status === Status.ClearingRequested &&
+          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
+        if (item.status === Status.Registered || isVerifiedBeforeClearing) {
           obj[marketId] = { status: "verified", itemID: item.itemID };
           return obj;
         }
-        if (item.status === "RegistrationRequested") {
+        if (item.status === Status.RegistrationRequested) {
           if (item.disputed) {
             obj[marketId] = { status: "challenged", itemID: item.itemID };
           } else {

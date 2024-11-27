@@ -215,7 +215,9 @@ export function SwapTokens({
             </Alert>
           )}
 
-          <div className={clsx("space-y-5")}>
+          <div
+            className={clsx("space-y-5", hasEnoughLiquidity === false && "grayscale opacity-40 pointer-events-none")}
+          >
             <div role="tablist" className="tabs tabs-bordered">
               <button
                 type="button"
