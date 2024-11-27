@@ -13,5 +13,9 @@ query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _Sub
     data
     latestRequester
     disputed
+    requests{
+      requestType
+      resolved
+    }
   }
 }
