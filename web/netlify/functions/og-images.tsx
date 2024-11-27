@@ -11,7 +11,7 @@ export async function handler(event: HandlerEvent, _context: HandlerContext) {
   try {
     // Launch browser with longer timeout
     browser = await puppeteer.launch({
-      // args: chromium.args,
+      args: chromium.args,
       defaultViewport: {
         width: 700,
         height: 1080,
