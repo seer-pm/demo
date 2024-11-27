@@ -378,7 +378,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
+                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
 
                 <input

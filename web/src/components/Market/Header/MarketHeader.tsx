@@ -100,7 +100,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
+                {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
               </div>
             </Link>
@@ -238,19 +238,24 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
         </div>
       )}
-      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
-        <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
-          {!isPendingOdds && (
-            <span className="tooltip">
-              <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w[400px] ">
-                The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
-              </p>
-              <QuestionIcon fill="#9747FF" />
-            </span>
-          )}
-        </div>
-      )}
+      {marketType === MarketTypes.SCALAR &&
+        market.id !== "0x000" &&
+        marketEstimate !== "NA" && (
+          <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}
+            </div>
+            {!isPendingOdds && (
+              <span className="tooltip">
+                <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w[400px] ">
+                  The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
+                </p>
+                <QuestionIcon fill="#9747FF" />
+              </span>
+            )}
+          </div>
+        )}
+
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
           <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} />
