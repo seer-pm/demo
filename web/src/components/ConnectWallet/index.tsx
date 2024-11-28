@@ -55,12 +55,6 @@ const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
     open({ view: "Networks" });
   };
   useAccountEffect({
-    onConnect() {
-      const orbis = new Orbis();
-      if (!localStorage.getItem("ceramic-session")) {
-        orbis.connect_v2({});
-      }
-    },
     onDisconnect() {
       const orbis = new Orbis();
       orbis.logout();
