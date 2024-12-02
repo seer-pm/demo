@@ -28,6 +28,7 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
       markets.map((market, index) => ({
         id: market.id,
         odds: results[index].map((x) => (Number.isNaN(x) ? null : x)),
+        updated_at: new Date(),
       })),
     );
 
