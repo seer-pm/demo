@@ -139,7 +139,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true, isOgImage);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
+  const marketEstimate = getMarketEstimate(odds, market, true);
   return (
     <div
       className={clsx(
