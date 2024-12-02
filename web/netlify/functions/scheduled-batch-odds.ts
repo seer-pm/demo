@@ -1,6 +1,6 @@
 import { Config } from "@netlify/functions";
 
-require("dotenv").config();
+// require("dotenv").config();
 
 export default async (req: Request) => {
   try {
