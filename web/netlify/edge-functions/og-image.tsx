@@ -145,8 +145,9 @@ async function getDbOgImage(marketId: string) {
   }
 }
 
-export default async (_request: Request, context: Context) => {
-  const { chainId, marketId } = context.params;
+export default async (request: Request, context: Context) => {
+  const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/);
+  const { chainId = "0", marketId = "" } = match?.groups || {};
   const ogImage = await getDbOgImage(marketId);
   if (ogImage) {
     return new ImageResponse(<img src={`data:image/png;base64,${ogImage}`} alt="Market Card"></img>);
