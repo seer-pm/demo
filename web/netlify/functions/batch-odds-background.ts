@@ -92,7 +92,8 @@ async function getOgImages(markets) {
 }
 
 async function getOgImage(browser: Browser, { chainId, marketId }) {
-  const page = await browser.newPage();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   try {
     await page.goto(`https://app.seer.pm/markets/${chainId}/${marketId}/card`);
     const card = await page.waitForSelector(".market-card");
@@ -100,11 +101,11 @@ async function getOgImage(browser: Browser, { chainId, marketId }) {
     await page.waitForFunction(() => document.querySelector(".market-card__outcomes__loaded"));
 
     const screenshot = await card!.screenshot({ type: "png" });
-    await page.close();
+    await context.close();
 
     return screenshot.toString("base64");
   } catch (error) {
-    await page.close();
+    await context.close();
     console.log(error);
   }
 }
