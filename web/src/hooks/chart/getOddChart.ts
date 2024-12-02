@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { subDays } from "date-fns";
@@ -220,7 +220,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
         let isShowDataPoint = true;
         let total = 0;
         for (const odd of odds) {
-          if (Number.isNaN(odd)) {
+          if (!isOdd(odd)) {
             isShowDataPoint = false;
             break;
           }
@@ -245,9 +245,8 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
           type: "line",
           data: timestamps.map((timestamp) => {
             const odds = oddsMapping[String(timestamp)]!;
-            const marketEstimate =
-              ((odds[0] || 0) * Number(market.lowerBound) + (odds[1] || 0) * Number(market.upperBound)) / 100;
-            return [timestamp, Number(marketEstimate.toFixed(2))];
+            const marketEstimate = getMarketEstimate(odds, market);
+            return [timestamp, Number(marketEstimate)];
           }),
         },
       ];

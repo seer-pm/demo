@@ -5,8 +5,10 @@ import { Discussion } from "@orbisclub/components";
 import "@orbisclub/components/dist/index.modern.css";
 import { Orbis } from "@orbisclub/orbis-sdk";
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 
 function Comments({ market }: { market: Market }) {
+  const { isConnected } = useAccount();
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});
   const [isLoading, setLoading] = useState(false);
   useEffect(() => {
@@ -15,6 +17,13 @@ function Comments({ market }: { market: Market }) {
     const loginContainer = orbisContainer.children[0] as HTMLDivElement;
     if (!loginContainer) return;
     loginContainer.style.display = ceramicSession ? "block" : "none";
+  }, [ceramicSession]);
+
+  useEffect(() => {
+    if (ceramicSession && !isConnected) {
+      const orbis = new Orbis();
+      orbis.logout({});
+    }
   }, [ceramicSession]);
 
   const signOrbis = async () => {
