@@ -133,14 +133,14 @@ contract FutarchyFactory {
         IERC20 collateralToken1,
         IERC20 collateralToken2
     ) internal view returns (string[] memory, string[] memory) {
-        string memory token1 = collateralToken1.name();
-        string memory token2 = collateralToken2.name();
+        string memory token1 = collateralToken1.symbol();
+        string memory token2 = collateralToken2.symbol();
 
         string[] memory outcomes = new string[](4);
-        outcomes[0] = string(abi.encodePacked("Yes_", token1));
-        outcomes[1] = string(abi.encodePacked("No_", token1));
-        outcomes[2] = string(abi.encodePacked("Yes_", token2));
-        outcomes[3] = string(abi.encodePacked("No_", token2));
+        outcomes[0] = string(abi.encodePacked("Yes-", token1));
+        outcomes[1] = string(abi.encodePacked("No-", token1));
+        outcomes[2] = string(abi.encodePacked("Yes-", token2));
+        outcomes[3] = string(abi.encodePacked("No-", token2));
 
         string[] memory tokenNames = new string[](4);
         tokenNames[0] = string(abi.encodePacked("YES_", token1));
