@@ -8,7 +8,7 @@ import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter() {
+export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
   const { address } = useAccount();
   const {
     setMarketName: setMarketNameParam,
@@ -68,8 +68,8 @@ export function MarketsFilter() {
 
         <div>
           <LinkButton
-            to={"/create-market"}
-            text="Create New Market"
+            to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
+            text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
             icon={<PlusIcon />}
             className="max-lg:w-full min-w-[256px]"
           />
@@ -79,7 +79,7 @@ export function MarketsFilter() {
         {address && (
           <div className="flex items-center m-1 gap-2">
             <label className="text-purple-primary text-[14px] cursor-pointer" htmlFor="show-my-market">
-              Show only my markets
+              {isFutarchyPage ? "Show only my proposals" : "Show only my markets"}
             </label>
             <input
               className="cursor-pointer checkbox"
