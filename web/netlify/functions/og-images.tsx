@@ -20,7 +20,6 @@ export async function handler(event: HandlerEvent, _context: HandlerContext) {
       executablePath: process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath()),
       headless: true,
     });
-
     page = await browser.newPage();
 
     page.goto(`https://app.seer.pm/markets/${chainId}/${marketId}/card`);
@@ -28,10 +27,14 @@ export async function handler(event: HandlerEvent, _context: HandlerContext) {
     if (!card) {
       throw "Market not found!";
     }
-
-    //wait for the prices to load
+    // wait for the prices to load
     try {
-      await card.waitForSelector(".market-card__outcomes__loaded", { timeout: 15000 });
+      await page.waitForFunction(
+        () => {
+          return document.querySelector(".market-card__outcomes__loaded");
+        },
+        { timeout: 15000 },
+      );
     } catch (e) {}
     const screenshot = await card.screenshot({
       type: "png",
