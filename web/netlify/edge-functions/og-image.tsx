@@ -1,6 +1,5 @@
 import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
 import React from "https://esm.sh/react@18.2.0";
-import { isAddress } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
 
 const tagStyle = {
@@ -15,9 +14,6 @@ const tagStyle = {
 };
 
 const SUBGRAPH_API_KEY = Deno.env.get("SUBGRAPH_API_KEY");
-
-const VITE_SUPABASE_PROJECT_URL = Deno.env.get("VITE_SUPABASE_PROJECT_URL");
-const VITE_SUPABASE_API_KEY = Deno.env.get("VITE_SUPABASE_API_KEY");
 
 const SEER_SUBGRAPH_URLS: Partial<Record<string, string>> = {
   "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
@@ -127,31 +123,10 @@ async function fetchMarketImages(marketId: string, chainId: string) {
   };
 }
 
-async function getDbOgImage(marketId: string) {
-  if (!isAddress(marketId)) {
-    return;
-  }
-  try {
-    const response = await fetch(`${VITE_SUPABASE_PROJECT_URL}/rest/v1/markets?id=eq.${marketId}&select=*&limit=1`, {
-      headers: {
-        apikey: VITE_SUPABASE_API_KEY!,
-        Authorization: `Bearer ${VITE_SUPABASE_API_KEY}`,
-      },
-    });
-    const data = await response.json();
-    return data[0]?.og_image;
-  } catch (e) {
-    console.log(e);
-  }
-}
-
 export default async (request: Request, context: Context) => {
   const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/);
   const { chainId = "0", marketId = "" } = match?.groups || {};
-  const ogImage = await getDbOgImage(marketId);
-  if (ogImage) {
-    return new ImageResponse(<img src={`data:image/png;base64,${ogImage}`} alt="Market Card"></img>);
-  }
+
   const market = await fetchMarket(marketId, chainId);
 
   if (!market) {
