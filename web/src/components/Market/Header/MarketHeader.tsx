@@ -8,7 +8,7 @@ import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
-import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { getRouterAddress, NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -30,6 +30,11 @@ import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
+import { RouterAbi } from "@/abi/RouterAbi";
+import { config } from "@/wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
+import { Address } from "viem";
 import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
 
 interface MarketHeaderProps {
@@ -40,16 +45,27 @@ interface MarketHeaderProps {
   isOgImage?: boolean;
 }
 
+type OutcomeWithOdds = {
+  odd: number;
+  i: number;
+  isWinning?: boolean;
+}
+
+
+
 function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
   isOgImage,
+  marketStatus,
 }: {
   market: Market;
   outcomesCount?: number;
   images?: string[];
   isOgImage?: boolean;
+  marketStatus?: MarketStatus;
+
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const { isIntersecting, ref } = useIntersectionObserver({
@@ -62,13 +78,63 @@ function OutcomesInfo({
     isFetching,
   } = useMarketOdds(market, isIntersecting, isOgImage);
 
+  const routerAddress = getRouterAddress(market.chainId);
+
+  const winningOutcomes = useQuery({
+    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
+    enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
+    queryFn: async () => {
+      return await readContract(config, {
+        abi: RouterAbi,
+        address: routerAddress as Address,
+        functionName: "getWinningOutcomes",
+        args: [market.conditionId],
+        chainId: market.chainId
+      });
+    }
+  });
+
+
+
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
       return null;
     }
-    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
-    return oddsAndIndexes.map((obj) => obj.i);
-  }, [odds]);
+
+    const invalidIndex = market.outcomes.findIndex(outcome => outcome === INVALID_RESULT_OUTCOME_TEXT);
+
+    if (!winningOutcomes.data && marketStatus === MarketStatus.CLOSED) {
+      const otherIndexes = odds
+        .map((odd, i) => ({ odd, i }))
+        .filter(({ i }) => i !== invalidIndex)
+        .sort((a, b) => b.odd - a.odd)
+        .map(obj => obj.i);
+
+      return [invalidIndex, ...otherIndexes];
+    }
+
+    
+    
+    
+    const winningIndexes: OutcomeWithOdds[] = [];
+    const nonWinningIndexes: OutcomeWithOdds[] = [];
+
+    odds.forEach((odd, i) => {
+      if (winningOutcomes.data?.[i] === true) {
+        winningIndexes.push({ odd, i });
+      } else {
+        nonWinningIndexes.push({ odd, i });
+      }
+    });
+
+
+    const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map(obj => obj.i);
+    const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map(obj => obj.i);
+
+    return [...sortedWinning, ...sortedNonWinning];
+  }, [odds, winningOutcomes.data, market.outcomes, marketStatus]);
+
+
   const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
   const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
@@ -81,12 +147,49 @@ function OutcomesInfo({
           const outcome = market.outcomes[i];
 
           if (j >= visibleOutcomesLimit) {
-            // render the first `visibleOutcomesLimit` outcomes
+             // render the first `visibleOutcomesLimit` outcomes
             return null;
           }
+
           if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
+            if (marketStatus === MarketStatus.CLOSED &&
+              (!winningOutcomes.data || winningOutcomes.data[i] === true)) {
+              return (
+                <Link
+                  key={`${outcome}_${i}`}
+                  className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
+                  to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
+                >
+                  <div className="flex items-center space-x-[12px]">
+                    <div className="w-[65px]">
+                      <OutcomeImage
+                        image={images?.[i]}
+                        isInvalidResult={i === market.outcomes.length - 1}
+                        title={outcome}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="group-hover:underline flex items-center gap-2">
+                        #{j + 1} {market.outcomes[i]}{" "}
+                        {i <= 1 &&
+                          getMarketType(market) === MarketTypes.SCALAR &&
+                          `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                        {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
+                      </div>
+
+                    </div>
+                  </div>
+                  <div className="flex space-x-10 items-center">
+                    <div className="text-[24px] font-semibold">
+                      {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
+                    </div>
+                  </div>
+                </Link>
+              );
+            }
             return null;
           }
+
           return (
             <Link
               key={`${outcome}_${i}`}
@@ -102,12 +205,14 @@ function OutcomesInfo({
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="group-hover:underline">
+                  <div className="group-hover:underline flex items-center gap-2">
                     #{j + 1} {market.outcomes[i]}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                    {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
+
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
@@ -118,7 +223,7 @@ function OutcomesInfo({
               </div>
             </Link>
           );
-        })}
+        })}     
       </div>
     </div>
   );
@@ -267,7 +372,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} isOgImage={isOgImage} />
+          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} isOgImage={isOgImage} marketStatus={marketStatus} />
         </div>
       )}
       {type !== "small" && (
