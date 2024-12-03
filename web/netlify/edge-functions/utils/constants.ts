@@ -44,3 +44,8 @@ export const lightGeneralizedTcrAddress = {
   1: "0x4A9f8e73b3c4c9d7fA0210b9de457b1c493a3AdA",
   100: "0x5aAF9E23A11440F8C1Ad6D2E2e5109C7e52CC672",
 };
+
+export const routerAddressMapping = {
+  1: "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
+  100: "0xeC9048b59b3467415b1a38F63416407eA0c70fB8",
+};

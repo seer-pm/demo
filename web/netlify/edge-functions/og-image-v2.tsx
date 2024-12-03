@@ -15,6 +15,7 @@ import {
 } from "./utils/constants.ts";
 import { fetchMarket } from "./utils/fetchMarket.ts";
 import { fetchVerificationStatusList } from "./utils/fetchVerificationStatusList.ts";
+import { fetchWinningOutcomes } from "./utils/fetchWinningOutcomes.ts";
 import { getMarketStatus } from "./utils/getMarketStatus.ts";
 import { getTokenInfo } from "./utils/getTokenInfo.ts";
 import { convertFromSDAI } from "./utils/handleSDai.ts";
@@ -138,11 +139,12 @@ export default async (request: Request, context: Context) => {
         { width: 2400, height: 1350, debug: false },
       );
     }
-    const [images, parentMarket, odds = [], daiAmount] = await Promise.all([
+    const [images, parentMarket, odds = [], daiAmount, winningOutcomes] = await Promise.all([
       fetchMarketImages(marketId, chainId),
       fetchMarket(market.parentMarket, market.chainId, verificationStatusList),
       fetchOdds(marketId),
       convertFromSDAI(market.outcomesSupply, market.chainId),
+      fetchWinningOutcomes(market),
     ]);
     const parentCollateral = await getTokenInfo(
       parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
@@ -324,7 +326,13 @@ export default async (request: Request, context: Context) => {
             paddingBottom: "16px",
           }}
         >
-          <OutcomesInfo market={market} outcomesCount={3} images={images?.outcomes} odds={odds} />
+          <OutcomesInfo
+            market={market}
+            outcomesCount={3}
+            images={images?.outcomes}
+            odds={odds}
+            winningOutcomes={winningOutcomes}
+          />
         </div>
         <div
           style={{

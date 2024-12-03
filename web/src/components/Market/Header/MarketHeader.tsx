@@ -133,40 +133,11 @@ function OutcomesInfo({
             return null;
           }
 
-          if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
-            if (marketStatus === MarketStatus.CLOSED && (!winningOutcomes.data || winningOutcomes.data[i] === true)) {
-              return (
-                <Link
-                  key={`${outcome}_${i}`}
-                  className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-                  to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
-                >
-                  <div className="flex items-center space-x-[12px]">
-                    <div className="w-[65px]">
-                      <OutcomeImage
-                        image={images?.[i]}
-                        isInvalidResult={i === market.outcomes.length - 1}
-                        title={outcome}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="group-hover:underline flex items-center gap-2">
-                        #{j + 1} {market.outcomes[i]}{" "}
-                        {i <= 1 &&
-                          getMarketType(market) === MarketTypes.SCALAR &&
-                          `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
-                        {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex space-x-10 items-center">
-                    <div className="text-[24px] font-semibold">
-                      {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
-                    </div>
-                  </div>
-                </Link>
-              );
-            }
+          if (
+            outcome === INVALID_RESULT_OUTCOME_TEXT &&
+            (marketStatus !== MarketStatus.CLOSED ||
+              (marketStatus === MarketStatus.CLOSED && winningOutcomes?.data?.[i] !== true))
+          ) {
             return null;
           }
 

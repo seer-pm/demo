@@ -1,26 +1,65 @@
 import React, { SVGAttributes } from "https://esm.sh/react@18.2.0";
 import { formatOdds } from "../common.ts";
 import { INVALID_RESULT_OUTCOME_TEXT } from "../constants.ts";
+import { getMarketStatus } from "../getMarketStatus.ts";
+import { CheckCircleIcon } from "../icons.tsx";
 import { MarketTypes, getMarketType } from "../market.ts";
-import { Market } from "../types.ts";
+import { Market, MarketStatus } from "../types.ts";
+
+type OutcomeWithOdds = {
+  odd: number | null;
+  i: number;
+  isWinning?: boolean;
+};
 
 function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
   odds,
+  winningOutcomes,
 }: {
   market: Market;
   odds: (number | null)[];
   outcomesCount?: number;
   images?: string[];
+  winningOutcomes: boolean[];
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
+  const marketStatus = getMarketStatus(market);
+  const indexesOrderedByOdds = (() => {
+    if (odds.length === 0) {
+      return null;
+    }
 
-  const indexesOrderedByOdds = odds
-    .map((odd, i) => ({ odd, i }))
-    .sort((a, b) => (b.odd ?? 0) - (a.odd ?? 0))
-    .map((obj) => obj.i);
+    const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
+
+    if (!winningOutcomes && marketStatus === MarketStatus.CLOSED) {
+      const otherIndexes = odds
+        .map((odd, i) => ({ odd, i }))
+        .filter(({ i }) => i !== invalidIndex)
+        .sort((a, b) => (b.odd ?? 0) - (a.odd ?? 0))
+        .map((obj) => obj.i);
+
+      return [invalidIndex, ...otherIndexes];
+    }
+
+    const winningIndexes: OutcomeWithOdds[] = [];
+    const nonWinningIndexes: OutcomeWithOdds[] = [];
+
+    odds.forEach((odd, i) => {
+      if (winningOutcomes?.[i] === true) {
+        winningIndexes.push({ odd, i });
+      } else {
+        nonWinningIndexes.push({ odd, i });
+      }
+    });
+
+    const sortedWinning = winningIndexes.sort((a, b) => (b.odd ?? 0) - (a.odd ?? 0)).map((obj) => obj.i);
+    const sortedNonWinning = nonWinningIndexes.sort((a, b) => (b.odd ?? 0) - (a.odd ?? 0)).map((obj) => obj.i);
+
+    return [...sortedWinning, ...sortedNonWinning];
+  })();
   return (
     <div
       style={{
@@ -38,7 +77,11 @@ function OutcomesInfo({
           // render the first `visibleOutcomesLimit` outcomes
           return null;
         }
-        if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
+        if (
+          outcome === INVALID_RESULT_OUTCOME_TEXT &&
+          (marketStatus !== MarketStatus.CLOSED ||
+            (marketStatus === MarketStatus.CLOSED && winningOutcomes[i] !== true))
+        ) {
           return null;
         }
         return (
@@ -64,11 +107,16 @@ function OutcomesInfo({
               <div style={{ display: "flex", width: "65px" }}>
                 <OutcomeImage image={images?.[i]} isInvalidResult={i === market.outcomes.length - 1} title={outcome} />
               </div>
-              <div style={{ display: "flex" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 #{j + 1} {market.outcomes[i]}{" "}
                 {i <= 1 &&
                   getMarketType(market) === MarketTypes.SCALAR &&
                   `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                {winningOutcomes[i] === true && (
+                  <div style={{ display: "flex", color: "#00C42B" }}>
+                    <CheckCircleIcon />
+                  </div>
+                )}
               </div>
             </div>
             <p
