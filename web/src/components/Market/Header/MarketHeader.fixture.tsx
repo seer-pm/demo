@@ -2,8 +2,8 @@ import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
-import { MarketHeader } from "./MarketHeader";
 import { zeroAddress } from "viem";
+import { MarketHeader } from "./MarketHeader";
 
 const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",

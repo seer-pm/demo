@@ -129,7 +129,7 @@ export function handleNewProposal(event: NewProposalEvent): void {
   processMarket(event, {
     id: event.params.proposal.toHexString(),
     type: 'Futarchy',
-    marketName: event.params.proposalName,
+    marketName: event.params.marketName,
     outcomes: outcomes,
     lowerBound: BigInt.fromI32(0),
     upperBound: BigInt.fromI32(0),
@@ -137,7 +137,7 @@ export function handleNewProposal(event: NewProposalEvent): void {
     collateralToken2: proposal.collateralToken2(),
     parentCollectionId: proposal.parentCollectionId(),
     parentOutcome: proposal.parentOutcome(),
-    parentMarket: proposal.parentProposal(),
+    parentMarket: proposal.parentMarket(),
     wrappedTokens: wrappedTokens,
     conditionId: event.params.conditionId,
     questionId: event.params.questionId,

@@ -2,6 +2,7 @@ import { getConfigNumber } from "@/lib/config";
 import { MarketTypes } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
+import { formatDate } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { Address, TransactionReceipt } from "viem";
@@ -106,16 +107,20 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
   return result.receipt;
 }
 
+export function getProposalName(marketName: string, openingTime: number) {
+  return `Will proposal "${marketName}" be accepted by ${formatDate(openingTime)} UTC?`;
+}
+
 async function createProposal(props: CreateMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () =>
       writeFutarchyFactoryCreateProposal(config, {
         args: [
           {
-            proposalName: escapeJson(props.marketName),
+            marketName: escapeJson(getProposalName(props.marketName, props.openingTime)),
             collateralToken1: props.collateralToken1 as Address,
             collateralToken2: props.collateralToken2 as Address,
-            parentProposal: props.parentMarket,
+            parentMarket: props.parentMarket,
             parentOutcome: props.parentOutcome,
             lang: "en_US",
             category: "misc",

@@ -1,5 +1,5 @@
 import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
-import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { getOutcomes, getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
@@ -330,12 +330,13 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
-    type: 'Generic',
+    type: "Generic",
     collateralToken1: zeroAddress,
     collateralToken2: zeroAddress,
     chainId,
-    marketName:
-      marketTypeValues.marketType === MarketTypes.SCALAR
+    marketName: isFutarchyMarket
+      ? getProposalName(outcomesValues.market, openingTime)
+      : marketTypeValues.marketType === MarketTypes.SCALAR
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: dummyOutcomes,

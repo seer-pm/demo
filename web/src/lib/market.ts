@@ -115,8 +115,15 @@ export function isMarketReliable(market: Market) {
       return false;
     }
 
-    // -1 to exclude the INVALID outcome
-    return decodedQuestion.outcomes.length === market.outcomes.length - 1;
+    const hasInvalidOutcome = market.type === "Generic";
+
+    if (hasInvalidOutcome) {
+      // -1 to exclude the INVALID outcome
+      return decodedQuestion.outcomes.length === market.outcomes.length - 1;
+    }
+
+    // futarchy markets have 2 outcomes (Yes & No)
+    return decodedQuestion.outcomes.length === 2;
   });
 }
 

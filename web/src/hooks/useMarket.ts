@@ -62,7 +62,7 @@ export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: MarketOffChainFields): Market {
   const market: Market = {
     ...onChainMarket,
-    type: onChainMarket.collateralToken1 !== zeroAddress ? 'Generic' : 'Futarchy',
+    type: onChainMarket.collateralToken1 !== zeroAddress ? "Generic" : "Futarchy",
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
     outcomes: onChainMarket.outcomes.map((outcome) => {
