@@ -6,6 +6,7 @@ import {
   ethereum,
 } from "@graphprotocol/graph-ts";
 import {
+  MarketFactory,
   NewMarket as NewMarketEvent,
 } from "../generated/MarketFactory/MarketFactory";
 import { MarketView } from "../generated/MarketFactory/MarketView";
@@ -48,6 +49,7 @@ export class MarketDataQuestion {
 
 class MarketData {
   public id: string;
+  public type: string;
   public marketName: string;
   public outcomes: string[];
   public lowerBound: BigInt;
@@ -55,6 +57,8 @@ class MarketData {
   public parentCollectionId: Bytes;
   public parentOutcome: BigInt;
   public parentMarket: Address;
+  public collateralToken1: Address;
+  public collateralToken2: Address;
   public wrappedTokens: Address[];
   public conditionId: Bytes;
   public questionId: Bytes;
@@ -76,10 +80,13 @@ export function handleNewMarket(event: NewMarketEvent): void {
     event,
     {
       id: event.params.market.toHexString(),
+      type: "Generic",
       marketName: data.marketName,
       outcomes: data.outcomes,
       lowerBound: data.lowerBound,
       upperBound: data.upperBound,
+      collateralToken1: Address.zero(),
+      collateralToken2: Address.zero(),
       parentCollectionId: data.parentCollectionId,
       parentOutcome: data.parentOutcome,
       parentMarket: data.parentMarket,
@@ -99,13 +106,33 @@ export function handleNewMarket(event: NewMarketEvent): void {
         bond: q.bond,
         min_bond: q.min_bond,
       })),
-    }
+    },
+    MarketFactory.bind(event.address).collateralToken()
   );
+}
+
+function getCollateralToken(
+  parentMarket: Address,
+  parentOutcome: BigInt,
+  collateralToken: Address
+): Bytes {
+  if (parentMarket.equals(Address.zero())) {
+    return collateralToken;
+  }
+
+  const market = Market.load(parentMarket.toHexString());
+
+  if (!market) {
+    return collateralToken;
+  }
+
+  return market.wrappedTokens[parentOutcome.toI32()];
 }
 
 export function processMarket(
   event: ethereum.Event,
-  data: MarketData
+  data: MarketData,
+  collateralToken: Address
 ): void {
   const market = new Market(data.id);
 
@@ -113,6 +140,7 @@ export function processMarket(
   condition.save();
 
   market.factory = event.address;
+  market.type = data.type;
   market.creator = event.transaction.from;
   market.marketName = data.marketName;
   market.outcomes = data.outcomes;
@@ -123,6 +151,13 @@ export function processMarket(
   market.parentOutcome = data.parentOutcome;
   market.wrappedTokens = changetype<Bytes[]>(data.wrappedTokens);
   market.parentMarket = data.parentMarket;
+  market.collateralToken = getCollateralToken(
+    data.parentMarket,
+    data.parentOutcome,
+    collateralToken
+  );
+  market.collateralToken1 = data.collateralToken1;
+  market.collateralToken2 = data.collateralToken2;
   market.conditionId = data.conditionId;
   market.ctfCondition = condition.id;
   market.questionId = data.questionId;
@@ -157,9 +192,7 @@ export function processMarket(
     question.save();
 
     const marketQuestion = new MarketQuestion(
-      market.id
-        .concat(data.questionsIds[i].toHexString())
-        .concat(i.toString())
+      market.id.concat(data.questionsIds[i].toHexString()).concat(i.toString())
     );
     marketQuestion.market = market.id;
     marketQuestion.question = question.id;

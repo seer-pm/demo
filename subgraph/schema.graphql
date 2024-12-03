@@ -1,5 +1,11 @@
+enum MarketType {
+  Generic
+  Futarchy
+}
+
 type Market @entity {
   id: ID!
+  type: MarketType!
   factory: Bytes!
   creator: Bytes!
   marketName: String!
@@ -11,6 +17,12 @@ type Market @entity {
   parentOutcome: BigInt!
   parentMarket: Bytes!
   wrappedTokens: [Bytes!]!
+  " collateral token for Generic markets. It's either the MarketFactory's collateralToken or the parentMarket corresponding wrapped token "
+  collateralToken: Bytes!
+  " collateral token 1 for Futarchy markets "
+  collateralToken1: Bytes!
+  " collateral token 2 for Futarchy markets "
+  collateralToken2: Bytes!
   conditionId: Bytes!
   ctfCondition: Condition!
   questionId: Bytes!
