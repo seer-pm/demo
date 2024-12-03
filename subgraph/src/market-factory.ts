@@ -5,9 +5,13 @@ import {
   dataSource,
   ethereum,
 } from "@graphprotocol/graph-ts";
+import { NewMarket as NewMarketEvent } from "../generated/MarketFactory/MarketFactory";
 import {
-  NewMarket as NewMarketEvent,
-} from "../generated/MarketFactory/MarketFactory";
+  FutarchyFactory,
+  NewProposal as NewProposalEvent,
+} from "../generated/FutarchyFactory/FutarchyFactory";
+import { FutarchyProposal } from "../generated/FutarchyFactory/FutarchyProposal";
+import { Reality } from "../generated/FutarchyFactory/Reality";
 import { MarketView } from "../generated/MarketFactory/MarketView";
 import {
   Condition,
@@ -48,6 +52,7 @@ export class MarketDataQuestion {
 
 class MarketData {
   public id: string;
+  public type: string;
   public marketName: string;
   public outcomes: string[];
   public lowerBound: BigInt;
@@ -55,6 +60,8 @@ class MarketData {
   public parentCollectionId: Bytes;
   public parentOutcome: BigInt;
   public parentMarket: Address;
+  public collateralToken1: Address;
+  public collateralToken2: Address;
   public wrappedTokens: Address[];
   public conditionId: Bytes;
   public questionId: Bytes;
@@ -72,47 +79,94 @@ export function handleNewMarket(event: NewMarketEvent): void {
     Address.fromString(event.params.market.toHexString())
   );
 
-  processMarket(
-    event,
-    {
-      id: event.params.market.toHexString(),
-      marketName: data.marketName,
-      outcomes: data.outcomes,
-      lowerBound: data.lowerBound,
-      upperBound: data.upperBound,
-      parentCollectionId: data.parentCollectionId,
-      parentOutcome: data.parentOutcome,
-      parentMarket: data.parentMarket,
-      wrappedTokens: data.wrappedTokens,
-      conditionId: data.conditionId,
-      questionId: data.questionId,
-      questionsIds: data.questionsIds,
-      templateId: data.templateId,
-      encodedQuestions: data.encodedQuestions,
-      questions: data.questions.map<MarketDataQuestion>((q) => ({
-        opening_ts: q.opening_ts,
-        arbitrator: q.arbitrator,
-        timeout: q.timeout,
-        finalize_ts: q.finalize_ts,
-        is_pending_arbitration: q.is_pending_arbitration,
-        best_answer: q.best_answer,
-        bond: q.bond,
-        min_bond: q.min_bond,
-      })),
-    }
-  );
+  processMarket(event, {
+    id: event.params.market.toHexString(),
+    type: 'Generic',
+    marketName: data.marketName,
+    outcomes: data.outcomes,
+    lowerBound: data.lowerBound,
+    upperBound: data.upperBound,
+    collateralToken1: Address.zero(),
+    collateralToken2: Address.zero(),
+    parentCollectionId: data.parentCollectionId,
+    parentOutcome: data.parentOutcome,
+    parentMarket: data.parentMarket,
+    wrappedTokens: data.wrappedTokens,
+    conditionId: data.conditionId,
+    questionId: data.questionId,
+    questionsIds: data.questionsIds,
+    templateId: data.templateId,
+    encodedQuestions: data.encodedQuestions,
+    questions: data.questions.map<MarketDataQuestion>((q) => ({
+      opening_ts: q.opening_ts,
+      arbitrator: q.arbitrator,
+      timeout: q.timeout,
+      finalize_ts: q.finalize_ts,
+      is_pending_arbitration: q.is_pending_arbitration,
+      best_answer: q.best_answer,
+      bond: q.bond,
+      min_bond: q.min_bond,
+    })),
+  });
 }
 
-export function processMarket(
-  event: ethereum.Event,
-  data: MarketData
-): void {
+export function handleNewProposal(event: NewProposalEvent): void {
+  const proposal = FutarchyProposal.bind(event.params.proposal);
+  const futarchyFactory = FutarchyFactory.bind(event.address);
+  const reality = Reality.bind(futarchyFactory.realitio());
+
+  const wrappedTokens: Address[] = [];
+  const outcomes: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const outcome = proposal.outcomes(BigInt.fromI32(i));
+    outcomes.push(outcome);
+    const result = proposal.wrappedOutcome(BigInt.fromI32(i));
+    wrappedTokens.push(result.getWrapped1155());
+  }
+
+  const question = reality.questions(event.params.questionId);
+
+  processMarket(event, {
+    id: event.params.proposal.toHexString(),
+    type: 'Futarchy',
+    marketName: event.params.proposalName,
+    outcomes: outcomes,
+    lowerBound: BigInt.fromI32(0),
+    upperBound: BigInt.fromI32(0),
+    collateralToken1: proposal.collateralToken1(),
+    collateralToken2: proposal.collateralToken2(),
+    parentCollectionId: proposal.parentCollectionId(),
+    parentOutcome: proposal.parentOutcome(),
+    parentMarket: proposal.parentProposal(),
+    wrappedTokens: wrappedTokens,
+    conditionId: event.params.conditionId,
+    questionId: event.params.questionId,
+    questionsIds: [event.params.questionId],
+    templateId: BigInt.fromI32(2),
+    encodedQuestions: [proposal.encodedQuestion()],
+    questions: [
+      {
+        opening_ts: question.getOpening_ts(),
+        arbitrator: question.getArbitrator(),
+        timeout: question.getTimeout(),
+        finalize_ts: question.getFinalize_ts(),
+        is_pending_arbitration: question.getIs_pending_arbitration(),
+        best_answer: question.getBest_answer(),
+        bond: question.getBond(),
+        min_bond: question.getMin_bond(),
+      },
+    ],
+  });
+}
+
+export function processMarket(event: ethereum.Event, data: MarketData): void {
   const market = new Market(data.id);
 
   const condition = new Condition(data.conditionId.toHexString());
   condition.save();
 
   market.factory = event.address;
+  market.type = data.type;
   market.creator = event.transaction.from;
   market.marketName = data.marketName;
   market.outcomes = data.outcomes;
@@ -123,6 +177,8 @@ export function processMarket(
   market.parentOutcome = data.parentOutcome;
   market.wrappedTokens = changetype<Bytes[]>(data.wrappedTokens);
   market.parentMarket = data.parentMarket;
+  market.collateralToken1 = data.collateralToken1;
+  market.collateralToken2 = data.collateralToken2;
   market.conditionId = data.conditionId;
   market.ctfCondition = condition.id;
   market.questionId = data.questionId;
@@ -157,9 +213,7 @@ export function processMarket(
     question.save();
 
     const marketQuestion = new MarketQuestion(
-      market.id
-        .concat(data.questionsIds[i].toHexString())
-        .concat(i.toString())
+      market.id.concat(data.questionsIds[i].toHexString()).concat(i.toString())
     );
     marketQuestion.market = market.id;
     marketQuestion.question = question.id;

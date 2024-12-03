@@ -1,5 +1,11 @@
+enum MarketType {
+  Generic
+  Futarchy
+}
+
 type Market @entity {
   id: ID!
+  type: MarketType!
   factory: Bytes!
   creator: Bytes!
   marketName: String!
@@ -11,6 +17,8 @@ type Market @entity {
   parentOutcome: BigInt!
   parentMarket: Bytes!
   wrappedTokens: [Bytes!]!
+  collateralToken1: Bytes!
+  collateralToken2: Bytes!
   conditionId: Bytes!
   ctfCondition: Condition!
   questionId: Bytes!
