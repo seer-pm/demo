@@ -66,6 +66,7 @@ contract MarketView {
         string[] outcomes;
         address parentMarket;
         uint256 parentOutcome;
+        address collateralToken;
         address[] wrappedTokens;
         uint256 outcomesSupply;
         uint256 lowerBound;
@@ -101,6 +102,7 @@ contract MarketView {
             outcomes: outcomes,
             parentMarket: market.parentMarket(),
             parentOutcome: market.parentOutcome(),
+            collateralToken: getCollateralToken(market),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
             lowerBound: getLowerBound(market),
@@ -151,6 +153,19 @@ contract MarketView {
             return (collateralToken1, IFutarchyProposal(address(market)).collateralToken2());
         } catch {
             return (address(0), address(0));
+        }
+    }
+
+    function getCollateralToken(Market market) internal view returns (address) {
+        address parentMarket = market.parentMarket();
+        if (parentMarket == address(0)) {
+            return address(0);
+        }
+
+        try Market(parentMarket).wrappedOutcome(market.parentOutcome()) returns (IERC20 wrapped1155, bytes memory) {
+            return address(wrapped1155);
+        } catch {
+            return address(0);
         }
     }
 
