@@ -42,6 +42,7 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
+  isOgImage?: boolean;
 }
 
 type OutcomeWithOdds = {
@@ -56,18 +57,26 @@ function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
+  isOgImage,
   marketStatus,
 }: {
   market: Market;
   outcomesCount?: number;
   images?: string[];
+  isOgImage?: boolean;
   marketStatus?: MarketStatus;
+
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
+  const {
+    data: odds = [],
+    isLoading: oddsPending,
+    isPending,
+    isFetching,
+  } = useMarketOdds(market, isIntersecting, isOgImage);
 
   const routerAddress = getRouterAddress(market.chainId);
 
@@ -218,7 +227,7 @@ function OutcomesInfo({
   );
 }
 
-export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
+export function MarketHeader({ market, images, type = "default", outcomesCount = 0, isOgImage }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: marketStatus } = useMarketStatus(market);
@@ -231,9 +240,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
+  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true, isOgImage);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
+  const marketEstimate = getMarketEstimate(odds, market, true);
   return (
     <div
       className={clsx(
@@ -261,7 +270,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             )}
 
             <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
-            {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+            {market.id !== "0x000" && !isOgImage && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
         <div>{market.index && `#${market.index}`}</div>
@@ -361,7 +370,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} marketStatus={marketStatus} />
+          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} isOgImage={isOgImage} marketStatus={marketStatus} />
         </div>
       )}
       {type !== "small" && (

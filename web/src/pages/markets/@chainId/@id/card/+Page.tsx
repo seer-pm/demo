@@ -14,7 +14,7 @@ export default function MarketCard() {
   if (!market) return null;
   return (
     <div className="market-card">
-      <PreviewCard market={market} />
+      <PreviewCard market={market} isOgImage />
     </div>
   );
 }
