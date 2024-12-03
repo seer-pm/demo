@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 
 export function useLocalStorageKey(key: string, callback: (value: string | null) => void, pollingInterval = 1000) {
-  const [value, setValue] = useState(() => localStorage.getItem(key));
+  const getLocalStorageItem = (key: string) => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      return localStorage.getItem(key);
+    }
+    return null;
+  };
+
+  const [value, setValue] = useState(() => getLocalStorageItem(key));
 
   useEffect(() => {
     // Check localStorage periodically
     const interval = setInterval(() => {
-      const currentValue = localStorage.getItem(key);
+      const currentValue = getLocalStorageItem(key);
       if (currentValue !== value) {
         setValue(currentValue);
         callback(currentValue);

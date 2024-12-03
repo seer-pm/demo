@@ -14,7 +14,6 @@ function OutcomesInfo({
   odds: (number | null)[];
   outcomesCount?: number;
   images?: string[];
-  isOgImage?: boolean;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
 

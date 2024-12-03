@@ -1,7 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token } from "@/lib/tokens";
-import { createClient } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
@@ -58,7 +57,7 @@ async function getTokenPrice(
   return 0n;
 }
 
-export const useMarketOdds = (market: Market, enabled: boolean, isOgImage?: boolean) => {
+export const useMarketOdds = (market: Market, enabled: boolean) => {
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
@@ -69,7 +68,7 @@ export const useMarketOdds = (market: Market, enabled: boolean, isOgImage?: bool
   const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
   return useQuery<number[] | undefined, Error>({
     enabled,
-    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity, isOgImage],
+    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     queryFn: async () => {
@@ -77,18 +76,6 @@ export const useMarketOdds = (market: Market, enabled: boolean, isOgImage?: bool
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
 
-      if (isOgImage) {
-        try {
-          const supabase = createClient(
-            import.meta.env.VITE_SUPABASE_PROJECT_URL,
-            import.meta.env.VITE_SUPABASE_API_KEY,
-          );
-          const {
-            data: { odds },
-          } = await supabase.from("markets").select().eq("id", market.id).limit(1).single();
-          return odds;
-        } catch (e) {}
-      }
       const BUY_AMOUNT = 3; //collateral token
 
       const prices = await Promise.all(

@@ -256,6 +256,7 @@ export default async (request: Request, context: Context) => {
               display: "flex",
               flexDirection: "column",
               gap: "8px",
+              flex: "1",
             }}
           >
             <p
@@ -264,7 +265,7 @@ export default async (request: Request, context: Context) => {
                 fontSize: "16px",
                 wordBreak: "break-word",
                 margin: "0",
-                width: "96%",
+                width: "100%",
               }}
             >
               {market.marketName}
