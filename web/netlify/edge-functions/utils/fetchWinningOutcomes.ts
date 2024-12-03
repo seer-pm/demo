@@ -1,5 +1,5 @@
 import { readContract } from "https://esm.sh/@wagmi/core@2.12.2";
-import { RouterAbi } from "./abis/routerAbi.ts";
+import { RouterAbi } from "./abis/RouterAbi.ts";
 import { config } from "./config.ts";
 import { routerAddressMapping } from "./constants.ts";
 import { Address, Market } from "./types.ts";
