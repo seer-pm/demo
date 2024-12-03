@@ -5,11 +5,13 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { Address, TransactionReceipt } from "viem";
-import { writeMarketFactory } from "./contracts/generated";
+import { writeFutarchyFactoryCreateProposal, writeMarketFactory } from "./contracts/generated";
 
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
+  collateralToken1: Address | ""; // for futarchy markets
+  collateralToken2: Address | ""; // for futarchy markets
   questionStart: string;
   questionEnd: string;
   outcomeType: string;
@@ -104,9 +106,40 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-export const useCreateMarket = (onSuccess: (data: TransactionReceipt) => unknown) => {
+async function createProposal(props: CreateMarketProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      writeFutarchyFactoryCreateProposal(config, {
+        args: [
+          {
+            proposalName: escapeJson(props.marketName),
+            collateralToken1: props.collateralToken1 as Address,
+            collateralToken2: props.collateralToken2 as Address,
+            parentProposal: props.parentMarket,
+            parentOutcome: props.parentOutcome,
+            lang: "en_US",
+            category: "misc",
+            minBond: getConfigNumber("MIN_BOND", props.chainId),
+            openingTime: props.openingTime,
+          },
+        ],
+      }),
+    {
+      txSent: { title: "Creating proposal..." },
+      txSuccess: { title: "Proposal created!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+export const useCreateMarket = (isFutarchyMarket: boolean, onSuccess: (data: TransactionReceipt) => unknown) => {
   return useMutation({
-    mutationFn: createMarket,
+    mutationFn: isFutarchyMarket ? createProposal : createMarket,
     onSuccess,
   });
 };

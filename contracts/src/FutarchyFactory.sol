@@ -22,21 +22,21 @@ contract FutarchyFactory {
     using Clones for address;
 
     /// @dev Workaround "stack too deep" errors.
-    /// @param proposalName The name of the proposal.
+    /// @param marketName The name of the proposal.
     /// @param collateralToken1 First collateral token.
     /// @param collateralToken2 Second collateral token.
     /// @param parentOutcome conditional outcome to use (optional).
-    /// @param parentProposal conditional proposal to use (optional). UNTRUSTED.
+    /// @param parentMarket conditional proposal to use (optional). UNTRUSTED.
     /// @param category Reality question category.
     /// @param lang Reality question language.
     /// @param minBond Min bond to use on Reality.
     /// @param openingTime Reality question opening time.
     struct CreateProposalParams {
-        string proposalName;
+        string marketName;
         IERC20 collateralToken1;
         IERC20 collateralToken2;
         uint256 parentOutcome;
-        address parentProposal;
+        address parentMarket;
         string category;
         string lang;
         uint256 minBond;
@@ -66,12 +66,12 @@ contract FutarchyFactory {
 
     /// @dev To be emitted when a new proposal is created.
     /// @param proposal The new proposal address.
-    /// @param proposalName The name of the proposal.
-    /// @param parentProposal Conditional proposal to use.
+    /// @param marketName The name of the proposal.
+    /// @param parentMarket Conditional proposal to use.
     /// @param conditionId Conditional Tokens conditionId.
     /// @param questionId Conditional Tokens & Reality.eth questionId.
     event NewProposal(
-        address indexed proposal, string proposalName, address parentProposal, bytes32 conditionId, bytes32 questionId
+        address indexed proposal, string marketName, address parentMarket, bytes32 conditionId, bytes32 questionId
     );
 
     /**
@@ -114,12 +114,12 @@ contract FutarchyFactory {
 
         FutarchyProposal instance = FutarchyProposal(proposal.clone());
 
-        instance.initialize(params.proposalName, outcomes, futarchyProposalParams, realityProxy);
+        instance.initialize(params.marketName, outcomes, futarchyProposalParams, realityProxy);
 
         emit NewProposal(
             address(instance),
-            params.proposalName,
-            params.parentProposal,
+            params.marketName,
+            params.parentMarket,
             futarchyProposalParams.conditionId,
             futarchyProposalParams.questionId
         );
@@ -159,15 +159,15 @@ contract FutarchyFactory {
         CreateProposalParams memory params,
         string[] memory tokenNames
     ) internal returns (FutarchyProposal.FutarchyProposalParams memory) {
-        bytes32 parentCollectionId = params.parentProposal == address(0)
+        bytes32 parentCollectionId = params.parentMarket == address(0)
             ? bytes32(0)
             : conditionalTokens.getCollectionId(
-                FutarchyProposal(params.parentProposal).parentCollectionId(),
-                FutarchyProposal(params.parentProposal).conditionId(),
+                FutarchyProposal(params.parentMarket).parentCollectionId(),
+                FutarchyProposal(params.parentMarket).conditionId(),
                 1 << params.parentOutcome
             );
 
-        string memory encodedQuestion = encodeRealityQuestion(params.proposalName, params.category, params.lang);
+        string memory encodedQuestion = encodeRealityQuestion(params.marketName, params.category, params.lang);
         bytes32 questionId =
             askRealityQuestion(encodedQuestion, REALITY_SINGLE_SELECT_TEMPLATE, params.openingTime, params.minBond);
         bytes32 conditionId = prepareCondition(questionId, 2); // two outcomes (YES / NO)
@@ -183,7 +183,7 @@ contract FutarchyFactory {
             questionId: questionId,
             parentCollectionId: parentCollectionId,
             parentOutcome: params.parentOutcome,
-            parentProposal: params.parentProposal,
+            parentMarket: params.parentMarket,
             wrapped1155: wrapped1155,
             data: data,
             encodedQuestion: encodedQuestion
@@ -309,13 +309,13 @@ contract FutarchyFactory {
 
     /// @dev Returns all the proposals created by this factory.
     /// @return The addresses of the proposals.
-    function allProposals() external view returns (address[] memory) {
+    function allMarkets() external view returns (address[] memory) {
         return proposals;
     }
 
     /// @notice Returns the amount of proposals created by this factory.
     /// @return The amount of proposals.
-    function proposalsCount() external view returns (uint256) {
+    function marketsCount() external view returns (uint256) {
         return proposals.length;
     }
 }

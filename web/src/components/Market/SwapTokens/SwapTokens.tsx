@@ -36,7 +36,7 @@ interface SwapTokensProps {
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
-  isInvalidResult: boolean;
+  isInvalidOutcome: boolean;
   parentCollateral: Token | undefined;
 }
 
@@ -59,7 +59,7 @@ export function SwapTokens({
   outcomeToken,
   hasEnoughLiquidity,
   outcomeImage,
-  isInvalidResult,
+  isInvalidOutcome,
   parentCollateral,
 }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -196,7 +196,7 @@ export function SwapTokens({
         <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
           <div className="flex items-center space-x-[12px]">
             <div>
-              <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />
+              <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />
             </div>
             <div className="text-[16px]">{outcomeText}</div>
           </div>

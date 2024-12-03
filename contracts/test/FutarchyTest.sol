@@ -4,6 +4,8 @@ import "../src/FutarchyFactory.sol";
 import "../src/FutarchyProposal.sol";
 import "../src/FutarchyRealityProxy.sol";
 import "../src/FutarchyRouter.sol";
+import "../src/Market.sol";
+import {IMarketFactory, MarketView} from "../src/MarketView.sol";
 import "forge-std/Test.sol";
 import "solmate/src/utils/LibString.sol";
 
@@ -64,11 +66,11 @@ contract FutarchyFactoryTest is Test {
         FutarchyProposal market = FutarchyProposal(
             futarchyFactory.createProposal(
                 FutarchyFactory.CreateProposalParams({
-                    proposalName: "Will proposal 'Use Seer Futarchy for Governance' be accepted by 2024-12-12 00:00:00?",
+                    marketName: "Will proposal 'Use Seer Futarchy for Governance' be accepted by 2024-12-12 00:00:00?",
                     collateralToken1: collateralToken1,
                     collateralToken2: collateralToken2,
                     parentOutcome: parentOutcome,
-                    parentProposal: parentProposal,
+                    parentMarket: parentProposal,
                     category: "technology",
                     lang: "en_US",
                     minBond: minBond,
@@ -212,5 +214,17 @@ contract FutarchyFactoryTest is Test {
 
     function submitAnswer(bytes32 questionId, bytes32 answer) public {
         IRealityETH_v3_0(realitio).submitAnswer{value: MIN_BOND}(questionId, answer, 0);
+    }
+
+    function test_marketView() public {
+        FutarchyProposal proposal = getProposal(MIN_BOND, 0, address(0));
+
+        MarketView marketView = new MarketView();
+
+        MarketView.MarketInfo memory marketInfo =
+            marketView.getMarket(IMarketFactory(address(futarchyFactory)), Market(address(proposal)));
+        assertEq(marketInfo.marketName, proposal.marketName());
+
+        assertEq(marketView.getMarkets(1, IMarketFactory(address(futarchyFactory))).length, 1);
     }
 }

@@ -254,6 +254,9 @@ export function Outcomes({ market, images }: PositionsProps) {
     }
     return "";
   };
+
+  const hasInvalidOutcome = market.type === "Generic";
+
   return (
     <div>
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
@@ -261,6 +264,7 @@ export function Outcomes({ market, images }: PositionsProps) {
         {market.wrappedTokens.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const wrappedAddress = market.wrappedTokens[i];
+          const isInvalidOutcome = hasInvalidOutcome && i === market.wrappedTokens.length - 1;
           return (
             <div
               key={wrappedAddress}
@@ -272,11 +276,7 @@ export function Outcomes({ market, images }: PositionsProps) {
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="flex-shrink-0">
-                  <OutcomeImage
-                    image={images?.[i]}
-                    isInvalidResult={i === market.wrappedTokens.length - 1}
-                    title={market.outcomes[i]}
-                  />
+                  <OutcomeImage image={images?.[i]} isInvalidOutcome={isInvalidOutcome} title={market.outcomes[i]} />
                 </div>
                 <div className="space-y-1">
                   <div className="text-[16px] flex items-center gap-1">
@@ -294,7 +294,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                         <QuestionIcon fill="#9747FF" />
                       </span>
                     )}
-                    {i === market.wrappedTokens.length - 1 && (
+                    {isInvalidOutcome && (
                       <span className="tooltip">
                         <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                           Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved

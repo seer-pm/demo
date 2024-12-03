@@ -22,7 +22,7 @@ contract FutarchyProposal {
     /// @param collateralToken2 Second collateral token.
     /// @param parentCollectionId Conditional Tokens parentCollectionId.
     /// @param parentOutcome Conditional outcome to use (optional).
-    /// @param parentProposal Conditional proposal to use (optional).
+    /// @param parentMarket Conditional proposal to use (optional).
     /// @param questionId Conditional Tokens questionId.
     /// @param encodedQuestion Encoded question, needed to create and reopen a question.
     /// @param wrapped1155 Outcome tokens Wrapped1155 address.
@@ -33,7 +33,7 @@ contract FutarchyProposal {
         IERC20 collateralToken2;
         bytes32 parentCollectionId;
         uint256 parentOutcome;
-        address parentProposal;
+        address parentMarket;
         bytes32 questionId;
         string encodedQuestion;
         IERC20[] wrapped1155;
@@ -41,7 +41,7 @@ contract FutarchyProposal {
     }
 
     /// @dev The name of the proposal.
-    string public proposalName;
+    string public marketName;
     /// @dev The proposal outcomes.
     string[] public outcomes;
     /// @dev Proposal parameters.
@@ -50,19 +50,19 @@ contract FutarchyProposal {
     FutarchyRealityProxy public realityProxy;
 
     /// @dev Initializer.
-    /// @param _proposalName The name of the proposal.
+    /// @param _marketName The name of the proposal.
     /// @param _outcomes The proposal outcomes.
     /// @param _futarchyProposalParams Futarchy Proposal params.
     /// @param _realityProxy Oracle contract.
     function initialize(
-        string memory _proposalName,
+        string memory _marketName,
         string[] memory _outcomes,
         FutarchyProposalParams memory _futarchyProposalParams,
         FutarchyRealityProxy _realityProxy
     ) external {
         require(!initialized, "Already initialized.");
 
-        proposalName = _proposalName;
+        marketName = _marketName;
         outcomes = _outcomes;
         futarchyProposalParams = _futarchyProposalParams;
         realityProxy = _realityProxy;
@@ -108,8 +108,8 @@ contract FutarchyProposal {
 
     /// @dev The parent proposal (optional). This proposal redeems to an outcome token of the parent proposal.
     /// @return The parent proposal address.
-    function parentProposal() external view returns (address) {
-        return futarchyProposalParams.parentProposal;
+    function parentMarket() external view returns (address) {
+        return futarchyProposalParams.parentMarket;
     }
 
     /// @dev The parent outcome (optional). The parent proposal's outcome token this proposal redeems for.
@@ -130,8 +130,8 @@ contract FutarchyProposal {
     /// @return wrapped1155 The wrapped token.
     /// @return data The token data.
     function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data) {
-        if (futarchyProposalParams.parentProposal != address(0)) {
-            (wrapped1155, data) = FutarchyProposal(futarchyProposalParams.parentProposal).wrappedOutcome(
+        if (futarchyProposalParams.parentMarket != address(0)) {
+            (wrapped1155, data) = FutarchyProposal(futarchyProposalParams.parentMarket).wrappedOutcome(
                 futarchyProposalParams.parentOutcome
             );
         }

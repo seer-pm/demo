@@ -35,8 +35,11 @@ interface MarketOffChainFields {
 
 export interface Market extends MarketOffChainFields {
   id: Address;
+  type: "Generic" | "Futarchy";
   marketName: string;
   outcomes: readonly string[];
+  collateralToken1: Address;
+  collateralToken2: Address;
   wrappedTokens: Address[];
   parentMarket: Address;
   parentOutcome: bigint;
@@ -59,6 +62,7 @@ export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: MarketOffChainFields): Market {
   const market: Market = {
     ...onChainMarket,
+    type: onChainMarket.collateralToken1 !== zeroAddress ? 'Generic' : 'Futarchy',
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
     outcomes: onChainMarket.outcomes.map((outcome) => {

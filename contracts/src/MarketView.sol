@@ -28,6 +28,12 @@ interface IMarketFactory {
     function collateralToken() external view returns (address);
 }
 
+interface IFutarchyProposal {
+    function collateralToken1() external view returns (address);
+    function collateralToken2() external view returns (address);
+    function encodedQuestion() external view returns (string memory);
+}
+
 interface IRealityETH_v3_0 {
     struct Question {
         bytes32 content_hash;
@@ -65,6 +71,8 @@ contract MarketView {
         uint256 lowerBound;
         uint256 upperBound;
         bytes32 parentCollectionId;
+        address collateralToken1;
+        address collateralToken2;
         bytes32 conditionId;
         bytes32 questionId;
         uint256 templateId;
@@ -85,6 +93,8 @@ contract MarketView {
         (IRealityETH_v3_0.Question[] memory questions, string[] memory encodedQuestions, bytes32[] memory questionsIds)
         = getQuestions(market, marketFactory);
 
+        (address collateralToken1, address collateralToken2) = getCollateralTokens(market);
+
         return MarketInfo({
             id: address(market),
             marketName: market.marketName(),
@@ -93,17 +103,55 @@ contract MarketView {
             parentOutcome: market.parentOutcome(),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
-            lowerBound: market.lowerBound(),
-            upperBound: market.upperBound(),
+            lowerBound: getLowerBound(market),
+            upperBound: getUpperBound(market),
             parentCollectionId: market.parentCollectionId(),
+            collateralToken1: collateralToken1,
+            collateralToken2: collateralToken2,
             conditionId: conditionId,
             questionId: market.questionId(),
-            templateId: market.templateId(),
+            templateId: getTemplateId(market),
             questions: questions,
             questionsIds: questionsIds,
             encodedQuestions: encodedQuestions,
             payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0
         });
+    }
+
+    function getLowerBound(Market market) internal view returns (uint256) {
+        try market.lowerBound() returns (uint256 lowerBound) {
+            return lowerBound;
+        } catch {
+            // futarchy market
+            return 0;
+        }
+    }
+
+    function getUpperBound(Market market) internal view returns (uint256) {
+        try market.upperBound() returns (uint256 upperBound) {
+            return upperBound;
+        } catch {
+            // futarchy market
+            return 0;
+        }
+    }
+
+    function getTemplateId(Market market) internal view returns (uint256) {
+        try market.templateId() returns (uint256 templateId) {
+            return templateId;
+        } catch {
+            // futarchy market
+            return 2;
+        }
+    }
+
+    function getCollateralTokens(Market market) internal view returns (address, address) {
+        try IFutarchyProposal(address(market)).collateralToken1() returns (address collateralToken1) {
+            // futarchy market
+            return (collateralToken1, IFutarchyProposal(address(market)).collateralToken2());
+        } catch {
+            return (address(0), address(0));
+        }
     }
 
     function getOutcomesAndTokens(
@@ -139,7 +187,7 @@ contract MarketView {
             bytes32[] memory questionsIds
         )
     {
-        bytes32[] memory initialQuestionsIds = market.questionsIds();
+        bytes32[] memory initialQuestionsIds = getQuestionsIds(market);
         questions = new IRealityETH_v3_0.Question[](initialQuestionsIds.length);
         encodedQuestions = new string[](questions.length);
         questionsIds = new bytes32[](questions.length);
@@ -148,11 +196,31 @@ contract MarketView {
             for (uint256 i = 0; i < questions.length; i++) {
                 questionsIds[i] = getQuestionId(initialQuestionsIds[i], realitio);
                 questions[i] = realitio.questions(questionsIds[i]);
-                encodedQuestions[i] = market.encodedQuestions(i);
+                encodedQuestions[i] = getEncodedQuestion(market, i);
             }
         }
 
         return (questions, encodedQuestions, questionsIds);
+    }
+
+    function getQuestionsIds(Market market) internal view returns (bytes32[] memory) {
+        try market.questionsIds() returns (bytes32[] memory questionsIds) {
+            return questionsIds;
+        } catch {
+            // futarchy market
+            bytes32[] memory questiondsIds = new bytes32[](1);
+            questiondsIds[0] = market.questionId();
+            return questiondsIds;
+        }
+    }
+
+    function getEncodedQuestion(Market market, uint256 index) internal view returns (string memory) {
+        try market.encodedQuestions(index) returns (string memory encodedQuestion) {
+            return encodedQuestion;
+        } catch {
+            // futarchy market
+            return IFutarchyProposal(address(market)).encodedQuestion();
+        }
     }
 
     function getMarkets(uint256 count, IMarketFactory marketFactory) external view returns (MarketInfo[] memory) {

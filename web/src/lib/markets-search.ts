@@ -181,6 +181,7 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
+  type: "Generic" | "Futarchy" | undefined,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -191,6 +192,10 @@ export async function searchGraphMarkets(
 
   let where: Market_Filter = { marketName_contains_nocase: marketName };
   const or = [];
+
+  if (type) {
+    where["type"] = type;
+  }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
     or.push({

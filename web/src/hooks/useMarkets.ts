@@ -30,6 +30,7 @@ const useOnChainMarkets = (
 
 const useGraphMarkets = (
   chainsList: Array<string | "all">,
+  type: "Generic" | "Futarchy" | undefined,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -43,15 +44,21 @@ const useGraphMarkets = (
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
   return useQuery<Market[] | undefined, Error>({
-    queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
+    queryKey: ["useGraphMarkets", chainIds, type, marketName, marketStatusList, creator, orderBy],
     queryFn: async () => {
       const markets = (
-        await Promise.all(
+        await Promise.allSettled(
           chainIds.map((chainId) =>
-            searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
+            searchGraphMarkets(chainId, type, marketName, marketStatusList, creator, participant, orderBy),
           ),
         )
       )
+        .reduce((markets, result) => {
+          if (result.status === "fulfilled") {
+            markets.push(result.value);
+          }
+          return markets;
+        }, [] as Market[][])
         .flat()
         // sort again because we are merging markets from multiple chains
         .sort(sortMarkets(orderBy));
@@ -67,6 +74,7 @@ const useGraphMarkets = (
 };
 
 export interface UseMarketsProps {
+  type?: "Generic" | "Futarchy" | undefined;
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
@@ -78,6 +86,7 @@ export interface UseMarketsProps {
 }
 
 export const useMarkets = ({
+  type = "Generic",
   marketName = "",
   marketStatusList = [],
   chainsList = [],
@@ -86,7 +95,7 @@ export const useMarkets = ({
   orderBy,
 }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
-  const graphMarkets = useGraphMarkets(chainsList, marketName, marketStatusList, creator, participant, orderBy);
+  const graphMarkets = useGraphMarkets(chainsList, type, marketName, marketStatusList, creator, participant, orderBy);
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;

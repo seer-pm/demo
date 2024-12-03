@@ -1,9 +1,12 @@
+import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { SupportedChain } from "@/lib/chains";
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
+import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
+import { Address, isAddress } from "viem";
 import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
@@ -19,7 +22,7 @@ interface OutcomeFieldsProps {
   useFormReturn: UseFormReturn<OutcomesFormValues>;
 }
 
-function OutcomeFields({
+function OutcomeField({
   outcomeIndex,
   outcomes,
   questionStart,
@@ -77,6 +80,67 @@ function OutcomeFields({
       </div>
 
       <TokenNameField useFormReturn={useFormReturn} fieldName={`outcomes.${outcomeIndex}.token`} />
+    </div>
+  );
+}
+
+interface CollateralFieldsProps {
+  collateralNumber: 1 | 2;
+  useFormReturn: UseFormReturn<OutcomesFormValues>;
+  chainId: SupportedChain;
+}
+
+function CollateralField({ collateralNumber, useFormReturn, chainId }: CollateralFieldsProps) {
+  const collateralIndex = collateralNumber - 1;
+  const collaterals = useFormReturn.watch(["collateralToken1", "collateralToken2"]);
+  const collateral = collaterals[collateralIndex];
+  const { data: tokensInfo } = useTokensInfo(collaterals as Address[], chainId);
+
+  useEffect(() => {
+    // trigger validate duplicate outcome names
+    if (!collateral) return;
+    const toTriggerFields = collaterals
+      .filter((collateral) => !!collateral)
+      .map((_, index) => `collateral.${index + 1}`) as (`collateralToken1` | `collateralToken2`)[];
+    useFormReturn.trigger(toTriggerFields);
+
+    if (collaterals.filter((collateral) => !isAddress(collateral)).length === 0 && !isUndefined(tokensInfo)) {
+      // update outcomes
+      useFormReturn.setValue("outcomes.0.value", `Yes-${tokensInfo[0]?.symbol}`);
+      useFormReturn.setValue("outcomes.1.value", `No-${tokensInfo[0]?.symbol}`);
+      useFormReturn.setValue("outcomes.2.value", `Yes-${tokensInfo[1]?.symbol}`);
+      useFormReturn.setValue("outcomes.3.value", `No-${tokensInfo[1]?.symbol}`);
+    }
+  }, [collateral]);
+
+  return (
+    <div className="text-left">
+      <div className="text-[14px] mb-[10px]">Collateral {collateralNumber}</div>
+      <div className="relative">
+        <Input
+          autoComplete="off"
+          {...useFormReturn.register(`collateralToken${collateralNumber}`, {
+            required: "This field is required.",
+            validate: (v) => {
+              if (!isAddress(v)) {
+                return "Invalid address.";
+              }
+              if (
+                collaterals.some((collateral, index) => index !== collateralIndex && isTwoStringsEqual(v, collateral))
+              ) {
+                return "Duplicated collateral.";
+              }
+              return true;
+            },
+          })}
+          className="w-full"
+          helpText={
+            tokensInfo?.[collateralIndex] &&
+            `${tokensInfo[collateralIndex].name} (${tokensInfo[collateralIndex].symbol})`
+          }
+          useFormReturn={useFormReturn}
+        />
+      </div>
     </div>
   );
 }
@@ -167,12 +231,169 @@ function TokenNameField({
   );
 }
 
+function OutcomesSection({
+  marketHasOutcomes,
+  marketName,
+  marketType,
+  useFormReturn,
+  useFieldArrayReturn,
+}: {
+  marketHasOutcomes: boolean;
+  marketName: string;
+  marketType: MarketTypes;
+  useFormReturn: UseFormReturn<OutcomesFormValues>;
+  useFieldArrayReturn: UseFieldArrayReturn<OutcomesFormValues, "outcomes">;
+}) {
+  const questionParts = getQuestionParts(marketName, marketType);
+
+  const { register, watch } = useFormReturn;
+
+  const [lowerBound, outcomes] = watch(["lowerBound", "outcomes"]);
+
+  const { fields: outcomesFields, append: appendOutcome, remove: removeOutcome } = useFieldArrayReturn;
+
+  const addOutcome = () => {
+    return appendOutcome({ value: "", token: "", image: "" }, { shouldFocus: false });
+  };
+
+  return (
+    <>
+      <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
+
+      {marketHasOutcomes && (
+        <>
+          {outcomesFields.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
+              {outcomesFields.map((outcomeField, i) => {
+                return (
+                  <OutcomeField
+                    key={outcomeField.id}
+                    outcomeIndex={i}
+                    removeOutcome={removeOutcome}
+                    useFormReturn={useFormReturn}
+                    questionStart={questionParts?.questionStart || ""}
+                    questionEnd={questionParts?.questionEnd || ""}
+                    outcomes={outcomes}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          <div className="text-left">
+            <button type="button" onClick={addOutcome}>
+              <PlusIcon />
+            </button>
+          </div>
+        </>
+      )}
+
+      {marketType === MarketTypes.SCALAR && (
+        <div className="grid grid-cols-5 gap-4 w-full max-w-[782px] mx-auto text-left">
+          <div className="col-span-2">
+            <div className="space-y-2">
+              <div className="text-[14px] mb-[10px]">Lower Range (≤ than)</div>
+              <Input
+                autoComplete="off"
+                type="number"
+                min="0"
+                step="any"
+                {...register("lowerBound.value", {
+                  required: "This field is required.",
+                  valueAsNumber: true,
+                  validate: (v) => {
+                    if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                      return "Value cannot be negative.";
+                    }
+                    if (!Number.isInteger(Number(v))) {
+                      return "Value must be integer.";
+                    }
+                    return true;
+                  },
+                })}
+                className="w-full"
+                useFormReturn={useFormReturn}
+              />
+              <TokenNameField useFormReturn={useFormReturn} fieldName="lowerBound.token" />
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="space-y-2">
+              <div className="text-[14px] mb-[10px]">Upper Range (≥ than)</div>
+              <Input
+                autoComplete="off"
+                type="number"
+                min="0"
+                step="any"
+                {...register("upperBound.value", {
+                  required: "This field is required.",
+                  valueAsNumber: true,
+                  validate: (v) => {
+                    if (v <= lowerBound.value) {
+                      return `Value must be greater than ${lowerBound.value}.`;
+                    }
+                    if (!Number.isInteger(Number(v))) {
+                      return "Value must be integer.";
+                    }
+                    return true;
+                  },
+                })}
+                className="w-full"
+                useFormReturn={useFormReturn}
+              />
+              <TokenNameField useFormReturn={useFormReturn} fieldName="upperBound.token" />
+            </div>
+          </div>
+          <div className="col-span-1">
+            <div className="space-y-2">
+              <div className="text-[14px] mb-[10px]">Unit</div>
+              <Input
+                autoComplete="off"
+                type="text"
+                {...register("unit", {
+                  required: "This field is required.",
+                })}
+                className="w-full"
+                useFormReturn={useFormReturn}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CollateralsSection({
+  useFormReturn,
+  chainId,
+}: {
+  useFormReturn: UseFormReturn<OutcomesFormValues>;
+  chainId: SupportedChain;
+}) {
+  return (
+    <>
+      <div className="text-[24px] font-semibold mb-[32px]">Collateral Tokens</div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
+        <CollateralField collateralNumber={1} useFormReturn={useFormReturn} chainId={chainId} />
+
+        <CollateralField collateralNumber={2} useFormReturn={useFormReturn} chainId={chainId} />
+      </div>
+    </>
+  );
+}
+
 export function OutcomesForm({
   useFormReturn,
   goToPrevStep,
   goToNextStep,
   marketType,
-}: FormStepProps<OutcomesFormValues> & FormWithPrevStep & FormWithNextStep & { marketType: MarketTypes }) {
+  isFutarchyMarket,
+  chainId,
+}: FormStepProps<OutcomesFormValues> &
+  FormWithPrevStep &
+  FormWithNextStep & { marketType: MarketTypes; isFutarchyMarket: boolean; chainId: SupportedChain }) {
   const {
     control,
     register,
@@ -182,13 +403,11 @@ export function OutcomesForm({
     watch,
   } = useFormReturn;
 
-  const {
-    fields: outcomesFields,
-    append: appendOutcome,
-    remove: removeOutcome,
-  } = useFieldArray({ control, name: "outcomes" });
+  const useFieldArrayReturn = useFieldArray({ control, name: "outcomes" });
 
-  const [lowerBound, outcomes, marketName] = watch(["lowerBound", "outcomes", "market"]);
+  const { fields: outcomesFields } = useFieldArrayReturn;
+
+  const [marketName] = watch(["market"]);
 
   useEffect(() => {
     if (marketName !== "") {
@@ -197,20 +416,14 @@ export function OutcomesForm({
     }
   }, []);
 
-  const addOutcome = () => {
-    return appendOutcome({ value: "", token: "", image: "" }, { shouldFocus: false });
-  };
-
   const marketHasOutcomes = hasOutcomes(marketType);
-
-  const questionParts = getQuestionParts(marketName, marketType);
 
   return (
     <FormProvider {...useFormReturn}>
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-5">
         <div className="space-y-[32px]">
           <div>
-            <div className="text-[24px] font-semibold mb-[32px]">Question</div>
+            <div className="text-[24px] font-semibold mb-[32px]">{isFutarchyMarket ? "Proposal" : "Question"}</div>
             <Input
               autoComplete="off"
               {...register("market", {
@@ -270,107 +483,10 @@ export function OutcomesForm({
             </div>
           </Alert>
 
-          <div className="text-[24px] font-semibold mb-[32px]">Outcomes</div>
-
-          {marketHasOutcomes && (
-            <>
-              {outcomesFields.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
-                  {outcomesFields.map((outcomeField, i) => {
-                    return (
-                      <OutcomeFields
-                        key={outcomeField.id}
-                        outcomeIndex={i}
-                        removeOutcome={removeOutcome}
-                        useFormReturn={useFormReturn}
-                        questionStart={questionParts?.questionStart || ""}
-                        questionEnd={questionParts?.questionEnd || ""}
-                        outcomes={outcomes}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="text-left">
-                <button type="button" onClick={addOutcome}>
-                  <PlusIcon />
-                </button>
-              </div>
-            </>
-          )}
-
-          {marketType === MarketTypes.SCALAR && (
-            <div className="grid grid-cols-5 gap-4 w-full max-w-[782px] mx-auto text-left">
-              <div className="col-span-2">
-                <div className="space-y-2">
-                  <div className="text-[14px] mb-[10px]">Lower Range (≤ than)</div>
-                  <Input
-                    autoComplete="off"
-                    type="number"
-                    min="0"
-                    step="any"
-                    {...register("lowerBound.value", {
-                      required: "This field is required.",
-                      valueAsNumber: true,
-                      validate: (v) => {
-                        if (Number.isNaN(Number(v)) || Number(v) < 0) {
-                          return "Value cannot be negative.";
-                        }
-                        if (!Number.isInteger(Number(v))) {
-                          return "Value must be integer.";
-                        }
-                        return true;
-                      },
-                    })}
-                    className="w-full"
-                    useFormReturn={useFormReturn}
-                  />
-                  <TokenNameField useFormReturn={useFormReturn} fieldName="lowerBound.token" />
-                </div>
-              </div>
-              <div className="col-span-2">
-                <div className="space-y-2">
-                  <div className="text-[14px] mb-[10px]">Upper Range (≥ than)</div>
-                  <Input
-                    autoComplete="off"
-                    type="number"
-                    min="0"
-                    step="any"
-                    {...register("upperBound.value", {
-                      required: "This field is required.",
-                      valueAsNumber: true,
-                      validate: (v) => {
-                        if (v <= lowerBound.value) {
-                          return `Value must be greater than ${lowerBound.value}.`;
-                        }
-                        if (!Number.isInteger(Number(v))) {
-                          return "Value must be integer.";
-                        }
-                        return true;
-                      },
-                    })}
-                    className="w-full"
-                    useFormReturn={useFormReturn}
-                  />
-                  <TokenNameField useFormReturn={useFormReturn} fieldName="upperBound.token" />
-                </div>
-              </div>
-              <div className="col-span-1">
-                <div className="space-y-2">
-                  <div className="text-[14px] mb-[10px]">Unit</div>
-                  <Input
-                    autoComplete="off"
-                    type="text"
-                    {...register("unit", {
-                      required: "This field is required.",
-                    })}
-                    className="w-full"
-                    useFormReturn={useFormReturn}
-                  />
-                </div>
-              </div>
-            </div>
+          {isFutarchyMarket ? (
+            <CollateralsSection useFormReturn={useFormReturn} chainId={chainId} />
+          ) : (
+            <OutcomesSection {...{ marketHasOutcomes, marketName, marketType, useFormReturn, useFieldArrayReturn }} />
           )}
         </div>
 

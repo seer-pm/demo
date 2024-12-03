@@ -61,7 +61,7 @@ function SwapWidget({
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
       outcomeImage={images?.[outcomeIndex]}
-      isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
+      isInvalidOutcome={market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1}
       hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
       parentCollateral={parentCollateral}
     />
