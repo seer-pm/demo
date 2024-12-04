@@ -25,8 +25,6 @@ contract FutarchyFactory {
     /// @param marketName The name of the proposal.
     /// @param collateralToken1 First collateral token.
     /// @param collateralToken2 Second collateral token.
-    /// @param parentOutcome conditional outcome to use (optional).
-    /// @param parentMarket conditional proposal to use (optional). UNTRUSTED.
     /// @param category Reality question category.
     /// @param lang Reality question language.
     /// @param minBond Min bond to use on Reality.
@@ -35,8 +33,6 @@ contract FutarchyFactory {
         string marketName;
         IERC20 collateralToken1;
         IERC20 collateralToken2;
-        uint256 parentOutcome;
-        address parentMarket;
         string category;
         string lang;
         uint256 minBond;
@@ -67,12 +63,9 @@ contract FutarchyFactory {
     /// @dev To be emitted when a new proposal is created.
     /// @param proposal The new proposal address.
     /// @param marketName The name of the proposal.
-    /// @param parentMarket Conditional proposal to use.
     /// @param conditionId Conditional Tokens conditionId.
     /// @param questionId Conditional Tokens & Reality.eth questionId.
-    event NewProposal(
-        address indexed proposal, string marketName, address parentMarket, bytes32 conditionId, bytes32 questionId
-    );
+    event NewProposal(address indexed proposal, string marketName, bytes32 conditionId, bytes32 questionId);
 
     /**
      *  @dev Constructor.
@@ -117,11 +110,7 @@ contract FutarchyFactory {
         instance.initialize(params.marketName, outcomes, futarchyProposalParams, realityProxy);
 
         emit NewProposal(
-            address(instance),
-            params.marketName,
-            params.parentMarket,
-            futarchyProposalParams.conditionId,
-            futarchyProposalParams.questionId
+            address(instance), params.marketName, futarchyProposalParams.conditionId, futarchyProposalParams.questionId
         );
 
         proposals.push(address(instance));
@@ -159,14 +148,7 @@ contract FutarchyFactory {
         CreateProposalParams memory params,
         string[] memory tokenNames
     ) internal returns (FutarchyProposal.FutarchyProposalParams memory) {
-        bytes32 parentCollectionId = params.parentMarket == address(0)
-            ? bytes32(0)
-            : conditionalTokens.getCollectionId(
-                FutarchyProposal(params.parentMarket).parentCollectionId(),
-                FutarchyProposal(params.parentMarket).conditionId(),
-                1 << params.parentOutcome
-            );
-
+        bytes32 parentCollectionId = bytes32(0);
         string memory encodedQuestion = encodeRealityQuestion(params.marketName, params.category, params.lang);
         bytes32 questionId =
             askRealityQuestion(encodedQuestion, REALITY_SINGLE_SELECT_TEMPLATE, params.openingTime, params.minBond);
@@ -182,8 +164,8 @@ contract FutarchyFactory {
             collateralToken2: params.collateralToken2,
             questionId: questionId,
             parentCollectionId: parentCollectionId,
-            parentOutcome: params.parentOutcome,
-            parentMarket: params.parentMarket,
+            parentOutcome: 0,
+            parentMarket: address(0),
             wrapped1155: wrapped1155,
             data: data,
             encodedQuestion: encodedQuestion
