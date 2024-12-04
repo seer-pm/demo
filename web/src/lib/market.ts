@@ -144,8 +144,11 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   if (!convertToString) {
     return estimate;
   }
-  return `${Number(estimate).toLocaleString()} ${marketName.slice(
-    marketName.lastIndexOf("[") + 1,
-    marketName.lastIndexOf("]"),
-  )}`;
+  if (marketName.lastIndexOf("[") > -1) {
+    return `${Number(estimate).toLocaleString()} ${marketName.slice(
+      marketName.lastIndexOf("[") + 1,
+      marketName.lastIndexOf("]"),
+    )}`;
+  }
+  return Number(estimate).toLocaleString();
 }

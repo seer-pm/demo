@@ -322,7 +322,7 @@ export function PreviewForm({
     id: "0x000",
     chainId,
     marketName:
-      marketTypeValues.marketType === MarketTypes.SCALAR
+      marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: dummyOutcomes,
