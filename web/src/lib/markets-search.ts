@@ -7,6 +7,7 @@ import { getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
 import {
   GetMarketQuery,
   GetMarketsQuery,
+  MarketType,
   Market_Filter,
   Market_OrderBy,
   OrderDirection,
@@ -194,7 +195,7 @@ export async function searchGraphMarkets(
   const or = [];
 
   if (type) {
-    where["type"] = type;
+    where["type"] = type as MarketType;
   }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {

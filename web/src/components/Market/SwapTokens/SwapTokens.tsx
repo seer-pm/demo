@@ -1,6 +1,7 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useConvertToAssets, useConvertToShares } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
@@ -31,12 +32,11 @@ interface SwapFormValues {
 
 interface SwapTokensProps {
   account: Address | undefined;
-  chainId: SupportedChain;
-  outcomeText: string;
+  market: Market;
+  outcomeIndex: number;
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
-  isInvalidOutcome: boolean;
   parentCollateral: Token | undefined;
 }
 
@@ -54,12 +54,11 @@ function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolea
 
 export function SwapTokens({
   account,
-  chainId,
-  outcomeText,
+  market,
+  outcomeIndex,
   outcomeToken,
   hasEnoughLiquidity,
   outcomeImage,
-  isInvalidOutcome,
   parentCollateral,
 }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -84,6 +83,8 @@ export function SwapTokens({
     setValue,
     trigger,
   } = useFormReturn;
+
+  const chainId = market.chainId;
 
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
   const {
@@ -176,6 +177,8 @@ export function SwapTokens({
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
+  const outcomeText = market.outcomes[outcomeIndex];
+
   return (
     <>
       <ConfirmSwapModal
@@ -196,7 +199,11 @@ export function SwapTokens({
         <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
           <div className="flex items-center space-x-[12px]">
             <div>
-              <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />
+              <OutcomeImage
+                image={outcomeImage}
+                isInvalidOutcome={market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1}
+                title={outcomeText}
+              />
             </div>
             <div className="text-[16px]">{outcomeText}</div>
           </div>
@@ -334,7 +341,7 @@ export function SwapTokens({
               {isUndefined(parentCollateral) && (
                 <AltCollateralSwitch
                   {...register("useAltCollateral")}
-                  chainId={chainId}
+                  market={market}
                   isUseWrappedToken={isUseWrappedToken}
                 />
               )}

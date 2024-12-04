@@ -224,6 +224,8 @@ contract FutarchyFactoryTest is Test {
         MarketView.MarketInfo memory marketInfo =
             marketView.getMarket(IMarketFactory(address(futarchyFactory)), Market(address(proposal)));
         assertEq(marketInfo.marketName, proposal.marketName());
+        assertEq(marketInfo.outcomes.length, 4);
+        assertEq(marketInfo.wrappedTokens.length, 4);
 
         assertEq(marketView.getMarkets(1, IMarketFactory(address(futarchyFactory))).length, 1);
     }

@@ -13,6 +13,7 @@ import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
+  decodeOutcomes,
   formatOutcome,
   getAnswerText,
   getCurrentBond,
@@ -65,12 +66,16 @@ function getOutcome(templateId: bigint, values: AnswerFormValues) {
 function getOutcomesOptions(market: Market, question: Question) {
   let options: { value: FormEventOutcomeValue; text: string }[] = [];
 
-  options = market.outcomes
+  const outcomes = decodeOutcomes(market, question);
+
+  options = outcomes
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
-  // the last element is the Invalid Result outcome
-  options.pop();
+  if (market.type === "Generic") {
+    // the last element is the Invalid Result outcome
+    options.pop();
+  }
 
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
     options = options.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
@@ -179,10 +184,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         <div className="text-black-secondary text-[16px] space-y-[15px] text-center">
           <div>This market is already resolved.</div>
           <div>
-            Final answer:{" "}
-            <span className="text-purple-primary font-semibold">
-              {getAnswerText(question, market.outcomes, market.templateId)}
-            </span>
+            Final answer: <span className="text-purple-primary font-semibold">{getAnswerText(question, market)}</span>
           </div>
         </div>
         <div className="text-center mt-[24px]">
@@ -237,10 +239,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           .
         </div>
         <div>
-          Current answer:{" "}
-          <span className="text-purple-primary font-semibold">
-            {getAnswerText(question, market.outcomes, market.templateId)}
-          </span>
+          Current answer: <span className="text-purple-primary font-semibold">{getAnswerText(question, market)}</span>
         </div>
       </div>
 

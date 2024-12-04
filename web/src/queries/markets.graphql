@@ -17,6 +17,7 @@ fragment Market on Market {
   marketName
   outcomes
   wrappedTokens
+  collateralToken
   collateralToken1
   collateralToken2
   parentMarket

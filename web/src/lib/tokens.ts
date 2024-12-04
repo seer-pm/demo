@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { isUndefined } from "./utils";
 
 export interface Token {
@@ -9,6 +9,12 @@ export interface Token {
 }
 
 export const WRAPPED_OUTCOME_TOKEN_DECIMALS = 18;
+
+export const EMPTY_TOKEN = {
+  address: zeroAddress,
+  symbol: "",
+  decimals: 18,
+};
 
 export const hasAltCollateral = (token: Token | undefined): token is Token => {
   return !isUndefined(token);

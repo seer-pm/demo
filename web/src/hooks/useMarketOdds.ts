@@ -2,9 +2,9 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits } from "viem";
+import { Address, formatUnits, zeroAddress } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
-import { Market, useMarket } from "./useMarket";
+import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 import { useTokenInfo } from "./useTokenInfo";
 
@@ -58,9 +58,8 @@ async function getTokenPrice(
 }
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;

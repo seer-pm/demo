@@ -356,22 +356,24 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </a>
                     )}
 
-                    <Link
-                      to={`/create-market?parentMarket=${market.id}&parentOutcome=${toSnakeCase(market.outcomes[i])}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSearchParams(
-                          (params) => {
-                            params.set("outcome", toSnakeCase(market.outcomes[i]));
-                            return params;
-                          },
-                          { overwriteLastHistoryEntry: true },
-                        );
-                      }}
-                      className="text-purple-primary hover:underline"
-                    >
-                      New conditional market
-                    </Link>
+                    {market.type === "Generic" && (
+                      <Link
+                        to={`/create-market?parentMarket=${market.id}&parentOutcome=${toSnakeCase(market.outcomes[i])}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSearchParams(
+                            (params) => {
+                              params.set("outcome", toSnakeCase(market.outcomes[i]));
+                              return params;
+                            },
+                            { overwriteLastHistoryEntry: true },
+                          );
+                        }}
+                        className="text-purple-primary hover:underline"
+                      >
+                        New conditional market
+                      </Link>
+                    )}
                   </div>
                   <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
                 </div>

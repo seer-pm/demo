@@ -1,13 +1,13 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useQuery } from "@tanstack/react-query";
-import { Market, useMarket } from "../useMarket";
+import { zeroAddress } from "viem";
+import { Market } from "../useMarket";
 import { useTokenInfo } from "../useTokenInfo";
 import { getOddChart } from "./getOddChart";
 
 export const useOddChartData = (market: Market, dayCount: number, intervalSeconds: number) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;

@@ -71,12 +71,7 @@ export function getMultiSelectAnswers(value: number): number[] {
   return indexes;
 }
 
-export function getAnswerText(
-  question: Question,
-  outcomes: Market["outcomes"],
-  templateId: bigint,
-  noAnswerText = "Not answered yet",
-): string {
+export function getAnswerText(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
   if (question.finalize_ts === 0) {
     return noAnswerText;
   }
@@ -89,13 +84,13 @@ export function getAnswerText(
     return "Answered too soon";
   }
 
-  if (Number(templateId) === REALITY_TEMPLATE_UINT) {
+  if (Number(market.templateId) === REALITY_TEMPLATE_UINT) {
     return formatEther(BigInt(question.best_answer));
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
-
-  if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  const outcomes = decodeOutcomes(market, question);
+  if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
@@ -188,4 +183,9 @@ export function decodeQuestion(encodedQuestion: string): {
     category,
     lang,
   };
+}
+
+export function decodeOutcomes(market: Market, question: Question) {
+  const questionIndex = market.questions.findIndex((q) => q.id === question.id);
+  return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
 }

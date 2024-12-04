@@ -6,7 +6,7 @@ import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
-import { Address, formatUnits } from "viem";
+import { Address, formatUnits, zeroAddress } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -15,7 +15,7 @@ import {
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { Market, useMarket } from "./useMarket";
+import { Market } from "./useMarket";
 import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {
@@ -174,9 +174,8 @@ const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: parentCollateral, isLoading } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
   const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;

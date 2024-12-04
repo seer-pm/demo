@@ -1,64 +1,62 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { RouterTypes } from "@/lib/config";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
+import {
+  writeFutarchyRouterRedeemProposal,
+  writeGnosisRouterRedeemToBase,
+  writeMainnetRouterRedeemToDai,
+} from "./contracts/generated";
+import { Market } from "./useMarket";
 
 interface RedeemPositionProps {
   router: Address;
-  market: Address;
-  collateralToken: Address;
+  market: Market;
   outcomeIndexes: bigint[];
   amounts: bigint[];
   isMainCollateral: boolean;
-  routerType: RouterTypes;
 }
 
 async function redeemFromRouter(
   isMainCollateral: boolean,
-  routerType: RouterTypes,
   router: Address,
-  collateralToken: Address,
-  market: Address,
+  market: Market,
   outcomeIndexes: bigint[],
   amounts: bigint[],
 ) {
+  if (market.type === "Futarchy") {
+    return await writeFutarchyRouterRedeemProposal(config, {
+      args: [market.id, amounts[0], amounts[1]],
+    });
+  }
+
   if (isMainCollateral) {
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "redeemPositions",
-      args: [collateralToken, market, outcomeIndexes, amounts],
+      args: [COLLATERAL_TOKENS[market.chainId].primary.address, market.id, outcomeIndexes, amounts],
     });
   }
 
-  if (routerType === "mainnet") {
+  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
     return await writeMainnetRouterRedeemToDai(config, {
-      args: [market, outcomeIndexes, amounts],
+      args: [market.id, outcomeIndexes, amounts],
     });
   }
 
   return await writeGnosisRouterRedeemToBase(config, {
-    args: [market, outcomeIndexes, amounts],
+    args: [market.id, outcomeIndexes, amounts],
   });
 }
 
 async function redeemPositions(props: RedeemPositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () =>
-      redeemFromRouter(
-        props.isMainCollateral,
-        props.routerType,
-        props.router,
-        props.collateralToken,
-        props.market,
-        props.outcomeIndexes,
-        props.amounts,
-      ),
+    () => redeemFromRouter(props.isMainCollateral, props.router, props.market, props.outcomeIndexes, props.amounts),
     {
       txSent: { title: "Redeeming tokens..." },
       txSuccess: { title: "Tokens redeemed!" },

@@ -88,8 +88,43 @@ function formatBigNumbers(amount: number) {
   return amount.toFixed(2);
 }
 
+/**
+ * Formats small numbers. E.g.: 0.0000001 will be formated as 0.0(6)1
+ */
+function formatNumberWithZeroCount(input: number): string {
+  let numberStr = input.toString();
+
+  // If the number is in exponential notation, convert it to a full decimal representation
+  if (numberStr.includes("e")) {
+    const [base, exponent] = numberStr.split("e").map(Number);
+    numberStr = (base * 10 ** exponent).toFixed(Math.abs(exponent));
+  }
+
+  const [integerPart, decimalPart] = numberStr.split(".");
+
+  if (!decimalPart || decimalPart.length <= 2) {
+    return numberStr;
+  }
+
+  let leadingZeroCount = 0;
+  for (const char of decimalPart) {
+    if (char === "0") {
+      leadingZeroCount++;
+    } else {
+      break;
+    }
+  }
+
+  const significantDecimalPart = decimalPart.slice(leadingZeroCount, leadingZeroCount + 2);
+  return `${integerPart}.${decimalPart.slice(0, 1)}(${leadingZeroCount})${significantDecimalPart}`;
+}
+
 export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {
   const number = Number(formatUnits(amount, decimals));
+
+  if (number < 0.01) {
+    return formatNumberWithZeroCount(number);
+  }
 
   if (formatAmount) {
     return formatBigNumbers(number);

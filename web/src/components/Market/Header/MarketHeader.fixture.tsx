@@ -8,6 +8,7 @@ import { MarketHeader } from "./MarketHeader";
 const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",
   type: "Generic",
+  collateralToken: zeroAddress,
   collateralToken1: zeroAddress,
   collateralToken2: zeroAddress,
   chainId: 1,

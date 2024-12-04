@@ -261,4 +261,17 @@ contract FutarchyRouter is ERC1155Holder {
         bytes32 collectionId = conditionalTokens.getCollectionId(parentCollectionId, conditionId, indexSet);
         return conditionalTokens.getPositionId(address(collateralToken), collectionId);
     }
+
+    /// @notice Helper function used to know the redeemable outcomes associated to a conditionId.
+    /// @param conditionId The id of the condition.
+    /// @return An array of outcomes where a true value indicates that the outcome is redeemable.
+    function getWinningOutcomes(bytes32 conditionId) external view returns (bool[] memory) {
+        bool[] memory result = new bool[](conditionalTokens.getOutcomeSlotCount(conditionId));
+
+        for (uint256 i = 0; i < result.length; i++) {
+            result[i] = conditionalTokens.payoutNumerators(conditionId, i) == 0 ? false : true;
+        }
+
+        return result;
+    }
 }

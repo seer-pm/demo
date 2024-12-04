@@ -88,13 +88,13 @@ contract MarketView {
 
         IConditionalTokens conditionalTokens = marketFactory.conditionalTokens();
 
+        (address collateralToken1, address collateralToken2) = getCollateralTokens(market);
+
         (string[] memory outcomes, address[] memory wrappedTokens) =
-            getOutcomesAndTokens(conditionalTokens, market, conditionId);
+            getOutcomesAndTokens(conditionalTokens, market, conditionId, collateralToken1 != address(0));
 
         (IRealityETH_v3_0.Question[] memory questions, string[] memory encodedQuestions, bytes32[] memory questionsIds)
         = getQuestions(market, marketFactory);
-
-        (address collateralToken1, address collateralToken2) = getCollateralTokens(market);
 
         return MarketInfo({
             id: address(market),
@@ -172,16 +172,17 @@ contract MarketView {
     function getOutcomesAndTokens(
         IConditionalTokens conditionalTokens,
         Market market,
-        bytes32 conditionId
+        bytes32 conditionId,
+        bool isFutarchyMarket
     ) internal view returns (string[] memory outcomes, address[] memory wrappedTokens) {
         uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(conditionId);
 
-        outcomes = new string[](outcomeSlotCount);
+        outcomes = new string[](isFutarchyMarket ? 4 : outcomeSlotCount);
 
-        wrappedTokens = new address[](outcomeSlotCount);
+        wrappedTokens = new address[](outcomes.length);
 
-        for (uint256 i = 0; i < outcomeSlotCount; i++) {
-            outcomes[i] = i == (outcomeSlotCount - 1) ? "Invalid result" : market.outcomes(i);
+        for (uint256 i = 0; i < outcomes.length; i++) {
+            outcomes[i] = (!isFutarchyMarket && i == (outcomes.length - 1)) ? "Invalid result" : market.outcomes(i);
 
             (IERC20 wrapped1155,) = market.wrappedOutcome(i);
             wrappedTokens[i] = address(wrapped1155);

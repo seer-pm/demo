@@ -23,7 +23,7 @@ import { displayBalance, toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { switchChain } from "@wagmi/core";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { Head } from "vike-react/Head";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -40,11 +40,10 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
   const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
 
@@ -57,13 +56,12 @@ function SwapWidget({
   return (
     <SwapTokens
       account={account}
-      chainId={market.chainId}
-      outcomeText={market.outcomes[outcomeIndex]}
+      market={market}
+      outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
-      outcomeImage={images?.[outcomeIndex]}
-      isInvalidOutcome={market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1}
-      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
       parentCollateral={parentCollateral}
+      outcomeImage={images?.[outcomeIndex]}
+      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
     />
   );
 }
@@ -149,10 +147,10 @@ function MarketPage() {
   const id = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
 
-  const router = getRouterAddress(chainId);
-
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
+
+  const router = getRouterAddress(market);
 
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;

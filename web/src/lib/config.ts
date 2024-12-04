@@ -1,4 +1,6 @@
 import * as generatedHooks from "@/hooks/contracts/generated";
+import { futarchyRouterAddress } from "@/hooks/contracts/generated";
+import { Market } from "@/hooks/useMarket";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
@@ -66,7 +68,16 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [sepolia.id]: "base",
 } as const;
 
-export const getRouterAddress = (chainId?: SupportedChain): Address => {
+export const getRouterAddress = (market: Market | undefined): Address | undefined => {
+  if (!market) {
+    return;
+  }
+
+  if (market.type === "Futarchy") {
+    // @ts-ignore
+    return futarchyRouterAddress[market.chainId];
+  }
+
   const addresses = Object.assign(
     {},
     gnosisRouterAddress,
@@ -74,7 +85,7 @@ export const getRouterAddress = (chainId?: SupportedChain): Address => {
     // biome-ignore lint/suspicious/noExplicitAny:
     (restGeneratedHooks as any)?.routerAddress || {},
   );
-  return addresses[chainId || DEFAULT_CHAIN];
+  return addresses[market.chainId || DEFAULT_CHAIN];
 };
 
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
