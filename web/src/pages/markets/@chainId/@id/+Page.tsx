@@ -16,7 +16,6 @@ import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
-import { toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { Address } from "viem";
@@ -152,7 +151,7 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const outcomeIndexFromSearch =
-    market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
+    market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   if (isMarketError) {
     return (

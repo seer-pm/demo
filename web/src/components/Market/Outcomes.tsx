@@ -15,7 +15,7 @@ import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { getConnectorClient, readContract } from "@wagmi/core";
@@ -199,9 +199,7 @@ function AddLiquidityInfo({
 export function Outcomes({ market, images }: PositionsProps) {
   const { address } = useAccount();
   const [searchParams, setSearchParams] = useSearchParams();
-  const outcomeIndexFromSearch = market.outcomes.findIndex(
-    (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
-  );
+  const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
@@ -264,15 +262,12 @@ export function Outcomes({ market, images }: PositionsProps) {
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
       const i = indexesOrderedByOdds[0];
-      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
+      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true });
     }
   }, [indexesOrderedByOdds]);
   const outcomeClick = (i: number) => {
     return () => {
-      setSearchParams(
-        { outcome: toSnakeCase(market.outcomes[i]) },
-        { overwriteLastHistoryEntry: true, keepScrollPosition: true },
-      );
+      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true, keepScrollPosition: true });
     };
   };
 
@@ -409,13 +404,14 @@ export function Outcomes({ market, images }: PositionsProps) {
                     )}
 
                     <Link
-                      to={`/create-market?parentMarket=${market.id}&parentOutcome=${toSnakeCase(market.outcomes[i])}`}
+                      to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
+                        market.outcomes[i],
+                      )}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSearchParams(
-                          (params) => {
-                            params.set("outcome", toSnakeCase(market.outcomes[i]));
-                            return params;
+                          {
+                            outcome: market.outcomes[i],
                           },
                           { overwriteLastHistoryEntry: true },
                         );

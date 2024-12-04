@@ -10,7 +10,7 @@ import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
@@ -236,7 +236,7 @@ export function PreviewForm({
   parentMarketAddress = isAddress(parentMarketAddress) ? parentMarketAddress : zeroAddress;
   const { data: parentMarket } = useMarket(parentMarketAddress as Address, chainId);
   let parentOutcomeIndex =
-    parentMarket?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("parentOutcome")) ?? -1;
+    parentMarket?.outcomes?.findIndex((outcome) => outcome === searchParams.get("parentOutcome")) ?? -1;
   parentOutcomeIndex = Math.max(parentOutcomeIndex, 0);
 
   const { address = "" } = useAccount();

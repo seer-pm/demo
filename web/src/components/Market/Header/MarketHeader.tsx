@@ -23,7 +23,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
@@ -140,12 +140,11 @@ function OutcomesInfo({
           ) {
             return null;
           }
-
           return (
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
+              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
@@ -279,7 +278,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${toSnakeCase(
+                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"

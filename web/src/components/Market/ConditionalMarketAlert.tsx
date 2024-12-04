@@ -2,7 +2,6 @@ import { Link } from "@/components/Link";
 import { useMarket } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
-import { toSnakeCase } from "@/lib/utils";
 import { Address } from "viem";
 import { Alert } from "../Alert";
 
@@ -29,7 +28,7 @@ export function ConditionalMarketAlert({
       </Link>{" "}
       being{" "}
       <Link
-        to={`${paths.market(parentMarket.id, chainId)}?outcome=${toSnakeCase(parentOutcomeText)}`}
+        to={`${paths.market(parentMarket.id, chainId)}?outcome=${encodeURIComponent(parentOutcomeText)}`}
         target="_blank"
         className="text-purple-primary font-medium"
       >

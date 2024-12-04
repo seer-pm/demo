@@ -138,8 +138,3 @@ export function parseFraction(floatString: string) {
 function findGCD(a: number, b: number): number {
   return b === 0 ? a : findGCD(b, a % b);
 }
-
-export function toSnakeCase(str: string) {
-  if (!str) return "";
-  return str.toLowerCase().split(" ").join("_");
-}

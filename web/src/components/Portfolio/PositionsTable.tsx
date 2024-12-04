@@ -9,7 +9,6 @@ import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { toSnakeCase } from "@/lib/utils";
 import {
   ColumnDef,
   PaginationState,
@@ -95,7 +94,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
             >
               <MarketImage
                 marketAddress={position.marketAddress as Address}
@@ -117,7 +116,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="flex text-[14px] cursor-pointer hover:underline"
-              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${toSnakeCase(
+              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(
                 position.parentOutcome!,
               )}`}
             >
@@ -136,7 +135,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
             >
               {info.getValue<string>()}
             </a>
