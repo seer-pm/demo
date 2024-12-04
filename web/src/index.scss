@@ -47,6 +47,11 @@
   }
 }
 
+body {
+  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
+  background-blend-mode: multiply;
+}
+
 /* BUTTONS */
 .btn.btn-disabled,
 .btn[disabled],

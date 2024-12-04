@@ -1,10 +1,11 @@
 import Button from "@/components/Form/Button";
+import useCheckAccount from "@/hooks/useCheckAccount";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { DownArrow } from "@/lib/icons";
 import { Orbis } from "@orbisclub/orbis-sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useAccount, useAccountEffect } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 
@@ -33,23 +34,7 @@ const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
   const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
   const { open } = useWeb3Modal();
 
-  const [hasAccount, sethasAccount] = useState(false);
-
-  useEffect(() => {
-    const checkAccount = async () => {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: "eth_accounts" });
-        sethasAccount(accounts.length > 0);
-      }
-    };
-
-    checkAccount();
-    window.ethereum?.on("accountsChanged", checkAccount);
-
-    return () => {
-      window.ethereum?.removeListener("accountsChanged", checkAccount);
-    };
-  }, []);
+  const { hasAccount } = useCheckAccount();
 
   const handleSwitch = () => {
     open({ view: "Networks" });

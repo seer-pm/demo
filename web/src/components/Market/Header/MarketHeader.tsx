@@ -7,7 +7,7 @@ import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { NETWORK_ICON_MAPPING, getRouterAddress } from "@/lib/config.ts";
 import {
@@ -183,7 +183,7 @@ function OutcomesInfo({
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
-  const { data: marketStatus } = useMarketStatus(market);
+  const marketStatus = getMarketStatus(market);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
