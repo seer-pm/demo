@@ -38,7 +38,7 @@ function MarketChart({ market }: { market: Market }) {
   const currentTimestamp = useMemo(() => Math.floor(new Date().getTime() / 1000), []);
   const hasLiquidity = odds.some((odd) => isOdd(odd));
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
-  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
+  const marketEstimate = getMarketEstimate(odds, market);
   const finalChartData = isScalarMarket
     ? chartData.map((x) => {
         return {
@@ -71,12 +71,12 @@ function MarketChart({ market }: { market: Market }) {
     ],
     tooltip: {
       trigger: "axis",
-      valueFormatter: (value: number) => (isScalarMarket ? value : `${value}%`),
+      valueFormatter: (value: number) => (isScalarMarket ? `${Number(value).toLocaleString()}` : `${value}%`),
     },
     legend: {
       formatter: (name: string) => {
         if (isScalarMarket) {
-          return `${name} ${marketEstimate}`;
+          return `${name} ${getMarketEstimate(odds, market, true)}`;
         }
         for (let i = 0; i < market.outcomes.length; i++) {
           const outcome = market.outcomes[i];
@@ -125,7 +125,7 @@ function MarketChart({ market }: { market: Market }) {
       max: "dataMax",
 
       axisLabel: {
-        formatter: (value: number) => (isScalarMarket ? value : `${value}%`),
+        formatter: (value: number) => (isScalarMarket ? `${Number(value).toLocaleString()}` : `${value}%`),
       },
     },
     series: finalChartData,

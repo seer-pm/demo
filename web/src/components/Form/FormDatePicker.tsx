@@ -52,9 +52,12 @@ const FormDatePicker = (props: InputProps) => {
                 isValid && "border-success-primary",
               )}
               dateFormat="YYYY-MM-dd HH:mm"
+              dateFormatCalendar="MMMM"
               timeFormat="HH:mm"
               placeholderText="YYYY-MM-DD HH:mm"
               calendarClassName="custom-date-picker"
+              showYearDropdown
+              dropdownMode="select"
             />
           )}
         />

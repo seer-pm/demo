@@ -1,24 +1,27 @@
+import { RouterAbi } from "@/abi/RouterAbi";
 import { Link } from "@/components/Link";
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
-import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getRouterAddress } from "@/lib/config";
+import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, formatOdds, getCollateralByIndex, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
+import { useQuery } from "@tanstack/react-query";
+import { getConnectorClient, readContract } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect, useMemo } from "react";
-import { RpcError } from "viem";
+import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -30,6 +33,12 @@ interface PositionsProps {
   market: Market;
   images?: string[];
 }
+
+type OutcomeWithOdds = {
+  odd: number;
+  i: number;
+  isWinning?: boolean;
+};
 
 function poolRewardsInfo(poolIncentive: PoolIncentive) {
   if (poolIncentive.apr === 0) {
@@ -190,9 +199,7 @@ function AddLiquidityInfo({
 export function Outcomes({ market, images }: PositionsProps) {
   const { address } = useAccount();
   const [searchParams, setSearchParams] = useSearchParams();
-  const outcomeIndexFromSearch = market.outcomes.findIndex(
-    (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
-  );
+  const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
@@ -201,26 +208,65 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
 
+  const routerAddress = getRouterAddress(market);
+  const marketStatus = getMarketStatus(market);
+  const winningOutcomes = useQuery({
+    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
+    enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
+    queryFn: async () => {
+      return await readContract(config, {
+        abi: RouterAbi,
+        address: routerAddress as Address,
+        functionName: "getWinningOutcomes",
+        args: [market.conditionId],
+        chainId: market.chainId,
+      });
+    },
+  });
+
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
       return null;
     }
-    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
-    return oddsAndIndexes.map((obj) => obj.i);
-  }, [odds]);
+    const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
+
+    if (!winningOutcomes.data && marketStatus === MarketStatus.CLOSED) {
+      const otherIndexes = odds
+        .map((odd, i) => ({ odd, i }))
+        .filter(({ i }) => i !== invalidIndex)
+        .sort((a, b) => b.odd - a.odd)
+        .map((obj) => obj.i);
+
+      return [invalidIndex, ...otherIndexes];
+    }
+
+    const winningIndexes: OutcomeWithOdds[] = [];
+    const nonWinningIndexes: OutcomeWithOdds[] = [];
+
+    odds.forEach((odd, i) => {
+      if (winningOutcomes.data?.[i] === true) {
+        winningIndexes.push({ odd, i });
+      } else {
+        nonWinningIndexes.push({ odd, i });
+      }
+    });
+
+    // Sort each group by odds
+    const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
+    const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
+
+    return [...sortedWinning, ...sortedNonWinning];
+  }, [odds, winningOutcomes.data, market.outcomes, marketStatus]);
 
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
       const i = indexesOrderedByOdds[0];
-      setSearchParams({ outcome: toSnakeCase(market.outcomes[i]) }, { overwriteLastHistoryEntry: true });
+      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true });
     }
   }, [indexesOrderedByOdds]);
   const outcomeClick = (i: number) => {
     return () => {
-      setSearchParams(
-        { outcome: toSnakeCase(market.outcomes[i]) },
-        { overwriteLastHistoryEntry: true, keepScrollPosition: true },
-      );
+      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true, keepScrollPosition: true });
     };
   };
 
@@ -302,6 +348,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                         <QuestionIcon fill="#9747FF" />
                       </span>
                     )}
+                    {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
                   <div className="text-[12px] text-black-secondary">
                     {balances && balances[i] > 0n && (
@@ -351,13 +398,12 @@ export function Outcomes({ market, images }: PositionsProps) {
 
                     {market.type === "Generic" && (
                       <Link
-                        to={`/create-market?parentMarket=${market.id}&parentOutcome=${toSnakeCase(market.outcomes[i])}`}
+                        to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[i])}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSearchParams(
-                            (params) => {
-                              params.set("outcome", toSnakeCase(market.outcomes[i]));
-                              return params;
+                            {
+                              outcome: market.outcomes[i],
                             },
                             { overwriteLastHistoryEntry: true },
                           );
@@ -373,7 +419,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
+                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
 
                 <input

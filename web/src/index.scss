@@ -47,6 +47,11 @@
   }
 }
 
+body {
+  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
+  background-blend-mode: multiply;
+}
+
 /* BUTTONS */
 .btn.btn-disabled,
 .btn[disabled],
@@ -442,4 +447,18 @@
 /* Handle on hover */
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Orbis comment */
+._3k7Bt {
+  display: none;
+}
+
+._MBDTd {
+  & ._1be8d,
+  & ._WjB9N > button,
+  & ._I1aJ0 > button,
+  & ._1jNTa {
+    background-color: #9747ff !important;
+  }
 }

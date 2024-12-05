@@ -36,12 +36,12 @@ const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLA
       <button
         {...restProps}
         type={type || "button"}
-        className={clsx("btn", variants[variant], sizes[size], className)}
+        className={clsx("btn @container", variants[variant], sizes[size], className)}
         ref={ref}
       >
         {isLoading && <span className="loading loading-spinner"></span>}
         {icon || ""}
-        {text}
+        <span className={isLoading ? "@[190px]:inline hidden" : ""}>{text}</span>
       </button>
     );
   },

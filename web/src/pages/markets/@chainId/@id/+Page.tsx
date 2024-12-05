@@ -1,30 +1,24 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
-import { CopyButton } from "@/components/CopyButton";
-import { Link } from "@/components/Link";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketChart from "@/components/Market/MarketChart";
+import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
-import { RelatedMarkets } from "@/components/Market/RelatedMarkets";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { useMarketPools } from "@/hooks/useMarketPools";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { fetchTokenBalance } from "@/hooks/useTokenBalance";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getPoolUrl, getRouterAddress } from "@/lib/config";
+import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
-import { displayBalance, toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
 import { switchChain } from "@wagmi/core";
 import { Address, zeroAddress } from "viem";
-import { Head } from "vike-react/Head";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
@@ -46,9 +40,12 @@ function SwapWidget({
     market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
+  const marketStatus = getMarketStatus(market);
 
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
-
+  if (marketStatus === MarketStatus.CLOSED) {
+    return null;
+  }
   if (!outcomeToken) {
     return null;
   }
@@ -66,78 +63,78 @@ function SwapWidget({
   );
 }
 
-function PoolDetails({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
-  const { data = [] } = useMarketPools(market);
-  const poolDataPerToken = data[outcomeIndex];
-  const { data: poolTokensBalances = [], isLoading } = useQuery<
-    | {
-        balance0: string;
-        balance1: string;
-      }[]
-    | undefined,
-    Error
-  >({
-    enabled: poolDataPerToken?.length > 0,
-    queryKey: ["usePoolTokensBalances", poolDataPerToken?.map((x) => x.id)],
-    queryFn: async () => {
-      return await Promise.all(
-        poolDataPerToken.map(async ({ id, token0, token1 }) => {
-          const balance0BigInt = await fetchTokenBalance(token0, id, market.chainId);
-          const balance1BigInt = await fetchTokenBalance(token1, id, market.chainId);
-          return {
-            balance0: displayBalance(balance0BigInt, 18, true),
-            balance1: displayBalance(balance1BigInt, 18, true),
-          };
-        }),
-      );
-    },
-    refetchOnWindowFocus: true,
-  });
+// function PoolDetails({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
+//   const { data = [] } = useMarketPools(market);
+//   const poolDataPerToken = data[outcomeIndex];
+//   const { data: poolTokensBalances = [], isLoading } = useQuery<
+//     | {
+//         balance0: string;
+//         balance1: string;
+//       }[]
+//     | undefined,
+//     Error
+//   >({
+//     enabled: poolDataPerToken?.length > 0,
+//     queryKey: ["usePoolTokensBalances", poolDataPerToken?.map((x) => x.id)],
+//     queryFn: async () => {
+//       return await Promise.all(
+//         poolDataPerToken.map(async ({ id, token0, token1 }) => {
+//           const balance0BigInt = await fetchTokenBalance(token0, id, market.chainId);
+//           const balance1BigInt = await fetchTokenBalance(token1, id, market.chainId);
+//           return {
+//             balance0: displayBalance(balance0BigInt, 18, true),
+//             balance1: displayBalance(balance1BigInt, 18, true),
+//           };
+//         }),
+//       );
+//     },
+//     refetchOnWindowFocus: true,
+//   });
 
-  if (!poolDataPerToken?.length) return null;
-  return (
-    <div className="space-y-3 bg-white p-[24px] drop-shadow">
-      {poolDataPerToken.map((dataPerPool, poolIndex) => {
-        const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
-        return (
-          <div key={poolId}>
-            <div>
-              <p className="font-semibold">Pool Id</p>
-              <div className="flex items-center gap-2">
-                <Link
-                  to={getPoolUrl(market.chainId, poolId)}
-                  title={poolId}
-                  className="hover:underline text-purple-primary"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {poolId.slice(0, 6)}...{poolId.slice(-4)}
-                </Link>
-                <CopyButton textToCopy={poolId} size={18} />
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold">Pool Balances</p>
-              {isLoading ? (
-                <div className="shimmer-container w-20 h-4"></div>
-              ) : (
-                <>
-                  <p className="text-[14px]">
-                    {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
-                  </p>
-                  <p className="text-[14px]">
-                    {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
-                  </p>
-                </>
-              )}
-            </div>
-            {poolIndex !== poolDataPerToken.length - 1 && <div className="w-full h-[1px] bg-black-medium mt-2"></div>}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+//   if (!poolDataPerToken?.length) return null;
+//   return (
+//     <div className="space-y-3 bg-white p-[24px] drop-shadow">
+//       {poolDataPerToken.map((dataPerPool, poolIndex) => {
+//         const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
+//         return (
+//           <div key={poolId}>
+//             <div>
+//               <p className="font-semibold">Pool Id</p>
+//               <div className="flex items-center gap-2">
+//                 <Link
+//                   to={getPoolUrl(market.chainId, poolId)}
+//                   title={poolId}
+//                   className="hover:underline text-purple-primary"
+//                   target="_blank"
+//                   rel="noopener noreferrer"
+//                 >
+//                   {poolId.slice(0, 6)}...{poolId.slice(-4)}
+//                 </Link>
+//                 <CopyButton textToCopy={poolId} size={18} />
+//               </div>
+//             </div>
+//             <div>
+//               <p className="font-semibold">Pool Balances</p>
+//               {isLoading ? (
+//                 <div className="shimmer-container w-20 h-4"></div>
+//               ) : (
+//                 <>
+//                   <p className="text-[14px]">
+//                     {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
+//                   </p>
+//                   <p className="text-[14px]">
+//                     {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
+//                   </p>
+//                 </>
+//               )}
+//             </div>
+//             {poolIndex !== poolDataPerToken.length - 1 && <div className="w-full h-[1px] bg-black-medium mt-2"></div>}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
 
 function MarketPage() {
   const { routeParams } = usePageContext();
@@ -153,7 +150,7 @@ function MarketPage() {
   const router = getRouterAddress(market);
 
   const outcomeIndexFromSearch =
-    market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
+    market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   if (isMarketError) {
     return (
@@ -188,9 +185,6 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
   return (
     <div className="container-fluid py-10">
-      <Head>
-        <meta property="og:image" content={`https://app.seer.pm/og-images/markets/${market.chainId}/${market.id}/`} />
-      </Head>
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         {chainId && connectedChainId && chainId !== connectedChainId && (
@@ -233,12 +227,12 @@ function MarketPage() {
             {market && (
               <>
                 <Outcomes market={market} images={images?.outcomes} />
-                <RelatedMarkets market={market} />
+                <MarketTabs market={market} />
               </>
             )}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">
-            <PoolDetails market={market} outcomeIndex={outcomeIndex} />
+            {/* <PoolDetails market={market} outcomeIndex={outcomeIndex} /> */}
             <SwapWidget
               router={router}
               market={market}

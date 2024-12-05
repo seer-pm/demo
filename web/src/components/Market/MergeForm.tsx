@@ -70,7 +70,13 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
 
   const tokensToMerge = positions.map((position) => position.tokenId);
 
-  const { data: missingApprovals } = useMissingApprovals(tokensToMerge, account, router, parsedAmount, market.chainId);
+  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
+    tokensToMerge,
+    account,
+    router,
+    parsedAmount,
+    market.chainId,
+  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -173,7 +179,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
               variant="primary"
               type="submit"
               disabled={!isValid || parsedAmount === 0n || mergePositions.isPending || !account}
-              isLoading={mergePositions.isPending}
+              isLoading={mergePositions.isPending || isLoadingApprovals}
               text="Merge"
             />
           )}

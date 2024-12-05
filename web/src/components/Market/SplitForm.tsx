@@ -53,7 +53,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
   );
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals = [] } = useMissingApprovals(
+  const { data: missingApprovals = [], isLoading: isLoadingApprovals } = useMissingApprovals(
     selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
     account,
     router,
@@ -140,7 +140,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
               variant="primary"
               type="submit"
               disabled={!isValid || parsedAmount === 0n || splitPosition.isPending || !account}
-              isLoading={splitPosition.isPending}
+              isLoading={splitPosition.isPending || isLoadingApprovals}
               text="Mint"
             />
           ) : (

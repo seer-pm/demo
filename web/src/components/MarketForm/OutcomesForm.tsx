@@ -186,6 +186,9 @@ function TokenNameField({
                 if (isTwoStringsEqual(v as string, INVALID_RESULT_OUTCOME_TEXT)) {
                   return "Invalid Token Name.";
                 }
+                if ((v as string).length > 11) {
+                  return "Maximum 11 characters.";
+                }
                 if (
                   (fieldName === "lowerBound.token" && isTwoStringsEqual(v as string, formValues.upperBound.token)) ||
                   (fieldName === "upperBound.token" && isTwoStringsEqual(v as string, formValues.lowerBound.token))
@@ -342,9 +345,7 @@ function OutcomesSection({
               <Input
                 autoComplete="off"
                 type="text"
-                {...register("unit", {
-                  required: "This field is required.",
-                })}
+                {...register("unit")}
                 className="w-full"
                 useFormReturn={useFormReturn}
               />

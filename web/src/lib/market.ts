@@ -143,11 +143,22 @@ export function isOdd(odd: number | undefined | null) {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 
-export function getMarketEstimate(odds: number[], lowerBound: bigint, upperBound: bigint) {
+export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
+  const { lowerBound, upperBound, marketName } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  return ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(2);
+  const estimate = ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(0);
+  if (!convertToString) {
+    return estimate;
+  }
+  if (marketName.lastIndexOf("[") > -1) {
+    return `${Number(estimate).toLocaleString()} ${marketName.slice(
+      marketName.lastIndexOf("[") + 1,
+      marketName.lastIndexOf("]"),
+    )}`;
+  }
+  return Number(estimate).toLocaleString();
 }
 
 export type CollateralByOutcome = {

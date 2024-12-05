@@ -12,7 +12,7 @@ export const useWinningPositions = (account: Address | undefined, market: Market
 
   return useQuery<{ winningPositions: Position[]; winningOutcomeIndexes: bigint[] } | undefined, Error>({
     enabled: !!router && positions.length > 0,
-    queryKey: ["useWinningPositions", account, market.id, router, positions.map((p) => p.balance.toString())],
+    queryKey: ["useWinningPositions", router, positions.map((x) => ({ ...x, balance: x.balance.toString() }))],
     queryFn: async () => {
       const winningOutcomes = await readContract(config, {
         abi: RouterAbi,

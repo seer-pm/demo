@@ -16,6 +16,9 @@ export default defineConfig({
       dependencies: ["react-paginate"],
     }),
   ],
+  define: {
+    global: "window",
+  },
   server: {
     fs: {
       // Allow serving files from one level up to the project root

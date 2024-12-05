@@ -1,12 +1,15 @@
+import { RouterAbi } from "@/abi/RouterAbi";
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
+import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
-import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { NETWORK_ICON_MAPPING, getRouterAddress } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -20,9 +23,13 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { config } from "@/wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
+import { Address } from "viem";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
@@ -37,32 +44,86 @@ interface MarketHeaderProps {
   outcomesCount?: number;
 }
 
+type OutcomeWithOdds = {
+  odd: number;
+  i: number;
+  isWinning?: boolean;
+};
+
 function OutcomesInfo({
   market,
   outcomesCount = 0,
   images = [],
+  marketStatus,
 }: {
   market: Market;
   outcomesCount?: number;
   images?: string[];
+  marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, isIntersecting);
+  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
+
+  const routerAddress = getRouterAddress(market);
+
+  const winningOutcomes = useQuery({
+    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
+    enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
+    queryFn: async () => {
+      return await readContract(config, {
+        abi: RouterAbi,
+        address: routerAddress as Address,
+        functionName: "getWinningOutcomes",
+        args: [market.conditionId],
+        chainId: market.chainId,
+      });
+    },
+  });
 
   const indexesOrderedByOdds = useMemo(() => {
     if (oddsPending || odds.length === 0) {
       return null;
     }
-    const oddsAndIndexes = odds.map((odd, i) => ({ odd, i })).sort((a, b) => b.odd - a.odd);
-    return oddsAndIndexes.map((obj) => obj.i);
-  }, [odds]);
 
+    const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
+
+    if (!winningOutcomes.data && marketStatus === MarketStatus.CLOSED) {
+      const otherIndexes = odds
+        .map((odd, i) => ({ odd, i }))
+        .filter(({ i }) => i !== invalidIndex)
+        .sort((a, b) => b.odd - a.odd)
+        .map((obj) => obj.i);
+
+      return [invalidIndex, ...otherIndexes];
+    }
+
+    const winningIndexes: OutcomeWithOdds[] = [];
+    const nonWinningIndexes: OutcomeWithOdds[] = [];
+
+    odds.forEach((odd, i) => {
+      if (winningOutcomes.data?.[i] === true) {
+        winningIndexes.push({ odd, i });
+      } else {
+        nonWinningIndexes.push({ odd, i });
+      }
+    });
+
+    const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
+    const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
+
+    return [...sortedWinning, ...sortedNonWinning];
+  }, [odds, winningOutcomes.data, market.outcomes, marketStatus]);
+
+  const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
+  const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
     <div ref={ref}>
-      <div className="space-y-3">
+      <div
+        className={clsx("space-y-3", isAllLoading ? "market-card__outcomes__loading" : "market-card__outcomes__loaded")}
+      >
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const outcome = market.outcomes[i];
@@ -71,14 +132,19 @@ function OutcomesInfo({
             // render the first `visibleOutcomesLimit` outcomes
             return null;
           }
-          if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
+
+          if (
+            outcome === INVALID_RESULT_OUTCOME_TEXT &&
+            (marketStatus !== MarketStatus.CLOSED ||
+              (marketStatus === MarketStatus.CLOSED && winningOutcomes?.data?.[i] !== true))
+          ) {
             return null;
           }
           return (
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
+              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
@@ -89,18 +155,20 @@ function OutcomesInfo({
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="group-hover:underline">
+                  <div className="group-hover:underline flex items-center gap-2">
                     #{j + 1} {market.outcomes[i]}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                    {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
+
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : formatOdds(odds?.[i], getMarketType(market))}
+                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
               </div>
             </Link>
@@ -114,7 +182,7 @@ function OutcomesInfo({
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
-  const { data: marketStatus } = useMarketStatus(market);
+  const marketStatus = getMarketStatus(market);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
@@ -126,7 +194,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
-  const marketEstimate = getMarketEstimate(odds, market.lowerBound, market.upperBound);
+  const marketEstimate = getMarketEstimate(odds, market, true);
   return (
     <div
       className={clsx(
@@ -210,7 +278,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${toSnakeCase(
+                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"
@@ -238,7 +306,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
         </div>
       )}
-      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && (
+      {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
           <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
           {!isPendingOdds && (
@@ -251,9 +319,15 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           )}
         </div>
       )}
+
       {type === "preview" && (
         <div className="border-t border-black-medium py-[16px]">
-          <OutcomesInfo market={market} outcomesCount={outcomesCount} images={images?.outcomes} />
+          <OutcomesInfo
+            market={market}
+            outcomesCount={outcomesCount}
+            images={images?.outcomes}
+            marketStatus={marketStatus}
+          />
         </div>
       )}
       {type !== "small" && (

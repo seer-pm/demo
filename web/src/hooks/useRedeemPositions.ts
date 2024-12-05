@@ -70,13 +70,17 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
   return result.receipt;
 }
 
-export const useRedeemPositions = () => {
+export const useRedeemPositions = (successCallback?: () => void) => {
   return useMutation({
     mutationFn: redeemPositions,
-    onSuccess: (/*data: TransactionReceipt*/) => {
-      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+    onSuccess: async (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      // have to wait for market positions to finish invalidate
+      await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+      successCallback?.();
     },
   });
 };

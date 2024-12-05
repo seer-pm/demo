@@ -5,6 +5,7 @@ import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { useForm } from "react-hook-form";
 import { Address } from "viem";
+import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
@@ -18,9 +19,11 @@ interface RedeemFormProps {
   account?: Address;
   market: Market;
   router: Address;
+  successCallback?: () => void;
 }
 
-export function RedeemForm({ account, market, router }: RedeemFormProps) {
+export function RedeemForm({ account, market, router, successCallback }: RedeemFormProps) {
+  const { chainId } = useAccount();
   const { register, handleSubmit } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
@@ -28,20 +31,30 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
     },
   });
 
-  const { data: winningPositionsData } = useWinningPositions(account, market, router);
+  const { data: winningPositionsData, isPending } = useWinningPositions(account, market, router);
   const { winningPositions = [], winningOutcomeIndexes = [] } = winningPositionsData || {};
 
-  const redeemPositions = useRedeemPositions();
+  const redeemPositions = useRedeemPositions(successCallback);
 
   const redeemAmounts = winningPositions.map((wp) => wp.balance);
 
-  const { data: missingApprovals } = useMissingApprovals(
+  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
     winningPositions.map((wp) => wp.tokenId),
     account,
     router,
     redeemAmounts,
     market.chainId,
   );
+  if (isPending) {
+    if (chainId !== market.chainId) {
+      return (
+        <SwitchChainButtonWrapper chainId={market.chainId}>
+          <div></div>
+        </SwitchChainButtonWrapper>
+      );
+    }
+    return <div className="shimmer-container w-full h-6"></div>;
+  }
 
   if (!winningPositions || winningOutcomeIndexes.length === 0) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
@@ -68,7 +81,7 @@ export function RedeemForm({ account, market, router }: RedeemFormProps) {
               variant="primary"
               type="submit"
               disabled={redeemPositions.isPending || !account}
-              isLoading={redeemPositions.isPending}
+              isLoading={redeemPositions.isPending || isLoadingApprovals}
               text="Redeem"
             />
           )}

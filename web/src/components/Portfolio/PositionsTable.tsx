@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
+import { useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
+import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
-import { ArrowDropDown, ArrowDropUp, ArrowSwap, QuestionIcon } from "@/lib/icons";
+import { getRouterAddress } from "@/lib/config";
+import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { toSnakeCase } from "@/lib/utils";
 import {
   ColumnDef,
   PaginationState,
@@ -17,15 +19,23 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
+import { useAccount } from "wagmi";
+import { Alert } from "../Alert";
+import Button from "../Form/Button";
 import MarketsPagination from "../Market/MarketsPagination";
+import { RedeemForm } from "../Market/RedeemForm";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
 export function MarketImage({
   marketAddress,
   marketName,
   chainId,
-}: { marketAddress: Address; marketName: string; chainId: SupportedChain }) {
+}: {
+  marketAddress: Address;
+  marketName: string;
+  chainId: SupportedChain;
+}) {
   const { data: images } = useMarketImages(marketAddress, chainId);
   return (
     <div>
@@ -42,7 +52,38 @@ export function MarketImage({
   );
 }
 
+function RedeemModalContent({
+  account,
+  marketId,
+  chainId,
+  closeModal,
+}: {
+  account?: Address;
+  marketId: Address;
+  chainId: SupportedChain;
+  closeModal: () => void;
+}) {
+  const { data: market, isPending: isMarketPending } = useMarket(marketId, chainId);
+  if (isMarketPending) {
+    return <div className="shimmer-container w-full h-10"></div>;
+  }
+  if (!market) {
+    return <Alert type="warning">There's nothing to redeem.</Alert>;
+  }
+  const router = getRouterAddress(market);
+  return (
+    <div className="space-y-4">
+      <p className="font-semibold text-purple-primary">{market.marketName}</p>
+      <RedeemForm account={account} router={router!} market={market} successCallback={() => closeModal()} />
+    </div>
+  );
+}
+
 export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
+  const { Modal, openModal, closeModal } = useModal("redeem-modal");
+  const { address: account } = useAccount();
+
+  const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
       {
@@ -52,7 +93,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
             >
               <MarketImage
                 marketAddress={position.marketAddress as Address}
@@ -74,7 +115,9 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="flex text-[14px] cursor-pointer hover:underline"
-              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${toSnakeCase(position.parentOutcome!)}`}
+              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(
+                position.parentOutcome!,
+              )}`}
             >
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={30} />
             </a>
@@ -91,7 +134,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return (
             <a
               className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
+              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
             >
               {info.getValue<string>()}
             </a>
@@ -133,17 +176,22 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           const position = info.row.original;
           if (info.getValue<string>() === MarketStatus.CLOSED) {
             return (
-              <a
-                className="text-[14px] text-success-primary cursor-pointer"
-                href={`${paths.market(position.marketAddress, chainId)}?outcome=${toSnakeCase(position.outcome)}`}
+              <Button
+                type="button"
+                text="Redeem"
+                className="!min-w-[100px] !w-[100px] !min-h-[40px] !h-[40px]"
+                onClick={() => {
+                  setSelectedMarketId(position.marketAddress as Address);
+                  openModal();
+                }}
               >
                 Redeemable
-              </a>
+              </Button>
             );
           }
           return <p className="text-[14px] text-black-secondary">Not yet</p>;
         },
-        header: "Redeem Status",
+        header: "Redeem",
       },
     ],
     [],
@@ -162,11 +210,40 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
     state: {
       pagination,
     },
+    initialState: {
+      sorting: [
+        {
+          id: "marketStatus",
+          desc: false,
+        },
+      ],
+    },
   });
 
   return (
     <>
       <div className="w-full overflow-x-auto mb-6">
+        <Modal
+          title="Redeem"
+          content={
+            <div>
+              <button
+                type="button"
+                className="absolute right-[20px] top-[20px] hover:opacity-60"
+                onClick={() => closeModal()}
+              >
+                <CloseIcon fill="black" />
+              </button>
+              <RedeemModalContent
+                account={account}
+                marketId={selectedMarketId as Address}
+                chainId={chainId}
+                closeModal={closeModal}
+              />
+            </div>
+          }
+          className="[&_.btn-primary]:w-full"
+        />
         <table className="simple-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (

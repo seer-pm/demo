@@ -68,6 +68,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
       if (!hasLiquidity) {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
+
       const BUY_AMOUNT = 3; //collateral token
 
       const collateralByOutcome = getCollateralByOutcome(market);
