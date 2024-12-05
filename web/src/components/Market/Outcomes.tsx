@@ -1,27 +1,27 @@
-import { RouterAbi } from "@/abi/RouterAbi";
 import { Link } from "@/components/Link";
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getRouterAddress } from "@/lib/config";
+import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { getConnectorClient, readContract } from "@wagmi/core";
+import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect, useMemo } from "react";
-import { Address, RpcError } from "viem";
+import { useEffect } from "react";
+import { RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -33,12 +33,6 @@ interface PositionsProps {
   market: Market;
   images?: string[];
 }
-
-type OutcomeWithOdds = {
-  odd: number;
-  i: number;
-  isWinning?: boolean;
-};
 
 function poolRewardsInfo(poolIncentive: PoolIncentive) {
   if (poolIncentive.apr === 0) {
@@ -207,56 +201,9 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
-
-  const routerAddress = getRouterAddress(market);
-  const marketStatus = getMarketStatus(market);
-  const winningOutcomes = useQuery({
-    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
-    enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
-    queryFn: async () => {
-      return await readContract(config, {
-        abi: RouterAbi,
-        address: routerAddress as Address,
-        functionName: "getWinningOutcomes",
-        args: [market.conditionId],
-        chainId: market.chainId,
-      });
-    },
-  });
-
-  const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) {
-      return null;
-    }
-    const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
-
-    if (!winningOutcomes.data && marketStatus === MarketStatus.CLOSED) {
-      const otherIndexes = odds
-        .map((odd, i) => ({ odd, i }))
-        .filter(({ i }) => i !== invalidIndex)
-        .sort((a, b) => b.odd - a.odd)
-        .map((obj) => obj.i);
-
-      return [invalidIndex, ...otherIndexes];
-    }
-
-    const winningIndexes: OutcomeWithOdds[] = [];
-    const nonWinningIndexes: OutcomeWithOdds[] = [];
-
-    odds.forEach((odd, i) => {
-      if (winningOutcomes.data?.[i] === true) {
-        winningIndexes.push({ odd, i });
-      } else {
-        nonWinningIndexes.push({ odd, i });
-      }
-    });
-
-    // Sort each group by odds
-    const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-    const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-
-    return [...sortedWinning, ...sortedNonWinning];
-  }, [odds, winningOutcomes.data, market.outcomes, marketStatus]);
+  const { data: marketStatus } = useMarketStatus(market);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
@@ -348,7 +295,8 @@ export function Outcomes({ market, images }: PositionsProps) {
                         <QuestionIcon fill="#9747FF" />
                       </span>
                     )}
-                    {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
+
+                    {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
                   <div className="text-[12px] text-black-secondary">
                     {balances && balances[i] > 0n && (

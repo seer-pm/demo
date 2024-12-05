@@ -1,4 +1,3 @@
-import { RouterAbi } from "@/abi/RouterAbi";
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
 import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
@@ -8,8 +7,10 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
-import { NETWORK_ICON_MAPPING, getRouterAddress } from "@/lib/config.ts";
+import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
+import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -24,12 +25,8 @@ import {
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
-import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import clsx from "clsx";
-import { useMemo, useState } from "react";
-import { Address } from "viem";
+import { useState } from "react";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
@@ -43,12 +40,6 @@ interface MarketHeaderProps {
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
 }
-
-type OutcomeWithOdds = {
-  odd: number;
-  i: number;
-  isWinning?: boolean;
-};
 
 function OutcomesInfo({
   market,
@@ -67,55 +58,8 @@ function OutcomesInfo({
   });
   const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
 
-  const routerAddress = getRouterAddress(market);
-
-  const winningOutcomes = useQuery({
-    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
-    enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
-    queryFn: async () => {
-      return await readContract(config, {
-        abi: RouterAbi,
-        address: routerAddress as Address,
-        functionName: "getWinningOutcomes",
-        args: [market.conditionId],
-        chainId: market.chainId,
-      });
-    },
-  });
-
-  const indexesOrderedByOdds = useMemo(() => {
-    if (oddsPending || odds.length === 0) {
-      return null;
-    }
-
-    const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
-
-    if (!winningOutcomes.data && marketStatus === MarketStatus.CLOSED) {
-      const otherIndexes = odds
-        .map((odd, i) => ({ odd, i }))
-        .filter(({ i }) => i !== invalidIndex)
-        .sort((a, b) => b.odd - a.odd)
-        .map((obj) => obj.i);
-
-      return [invalidIndex, ...otherIndexes];
-    }
-
-    const winningIndexes: OutcomeWithOdds[] = [];
-    const nonWinningIndexes: OutcomeWithOdds[] = [];
-
-    odds.forEach((odd, i) => {
-      if (winningOutcomes.data?.[i] === true) {
-        winningIndexes.push({ odd, i });
-      } else {
-        nonWinningIndexes.push({ odd, i });
-      }
-    });
-
-    const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-    const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-
-    return [...sortedWinning, ...sortedNonWinning];
-  }, [odds, winningOutcomes.data, market.outcomes, marketStatus]);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
   const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
   const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
@@ -136,7 +80,7 @@ function OutcomesInfo({
           if (
             outcome === INVALID_RESULT_OUTCOME_TEXT &&
             (marketStatus !== MarketStatus.CLOSED ||
-              (marketStatus === MarketStatus.CLOSED && winningOutcomes?.data?.[i] !== true))
+              (marketStatus === MarketStatus.CLOSED && winningOutcomes?.[i] !== true))
           ) {
             return null;
           }
@@ -160,7 +104,7 @@ function OutcomesInfo({
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
-                    {winningOutcomes.data?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
+                    {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
 
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
