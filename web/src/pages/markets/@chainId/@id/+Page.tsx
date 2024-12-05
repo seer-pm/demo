@@ -15,7 +15,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
-import { isMarketReliable } from "@/lib/market";
+import { getLiquidityPairForToken, isMarketReliable } from "@/lib/market";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { Address, zeroAddress } from "viem";
@@ -35,9 +35,14 @@ function SwapWidget({
   images?: string[];
 }) {
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
-  // on child markets we want to buy/sell using parent outcomes
-  const { data: parentCollateral } = useTokenInfo(
-    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
+  // on Futarchy markets we want to buy/sell using the associated outcome token,
+  // on child markets we want to buy/sell using parent outcomes.
+  const { data: fixedCollateral } = useTokenInfo(
+    market.type === "Futarchy"
+      ? getLiquidityPairForToken(market, outcomeIndex)
+      : market.parentMarket !== zeroAddress
+        ? market.collateralToken
+        : undefined,
     market.chainId,
   );
   const marketStatus = getMarketStatus(market);
@@ -56,9 +61,9 @@ function SwapWidget({
       market={market}
       outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
-      parentCollateral={parentCollateral}
+      fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
-      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
+      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0 || market.type === "Futarchy"}
     />
   );
 }

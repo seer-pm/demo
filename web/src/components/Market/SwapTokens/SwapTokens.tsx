@@ -37,7 +37,7 @@ interface SwapTokensProps {
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
-  parentCollateral: Token | undefined;
+  fixedCollateral: Token | undefined;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
@@ -59,7 +59,7 @@ export function SwapTokens({
   outcomeToken,
   hasEnoughLiquidity,
   outcomeImage,
-  parentCollateral,
+  fixedCollateral: parentCollateral,
 }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
@@ -175,7 +175,7 @@ export function SwapTokens({
   })();
 
   // check if current token price higher than 1 collateral per token
-  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
+  const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
   const outcomeText = market.outcomes[outcomeIndex];
 

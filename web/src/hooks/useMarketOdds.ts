@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { getCollateralByOutcome } from "@/lib/market";
+import { getLiquidityPairForToken } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
@@ -65,26 +65,17 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     queryFn: async () => {
-      if (!hasLiquidity) {
+      if (!hasLiquidity || market.type === "Futarchy") {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
 
       const BUY_AMOUNT = 3; //collateral token
 
-      const collateralByOutcome = getCollateralByOutcome(market);
-      const collaterals = await Promise.all(
-        collateralByOutcome.map((collateralInfo) => getTokenInfo(collateralInfo.collateralToken, market.chainId)),
-      );
-
       const prices = await Promise.all(
-        collateralByOutcome.map(async (collateralInfo, i) => {
+        market.wrappedTokens.map(async (wrappedToken, i) => {
           try {
-            const price = await getTokenPrice(
-              collateralInfo.tokenId,
-              collaterals[i],
-              market.chainId,
-              String(BUY_AMOUNT),
-            );
+            const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+            const price = await getTokenPrice(wrappedToken, collateralToken, market.chainId, String(BUY_AMOUNT));
 
             if (price === 0n) {
               return 0;
@@ -96,6 +87,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
           }
         }),
       );
+
       if (prices.some((price) => price > 1)) {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }

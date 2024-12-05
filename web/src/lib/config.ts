@@ -4,6 +4,7 @@ import { Market } from "@/hooks/useMarket";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
+import { getLiquidityPair } from "./market";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
 // to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
@@ -104,17 +105,9 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
 };
 
 export const getLiquidityUrlByMarket = (market: Market, outcomeIndex: number) => {
-  if (market.type === "Generic") {
-    return getLiquidityUrl(market.chainId, market.wrappedTokens[outcomeIndex], market.collateralToken);
-  }
+  const liquidityPair = getLiquidityPair(market, outcomeIndex);
 
-  const lpPairs = [2, 3, 0, 1];
-
-  return getLiquidityUrl(
-    market.chainId,
-    market.wrappedTokens[outcomeIndex],
-    market.wrappedTokens[lpPairs[outcomeIndex]],
-  );
+  return getLiquidityUrl(market.chainId, liquidityPair.token0, liquidityPair.token0);
 };
 
 export const getPoolUrl = (chainId: number, poolId: string) => {

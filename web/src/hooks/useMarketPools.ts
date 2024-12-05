@@ -1,5 +1,5 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { getTokensPairs, getUniqueCollaterals } from "@/lib/market";
+import { getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +36,7 @@ export interface PoolInfo {
   token1Price: number;
   token0Symbol: string;
   token1Symbol: string;
+  liquidity: string;
   totalValueLockedToken0: number;
   totalValueLockedToken1: number;
   incentives: PoolIncentive[];
@@ -112,6 +113,7 @@ async function getSwaprPools(
       token1Price: Number(pool.token1Price),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
+      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
@@ -150,6 +152,7 @@ async function getUniswapPools(
       token1Price: Number(pool.token1Price),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
+      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: [], // TODO
@@ -176,50 +179,7 @@ export const useMarketPools = (market: Market) => {
     queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(
-        getTokensPairs(market).map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })),
-      );
-    },
-  });
-};
-
-interface OutcomePool {
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  liquidity: string;
-}
-
-export const useAllOutcomePools = (market: Market) => {
-  return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", market.id],
-    retry: false,
-    queryFn: async () => {
-      const graphQLClient =
-        market.chainId === gnosis.id
-          ? swaprGraphQLClient(market.chainId, "algebra")
-          : uniswapGraphQLClient(market.chainId);
-
-      if (!graphQLClient) {
-        throw new Error("Subgraph not available");
-      }
-
-      const graphQLSdk = market.chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-      const { pools } = await graphQLSdk(graphQLClient).GetPools({
-        where: {
-          or: getUniqueCollaterals(market).flatMap((collateralToken) => [
-            { token0_: { id: collateralToken.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.toLocaleLowerCase() as Address } },
-          ]),
-        },
-      });
-      return pools;
+      return await Promise.all(getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId).fetch(poolPair)));
     },
   });
 };
