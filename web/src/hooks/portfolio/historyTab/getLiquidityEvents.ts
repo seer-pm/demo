@@ -6,20 +6,15 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
+import { getCollateralFromDexTx, getToken1Token0 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
 import { MarketDataMapping } from "./getMappings";
 import { TransactionData } from "./types";
 
 export async function getLiquidityEvents(mappings: MarketDataMapping, account: string, chainId: SupportedChain) {
-  const { outcomeTokenToCollateral, tokenPairToMarketMapping, marketIdToCollateral } = mappings;
-  const tokens = Object.keys(outcomeTokenToCollateral).map((x) => {
-    return {
-      tokenId: x,
-      parentTokenId: outcomeTokenToCollateral[x],
-    };
-  });
-  if (!tokens) return [];
+  const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
+  if (outcomeTokenToCollateral.size === 0) return [];
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
   if (!graphQLClient) {
     throw new Error("Subgraph not available");
@@ -40,20 +35,8 @@ export async function getLiquidityEvents(mappings: MarketDataMapping, account: s
       where: {
         and: [
           {
-            or: tokens.reduce(
-              (acc, { tokenId, parentTokenId }) => {
-                if (parentTokenId) {
-                  acc.push(
-                    tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
-                      ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
-                      : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
-                  );
-                } else {
-                  acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-                }
-                return acc;
-              },
-              [] as { [key: string]: string }[],
+            or: Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
+              getToken1Token0(tokenId, collateralToken),
             ),
           },
           {
@@ -89,7 +72,7 @@ export async function getLiquidityEvents(mappings: MarketDataMapping, account: s
         marketName: market.marketName,
         marketId: market.id,
         type: "lp",
-        collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+        collateral: getCollateralFromDexTx(market, swap.token0.id as Address, swap.token1.id as Address),
         transactionHash: swap.transaction.id,
       });
     }

@@ -120,8 +120,6 @@ async function createProposal(props: CreateMarketProps): Promise<TransactionRece
             marketName: escapeJson(getProposalName(props.marketName, props.openingTime)),
             collateralToken1: props.collateralToken1 as Address,
             collateralToken2: props.collateralToken2 as Address,
-            parentMarket: props.parentMarket,
-            parentOutcome: props.parentOutcome,
             lang: "en_US",
             category: "misc",
             minBond: getConfigNumber("MIN_BOND", props.chainId),

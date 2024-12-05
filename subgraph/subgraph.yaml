@@ -47,7 +47,7 @@ dataSources:
         - name: FutarchyProposal
           file: ./abis/FutarchyProposal.json
       eventHandlers:
-        - event: NewProposal(indexed address,string,address,bytes32,bytes32)
+        - event: NewProposal(indexed address,string,bytes32,bytes32)
           handler: handleNewProposal
       file: ./src/market-factory.ts
   - kind: ethereum

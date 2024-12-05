@@ -6,17 +6,20 @@ import {
   getSdk,
 } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getToken1Token0 } from "@/lib/market";
 import { uniswapGraphQLClient } from "@/lib/subgraph";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
+import { PortfolioPosition } from "./usePortfolioPositions";
 
 export async function getUniswapHistoryTokensPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  positions: PortfolioPosition[],
   chainId: SupportedChain,
   startTime: number,
 ) {
-  if (!tokens?.length) return {};
+  if (positions.length === 0) {
+    return {};
+  }
   const subgraphClient = uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
@@ -24,19 +27,13 @@ export async function getUniswapHistoryTokensPrices(
   const { document, variables } = (() =>
     combineQuery("GetPoolHourDatas").addN(
       GetPoolHourDatasDocument,
-      tokens.map(({ tokenId, parentTokenId }) => {
-        const collateral = parentTokenId
-          ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+      positions.map(({ tokenId, collateralToken }) => {
         return {
           first: 1,
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
           orderDirection: OrderDirection.Desc,
           where: {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+            pool_: getToken1Token0(tokenId, collateralToken),
             periodStartUnix_lte: startTime,
             periodStartUnix_gte: startTime - 60 * 60 * 24 * 30 * 3,
           },
@@ -51,7 +48,7 @@ export async function getUniswapHistoryTokensPrices(
     .filter((x) => x);
 
   return getTokenPricesMapping(
-    tokens,
+    positions,
     poolHourDatas.map((data) => {
       return {
         ...data.pool,
@@ -63,11 +60,10 @@ export async function getUniswapHistoryTokensPrices(
   );
 }
 
-export async function getUniswapCurrentTokensPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
-  chainId: SupportedChain,
-) {
-  if (!tokens?.length) return {};
+export async function getUniswapCurrentTokensPrices(positions: PortfolioPosition[], chainId: SupportedChain) {
+  if (positions.length === 0) {
+    return {};
+  }
   const subgraphClient = uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
@@ -75,7 +71,7 @@ export async function getUniswapCurrentTokensPrices(
 
   const { pools } = await getSdk(subgraphClient).GetPools({
     where: {
-      or: tokens.reduce(
+      or: positions.reduce(
         (acc, { tokenId }) => {
           acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
           return acc;
@@ -85,5 +81,5 @@ export async function getUniswapCurrentTokensPrices(
     },
   });
 
-  return getTokenPricesMapping(tokens, pools, chainId);
+  return getTokenPricesMapping(positions, pools, chainId);
 }

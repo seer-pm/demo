@@ -9,20 +9,20 @@ import PositionsTable from "./PositionsTable";
 
 function PositionsTab() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { isGettingPositions, positions } = useCalculatePositionsValue();
+  const { isGettingPositions, positions = [] } = useCalculatePositionsValue();
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);
   };
   const filteredPositions =
-    positions?.filter((position) => position.marketName.toLowerCase().includes(filterMarketName.toLowerCase())) ?? [];
+    positions.filter((position) => position.marketName.toLowerCase().includes(filterMarketName.toLowerCase())) ?? [];
   return (
     <>
       {isGettingPositions && <div className="shimmer-container w-full h-[200px]" />}
 
-      {!isGettingPositions && !positions?.length && <Alert type="warning">No positions found.</Alert>}
+      {!isGettingPositions && positions.length === 0 && <Alert type="warning">No positions found.</Alert>}
 
-      {!!positions?.length && (
+      {positions.length > 0 && (
         <div>
           <div className="grow mb-6">
             <Input

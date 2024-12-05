@@ -1,12 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { CollateralByOutcome, MarketTypes, getCollateralByOutcome, getMarketType, getToken1Token0 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
 import { subDays } from "date-fns";
 import { BigNumber } from "ethers";
 import combineQuery from "graphql-combine-query";
-import { formatUnits } from "viem";
+import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import {
   GetPoolHourDatasQuery,
@@ -33,11 +31,11 @@ function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
 }
 
 async function getLastNotEmptyStartTime(
-  tokens: { tokenId: string; parentTokenId?: string }[],
+  collateralByOutcome: CollateralByOutcome[],
   chainId: SupportedChain,
   startTime: number,
 ) {
-  if (tokens.length === 0) {
+  if (collateralByOutcome.length === 0) {
     return [];
   }
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -52,10 +50,7 @@ async function getLastNotEmptyStartTime(
   const { document, variables } = (() =>
     combineQuery("GetPoolHourDatas").addN(
       GetPoolHourDatasDocument,
-      tokens.map(({ tokenId, parentTokenId }) => {
-        const collateral = parentTokenId
-          ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address;
+      collateralByOutcome.map(({ tokenId, collateralToken }) => {
         return {
           first: 1,
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
@@ -64,10 +59,7 @@ async function getLastNotEmptyStartTime(
             and: [
               { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
               {
-                pool_:
-                  tokenId.toLocaleLowerCase() > collateral
-                    ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                    : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+                pool_: getToken1Token0(tokenId, collateralToken),
                 periodStartUnix_lte: startTime,
                 periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
               },
@@ -89,8 +81,8 @@ async function getLastNotEmptyStartTime(
 }
 
 async function getPoolHourDatasByToken(
-  tokenId: string,
-  collateral: string,
+  tokenId: Address,
+  collateral: Address,
   initialStartTime: number,
   chainId: SupportedChain,
 ) {
@@ -116,10 +108,7 @@ async function getPoolHourDatasByToken(
         and: [
           { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
           {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+            pool_: getToken1Token0(tokenId, collateral),
             ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
           },
         ],
@@ -135,16 +124,12 @@ async function getPoolHourDatasByToken(
   return total;
 }
 
-async function getHistoryOdds(
-  tokens: { tokenId: string; parentTokenId?: string }[],
-  chainId: SupportedChain,
-  startTime: number,
-) {
-  if (tokens.length === 0) {
+async function getHistoryOdds(collateralByOutcome: CollateralByOutcome[], chainId: SupportedChain, startTime: number) {
+  if (collateralByOutcome.length === 0) {
     return [];
   }
   const lastNotEmptyStartTimes = await Promise.any([
-    getLastNotEmptyStartTime(tokens, chainId, startTime),
+    getLastNotEmptyStartTime(collateralByOutcome, chainId, startTime),
     new Promise<number[]>((resolve) => {
       setTimeout(() => {
         resolve([]);
@@ -152,21 +137,15 @@ async function getHistoryOdds(
     }),
   ]);
   return await Promise.all(
-    tokens.map(({ tokenId, parentTokenId }, index) => {
-      const collateral = parentTokenId
-        ? parentTokenId.toLocaleLowerCase()
-        : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
-      return getPoolHourDatasByToken(tokenId, collateral, lastNotEmptyStartTimes[index] ?? startTime, chainId);
+    collateralByOutcome.map(({ tokenId, collateralToken }, index) => {
+      return getPoolHourDatasByToken(tokenId, collateralToken, lastNotEmptyStartTimes[index] ?? startTime, chainId);
     }),
   );
 }
 
-export async function getOddChart(market: Market, collateralToken: Token, dayCount: number, interval: number) {
+export async function getOddChart(market: Market, dayCount: number, interval: number) {
   if (!interval) return;
-  const outcomeTokens = market.wrappedTokens.map((token, index) => ({
-    tokenId: token,
-    outcomeName: market.outcomes[index],
-  }));
+  const collateralByOutcome = getCollateralByOutcome(market);
   const marketBlockTimestamp = market.blockTimestamp;
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   try {
@@ -187,11 +166,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
       currentTimestamp += interval;
     }
 
-    const poolHourDatasSets = await getHistoryOdds(
-      outcomeTokens.map(({ tokenId }) => ({ tokenId, parentTokenId: collateralToken.address })),
-      market.chainId,
-      firstTimestamp,
-    );
+    const poolHourDatasSets = await getHistoryOdds(collateralByOutcome, market.chainId, firstTimestamp);
     const latestPoolHourDataTimestamp = Math.max(...poolHourDatasSets.flat().map((x) => x.periodStartUnix));
     timestamps = timestamps.filter((timestamp) => timestamp < latestPoolHourDataTimestamp);
     if (timestamps.length) {
@@ -199,8 +174,8 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
     }
     const oddsMapping = timestamps.reduce(
       (acc, timestamp) => {
-        const tokenPrices = outcomeTokens.map((token, tokenindex) => {
-          const poolHourDatas = poolHourDatasSets[tokenindex];
+        const tokenPrices = collateralByOutcome.map((token, tokenIndex) => {
+          const poolHourDatas = poolHourDatasSets[tokenIndex];
           const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
           const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
           let { token0Price = "0", token1Price = "0", sqrtPrice } = poolHourDatas[poolHourDataIndex] ?? {};
@@ -211,7 +186,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
             token1Price = formatUnits(token1PriceBN.toBigInt(), 18);
           }
 
-          return token.tokenId.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
+          return token.tokenId.toLocaleLowerCase() > token.collateralToken.toLocaleLowerCase()
             ? Number(token0Price)
             : Number(token1Price);
         });
@@ -254,7 +229,7 @@ export async function getOddChart(market: Market, collateralToken: Token, dayCou
       return { chartData, timestamps };
     }
 
-    const chartData = outcomeTokens.map((token, tokenIndex) => {
+    const chartData = collateralByOutcome.map((token, tokenIndex) => {
       return {
         name: token.outcomeName,
         type: "line",

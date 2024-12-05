@@ -1,4 +1,5 @@
 import { Market } from "@/hooks/useMarket";
+import { Address } from "viem";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
@@ -147,4 +148,63 @@ export function getMarketEstimate(odds: number[], lowerBound: bigint, upperBound
     return "NA";
   }
   return ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(2);
+}
+
+export type CollateralByOutcome = {
+  tokenId: Address;
+  outcomeName: string;
+  collateralToken: Address;
+};
+
+export function getCollateralByOutcome(market: Market): CollateralByOutcome[] {
+  return market.wrappedTokens.map((tokenId, i) => ({
+    tokenId,
+    outcomeName: market.outcomes[i],
+    collateralToken: getCollateralByIndex(market, i),
+  }));
+}
+
+export function getCollateralByIndex(market: Market, index: number) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+  return index < 2 ? market.collateralToken1 : market.collateralToken2;
+}
+
+export function getUniqueCollaterals(market: Market) {
+  if (market.type === "Generic") {
+    return [market.collateralToken];
+  }
+  return [market.collateralToken1, market.collateralToken2];
+}
+
+export function getTokensPairs(market: Market): [Address, Address][] {
+  return market.wrappedTokens.map((outcomeToken, i) => {
+    const collateral = getCollateralByIndex(market, i);
+    return outcomeToken.toLocaleLowerCase() > collateral.toLocaleLowerCase()
+      ? [collateral, outcomeToken]
+      : [outcomeToken, collateral];
+  });
+}
+
+export function getToken1Token0(token1: Address, token2: Address) {
+  return token1.toLocaleLowerCase() > token2.toLocaleLowerCase()
+    ? { token1: token1.toLocaleLowerCase(), token0: token2.toLocaleLowerCase() }
+    : { token0: token1.toLocaleLowerCase(), token1: token2.toLocaleLowerCase() };
+}
+
+export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+
+  return tokenIn.toLocaleLowerCase() === market.collateralToken1.toLocaleLowerCase() ? tokenIn : tokenOut;
+}
+
+export function getOutcomeSlotCount(market: Market) {
+  if (market.type === "Generic") {
+    return market.outcomes.length;
+  }
+
+  return 2;
 }

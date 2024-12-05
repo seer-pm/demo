@@ -30,7 +30,7 @@ const useOnChainMarkets = (
 
 const useGraphMarkets = (
   chainsList: Array<string | "all">,
-  type: "Generic" | "Futarchy" | undefined,
+  type: "Generic" | "Futarchy" | "",
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -74,7 +74,7 @@ const useGraphMarkets = (
 };
 
 export interface UseMarketsProps {
-  type?: "Generic" | "Futarchy" | undefined;
+  type?: "Generic" | "Futarchy" | "";
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
@@ -86,7 +86,7 @@ export interface UseMarketsProps {
 }
 
 export const useMarkets = ({
-  type = "Generic",
+  type = "",
   marketName = "",
   marketStatusList = [],
   chainsList = [],

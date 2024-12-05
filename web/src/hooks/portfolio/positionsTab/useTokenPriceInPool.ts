@@ -3,41 +3,35 @@ import { useQuery } from "@tanstack/react-query";
 import { gnosis, mainnet } from "viem/chains";
 import { getSwaprCurrentTokensPrices, getSwaprHistoryTokensPrices } from "./getSwaprPrices";
 import { getUniswapCurrentTokensPrices, getUniswapHistoryTokensPrices } from "./getUniswapPrices";
+import { PortfolioPosition } from "./usePortfolioPositions";
 
-export const useHistoryTokensPrices = (
-  tokens: { tokenId: string; parentTokenId?: string }[],
-  chainId: SupportedChain,
-  startTime: number,
-) => {
+export const useHistoryTokensPrices = (positions: PortfolioPosition[], chainId: SupportedChain, startTime: number) => {
   return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
-    enabled: tokens.length > 0,
-    queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
+    enabled: positions.length > 0,
+    queryKey: ["useHistoryTokensPrice", positions, chainId, startTime],
     retry: false,
     queryFn: async () => {
       if (chainId === gnosis.id) {
-        return await getSwaprHistoryTokensPrices(tokens, chainId, startTime);
+        return await getSwaprHistoryTokensPrices(positions, chainId, startTime);
       }
       if (chainId === mainnet.id) {
-        return await getUniswapHistoryTokensPrices(tokens, chainId, startTime);
+        return await getUniswapHistoryTokensPrices(positions, chainId, startTime);
       }
     },
   });
 };
 
-export const useCurrentTokensPrices = (
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
-  chainId: SupportedChain,
-) => {
+export const useCurrentTokensPrices = (positions: PortfolioPosition[], chainId: SupportedChain) => {
   return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
-    enabled: !!tokens?.length,
-    queryKey: ["useCurrentTokensPrice", tokens, chainId],
+    enabled: positions.length > 0,
+    queryKey: ["useCurrentTokensPrice", positions, chainId],
     retry: false,
     queryFn: async () => {
       if (chainId === gnosis.id) {
-        return await getSwaprCurrentTokensPrices(tokens, chainId);
+        return await getSwaprCurrentTokensPrices(positions, chainId);
       }
       if (chainId === mainnet.id) {
-        return await getUniswapCurrentTokensPrices(tokens, chainId);
+        return await getUniswapCurrentTokensPrices(positions, chainId);
       }
     },
   });

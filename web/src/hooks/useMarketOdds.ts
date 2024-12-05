@@ -1,12 +1,12 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getCollateralByOutcome } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits, zeroAddress } from "viem";
+import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
-import { useTokenInfo } from "./useTokenInfo";
+import { getTokenInfo } from "./useTokenInfo";
 
 export function normalizeOdds(prices: number[]): number[] {
   const sumArray = (data: number[]) =>
@@ -58,13 +58,7 @@ async function getTokenPrice(
 }
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
-  const { data: parentCollateral } = useTokenInfo(
-    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-
-  const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
+  const hasLiquidity = useMarketHasLiquidity(market);
   return useQuery<number[] | undefined, Error>({
     enabled,
     queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity],
@@ -76,10 +70,20 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
       }
       const BUY_AMOUNT = 3; //collateral token
 
+      const collateralByOutcome = getCollateralByOutcome(market);
+      const collaterals = await Promise.all(
+        collateralByOutcome.map((collateralInfo) => getTokenInfo(collateralInfo.collateralToken, market.chainId)),
+      );
+
       const prices = await Promise.all(
-        market.wrappedTokens.map(async (wrappedAddress) => {
+        collateralByOutcome.map(async (collateralInfo, i) => {
           try {
-            const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
+            const price = await getTokenPrice(
+              collateralInfo.tokenId,
+              collaterals[i],
+              market.chainId,
+              String(BUY_AMOUNT),
+            );
 
             if (price === 0n) {
               return 0;

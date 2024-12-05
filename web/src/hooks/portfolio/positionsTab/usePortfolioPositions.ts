@@ -9,13 +9,14 @@ import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { getCollateralByIndex, getOutcomeSlotCount } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 import { BigNumber, ethers } from "ethers";
 import { getBlockNumberAtTime, getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
   tokenName: string;
-  tokenId: string;
+  tokenId: Address;
   tokenIndex: number;
   marketAddress: string;
   marketName: string;
@@ -24,8 +25,8 @@ export interface PortfolioPosition {
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
-  parentTokenId?: string;
-  parentMarketId?: string;
+  collateralToken: Address;
+  parentMarketId?: Address;
   parentMarketName?: string;
   parentOutcome?: string;
 }
@@ -102,13 +103,10 @@ const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Addr
   return results;
 };
 
-const getHistoryBalanceMapping = async (
-  initialMarkets: Market[] | undefined,
-  address: Address,
-  chainId: SupportedChain,
-) => {
-  if (!initialMarkets) return {};
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
+const getHistoryBalanceMapping = async (markets: Market[], address: Address) => {
+  if (markets.length === 0) {
+    return {};
+  }
   const tokenToMarket = markets.reduce(
     (acum, market) => {
       for (let i = 0; i < market.wrappedTokens.length; i++) {
@@ -146,13 +144,10 @@ const getHistoryBalanceMapping = async (
   );
 };
 
-export const fetchPositions = async (
-  initialMarkets: Market[] | undefined,
-  address: Address,
-  chainId: SupportedChain,
-) => {
-  if (!initialMarkets) return [];
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
+export const fetchPositions = async (markets: Market[], address: Address) => {
+  if (markets.length === 0) {
+    return [];
+  }
   // tokenId => marketId
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
@@ -196,7 +191,7 @@ export const fetchPositions = async (
         marketName: market.marketName,
         marketStatus: market.marketStatus,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
-        parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
+        collateralToken: getCollateralByIndex(market, tokenIndex),
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
@@ -205,6 +200,7 @@ export const fetchPositions = async (
     return acumm;
   }, [] as PortfolioPosition[]);
   const marketsWithPositions = [...new Set(positions.map((position) => position.marketAddress))] as Address[];
+
   const marketsPayouts = await Promise.all(
     marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress])),
   );
@@ -227,31 +223,33 @@ export const fetchPositions = async (
 const fetchMarketPayouts = async (market: Market | undefined) => {
   if (!market) return [];
   return await Promise.all(
-    market.outcomes.map((_, index) =>
-      readConditionalTokensPayoutNumerators(config, {
-        args: [market.conditionId, BigInt(index)],
-        chainId: market.chainId,
-      }),
-    ),
+    Array(getOutcomeSlotCount(market))
+      .fill(0)
+      .map((_, index) =>
+        readConditionalTokensPayoutNumerators(config, {
+          args: [market.conditionId, BigInt(index)],
+          chainId: market.chainId,
+        }),
+      ),
   );
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data: markets = [] } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address,
-    queryKey: ["usePositions", address, !!markets, chainId],
-    queryFn: async () => fetchPositions(markets, address, chainId),
+    enabled: !!address && markets.length > 0,
+    queryKey: ["usePositions", address, chainId],
+    queryFn: async () => fetchPositions(markets, address),
   });
 };
 
 export const useGetHistoryBalances = (address: Address | undefined, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data: markets = [] } = useMarkets({});
   return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && markets.length > 0,
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
-    queryKey: ["useGetHistoryBalances", address, !!markets, chainId],
-    queryFn: async () => getHistoryBalanceMapping(markets, address!, chainId),
+    queryKey: ["useGetHistoryBalances", address, chainId],
+    queryFn: async () => getHistoryBalanceMapping(markets, address!),
   });
 };

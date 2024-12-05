@@ -182,7 +182,7 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
-  type: "Generic" | "Futarchy" | undefined,
+  type: "Generic" | "Futarchy" | "",
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",

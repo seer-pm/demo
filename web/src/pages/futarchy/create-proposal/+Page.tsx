@@ -4,16 +4,31 @@ import { DateForm } from "@/components/MarketForm/DateForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
+import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { MarketTypes } from "@/lib/market";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 enum FormSteps {
   OUTCOMES = 1,
   DATE = 2,
   PREVIEW = 3,
+}
+
+function getOutcomes(tokensInfo: GetTokenResult[] | undefined): OutcomesFormValues["outcomes"] {
+  if (!tokensInfo) {
+    return [];
+  }
+
+  return [
+    { value: `Yes-${tokensInfo[0]?.symbol}`, token: "", image: "" },
+    { value: `No-${tokensInfo[0]?.symbol}`, token: "", image: "" },
+    { value: `Yes-${tokensInfo[1]?.symbol}`, token: "", image: "" },
+    { value: `No-${tokensInfo[1]?.symbol}`, token: "", image: "" },
+  ];
 }
 
 function CreateProposal() {
@@ -35,6 +50,11 @@ function CreateProposal() {
       unit: "",
     },
   });
+
+  const collaterals = useOutcomesFormReturn.watch(["collateralToken1", "collateralToken2"]);
+  const { data: tokensInfo } = useTokensInfo(collaterals as Address[], chainId as SupportedChain);
+
+  const outcomes = getOutcomes(tokensInfo);
 
   const useDateFormReturn = useForm<DateFormValues>({
     mode: "all",
@@ -86,7 +106,7 @@ function CreateProposal() {
           {activeStep === FormSteps.PREVIEW && (
             <PreviewForm
               marketTypeValues={marketTypeValues}
-              outcomesValues={useOutcomesFormReturn.getValues()}
+              outcomesValues={{ ...useOutcomesFormReturn.getValues(), outcomes }}
               dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}

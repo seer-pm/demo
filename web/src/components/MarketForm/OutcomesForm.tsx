@@ -103,14 +103,6 @@ function CollateralField({ collateralNumber, useFormReturn, chainId }: Collatera
       .filter((collateral) => !!collateral)
       .map((_, index) => `collateral.${index + 1}`) as (`collateralToken1` | `collateralToken2`)[];
     useFormReturn.trigger(toTriggerFields);
-
-    if (collaterals.filter((collateral) => !isAddress(collateral)).length === 0 && !isUndefined(tokensInfo)) {
-      // update outcomes
-      useFormReturn.setValue("outcomes.0.value", `Yes-${tokensInfo[0]?.symbol}`);
-      useFormReturn.setValue("outcomes.1.value", `No-${tokensInfo[0]?.symbol}`);
-      useFormReturn.setValue("outcomes.2.value", `Yes-${tokensInfo[1]?.symbol}`);
-      useFormReturn.setValue("outcomes.3.value", `No-${tokensInfo[1]?.symbol}`);
-    }
   }, [collateral]);
 
   return (
@@ -423,7 +415,9 @@ export function OutcomesForm({
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-5">
         <div className="space-y-[32px]">
           <div>
-            <div className="text-[24px] font-semibold mb-[32px]">{isFutarchyMarket ? "Proposal" : "Question"}</div>
+            <div className="text-[24px] font-semibold mb-[32px]">
+              {isFutarchyMarket ? "Proposal Title" : "Question"}
+            </div>
             <Input
               autoComplete="off"
               {...register("market", {

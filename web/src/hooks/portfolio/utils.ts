@@ -1,29 +1,23 @@
-import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { ChainId } from "@swapr/sdk";
 import { readContracts } from "@wagmi/core";
 import { ethers } from "ethers";
 import { Address, erc20Abi } from "viem";
-import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
+import { PortfolioPosition } from "./positionsTab/usePortfolioPositions";
 
 export function getTokenPricesMapping(
-  tokens: { tokenId: string; parentTokenId?: string }[],
+  positions: PortfolioPosition[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
   chainId: ChainId,
 ) {
-  const [simpleTokens, conditionalTokens] = tokens.reduce(
+  const [simpleTokens, conditionalTokens] = positions.reduce(
     (acc, curr) => {
-      acc[curr.parentTokenId ? 1 : 0].push(curr);
+      acc[!isUndefined(curr.parentMarketId) ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as {
-      tokenId: string;
-      parentTokenId?: string;
-    }[][],
+    [[], []] as PortfolioPosition[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
@@ -49,14 +43,14 @@ export function getTokenPricesMapping(
   );
 
   const conditionalTokensMapping = conditionalTokens.reduce(
-    (acc, { tokenId, parentTokenId }) => {
+    (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        if (parentTokenId!.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
+        if (collateralToken.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
-          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, parentTokenId);
+          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
-        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, parentTokenId);
+        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, collateralToken);
       });
 
       const relativePrice = correctPool
@@ -66,7 +60,7 @@ export function getTokenPricesMapping(
         : 0;
 
       acc[tokenId.toLocaleLowerCase()] =
-        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
+        relativePrice * (simpleTokensMapping?.[collateralToken!.toLocaleLowerCase()] || 0);
       return acc;
     },
     {} as { [key: string]: number },
@@ -135,42 +129,6 @@ export async function getBlockTimestamp(initialBlockNumber: number) {
       attempts++;
     }
   }
-}
-
-export async function getAllPools(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
-  chainId: SupportedChain,
-) {
-  if (!tokens) return [];
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-  const { pools } = await graphQLSdk(graphQLClient).GetPools({
-    where: {
-      or: tokens.reduce(
-        (acc, { tokenId, parentTokenId }) => {
-          if (parentTokenId) {
-            acc.push(
-              tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
-                ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
-                : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
-            );
-          } else {
-            acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-          }
-          return acc;
-        },
-        [] as { [key: string]: string }[],
-      ),
-    },
-  });
-
-  return pools;
 }
 
 export async function getTokensInfo(tokenAddresses: readonly Address[], account: Address) {

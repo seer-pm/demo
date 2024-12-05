@@ -1,6 +1,6 @@
 import { Link } from "@/components/Link";
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
@@ -8,9 +8,9 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
+import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
 import { EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
+import { MarketTypes, formatOdds, getCollateralByIndex, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect, useMemo } from "react";
-import { RpcError, zeroAddress } from "viem";
+import { RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -194,7 +194,6 @@ export function Outcomes({ market, images }: PositionsProps) {
     (outcome) => toSnakeCase(outcome) === searchParams.get("outcome"),
   );
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
@@ -341,13 +340,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </button>
                     ) : (
                       <a
-                        href={getLiquidityUrl(
-                          market.chainId,
-                          wrappedAddress,
-                          market.parentMarket === zeroAddress
-                            ? COLLATERAL_TOKENS[market.chainId].primary.address
-                            : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
-                        )}
+                        href={getLiquidityUrl(market.chainId, wrappedAddress, getCollateralByIndex(market, i))}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-purple-primary flex items-center space-x-2 hover:underline"

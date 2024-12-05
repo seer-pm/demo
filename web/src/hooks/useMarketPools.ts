@@ -1,12 +1,11 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getTokensPairs, getUniqueCollaterals } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
-import { Address, formatUnits, zeroAddress } from "viem";
+import { Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -16,7 +15,6 @@ import {
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
 import { Market } from "./useMarket";
-import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -174,22 +172,13 @@ const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentCollateral, isLoading } = useTokenInfo(
-    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-  const tokens = market.wrappedTokens.map((outcomeToken) => {
-    return outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
-      ? [collateralToken.address, outcomeToken]
-      : [outcomeToken, collateralToken.address];
-  });
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
-    enabled: tokens && tokens.length > 0 && !isLoading,
-    queryKey: ["useMarketPools", market.id, tokens],
+    queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(tokens.map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })));
+      return await Promise.all(
+        getTokensPairs(market).map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })),
+      );
     },
   });
 };
@@ -206,26 +195,28 @@ interface OutcomePool {
   liquidity: string;
 }
 
-export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Token) => {
+export const useAllOutcomePools = (market: Market) => {
   return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", chainId, collateralToken.address],
+    queryKey: ["useAllOutcomePools", market.id],
     retry: false,
     queryFn: async () => {
       const graphQLClient =
-        chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+        market.chainId === gnosis.id
+          ? swaprGraphQLClient(market.chainId, "algebra")
+          : uniswapGraphQLClient(market.chainId);
 
       if (!graphQLClient) {
         throw new Error("Subgraph not available");
       }
 
-      const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+      const graphQLSdk = market.chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
 
       const { pools } = await graphQLSdk(graphQLClient).GetPools({
         where: {
-          or: [
-            { token0_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-          ],
+          or: getUniqueCollaterals(market).flatMap((collateralToken) => [
+            { token0_: { id: collateralToken.toLocaleLowerCase() as Address } },
+            { token1_: { id: collateralToken.toLocaleLowerCase() as Address } },
+          ]),
         },
       });
       return pools;

@@ -62,12 +62,6 @@
       },
       {
         "indexed": false,
-        "internalType": "address",
-        "name": "parentMarket",
-        "type": "address"
-      },
-      {
-        "indexed": false,
         "internalType": "bytes32",
         "name": "conditionId",
         "type": "bytes32"
@@ -138,16 +132,6 @@
           {
             "internalType": "contract IERC20",
             "name": "collateralToken2",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "parentOutcome",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "parentMarket",
             "type": "address"
           },
           {
