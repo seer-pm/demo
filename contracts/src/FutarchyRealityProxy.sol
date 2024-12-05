@@ -18,9 +18,6 @@ contract FutarchyRealityProxy {
     /// @dev Reality.eth contract.
     IRealityETH_v3_0 public immutable realitio;
 
-    /// @dev INVALID_RESULT reserved value.
-    bytes32 internal constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract address.
     /// @param _realitio Reality.eth contract address.

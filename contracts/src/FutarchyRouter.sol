@@ -24,7 +24,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param proposal The futarchy proposal to split.
     /// @param amount The amount to split.
-    function splitProposal(FutarchyProposal proposal, uint256 amount) external payable {
+    function splitProposal(FutarchyProposal proposal, uint256 amount) external {
         splitPosition(proposal, true, amount);
         splitPosition(proposal, false, amount);
     }
@@ -33,7 +33,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are deposited only if we are not splitting a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to split.
-    /// @param useFirstCollateral Wether to split the first or second collateral.
+    /// @param useFirstCollateral Whether to split the first or second collateral.
     /// @param amount The amount of collateral to split.
     function splitPosition(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
         IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
@@ -47,7 +47,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @notice Splits a position and sends the ERC20 outcome tokens to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param proposal The Proposal to split.
-    /// @param useFirstCollateral Wether to split the first or second collateral.
+    /// @param useFirstCollateral Whether to split the first or second collateral.
     /// @param amount The amount of collateral to split.
     function _splitPosition(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) internal {
         IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
@@ -86,11 +86,11 @@ contract FutarchyRouter is ERC1155Holder {
         }
     }
 
-    /// @notice Merges a position using two collateral tokens and sends the ERC20 outcome tokens back to the user.
+    /// @notice Merges positions and sends the collateral tokens to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param proposal The futarchy proposal to merge.
     /// @param amount The amount to merge.
-    function mergeProposal(FutarchyProposal proposal, uint256 amount) external payable {
+    function mergeProposal(FutarchyProposal proposal, uint256 amount) external {
         mergePositions(proposal, true, amount);
         mergePositions(proposal, false, amount);
     }
@@ -99,7 +99,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are withdrawn only if we are not merging a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to merge.
-    /// @param useFirstCollateral Wether to merge the first or second collateral.
+    /// @param useFirstCollateral Whether to merge the first or second collateral.
     /// @param amount The amount of outcome tokens to merge.
     function mergePositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
         IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
@@ -114,7 +114,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @notice Merges positions and receives the collateral tokens.
     /// @dev Callers to this function must send the collateral to the user.
     /// @param proposal The Proposal to merge.
-    /// @param useFirstCollateral Wether to merge the first or second collateral.
+    /// @param useFirstCollateral Whether to merge the first or second collateral.
     /// @param amount The amount of outcome tokens to merge.
     function _mergePositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) internal {
         IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
@@ -166,7 +166,7 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to redeem.
-    /// @param useFirstCollateral Wether to redeem the first or second collateral.
+    /// @param useFirstCollateral Whether to redeem the first or second collateral.
     /// @param amount Amount to redeem.
     function redeemPositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
         IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
