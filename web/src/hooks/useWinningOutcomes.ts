@@ -1,11 +1,11 @@
 import { RouterAbi } from "@/abi/RouterAbi";
+import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
 import { MarketStatus } from "./useMarketStatus";
-import { SupportedChain } from "@/lib/chains";
 
 export function useWinningOutcomes(conditionId: Address, chainId: SupportedChain, marketStatus?: MarketStatus) {
   const routerAddress = getRouterAddress(chainId);
@@ -19,8 +19,8 @@ export function useWinningOutcomes(conditionId: Address, chainId: SupportedChain
         address: routerAddress as Address,
         functionName: "getWinningOutcomes",
         args: [conditionId],
-        chainId
+        chainId,
       });
-    }
+    },
   });
 }

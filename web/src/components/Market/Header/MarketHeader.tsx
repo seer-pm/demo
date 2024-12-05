@@ -7,9 +7,9 @@ import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
-import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
@@ -62,7 +62,6 @@ function OutcomesInfo({
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
- 
   const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
   const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (

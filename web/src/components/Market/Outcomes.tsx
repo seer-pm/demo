@@ -1,26 +1,24 @@
-import { RouterAbi } from "@/abi/RouterAbi";
 import { Link } from "@/components/Link";
 import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
-import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getRouterAddress } from "@/lib/config";
+import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { getConnectorClient, readContract } from "@wagmi/core";
+import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect } from "react";
 import { Address, RpcError, zeroAddress } from "viem";
@@ -30,13 +28,11 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
-import { useMarketStatus } from "@/hooks/useMarketStatus";
 
 interface PositionsProps {
   market: Market;
   images?: string[];
 }
-
 
 function poolRewardsInfo(poolIncentive: PoolIncentive) {
   if (poolIncentive.apr === 0) {
@@ -301,8 +297,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </span>
                     )}
 
-                      {winningOutcomes?.[i] === true &&  <CheckCircleIcon className="text-success-primary" />}
-
+                    {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
                   <div className="text-[12px] text-black-secondary">
                     {balances && balances[i] > 0n && (
