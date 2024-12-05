@@ -5,7 +5,6 @@ import { useMarketImages } from "@/hooks/useMarketImages";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { toSnakeCase } from "@/lib/utils";
 import {
   ColumnDef,
   PaginationState,
@@ -177,7 +176,9 @@ export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo
                   className="hover:bg-gray-light cursor-pointer"
                   onClick={() =>
                     navigate(
-                      `${paths.market(rowData.marketAddress!, chainId)}?outcome=${toSnakeCase(rowData.outcome!)}`,
+                      `${paths.market(rowData.marketAddress!, chainId)}?outcome=${encodeURIComponent(
+                        rowData.outcome!,
+                      )}`,
                     )
                   }
                 >

@@ -20,18 +20,19 @@ export default function MarketInfo({ market, marketStatus }: MarketInfoProps) {
         }}
       >
         <CalendarIcon />
-        <p style={{ margin: "0" }}>Opening at {getOpeningTime(market)}</p>
+        <p style={{ margin: "0", fontSize: "14px" }}>Opening at {getOpeningTime(market)}</p>
       </div>
     );
   }
 
-  const marketType = getMarketType(market);
+  // const marketType = getMarketType(market);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {market.questions.map((question, i) => (
-        <QuestionLine key={question.id} {...{ question, questionIndex: i, market, marketType, marketStatus }} />
-      ))}
-    </div>
-  );
+  // return (
+  //   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+  //     {market.questions.map((question, i) => (
+  //       <QuestionLine key={question.id} {...{ question, questionIndex: i, market, marketType, marketStatus }} />
+  //     ))}
+  //   </div>
+  // );
+  return null;
 }

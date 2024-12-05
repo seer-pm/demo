@@ -1,29 +1,29 @@
 import Button from "@/components/Form/Button";
+import useCheckAccount from "@/hooks/useCheckAccount";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
 import { Market } from "@/hooks/useMarket";
 import { Discussion } from "@orbisclub/components";
 import "@orbisclub/components/dist/index.modern.css";
 import { Orbis } from "@orbisclub/orbis-sdk";
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 
 function Comments({ market }: { market: Market }) {
-  const { isConnected } = useAccount();
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});
   const [isLoading, setLoading] = useState(false);
+  const { hasAccount, isLoading: isLoadingAccount } = useCheckAccount();
+
+  useEffect(() => {
+    if (ceramicSession && !isLoadingAccount && !hasAccount) {
+      const orbis = new Orbis();
+      orbis.logout({});
+    }
+  }, [ceramicSession, isLoadingAccount, hasAccount]);
   useEffect(() => {
     const orbisContainer = document.querySelector("._MBDTd");
     if (!orbisContainer) return;
     const loginContainer = orbisContainer.children[0] as HTMLDivElement;
     if (!loginContainer) return;
     loginContainer.style.display = ceramicSession ? "block" : "none";
-  }, [ceramicSession]);
-
-  useEffect(() => {
-    if (ceramicSession && !isConnected) {
-      const orbis = new Orbis();
-      orbis.logout({});
-    }
   }, [ceramicSession]);
 
   const signOrbis = async () => {
@@ -34,7 +34,6 @@ function Comments({ market }: { market: Market }) {
       setLoading(false);
     }
   };
-
   return (
     <>
       {!ceramicSession && (

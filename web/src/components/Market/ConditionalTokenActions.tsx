@@ -1,5 +1,5 @@
 import { Market } from "@/hooks/useMarket";
-import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
@@ -21,7 +21,7 @@ const titles = {
 export function ConditionalTokenActions({ account, router, market }: ConditionalTokenActionsProps) {
   const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
 
-  const { data: marketStatus } = useMarketStatus(market);
+  const marketStatus = getMarketStatus(market);
 
   return (
     <div className="bg-white p-[24px] drop-shadow">

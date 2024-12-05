@@ -6,7 +6,7 @@ import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
@@ -24,7 +24,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, toSnakeCase } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
@@ -86,12 +86,11 @@ function OutcomesInfo({
           ) {
             return null;
           }
-
           return (
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${toSnakeCase(outcome)}`}
+              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px]">
@@ -129,7 +128,7 @@ function OutcomesInfo({
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
-  const { data: marketStatus } = useMarketStatus(market);
+  const marketStatus = getMarketStatus(market);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
@@ -225,7 +224,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${toSnakeCase(
+                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"

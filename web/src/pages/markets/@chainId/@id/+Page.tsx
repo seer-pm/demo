@@ -10,13 +10,12 @@ import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
-import { toSnakeCase } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { Address } from "viem";
@@ -42,7 +41,7 @@ function SwapWidget({
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,
   );
-  const { data: marketStatus } = useMarketStatus(market);
+  const marketStatus = getMarketStatus(market);
 
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   if (marketStatus === MarketStatus.CLOSED) {
@@ -152,7 +151,7 @@ function MarketPage() {
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
   const { data: images } = useMarketImages(id as Address, chainId);
   const outcomeIndexFromSearch =
-    market?.outcomes?.findIndex((outcome) => toSnakeCase(outcome) === searchParams.get("outcome")) ?? -1;
+    market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   if (isMarketError) {
     return (

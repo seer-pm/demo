@@ -20,6 +20,7 @@ export function ButtonsWrapper({
         type="submit"
         disabled={disabled || isLoading}
         isLoading={isLoading}
+        className={isUndefined(goToNextStep) ? "w-[180px]" : ""}
         text={isUndefined(goToNextStep) ? "Create Market" : "Next"}
       />
     </div>
