@@ -10,9 +10,9 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getRouterAddress } from "@/lib/config";
+import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getRouterAddress } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, formatOdds, getCollateralByIndex, getMarketType } from "@/lib/market";
+import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
@@ -387,7 +387,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </button>
                     ) : (
                       <a
-                        href={getLiquidityUrl(market.chainId, wrappedAddress, getCollateralByIndex(market, i))}
+                        href={getLiquidityUrlByMarket(market, i)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-purple-primary flex items-center space-x-2 hover:underline"

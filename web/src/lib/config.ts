@@ -103,6 +103,20 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
   }
 };
 
+export const getLiquidityUrlByMarket = (market: Market, outcomeIndex: number) => {
+  if (market.type === "Generic") {
+    return getLiquidityUrl(market.chainId, market.wrappedTokens[outcomeIndex], market.collateralToken);
+  }
+
+  const lpPairs = [2, 3, 0, 1];
+
+  return getLiquidityUrl(
+    market.chainId,
+    market.wrappedTokens[outcomeIndex],
+    market.wrappedTokens[lpPairs[outcomeIndex]],
+  );
+};
+
 export const getPoolUrl = (chainId: number, poolId: string) => {
   switch (chainId) {
     case gnosis.id:
