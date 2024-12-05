@@ -223,11 +223,9 @@ function MarketPage() {
           </Alert>
         )}
         {market && <MarketChart market={market} />}
-        <div className=" grid grid-cols-1 lg:grid-cols-12 gap-10 ">
-          <div className="col-span-1 lg:col-span-8  h-fit space-y-16">
-            {market && (
-              <Outcomes market={market} images={images?.outcomes} />
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
+            {market && <Outcomes market={market} images={images?.outcomes} />}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5">
             
@@ -242,7 +240,7 @@ function MarketPage() {
 
             <ConditionalTokenActions router={router} market={market} account={account} />
           </div>
-          <div className=" col-span-1 lg:col-span-8 space-y-16">
+          <div className="col-span-1 lg:col-span-8 space-y-16">
             <MarketTabs market={market} />
           </div>
         </div>
