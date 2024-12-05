@@ -158,214 +158,169 @@ export default async (request: Request, context: Context) => {
     return new ImageResponse(
       <div
         style={{
-          backgroundColor: "white",
-          borderRadius: "3px",
-          textAlign: "left",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
           height: "100%",
           width: "100%",
+          background: "#59097e",
+          paddingLeft: "75px",
+          paddingRight: "75px",
         }}
       >
+        <div style={{ display: "flex", marginTop: "12x", marginBottom: "12px" }}>
+          <SeerLogo fill="white" width="120px" height="55.68px" />
+        </div>
         <div
           style={{
+            backgroundColor: "white",
+            borderTopLeftRadius: "12px",
+            borderTopRightRadius: "12px",
+            textAlign: "left",
             display: "flex",
-            justifyContent: "space-between",
-            borderTop: "5px solid",
-            fontSize: "14px",
-            paddingLeft: "25px",
-            paddingRight: "25px",
-            height: "45px",
-            alignItems: "center",
-            borderTopColor: colors.color,
-            backgroundColor: colors.backgroundColor,
-            color: colors.color,
+            flexDirection: "column",
+            flex: "1",
+            width: "100%",
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-            }}
-          >
-            <div
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: colors.color,
-              }}
-            ></div>
-            {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
-            <div
+          {/* <div
               style={{
                 display: "flex",
+                justifyContent: "space-between",
+                fontSize: "14px",
+                paddingLeft: "25px",
+                paddingRight: "25px",
+                height: "45px",
                 alignItems: "center",
-                gap: "16px",
-                marginLeft: "auto",
+                backgroundColor: colors.backgroundColor,
+                color: colors.color,
               }}
             >
-              <img
-                alt="network-icon"
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                }}
-                src={NETWORK_LOGOS[market.chainId]}
-              />
-            </div>
-          </div>
-          <div>{market.index && `#${market.index}`}</div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            padding: "24px",
-            gap: "12px",
-            ...(market.questions.length > 1 && { paddingBottom: "16px" }),
-          }}
-        >
-          <div style={{ display: "flex" }}>
-            {images?.market ? (
-              <img
-                src={images.market}
-                alt={market.marketName}
-                style={{
-                  width: "65px",
-                  height: "65px",
-                  minWidth: "65px",
-                  minHeight: "65px",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
               <div
                 style={{
-                  width: "65px",
-                  height: "65px",
-                  borderRadius: "50%",
-                  backgroundColor: "#9747FF",
-                }}
-              ></div>
-            )}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              flex: "1",
-            }}
-          >
-            <p
-              style={{
-                fontWeight: "600",
-                fontSize: "16px",
-                wordBreak: "break-word",
-                margin: "0",
-                width: "100%",
-              }}
-            >
-              {market.marketName}
-            </p>
-            {parentMarket && (
-              <p
-                style={{
-                  fontSize: "14px",
-                  marginTop: "8px",
-                  marginBottom: "8px",
                   display: "flex",
-                  gap: "4px",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "100%",
                 }}
               >
-                Conditional on <span style={{ color: "#9747FF", fontWeight: "500" }}>"{parentMarket.marketName}"</span>
-                being
-                <span style={{ color: "#9747FF", fontWeight: "500" }}>
-                  "{parentMarket.outcomes[Number(market.parentOutcome)]}"
-                </span>
-              </p>
-            )}
-            <MarketInfo market={market} marketStatus={marketStatus} />
-          </div>
-        </div>
+                <div
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor: colors.color,
+                  }}
+                ></div>
+                {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    marginLeft: "auto",
+                  }}
+                >
+                  <img
+                    alt="network-icon"
+                    style={{
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                    }}
+                    src={NETWORK_LOGOS[market.chainId]}
+                  />
+                </div>
+              </div>
+              <div>{market.index && `#${market.index}`}</div>
+            </div> */}
 
-        {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
           <div
             style={{
-              borderTop: "1px solid #e5e5e5",
-              paddingTop: "16px",
-              paddingBottom: "16px",
-              paddingLeft: "24px",
-              paddingRight: "24px",
-              fontWeight: "600",
               display: "flex",
+              padding: "16px 24px",
+              gap: "12px",
               alignItems: "center",
-              gap: "8px",
             }}
           >
+            <div style={{ display: "flex" }}>
+              {images?.market ? (
+                <img
+                  src={images.market}
+                  alt={market.marketName}
+                  style={{
+                    width: "65px",
+                    height: "65px",
+                    minWidth: "65px",
+                    minHeight: "65px",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "65px",
+                    height: "65px",
+                    borderRadius: "50%",
+                    backgroundColor: "#9747FF",
+                  }}
+                ></div>
+              )}
+            </div>
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                flexDirection: "column",
                 gap: "8px",
+                flex: "1",
               }}
             >
-              Market Estimate: {marketEstimate}
+              <p
+                style={{
+                  fontWeight: "600",
+                  fontSize: market.marketName.length > 195 ? "14px" : "16px",
+                  wordBreak: "break-word",
+                  margin: "0",
+                  width: "100%",
+                }}
+              >
+                {market.marketName}
+              </p>
+              {/* {parentMarket && (
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "8px",
+                      marginBottom: "8px",
+                      display: "flex",
+                      gap: "4px",
+                    }}
+                  >
+                    Conditional on{" "}
+                    <span style={{ color: "#9747FF", fontWeight: "500" }}>"{parentMarket.marketName}"</span>
+                    being
+                    <span style={{ color: "#9747FF", fontWeight: "500" }}>
+                      "{parentMarket.outcomes[Number(market.parentOutcome)]}"
+                    </span>
+                  </p>
+                )} */}
+              {/* <MarketInfo market={market} marketStatus={marketStatus} /> */}
             </div>
           </div>
-        )}
-        <div
-          style={{
-            display: "flex",
-            borderTop: "1px solid #e5e5e5",
-            paddingTop: "16px",
-            paddingBottom: "16px",
-          }}
-        >
-          <OutcomesInfo
-            market={market}
-            outcomesCount={3}
-            images={images?.outcomes}
-            odds={odds}
-            winningOutcomes={winningOutcomes}
-          />
-        </div>
-        <div
-          style={{
-            borderTop: "1px solid #e5e5e5",
-            paddingLeft: "25px",
-            paddingRight: "25px",
-            height: "45px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: "14px",
-            marginTop: "auto",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-            }}
-          >
-            <SeerLogo fill="#511778" width="50px" height="23.2px" />
+
+          {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
             <div
               style={{
+                borderTop: "1px solid #e5e5e5",
+                padding: "8px 24px",
+                fontSize: "14px",
+                fontWeight: "600",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
               }}
             >
-              <div style={{ display: "flex" }}>{MARKET_TYPES_ICONS[marketType]}</div>
-              <div style={{ display: "flex" }}>{MARKET_TYPES_TEXTS[marketType]}</div>
-            </div>
-            {!isUndefined(daiAmount) && (
               <div
                 style={{
                   display: "flex",
@@ -373,66 +328,126 @@ export default async (request: Request, context: Context) => {
                   gap: "8px",
                 }}
               >
-                <span style={{ color: "#999999" }}>Open interest:</span>{" "}
-                {!parentMarket && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <p>
-                      {displayBalance(daiAmount, 18, true)} {market.chainId === gnosis.id ? "xDAI" : "DAI"}
-                    </p>
-                    <DaiLogo />
-                  </div>
-                )}
-                {parentMarket && (
-                  <p>
-                    {displayBalance(market.outcomesSupply, 18, true)} {parentCollateral?.symbol ?? ""}
-                  </p>
-                )}
+                Market Estimate: {marketEstimate}
               </div>
-            )}
+            </div>
+          )}
+          <div
+            style={{
+              display: "flex",
+              borderTop: "1px solid #e5e5e5",
+              flex: "1",
+            }}
+          >
+            <OutcomesInfo
+              market={market}
+              outcomesCount={2}
+              images={images?.outcomes}
+              odds={odds}
+              winningOutcomes={winningOutcomes}
+            />
           </div>
-          {!isUndefined(market.verification) && (
+          <div
+            style={{
+              borderTop: "1px solid #e5e5e5",
+              padding: "0 16px",
+              height: "45px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: "14px",
+              marginTop: "auto",
+            }}
+          >
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                color: {
-                  verified: "#00C42B",
-                  verifying: "#24CDFE",
-                  challenged: "#FF9900",
-                  not_verified: "#9747FF",
-                }[market.verification.status],
+                gap: "16px",
               }}
             >
-              {market.verification.status === "verified" && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <CheckCircleIcon />
-                  <p>Verified</p>
-                </div>
+              {marketStatus && (
+                <div style={{ display: "flex", color: colors.color }}>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>
               )}
-              {market.verification.status === "verifying" && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <ClockIcon />
-                  <p>Verifying</p>
-                </div>
-              )}
-              {market.verification.status === "challenged" && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <LawBalanceIcon />
-                  <p>Challenged</p>
-                </div>
-              )}
-              {market.verification.status === "not_verified" && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <ExclamationCircleIcon width={14} height={14} />
-                  <p>Verify it</p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <div style={{ display: "flex" }}>{MARKET_TYPES_ICONS[marketType]}</div>
+                <div style={{ display: "flex" }}>{MARKET_TYPES_TEXTS[marketType]}</div>
+              </div>
+              {!isUndefined(daiAmount) && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "2px",
+                  }}
+                >
+                  <span style={{ color: "#999999" }}>Open interest:</span>{" "}
+                  {!parentMarket && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <p>
+                        {displayBalance(daiAmount, 18, true)} {market.chainId === gnosis.id ? "xDAI" : "DAI"}
+                      </p>
+                      <DaiLogo />
+                    </div>
+                  )}
+                  {parentMarket && (
+                    <p>
+                      {displayBalance(market.outcomesSupply, 18, true)} {parentCollateral?.symbol ?? ""}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-          )}
+            {!isUndefined(market.verification) && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: {
+                    verified: "#00C42B",
+                    verifying: "#24CDFE",
+                    challenged: "#FF9900",
+                    not_verified: "#9747FF",
+                  }[market.verification.status],
+                }}
+              >
+                {market.verification.status === "verified" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <CheckCircleIcon />
+                    <p>Verified</p>
+                  </div>
+                )}
+                {market.verification.status === "verifying" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <ClockIcon />
+                    <p>Verifying</p>
+                  </div>
+                )}
+                {market.verification.status === "challenged" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <LawBalanceIcon />
+                    <p>Challenged</p>
+                  </div>
+                )}
+                {market.verification.status === "not_verified" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <ExclamationCircleIcon width={14} height={14} />
+                    <p>Not Verified</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>,
-      { debug: false },
+      { debug: false, width: 800, height: 418 },
     );
   } catch (e) {
     console.log(e);

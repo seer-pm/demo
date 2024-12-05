@@ -65,8 +65,10 @@ function OutcomesInfo({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
         width: "100%",
+        flex: "1",
+        justifyContent: "center",
+        padding: "8px 0",
       }}
     >
       {market.outcomes.map((_, j) => {
@@ -95,6 +97,8 @@ function OutcomesInfo({
               paddingTop: "8px",
               paddingBottom: "8px",
               width: "100%",
+              flex: "1",
+              alignItems: "center",
             }}
           >
             <div
