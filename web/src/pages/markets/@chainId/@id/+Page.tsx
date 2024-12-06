@@ -227,8 +227,7 @@ function MarketPage() {
           <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
             {market && <Outcomes market={market} images={images?.outcomes} />}
           </div>
-          <div className="col-span-1 lg:col-span-4 space-y-5">
-            
+          <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
             {/* <PoolDetails market={market} outcomeIndex={outcomeIndex} /> */}
             <SwapWidget
               router={router}
