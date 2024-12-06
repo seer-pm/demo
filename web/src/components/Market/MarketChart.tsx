@@ -2,7 +2,6 @@ import { ChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
@@ -68,16 +67,6 @@ function getSeries(
     .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
 }
 
-function useAxisNames(market: Market): [string, string] {
-  const { data: tokensInfo } = useTokensInfo([market.collateralToken1, market.collateralToken2], market.chainId);
-
-  if (market.type === "Futarchy") {
-    return [tokensInfo?.[0]?.symbol || "", tokensInfo?.[1]?.symbol || ""];
-  }
-
-  return ["", ""];
-}
-
 function MarketChart({ market }: { market: Market }) {
   const { data: odds = [], isPending: isPendingOdds } = useMarketOdds(market, true);
   const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
@@ -93,8 +82,6 @@ function MarketChart({ market }: { market: Market }) {
   const hasLiquidity = odds.some((odd) => isOdd(odd));
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const series = getSeries(market, odds, chartData, hasLiquidity, currentTimestamp);
-
-  const [yAxisName, xAxisName] = useAxisNames(market);
 
   const option = {
     color: [
@@ -149,9 +136,6 @@ function MarketChart({ market }: { market: Market }) {
     xAxis: {
       min: "dataMin",
       max: "dataMax",
-      name: xAxisName,
-      nameLocation: "middle",
-      nameGap: 25,
       splitLine: {
         show: false,
       },
@@ -179,9 +163,6 @@ function MarketChart({ market }: { market: Market }) {
     yAxis: {
       min: "dataMin",
       max: "dataMax",
-      name: yAxisName,
-      nameLocation: "middle",
-      nameGap: 60,
       axisLabel: {
         formatter: (value: number) => {
           if (market.type === "Futarchy") {
