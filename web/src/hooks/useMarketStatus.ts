@@ -35,7 +35,7 @@ export const getMarketStatus = (market: Market) => {
 };
 
 /* export const useMarketStatus = (market: Market) => {
-  return useSuspenseQuery<MarketStatus | undefined, Error>({
+  return useQuery<MarketStatus | undefined, Error>({
     queryKey: ["useMarketStatus", market.id],
     queryFn: async () => getMarketStatus(market),
     refetchOnWindowFocus: true,

@@ -193,9 +193,12 @@ function AddLiquidityInfo({
 function AddLiquidityLink({
   market,
   outcomeIndex,
+  pools,
   openModal,
-}: { market: Market; outcomeIndex: number; openModal?: () => void }) {
-  return openModal ? (
+}: { market: Market; outcomeIndex: number; pools: PoolInfo[][]; openModal?: () => void }) {
+  return openModal &&
+    !isUndefined(pools[outcomeIndex]) &&
+    pools[outcomeIndex].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
     <button
       type="button"
       onClick={() => {
@@ -210,9 +213,9 @@ function AddLiquidityLink({
       href={getLiquidityUrlByMarket(market, outcomeIndex)}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-purple-primary flex items-center space-x-2 hover:underline"
+      className="text-purple-primary hover:underline"
     >
-      <span>Add Liquidity</span>
+      Add Liquidity
     </a>
   );
 }
@@ -223,6 +226,7 @@ interface OutcomeDetailProps {
   wrappedAddress: Address;
   openModal?: () => void;
   outcomeIndex: number;
+  pools: PoolInfo[][];
   loopIndex: number;
   images?: string[];
 }
@@ -233,6 +237,7 @@ function OutcomeDetails({
   wrappedAddress,
   openModal,
   outcomeIndex,
+  pools,
   loopIndex,
   images,
 }: OutcomeDetailProps) {
@@ -340,7 +345,7 @@ function OutcomeDetails({
           </a>
 
           {market.type === "Generic" && (
-            <AddLiquidityLink market={market} outcomeIndex={outcomeIndex} openModal={openModal} />
+            <AddLiquidityLink market={market} outcomeIndex={outcomeIndex} pools={pools} openModal={openModal} />
           )}
 
           {market.type === "Generic" && (
@@ -416,6 +421,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                   marketStatus={marketStatus}
                   openModal={openModalCallback}
                   outcomeIndex={i}
+                  pools={pools}
                   loopIndex={j}
                   images={images}
                 />
@@ -427,6 +433,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     marketStatus={marketStatus}
                     openModal={openModalCallback}
                     outcomeIndex={i}
+                    pools={pools}
                     loopIndex={j}
                     images={images}
                   />
@@ -436,6 +443,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     marketStatus={marketStatus}
                     openModal={openModalCallback}
                     outcomeIndex={i + 2}
+                    pools={pools}
                     loopIndex={j}
                     images={images}
                   />
@@ -456,7 +464,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               {market.type === "Futarchy" && (
                 <div className="w-full text-center text-[12px] pt-[12px] pr-[64px]">
-                  <AddLiquidityLink market={market} outcomeIndex={i} openModal={openModal} />
+                  <AddLiquidityLink market={market} outcomeIndex={i} pools={pools} openModal={openModal} />
                 </div>
               )}
             </div>
