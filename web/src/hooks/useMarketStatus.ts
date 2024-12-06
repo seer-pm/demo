@@ -1,5 +1,5 @@
 import { hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Market } from "./useMarket";
 
 export enum MarketStatus {
@@ -36,7 +36,7 @@ export const getMarketStatus = (market: Market) => {
 };
 
 export const useMarketStatus = (market: Market) => {
-  return useSuspenseQuery<MarketStatus | undefined, Error>({
+  return useQuery<MarketStatus | undefined, Error>({
     queryKey: ["useMarketStatus", market.id],
     queryFn: async () => getMarketStatus(market),
     refetchOnWindowFocus: true,
