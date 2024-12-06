@@ -325,15 +325,32 @@ export function Outcomes({ market, images }: PositionsProps) {
                     </a>
 
                     {!isUndefined(pools[i]) && pools[i].length > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openModal();
-                        }}
-                        className="text-purple-primary hover:underline"
-                      >
-                        Add Liquidity
-                      </button>
+                      pools[i].some(pool => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openModal();
+                          }}
+                          className="text-purple-primary hover:underline"
+                        >
+                          Add Liquidity
+                        </button>
+                      ) : (
+                        <a
+                          href={getLiquidityUrl(
+                            market.chainId,
+                            wrappedAddress,
+                            market.parentMarket === zeroAddress
+                              ? COLLATERAL_TOKENS[market.chainId].primary.address
+                              : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-primary flex items-center space-x-2 hover:underline"
+                        >
+                          <span>Add Liquidity</span>
+                        </a>
+                      )
                     ) : (
                       <a
                         href={getLiquidityUrl(
@@ -350,7 +367,6 @@ export function Outcomes({ market, images }: PositionsProps) {
                         <span>Add Liquidity</span>
                       </a>
                     )}
-
                     <Link
                       to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
                         market.outcomes[i],
