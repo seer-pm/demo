@@ -9,9 +9,10 @@ import Toggle from "../Form/Toggle";
 type AltCollateralSwitchProps = {
   market: Market;
   isUseWrappedToken?: boolean;
+  collateralPair?: [Address, Address];
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-function getCollateralPairs(market: Market, isUseWrappedToken: boolean): [Address, Address] | [] {
+function getCollateralPair(market: Market, isUseWrappedToken: boolean): [Address, Address] | [] {
   if (market.type === "Futarchy") {
     return [market.collateralToken1, market.collateralToken2];
   }
@@ -32,11 +33,12 @@ function getCollateralPairs(market: Market, isUseWrappedToken: boolean): [Addres
 }
 
 const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollateralSwitchProps>((props, ref) => {
-  const { market, isUseWrappedToken = false, ...toggleProps } = props;
+  const { market, collateralPair, isUseWrappedToken = false, ...toggleProps } = props;
 
-  const collateralPairs = getCollateralPairs(market, isUseWrappedToken);
-
-  const { data: collateralTokens } = useTokensInfo(collateralPairs, market.chainId);
+  const { data: collateralTokens } = useTokensInfo(
+    collateralPair || getCollateralPair(market, isUseWrappedToken),
+    market.chainId,
+  );
 
   if (market.parentMarket !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
     return null;

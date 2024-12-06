@@ -35,6 +35,9 @@ function SwapWidget({
   images?: string[];
 }) {
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+
+  const { data: odds = [], isLoading } = useMarketOdds(market, true);
+
   // on Futarchy markets we want to buy/sell using the associated outcome token,
   // on child markets we want to buy/sell using parent outcomes.
   const { data: fixedCollateral } = useTokenInfo(
@@ -47,11 +50,7 @@ function SwapWidget({
   );
   const marketStatus = getMarketStatus(market);
 
-  const { data: odds = [], isLoading } = useMarketOdds(market, true);
-  if (marketStatus === MarketStatus.CLOSED) {
-    return null;
-  }
-  if (!outcomeToken) {
+  if (marketStatus === MarketStatus.CLOSED || !outcomeToken) {
     return null;
   }
 
@@ -157,6 +156,7 @@ function MarketPage() {
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
+
   if (isMarketError) {
     return (
       <div className="container py-10">

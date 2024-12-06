@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
@@ -13,6 +13,10 @@ export interface GetTokenResult {
 }
 
 export async function getTokenInfo(address: Address, chainId: SupportedChain): Promise<GetTokenResult> {
+  if (address === NATIVE_TOKEN) {
+    return { address, decimals: 18, name: "xDAI", symbol: "xDAI" };
+  }
+
   const [decimals, name, symbol] = await readContracts(config, {
     allowFailure: false,
     contracts: [

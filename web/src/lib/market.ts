@@ -194,7 +194,7 @@ export function getMarketPoolsPairs(market: Market): Token1Token0[] {
 // outcome1 pairs with outcome3
 // outcome2 pairs with outcome0
 // outcome3 pairs with outcome1
-const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
+export const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
 
 export function getLiquidityPair(market: Market, outcomeIndex: number): Token1Token0 {
   if (market.type === "Generic") {
