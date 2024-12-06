@@ -171,7 +171,7 @@ export function getCollateralByOutcome(market: Market): CollateralByOutcome[] {
   return market.wrappedTokens.map((tokenId, i) => ({
     tokenId,
     outcomeName: market.outcomes[i],
-    collateralToken: getCollateralByIndex(market, i),
+    collateralToken: getLiquidityPairForToken(market, i),
   }));
 }
 

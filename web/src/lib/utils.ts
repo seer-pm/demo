@@ -91,7 +91,7 @@ function formatBigNumbers(amount: number) {
 /**
  * Formats small numbers. E.g.: 0.0000001 will be formated as 0.0(6)1
  */
-function formatNumberWithZeroCount(input: number): string {
+function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
   let numberStr = input.toString();
 
   // If the number is in exponential notation, convert it to a full decimal representation
@@ -102,7 +102,7 @@ function formatNumberWithZeroCount(input: number): string {
 
   const [integerPart, decimalPart] = numberStr.split(".");
 
-  if (!decimalPart || decimalPart.length <= 2) {
+  if (!decimalPart || decimalPart.length <= zerosCount) {
     return numberStr;
   }
 
@@ -115,7 +115,11 @@ function formatNumberWithZeroCount(input: number): string {
     }
   }
 
-  const significantDecimalPart = decimalPart.slice(leadingZeroCount, leadingZeroCount + 2);
+  if (leadingZeroCount === 0) {
+    return numberStr;
+  }
+
+  const significantDecimalPart = decimalPart.slice(leadingZeroCount, leadingZeroCount + zerosCount);
   return `${integerPart}.${decimalPart.slice(0, 1)}(${leadingZeroCount})${significantDecimalPart}`;
 }
 

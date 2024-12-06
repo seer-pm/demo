@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Market } from "../useMarket";
-import { getOddChart } from "./getOddChart";
+import { getChartData } from "./getChartData";
 
-export const useOddChartData = (market: Market, dayCount: number, intervalSeconds: number) => {
+export const useChartData = (market: Market, dayCount: number, intervalSeconds: number) => {
   return useQuery<
     | {
         chartData: {
@@ -18,8 +18,8 @@ export const useOddChartData = (market: Market, dayCount: number, intervalSecond
     enabled: !!market,
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
-    queryKey: ["useOddChartData", market.chainId, market.id, dayCount, intervalSeconds],
+    queryKey: ["useChartData", market.chainId, market.id, dayCount, intervalSeconds],
     retry: false,
-    queryFn: async () => getOddChart(market, dayCount, intervalSeconds),
+    queryFn: async () => getChartData(market, dayCount, intervalSeconds),
   });
 };
