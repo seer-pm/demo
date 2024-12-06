@@ -3,7 +3,7 @@ import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useF
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
-import { getMarketStatus, useMarketStatus } from "@/hooks/useMarketStatus";
+import { getMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
