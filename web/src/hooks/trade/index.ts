@@ -340,6 +340,7 @@ export function useQuoteTrade(
   const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
   const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  console.log(cowResult.data);
   if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
     return cowResult;
   }

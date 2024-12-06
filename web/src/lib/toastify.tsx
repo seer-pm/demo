@@ -1,5 +1,5 @@
 import { config as wagmiConfig } from "@/wagmi";
-import { ConnectorNotConnectedError, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
+import { ConnectorNotConnectedError, getAccount, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
 import {
   TransactionNotFoundError,
@@ -113,13 +113,16 @@ export const toastify: ToastifyFn<any> = async (execute, config) => {
 
 export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
   let hash: `0x${string}` | undefined = undefined;
+  const { chainId } = getAccount(wagmiConfig);
+
   try {
     hash = await contractWrite();
     toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash,
       confirmations: import.meta.env.VITE_TX_CONFIRMATIONS || 0,
-      timeout: 20000, //20 seconds timeout, then we poll manually
+      timeout: 40000, //40 seconds timeout, then we poll manually
+      ...(chainId && { chainId }),
     });
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
 

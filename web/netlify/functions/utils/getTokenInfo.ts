@@ -5,7 +5,7 @@ import { Address } from "./types.ts";
 
 export async function getTokenInfo(address: Address, chainId: SupportedChain) {
   const [decimals, name, symbol] = await readContracts(config, {
-    allowFailure: false,
+    allowFailure: true,
     contracts: [
       {
         address,

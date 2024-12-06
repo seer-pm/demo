@@ -8,7 +8,7 @@ export const config = createConfig({
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http(),
-    [gnosis.id]: http(),
+    [gnosis.id]: http("https://rpc.ap-southeast-1.gateway.fm/v4/gnosis/non-archival/mainnet"),
   },
 });
 

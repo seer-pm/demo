@@ -25,8 +25,27 @@ export const NETWORK_LOGOS: Record<string, string> = {
   "1": "https://cdn.kleros.link/ipfs/QmNjoXKCYHHZYhFWdkKJKvTVDwkjyW8eKE9r91bfGHjMEp/ethereum.jpg",
 };
 
+export const UNISWAP_V2_ROUTERS = {
+  100: "0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
+};
+
+export const UNISWAP_V2_FACTORIES = {
+  100: "0xc35DADB65012eC5796536bD9864eD8773aBc74C4",
+};
+
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
 export const REALITY_TEMPLATE_MULTIPLE_SELECT = 3;
 
 export const zeroAddress = "0x0000000000000000000000000000000000000000";
+
+export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
+
+export const routerAddressMapping = {
+  1: "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
+  100: "0xeC9048b59b3467415b1a38F63416407eA0c70fB8",
+};
+
+export const liquidityManagerAddressMapping = {
+  100: "0xC7b072b4368e7A221A2de74dAc549Edcef34cFA3",
+};
