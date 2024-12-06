@@ -239,7 +239,7 @@ function MarketPage() {
 
             <ConditionalTokenActions router={router} market={market} account={account} />
           </div>
-          <div className="col-span-1 lg:col-span-8 space-y-16">
+          <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />
           </div>
         </div>
