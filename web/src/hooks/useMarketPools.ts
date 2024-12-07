@@ -1,7 +1,6 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
@@ -15,8 +14,7 @@ import {
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { Market, useMarket } from "./useMarket";
-import { useTokenInfo } from "./useTokenInfo";
+import { Market } from "./useMarket";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -38,6 +36,7 @@ export interface PoolInfo {
   token1Price: number;
   token0Symbol: string;
   token1Symbol: string;
+  liquidity: string;
   totalValueLockedToken0: number;
   totalValueLockedToken1: number;
   incentives: PoolIncentive[];
@@ -114,6 +113,7 @@ async function getSwaprPools(
       token1Price: Number(pool.token1Price),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
+      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
@@ -152,6 +152,7 @@ async function getUniswapPools(
       token1Price: Number(pool.token1Price),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
+      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: [], // TODO
@@ -174,62 +175,11 @@ const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
-  const { data: parentCollateral, isLoading } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-  const tokens = market.wrappedTokens.map((outcomeToken) => {
-    return outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
-      ? [collateralToken.address, outcomeToken]
-      : [outcomeToken, collateralToken.address];
-  });
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
-    enabled: tokens && tokens.length > 0 && !isLoading,
-    queryKey: ["useMarketPools", market.id, tokens],
+    queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(tokens.map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })));
-    },
-  });
-};
-
-interface OutcomePool {
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  liquidity: string;
-}
-
-export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Token) => {
-  return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", chainId, collateralToken.address],
-    retry: false,
-    queryFn: async () => {
-      const graphQLClient =
-        chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-      if (!graphQLClient) {
-        throw new Error("Subgraph not available");
-      }
-
-      const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-      const { pools } = await graphQLSdk(graphQLClient).GetPools({
-        where: {
-          or: [
-            { token0_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-          ],
-        },
-      });
-      return pools;
+      return await Promise.all(getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId).fetch(poolPair)));
     },
   });
 };
