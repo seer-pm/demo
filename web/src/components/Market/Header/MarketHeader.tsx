@@ -27,7 +27,6 @@ import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
-import { Address } from "viem";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
@@ -59,7 +58,7 @@ function OutcomesInfo({
   });
   const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
 
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
   const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
@@ -95,7 +94,7 @@ function OutcomesInfo({
                 <div className="w-[65px]">
                   <OutcomeImage
                     image={images?.[i]}
-                    isInvalidResult={i === market.outcomes.length - 1}
+                    isInvalidOutcome={i === market.outcomes.length - 1}
                     title={outcome}
                   />
                 </div>

@@ -7,6 +7,7 @@ import {
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getCollateralFromDexTx, getToken1Token0 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
@@ -16,14 +17,8 @@ import { MarketDataMapping } from "./getMappings";
 import { TransactionData } from "./types";
 
 export async function getSwapEvents(mappings: MarketDataMapping, account: string, chainId: SupportedChain) {
-  const { outcomeTokenToCollateral, tokenPairToMarketMapping, marketIdToCollateral } = mappings;
-  const tokens = Object.keys(outcomeTokenToCollateral).map((x) => {
-    return {
-      tokenId: x,
-      parentTokenId: outcomeTokenToCollateral[x],
-    };
-  });
-  if (!tokens) return [];
+  const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
+  if (outcomeTokenToCollateral.size === 0) return [];
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
@@ -44,20 +39,8 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
       where: {
         and: [
           {
-            or: tokens.reduce(
-              (acc, { tokenId, parentTokenId }) => {
-                if (parentTokenId) {
-                  acc.push(
-                    tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
-                      ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
-                      : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
-                  );
-                } else {
-                  acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-                }
-                return acc;
-              },
-              [] as { [key: string]: string }[],
+            or: Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
+              getToken1Token0(tokenId, collateralToken),
             ),
           },
           {
@@ -101,7 +84,7 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
         marketName: market.marketName,
         marketId: market.id,
         type: "swap",
-        collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+        collateral: getCollateralFromDexTx(market, tokenIn as Address, tokenOut as Address),
         transactionHash: swap.transaction.id,
       });
     }
@@ -150,7 +133,7 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
         marketName: market.marketName,
         marketId: market.id,
         type: "swap",
-        collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+        collateral: getCollateralFromDexTx(market, tokenIn as Address, tokenOut as Address),
         transactionHash: trade.txHash ?? undefined,
         tokenInSymbol,
         tokenOutSymbol,
