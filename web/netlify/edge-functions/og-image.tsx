@@ -167,7 +167,6 @@ export default async (request: Request, context: Context) => {
                     key={`${outcome}_${i}`}
                     style={{
                       display: "flex",
-                      width: "100%",
                       gap: 8,
                       alignItems: "center",
                     }}
