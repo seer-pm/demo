@@ -108,7 +108,7 @@ contract TradeManager {
         bool isFromManager
     ) public payable returns (uint256 /*amountOut*/) {
         if (path.choice == TradeChoice.Swap) {
-            return swapSingle(path, additionalTradeParams);
+            return swapSingle(path, additionalTradeParams, isFromManager);
         }
         return mintSingle(path, additionalTradeParams, isFromManager);
     }
@@ -116,10 +116,12 @@ contract TradeManager {
     /// @dev Performs a single token swap.
     /// @param path Token path for the swap.
     /// @param additionalTradeParams Additional trade parameters.
+    /// @param isFromManager Flag indicating if the swap is initiated from the manager.
     /// @return Amount of output tokens.
     function swapSingle(
         TokenPath memory path,
-        AdditionalTradeParams memory additionalTradeParams
+        AdditionalTradeParams memory additionalTradeParams,
+        bool isFromManager
     ) public payable returns (uint256 /*amountOut*/) {
         ISingleSwapRouter.ExactInputSingleParams
             memory params = ISingleSwapRouter.ExactInputSingleParams({
@@ -140,7 +142,7 @@ contract TradeManager {
             params.tokenIn = address(sDAI);
             hasTransferTokenIn = true;
         }
-        if (!hasTransferTokenIn) {
+        if (!hasTransferTokenIn && !isFromManager) {
             IERC20(params.tokenIn).transferFrom(
                 msg.sender,
                 address(this),
