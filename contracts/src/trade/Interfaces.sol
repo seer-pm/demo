@@ -153,3 +153,99 @@ interface IConditionalTokens {
 
     function balanceOf(address owner, uint256 id) external view returns (uint256);
 }
+
+interface ISingleSwapRouter {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 limitSqrtPrice;
+    }
+
+    /// @notice Swaps `amountIn` of one token for as much as possible of another token
+    /// @param params The parameters necessary for the swap, encoded as `ExactInputSingleParams` in calldata
+    /// @return amountOut The amount of the received token
+    function exactInputSingle(
+        ExactInputSingleParams calldata params
+    ) external payable returns (uint256 amountOut);
+
+    struct ExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint160 limitSqrtPrice;
+    }
+
+    /// @notice Swaps as little as possible of one token for `amountOut` of another token
+    /// @param params The parameters necessary for the swap, encoded as `ExactOutputSingleParams` in calldata
+    /// @return amountIn The amount of the input token
+    function exactOutputSingle(
+        ExactOutputSingleParams calldata params
+    ) external payable returns (uint256 amountIn);
+}
+
+/// @title Quoter Interface
+/// @notice Supports quoting the calculated amounts from exact input or exact output swaps
+/// @dev These functions are not marked view because they rely on calling non-view functions and reverting
+/// to compute the result. They are also not gas efficient and should not be called on-chain.
+/// Credit to Uniswap Labs under GPL-2.0-or-later license:
+/// https://github.com/Uniswap/v3-periphery
+interface ISingleQuoter {
+    /// @notice Returns the amount out received for a given exact input but for a swap of a single pool
+    /// @param tokenIn The token being swapped in
+    /// @param tokenOut The token being swapped out
+    /// @param amountIn The desired input amount
+    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap
+    /// @return amountOut The amount of `tokenOut` that would be received
+    function quoteExactInputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint160 limitSqrtPrice
+    ) external returns (uint256 amountOut, uint16 fee);
+
+    /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool
+    /// @param tokenIn The token being swapped in
+    /// @param tokenOut The token being swapped out
+    /// @param amountOut The desired output amount
+    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap
+    /// @return amountIn The amount required as the input for the swap in order to receive `amountOut`
+    function quoteExactOutputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountOut,
+        uint160 limitSqrtPrice
+    ) external returns (uint256 amountIn, uint16 fee);
+}
+
+interface SavingsXDaiAdapter {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256);
+
+    function depositXDAI(address receiver) external payable returns (uint256);
+
+    function redeem(
+        uint256 shares,
+        address receiver
+    ) external returns (uint256);
+
+    function redeemXDAI(
+        uint256 shares,
+        address receiver
+    ) external payable returns (uint256);
+}
+
+interface IERC4626 is IERC20 {
+    function previewDeposit(uint256 assets) external view returns (uint256);
+
+    function previewRedeem(uint256 shares) external view returns (uint256);
+}
