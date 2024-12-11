@@ -71,6 +71,11 @@ export default function Header() {
             </Link>
           </li>
           <li>
+            <Link to={"/futarchy"} className="whitespace-nowrap hover:opacity-85">
+              Futarchy
+            </Link>
+          </li>
+          <li>
             <div className="dropdown dropdown-end">
               <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
                 <span>Policies</span> <DownArrow />
@@ -240,6 +245,11 @@ function MobileMenu() {
           <li>
             <Link to={"/create-market"} className="hover:font-semibold">
               Create Market
+            </Link>
+          </li>
+          <li>
+            <Link to={"/futarchy"} className="hover:font-semibold">
+              Futarchy
             </Link>
           </li>
           <li>

@@ -2,38 +2,26 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
-import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
+import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { useEffect } from "react";
+import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 
-function Home() {
-  const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets } =
-    useMarketsSearchParams();
+function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; params: UseMarketsProps }) {
+  params.type = isFutarchyPage ? "Futarchy" : "Generic";
+  const results = useMarkets(params);
   const {
     data: markets = [],
     isPending,
     pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterMarkets({
-    marketName,
-    marketStatusList,
-    verificationStatusList,
-    chainsList,
-    orderBy,
-    isShowMyMarkets,
-  });
-
-  useEffect(() => {
-    if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
-      // redirect old client urls
-      navigate(window.location.hash.slice(1));
-    }
-  }, []);
+  } = useSortAndFilterResults(params, results);
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
-      <div className="text-[24px] font-semibold">Markets</div>
-      <MarketsFilter />
+      <div className="text-[24px] font-semibold">{isFutarchyPage ? "Proposals" : "Markets"}</div>
+      <MarketsFilter isFutarchyPage={isFutarchyPage} />
 
       {isPending && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -42,7 +30,7 @@ function Home() {
         </div>
       )}
 
-      {!isPending && markets.length === 0 && <Alert type="warning">No markets found.</Alert>}
+      {!isPending && markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
@@ -52,6 +40,21 @@ function Home() {
       <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
     </div>
   );
+}
+
+function Home() {
+  const { pageId } = usePageContext();
+  const isFutarchyPage = pageId === "/src/pages/futarchy";
+  const params = useMarketsSearchParams();
+
+  useEffect(() => {
+    if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
+      // redirect old client urls
+      navigate(window.location.hash.slice(1));
+    }
+  }, []);
+
+  return <PageContent isFutarchyPage={isFutarchyPage} params={params} />;
 }
 
 export default Home;
