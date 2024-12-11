@@ -1,10 +1,11 @@
+import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
 import { Address, isAddress } from "viem";
 import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
@@ -12,6 +13,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { ButtonsWrapper } from "./ButtonsWrapper";
+import { SearchToken, TokenListItem } from "./SearchToken";
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
@@ -88,9 +90,10 @@ interface CollateralFieldsProps {
   collateralNumber: 1 | 2;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
   chainId: SupportedChain;
+  searchCollateral: (collateralNumber: 1 | 2) => void;
 }
 
-function CollateralField({ collateralNumber, useFormReturn, chainId }: CollateralFieldsProps) {
+function CollateralField({ collateralNumber, useFormReturn, chainId, searchCollateral }: CollateralFieldsProps) {
   const collateralIndex = collateralNumber - 1;
   const collaterals = useFormReturn.watch(["collateralToken1", "collateralToken2"]);
   const collateral = collaterals[collateralIndex];
@@ -132,6 +135,16 @@ function CollateralField({ collateralNumber, useFormReturn, chainId }: Collatera
           }
           useFormReturn={useFormReturn}
         />
+
+        <div className="absolute inset-y-2 right-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="small"
+            onClick={() => searchCollateral(collateralNumber)}
+            text="Search"
+          />
+        </div>
       </div>
     </div>
   );
@@ -364,15 +377,43 @@ function CollateralsSection({
   useFormReturn: UseFormReturn<OutcomesFormValues>;
   chainId: SupportedChain;
 }) {
+  const activeCollateralNumber = useRef<1 | 2>(1);
+  const { Modal, openModal, closeModal } = useModal("collateral-search");
+
+  const searchCollateral = (collateralNumber: 1 | 2) => {
+    activeCollateralNumber.current = collateralNumber;
+    openModal();
+  };
+
+  const selectToken = (token: TokenListItem) => {
+    useFormReturn.setValue(`collateralToken${activeCollateralNumber.current}`, token.address);
+    window.setTimeout(() => useFormReturn.trigger(["collateralToken1", "collateralToken2"]), 1000);
+  };
+
   return (
     <>
       <div className="text-[24px] font-semibold mb-[32px]">Collateral Tokens</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px]">
-        <CollateralField collateralNumber={1} useFormReturn={useFormReturn} chainId={chainId} />
+        <CollateralField
+          collateralNumber={1}
+          useFormReturn={useFormReturn}
+          chainId={chainId}
+          searchCollateral={searchCollateral}
+        />
 
-        <CollateralField collateralNumber={2} useFormReturn={useFormReturn} chainId={chainId} />
+        <CollateralField
+          collateralNumber={2}
+          useFormReturn={useFormReturn}
+          chainId={chainId}
+          searchCollateral={searchCollateral}
+        />
       </div>
+
+      <Modal
+        title="Select Token"
+        content={<SearchToken closeModal={closeModal} selectToken={selectToken} chainId={chainId} />}
+      />
     </>
   );
 }
