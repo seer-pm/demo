@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
@@ -8,13 +7,11 @@ import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
-import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
-  DaiLogo,
   ExclamationCircleIcon,
   EyeIcon,
   LawBalanceIcon,
@@ -24,14 +21,14 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
-import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
+import { OpenInterest } from "./OpenInterest.tsx";
 import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
 
 interface MarketHeaderProps {
@@ -127,11 +124,6 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
   const marketStatus = getMarketStatus(market);
-  const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
@@ -283,25 +275,11 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
                 {MARKET_TYPES_ICONS[marketType]}
               </div>
-              <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
-            </div>
-            {!isUndefined(daiAmount) && (
-              <div className="!flex items-center gap-2 tooltip">
-                <p className="tooltiptext @[510px]:hidden">Open interest</p>
-                <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
-                {!parentMarket && (
-                  <>
-                    {displayBalance(daiAmount, 18, true)} {market.chainId === gnosis.id ? "xDAI" : "DAI"}
-                    <DaiLogo />
-                  </>
-                )}
-                {parentMarket && (
-                  <div>
-                    {displayBalance(market.outcomesSupply, 18, true)} {parentCollateral?.symbol ?? ""}
-                  </div>
-                )}
+              <div className="@[510px]:block hidden">
+                {market.type === "Futarchy" ? "Futarchy" : MARKET_TYPES_TEXTS[marketType]}
               </div>
-            )}
+            </div>
+            <OpenInterest market={market} parentMarket={parentMarket} />
           </div>
           {!isUndefined(market.verification) && (
             <Link
