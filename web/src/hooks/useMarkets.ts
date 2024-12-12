@@ -1,7 +1,11 @@
+import { RouterAbi } from "@/abi/RouterAbi";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { getRouterAddress } from "@/lib/config";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
@@ -54,11 +58,38 @@ const useGraphMarkets = (
             searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
           ),
         )
-      )
-        .flat()
-        // sort again because we are merging markets from multiple chains
-        .sort(sortMarkets(orderBy));
+      ).flat();
 
+      const winningOutcomesMapping = (
+        await Promise.all(
+          markets.map((market) => {
+            const routerAddress = getRouterAddress(market.chainId);
+            return readContract(config, {
+              abi: RouterAbi,
+              address: routerAddress as Address,
+              functionName: "getWinningOutcomes",
+              args: [market.conditionId],
+              chainId: market.chainId,
+            });
+          }),
+        )
+      ).reduce(
+        (acc, curr, index) => {
+          acc[markets[index].id] = curr as boolean[];
+          return acc;
+        },
+        {} as { [key: string]: boolean[] },
+      );
+
+      const payoutReportedMapping = markets.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr.payoutReported;
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      );
+      // sort again because we are merging markets from multiple chains
+      markets.sort(sortMarkets(orderBy, { payoutReportedMapping, winningOutcomesMapping }));
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
       }

@@ -69,7 +69,13 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(orderBy: Market_OrderBy | undefined) {
+export function sortMarkets(
+  orderBy: Market_OrderBy | undefined,
+  additionalData?: {
+    payoutReportedMapping: { [key: string]: boolean };
+    winningOutcomesMapping: { [key: string]: boolean[] };
+  },
+) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -85,6 +91,25 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
         STATUS_PRIORITY[b.verification?.status || "not_verified"];
       if (statusDiff !== 0) {
         return statusDiff;
+      }
+
+      //if underlying token is worthless we put it after
+      if (additionalData) {
+        const { winningOutcomesMapping, payoutReportedMapping } = additionalData;
+        const underlyingA = payoutReportedMapping[a.parentMarket]
+          ? winningOutcomesMapping[a.parentMarket]
+            ? winningOutcomesMapping[a.parentMarket][Number(a.parentOutcome)]
+            : true
+          : true;
+        const underlyingB = payoutReportedMapping[b.parentMarket]
+          ? winningOutcomesMapping[b.parentMarket]
+            ? winningOutcomesMapping[b.parentMarket][Number(b.parentOutcome)]
+            : true
+          : true;
+        if (underlyingA !== underlyingB) {
+          if (underlyingA) return -1;
+          return 1;
+        }
       }
 
       // by open interest (outcomesSupply)
