@@ -1,0 +1,93 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "AlgebraVaultFactoryStub",
+  "sourceName": "contracts/AlgebraVaultFactoryStub.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_algebraCommunityVault",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "createVaultForPool",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "defaultAlgebraCommunityVault",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "getVaultForPool",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60a060405234801561001057600080fd5b5060405161015e38038061015e8339818101604052602081101561003357600080fd5b50516001600160a01b03811661004857600080fd5b6001600160a01b031660805260805160ec610072600039600081816058015260a9015260ec6000f3fe6080604052348015600f57600080fd5b5060043610603c5760003560e01c80637570e389146041578063b7a854521460a5578063b8a1d3c61460cb575b600080fd5b607c60048036036020811015605557600080fd5b507f0000000000000000000000000000000000000000000000000000000000000000919050565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b607c7f000000000000000000000000000000000000000000000000000000000000000081565b607c600480360360a0811015605557600080fdfea164736f6c6343000814000a",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b5060043610603c5760003560e01c80637570e389146041578063b7a854521460a5578063b8a1d3c61460cb575b600080fd5b607c60048036036020811015605557600080fd5b507f0000000000000000000000000000000000000000000000000000000000000000919050565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b607c7f000000000000000000000000000000000000000000000000000000000000000081565b607c600480360360a0811015605557600080fdfea164736f6c6343000814000a",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

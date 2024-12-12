@@ -64,7 +64,7 @@ const config: HardhatUserConfig = {
         auto: false,
         interval: 100,
       },
-      saveDeployments: true,
+      // saveDeployments: true,
       // gas: "auto",
     },
     localhost: {
