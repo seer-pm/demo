@@ -5,7 +5,7 @@ import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets }
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
+import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
@@ -59,20 +59,20 @@ const useGraphMarkets = (
           ),
         )
       ).flat();
-
       const winningOutcomesMapping = (
-        await Promise.all(
-          markets.map((market) => {
+        (await readContracts(config, {
+          contracts: markets.map((market) => {
             const routerAddress = getRouterAddress(market.chainId);
-            return readContract(config, {
+            return {
               abi: RouterAbi,
               address: routerAddress as Address,
               functionName: "getWinningOutcomes",
               args: [market.conditionId],
               chainId: market.chainId,
-            });
+            };
           }),
-        )
+          allowFailure: false,
+        })) as unknown as boolean[][]
       ).reduce(
         (acc, curr, index) => {
           acc[markets[index].id] = curr as boolean[];
