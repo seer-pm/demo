@@ -327,7 +327,12 @@ export function PreviewForm({
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: dummyOutcomes,
-    parentMarket: parentMarketAddress as Address,
+    parentMarket: {
+      id: parentMarketAddress as Address,
+      conditionId: "0x000",
+      payoutReported: false,
+      payoutNumerators: [0n, 0n],
+    },
     parentOutcome: BigInt(parentOutcomeIndex),
     wrappedTokens: dummyOutcomes.map((_) => "0x000"),
     outcomesSupply: 0n,
@@ -338,6 +343,7 @@ export function PreviewForm({
     lowerBound: BigInt(outcomesValues.lowerBound.value),
     upperBound: BigInt(outcomesValues.upperBound.value),
     payoutReported: true,
+    payoutNumerators: [0n, 0n],
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
       (_) => ({
         id: "0x000",

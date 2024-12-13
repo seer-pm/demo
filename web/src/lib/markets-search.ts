@@ -18,7 +18,7 @@ import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
-import { Address } from "viem";
+import { Address, zeroAddress, zeroHash } from "viem";
 import { unescapeJson } from "./reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "./utils";
 
@@ -69,10 +69,7 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(
-  orderBy: Market_OrderBy | undefined,
-  conditionIdToWinningOutcomesMapping?: { [key: string]: boolean[] },
-) {
+export function sortMarkets(orderBy: Market_OrderBy | undefined) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -96,20 +93,18 @@ export function sortMarkets(
       }
 
       //if underlying token is worthless we put it after
-      if (conditionIdToWinningOutcomesMapping) {
-        const parentAPayoutReported =
-          a.parentConditionId && conditionIdToWinningOutcomesMapping[a.parentConditionId]?.some((x) => x);
-        const parentBPayoutReported =
-          b.parentConditionId && conditionIdToWinningOutcomesMapping[b.parentConditionId]?.some((x) => x);
-        const underlyingA = parentAPayoutReported
-          ? conditionIdToWinningOutcomesMapping[a.parentConditionId!][Number(a.parentOutcome)]
-          : true;
-        const underlyingB = parentBPayoutReported
-          ? conditionIdToWinningOutcomesMapping[b.parentConditionId!][Number(b.parentOutcome)]
-          : true;
-        if (underlyingA !== underlyingB) {
-          if (underlyingA) return -1;
-          return 1;
+      if (a.parentMarket.id !== zeroAddress || b.parentMarket.id !== zeroAddress) {
+        const underlyingAWorthless =
+          a.parentMarket.id !== zeroAddress &&
+          a.parentMarket.payoutReported &&
+          a.parentMarket.payoutNumerators[Number(a.parentOutcome)] === 0n;
+        const underlyingBWorthless =
+          b.parentMarket.id !== zeroAddress &&
+          b.parentMarket.payoutReported &&
+          b.parentMarket.payoutNumerators[Number(b.parentOutcome)] === 0n;
+
+        if (underlyingAWorthless !== underlyingBWorthless) {
+          return underlyingAWorthless ? 1 : -1;
         }
       }
 
@@ -149,7 +144,12 @@ function mapGraphMarket(
       }
       return unescapeJson(outcome);
     }),
-    parentMarket: market.parentMarket as Address,
+    parentMarket: {
+      id: (market.parentMarket?.id as Address) || zeroAddress,
+      conditionId: market.parentMarket?.conditionId || zeroHash,
+      payoutReported: market.parentMarket?.payoutReported || false,
+      payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
+    },
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),
@@ -168,6 +168,7 @@ function mapGraphMarket(
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     blockTimestamp: Number(market.blockTimestamp),
+    payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
   };
 }

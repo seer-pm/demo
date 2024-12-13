@@ -79,7 +79,7 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {market.parentMarket === zeroAddress && (
+      {market.parentMarket.id === zeroAddress && (
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 

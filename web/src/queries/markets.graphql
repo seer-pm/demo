@@ -16,10 +16,13 @@ fragment Market on Market {
   marketName
   outcomes
   wrappedTokens
-  parentMarket
+  parentMarket {
+    id
+    payoutReported
+    conditionId
+    payoutNumerators
+  }
   parentOutcome
-  parentConditionId
-  parentPayoutReported
   parentCollectionId
   conditionId
   questionId
@@ -42,6 +45,7 @@ fragment Market on Market {
   lowerBound
   upperBound
   payoutReported
+  payoutNumerators
   factory
   creator
   outcomesSupply

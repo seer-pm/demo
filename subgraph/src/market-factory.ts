@@ -150,7 +150,7 @@ export function processMarket(
   market.parentCollectionId = data.parentCollectionId;
   market.parentOutcome = data.parentOutcome;
   market.wrappedTokens = changetype<Bytes[]>(data.wrappedTokens);
-  market.parentMarket = data.parentMarket;
+  market.parentMarket = data.parentMarket.toHexString();
   market.collateralToken = getCollateralToken(
     data.parentMarket,
     data.parentOutcome,
@@ -164,6 +164,7 @@ export function processMarket(
   market.templateId = data.templateId;
   market.encodedQuestions = data.encodedQuestions;
   market.payoutReported = false;
+  market.payoutNumerators = data.outcomes.map<BigInt>(() => BigInt.fromI32(0));
   market.openingTs = BigInt.fromI32(0);
   market.finalizeTs = DEFAULT_FINALIZE_TS;
   market.questionsInArbitration = BigInt.fromI32(0);

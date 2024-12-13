@@ -195,7 +195,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
@@ -325,7 +325,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     </a>
 
                     {!isUndefined(pools[i]) && pools[i].length > 0 ? (
-                      pools[i].some(pool => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+                      pools[i].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
                         <button
                           type="button"
                           onClick={() => {
@@ -340,7 +340,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                           href={getLiquidityUrl(
                             market.chainId,
                             wrappedAddress,
-                            market.parentMarket === zeroAddress
+                            market.parentMarket.id === zeroAddress
                               ? COLLATERAL_TOKENS[market.chainId].primary.address
                               : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
                           )}
@@ -356,7 +356,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                         href={getLiquidityUrl(
                           market.chainId,
                           wrappedAddress,
-                          market.parentMarket === zeroAddress
+                          market.parentMarket.id === zeroAddress
                             ? COLLATERAL_TOKENS[market.chainId].primary.address
                             : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
                         )}

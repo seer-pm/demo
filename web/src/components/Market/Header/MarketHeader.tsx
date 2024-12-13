@@ -126,7 +126,7 @@ function OutcomesInfo({
 
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketStatus = getMarketStatus(market);
   const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
   const { data: parentCollateral } = useTokenInfo(

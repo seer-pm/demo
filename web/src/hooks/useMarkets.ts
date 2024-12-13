@@ -1,11 +1,7 @@
-import { RouterAbi } from "@/abi/RouterAbi";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
-import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContracts } from "@wagmi/core";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
@@ -13,8 +9,6 @@ import { useGlobalState } from "./useGlobalState";
 import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
-
-const zeroBytes = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
@@ -61,51 +55,9 @@ const useGraphMarkets = (
           ),
         )
       ).flat();
-      const conditionIdToChainIdMapping = markets.reduce(
-        (acc, curr) => {
-          acc[curr.conditionId] = curr.chainId;
-          if (curr.parentConditionId && curr.parentConditionId !== zeroBytes) {
-            acc[curr.parentConditionId] = curr.chainId;
-          }
-          return acc;
-        },
-        {} as { [key: string]: SupportedChain },
-      );
-      async function getWinningOutcomesRetryable(initialRetryCount = 10) {
-        let currentRetryCount = initialRetryCount;
-        try {
-          return (await readContracts(config, {
-            contracts: Object.entries(conditionIdToChainIdMapping).map(([conditionId, chainId]) => {
-              const routerAddress = getRouterAddress(chainId);
-              return {
-                abi: RouterAbi,
-                address: routerAddress as Address,
-                functionName: "getWinningOutcomes",
-                args: [conditionId],
-                chainId,
-              };
-            }),
-            allowFailure: false,
-          })) as unknown as boolean[][];
-        } catch (e) {
-          if (currentRetryCount < 1) {
-            throw e;
-          }
-          currentRetryCount--;
-          await new Promise((res) => setTimeout(res, 500));
-          return getWinningOutcomesRetryable(currentRetryCount);
-        }
-      }
-      const conditionIdToWinningOutcomesMapping = (await getWinningOutcomesRetryable()).reduce(
-        (acc, curr, index) => {
-          acc[Object.keys(conditionIdToChainIdMapping)[index]] = curr as boolean[];
-          return acc;
-        },
-        {} as { [key: string]: boolean[] },
-      );
 
       // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy, conditionIdToWinningOutcomesMapping));
+      markets.sort(sortMarkets(orderBy));
 
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);

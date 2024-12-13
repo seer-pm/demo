@@ -61,7 +61,7 @@ function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questio
         target="_blank"
         rel="noreferrer"
       >
-       <img src="/assets/reality-icon.jpg" className=" w-5 rounded-md" alt="Reality.eth" />
+        <img src="/assets/reality-icon.jpg" className=" w-5 rounded-md" alt="Reality.eth" />
         <span className="ml-2">
           {" "}
           <RightArrow />

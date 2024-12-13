@@ -136,7 +136,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
         />
       </div>
 
-      {market.parentMarket === zeroAddress && (
+      {market.parentMarket.id === zeroAddress && (
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 

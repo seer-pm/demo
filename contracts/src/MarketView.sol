@@ -16,6 +16,8 @@ interface IConditionalTokens {
     function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256);
 
     function payoutDenominator(bytes32 conditionId) external view returns (uint256);
+
+    function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256);
 }
 
 interface IMarketFactory {
@@ -54,11 +56,21 @@ interface IRealityETH_v3_0 {
 
 /// @dev Contract used as a frontend helper. It doesn't have any state-changing function.
 contract MarketView {
+    struct ParentMarketInfo {
+        address id;
+        string marketName;
+        string[] outcomes;
+        address[] wrappedTokens;
+        bytes32 conditionId;
+        bool payoutReported;
+        uint256[] payoutNumerators;
+    }
+
     struct MarketInfo {
         address id;
         string marketName;
         string[] outcomes;
-        address parentMarket;
+        ParentMarketInfo parentMarket;
         uint256 parentOutcome;
         address[] wrappedTokens;
         uint256 outcomesSupply;
@@ -72,6 +84,7 @@ contract MarketView {
         bytes32[] questionsIds;
         string[] encodedQuestions;
         bool payoutReported;
+        uint256[] payoutNumerators;
     }
 
     function getMarket(IMarketFactory marketFactory, Market market) public view returns (MarketInfo memory) {
@@ -89,7 +102,7 @@ contract MarketView {
             id: address(market),
             marketName: market.marketName(),
             outcomes: outcomes,
-            parentMarket: market.parentMarket(),
+            parentMarket: getParentMarketInfo(market, marketFactory.conditionalTokens()),
             parentOutcome: market.parentOutcome(),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
@@ -102,8 +115,56 @@ contract MarketView {
             questions: questions,
             questionsIds: questionsIds,
             encodedQuestions: encodedQuestions,
-            payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0
+            payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0,
+            payoutNumerators: getPayoutNumerators(conditionalTokens, market.conditionId())
         });
+    }
+
+    function getParentMarketInfo(
+        Market market,
+        IConditionalTokens conditionalTokens
+    ) internal view returns (ParentMarketInfo memory) {
+        if (market.parentMarket() == address(0)) {
+            return ParentMarketInfo({
+                id: address(0),
+                marketName: "",
+                outcomes: new string[](0),
+                wrappedTokens: new address[](0),
+                conditionId: 0,
+                payoutReported: false,
+                payoutNumerators: new uint256[](0)
+            });
+        }
+
+        Market parentMarket = Market(market.parentMarket());
+
+        (string[] memory outcomes, address[] memory wrappedTokens) =
+            getOutcomesAndTokens(conditionalTokens, parentMarket, market.conditionId());
+
+        return ParentMarketInfo({
+            id: market.parentMarket(),
+            marketName: parentMarket.marketName(),
+            outcomes: outcomes,
+            wrappedTokens: wrappedTokens,
+            conditionId: parentMarket.conditionId(),
+            payoutReported: conditionalTokens.payoutDenominator(parentMarket.conditionId()) > 0,
+            payoutNumerators: getPayoutNumerators(conditionalTokens, parentMarket.conditionId())
+        });
+    }
+
+    function getPayoutNumerators(
+        IConditionalTokens conditionalTokens,
+        bytes32 conditionId
+    ) internal view returns (uint256[] memory payoutNumerators) {
+        uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(conditionId);
+
+        payoutNumerators = new uint256[](outcomeSlotCount);
+
+        for (uint256 i = 0; i < outcomeSlotCount; i++) {
+            payoutNumerators[i] = conditionalTokens.payoutNumerators(conditionId, i);
+        }
+
+        return payoutNumerators;
     }
 
     function getOutcomesAndTokens(

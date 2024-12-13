@@ -157,7 +157,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
         />
       </div>
 
-      {market.parentMarket === zeroAddress && (
+      {market.parentMarket.id === zeroAddress && (
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
 

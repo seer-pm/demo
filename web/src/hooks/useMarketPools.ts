@@ -174,7 +174,7 @@ const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral, isLoading } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,
