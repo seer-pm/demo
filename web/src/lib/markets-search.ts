@@ -13,7 +13,7 @@ import {
   getSdk as getSeerSdk,
 } from "@/hooks/queries/gql-generated-seer";
 import { Market, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
@@ -71,10 +71,7 @@ async function getVerificationStatusList(
 
 export function sortMarkets(
   orderBy: Market_OrderBy | undefined,
-  additionalData?: {
-    payoutReportedMapping: { [key: string]: boolean };
-    winningOutcomesMapping: { [key: string]: boolean[] };
-  },
+  conditionIdToWinningOutcomesMapping?: { [key: string]: boolean[] },
 ) {
   const STATUS_PRIORITY = {
     verified: 0,
@@ -85,31 +82,43 @@ export function sortMarkets(
 
   return (a: Market, b: Market) => {
     if (!orderBy) {
+      // closed markets will be put on the back
+      try {
+        const marketStatusA = getMarketStatus(a);
+        const marketStatusB = getMarketStatus(b);
+
+        if (marketStatusA !== marketStatusB) {
+          if (marketStatusA === MarketStatus.CLOSED) return 1;
+          if (marketStatusB === MarketStatus.CLOSED) return -1;
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      //if underlying token is worthless we put it after
+      if (conditionIdToWinningOutcomesMapping) {
+        const parentAPayoutReported =
+          a.parentConditionId && conditionIdToWinningOutcomesMapping[a.parentConditionId]?.some((x) => x);
+        const parentBPayoutReported =
+          b.parentConditionId && conditionIdToWinningOutcomesMapping[b.parentConditionId]?.some((x) => x);
+        const underlyingA = parentAPayoutReported
+          ? conditionIdToWinningOutcomesMapping[a.parentConditionId!][Number(a.parentOutcome)]
+          : true;
+        const underlyingB = parentBPayoutReported
+          ? conditionIdToWinningOutcomesMapping[b.parentConditionId!][Number(b.parentOutcome)]
+          : true;
+        if (underlyingA !== underlyingB) {
+          if (underlyingA) return -1;
+          return 1;
+        }
+      }
+
       //by verification status
       const statusDiff =
         STATUS_PRIORITY[a.verification?.status || "not_verified"] -
         STATUS_PRIORITY[b.verification?.status || "not_verified"];
       if (statusDiff !== 0) {
         return statusDiff;
-      }
-
-      //if underlying token is worthless we put it after
-      if (additionalData) {
-        const { winningOutcomesMapping, payoutReportedMapping } = additionalData;
-        const underlyingA = payoutReportedMapping[a.parentMarket]
-          ? winningOutcomesMapping[a.parentMarket]
-            ? winningOutcomesMapping[a.parentMarket][Number(a.parentOutcome)]
-            : true
-          : true;
-        const underlyingB = payoutReportedMapping[b.parentMarket]
-          ? winningOutcomesMapping[b.parentMarket]
-            ? winningOutcomesMapping[b.parentMarket][Number(b.parentOutcome)]
-            : true
-          : true;
-        if (underlyingA !== underlyingB) {
-          if (underlyingA) return -1;
-          return 1;
-        }
       }
 
       // by open interest (outcomesSupply)

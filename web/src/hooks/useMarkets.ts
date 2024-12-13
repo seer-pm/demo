@@ -14,6 +14,8 @@ import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
 
+const zeroBytes = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
   marketName: string,
@@ -59,37 +61,52 @@ const useGraphMarkets = (
           ),
         )
       ).flat();
-      const winningOutcomesMapping = (
-        (await readContracts(config, {
-          contracts: markets.map((market) => {
-            const routerAddress = getRouterAddress(market.chainId);
-            return {
-              abi: RouterAbi,
-              address: routerAddress as Address,
-              functionName: "getWinningOutcomes",
-              args: [market.conditionId],
-              chainId: market.chainId,
-            };
-          }),
-          allowFailure: false,
-        })) as unknown as boolean[][]
-      ).reduce(
+      const conditionIdToChainIdMapping = markets.reduce(
+        (acc, curr) => {
+          acc[curr.conditionId] = curr.chainId;
+          if (curr.parentConditionId && curr.parentConditionId !== zeroBytes) {
+            acc[curr.parentConditionId] = curr.chainId;
+          }
+          return acc;
+        },
+        {} as { [key: string]: SupportedChain },
+      );
+      async function getWinningOutcomesRetryable(initialRetryCount = 10) {
+        let currentRetryCount = initialRetryCount;
+        try {
+          return (await readContracts(config, {
+            contracts: Object.entries(conditionIdToChainIdMapping).map(([conditionId, chainId]) => {
+              const routerAddress = getRouterAddress(chainId);
+              return {
+                abi: RouterAbi,
+                address: routerAddress as Address,
+                functionName: "getWinningOutcomes",
+                args: [conditionId],
+                chainId,
+              };
+            }),
+            allowFailure: false,
+          })) as unknown as boolean[][];
+        } catch (e) {
+          if (currentRetryCount < 1) {
+            throw e;
+          }
+          currentRetryCount--;
+          await new Promise((res) => setTimeout(res, 500));
+          return getWinningOutcomesRetryable(currentRetryCount);
+        }
+      }
+      const conditionIdToWinningOutcomesMapping = (await getWinningOutcomesRetryable()).reduce(
         (acc, curr, index) => {
-          acc[markets[index].id] = curr as boolean[];
+          acc[Object.keys(conditionIdToChainIdMapping)[index]] = curr as boolean[];
           return acc;
         },
         {} as { [key: string]: boolean[] },
       );
 
-      const payoutReportedMapping = markets.reduce(
-        (acc, curr) => {
-          acc[curr.id] = curr.payoutReported;
-          return acc;
-        },
-        {} as { [key: string]: boolean },
-      );
       // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy, { payoutReportedMapping, winningOutcomesMapping }));
+      markets.sort(sortMarkets(orderBy, conditionIdToWinningOutcomesMapping));
+
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
       }

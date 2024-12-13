@@ -18,6 +18,8 @@ fragment Market on Market {
   wrappedTokens
   parentMarket
   parentOutcome
+  parentConditionId
+  parentPayoutReported
   parentCollectionId
   conditionId
   questionId
