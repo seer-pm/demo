@@ -431,6 +431,7 @@ describe("TradeManager", function () {
     });
 
     describe("trade conditional market", function () {
+      const amountIn = ethers.parseEther("50");
       let conditionalMarket: Market;
       let firstConditionalOutcomeToken: IERC20;
       let secondConditionalOutcomeToken: IERC20;
@@ -478,8 +479,56 @@ describe("TradeManager", function () {
           )[0],
         )) as unknown as IERC20;
       });
+      it("gets third conditional outcome tokens from collateral without any pools", async function () {
+        const { paths, amountIns } = await getTradePaths(
+          collateralToken as unknown as IERC20,
+          conditionalMarket,
+          await thirdConditionalOutcomeToken.getAddress(),
+          amountIn,
+          true,
+        );
+        expect(paths[0].choice).to.equal(1);
+        expect(paths[1].choice).to.equal(1);
+        expect(amountIns[1]).to.equal(amountIns[0]);
+        expect(amountIns[2]).to.equal(amountIns[1]);
+        const balancesBeforeTrade = await Promise.all([
+          firstOutcomeToken.balanceOf(trader),
+          secondOutcomeToken.balanceOf(trader),
+          thirdOutcomeToken.balanceOf(trader),
+          firstConditionalOutcomeToken.balanceOf(trader),
+          secondConditionalOutcomeToken.balanceOf(trader),
+          thirdConditionalOutcomeToken.balanceOf(trader),
+        ]);
+        expect(balancesBeforeTrade).to.deep.equal([0, 0, 0, 0, 0, 0]);
+        await collateralToken.connect(trader).approve(tradeManager, amountIn);
+        const amountOut = await tradeManager.connect(trader).exactInput.staticCall(paths, {
+          recipient: trader,
+          originalRecipient: trader,
+          deadline: Math.floor(new Date().getTime() / 1000) + 3600,
+          amountIn,
+          amountOutMinimum: 0,
+        });
+        // amountOut equal to amountIn
+        expect(amountOut).to.equal(amountIn);
+        await tradeManager.connect(trader).exactInput(paths, {
+          recipient: trader,
+          originalRecipient: trader,
+          deadline: Math.floor(new Date().getTime() / 1000) + 3600,
+          amountIn,
+          amountOutMinimum: 0,
+        });
+        const balancesAfterTrade = await Promise.all([
+          firstOutcomeToken.balanceOf(trader),
+          secondOutcomeToken.balanceOf(trader),
+          thirdOutcomeToken.balanceOf(trader),
+          firstConditionalOutcomeToken.balanceOf(trader),
+          secondConditionalOutcomeToken.balanceOf(trader),
+          thirdConditionalOutcomeToken.balanceOf(trader),
+        ]);
+        // we use firstOutcomeToken to mint a full set of conditional tokens so the balance should be 0
+        expect(balancesAfterTrade).to.deep.equal([0, amountIn, amountIn, amountIn, amountIn, amountIn]);
+      });
       describe("mint on parent market, swap or mint on conditional market", function () {
-        const amountIn = ethers.parseEther("50");
         // we only provide liquidity to the conditional market
         beforeEach(async function () {
           const isCollateralToken1 =
