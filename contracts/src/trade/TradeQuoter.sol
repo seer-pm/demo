@@ -12,12 +12,11 @@ contract TradeQuoter {
     /// @dev SavingsXDai contract.
     IERC4626 public constant sDAI =
         IERC4626(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
+
     /// @dev Quoter contract.
-    ISingleQuoter public constant swaprQuoter =
-        ISingleQuoter(0xcBaD9FDf0D2814659Eb26f600EFDeAF005Eda0F7);
+    ISingleQuoter public immutable swaprQuoter;
     /// @dev ConditionalTokens contract.
-    IConditionalTokens public constant conditionalTokens =
-        IConditionalTokens(0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce);
+    IConditionalTokens public immutable conditionalTokens;
 
     /// @dev Struct for quote.
     /// @param tokenIn Input token address.
@@ -31,6 +30,17 @@ contract TradeQuoter {
         address tokenInMarket;
         address tokenOutMarket;
         uint256 amountIn;
+    }
+
+    /// @dev Constructor.
+    /// @param _swaprQuoter Quoter contract.
+    /// @param _conditionalTokens ConditionalTokens contract.
+    constructor(
+        ISingleQuoter _swaprQuoter,
+        IConditionalTokens _conditionalTokens
+    ) {
+        swaprQuoter = _swaprQuoter;
+        conditionalTokens = _conditionalTokens;
     }
 
     /// @dev Generates a quote for swapping tokens.

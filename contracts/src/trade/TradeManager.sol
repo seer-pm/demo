@@ -13,25 +13,25 @@ contract TradeManager {
     /// @dev SavingsXDai contract.
     IERC4626 public constant sDAI =
         IERC4626(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
-    /// @dev SwapRouter contract.
-    ISingleSwapRouter public constant swaprRouter =
-        ISingleSwapRouter(0xfFB643E73f280B97809A8b41f7232AB401a04ee1);
-    /// @dev GnosisRouter contract.
-    IRouter public constant gnosisRouter =
-        IRouter(0xeC9048b59b3467415b1a38F63416407eA0c70fB8);
-    /// @dev ConditionalTokens contract.
-    IConditionalTokens public constant conditionalTokens =
-        IConditionalTokens(0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce);
     /// @dev SavingsXDaiAdapter contract.
     SavingsXDaiAdapter public constant savingsXDaiAdapter =
         SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94);
-    
+
+    /// @dev ERC20 token used as collateral for ConditionalTokens.
+    IERC20 public immutable collateral;
+    /// @dev SwapRouter contract.
+    ISingleSwapRouter public immutable swaprRouter;
+    /// @dev GnosisRouter contract.
+    IRouter public immutable gnosisRouter;
+    /// @dev ConditionalTokens contract.
+    IConditionalTokens public immutable conditionalTokens;
+
     /// @dev Enum to define trade choices between swapping and minting.
     enum TradeChoice {
         Swap,
         Mint
     }
-    
+
     /// @dev Struct to define token path (tokenIn -> tokenOut) for trading.
     /// @param tokenIn Input token address.
     /// @param tokenOut Output token address.
@@ -58,6 +58,23 @@ contract TradeManager {
         uint256 deadline;
         uint256 amountIn;
         uint256 amountOutMinimum;
+    }
+
+    /// @dev Constructor.
+    /// @param _swaprRouter SwapRouter contract.
+    /// @param _gnosisRouter GnosisRouter contract.
+    /// @param _conditionalTokens ConditionalTokens contract.
+    /// @param _collateral ERC20 token used as collateral in ConditionalTokens.
+    constructor(
+        ISingleSwapRouter _swaprRouter,
+        IRouter _gnosisRouter,
+        IConditionalTokens _conditionalTokens,
+        IERC20 _collateral
+    ) {
+        swaprRouter = _swaprRouter;
+        gnosisRouter = _gnosisRouter;
+        conditionalTokens = _conditionalTokens;
+        collateral = _collateral;
     }
 
     /// @dev Performs exact input trades across multiple token paths.
@@ -208,7 +225,7 @@ contract TradeManager {
             additionalTradeParams.amountIn
         );
         gnosisRouter.splitPosition(
-            address(sDAI),
+            address(collateral),
             address(path.tokenOutMarket),
             additionalTradeParams.amountIn
         );

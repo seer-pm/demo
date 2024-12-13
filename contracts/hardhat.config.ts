@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS }from "hardhat/builtin-tasks/task-names";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
 import "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
@@ -54,9 +54,12 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+
   networks: {
     hardhat: {
       chainId: 31337,
+      allowUnlimitedContractSize: true,
+
       // forking: {
       //   url: "https://rpc.gnosischain.com",
       // },
@@ -81,15 +84,13 @@ const config: HardhatUserConfig = {
     ethereum: {
       chainId: 1,
       url: "https://eth.llamarpc.com",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
     },
     gnosis: {
       chainId: 100,
       url: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
       verify: {
         etherscan: {
@@ -100,8 +101,7 @@ const config: HardhatUserConfig = {
     goerli: {
       chainId: 5,
       url: process.env.GOERLI_RPC || "https://rpc.ankr.com/eth_goerli",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
       verify: {
         etherscan: {
@@ -112,8 +112,7 @@ const config: HardhatUserConfig = {
     sepolia: {
       chainId: 11155111,
       url: process.env.SEPOLIA_RPC || "https://rpc2.sepolia.org",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
       verify: {
         etherscan: {
