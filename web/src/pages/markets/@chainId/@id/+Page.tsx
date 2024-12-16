@@ -7,6 +7,7 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
+import { useLiquidityBarData } from "@/hooks/liquidity/useLiquidityBarData";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -153,6 +154,7 @@ function MarketPage() {
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
+  useLiquidityBarData();
   if (isMarketError) {
     return (
       <div className="container py-10">
