@@ -11,6 +11,8 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { getTimeLeft } from "@/lib/utils";
+
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -140,6 +142,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate = getMarketEstimate(odds, market, true);
+  const firstQuestion = market.questions[0];
+
   return (
     <div
       className={clsx(
@@ -236,12 +240,22 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
           ) : (
-            <div className="flex space-x-2 items-center text-[14px]">
-              <EyeIcon />{" "}
-              <span className="text-purple-primary cursor-pointer" onClick={() => setShowMarketInfo(!showMarketInfo)}>
-                {showMarketInfo ? "Hide questions" : "Show questions"}
-              </span>
-            </div>
+            <>
+            
+              <div className="flex space-x-2 items-center text-[14px]">
+                {marketType === MarketTypes.MULTI_SCALAR && firstQuestion.finalize_ts > 0 && (
+                  <div className="text-black-secondary">
+                     Deadline: {getTimeLeft(firstQuestion.finalize_ts)}
+                  </div>
+                )}
+              </div>
+              <div className="flex space-x-2 items-center text-[14px]">
+                <EyeIcon />{" "}
+                <span className="text-purple-primary cursor-pointer" onClick={() => setShowMarketInfo(!showMarketInfo)}>
+                  {showMarketInfo ? "Hide questions" : "Show questions"}
+                </span>
+              </div>
+            </>
           )}
         </div>
       </div>
