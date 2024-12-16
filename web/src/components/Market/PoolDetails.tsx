@@ -55,7 +55,8 @@ function LiquidityBarChart({
               },
               rich: {
                 bold: {
-                  fontWeight: "bold", // Apply bold font weight to the text
+                  fontWeight: "bold",
+                  color: "#9747ff",
                 },
               },
             },
