@@ -72,7 +72,7 @@ export const isUndefined = (maybeObject: any): maybeObject is undefined | null =
   return typeof maybeObject === "undefined" || maybeObject === null;
 };
 
-function formatBigNumbers(amount: number) {
+export function formatBigNumbers(amount: number) {
   const quantifiers: [number, string][] = [
     [10 ** 9, "B"],
     [10 ** 6, "M"],

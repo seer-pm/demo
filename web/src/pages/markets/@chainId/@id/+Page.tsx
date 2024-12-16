@@ -7,7 +7,6 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
-import { useLiquidityBarData } from "@/hooks/liquidity/useLiquidityBarData";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -43,7 +42,6 @@ function SwapWidget({
     market.chainId,
   );
   const marketStatus = getMarketStatus(market);
-
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   if (marketStatus === MarketStatus.CLOSED) {
     return null;
@@ -66,79 +64,6 @@ function SwapWidget({
   );
 }
 
-// function PoolDetails({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
-//   const { data = [] } = useMarketPools(market);
-//   const poolDataPerToken = data[outcomeIndex];
-//   const { data: poolTokensBalances = [], isLoading } = useQuery<
-//     | {
-//         balance0: string;
-//         balance1: string;
-//       }[]
-//     | undefined,
-//     Error
-//   >({
-//     enabled: poolDataPerToken?.length > 0,
-//     queryKey: ["usePoolTokensBalances", poolDataPerToken?.map((x) => x.id)],
-//     queryFn: async () => {
-//       return await Promise.all(
-//         poolDataPerToken.map(async ({ id, token0, token1 }) => {
-//           const balance0BigInt = await fetchTokenBalance(token0, id, market.chainId);
-//           const balance1BigInt = await fetchTokenBalance(token1, id, market.chainId);
-//           return {
-//             balance0: displayBalance(balance0BigInt, 18, true),
-//             balance1: displayBalance(balance1BigInt, 18, true),
-//           };
-//         }),
-//       );
-//     },
-//     refetchOnWindowFocus: true,
-//   });
-
-//   if (!poolDataPerToken?.length) return null;
-//   return (
-//     <div className="space-y-3 bg-white p-[24px] drop-shadow">
-//       {poolDataPerToken.map((dataPerPool, poolIndex) => {
-//         const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
-//         return (
-//           <div key={poolId}>
-//             <div>
-//               <p className="font-semibold">Pool Id</p>
-//               <div className="flex items-center gap-2">
-//                 <Link
-//                   to={getPoolUrl(market.chainId, poolId)}
-//                   title={poolId}
-//                   className="hover:underline text-purple-primary"
-//                   target="_blank"
-//                   rel="noopener noreferrer"
-//                 >
-//                   {poolId.slice(0, 6)}...{poolId.slice(-4)}
-//                 </Link>
-//                 <CopyButton textToCopy={poolId} size={18} />
-//               </div>
-//             </div>
-//             <div>
-//               <p className="font-semibold">Pool Balances</p>
-//               {isLoading ? (
-//                 <div className="shimmer-container w-20 h-4"></div>
-//               ) : (
-//                 <>
-//                   <p className="text-[14px]">
-//                     {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
-//                   </p>
-//                   <p className="text-[14px]">
-//                     {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
-//                   </p>
-//                 </>
-//               )}
-//             </div>
-//             {poolIndex !== poolDataPerToken.length - 1 && <div className="w-full h-[1px] bg-black-medium mt-2"></div>}
-//           </div>
-//         );
-//       })}
-//     </div>
-//   );
-// }
-
 function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
@@ -154,7 +79,7 @@ function MarketPage() {
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
-  useLiquidityBarData();
+
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -230,7 +155,6 @@ function MarketPage() {
             {market && <Outcomes market={market} images={images?.outcomes} />}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            {/* <PoolDetails market={market} outcomeIndex={outcomeIndex} /> */}
             <SwapWidget
               router={router}
               market={market}

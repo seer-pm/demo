@@ -41,6 +41,8 @@ export interface PoolInfo {
   totalValueLockedToken0: number;
   totalValueLockedToken1: number;
   incentives: PoolIncentive[];
+  liquidity: bigint;
+  tick: number;
 }
 
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
@@ -112,6 +114,8 @@ async function getSwaprPools(
       token1: pool.token1.id as Address,
       token0Price: Number(pool.token0Price),
       token1Price: Number(pool.token1Price),
+      liquidity: BigInt(pool.liquidity),
+      tick: Number(pool.tick),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
@@ -150,6 +154,8 @@ async function getUniswapPools(
       token1: pool.token1.id as Address,
       token0Price: Number(pool.token0Price),
       token1Price: Number(pool.token1Price),
+      liquidity: BigInt(pool.liquidity),
+      tick: Number(pool.tick),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
@@ -159,7 +165,7 @@ async function getUniswapPools(
   );
 }
 
-const getPools = memoize((chainId: SupportedChain) => {
+export const getPools = memoize((chainId: SupportedChain) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {

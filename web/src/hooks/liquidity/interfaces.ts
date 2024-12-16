@@ -1,26 +1,26 @@
-import { JSBI } from "@swapr/sdk";
-import { Price, Token } from "@uniswap/sdk-core";
+import JSBI from "jsbi";
 
-export interface GraphQueriedTick {
-  liquidityNet: string;
+export interface GraphTick {
   tickIdx: string;
+  liquidityGross: string;
+  liquidityNet: string;
 }
 
-// Tick with fields parsed to JSBIs, and active liquidity computed.
 export interface TickProcessed {
-  tick: number;
+  tickIdx: number;
   liquidityActive: JSBI;
   liquidityNet: JSBI;
-  price0: string;
-  sdkPrice: Price<Token, Token>;
+  price0: number;
+  price1: number;
+  isCurrent: boolean;
 }
 
-export interface LiquidityBarData {
-  time: number;
-  tick: number;
-  price0: string;
-  price1: string;
-  liquidity: number;
-  amount0Locked: number;
-  amount1Locked: number;
+export interface BarChartTick {
+  tickIdx: number;
+  liquidityActive: number;
+  liquidityLockedToken0: number;
+  liquidityLockedToken1: number;
+  price0: number;
+  price1: number;
+  isCurrent: boolean;
 }
