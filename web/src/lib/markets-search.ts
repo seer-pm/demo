@@ -1,3 +1,4 @@
+import { STATUS_TEXTS } from "@/components/Market/Header";
 import {
   lightGeneralizedTcrAddress,
   marketFactoryAddress,
@@ -69,7 +70,10 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(orderBy: Market_OrderBy | undefined) {
+export function sortMarkets(
+  orderBy: Market_OrderBy | undefined,
+  marketToLiquidityCheckMapping?: { [key: string]: boolean },
+) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -114,6 +118,20 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
         STATUS_PRIORITY[b.verification?.status || "not_verified"];
       if (statusDiff !== 0) {
         return statusDiff;
+      }
+
+      // if market has no liquidity we not prioritize it
+      if (marketToLiquidityCheckMapping) {
+        try {
+          const statusTextA = STATUS_TEXTS[getMarketStatus(a)](marketToLiquidityCheckMapping[a.id]);
+          const statusTextB = STATUS_TEXTS[getMarketStatus(b)](marketToLiquidityCheckMapping[b.id]);
+          if (statusTextA !== statusTextB) {
+            if (statusTextA === "Liquidity Required") return 1;
+            if (statusTextB === "Liquidity Required") return -1;
+          }
+        } catch (e) {
+          console.log(e);
+        }
       }
 
       // by open interest (outcomesSupply)

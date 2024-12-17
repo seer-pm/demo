@@ -1,6 +1,7 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
+import { createClient } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -9,6 +10,9 @@ import { useGlobalState } from "./useGlobalState";
 import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
+
+// Create a single supabase client for interacting with your database
+const supabase = createClient(import.meta.env.VITE_SUPABASE_PROJECT_URL, import.meta.env.VITE_SUPABASE_API_KEY);
 
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
@@ -55,9 +59,19 @@ const useGraphMarkets = (
           ),
         )
       ).flat();
-
+      let marketToLiquidityCheckMapping: { [key: string]: boolean } | undefined;
+      try {
+        const { data } = await supabase.from("markets").select();
+        marketToLiquidityCheckMapping = data?.reduce(
+          (acc, curr) => {
+            acc[curr.id] = curr.odds.some((odd: number | null) => (odd ?? 0) > 0);
+            return acc;
+          },
+          {} as { [key: string]: boolean },
+        );
+      } catch (e) {}
       // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy));
+      markets.sort(sortMarkets(orderBy, marketToLiquidityCheckMapping));
 
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
