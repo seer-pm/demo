@@ -63,6 +63,7 @@ export default async (request: Request, context: Context) => {
       .map((odd, i) => ({ odd, i }))
       .sort((a, b) => (b.odd ?? 0) - (a.odd ?? 0))
       .map((obj) => obj.i);
+
     return new ImageResponse(
       <div
         style={{
@@ -126,11 +127,9 @@ export default async (request: Request, context: Context) => {
               marginTop: 24,
               marginBottom: 0,
               height: "4.2em",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
             }}
           >
-            {market.marketName.length > 140 ? `${market.marketName.slice(0, 140 - 3)}...` : market.marketName}
+            {market.marketName.length > 130 ? `${market.marketName.slice(0, 130 - 3)}...` : market.marketName}
           </p>
           <div style={{ display: "flex", flexDirection: "column", marginTop: 36 }}>
             {getMarketType(market) === MarketTypes.SCALAR && marketEstimate !== "NA" && (
