@@ -24,7 +24,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
   }
   const chainId = Number(chainIdString) as SupportedChain;
   const market = await fetchMarket(marketId, chainIdString);
-  const parentMarket = market.parentMarket;
+  const parentMarket = market.parentMarket.id;
   if (parentMarket && !isTwoStringsEqual(parentMarket, zeroAddress)) {
     console.log("skip conditional market ", marketId);
     return;

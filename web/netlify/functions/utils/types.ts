@@ -25,7 +25,7 @@ export interface Market extends MarketOffChainFields {
   marketName: string;
   outcomes: readonly string[];
   wrappedTokens: Address[];
-  parentMarket: Address;
+  parentMarket: { id: Address };
   parentOutcome: bigint;
   //MarketView's outcomesSupply is buggy
   //outcomesSupply: bigint;
