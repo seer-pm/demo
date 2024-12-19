@@ -24,6 +24,8 @@ export const useLiquidityChartData = (market: Market) => {
             price1List: string[];
             amount0List: number[];
             amount1List: number[];
+            amount0NeedList: number[];
+            amount1NeedList: number[];
           };
         }
       | undefined

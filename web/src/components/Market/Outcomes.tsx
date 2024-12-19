@@ -256,6 +256,7 @@ export function Outcomes({ market, images }: PositionsProps) {
     <div>
       <PoolDetailsModal
         title="Pool details"
+        className="!max-w-[60vw]"
         content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
       />
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>

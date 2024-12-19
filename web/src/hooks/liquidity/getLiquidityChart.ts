@@ -26,7 +26,7 @@ async function getTicks(chainId: SupportedChain, poolId: string) {
       orderDirection: OrderDirection.Asc as any,
       where: {
         poolAddress: poolId,
-        liquidityNet_not: "0",
+        // liquidityNet_not: "0",
         ...(tickIdx && { tickIdx_gt: tickIdx }),
       },
     });
@@ -58,62 +58,96 @@ export async function getLiquidityChart(chainId: SupportedChain, token0: Address
           amount1: number;
           activeLiquidity: bigint;
           currentTick: number;
+          nextTick: number;
+          amount0Need: number;
+          amount1Need: number;
         };
       } = {};
-      const price0List = lowerTicks
-        .map((t) => t.price0)
-        .concat(pool.token1Price.toString())
-        .concat(higherTicks.map((t) => t.price0))
-        .map((x) => Number(x).toFixed(4));
-      const price1List = lowerTicks
-        .map((t) => t.price1)
-        .concat(pool.token0Price.toString())
-        .concat(higherTicks.map((t) => t.price1))
-        .map((x) => Number(x).toFixed(4));
       for (let i = 0; i < higherTicks.length; i++) {
         currentLiquidity = currentLiquidity + BigInt(higherTicks[i - 1]?.liquidityNet ?? 0);
+        if (currentLiquidity === 0n) {
+          continue;
+        }
         const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentHighTick).toString());
         const sqrtB = BigInt(TickMath.getSqrtRatioAtTick(Number(higherTicks[i].tickIdx)).toString());
 
         const amount0 = (currentLiquidity * 2n ** 96n * (sqrtB - sqrtP)) / (sqrtB * sqrtP);
+        const amount1Need = (currentLiquidity * (sqrtB - sqrtP)) / 2n ** 96n;
+
         rangeMapping[`${currentHighTick}-${Number(higherTicks[i].tickIdx)}`] = {
           amount0: Number(formatUnits(amount0, 18)),
           amount1: 0,
+          amount0Need: 0,
+          amount1Need: Number(formatUnits(amount1Need, 18)),
           activeLiquidity: currentLiquidity,
           currentTick: currentHighTick,
+          nextTick: Number(higherTicks[i].tickIdx),
         };
         currentHighTick = Number(higherTicks[i].tickIdx);
       }
       currentLiquidity = pool.liquidity;
       for (let i = lowerTicks.length - 1; i > -1; i--) {
         currentLiquidity = currentLiquidity - BigInt(lowerTicks[i + 1]?.liquidityNet ?? 0);
+        if (currentLiquidity === 0n) {
+          continue;
+        }
         const sqrtA = BigInt(TickMath.getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx)).toString());
         const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentLowTick).toString());
         const amount1 = (currentLiquidity * (sqrtP - sqrtA)) / 2n ** 96n;
+        const amount0Need = ((currentLiquidity * 2n ** 96n * (sqrtA - sqrtP)) / (sqrtA * sqrtP)) * -1n;
         rangeMapping[`${Number(lowerTicks[i].tickIdx)}-${currentLowTick}`] = {
           amount1: Number(formatUnits(amount1, 18)),
           amount0: 0,
+          amount0Need: Number(formatUnits(amount0Need, 18)),
+          amount1Need: 0,
           activeLiquidity: currentLiquidity,
           currentTick: Number(lowerTicks[i].tickIdx),
+          nextTick: currentLowTick,
         };
         currentLowTick = Number(lowerTicks[i].tickIdx);
       }
-      const [amount0List, amount1List] = Object.values(rangeMapping)
+      const [amount0List, amount1List, amount0NeedList, amount1NeedList] = Object.values(rangeMapping)
         .sort((a, b) => Number(a.currentTick) - Number(b.currentTick))
         .reduce(
           (acc, curr) => {
             acc[0].push(curr.amount0);
             acc[1].push(curr.amount1);
+            acc[2].push(curr.amount0Need);
+            acc[3].push(curr.amount1Need);
             return acc;
           },
-          [[], []] as number[][],
+          [[], [], [], []] as number[][],
         );
-
+      const tickToPriceMapping = ticks.reduce(
+        (acc, curr) => {
+          acc[curr.tickIdx] = { price0: Number(curr.price0).toFixed(4), price1: Number(curr.price1).toFixed(4) };
+          return acc;
+        },
+        {} as { [key: string]: { price0: string; price1: string } },
+      );
+      console.log(tickToPriceMapping);
+      const sortedTickIndices = [
+        ...new Set(
+          Object.values(rangeMapping).reduce((acc, curr) => {
+            acc.push(curr.currentTick);
+            acc.push(curr.nextTick);
+            return acc;
+          }, [] as number[]),
+        ),
+      ].sort((a, b) => a - b);
+      const price0List = sortedTickIndices.map(
+        (tickIdx) => tickToPriceMapping[tickIdx.toString()]?.price0 ?? pool.token1Price.toFixed(4),
+      );
+      const price1List = sortedTickIndices.map(
+        (tickIdx) => tickToPriceMapping[tickIdx.toString()]?.price1 ?? pool.token0Price.toFixed(4),
+      );
       return {
         price0List,
         price1List,
         amount0List,
         amount1List,
+        amount0NeedList,
+        amount1NeedList,
       };
     });
     return pools.reduce(
@@ -122,7 +156,14 @@ export async function getLiquidityChart(chainId: SupportedChain, token0: Address
         return acc;
       },
       {} as {
-        [key: string]: { price0List: string[]; price1List: string[]; amount0List: number[]; amount1List: number[] };
+        [key: string]: {
+          price0List: string[];
+          price1List: string[];
+          amount0List: number[];
+          amount1List: number[];
+          amount0NeedList: number[];
+          amount1NeedList: number[];
+        };
       },
     );
   } catch (e) {

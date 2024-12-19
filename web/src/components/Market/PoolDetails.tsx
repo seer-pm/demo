@@ -24,6 +24,8 @@ function LiquidityBarChart({
     price1List: string[];
     amount0List: number[];
     amount1List: number[];
+    amount0NeedList: number[];
+    amount1NeedList: number[];
   };
   poolInfo: PoolInfo;
 }) {
@@ -33,6 +35,8 @@ function LiquidityBarChart({
   const priceList = isShowToken0Price ? chartData.price0List : [...chartData.price1List].reverse();
   const amount0List = isShowToken0Price ? chartData.amount0List : [...chartData.amount0List].reverse();
   const amount1List = isShowToken0Price ? chartData.amount1List : [...chartData.amount1List].reverse();
+  const amount0NeedList = isShowToken0Price ? chartData.amount0NeedList : [...chartData.amount0NeedList].reverse();
+  const amount1NeedList = isShowToken0Price ? chartData.amount1NeedList : [...chartData.amount1NeedList].reverse();
   const amount0Data = priceList.map((_, index) => {
     return [index + 0.5, amount0List[index]];
   });
@@ -47,6 +51,7 @@ function LiquidityBarChart({
             max: priceList.length - 1,
             interval: 1,
             axisLabel: {
+              rotate: 35,
               formatter(value: number) {
                 if (priceList[value] === currentOutcomePrice.toFixed(4)) {
                   return `{bold|${priceList[value]}}`;
@@ -62,7 +67,7 @@ function LiquidityBarChart({
             },
             name: `${isShowToken0Price ? token0Symbol : token1Symbol} Price`,
             nameLocation: "middle",
-            nameGap: 30,
+            nameGap: 45,
           },
         ],
         tooltip: {
@@ -71,12 +76,23 @@ function LiquidityBarChart({
           // biome-ignore lint/suspicious/noExplicitAny:
           formatter: (params: any[]) => {
             let tooltipContent = "";
+            const currentIndex = params[0].data[0] - 0.5;
             for (const param of params) {
+              if (!param.data[1]) {
+                continue;
+              }
               const yValue = formatBigNumbers(param.data[1]);
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${param.color};margin-right:5px;"></span>`;
               tooltipContent += `${param.seriesName}: ${yValue}<br>`;
             }
-
+            if (amount0NeedList[currentIndex]) {
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
+              tooltipContent += `${token0Symbol} To Sell: ${formatBigNumbers(amount0NeedList[currentIndex])}<br>`;
+            }
+            if (amount1NeedList[currentIndex]) {
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
+              tooltipContent += `${token1Symbol} To Sell: ${formatBigNumbers(amount1NeedList[currentIndex])}<br>`;
+            }
             // Return the formatted tooltip content with the colored dot
             return tooltipContent;
           },
@@ -124,7 +140,9 @@ function LiquidityBarChart({
           <SwapIcon />
         </button>
       </p>
-      <ReactECharts option={chartOption} />
+      <div className="min-w-[500px] h-[400px]">
+        <ReactECharts option={chartOption} style={{ height: "100%", width: "99%" }} />
+      </div>
     </div>
   );
 }
@@ -170,7 +188,7 @@ export default function PoolDetails({
   if (!poolDataPerToken?.length) return null;
   return (
     <>
-      <div className="space-y-3 bg-white max-h-[550px] overflow-auto">
+      <div className="space-y-3 bg-white max-h-[600px] overflow-auto">
         {poolDataPerToken.map((dataPerPool, poolIndex) => {
           const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
           const chartData = liquidityChartDataPerToken?.[poolId];
