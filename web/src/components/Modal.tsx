@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import React from "react";
+import React, { forwardRef } from "react";
 import { createPortal } from "react-dom";
 
 export interface ModalProps {
@@ -10,11 +10,12 @@ export interface ModalProps {
   className?: string;
 }
 
-export function Modal({ title, content, id, open, className }: ModalProps) {
+export const Modal = forwardRef<HTMLDialogElement, ModalProps>(({ title, content, id, open, className }, ref) => {
   return (
     <>
       {createPortal(
         <dialog
+          ref={ref}
           id={id}
           className={clsx("modal", open && "modal-open")}
           aria-label="Modal"
@@ -34,4 +35,4 @@ export function Modal({ title, content, id, open, className }: ModalProps) {
       )}
     </>
   );
-}
+});
