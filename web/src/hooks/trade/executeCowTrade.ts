@@ -49,7 +49,8 @@ export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
 
     return orderId;
   }
-  await trade.signOrder(signer, trade.order.receiver);
+
+  await trade.signOrder(signer);
   const result = await toastify(() => trade.submitOrder(), {
     txSent: { title: "Confirm order..." },
     txSuccess: { title: "Order placed!" },
