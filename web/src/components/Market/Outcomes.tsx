@@ -16,7 +16,7 @@ import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -34,12 +34,22 @@ interface PositionsProps {
   images?: string[];
 }
 
-function poolRewardsInfo(poolIncentive: PoolIncentive) {
-  if (poolIncentive.apr === 0) {
-    return `${displayBalance(poolIncentive.rewardRate * 86400n, 18, true)} SEER / day`;
-  }
+function poolRewardsInfo(pool: PoolInfo) {
+  const poolIncentive =
+    pool.incentives.length > 0
+      ? pool.incentives[0].apr === 0
+        ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
+        : `${pool.incentives[0].apr.toFixed(2)}% APR`
+      : "0 SEER / day";
 
-  return `${poolIncentive.apr.toFixed(2)}% APR`;
+  return (
+    <div>
+      <div>
+        <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
+      </div>
+      {pool.incentives.length > 0 && <div>Rewards end: {formatDate(Number(pool.incentives[0].endTime))}</div>}
+    </div>
+  );
 }
 
 function AddLiquidityInfo({
@@ -113,10 +123,7 @@ function AddLiquidityInfo({
         {pools.map((pool) => (
           <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
             <div className="flex justify-between items-center">
-              <div>
-                <span className="font-semibold">{pool.dex}</span> ~{" "}
-                {pool.incentives.length > 0 ? poolRewardsInfo(pool.incentives[0]) : "0 SEER / day"}
-              </div>
+              <div>{poolRewardsInfo(pool)}</div>
               <div>
                 <a
                   href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
