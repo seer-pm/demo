@@ -7,6 +7,8 @@ export async function fetchMarket(marketId: string, chainId: string) {
       marketName
       outcomes
       outcomesSupply
+      payoutReported
+      payoutNumerators
       parentMarket{
         id
       }
@@ -38,6 +40,8 @@ export async function fetchMarkets(chainId: string) {
       marketName
       outcomes
       outcomesSupply
+      payoutReported
+      payoutNumerators
       parentMarket{
         id
       }
