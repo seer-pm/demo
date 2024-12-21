@@ -4,6 +4,7 @@ import pLimit from "p-limit";
 import { chainIds } from "./utils/config";
 import { fetchMarkets } from "./utils/fetchMarkets";
 import { getMarketOdds } from "./utils/getMarketOdds";
+import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 require("dotenv").config();
 
 export const handler = async (_event: HandlerEvent, _context: HandlerContext) => {
@@ -34,6 +35,19 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
 
     if (error) {
       throw error;
+    }
+
+    // update liquidity for each market
+    const liquidityToMarketMapping = await getMarketsLiquidity(markets);
+    const { error: errorLiquidity } = await supabase.from("markets").upsert(
+      markets.map((market) => ({
+        id: market.id,
+        liquidity: liquidityToMarketMapping[market.id],
+        updated_at: new Date(),
+      })),
+    );
+    if (errorLiquidity) {
+      throw errorLiquidity;
     }
   } catch (e) {
     console.log(e);

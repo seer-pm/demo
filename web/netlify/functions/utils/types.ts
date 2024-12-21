@@ -39,6 +39,7 @@ export interface Market extends MarketOffChainFields {
   lowerBound: bigint;
   upperBound: bigint;
   payoutReported: boolean;
+  payoutNumerators: string[];
 }
 
 export type Address = `0x${string}`;
