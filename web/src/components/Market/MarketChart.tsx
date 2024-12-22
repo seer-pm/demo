@@ -38,9 +38,9 @@ function MarketChart({ market }: { market: Market }) {
   const currentTimestamp = useMemo(() => Math.floor(new Date().getTime() / 1000), []);
   const hasLiquidity = odds.some((odd) => isOdd(odd));
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
-  const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL 
+  const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
   const marketEstimate = getMarketEstimate(odds, market);
-  const finalChartData = isScalarMarket 
+  const finalChartData = isScalarMarket
     ? chartData.map((x) => {
         return {
           ...x,
@@ -77,7 +77,7 @@ function MarketChart({ market }: { market: Market }) {
           return `${Number(value).toLocaleString()}`;
         }
         if (isMultiCategoricalMarket) {
-          return `${(value/100).toFixed(3)}`;
+          return `${(value / 100).toFixed(3)}`;
         }
         return `${value}%`;
       },
@@ -91,7 +91,7 @@ function MarketChart({ market }: { market: Market }) {
           const outcome = market.outcomes[i];
           if (name === outcome) {
             if (isMultiCategoricalMarket) {
-              return `${name} ${!isOdd(odds[i]) ? "NA" : (odds[i]/100).toFixed(3)}`;
+              return `${name} ${!isOdd(odds[i]) ? "NA" : (odds[i] / 100).toFixed(3)}`;
             }
             return `${name} ${!isOdd(odds[i]) ? "NA" : `${odds[i]}%`}`;
           }
@@ -99,7 +99,6 @@ function MarketChart({ market }: { market: Market }) {
         return name;
       },
     },
-    
 
     grid: {
       left: 80,
@@ -143,7 +142,7 @@ function MarketChart({ market }: { market: Market }) {
             return `${Number(value).toLocaleString()}`;
           }
           if (isMultiCategoricalMarket) {
-            return `${(value/100).toFixed(3)}`;
+            return `${(value / 100).toFixed(3)}`;
           }
           return `${value}%`;
         },

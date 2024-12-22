@@ -87,3 +87,21 @@ type ConditionalEvent @entity {
   collateral: Bytes!
   transactionHash: Bytes!
 }
+
+type CurateMetadata @entity {
+  "The registry address"
+  id: Bytes!
+  "The current registration meta evidence URI"
+  registrationMetaEvidenceURI: String!
+  "The current removal meta evidence URI"
+  clearingMetaEvidenceURI: String!
+  "The number of MetaEvidence event logs emitted."
+  metaEvidenceCount: BigInt!
+}
+
+type ArbitratorMetadata @entity {
+  "The arbitrator address"
+  id: Bytes!
+  "The current arbitrator meta evidence URI"
+  registrationMetaEvidenceURI: String!
+}

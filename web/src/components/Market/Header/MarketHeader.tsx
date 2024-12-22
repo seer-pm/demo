@@ -241,12 +241,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
           ) : (
             <>
-            
               <div className="flex space-x-2 items-center text-[14px]">
                 {marketType === MarketTypes.MULTI_SCALAR && firstQuestion.finalize_ts > 0 && (
-                  <div className="text-black-secondary">
-                     Deadline: {getTimeLeft(firstQuestion.finalize_ts)}
-                  </div>
+                  <div className="text-black-secondary">Deadline: {getTimeLeft(firstQuestion.finalize_ts)}</div>
                 )}
               </div>
               <div className="flex space-x-2 items-center text-[14px]">

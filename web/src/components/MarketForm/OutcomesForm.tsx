@@ -1,9 +1,11 @@
+import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
+import { SupportedChain } from "@/lib/chains";
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
-import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FieldPath, FormProvider, UseFormReturn, useFieldArray } from "react-hook-form";
+import { useAccount } from "wagmi";
 import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
@@ -176,6 +178,8 @@ export function OutcomesForm({
   goToNextStep,
   marketType,
 }: FormStepProps<OutcomesFormValues> & FormWithPrevStep & FormWithNextStep & { marketType: MarketTypes }) {
+  const { chainId } = useAccount();
+  const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
   const {
     control,
     register,
@@ -262,7 +266,7 @@ export function OutcomesForm({
               </p>
               <p className="font-medium">
                 <a
-                  href={paths.marketRulesPolicy()}
+                  href={marketRulesPolicy}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-2"

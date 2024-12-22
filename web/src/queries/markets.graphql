@@ -111,3 +111,15 @@ query GetConditionalEvents(
     transactionHash
   }
 }
+
+query GetCurateMetadata($id: ID!) {
+  curateMetadata(id: $id) {
+    registrationMetaEvidenceURI
+  }
+}
+
+query GetArbitratorMetadata($id: ID!) {
+  arbitratorMetadata(id: $id) {
+    registrationMetaEvidenceURI
+  }
+}
