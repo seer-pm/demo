@@ -340,6 +340,7 @@ export function PreviewForm({
     parentOutcome: BigInt(parentOutcomeIndex),
     wrappedTokens: dummyOutcomes.map((_) => "0x000"),
     outcomesSupply: 0n,
+    liquidityUSD: 0,
     parentCollectionId: "0x000",
     conditionId: "0x000",
     questionId: "0x000",

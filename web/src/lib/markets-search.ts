@@ -71,7 +71,7 @@ async function getVerificationStatusList(
 }
 
 export function sortMarkets(
-  orderBy: Market_OrderBy | undefined,
+  orderBy: Market_OrderBy | "liquidityUSD" | undefined,
   marketToLiquidityCheckMapping?: { [key: string]: boolean },
 ) {
   const STATUS_PRIORITY = {
@@ -134,13 +134,12 @@ export function sortMarkets(
         }
       }
 
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+      // by liquidity
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
-    if (orderBy === "outcomesSupply") {
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+    if (orderBy === "liquidityUSD") {
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
     // by opening date
@@ -150,7 +149,7 @@ export function sortMarkets(
 
 function mapGraphMarket(
   market: NonNullable<GetMarketQuery["market"]>,
-  extra: { chainId: SupportedChain; verification: VerificationResult | undefined },
+  extra: { chainId: SupportedChain; verification: VerificationResult | undefined; liquidityUSD: number },
 ): Market {
   return {
     ...market,
@@ -224,12 +223,29 @@ export const fetchMarkets = async (
   }
 
   const verificationStatusList = await getVerificationStatusList(chainId);
-
+  let marketToLiquidityMapping: { [key: string]: number } | undefined;
+  try {
+    const { data } = await fetch("https://app.seer.pm/.netlify/functions/supabase-query/markets").then((res) =>
+      res.json(),
+    );
+    const markets = data as { id: string; liquidity: number | null }[];
+    marketToLiquidityMapping = markets.reduce(
+      (acc, curr) => {
+        acc[curr.id] = curr.liquidity ?? 0;
+        return acc;
+      },
+      {} as { [key: string]: number },
+    );
+  } catch (e) {
+    console.log(e);
+  }
+  console.log(marketToLiquidityMapping);
   return markets
     .map((market) => {
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
+        liquidityUSD: marketToLiquidityMapping?.[market.id.toLowerCase() as Address] ?? 0,
       });
     })
     .sort(sortMarkets(orderBy));
@@ -323,5 +339,5 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
     })
   )
     .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
-    .map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
+    .map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n, liquidityUSD: 0 }));
 }

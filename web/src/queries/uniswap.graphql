@@ -207,3 +207,26 @@ query GetBurns(
     }
   }
 }
+
+query GetTicks(
+  $skip: Int = 0
+  $first: Int
+  $where: Tick_filter
+  $orderBy: Tick_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  ticks(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    tickIdx
+    liquidityNet
+  }
+}

@@ -28,6 +28,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
+import PoolDetails from "./PoolDetails/PoolDetails";
 
 interface PositionsProps {
   market: Market;
@@ -212,7 +213,11 @@ export function Outcomes({ market, images }: PositionsProps) {
   const marketStatus = getMarketStatus(market);
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
-
+  const {
+    Modal: PoolDetailsModal,
+    openModal: openPoolDetailsModal,
+    closeModal: closePoolDetailsModal,
+  } = useModal("pool-details-modal", true);
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
       const i = indexesOrderedByOdds[0];
@@ -256,6 +261,11 @@ export function Outcomes({ market, images }: PositionsProps) {
   };
   return (
     <div>
+      <PoolDetailsModal
+        title="Pool details"
+        className="!max-w-[80vw]"
+        content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
+      />
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
         {market.wrappedTokens.map((_, j) => {
@@ -391,6 +401,15 @@ export function Outcomes({ market, images }: PositionsProps) {
                     >
                       New conditional market
                     </Link>
+                    {!isUndefined(pools[i]) && pools[i].length > 0 && (
+                      <button
+                        className="text-purple-primary hover:underline"
+                        type="button"
+                        onClick={openPoolDetailsModal}
+                      >
+                        View pool details
+                      </button>
+                    )}
                   </div>
                   <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
                 </div>
