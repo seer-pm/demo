@@ -27,6 +27,7 @@ export type VerificationResult = { status: VerificationStatus; itemID?: string }
 interface MarketOffChainFields {
   chainId: SupportedChain;
   outcomesSupply: bigint;
+  liquidityUSD: number;
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
@@ -130,6 +131,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
         {
           chainId,
           outcomesSupply: 0n,
+          liquidityUSD: 0,
         },
       );
     },

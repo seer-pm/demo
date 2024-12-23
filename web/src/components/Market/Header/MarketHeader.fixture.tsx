@@ -18,6 +18,7 @@ const baseMarket: Market = {
   },
   parentOutcome: 0n,
   outcomesSupply: 0n,
+  liquidityUSD: 0,
   parentCollectionId: "0x000",
   conditionId: "0x000",
   questionId: "0x253f7f4d66cf1024ea65a7badf48aa36821354bec09f8e73aec3f83e4935e311",
