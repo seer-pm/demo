@@ -227,9 +227,6 @@ query GetTicks(
     subgraphError: $subgraphError
   ) {
     tickIdx
-    liquidityGross
     liquidityNet
-    price0
-    price1
   }
 }

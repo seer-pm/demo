@@ -4,6 +4,7 @@ import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
 import { Address, formatUnits } from "viem";
@@ -43,6 +44,7 @@ export interface PoolInfo {
   incentives: PoolIncentive[];
   liquidity: bigint;
   tick: number;
+  tickSpacing: number;
 }
 
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
@@ -116,6 +118,7 @@ async function getSwaprPools(
       token1Price: Number(pool.token1Price),
       liquidity: BigInt(pool.liquidity),
       tick: Number(pool.tick),
+      tickSpacing: Number(pool.tickSpacing),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
@@ -156,6 +159,7 @@ async function getUniswapPools(
       token1Price: Number(pool.token1Price),
       liquidity: BigInt(pool.liquidity),
       tick: Number(pool.tick),
+      tickSpacing: TICK_SPACINGS[Number(pool.feeTier) as FeeAmount] ?? 60,
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),

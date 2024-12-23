@@ -28,7 +28,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
-import PoolDetails from "./PoolDetails";
+import PoolDetails from "./PoolDetails/PoolDetails";
 
 interface PositionsProps {
   market: Market;
