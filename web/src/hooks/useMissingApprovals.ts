@@ -1,4 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
@@ -19,6 +20,10 @@ export async function fetchNeededApprovals(
 ): Promise<ApprovalInfo[]> {
   if (tokensAddresses.length !== amounts.length) {
     throw new Error("Invalid tokens and amounts lengths");
+  }
+
+  if (tokensAddresses.length === 1 && isTwoStringsEqual(tokensAddresses[0], NATIVE_TOKEN)) {
+    return [];
   }
 
   const allowances = await readContracts(config, {

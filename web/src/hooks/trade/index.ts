@@ -6,6 +6,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
+import { PriceQuality } from "@cowprotocol/cow-sdk";
 import {
   CoWTrade,
   CurrencyAmount,
@@ -25,6 +26,8 @@ import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 import { convertToSDAI } from "./handleSDAI";
+
+const QUOTE_REFETCH_INTERVAL = Number(import.meta.env.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
 export interface QuoteTradeResult {
   value: bigint;
@@ -77,6 +80,7 @@ type QuoteTradeFn = (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  isFastQuery?: boolean,
 ) => Promise<QuoteTradeResult>;
 
 export const getUniswapQuote: QuoteTradeFn = async (
@@ -153,6 +157,7 @@ export const getCowQuote: QuoteTradeFn = async (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  isFastQuery?: boolean,
 ) => {
   const args = await getCowTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
@@ -162,6 +167,7 @@ export const getCowQuote: QuoteTradeFn = async (
     maximumSlippage: args.maximumSlippage,
     user: account || zeroAddress,
     receiver: account || zeroAddress,
+    priceQuality: isFastQuery ? PriceQuality.FAST : undefined,
   });
 
   if (!trade) {
@@ -294,8 +300,18 @@ export function useSwaprQuote(
     enabled: Number(amount) > 0 && chainId === gnosis.id,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
+
+const getUseCowQuoteQueryKey = (
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+) => ["useCowQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType];
 
 export function useCowQuote(
   chainId: number,
@@ -305,11 +321,19 @@ export function useCowQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) {
+  const queryKey = getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  // Check if we have data for this quote
+  // If we don't, perform an initial fetch to give the user a fast quote
+  // it will fill the query cache, and subsequent fetches will return the verified quote
+  const previousData = queryClient.getQueryData(queryKey);
+  const isFastQuery = previousData === undefined;
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useCowQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: queryKey,
     enabled: Number(amount) > 0,
     retry: false,
-    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
+    // If we used a fast quote, refetch immediately to obtain the verified quote
+    refetchInterval: (query) => (query.state.dataUpdateCount <= 1 ? 1 : QUOTE_REFETCH_INTERVAL),
   });
 }
 
@@ -326,6 +350,7 @@ export function useUniswapQuote(
     enabled: Number(amount) > 0 && chainId === mainnet.id,
     retry: false,
     queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
 

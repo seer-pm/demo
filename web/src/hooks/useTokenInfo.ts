@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { isUndefined } from "@/lib/utils";
+import { SupportedChain, gnosis } from "@/lib/chains";
+import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
@@ -13,6 +13,15 @@ interface GetTokenResult {
 }
 
 export async function getTokenInfo(address: Address, chainId: SupportedChain): Promise<GetTokenResult> {
+  if (isTwoStringsEqual(address, NATIVE_TOKEN)) {
+    return {
+      address,
+      decimals: 18,
+      name: chainId === gnosis.id ? "xDAI" : "ETH",
+      symbol: chainId === gnosis.id ? "xDAI" : "ETH",
+    };
+  }
+
   const [decimals, name, symbol] = await readContracts(config, {
     allowFailure: false,
     contracts: [
