@@ -9,7 +9,7 @@ import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
-import { getTimeLeft } from "@/lib/utils";
+import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
 
 import {
   CheckCircleIcon,
@@ -127,7 +127,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketStatus = getMarketStatus(market);
-  const liquidityUSD = market.liquidityUSD;
+  const liquidityUSD = formatBigNumbers(market.liquidityUSD);
 
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);

@@ -1,3 +1,6 @@
+import { Alert } from "@/components/Alert";
+import { Slider } from "@/components/Slider";
+import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData, tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { Market } from "@/hooks/useMarket";
@@ -21,10 +24,15 @@ export default function LiquidityBarChart({
   const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
-  const { data: ticksByPool } = useTicksData(market, outcomeTokenIndex);
+  const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
   if (!ticksByPool?.[id]) {
-    return;
+    return (
+      <div>
+        <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
+        <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
+      </div>
+    );
   }
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxTickCount } =
     getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount);
@@ -211,15 +219,27 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <p className="font-semibold flex items-center gap-2">
+      <p className="font-semibold flex items-center gap-2 flex-wrap">
         Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
         {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
         <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
           <SwapIcon />
         </button>
+        <div className="flex items-center ml-auto gap-2">
+          <p className="text-[14px] whitespace-nowrap">Ticks display</p>
+          <div className="min-w-[100px]">
+            <Slider
+              value={zoomCount}
+              min={1}
+              max={Math.ceil(maxTickCount / 2) + 2}
+              onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
+            />
+          </div>
+          <span className="text-sm text-gray-600 min-w-[3ch]">{priceList.length - 1}</span>
+        </div>
       </p>
       <div
-        className="min-w-[500px] h-[400px]"
+        className="h-[400px] flex justify-center"
         onWheel={(event) => {
           const newCount =
             event.deltaY < 0

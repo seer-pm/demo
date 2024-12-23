@@ -2,7 +2,7 @@ import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
 import React from "https://esm.sh/react@18.2.0";
 import { isAddress } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
-import { displayBalance, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
+import { displayBalance, formatBigNumbers, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, VITE_SUPABASE_API_KEY, VITE_SUPABASE_PROJECT_URL } from "./utils/constants.ts";
 import { fetchMarket } from "./utils/fetchMarket.ts";
 import { convertFromSDAI } from "./utils/handleSDai.ts";
@@ -57,7 +57,7 @@ export default async (request: Request, context: Context) => {
     }
     const marketData = await fetchMarketDataById(marketId);
     const odds = marketData?.odds ?? [];
-    const liquidityUSD = marketData?.liquidity ?? 0;
+    const liquidityUSD = formatBigNumbers(marketData?.liquidity ?? 0);
     const marketEstimate = getMarketEstimate(odds, market, true);
     const indexesOrderedByOdds = odds
       .map((odd, i) => ({ odd, i }))

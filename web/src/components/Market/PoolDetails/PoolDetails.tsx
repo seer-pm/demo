@@ -48,7 +48,7 @@ export default function PoolDetails({
   if (!poolDataPerToken?.length) return null;
   return (
     <>
-      <div className="space-y-3 bg-white max-h-[600px] overflow-auto">
+      <div className="space-y-3 bg-white max-h-[600px] overflow-y-auto">
         {poolDataPerToken.map((dataPerPool, poolIndex) => {
           const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
           return (

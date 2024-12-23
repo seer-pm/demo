@@ -42,7 +42,7 @@ export function unescapeJson(txt: string) {
   return txt.replace(/\\"/g, '"');
 }
 
-function formatBigNumbers(amount: number) {
+export function formatBigNumbers(amount: number) {
   const quantifiers: [number, string][] = [
     [10 ** 9, "B"],
     [10 ** 6, "M"],
