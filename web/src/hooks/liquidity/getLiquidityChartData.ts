@@ -42,6 +42,7 @@ export function getChartDataByTicks(
       j += pool.tickSpacing * 5;
     }
   }
+  processedTicks.push(ticks[ticks.length - 1]);
   const higherTicks = processedTicks.filter((tick) => Number(tick.tickIdx) > pool.tick).slice(0, zoomCount);
   const lowerTicks = processedTicks.filter((tick) => Number(tick.tickIdx) < pool.tick).slice(zoomCount * -1);
   let currentLiquidity = pool.liquidity;
