@@ -19,8 +19,8 @@ export function tickToPrice(tick: number, decimals = 18) {
   return [Number(formatUnits(price0, 18)).toFixed(4), Number(formatUnits(price1, 18)).toFixed(4)];
 }
 
-const TICK_MAX = 69078; //soft cap at price0 = 0.001
-const TICK_MIN = -69078; //soft cap at price1 = 0.001
+const TICK_MAX = 92103; //soft cap at price0 = 10000, price1 = 0.0001
+const TICK_MIN = -92103; //soft cap at price0 = 0.0001, price1 = 10000
 
 export function getChartDataByTicks(
   pool: {
