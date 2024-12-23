@@ -20,7 +20,12 @@ fragment Market on Market {
   collateralToken
   collateralToken1
   collateralToken2
-  parentMarket
+  parentMarket {
+    id
+    payoutReported
+    conditionId
+    payoutNumerators
+  }
   parentOutcome
   parentCollectionId
   conditionId
@@ -44,6 +49,7 @@ fragment Market on Market {
   lowerBound
   upperBound
   payoutReported
+  payoutNumerators
   factory
   creator
   outcomesSupply
@@ -107,5 +113,17 @@ query GetConditionalEvents(
     blockNumber
     collateral
     transactionHash
+  }
+}
+
+query GetCurateMetadata($id: ID!) {
+  curateMetadata(id: $id) {
+    registrationMetaEvidenceURI
+  }
+}
+
+query GetArbitratorMetadata($id: ID!) {
+  arbitratorMetadata(id: $id) {
+    registrationMetaEvidenceURI
   }
 }

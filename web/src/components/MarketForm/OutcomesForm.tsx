@@ -1,9 +1,9 @@
+import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
 import { PlusIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
-import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
@@ -428,6 +428,7 @@ export function OutcomesForm({
 }: FormStepProps<OutcomesFormValues> &
   FormWithPrevStep &
   FormWithNextStep & { marketType: MarketTypes; isFutarchyMarket: boolean; chainId: SupportedChain }) {
+  const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
   const {
     control,
     register,
@@ -508,7 +509,7 @@ export function OutcomesForm({
               </p>
               <p className="font-medium">
                 <a
-                  href={paths.marketRulesPolicy()}
+                  href={marketRulesPolicy}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-2"

@@ -31,5 +31,5 @@ export const COLLATERAL_TOKENS = {
     secondary: undefined,
   },
 } as const;
-export const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
+export const chainIds = [mainnet.id, gnosis.id] as const;
 export type SupportedChain = (typeof chainIds)[number];

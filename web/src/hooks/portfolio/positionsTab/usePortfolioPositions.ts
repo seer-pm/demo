@@ -181,7 +181,7 @@ export const fetchPositions = async (markets: Market[], address: Address) => {
     if (balance > 0n) {
       const { marketAddress, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const market = marketIdToMarket[marketAddress];
-      const parentMarket = marketIdToMarket[market.parentMarket];
+      const parentMarket = marketIdToMarket[market.parentMarket.id];
       acumm.push({
         marketAddress,
         tokenIndex,

@@ -42,7 +42,12 @@ export interface Market extends MarketOffChainFields {
   collateralToken1: Address;
   collateralToken2: Address;
   wrappedTokens: Address[];
-  parentMarket: Address;
+  parentMarket: {
+    id: Address;
+    conditionId: `0x${string}`;
+    payoutReported: boolean;
+    payoutNumerators: readonly bigint[];
+  };
   parentOutcome: bigint;
   //MarketView's outcomesSupply is buggy
   //outcomesSupply: bigint;
@@ -56,6 +61,7 @@ export interface Market extends MarketOffChainFields {
   lowerBound: bigint;
   upperBound: bigint;
   payoutReported: boolean;
+  payoutNumerators: readonly bigint[];
 }
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;

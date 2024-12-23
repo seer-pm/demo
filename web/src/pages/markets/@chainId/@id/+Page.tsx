@@ -43,7 +43,7 @@ function SwapWidget({
   const { data: fixedCollateral } = useTokenInfo(
     market.type === "Futarchy"
       ? getLiquidityPairForToken(market, outcomeIndex)
-      : market.parentMarket !== zeroAddress
+      : market.parentMarket.id !== zeroAddress
         ? market.collateralToken
         : undefined,
     market.chainId,
@@ -211,7 +211,7 @@ function MarketPage() {
         )}
 
         <ConditionalMarketAlert
-          parentMarket={market.parentMarket}
+          parentMarket={market.parentMarket.id}
           parentOutcome={market.parentOutcome}
           chainId={chainId}
         />

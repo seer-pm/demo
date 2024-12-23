@@ -88,82 +88,12 @@ export default async (request: Request, context: Context) => {
           src="https://cdn.kleros.link/ipfs/QmRZoc5ehDFASXBbHNo41W8ifWXc7Fe7AJWBkipt5cPm9d/seer-background.png"
         ></img>
         <div style={{ display: "flex", flexDirection: "column", padding: 48, width: "100%" }}>
-          <div style={{ display: "flex" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
             <img
               alt="Seer Logo"
               width="114"
               src="https://cdn.kleros.link/ipfs/QmSY7h5zeipL6rELiGwbcHDtNgBm83QxwkPtkFbxAA2N8p/seer-logo-all-white.png"
             />
-          </div>
-          <div
-            style={{
-              flex: "1",
-              display: "flex",
-              fontSize: Math.max(54 - 0.3 * Math.max(0, market.marketName.length - 115), 40),
-              marginTop: 24,
-            }}
-          >
-            {market.marketName.length > 220 ? `${market.marketName.slice(0, 220 - 3)}...` : market.marketName}
-          </div>
-          <div
-            style={{
-              marginTop: "auto",
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              width: "100%",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", flex: "1" }}>
-              {getMarketType(market) === MarketTypes.SCALAR && marketEstimate !== "NA" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32 }}>
-                  <div style={{ display: "flex", fontSize: 32 }}>{marketEstimate}</div>
-                  <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>Market Estimate</div>
-                </div>
-              )}
-              <div style={{ backgroundColor: "#8B52F6", width: 100, height: 4, marginBottom: 16 }}></div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  flexWrap: "wrap",
-                  rowGap: 8,
-                }}
-              >
-                {market.outcomes.map((_, j) => {
-                  const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
-                  const outcome = market.outcomes[i];
-
-                  if (j >= 2) {
-                    // render the first 3 outcomes
-                    return null;
-                  }
-                  if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
-                    return null;
-                  }
-                  return (
-                    <div
-                      key={`${outcome}_${i}`}
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "center",
-                      }}
-                    >
-                      <div style={{ display: "flex", fontSize: 32 }}>
-                        {outcome.length > 35 ? `${outcome.slice(0, 35 - 3)}...` : outcome}
-                      </div>
-                      {isOdd(odds[i]) && (
-                        <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>
-                          {formatOdds(odds[i], getMarketType(market))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
             <div
               style={{
                 display: "flex",
@@ -188,6 +118,69 @@ export default async (request: Request, context: Context) => {
                 {displayBalance(daiAmount, 18, true)} {chainId === "100" ? "xDAI" : "DAI"}
               </div>
               <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>Open Interest</div>
+            </div>
+          </div>
+          <p
+            style={{
+              display: "flex",
+              fontSize: 48,
+              marginTop: 24,
+              marginBottom: 0,
+              height: "4.2em",
+            }}
+          >
+            {market.marketName.length > 130 ? `${market.marketName.slice(0, 130 - 3)}...` : market.marketName}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 36 }}>
+            {getMarketType(market) === MarketTypes.SCALAR && marketEstimate !== "NA" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <div style={{ display: "flex", fontSize: 32, color: "#C496FF", fontWeight: "600" }}>
+                  {marketEstimate}
+                </div>
+                <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>Market Estimate</div>
+              </div>
+            )}
+            <div style={{ backgroundColor: "#8B52F6", width: 100, height: 4, marginBottom: 16 }}></div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                flexWrap: "wrap",
+                rowGap: 8,
+              }}
+            >
+              {market.outcomes.map((_, j) => {
+                const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+                const outcome = market.outcomes[i];
+
+                if (j >= 2) {
+                  // render the first 3 outcomes
+                  return null;
+                }
+                if (outcome === INVALID_RESULT_OUTCOME_TEXT) {
+                  return null;
+                }
+                return (
+                  <div
+                    key={`${outcome}_${i}`}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ display: "flex", fontSize: 32 }}>
+                      {outcome.length > 60 ? `${outcome.slice(0, 60 - 3)}...` : outcome}
+                    </div>
+                    {isOdd(odds[i]) && (
+                      <div style={{ display: "flex", fontSize: 36, color: "#C496FF", fontWeight: "600" }}>
+                        {formatOdds(odds[i], getMarketType(market))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

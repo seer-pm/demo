@@ -9,8 +9,8 @@ dataSources:
     network: gnosis
     source:
       abi: MarketFactory
-      address: "0x47fc00bbFC6DCFB64f33405517E65CA9293a78FB"
-      startBlock: 36154502
+      address: "0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1"
+      startBlock: 36404701
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -56,7 +56,7 @@ dataSources:
     source:
       abi: Reality
       address: "0xE78996A233895bE74a66F451f1019cA9734205cc"
-      startBlock: 36154502
+      startBlock: 36404701
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -84,7 +84,7 @@ dataSources:
     source:
       abi: ConditionalTokens
       address: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce"
-      startBlock: 36154502
+      startBlock: 36404701
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -107,3 +107,60 @@ dataSources:
             bytes32,uint256,uint256[])
           handler: handleConditionResolution
       file: ./src/conditional-tokens.ts
+  - kind: ethereum
+    name: LightGeneralizedTCR
+    network: gnosis
+    source:
+      abi: IEvidence
+      address: "0x5aAF9E23A11440F8C1Ad6D2E2e5109C7e52CC672"
+      startBlock: 36336124
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: IEvidence
+          file: ./abis/IEvidence.json
+      entities: []
+      eventHandlers:
+        - event: MetaEvidence(indexed uint256,string)
+          handler: handleCurateMetaEvidence
+      file: ./src/evidence-metadata.ts
+  - kind: ethereum
+    name: Realitio_v2_1_ArbitratorWithAppeals
+    network: gnosis
+    source:
+      abi: IEvidence
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 36404701
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: IEvidence
+          file: ./abis/IEvidence.json
+      entities: []
+      eventHandlers:
+        - event: MetaEvidence(indexed uint256,string)
+          handler: handleArbitratorMetaEvidence
+      file: ./src/evidence-metadata.ts
+  - kind: ethereum
+    name: RealitioForeignArbitrationProxyWithAppeals
+    network: gnosis
+    source:
+      abi: IEvidence
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 36404701
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: IEvidence
+          file: ./abis/IEvidence.json
+      entities: []
+      eventHandlers:
+        - event: MetaEvidence(indexed uint256,string)
+          handler: handleArbitratorMetaEvidence
+      file: ./src/evidence-metadata.ts

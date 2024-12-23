@@ -40,7 +40,7 @@ const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollate
     market.chainId,
   );
 
-  if (market.parentMarket !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
+  if (market.parentMarket.id !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
     return null;
   }
 

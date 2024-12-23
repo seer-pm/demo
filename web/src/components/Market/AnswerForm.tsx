@@ -248,11 +248,6 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           <Alert type="warning">You don't have enough balance to submit the answer.</Alert>
         </div>
       )}
-      {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
-        <div className="mb-[24px]">
-          <Alert type="info">Round your answers to the nearest integer, half toward 0.</Alert>
-        </div>
-      )}
       <label className="label cursor-pointer justify-start space-x-2">
         <input
           type="radio"
@@ -269,6 +264,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           {Number(market.templateId) === REALITY_TEMPLATE_UINT && (
             <div className="space-y-2">
               <Input
+                step="any"
                 {...register("outcome", {
                   required: "This field is required.",
                   valueAsNumber: true,

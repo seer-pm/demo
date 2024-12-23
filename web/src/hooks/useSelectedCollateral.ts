@@ -6,7 +6,7 @@ import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {
   const { data: parentCollateral } = useTokenInfo(
-    market.parentMarket !== zeroAddress ? market.collateralToken : undefined,
+    market.parentMarket.id !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
 

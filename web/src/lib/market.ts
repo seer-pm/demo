@@ -132,7 +132,7 @@ export function formatOdds(odd: number | undefined | null, marketType: MarketTyp
   if (!isOdd(odd)) {
     return "NA";
   }
-  if (marketType === MarketTypes.SCALAR) {
+  if (marketType === MarketTypes.SCALAR || marketType === MarketTypes.MULTI_CATEGORICAL) {
     return odd === 0 ? 0 : (odd! / 100).toFixed(3);
   }
 

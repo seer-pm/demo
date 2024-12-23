@@ -1,3 +1,4 @@
+import { STATUS_TEXTS } from "@/components/Market/Header";
 import {
   lightGeneralizedTcrAddress,
   marketFactoryAddress,
@@ -14,12 +15,12 @@ import {
   getSdk as getSeerSdk,
 } from "@/hooks/queries/gql-generated-seer";
 import { Market, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
-import { Address } from "viem";
+import { Address, zeroAddress, zeroHash } from "viem";
 import { unescapeJson } from "./reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "./utils";
 
@@ -70,7 +71,10 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(orderBy: Market_OrderBy | undefined) {
+export function sortMarkets(
+  orderBy: Market_OrderBy | undefined,
+  marketToLiquidityCheckMapping?: { [key: string]: boolean },
+) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -80,12 +84,55 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
 
   return (a: Market, b: Market) => {
     if (!orderBy) {
+      // closed markets will be put on the back
+      try {
+        const marketStatusA = getMarketStatus(a);
+        const marketStatusB = getMarketStatus(b);
+
+        if (marketStatusA !== marketStatusB) {
+          if (marketStatusA === MarketStatus.CLOSED) return 1;
+          if (marketStatusB === MarketStatus.CLOSED) return -1;
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      //if underlying token is worthless we put it after
+      if (a.parentMarket.id !== zeroAddress || b.parentMarket.id !== zeroAddress) {
+        const underlyingAWorthless =
+          a.parentMarket.id !== zeroAddress &&
+          a.parentMarket.payoutReported &&
+          a.parentMarket.payoutNumerators[Number(a.parentOutcome)] === 0n;
+        const underlyingBWorthless =
+          b.parentMarket.id !== zeroAddress &&
+          b.parentMarket.payoutReported &&
+          b.parentMarket.payoutNumerators[Number(b.parentOutcome)] === 0n;
+
+        if (underlyingAWorthless !== underlyingBWorthless) {
+          return underlyingAWorthless ? 1 : -1;
+        }
+      }
+
       //by verification status
       const statusDiff =
         STATUS_PRIORITY[a.verification?.status || "not_verified"] -
         STATUS_PRIORITY[b.verification?.status || "not_verified"];
       if (statusDiff !== 0) {
         return statusDiff;
+      }
+
+      // if market has no liquidity we not prioritize it
+      if (marketToLiquidityCheckMapping) {
+        try {
+          const statusTextA = STATUS_TEXTS[getMarketStatus(a)](marketToLiquidityCheckMapping[a.id]);
+          const statusTextB = STATUS_TEXTS[getMarketStatus(b)](marketToLiquidityCheckMapping[b.id]);
+          if (statusTextA !== statusTextB) {
+            if (statusTextA === "Liquidity Required") return 1;
+            if (statusTextB === "Liquidity Required") return -1;
+          }
+        } catch (e) {
+          console.log(e);
+        }
       }
 
       // by open interest (outcomesSupply)
@@ -116,7 +163,12 @@ function mapGraphMarket(
       }
       return unescapeJson(outcome);
     }),
-    parentMarket: market.parentMarket as Address,
+    parentMarket: {
+      id: (market.parentMarket?.id as Address) || zeroAddress,
+      conditionId: market.parentMarket?.conditionId || zeroHash,
+      payoutReported: market.parentMarket?.payoutReported || false,
+      payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
+    },
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),
@@ -135,6 +187,7 @@ function mapGraphMarket(
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     blockTimestamp: Number(market.blockTimestamp),
+    payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
   };
 }

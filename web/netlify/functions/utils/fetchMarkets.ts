@@ -1,4 +1,4 @@
-import { SEER_SUBGRAPH_URLS } from "./constants.ts";
+import { SEER_SUBGRAPH_URLS, zeroAddress } from "./constants.ts";
 
 export async function fetchMarket(marketId: string, chainId: string) {
   const query = `{
@@ -7,7 +7,11 @@ export async function fetchMarket(marketId: string, chainId: string) {
       marketName
       outcomes
       outcomesSupply
-      parentMarket
+      payoutReported
+      payoutNumerators
+      parentMarket{
+        id
+      }
       parentOutcome
       wrappedTokens
     }
@@ -22,8 +26,8 @@ export async function fetchMarket(marketId: string, chainId: string) {
     }),
   });
   const json = await results.json();
-
-  return json?.data?.market;
+  const market = json?.data?.market;
+  return market ? { ...market, parentMarket: market.parentMarket ?? { id: zeroAddress } } : undefined;
 }
 
 export async function fetchMarkets(chainId: string) {
@@ -36,7 +40,11 @@ export async function fetchMarkets(chainId: string) {
       marketName
       outcomes
       outcomesSupply
-      parentMarket
+      payoutReported
+      payoutNumerators
+      parentMarket{
+        id
+      }
       parentOutcome
       wrappedTokens
     }
@@ -52,5 +60,10 @@ export async function fetchMarkets(chainId: string) {
   });
   const json = await results.json();
 
-  return json?.data?.markets ?? [];
+  return (
+    json?.data?.markets?.map((market) => ({
+      ...market,
+      parentMarket: market.parentMarket ?? { id: zeroAddress },
+    })) ?? []
+  );
 }

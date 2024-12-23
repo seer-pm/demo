@@ -15,6 +15,18 @@
     "ConditionalTokens": {
       "address": "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
       "startBlock": 36404701
+    },
+    "LightGeneralizedTCR": {
+      "address": "0x5aAF9E23A11440F8C1Ad6D2E2e5109C7e52CC672",
+      "startBlock": 36336124
+    },
+    "Realitio_v2_1_ArbitratorWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
+    },
+    "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
     }
   },
   "mainnet": {
@@ -29,6 +41,18 @@
     "ConditionalTokens": {
       "address": "0xC59b0e4De5F1248C1140964E0fF287B192407E0C",
       "startBlock": 20894990
+    },
+    "LightGeneralizedTCR": {
+      "address": "0x4A9f8e73b3c4c9d7fA0210b9de457b1c493a3AdA",
+      "startBlock": 20893866
+    },
+    "Realitio_v2_1_ArbitratorWithAppeals": {
+      "address": "0x2018038203aEE8e7a29dABd73771b0355D4F85ad",
+      "startBlock": 20892368
+    },
+    "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0xFe0eb5fC686f929Eb26D541D75Bb59F816c0Aa68",
+      "startBlock": 20922529
     }
   }
 }
