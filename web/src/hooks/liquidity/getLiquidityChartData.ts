@@ -19,6 +19,9 @@ export function tickToPrice(tick: number, decimals = 18) {
   return [Number(formatUnits(price0, 18)).toFixed(4), Number(formatUnits(price1, 18)).toFixed(4)];
 }
 
+const TICK_MAX = 69078; //soft cap at price0 = 0.001
+const TICK_MIN = -69078; //soft cap at price1 = 0.001
+
 export function getChartDataByTicks(
   pool: {
     liquidity: bigint;
@@ -34,17 +37,30 @@ export function getChartDataByTicks(
     const currentTick = Number(ticks[i].tickIdx);
     const nextTick = Number(ticks[i + 1].tickIdx);
     processedTicks.push(ticks[i]);
+    const maxTickToDisplay = 100;
+    const interval = Math.floor(
+      (Number(ticks[ticks.length - 1].tickIdx) - Number(ticks[0].tickIdx)) /
+        pool.tickSpacing /
+        maxTickToDisplay /
+        pool.tickSpacing,
+    );
     for (let j = currentTick + pool.tickSpacing; j < nextTick; j++) {
       processedTicks.push({
         tickIdx: j.toString(),
         liquidityNet: "0",
       });
-      j += pool.tickSpacing * 5;
+      j += pool.tickSpacing * Math.max(interval, 5);
     }
   }
   processedTicks.push(ticks[ticks.length - 1]);
-  const higherTicks = processedTicks.filter((tick) => Number(tick.tickIdx) > pool.tick).slice(0, zoomCount);
-  const lowerTicks = processedTicks.filter((tick) => Number(tick.tickIdx) < pool.tick).slice(zoomCount * -1);
+  const processedHigherTicks = processedTicks.filter(
+    (tick) => Number(tick.tickIdx) > pool.tick && Number(tick.tickIdx) < TICK_MAX,
+  );
+  const processedLowerTicks = processedTicks.filter(
+    (tick) => Number(tick.tickIdx) < pool.tick && Number(tick.tickIdx) > TICK_MIN,
+  );
+  const higherTicks = processedHigherTicks.slice(0, zoomCount);
+  const lowerTicks = processedLowerTicks.slice(zoomCount * -1);
   let currentLiquidity = pool.liquidity;
   let currentHighTick = pool.tick;
   let currentLowTick = pool.tick;
@@ -61,9 +77,9 @@ export function getChartDataByTicks(
   } = {};
   for (let i = 0; i < higherTicks.length; i++) {
     currentLiquidity = currentLiquidity + BigInt(higherTicks[i - 1]?.liquidityNet ?? 0);
-    if (currentLiquidity === 0n) {
-      continue;
-    }
+    // if (currentLiquidity === 0n) {
+    //   continue;
+    // }
     const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentHighTick).toString());
     const sqrtB = BigInt(TickMath.getSqrtRatioAtTick(Number(higherTicks[i].tickIdx)).toString());
 
@@ -84,9 +100,9 @@ export function getChartDataByTicks(
   currentLiquidity = pool.liquidity;
   for (let i = lowerTicks.length - 1; i > -1; i--) {
     currentLiquidity = currentLiquidity - BigInt(lowerTicks[i + 1]?.liquidityNet ?? 0);
-    if (currentLiquidity === 0n) {
-      continue;
-    }
+    // if (currentLiquidity === 0n) {
+    //   continue;
+    // }
     const sqrtA = BigInt(TickMath.getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx)).toString());
     const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentLowTick).toString());
     const amount1 = (currentLiquidity * (sqrtP - sqrtA)) / 2n ** 96n;
@@ -141,7 +157,7 @@ export function getChartDataByTicks(
     amount1List,
     amount0NeedList,
     amount1NeedList,
-    maxTickCount: processedTicks.length,
+    maxZoomCount: Math.max(processedHigherTicks.length, processedLowerTicks.length),
   };
 }
 
@@ -205,6 +221,6 @@ export function getLiquidityChartData(
     sellLineData,
     buyLineData,
     maxYValue,
-    maxTickCount: chartData.maxTickCount,
+    maxZoomCount: chartData.maxZoomCount,
   };
 }

@@ -23,7 +23,7 @@ export const config = defaultWagmiConfig({
   ],
   transports: {
     [gnosis.id]: http(),
-    [mainnet.id]: http(),
+    [mainnet.id]: http("https://eth-pokt.nodies.app"),
     [sepolia.id]: http(),
     [hardhat.id]: http(),
   },

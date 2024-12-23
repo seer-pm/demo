@@ -26,7 +26,7 @@ export default function LiquidityBarChart({
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
-  if (!ticksByPool?.[id]) {
+  if (!ticksByPool?.[id]?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
         <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
@@ -34,7 +34,7 @@ export default function LiquidityBarChart({
       </div>
     );
   }
-  const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxTickCount } =
+  const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
     getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
   const maxLabelCount = 10; //max label x axis
@@ -231,7 +231,7 @@ export default function LiquidityBarChart({
             <Slider
               value={zoomCount}
               min={1}
-              max={Math.ceil(maxTickCount / 2) + 2}
+              max={maxZoomCount}
               onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
             />
           </div>
@@ -244,7 +244,7 @@ export default function LiquidityBarChart({
           const newCount =
             event.deltaY < 0
               ? Math.max(zoomCount - 1, 1) // Zoom out
-              : Math.min(zoomCount + 1, Math.ceil(maxTickCount / 2) + 2);
+              : Math.min(zoomCount + 1, maxZoomCount);
           setZoomCount(newCount);
         }}
       >

@@ -6,7 +6,7 @@ export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 export const config = createConfig({
   chains: [mainnet, sepolia, gnosis],
   transports: {
-    [mainnet.id]: http(),
+    [mainnet.id]: http("https://eth-pokt.nodies.app"),
     [sepolia.id]: http(),
     [gnosis.id]: http(),
   },

@@ -1,13 +1,11 @@
-import { CopyButton } from "@/components/CopyButton";
-import { Link } from "@/components/Link";
 import { Market } from "@/hooks/useMarket";
-import { useMarketPools } from "@/hooks/useMarketPools";
+import { PoolInfo, useMarketPools } from "@/hooks/useMarketPools";
 import { fetchTokenBalance } from "@/hooks/useTokenBalance";
-import { getPoolUrl } from "@/lib/config";
 import { displayBalance } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import Button from "../../Form/Button";
-import LiquidityBarChart from "./LiquidityBarChart";
+import PoolTab from "./PoolTab";
 
 export default function PoolDetails({
   market,
@@ -19,7 +17,7 @@ export default function PoolDetails({
   closeModal?: () => void;
 }) {
   const { data = [] } = useMarketPools(market);
-  const poolDataPerToken = data[outcomeIndex];
+  const poolDataPerToken = data[outcomeIndex] as PoolInfo[] | undefined;
   const { data: poolTokensBalances = [], isLoading } = useQuery<
     | {
         balance0: string;
@@ -28,11 +26,11 @@ export default function PoolDetails({
     | undefined,
     Error
   >({
-    enabled: poolDataPerToken?.length > 0,
+    enabled: !!poolDataPerToken?.length,
     queryKey: ["usePoolTokensBalances", poolDataPerToken?.map((x) => x.id)],
     queryFn: async () => {
       return await Promise.all(
-        poolDataPerToken.map(async ({ id, token0, token1 }) => {
+        poolDataPerToken!.map(async ({ id, token0, token1 }) => {
           const balance0BigInt = await fetchTokenBalance(token0, id, market.chainId);
           const balance1BigInt = await fetchTokenBalance(token1, id, market.chainId);
           return {
@@ -44,50 +42,42 @@ export default function PoolDetails({
     },
     refetchOnWindowFocus: true,
   });
+  const [poolTabId, setPoolTabId] = useState(poolDataPerToken?.[0]?.id ?? "");
+  useEffect(() => {
+    setPoolTabId(poolDataPerToken?.[0]?.id ?? "");
+  }, [poolDataPerToken?.[0]?.id]);
 
+  const currentPoolIndex = poolDataPerToken?.findIndex((pool) => pool.id === poolTabId) ?? -1;
+  const currentPool = poolDataPerToken?.[currentPoolIndex];
   if (!poolDataPerToken?.length) return null;
   return (
     <>
       <div className="space-y-3 bg-white max-h-[600px] overflow-y-auto">
-        {poolDataPerToken.map((dataPerPool, poolIndex) => {
-          const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
-          return (
-            <div key={poolId} className="space-y-2">
-              <div>
-                <p className="font-semibold">Pool Id</p>
-                <div className="flex items-center gap-2">
-                  <Link
-                    to={getPoolUrl(market.chainId, poolId)}
-                    title={poolId}
-                    className="hover:underline text-purple-primary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {poolId.slice(0, 6)}...{poolId.slice(-4)}
-                  </Link>
-                  <CopyButton textToCopy={poolId} size={18} />
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold">Pool Balances</p>
-                {isLoading ? (
-                  <div className="shimmer-container w-20 h-4"></div>
-                ) : (
-                  <>
-                    <p className="text-[14px]">
-                      {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
-                    </p>
-                    <p className="text-[14px]">
-                      {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
-                    </p>
-                  </>
-                )}
-              </div>
-              {poolIndex !== poolDataPerToken.length - 1 && <div className="w-full h-[1px] bg-black-medium mt-2"></div>}
-              <LiquidityBarChart market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
-            </div>
-          );
-        })}
+        {poolDataPerToken.length > 1 && (
+          <div role="tablist" className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 flex">
+            {poolDataPerToken.map((pool, index) => (
+              <button
+                key={pool.id}
+                type="button"
+                role="tab"
+                className={`tab ${poolTabId === pool.id && "tab-active"} w-[100px]`}
+                onClick={() => setPoolTabId(pool.id)}
+              >
+                Pool {index + 1}
+              </button>
+            ))}
+          </div>
+        )}
+        {currentPool && (
+          <PoolTab
+            market={market}
+            outcomeIndex={outcomeIndex}
+            dataPerPool={currentPool}
+            poolIndex={currentPoolIndex}
+            isLoading={isLoading}
+            poolTokensBalances={poolTokensBalances}
+          />
+        )}
       </div>
       {closeModal && (
         <div className="text-center mt-6">
