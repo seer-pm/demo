@@ -9,9 +9,11 @@ import {
 } from "./contracts/generated";
 
 export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
+  const effectiveChainId = chainId || mainnet.id;
+  
   return useQuery<string, Error>({
-    enabled: !!chainId,
-    queryKey: ["useMarketRulesPolicy", chainId],
+    enabled: true,
+    queryKey: ["useMarketRulesPolicy", effectiveChainId],
     queryFn: async () => {
       const mainnetId = mainnet.id;
       const client = graphQLClient(mainnetId);
@@ -21,10 +23,9 @@ export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
       }
 
       const { arbitratorMetadata } = await getSeerSdk(client).GetArbitratorMetadata({
-        id:
-          chainId === gnosis.id
-            ? realitioForeignArbitrationProxyWithAppealsAddress[mainnetId]
-            : realitioV2_1ArbitratorWithAppealsAddress[mainnetId],
+        id: effectiveChainId === gnosis.id 
+          ? realitioForeignArbitrationProxyWithAppealsAddress[mainnetId]
+          : realitioV2_1ArbitratorWithAppealsAddress[mainnetId],
       });
 
       if (!arbitratorMetadata?.registrationMetaEvidenceURI) {
@@ -38,3 +39,4 @@ export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
     },
   });
 };
+
