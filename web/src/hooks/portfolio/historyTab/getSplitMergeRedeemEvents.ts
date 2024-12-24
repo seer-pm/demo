@@ -2,7 +2,7 @@ import { ConditionalEvent_OrderBy, OrderDirection, getSdk as getSeerSdk } from "
 import { SupportedChain } from "@/lib/chains";
 import { graphQLClient } from "@/lib/subgraph";
 import { Address } from "viem";
-import { MarketDataMapping } from "./getMappings";
+import { MarketDataMapping } from "../getMappings";
 import { TransactionData } from "./types";
 
 export async function getSplitMergeRedeemEvents(

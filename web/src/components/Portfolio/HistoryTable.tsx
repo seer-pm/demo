@@ -70,6 +70,8 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
             <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer whitespace-nowrap"
               href={`${paths.market(data.marketId, chainId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <MarketImage
                 marketAddress={data.marketId as Address}

@@ -1,6 +1,7 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { getTokenInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
+import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
@@ -40,7 +41,7 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       } else if (order.status === OrderStatus.CANCELLED) {
         toastInfo({ title: "Swap cancelled" });
       }
-
+      queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
       removePendingOrder(pendingOrderId);
     }),
   );
