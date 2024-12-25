@@ -18,6 +18,7 @@ import {
   EyeIcon,
   LawBalanceIcon,
   MyMarket,
+  PresentIcon,
   QuestionIcon,
   SeerLogo,
   USDIcon,
@@ -128,6 +129,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
+  const incentive = formatBigNumbers(market.incentive);
 
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
@@ -298,50 +300,58 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <USDIcon />
             </div>
           </div>
-          {!isUndefined(market.verification) && (
-            <Link
-              className={clsx(
-                "flex items-center space-x-2",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
-              )}
-              to={
-                market.verification.status === "not_verified"
-                  ? paths.verifyMarket(market.id, market.chainId)
-                  : paths.curateVerifiedList(market.chainId, market.verification.itemID)
-              }
-              {...(market.verification.status === "not_verified"
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-            >
-              {market.verification.status === "verified" && (
-                <>
-                  <CheckCircleIcon />
-                  <div className="max-lg:hidden">Verified</div>
-                </>
-              )}
-              {market.verification.status === "verifying" && (
-                <>
-                  <ClockIcon />
-                  <div className="max-lg:hidden">Verifying</div>
-                </>
-              )}
-              {market.verification.status === "challenged" && (
-                <>
-                  <LawBalanceIcon />
-                  <div className="max-lg:hidden">Challenged</div>
-                </>
-              )}
-              {market.verification.status === "not_verified" && (
-                <>
-                  <ExclamationCircleIcon width="14" height="14" />
-                  <div className="max-lg:hidden">Verify it</div>
-                </>
-              )}
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {market.incentive > 0 && (
+              <div className="tooltip">
+                <p className="tooltiptext">Reward: {incentive} SEER/day</p>
+                <PresentIcon width="16px" />
+              </div>
+            )}
+            {!isUndefined(market.verification) && (
+              <Link
+                className={clsx(
+                  "flex items-center space-x-2",
+                  market.verification.status === "verified" && "text-success-primary",
+                  market.verification.status === "verifying" && "text-blue-primary",
+                  market.verification.status === "challenged" && "text-warning-primary",
+                  market.verification.status === "not_verified" && "text-purple-primary",
+                )}
+                to={
+                  market.verification.status === "not_verified"
+                    ? paths.verifyMarket(market.id, market.chainId)
+                    : paths.curateVerifiedList(market.chainId, market.verification.itemID)
+                }
+                {...(market.verification.status === "not_verified"
+                  ? {}
+                  : { target: "_blank", rel: "noopener noreferrer" })}
+              >
+                {market.verification.status === "verified" && (
+                  <>
+                    <CheckCircleIcon />
+                    <div className="max-lg:hidden">Verified</div>
+                  </>
+                )}
+                {market.verification.status === "verifying" && (
+                  <>
+                    <ClockIcon />
+                    <div className="max-lg:hidden">Verifying</div>
+                  </>
+                )}
+                {market.verification.status === "challenged" && (
+                  <>
+                    <LawBalanceIcon />
+                    <div className="max-lg:hidden">Challenged</div>
+                  </>
+                )}
+                {market.verification.status === "not_verified" && (
+                  <>
+                    <ExclamationCircleIcon width="14" height="14" />
+                    <div className="max-lg:hidden">Verify it</div>
+                  </>
+                )}
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </div>
