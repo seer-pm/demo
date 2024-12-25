@@ -2,7 +2,7 @@ import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
-import { SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import {
   BookIcon,
   BugIcon,
@@ -23,10 +23,8 @@ import { useAccount } from "wagmi";
 export default function Header() {
   const pageContext = usePageContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { chainId } = useAccount();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
   const { data: verifiedMarketPolicy } = useVerifiedMarketPolicy(chainId as SupportedChain);
-  const { data: verifiedMarketPolicyEth } = useVerifiedMarketPolicy(1 as SupportedChain);
-  const { data: verifiedMarketPolicyGnosis } = useVerifiedMarketPolicy(100 as SupportedChain);
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
 
   const toggleMenu = () => {
@@ -54,67 +52,6 @@ export default function Header() {
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const policyLinks = !chainId ? (
-    <>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-        <a
-          href={verifiedMarketPolicyEth}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon />
-          <span className="w-fit">Verified Market on Ethereum Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-        <a
-          href={verifiedMarketPolicyGnosis}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon />
-          <span className="w-fit">Verified Market on Gnosis Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-        <a
-          href={marketRulesPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span>Market Rules Policy</span>
-        </a>
-      </li>
-    </>
-  ) : (
-    <>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-        <a
-          href={verifiedMarketPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon />
-          <span>Verified Market Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-        <a
-          href={marketRulesPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span>Market Rules Policy</span>
-        </a>
-      </li>
-    </>
-  );
 
   return (
     <header>
@@ -144,7 +81,27 @@ export default function Header() {
                 <span>Policies</span> <DownArrow />
               </button>
               <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary font-normal">
-                {policyLinks}
+                <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
+                  <a
+                    href={verifiedMarketPolicy}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
+                    <PolicyIcon />
+                    <span>Verified Market Policy</span>
+                  </a>
+                </li>
+                <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
+                  <a
+                    href={marketRulesPolicy}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
+                    <PolicyIcon /> <span>Market Rules Policy</span>
+                  </a>
+                </li>
               </ul>
             </div>
           </li>
@@ -275,69 +232,9 @@ function BetaWarning() {
 }
 
 function MobileMenu() {
-  const { chainId } = useAccount();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
   const { data: verifiedMarketPolicy } = useVerifiedMarketPolicy(chainId as SupportedChain);
-  const { data: verifiedMarketPolicyEth } = useVerifiedMarketPolicy(1 as SupportedChain);
-  const { data: verifiedMarketPolicyGnosis } = useVerifiedMarketPolicy(100 as SupportedChain);
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
-
-  const policyLinks = !chainId ? (
-    <>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px]">
-        <a
-          href={verifiedMarketPolicyEth}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span className="hover:font-semibold whitespace-nowrap">Verified Market on Ethereum Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px]">
-        <a
-          href={verifiedMarketPolicyGnosis}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span className="hover:font-semibold whitespace-nowrap">Verified Market on Gnosis Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px]">
-        <a
-          href={marketRulesPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span className="hover:font-semibold">Market Rules Policy</span>
-        </a>
-      </li>
-    </>
-  ) : (
-    <>
-      <li className="flex space-x-2 items-center px-[24px] py-[16px]">
-        <a
-          href={verifiedMarketPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span className="hover:font-semibold whitespace-nowrap">Verified Market Policy</span>
-        </a>
-      </li>
-      <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
-        <a
-          href={marketRulesPolicy}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center space-x-2"
-        >
-          <PolicyIcon /> <span className="hover:font-semibold">Market Rules Policy</span>
-        </a>
-      </li>
-    </>
-  );
 
   return (
     <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
@@ -358,7 +255,26 @@ function MobileMenu() {
             <div>
               <span>Policies</span>
               <ul className="z-[1] w-[248px] [&_svg]:text-purple-primary font-normal !left-0">
-                {policyLinks}
+                <li className="flex space-x-2 items-center px-[24px] py-[16px]">
+                  <a
+                    href={verifiedMarketPolicy}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
+                    <PolicyIcon /> <span className="hover:font-semibold whitespace-nowrap">Verified Market Policy</span>
+                  </a>
+                </li>
+                <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
+                  <a
+                    href={marketRulesPolicy}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
+                    <PolicyIcon /> <span className="hover:font-semibold">Market Rules Policy</span>
+                  </a>
+                </li>
               </ul>
             </div>
           </li>
