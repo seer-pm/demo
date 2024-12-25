@@ -28,6 +28,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
+import PoolDetails from "./PoolDetails/PoolDetails";
 
 interface PositionsProps {
   market: Market;
@@ -232,6 +233,7 @@ interface OutcomeDetailProps {
   marketStatus?: MarketStatus;
   wrappedAddress: Address;
   openModal?: () => void;
+  openPoolDetailsModal: () => void;
   outcomeIndex: number;
   pools: PoolInfo[][];
   loopIndex: number;
@@ -243,6 +245,7 @@ function OutcomeDetails({
   marketStatus,
   wrappedAddress,
   openModal,
+  openPoolDetailsModal,
   outcomeIndex,
   pools,
   loopIndex,
@@ -356,21 +359,28 @@ function OutcomeDetails({
           )}
 
           {market.type === "Generic" && (
-            <Link
-              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSearchParams(
-                  {
-                    outcome: market.outcomes[outcomeIndex],
-                  },
-                  { overwriteLastHistoryEntry: true },
-                );
-              }}
-              className="text-purple-primary hover:underline"
-            >
-              New conditional market
-            </Link>
+            <>
+              <Link
+                to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchParams(
+                    {
+                      outcome: market.outcomes[outcomeIndex],
+                    },
+                    { overwriteLastHistoryEntry: true },
+                  );
+                }}
+                className="text-purple-primary hover:underline"
+              >
+                New conditional market
+              </Link>
+              {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
+                <button className="text-purple-primary hover:underline" type="button" onClick={openPoolDetailsModal}>
+                  View pool details
+                </button>
+              )}
+            </>
           )}
         </div>
         <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
@@ -388,6 +398,11 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+  const {
+    Modal: PoolDetailsModal,
+    openModal: openPoolDetailsModal,
+    closeModal: closePoolDetailsModal,
+  } = useModal("pool-details-modal", true);
 
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
@@ -403,6 +418,11 @@ export function Outcomes({ market, images }: PositionsProps) {
 
   return (
     <div>
+      <PoolDetailsModal
+        title="Pool details"
+        className="!max-w-[80vw]"
+        content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
+      />
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
@@ -427,6 +447,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                   wrappedAddress={market.wrappedTokens[i]}
                   marketStatus={marketStatus}
                   openModal={openModalCallback}
+                  openPoolDetailsModal={openPoolDetailsModal}
                   outcomeIndex={i}
                   pools={pools}
                   loopIndex={j}
@@ -439,6 +460,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     wrappedAddress={market.wrappedTokens[i]}
                     marketStatus={marketStatus}
                     openModal={openModalCallback}
+                    openPoolDetailsModal={openPoolDetailsModal}
                     outcomeIndex={i}
                     pools={pools}
                     loopIndex={j}
@@ -449,6 +471,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     wrappedAddress={market.wrappedTokens[i + 2]}
                     marketStatus={marketStatus}
                     openModal={openModalCallback}
+                    openPoolDetailsModal={openPoolDetailsModal}
                     outcomeIndex={i + 2}
                     pools={pools}
                     loopIndex={j}

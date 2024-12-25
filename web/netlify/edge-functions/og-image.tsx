@@ -2,13 +2,15 @@ import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
 import React from "https://esm.sh/react@18.2.0";
 import { isAddress } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
-import { displayBalance, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
+import { displayBalance, formatBigNumbers, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, VITE_SUPABASE_API_KEY, VITE_SUPABASE_PROJECT_URL } from "./utils/constants.ts";
 import { fetchMarket } from "./utils/fetchMarket.ts";
 import { convertFromSDAI } from "./utils/handleSDai.ts";
 import { MarketTypes, getMarketType } from "./utils/market.ts";
 
-async function fetchOdds(marketId: string): Promise<(number | null)[] | undefined> {
+async function fetchMarketDataById(
+  marketId: string,
+): Promise<{ odds: (number | null)[]; liquidity: number | null } | undefined> {
   if (!isAddress(marketId)) {
     return;
   }
@@ -20,7 +22,7 @@ async function fetchOdds(marketId: string): Promise<(number | null)[] | undefine
       },
     });
     const data = await response.json();
-    return data[0]?.odds;
+    return data[0];
   } catch (e) {
     console.log(e);
   }
@@ -53,11 +55,9 @@ export default async (request: Request, context: Context) => {
         { width: 2400, height: 1350, debug: false },
       );
     }
-    const [odds = [], daiAmount = (market.outcomesSupply / 1e18) * 1.115] = await Promise.all([
-      fetchOdds(marketId),
-      convertFromSDAI(market.outcomesSupply, Number(chainId)),
-    ]);
-
+    const marketData = await fetchMarketDataById(marketId);
+    const odds = marketData?.odds ?? [];
+    const liquidityUSD = formatBigNumbers(marketData?.liquidity ?? 0);
     const marketEstimate = getMarketEstimate(odds, market, true);
     const indexesOrderedByOdds = odds
       .map((odd, i) => ({ odd, i }))
@@ -102,12 +102,12 @@ export default async (request: Request, context: Context) => {
               }}
             >
               <img
-                alt="DAI"
+                alt="USD"
                 style={{
                   width: 48,
                   height: 48,
                 }}
-                src="https://cdn.kleros.link/ipfs/QmTDgfpsjtmXP5WmgbQaX7TTn8vSxyS75qDSi4LPCYbPVg/badge-dai.png"
+                src="https://cdn.kleros.link/ipfs/QmU4BQ55yQsCUBUkkL88pRiy9ZaBJDRBRi8StheLQ9dL5x/attach-money-24dp-ffffff-fill0-wght400-grad0-opsz24.svg"
               />
               <div
                 style={{
@@ -115,9 +115,9 @@ export default async (request: Request, context: Context) => {
                   fontSize: 32,
                 }}
               >
-                {displayBalance(daiAmount, 18, true)} {chainId === "100" ? "xDAI" : "DAI"}
+                {liquidityUSD}
               </div>
-              <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>Open Interest</div>
+              <div style={{ display: "flex", fontSize: 24, opacity: 0.8 }}>Liquidity</div>
             </div>
           </div>
           <p

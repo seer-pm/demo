@@ -9,7 +9,7 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { getCollateralFromDexTx, getToken1Token0 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "./getMappings";
+import { MarketDataMapping } from "../getMappings";
 import { TransactionData } from "./types";
 
 export async function getLiquidityEvents(mappings: MarketDataMapping, account: string, chainId: SupportedChain) {

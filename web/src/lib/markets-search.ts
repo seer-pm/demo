@@ -71,10 +71,7 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(
-  orderBy: Market_OrderBy | undefined,
-  marketToLiquidityCheckMapping?: { [key: string]: boolean },
-) {
+export function sortMarkets(orderBy: Market_OrderBy | "liquidityUSD" | undefined) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -122,26 +119,23 @@ export function sortMarkets(
       }
 
       // if market has no liquidity we not prioritize it
-      if (marketToLiquidityCheckMapping) {
-        try {
-          const statusTextA = STATUS_TEXTS[getMarketStatus(a)](marketToLiquidityCheckMapping[a.id]);
-          const statusTextB = STATUS_TEXTS[getMarketStatus(b)](marketToLiquidityCheckMapping[b.id]);
-          if (statusTextA !== statusTextB) {
-            if (statusTextA === "Liquidity Required") return 1;
-            if (statusTextB === "Liquidity Required") return -1;
-          }
-        } catch (e) {
-          console.log(e);
+      try {
+        const statusTextA = STATUS_TEXTS[getMarketStatus(a)](a.hasLiquidity);
+        const statusTextB = STATUS_TEXTS[getMarketStatus(b)](b.hasLiquidity);
+        if (statusTextA !== statusTextB) {
+          if (statusTextA === "Liquidity Required") return 1;
+          if (statusTextB === "Liquidity Required") return -1;
         }
+      } catch (e) {
+        console.log(e);
       }
 
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+      // by liquidity
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
-    if (orderBy === "outcomesSupply") {
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+    if (orderBy === "liquidityUSD") {
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
     // by opening date
@@ -151,7 +145,13 @@ export function sortMarkets(
 
 function mapGraphMarket(
   market: NonNullable<GetMarketQuery["market"]>,
-  extra: { chainId: SupportedChain; verification: VerificationResult | undefined },
+  extra: {
+    chainId: SupportedChain;
+    verification: VerificationResult | undefined;
+    liquidityUSD: number;
+    incentive: number;
+    hasLiquidity: boolean;
+  },
 ): Market {
   return {
     ...market,
@@ -192,6 +192,13 @@ function mapGraphMarket(
   };
 }
 
+interface MarketExtraData {
+  id: string;
+  liquidity: number | null;
+  incentive: number | null;
+  odds: (number | null)[];
+}
+
 export const fetchMarkets = async (
   chainId: SupportedChain,
   where?: Market_Filter,
@@ -225,12 +232,31 @@ export const fetchMarkets = async (
   }
 
   const verificationStatusList = await getVerificationStatusList(chainId);
-
+  let marketToMarketDataMapping: { [key: string]: MarketExtraData } | undefined;
+  try {
+    const { data } = await fetch("https://app.seer.pm/.netlify/functions/supabase-query/markets").then((res) =>
+      res.json(),
+    );
+    const markets = data as MarketExtraData[];
+    marketToMarketDataMapping = markets.reduce(
+      (acc, curr) => {
+        acc[curr.id] = curr;
+        return acc;
+      },
+      {} as { [key: string]: MarketExtraData },
+    );
+  } catch (e) {
+    console.log(e);
+  }
   return markets
     .map((market) => {
+      const MarketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
+        liquidityUSD: MarketExtraData?.liquidity ?? 0,
+        incentive: MarketExtraData?.incentive ?? 0,
+        hasLiquidity: MarketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
       });
     })
     .sort(sortMarkets(orderBy));
@@ -329,5 +355,7 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
     })
   )
     .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
-    .map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
+    .map((market) =>
+      mapOnChainMarket(market, { chainId, outcomesSupply: 0n, liquidityUSD: 0, incentive: 0, hasLiquidity: false }),
+    );
 }

@@ -30,8 +30,9 @@ interface Pool {
 }
 
 export async function fetchBestPoolPerPair(market: Market, tokenPair: string[], isToken0Collateral: boolean) {
-  const chainId = market.chainId.toString();
-  const query = `{
+  try {
+    const chainId = market.chainId.toString();
+    const query = `{
       pools(first: 1000, where: { token0: "${tokenPair[0].toLocaleLowerCase()}", token1: "${tokenPair[1].toLocaleLowerCase()}" }) {
         id
         token0 {
@@ -44,38 +45,41 @@ export async function fetchBestPoolPerPair(market: Market, tokenPair: string[], 
         token1Price
       }
     }`;
-  const results = await fetch(POOL_SUBGRAPH_URLS[chainId]!, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query,
-    }),
-  });
-  const json = await results.json();
-  const pools = json?.data?.pools ?? [];
-  const poolBalances = await Promise.all(
-    pools.map(async ({ id, token0, token1 }) => {
-      const balance0BigInt = await fetchTokenBalance(token0.id, id, Number(chainId) as SupportedChain);
-      const balance1BigInt = await fetchTokenBalance(token1.id, id, Number(chainId) as SupportedChain);
-      return {
-        balance0: Number(formatUnits(balance0BigInt, 18)).toFixed(4),
-        balance1: Number(formatUnits(balance1BigInt, 18)).toFixed(4),
-      };
-    }),
-  );
+    const results = await fetch(POOL_SUBGRAPH_URLS[chainId]!, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+      }),
+    });
+    const json = await results.json();
+    const pools = json?.data?.pools ?? [];
+    const poolBalances = await Promise.all(
+      pools.map(async ({ id, token0, token1 }) => {
+        const balance0BigInt = await fetchTokenBalance(token0.id, id, Number(chainId) as SupportedChain);
+        const balance1BigInt = await fetchTokenBalance(token1.id, id, Number(chainId) as SupportedChain);
+        return {
+          balance0: Number(formatUnits(balance0BigInt, 18)).toFixed(4),
+          balance1: Number(formatUnits(balance1BigInt, 18)).toFixed(4),
+        };
+      }),
+    );
 
-  const poolWithBalances = pools.map((pool, index) => ({
-    ...pool,
-    balance0: Number(poolBalances[index].balance0),
-    balance1: Number(poolBalances[index].balance1),
-    isToken0Collateral,
-    chainId: Number(chainId),
-    outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
-  })) as Pool[];
-  poolWithBalances.sort((a, b) => (isToken0Collateral ? b.balance0 - a.balance0 : b.balance1 - a.balance1));
-  return poolWithBalances[0];
+    const poolWithBalances = pools.map((pool, index) => ({
+      ...pool,
+      balance0: Number(poolBalances[index].balance0),
+      balance1: Number(poolBalances[index].balance1),
+      isToken0Collateral,
+      chainId: Number(chainId),
+      outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
+    })) as Pool[];
+    poolWithBalances.sort((a, b) => (isToken0Collateral ? b.balance0 - a.balance0 : b.balance1 - a.balance1));
+    return poolWithBalances[0];
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 async function fetchMarketPools(market: Market, collateralTokenAddress: string) {
@@ -110,7 +114,7 @@ export async function getMarketsLiquidity(markets: Market[]) {
     )
   )
     .flat()
-    .filter((x) => x);
+    .filter((x) => x) as Pool[];
   const [simpleTokenPools, conditionalTokenPools] = allPossiblePools.reduce(
     (acc, curr) => {
       const isSimpleToken = curr.isToken0Collateral

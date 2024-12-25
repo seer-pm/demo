@@ -60,22 +60,9 @@ const useGraphMarkets = (
           return markets;
         }, [] as Market[][])
         .flat();
-      let marketToLiquidityCheckMapping: { [key: string]: boolean } | undefined;
-      try {
-        const { data } = await fetch("https://app.seer.pm/.netlify/functions/supabase-query/markets").then((res) =>
-          res.json(),
-        );
-        const markets = data as { id: string; odds: (number | null)[] }[];
-        marketToLiquidityCheckMapping = markets.reduce(
-          (acc, curr) => {
-            acc[curr.id] = curr.odds.some((odd: number | null) => (odd ?? 0) > 0);
-            return acc;
-          },
-          {} as { [key: string]: boolean },
-        );
-      } catch (e) {}
+
       // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy, marketToLiquidityCheckMapping));
+      markets.sort(sortMarkets(orderBy));
 
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);

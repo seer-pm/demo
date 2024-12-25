@@ -3,6 +3,7 @@ import { getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
 import { Address, formatUnits } from "viem";
@@ -36,10 +37,12 @@ export interface PoolInfo {
   token1Price: number;
   token0Symbol: string;
   token1Symbol: string;
-  liquidity: string;
   totalValueLockedToken0: number;
   totalValueLockedToken1: number;
   incentives: PoolIncentive[];
+  liquidity: bigint;
+  tick: number;
+  tickSpacing: number;
 }
 
 function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
@@ -111,9 +114,11 @@ async function getSwaprPools(
       token1: pool.token1.id as Address,
       token0Price: Number(pool.token0Price),
       token1Price: Number(pool.token1Price),
+      liquidity: BigInt(pool.liquidity),
+      tick: Number(pool.tick),
+      tickSpacing: Number(pool.tickSpacing),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
-      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
@@ -150,9 +155,11 @@ async function getUniswapPools(
       token1: pool.token1.id as Address,
       token0Price: Number(pool.token0Price),
       token1Price: Number(pool.token1Price),
+      liquidity: BigInt(pool.liquidity),
+      tick: Number(pool.tick),
+      tickSpacing: TICK_SPACINGS[Number(pool.feeTier) as FeeAmount] ?? 60,
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
-      liquidity: pool.liquidity,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
       totalValueLockedToken1: Number(pool.totalValueLockedToken1),
       incentives: [], // TODO
@@ -160,7 +167,7 @@ async function getUniswapPools(
   );
 }
 
-const getPools = memoize((chainId: SupportedChain) => {
+export const getPools = memoize((chainId: SupportedChain) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
