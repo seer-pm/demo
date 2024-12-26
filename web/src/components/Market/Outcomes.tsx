@@ -198,33 +198,49 @@ function AddLiquidityInfo({
   );
 }
 
-function AddLiquidityLink({
+function AddLiquidityLinks({
   market,
   outcomeIndex,
   pools,
-  openModal,
-}: { market: Market; outcomeIndex: number; pools: PoolInfo[][]; openModal?: () => void }) {
-  return openModal &&
-    !isUndefined(pools[outcomeIndex]) &&
-    pools[outcomeIndex].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
-    <button
-      type="button"
-      onClick={() => {
-        openModal();
-      }}
-      className="text-purple-primary hover:underline"
-    >
-      Add Liquidity
-    </button>
-  ) : (
-    <a
-      href={getLiquidityUrlByMarket(market, outcomeIndex)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-purple-primary hover:underline"
-    >
-      Add Liquidity
-    </a>
+  openLiquidityModal,
+  openPoolDetailsModal,
+}: {
+  market: Market;
+  outcomeIndex: number;
+  pools: PoolInfo[][];
+  openLiquidityModal?: () => void;
+  openPoolDetailsModal: () => void;
+}) {
+  return (
+    <>
+      {openLiquidityModal &&
+      !isUndefined(pools[outcomeIndex]) &&
+      pools[outcomeIndex].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+        <button
+          type="button"
+          onClick={() => {
+            openLiquidityModal();
+          }}
+          className="text-purple-primary hover:underline"
+        >
+          Add Liquidity
+        </button>
+      ) : (
+        <a
+          href={getLiquidityUrlByMarket(market, outcomeIndex)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-purple-primary hover:underline"
+        >
+          Add Liquidity
+        </a>
+      )}
+      {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
+        <button className="text-purple-primary hover:underline" type="button" onClick={openPoolDetailsModal}>
+          View pool details
+        </button>
+      )}
+    </>
   );
 }
 
@@ -355,32 +371,31 @@ function OutcomeDetails({
           </a>
 
           {market.type === "Generic" && (
-            <AddLiquidityLink market={market} outcomeIndex={outcomeIndex} pools={pools} openModal={openModal} />
+            <AddLiquidityLinks
+              market={market}
+              outcomeIndex={outcomeIndex}
+              pools={pools}
+              openLiquidityModal={openModal}
+              openPoolDetailsModal={openPoolDetailsModal}
+            />
           )}
 
           {market.type === "Generic" && (
-            <>
-              <Link
-                to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSearchParams(
-                    {
-                      outcome: market.outcomes[outcomeIndex],
-                    },
-                    { overwriteLastHistoryEntry: true },
-                  );
-                }}
-                className="text-purple-primary hover:underline"
-              >
-                New conditional market
-              </Link>
-              {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
-                <button className="text-purple-primary hover:underline" type="button" onClick={openPoolDetailsModal}>
-                  View pool details
-                </button>
-              )}
-            </>
+            <Link
+              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchParams(
+                  {
+                    outcome: market.outcomes[outcomeIndex],
+                  },
+                  { overwriteLastHistoryEntry: true },
+                );
+              }}
+              className="text-purple-primary hover:underline"
+            >
+              New conditional market
+            </Link>
           )}
         </div>
         <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
@@ -493,8 +508,14 @@ export function Outcomes({ market, images }: PositionsProps) {
                 />
               </div>
               {market.type === "Futarchy" && (
-                <div className="w-full text-center text-[12px] pt-[12px] pr-[64px]">
-                  <AddLiquidityLink market={market} outcomeIndex={i} pools={pools} openModal={openModal} />
+                <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
+                  <AddLiquidityLinks
+                    market={market}
+                    outcomeIndex={i}
+                    pools={pools}
+                    openLiquidityModal={openModal}
+                    openPoolDetailsModal={openPoolDetailsModal}
+                  />
                 </div>
               )}
             </div>
