@@ -273,7 +273,7 @@ export function PreviewForm({
     if (marketId) {
       setNewMarketId(marketId);
       toggleFavorite(address, marketId);
-      fetch(`https://app.seer.pm/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
+      fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
     }
   });
 
