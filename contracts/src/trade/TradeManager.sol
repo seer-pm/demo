@@ -150,16 +150,13 @@ contract TradeManager {
                 amountOutMinimum: additionalTradeParams.amountOutMinimum,
                 limitSqrtPrice: 0
             });
-        bool hasTransferTokenIn = false;
         if (params.tokenIn == xDAI) {
             require(msg.value > 0, "Not enough native tokens.");
             params.amountIn = savingsXDaiAdapter.depositXDAI{value: msg.value}(
                 address(this)
             );
             params.tokenIn = address(sDAI);
-            hasTransferTokenIn = true;
-        }
-        if (!hasTransferTokenIn && !isFromManager) {
+        } else if (!isFromManager) {
             IERC20(params.tokenIn).transferFrom(
                 msg.sender,
                 address(this),
@@ -202,7 +199,6 @@ contract TradeManager {
             tokenOutParentMarket == address(path.tokenInMarket),
             "Cannot use mint for this pair."
         );
-        bool hasTransferTokenIn = false;
 
         if (path.tokenIn == xDAI) {
             require(msg.value > 0, "Not enough native tokens.");
@@ -210,10 +206,7 @@ contract TradeManager {
                 value: msg.value
             }(address(this));
             path.tokenIn = address(sDAI);
-            hasTransferTokenIn = true;
-        }
-
-        if (!hasTransferTokenIn && !isFromManager) {
+        } else if (!isFromManager) {
             IERC20(path.tokenIn).transferFrom(
                 msg.sender,
                 address(this),
