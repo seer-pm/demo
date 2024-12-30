@@ -1,6 +1,6 @@
 import { unescapeJson } from "./common.ts";
 import { SupportedChain } from "./config.ts";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, SEER_SUBGRAPH_URLS } from "./constants.ts";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, SEER_SUBGRAPH_URLS, zeroAddress } from "./constants.ts";
 import { Address, Market, VerificationResult } from "./types.ts";
 
 export async function fetchMarket(marketId: string, chainId: string, verificationStatusList) {
@@ -13,7 +13,9 @@ export async function fetchMarket(marketId: string, chainId: string, verificatio
       marketName
       outcomes
       wrappedTokens
-      parentMarket
+      parentMarket{
+        id
+      }
       parentOutcome
       parentCollectionId
       conditionId
@@ -71,13 +73,15 @@ function mapGraphMarket(
     ...market,
     id: market.id as Address,
     marketName: unescapeJson(market.marketName),
+    parentMarket: market.parentMarket ?? {
+      id: zeroAddress,
+    },
     outcomes: market.outcomes.map((outcome) => {
       if (outcome === INVALID_RESULT_OUTCOME) {
         return INVALID_RESULT_OUTCOME_TEXT;
       }
       return unescapeJson(outcome);
     }),
-    parentMarket: market.parentMarket as Address,
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),

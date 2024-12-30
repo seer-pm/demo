@@ -15,7 +15,8 @@ type Market @entity {
   upperBound: BigInt!
   parentCollectionId: Bytes!
   parentOutcome: BigInt!
-  parentMarket: Bytes!
+  parentMarket: Market
+  childMarkets: [Market!]! @derivedFrom(field: "parentMarket")
   wrappedTokens: [Bytes!]!
   " collateral token for Generic markets. It's either the MarketFactory's collateralToken or the parentMarket corresponding wrapped token "
   collateralToken: Bytes!
@@ -29,6 +30,7 @@ type Market @entity {
   templateId: BigInt!
   encodedQuestions: [String!]!
   payoutReported: Boolean!
+  payoutNumerators: [BigInt!]!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -84,4 +86,22 @@ type ConditionalEvent @entity {
   blockNumber: BigInt!
   collateral: Bytes!
   transactionHash: Bytes!
+}
+
+type CurateMetadata @entity {
+  "The registry address"
+  id: Bytes!
+  "The current registration meta evidence URI"
+  registrationMetaEvidenceURI: String!
+  "The current removal meta evidence URI"
+  clearingMetaEvidenceURI: String!
+  "The number of MetaEvidence event logs emitted."
+  metaEvidenceCount: BigInt!
+}
+
+type ArbitratorMetadata @entity {
+  "The arbitrator address"
+  id: Bytes!
+  "The current arbitrator meta evidence URI"
+  registrationMetaEvidenceURI: String!
 }

@@ -8,7 +8,7 @@ import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "./getMappings";
+import { MarketDataMapping } from "../getMappings";
 import { TransactionData } from "./types";
 
 export async function getLiquidityEvents(mappings: MarketDataMapping, account: string, chainId: SupportedChain) {

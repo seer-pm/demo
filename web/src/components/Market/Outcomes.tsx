@@ -16,7 +16,7 @@ import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/
 import { MarketTypes, formatOdds, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
@@ -28,18 +28,29 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { OutcomeImage } from "./OutcomeImage";
+import PoolDetails from "./PoolDetails/PoolDetails";
 
 interface PositionsProps {
   market: Market;
   images?: string[];
 }
 
-function poolRewardsInfo(poolIncentive: PoolIncentive) {
-  if (poolIncentive.apr === 0) {
-    return `${displayBalance(poolIncentive.rewardRate * 86400n, 18, true)} SEER / day`;
-  }
+function poolRewardsInfo(pool: PoolInfo) {
+  const poolIncentive =
+    pool.incentives.length > 0
+      ? pool.incentives[0].apr === 0
+        ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
+        : `${pool.incentives[0].apr.toFixed(2)}% APR`
+      : "0 SEER / day";
 
-  return `${poolIncentive.apr.toFixed(2)}% APR`;
+  return (
+    <div>
+      <div>
+        <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
+      </div>
+      {pool.incentives.length > 0 && <div>Rewards end: {formatDate(Number(pool.incentives[0].endTime))}</div>}
+    </div>
+  );
 }
 
 function AddLiquidityInfo({
@@ -113,10 +124,7 @@ function AddLiquidityInfo({
         {pools.map((pool) => (
           <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
             <div className="flex justify-between items-center">
-              <div>
-                <span className="font-semibold">{pool.dex}</span> ~{" "}
-                {pool.incentives.length > 0 ? poolRewardsInfo(pool.incentives[0]) : "0 SEER / day"}
-              </div>
+              <div>{poolRewardsInfo(pool)}</div>
               <div>
                 <a
                   href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
@@ -195,7 +203,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
@@ -205,7 +213,11 @@ export function Outcomes({ market, images }: PositionsProps) {
   const marketStatus = getMarketStatus(market);
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
-
+  const {
+    Modal: PoolDetailsModal,
+    openModal: openPoolDetailsModal,
+    closeModal: closePoolDetailsModal,
+  } = useModal("pool-details-modal", true);
   useEffect(() => {
     if (!searchParams.get("outcome") && indexesOrderedByOdds) {
       const i = indexesOrderedByOdds[0];
@@ -249,6 +261,11 @@ export function Outcomes({ market, images }: PositionsProps) {
   };
   return (
     <div>
+      <PoolDetailsModal
+        title="Pool details"
+        className="!max-w-[80vw]"
+        content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
+      />
       <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
         {market.wrappedTokens.map((_, j) => {
@@ -325,7 +342,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     </a>
 
                     {!isUndefined(pools[i]) && pools[i].length > 0 ? (
-                      pools[i].some(pool => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+                      pools[i].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
                         <button
                           type="button"
                           onClick={() => {
@@ -340,7 +357,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                           href={getLiquidityUrl(
                             market.chainId,
                             wrappedAddress,
-                            market.parentMarket === zeroAddress
+                            market.parentMarket.id === zeroAddress
                               ? COLLATERAL_TOKENS[market.chainId].primary.address
                               : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
                           )}
@@ -356,7 +373,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                         href={getLiquidityUrl(
                           market.chainId,
                           wrappedAddress,
-                          market.parentMarket === zeroAddress
+                          market.parentMarket.id === zeroAddress
                             ? COLLATERAL_TOKENS[market.chainId].primary.address
                             : (parentMarket?.wrappedTokens[Number(market.parentOutcome)] as string),
                         )}
@@ -384,6 +401,15 @@ export function Outcomes({ market, images }: PositionsProps) {
                     >
                       New conditional market
                     </Link>
+                    {!isUndefined(pools[i]) && pools[i].length > 0 && (
+                      <button
+                        className="text-purple-primary hover:underline"
+                        type="button"
+                        onClick={openPoolDetailsModal}
+                      >
+                        View pool details
+                      </button>
+                    )}
                   </div>
                   <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
                 </div>

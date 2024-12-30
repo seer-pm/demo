@@ -2,9 +2,11 @@ import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
+import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
@@ -151,6 +153,8 @@ function ModalContentCreateMarket({
   useOutcomesFormReturn,
   chainId,
 }: ModalContentCreateMarketProps) {
+  const { data: verifiedMarketPolicy } = useVerifiedMarketPolicy(chainId as SupportedChain);
+  const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
   return (
     <>
       <p>
@@ -184,13 +188,13 @@ function ModalContentCreateMarket({
           <div className="flex space-x-[24px] items-center">
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
-              <a href={paths.verifiedMarketPolicy(chainId)} className="text-purple-primary">
+              <a href={verifiedMarketPolicy} className="text-purple-primary">
                 Verified Market Policy
               </a>
             </div>
             <div className="flex space-x-2 items-center">
               <PolicyIcon />{" "}
-              <a href={paths.marketRulesPolicy()} className="text-purple-primary">
+              <a href={marketRulesPolicy} className="text-purple-primary">
                 Market Rules Policy
               </a>
             </div>
@@ -269,7 +273,7 @@ export function PreviewForm({
     if (marketId) {
       setNewMarketId(marketId);
       toggleFavorite(address, marketId);
-      fetch(`https://app.seer.pm/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
+      fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
     }
   });
 
@@ -327,10 +331,18 @@ export function PreviewForm({
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: dummyOutcomes,
-    parentMarket: parentMarketAddress as Address,
+    parentMarket: {
+      id: parentMarketAddress as Address,
+      conditionId: "0x000",
+      payoutReported: false,
+      payoutNumerators: [0n, 0n],
+    },
     parentOutcome: BigInt(parentOutcomeIndex),
     wrappedTokens: dummyOutcomes.map((_) => "0x000"),
     outcomesSupply: 0n,
+    liquidityUSD: 0,
+    incentive: 0,
+    hasLiquidity: false,
     parentCollectionId: "0x000",
     conditionId: "0x000",
     questionId: "0x000",
@@ -338,6 +350,7 @@ export function PreviewForm({
     lowerBound: BigInt(outcomesValues.lowerBound.value),
     upperBound: BigInt(outcomesValues.upperBound.value),
     payoutReported: true,
+    payoutNumerators: [0n, 0n],
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
       (_) => ({
         id: "0x000",

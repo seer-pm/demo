@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
+import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
 
@@ -84,6 +85,18 @@ function PortfolioPage() {
           <button
             type="button"
             role="tab"
+            className={`tab ${activeTab === "orders" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "orders",
+              })
+            }
+          >
+            Orders
+          </button>
+          <button
+            type="button"
+            role="tab"
             className={`tab ${activeTab === "history" && "tab-active"}`}
             onClick={() =>
               setSearchParams({
@@ -95,6 +108,7 @@ function PortfolioPage() {
           </button>
         </div>
         {activeTab === "positions" && <PositionsTab />}
+        {activeTab === "orders" && <OrdersTab />}
         {activeTab === "history" && <HistoryTab />}
       </div>
     </div>

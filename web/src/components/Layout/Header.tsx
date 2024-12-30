@@ -1,5 +1,8 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
+import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
+import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
+import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import {
   BookIcon,
   BugIcon,
@@ -20,8 +23,6 @@ import { useAccount } from "wagmi";
 export default function Header() {
   const pageContext = usePageContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { chainId } = useAccount();
-
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
       window.document.body.classList.add("overflow-hidden");
@@ -75,26 +76,16 @@ export default function Header() {
               <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
                 <span>Policies</span> <DownArrow />
               </button>
-              <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary font-normal">
+              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <a
-                    href={paths.verifiedMarketPolicy(chainId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2"
-                  >
-                    <PolicyIcon /> <span>Verified Market Policy</span>
-                  </a>
+                  <Link to={"/policy/verified"} className="flex items-center space-x-2">
+                      <PolicyIcon /> <span> Verified Market Policy </span>
+                  </Link>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <a
-                    href={paths.marketRulesPolicy()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2"
-                  >
-                    <PolicyIcon /> <span>Market Rules Policy</span>
-                  </a>
+                  <Link to={"/policy/rules"} className="flex items-center space-x-2">
+                      <PolicyIcon /> <span>Market Rules Policy</span>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -124,7 +115,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
               </button>
-              <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary">
                 <li>
                   <Link
                     to={paths.getHelp()}
@@ -226,7 +217,10 @@ function BetaWarning() {
 }
 
 function MobileMenu() {
-  const { chainId } = useAccount();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
+  const { data: verifiedMarketPolicy } = useVerifiedMarketPolicy(chainId as SupportedChain);
+  const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
+
   return (
     <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
       <div className="px-[24px] py-[48px]">
@@ -248,7 +242,7 @@ function MobileMenu() {
               <ul className="z-[1] w-[248px] [&_svg]:text-purple-primary font-normal !left-0">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px]">
                   <a
-                    href={paths.verifiedMarketPolicy(chainId)}
+                    href={verifiedMarketPolicy}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"
@@ -258,7 +252,7 @@ function MobileMenu() {
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
                   <a
-                    href={paths.marketRulesPolicy()}
+                    href={marketRulesPolicy}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"

@@ -1,3 +1,4 @@
+import { queryClient } from "@/lib/query-client";
 import { toastify } from "@/lib/toastify";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -6,7 +7,6 @@ import { getConnectorClient } from "@wagmi/core";
 import { Contract, providers } from "ethers";
 import { Account, Chain, Client, Transport } from "viem";
 import { ethFlowAbi } from "./abis";
-import { pollForOrder } from "./utils";
 
 export const ethFlowAddress = "0x40A50cf069e992AA4536211B23F286eF88752187";
 
@@ -36,36 +36,27 @@ export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
     const orderId = `${orderDigest}${ethFlowAddress.slice(2)}ffffffff`.toLowerCase();
     const result = await toastify(() => ethFlowContract.createOrder(ethOrder, { value: ethOrder.sellAmount }), {
       txSent: { title: "Confirm order..." },
-      txSuccess: { title: "Order placed!" },
+      txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
     });
 
     if (!result.status) {
       throw result.error;
     }
-    const orderResult = await pollForOrder(orderId, trade.chainId);
-    if (orderResult.error) {
-      throw orderResult.error;
-    }
-
+    queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
     return orderId;
   }
-  await trade.signOrder(signer, trade.order.receiver);
+
+  await trade.signOrder(signer);
   const result = await toastify(() => trade.submitOrder(), {
     txSent: { title: "Confirm order..." },
-    txSuccess: { title: "Order placed!" },
+    txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
   });
 
   if (!result.status) {
     throw result.error;
   }
-
+  queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
   const orderId = result.data;
-
-  const orderResult = await pollForOrder(orderId, trade.chainId);
-
-  if (orderResult.error) {
-    throw orderResult.error;
-  }
 
   return orderId;
 }

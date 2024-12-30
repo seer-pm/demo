@@ -4,11 +4,12 @@ import { ImageUpload } from "./Images";
 
 interface OutcomeImageProps {
   outcomeIndex: number;
+  outcomeName: string;
   useFormReturn: UseFormReturn<OutcomesFormValues>;
   showOnlyMissingImages: boolean;
 }
 
-function OutcomeImage({ outcomeIndex, useFormReturn, showOnlyMissingImages }: OutcomeImageProps) {
+function OutcomeImage({ outcomeIndex, outcomeName, useFormReturn, showOnlyMissingImages }: OutcomeImageProps) {
   const image = useFormReturn.watch(`outcomes.${outcomeIndex}.image`);
 
   if (image && showOnlyMissingImages) {
@@ -17,7 +18,7 @@ function OutcomeImage({ outcomeIndex, useFormReturn, showOnlyMissingImages }: Ou
 
   return (
     <div>
-      <div className="text-[14px] mb-[10px] text-black-primary">Outcome {outcomeIndex + 1}</div>
+      <div className="text-[14px] mb-[10px] text-black-primary line-clamp-1">{outcomeName}</div>
       <ImageUpload
         name={`outcomes.${outcomeIndex}.image`}
         setFile={(file) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, file, { shouldValidate: true })}
@@ -60,6 +61,7 @@ export function VerificationForm({
             <OutcomeImage
               key={`${outcome.value}_${i}`}
               outcomeIndex={i}
+              outcomeName={outcomes[i].value}
               useFormReturn={useOutcomesFormReturn}
               showOnlyMissingImages={showOnlyMissingImages}
             />

@@ -228,8 +228,10 @@ export function handleConditionResolution(evt: ConditionResolution): void {
     return;
   }
 
-  condition.markets.load().forEach((market) => {
-    market.payoutReported = true;
-    market.save();
-  });
+  const markets = condition.markets.load();
+  for(let i = 0; i < markets.length; i++) {
+    markets[i].payoutReported = true;
+    markets[i].payoutNumerators = evt.params.payoutNumerators;
+    markets[i].save();
+  }
 }

@@ -3,7 +3,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { config } from "@/wagmi";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { Market } from "../../useMarket";
+import { Market } from "../useMarket";
 
 export interface MarketDataMapping {
   outcomeTokenToCollateral: {
@@ -43,8 +43,8 @@ export async function getMappings(markets: Market[], chainId: SupportedChain) {
 
   const tokenPairToMarketMapping = markets.reduce(
     (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
+      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
+        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
         : COLLATERAL_TOKENS[chainId].primary.address;
       for (const outcomeToken of curr.wrappedTokens) {
         const key =
@@ -60,8 +60,8 @@ export async function getMappings(markets: Market[], chainId: SupportedChain) {
 
   const marketIdToCollateral = markets.reduce(
     (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
+      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
+        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
         : COLLATERAL_TOKENS[chainId].primary.address;
       acc[curr.id.toLocaleLowerCase()] = collateral;
       return acc;
@@ -71,8 +71,8 @@ export async function getMappings(markets: Market[], chainId: SupportedChain) {
 
   const outcomeTokenToCollateral = markets.reduce(
     (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
+      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
+        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
         : COLLATERAL_TOKENS[chainId].primary.address;
       for (const outcomeToken of curr.wrappedTokens) {
         acc[outcomeToken.toLocaleLowerCase()] = collateral;

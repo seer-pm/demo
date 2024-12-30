@@ -4,7 +4,7 @@ import { Market, useMarket } from "./useMarket";
 import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,

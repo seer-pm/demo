@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
@@ -8,27 +7,28 @@ import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
-import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
+
 import {
   CheckCircleIcon,
   ClockIcon,
-  DaiLogo,
   ExclamationCircleIcon,
   EyeIcon,
   LawBalanceIcon,
   MyMarket,
+  PresentIcon,
   QuestionIcon,
   SeerLogo,
+  USDIcon,
 } from "@/lib/icons";
 import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
-import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
@@ -126,13 +126,11 @@ function OutcomesInfo({
 
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketStatus = getMarketStatus(market);
-  const { data: daiAmount } = useConvertToAssets(market.outcomesSupply, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
+  const liquidityUSD = formatBigNumbers(market.liquidityUSD);
+  const incentive = formatBigNumbers(market.incentive);
+
   const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
@@ -140,6 +138,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate = getMarketEstimate(odds, market, true);
+  const firstQuestion = market.questions[0];
+
   return (
     <div
       className={clsx(
@@ -236,12 +236,19 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
           ) : (
-            <div className="flex space-x-2 items-center text-[14px]">
-              <EyeIcon />{" "}
-              <span className="text-purple-primary cursor-pointer" onClick={() => setShowMarketInfo(!showMarketInfo)}>
-                {showMarketInfo ? "Hide questions" : "Show questions"}
-              </span>
-            </div>
+            <>
+              <div className="flex space-x-2 items-center text-[14px]">
+                {marketType === MarketTypes.MULTI_SCALAR && firstQuestion.finalize_ts > 0 && (
+                  <div className="text-black-secondary">Deadline: {getTimeLeft(firstQuestion.finalize_ts)}</div>
+                )}
+              </div>
+              <div className="flex space-x-2 items-center text-[14px]">
+                <EyeIcon />{" "}
+                <span className="text-purple-primary cursor-pointer" onClick={() => setShowMarketInfo(!showMarketInfo)}>
+                  {showMarketInfo ? "Hide questions" : "Show questions"}
+                </span>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -286,68 +293,65 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
               <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
             </div>
-            {!isUndefined(daiAmount) && (
-              <div className="!flex items-center gap-2 tooltip">
-                <p className="tooltiptext @[510px]:hidden">Open interest</p>
-                <span className="text-black-secondary @[510px]:block hidden">Open interest:</span>{" "}
-                {!parentMarket && (
-                  <>
-                    {displayBalance(daiAmount, 18, true)} {market.chainId === gnosis.id ? "xDAI" : "DAI"}
-                    <DaiLogo />
-                  </>
-                )}
-                {parentMarket && (
-                  <div>
-                    {displayBalance(market.outcomesSupply, 18, true)} {parentCollateral?.symbol ?? ""}
-                  </div>
-                )}
+            <div className="!flex items-center tooltip">
+              <p className="tooltiptext @[510px]:hidden">Liquidity</p>
+              <span className="text-black-secondary @[510px]:inline-block hidden">Liquidity:</span>
+              <span className="ml-1">{liquidityUSD}</span>
+              <USDIcon />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {market.incentive > 0 && (
+              <div className="tooltip">
+                <p className="tooltiptext">Reward: {incentive} SEER/day</p>
+                <PresentIcon width="16px" />
               </div>
             )}
+            {!isUndefined(market.verification) && (
+              <Link
+                className={clsx(
+                  "flex items-center space-x-2",
+                  market.verification.status === "verified" && "text-success-primary",
+                  market.verification.status === "verifying" && "text-blue-primary",
+                  market.verification.status === "challenged" && "text-warning-primary",
+                  market.verification.status === "not_verified" && "text-purple-primary",
+                )}
+                to={
+                  market.verification.status === "not_verified"
+                    ? paths.verifyMarket(market.id, market.chainId)
+                    : paths.curateVerifiedList(market.chainId, market.verification.itemID)
+                }
+                {...(market.verification.status === "not_verified"
+                  ? {}
+                  : { target: "_blank", rel: "noopener noreferrer" })}
+              >
+                {market.verification.status === "verified" && (
+                  <>
+                    <CheckCircleIcon />
+                    <div className="max-lg:hidden">Verified</div>
+                  </>
+                )}
+                {market.verification.status === "verifying" && (
+                  <>
+                    <ClockIcon />
+                    <div className="max-lg:hidden">Verifying</div>
+                  </>
+                )}
+                {market.verification.status === "challenged" && (
+                  <>
+                    <LawBalanceIcon />
+                    <div className="max-lg:hidden">Challenged</div>
+                  </>
+                )}
+                {market.verification.status === "not_verified" && (
+                  <>
+                    <ExclamationCircleIcon width="14" height="14" />
+                    <div className="max-lg:hidden">Verify it</div>
+                  </>
+                )}
+              </Link>
+            )}
           </div>
-          {!isUndefined(market.verification) && (
-            <Link
-              className={clsx(
-                "flex items-center space-x-2",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
-              )}
-              to={
-                market.verification.status === "not_verified"
-                  ? paths.verifyMarket(market.id, market.chainId)
-                  : paths.curateVerifiedList(market.chainId, market.verification.itemID)
-              }
-              {...(market.verification.status === "not_verified"
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-            >
-              {market.verification.status === "verified" && (
-                <>
-                  <CheckCircleIcon />
-                  <div className="max-lg:hidden">Verified</div>
-                </>
-              )}
-              {market.verification.status === "verifying" && (
-                <>
-                  <ClockIcon />
-                  <div className="max-lg:hidden">Verifying</div>
-                </>
-              )}
-              {market.verification.status === "challenged" && (
-                <>
-                  <LawBalanceIcon />
-                  <div className="max-lg:hidden">Challenged</div>
-                </>
-              )}
-              {market.verification.status === "not_verified" && (
-                <>
-                  <ExclamationCircleIcon width="14" height="14" />
-                  <div className="max-lg:hidden">Verify it</div>
-                </>
-              )}
-            </Link>
-          )}
         </div>
       )}
     </div>

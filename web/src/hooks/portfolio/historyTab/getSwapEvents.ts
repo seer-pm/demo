@@ -12,7 +12,7 @@ import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { DAI, WXDAI } from "@swapr/sdk";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "./getMappings";
+import { MarketDataMapping } from "../getMappings";
 import { TransactionData } from "./types";
 
 export async function getSwapEvents(mappings: MarketDataMapping, account: string, chainId: SupportedChain) {

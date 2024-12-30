@@ -21,8 +21,8 @@ import FormError from "../Form/FormError";
 import { STATUS_TEXTS } from "./Header";
 
 const ORDER_OPTIONS = [
-  { value: "default", text: "Default", tooltip: "Verification Status -> Open Interest" },
-  { value: Market_OrderBy.OutcomesSupply, text: "Open Interest" },
+  { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },
+  { value: "liquidityUSD", text: "Liquidity" },
   { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
 ];
 

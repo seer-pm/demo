@@ -3,6 +3,8 @@ const SUBGRAPH_API_KEY = Deno.env.get("SUBGRAPH_API_KEY");
 export const VITE_SUPABASE_PROJECT_URL = Deno.env.get("VITE_SUPABASE_PROJECT_URL");
 export const VITE_SUPABASE_API_KEY = Deno.env.get("VITE_SUPABASE_API_KEY");
 
+export const zeroAddress = "0x0000000000000000000000000000000000000000" as const;
+
 export const SEER_SUBGRAPH_URLS: Partial<Record<string, string>> = {
   "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
   "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,

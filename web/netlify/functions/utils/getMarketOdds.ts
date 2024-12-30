@@ -111,7 +111,7 @@ async function getTokenPrice(
 }
 
 export async function getMarketOdds(market: Market) {
-  const parentMarket = await fetchMarket(market.parentMarket, market.chainId.toString());
+  const parentMarket = await fetchMarket(market.parentMarket.id, market.chainId.toString());
   const parentCollateral =
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)] &&
     (await getTokenInfo(parentMarket.wrappedTokens[Number(market.parentOutcome)], market.chainId));

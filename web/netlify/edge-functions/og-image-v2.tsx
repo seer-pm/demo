@@ -141,7 +141,7 @@ export default async (request: Request, context: Context) => {
     }
     const [images, parentMarket, odds = [], daiAmount, winningOutcomes] = await Promise.all([
       fetchMarketImages(marketId, chainId),
-      fetchMarket(market.parentMarket, market.chainId, verificationStatusList),
+      fetchMarket(market.parentMarket.id, market.chainId, verificationStatusList),
       fetchOdds(marketId),
       convertFromSDAI(market.outcomesSupply, market.chainId),
       fetchWinningOutcomes(market),

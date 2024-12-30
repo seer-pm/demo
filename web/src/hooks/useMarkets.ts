@@ -54,10 +54,10 @@ const useGraphMarkets = (
             searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
           ),
         )
-      )
-        .flat()
-        // sort again because we are merging markets from multiple chains
-        .sort(sortMarkets(orderBy));
+      ).flat();
+
+      // sort again because we are merging markets from multiple chains
+      markets.sort(sortMarkets(orderBy));
 
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);

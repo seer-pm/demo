@@ -38,6 +38,7 @@ function MarketChart({ market }: { market: Market }) {
   const currentTimestamp = useMemo(() => Math.floor(new Date().getTime() / 1000), []);
   const hasLiquidity = odds.some((odd) => isOdd(odd));
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
+  const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
   const marketEstimate = getMarketEstimate(odds, market);
   const finalChartData = isScalarMarket
     ? chartData.map((x) => {
@@ -71,7 +72,15 @@ function MarketChart({ market }: { market: Market }) {
     ],
     tooltip: {
       trigger: "axis",
-      valueFormatter: (value: number) => (isScalarMarket ? `${Number(value).toLocaleString()}` : `${value}%`),
+      valueFormatter: (value: number) => {
+        if (isScalarMarket) {
+          return `${Number(value).toLocaleString()}`;
+        }
+        if (isMultiCategoricalMarket) {
+          return `${(value / 100).toFixed(3)}`;
+        }
+        return `${value}%`;
+      },
     },
     legend: {
       formatter: (name: string) => {
@@ -81,6 +90,9 @@ function MarketChart({ market }: { market: Market }) {
         for (let i = 0; i < market.outcomes.length; i++) {
           const outcome = market.outcomes[i];
           if (name === outcome) {
+            if (isMultiCategoricalMarket) {
+              return `${name} ${!isOdd(odds[i]) ? "NA" : (odds[i] / 100).toFixed(3)}`;
+            }
             return `${name} ${!isOdd(odds[i]) ? "NA" : `${odds[i]}%`}`;
           }
         }
@@ -125,7 +137,15 @@ function MarketChart({ market }: { market: Market }) {
       max: "dataMax",
 
       axisLabel: {
-        formatter: (value: number) => (isScalarMarket ? `${Number(value).toLocaleString()}` : `${value}%`),
+        formatter: (value: number) => {
+          if (isScalarMarket) {
+            return `${Number(value).toLocaleString()}`;
+          }
+          if (isMultiCategoricalMarket) {
+            return `${(value / 100).toFixed(3)}`;
+          }
+          return `${value}%`;
+        },
       },
     },
     series: finalChartData,

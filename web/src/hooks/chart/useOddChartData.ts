@@ -5,7 +5,7 @@ import { useTokenInfo } from "../useTokenInfo";
 import { getOddChart } from "./getOddChart";
 
 export const useOddChartData = (market: Market, dayCount: number, intervalSeconds: number) => {
-  const { data: parentMarket } = useMarket(market.parentMarket, market.chainId);
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,

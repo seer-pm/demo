@@ -95,6 +95,8 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
             <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
               href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <MarketImage
                 marketAddress={position.marketAddress as Address}
@@ -136,6 +138,8 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
             <a
               className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
               href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               {info.getValue<string>()}
             </a>

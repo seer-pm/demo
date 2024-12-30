@@ -1,3 +1,4 @@
+import { STATUS_TEXTS } from "@/components/Market/Header";
 import {
   lightGeneralizedTcrAddress,
   marketFactoryAddress,
@@ -13,12 +14,12 @@ import {
   getSdk as getSeerSdk,
 } from "@/hooks/queries/gql-generated-seer";
 import { Market, VerificationResult, mapOnChainMarket } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { fetchMarketsWithPositions } from "@/hooks/useMarketsWithPositions";
 import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient, graphQLClient } from "@/lib/subgraph";
 import { config } from "@/wagmi";
-import { Address } from "viem";
+import { Address, zeroAddress, zeroHash } from "viem";
 import { unescapeJson } from "./reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "./utils";
 
@@ -69,7 +70,7 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(orderBy: Market_OrderBy | undefined) {
+export function sortMarkets(orderBy: Market_OrderBy | "liquidityUSD" | undefined) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
@@ -79,6 +80,35 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
 
   return (a: Market, b: Market) => {
     if (!orderBy) {
+      // closed markets will be put on the back
+      try {
+        const marketStatusA = getMarketStatus(a);
+        const marketStatusB = getMarketStatus(b);
+
+        if (marketStatusA !== marketStatusB) {
+          if (marketStatusA === MarketStatus.CLOSED) return 1;
+          if (marketStatusB === MarketStatus.CLOSED) return -1;
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      //if underlying token is worthless we put it after
+      if (a.parentMarket.id !== zeroAddress || b.parentMarket.id !== zeroAddress) {
+        const underlyingAWorthless =
+          a.parentMarket.id !== zeroAddress &&
+          a.parentMarket.payoutReported &&
+          a.parentMarket.payoutNumerators[Number(a.parentOutcome)] === 0n;
+        const underlyingBWorthless =
+          b.parentMarket.id !== zeroAddress &&
+          b.parentMarket.payoutReported &&
+          b.parentMarket.payoutNumerators[Number(b.parentOutcome)] === 0n;
+
+        if (underlyingAWorthless !== underlyingBWorthless) {
+          return underlyingAWorthless ? 1 : -1;
+        }
+      }
+
       //by verification status
       const statusDiff =
         STATUS_PRIORITY[a.verification?.status || "not_verified"] -
@@ -87,13 +117,24 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
         return statusDiff;
       }
 
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+      // if market has no liquidity we not prioritize it
+      try {
+        const statusTextA = STATUS_TEXTS[getMarketStatus(a)](a.hasLiquidity);
+        const statusTextB = STATUS_TEXTS[getMarketStatus(b)](b.hasLiquidity);
+        if (statusTextA !== statusTextB) {
+          if (statusTextA === "Liquidity Required") return 1;
+          if (statusTextB === "Liquidity Required") return -1;
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      // by liquidity
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
-    if (orderBy === "outcomesSupply") {
-      // by open interest (outcomesSupply)
-      return Number(b.outcomesSupply - a.outcomesSupply);
+    if (orderBy === "liquidityUSD") {
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
     // by opening date
@@ -103,7 +144,13 @@ export function sortMarkets(orderBy: Market_OrderBy | undefined) {
 
 function mapGraphMarket(
   market: NonNullable<GetMarketQuery["market"]>,
-  extra: { chainId: SupportedChain; verification: VerificationResult | undefined },
+  extra: {
+    chainId: SupportedChain;
+    verification: VerificationResult | undefined;
+    liquidityUSD: number;
+    incentive: number;
+    hasLiquidity: boolean;
+  },
 ): Market {
   return {
     ...market,
@@ -115,7 +162,12 @@ function mapGraphMarket(
       }
       return unescapeJson(outcome);
     }),
-    parentMarket: market.parentMarket as Address,
+    parentMarket: {
+      id: (market.parentMarket?.id as Address) || zeroAddress,
+      conditionId: market.parentMarket?.conditionId || zeroHash,
+      payoutReported: market.parentMarket?.payoutReported || false,
+      payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
+    },
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),
@@ -134,8 +186,16 @@ function mapGraphMarket(
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     blockTimestamp: Number(market.blockTimestamp),
+    payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
   };
+}
+
+interface MarketExtraData {
+  id: string;
+  liquidity: number | null;
+  incentive: number | null;
+  odds: (number | null)[];
 }
 
 export const fetchMarkets = async (
@@ -171,12 +231,29 @@ export const fetchMarkets = async (
   }
 
   const verificationStatusList = await getVerificationStatusList(chainId);
-
+  let marketToMarketDataMapping: { [key: string]: MarketExtraData } | undefined;
+  try {
+    const { data } = await fetch("/.netlify/functions/supabase-query/markets").then((res) => res.json());
+    const markets = data as MarketExtraData[];
+    marketToMarketDataMapping = markets.reduce(
+      (acc, curr) => {
+        acc[curr.id] = curr;
+        return acc;
+      },
+      {} as { [key: string]: MarketExtraData },
+    );
+  } catch (e) {
+    console.log(e);
+  }
   return markets
     .map((market) => {
+      const MarketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
+        liquidityUSD: MarketExtraData?.liquidity ?? 0,
+        incentive: MarketExtraData?.incentive ?? 0,
+        hasLiquidity: MarketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
       });
     })
     .sort(sortMarkets(orderBy));
@@ -270,5 +347,7 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
     })
   )
     .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
-    .map((market) => mapOnChainMarket(market, { chainId, outcomesSupply: 0n }));
+    .map((market) =>
+      mapOnChainMarket(market, { chainId, outcomesSupply: 0n, liquidityUSD: 0, incentive: 0, hasLiquidity: false }),
+    );
 }

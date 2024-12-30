@@ -119,6 +119,9 @@ export function SwapTokens({
     isError: quoteIsError,
   } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
 
+  const isCowFastQuote =
+    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+
   const tradeTokens = useTrade(async () => {
     reset();
     closeConfirmSwapModal();
@@ -289,11 +292,10 @@ export function SwapTokens({
                 useFormReturn={useFormReturn}
               />
             </div>
-
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
                 Price per share ={" "}
-                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
+                {quoteIsPending || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
@@ -307,11 +309,10 @@ export function SwapTokens({
                 )}
               </div>
             )}
-
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
                 {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-                {quoteFetchStatus === "fetching" || isFetchingSharesToAssets ? (
+                {quoteIsPending || isFetchingSharesToAssets ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
@@ -349,8 +350,15 @@ export function SwapTokens({
                 </div>
               </div>
             </div>
-
-            {quoteData?.trade ? (
+            {isCowFastQuote ? (
+              <Button
+                variant="primary"
+                type="button"
+                disabled={true}
+                isLoading={true}
+                text="Calculating best price..."
+              />
+            ) : quoteData?.trade ? (
               <SwapButtons
                 account={account}
                 trade={quoteData.trade}
