@@ -7,6 +7,7 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
+import { SwapTokensTradeManager } from "@/components/Market/SwapTokens/SwapTokensTradeManager";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketImages } from "@/hooks/useMarketImages";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -18,6 +19,7 @@ import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
+import { useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -34,6 +36,7 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
+  const [isUseTradeManager, setUseTradeManager] = useState(false);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
@@ -50,6 +53,23 @@ function SwapWidget({
     return null;
   }
 
+  if (isUseTradeManager) {
+    return (
+      <SwapTokensTradeManager
+        market={market}
+        account={account}
+        chainId={market.chainId}
+        outcomeText={market.outcomes[outcomeIndex]}
+        outcomeToken={outcomeToken}
+        outcomeImage={images?.[outcomeIndex]}
+        isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
+        parentCollateral={parentCollateral}
+        isUseTradeManager={isUseTradeManager}
+        setUseTradeManager={setUseTradeManager}
+      />
+    );
+  }
+
   return (
     <SwapTokens
       account={account}
@@ -60,6 +80,8 @@ function SwapWidget({
       isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
       hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
       parentCollateral={parentCollateral}
+      isUseTradeManager={isUseTradeManager}
+      setUseTradeManager={setUseTradeManager}
     />
   );
 }
