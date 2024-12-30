@@ -1,0 +1,568 @@
+{
+  "address": "0x14A3f8E6D7BE4645f0EF7F92d1e5AB17d50A4bd0",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract ISingleSwapRouter",
+          "name": "_swaprRouter",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IRouter",
+          "name": "_gnosisRouter",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "_conditionalTokens",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IERC20",
+          "name": "_collateral",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "collateral",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "conditionalTokens",
+      "outputs": [
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "tokenIn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOut",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenInMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOutMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "enum TradeManager.TradeChoice",
+              "name": "choice",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct TradeManager.TokenPath[]",
+          "name": "paths",
+          "type": "tuple[]"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "originalRecipient",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMinimum",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct TradeManager.AdditionalTradeParams",
+          "name": "additionalTradeParams",
+          "type": "tuple"
+        }
+      ],
+      "name": "exactInput",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amountOut",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "tokenIn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOut",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenInMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOutMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "enum TradeManager.TradeChoice",
+              "name": "choice",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct TradeManager.TokenPath",
+          "name": "path",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "originalRecipient",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMinimum",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct TradeManager.AdditionalTradeParams",
+          "name": "additionalTradeParams",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bool",
+          "name": "isFromManager",
+          "type": "bool"
+        }
+      ],
+      "name": "exactInputSingle",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "gnosisRouter",
+      "outputs": [
+        {
+          "internalType": "contract IRouter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "tokenIn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOut",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenInMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOutMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "enum TradeManager.TradeChoice",
+              "name": "choice",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct TradeManager.TokenPath",
+          "name": "path",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "originalRecipient",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMinimum",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct TradeManager.AdditionalTradeParams",
+          "name": "additionalTradeParams",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bool",
+          "name": "isFromManager",
+          "type": "bool"
+        }
+      ],
+      "name": "mintSingle",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sDAI",
+      "outputs": [
+        {
+          "internalType": "contract IERC4626",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "savingsXDaiAdapter",
+      "outputs": [
+        {
+          "internalType": "contract SavingsXDaiAdapter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "tokenIn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOut",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenInMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOutMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "enum TradeManager.TradeChoice",
+              "name": "choice",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct TradeManager.TokenPath",
+          "name": "path",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "originalRecipient",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountOutMinimum",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct TradeManager.AdditionalTradeParams",
+          "name": "additionalTradeParams",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bool",
+          "name": "isFromManager",
+          "type": "bool"
+        }
+      ],
+      "name": "swapSingle",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "swaprRouter",
+      "outputs": [
+        {
+          "internalType": "contract ISingleSwapRouter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "xDAI",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x993bb768795a8c5415900afaab0258f574c4b8ca212cab0d5e5b90731a138ffd",
+  "receipt": {
+    "to": null,
+    "from": "0xB972788fD94972D673eB3aF068df1Dfe11A2ec37",
+    "contractAddress": "0x14A3f8E6D7BE4645f0EF7F92d1e5AB17d50A4bd0",
+    "transactionIndex": 5,
+    "gasUsed": "1568623",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x902d92314627d1c183dfac10819292490e68a962df6b628c946b5e45180bb075",
+    "transactionHash": "0x993bb768795a8c5415900afaab0258f574c4b8ca212cab0d5e5b90731a138ffd",
+    "logs": [],
+    "blockNumber": 37780909,
+    "cumulativeGasUsed": "1931010",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xfFB643E73f280B97809A8b41f7232AB401a04ee1",
+    "0xeC9048b59b3467415b1a38F63416407eA0c70fB8",
+    "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
+    "0xaf204776c7245bF4147c2612BF6e5972Ee483701"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "d67238fc94b388730df023ba8481d5ff",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract ISingleSwapRouter\",\"name\":\"_swaprRouter\",\"type\":\"address\"},{\"internalType\":\"contract IRouter\",\"name\":\"_gnosisRouter\",\"type\":\"address\"},{\"internalType\":\"contract IConditionalTokens\",\"name\":\"_conditionalTokens\",\"type\":\"address\"},{\"internalType\":\"contract IERC20\",\"name\":\"_collateral\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"collateral\",\"outputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"conditionalTokens\",\"outputs\":[{\"internalType\":\"contract IConditionalTokens\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenIn\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOut\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenInMarket\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOutMarket\",\"type\":\"address\"},{\"internalType\":\"enum TradeManager.TradeChoice\",\"name\":\"choice\",\"type\":\"uint8\"}],\"internalType\":\"struct TradeManager.TokenPath[]\",\"name\":\"paths\",\"type\":\"tuple[]\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"originalRecipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMinimum\",\"type\":\"uint256\"}],\"internalType\":\"struct TradeManager.AdditionalTradeParams\",\"name\":\"additionalTradeParams\",\"type\":\"tuple\"}],\"name\":\"exactInput\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amountOut\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenIn\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOut\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenInMarket\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOutMarket\",\"type\":\"address\"},{\"internalType\":\"enum TradeManager.TradeChoice\",\"name\":\"choice\",\"type\":\"uint8\"}],\"internalType\":\"struct TradeManager.TokenPath\",\"name\":\"path\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"originalRecipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMinimum\",\"type\":\"uint256\"}],\"internalType\":\"struct TradeManager.AdditionalTradeParams\",\"name\":\"additionalTradeParams\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"isFromManager\",\"type\":\"bool\"}],\"name\":\"exactInputSingle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"gnosisRouter\",\"outputs\":[{\"internalType\":\"contract IRouter\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenIn\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOut\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenInMarket\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOutMarket\",\"type\":\"address\"},{\"internalType\":\"enum TradeManager.TradeChoice\",\"name\":\"choice\",\"type\":\"uint8\"}],\"internalType\":\"struct TradeManager.TokenPath\",\"name\":\"path\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"originalRecipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMinimum\",\"type\":\"uint256\"}],\"internalType\":\"struct TradeManager.AdditionalTradeParams\",\"name\":\"additionalTradeParams\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"isFromManager\",\"type\":\"bool\"}],\"name\":\"mintSingle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sDAI\",\"outputs\":[{\"internalType\":\"contract IERC4626\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"savingsXDaiAdapter\",\"outputs\":[{\"internalType\":\"contract SavingsXDaiAdapter\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenIn\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOut\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenInMarket\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenOutMarket\",\"type\":\"address\"},{\"internalType\":\"enum TradeManager.TradeChoice\",\"name\":\"choice\",\"type\":\"uint8\"}],\"internalType\":\"struct TradeManager.TokenPath\",\"name\":\"path\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"originalRecipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountIn\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amountOutMinimum\",\"type\":\"uint256\"}],\"internalType\":\"struct TradeManager.AdditionalTradeParams\",\"name\":\"additionalTradeParams\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"isFromManager\",\"type\":\"bool\"}],\"name\":\"swapSingle\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"swaprRouter\",\"outputs\":[{\"internalType\":\"contract ISingleSwapRouter\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"xDAI\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"A specialized contract for swapping and minting Seer market outcome tokens. Handles complex token swapping and minting operations across different markets and tokens.\",\"kind\":\"dev\",\"methods\":{\"constructor\":{\"details\":\"Constructor.\",\"params\":{\"_collateral\":\"ERC20 token used as collateral in ConditionalTokens.\",\"_conditionalTokens\":\"ConditionalTokens contract.\",\"_gnosisRouter\":\"GnosisRouter contract.\",\"_swaprRouter\":\"SwapRouter contract.\"}},\"exactInput((address,address,address,address,uint8)[],(address,address,uint256,uint256,uint256))\":{\"details\":\"Performs exact input trades across multiple token paths.\",\"params\":{\"additionalTradeParams\":\"Additional trade parameters.\",\"paths\":\"Array of token paths to trade.\"},\"returns\":{\"amountOut\":\"Total amount of output tokens.\"}},\"exactInputSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)\":{\"details\":\"Performs a single input trade for a specific token path.\",\"params\":{\"additionalTradeParams\":\"Additional trade parameters.\",\"isFromManager\":\"Flag indicating if the trade is initiated from the manager.\",\"path\":\"Token path for the trade.\"},\"returns\":{\"_0\":\"Amount of output tokens.\"}},\"mintSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)\":{\"details\":\"Mints full set of market outcome tokens, keep desired outcome tokens while trying to sell the rest to re-buy more desired tokens.\",\"params\":{\"additionalTradeParams\":\"Additional trade parameters.\",\"isFromManager\":\"Flag indicating if the mint is initiated from the manager.\",\"path\":\"Token path.\"},\"returns\":{\"_0\":\"Total amount of tokens after minting + selling/re-buying.\"}},\"swapSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)\":{\"details\":\"Performs a single token swap.\",\"params\":{\"additionalTradeParams\":\"Additional trade parameters.\",\"isFromManager\":\"Flag indicating if the swap is initiated from the manager.\",\"path\":\"Token path for the swap.\"},\"returns\":{\"_0\":\"Amount of output tokens.\"}}},\"stateVariables\":{\"collateral\":{\"details\":\"ERC20 token used as collateral for ConditionalTokens.\"},\"conditionalTokens\":{\"details\":\"ConditionalTokens contract.\"},\"gnosisRouter\":{\"details\":\"GnosisRouter contract.\"},\"sDAI\":{\"details\":\"SavingsXDai contract.\"},\"savingsXDaiAdapter\":{\"details\":\"SavingsXDaiAdapter contract.\"},\"swaprRouter\":{\"details\":\"SwapRouter contract.\"},\"xDAI\":{\"details\":\"Dummy address representing xDAI.\"}},\"title\":\"TradeManager\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/trade/TradeManager.sol\":\"TradeManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/IERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n\\n    /**\\n     * @dev Returns the value of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the value of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the\\n     * allowance mechanism. `value` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address from, address to, uint256 value) external returns (bool);\\n}\\n\",\"keccak256\":\"0xc6a8ff0ea489379b61faa647490411b80102578440ab9d84e9a957cc12164e70\",\"license\":\"MIT\"},\"src/trade/Interfaces.sol\":{\"content\":\"\\r\\n// SPDX-License-Identifier: MIT\\r\\npragma solidity ^0.8.20;\\r\\nimport \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\r\\n\\r\\ninterface IUniswapV2Router {\\r\\n    function addLiquidity(\\r\\n        address tokenA,\\r\\n        address tokenB,\\r\\n        uint256 amountADesired,\\r\\n        uint256 amountBDesired,\\r\\n        uint256 amountAMin,\\r\\n        uint256 amountBMin,\\r\\n        address to,\\r\\n        uint256 deadline\\r\\n    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);\\r\\n}\\r\\n\\r\\ninterface IRouter {\\r\\n    function splitPosition(\\r\\n        address collateral, \\r\\n        address market, \\r\\n        uint256 amount\\r\\n    ) external;\\r\\n}\\r\\n\\r\\ninterface IMarket {\\r\\n    /// @dev Market initialization parameters\\r\\n    struct RealityParams {\\r\\n        bytes32[] questionsIds;\\r\\n        uint256 templateId;\\r\\n        string[] encodedQuestions;\\r\\n    }\\r\\n\\r\\n    /// @dev Conditional Tokens parameters\\r\\n    struct ConditionalTokensParams {\\r\\n        bytes32 conditionId;\\r\\n        bytes32 parentCollectionId;\\r\\n        uint256 parentOutcome;\\r\\n        address parentMarket;\\r\\n        bytes32 questionId;\\r\\n        IERC20[] wrapped1155;\\r\\n        bytes[] data;\\r\\n    }\\r\\n\\r\\n    /// @dev Initialize the market\\r\\n    function initialize(\\r\\n        string memory _marketName,\\r\\n        string[] memory _outcomes,\\r\\n        uint256 _lowerBound,\\r\\n        uint256 _upperBound,\\r\\n        ConditionalTokensParams memory _conditionalTokensParams,\\r\\n        RealityParams memory _realityParams,\\r\\n        address _realityProxy\\r\\n    ) external;\\r\\n\\r\\n    /// @dev Getter for template ID\\r\\n    function templateId() external view returns (uint256);\\r\\n\\r\\n    /// @dev Getter for questions IDs\\r\\n    function questionsIds() external view returns (bytes32[] memory);\\r\\n\\r\\n    /// @dev Getter for encoded questions\\r\\n    function encodedQuestions(uint256 index) external view returns (string memory);\\r\\n\\r\\n    /// @dev Getter for question ID\\r\\n    function questionId() external view returns (bytes32);\\r\\n\\r\\n    /// @dev Getter for condition ID\\r\\n    function conditionId() external view returns (bytes32);\\r\\n\\r\\n    /// @dev Getter for parent collection ID\\r\\n    function parentCollectionId() external view returns (bytes32);\\r\\n\\r\\n    /// @dev Getter for parent market\\r\\n    function parentMarket() external view returns (address);\\r\\n\\r\\n    /// @dev Getter for parent outcome\\r\\n    function parentOutcome() external view returns (uint256);\\r\\n\\r\\n    /// @dev Getter for wrapped outcome\\r\\n    function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data);\\r\\n\\r\\n    /// @dev Getter for parent wrapped outcome\\r\\n    function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data);\\r\\n\\r\\n    /// @dev Getter for number of outcomes\\r\\n    function numOutcomes() external view returns (uint256);\\r\\n\\r\\n    /// @dev Resolve the market\\r\\n    function resolve() external;\\r\\n\\r\\n    /// @dev Public getters for market properties\\r\\n    function marketName() external view returns (string memory);\\r\\n    function outcomes(uint256 index) external view returns (string memory);\\r\\n    function lowerBound() external view returns (uint256);\\r\\n    function upperBound() external view returns (uint256);\\r\\n    function initialized() external view returns (bool);\\r\\n}\\r\\n\\r\\ninterface IConditionalTokens {\\r\\n    function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256);\\r\\n\\r\\n    function payoutDenominator(bytes32 conditionId) external view returns (uint256);\\r\\n\\r\\n    function prepareCondition(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external;\\r\\n\\r\\n    function reportPayouts(bytes32 questionId, uint256[] calldata payouts) external;\\r\\n\\r\\n    function splitPosition(\\r\\n        /*IERC20*/\\r\\n        address collateralToken,\\r\\n        bytes32 parentCollectionId,\\r\\n        bytes32 conditionId,\\r\\n        uint256[] calldata partition,\\r\\n        uint256 amount\\r\\n    ) external;\\r\\n\\r\\n    function mergePositions(\\r\\n        /*IERC20*/\\r\\n        address collateralToken,\\r\\n        bytes32 parentCollectionId,\\r\\n        bytes32 conditionId,\\r\\n        uint256[] calldata partition,\\r\\n        uint256 amount\\r\\n    ) external;\\r\\n\\r\\n    function redeemPositions(\\r\\n        /*IERC20*/\\r\\n        address collateralToken,\\r\\n        bytes32 parentCollectionId,\\r\\n        bytes32 conditionId,\\r\\n        uint256[] calldata indexSets\\r\\n    ) external;\\r\\n\\r\\n    function getConditionId(\\r\\n        address oracle,\\r\\n        bytes32 questionId,\\r\\n        uint256 outcomeSlotCount\\r\\n    ) external pure returns (bytes32);\\r\\n\\r\\n    function getCollectionId(\\r\\n        bytes32 parentCollectionId,\\r\\n        bytes32 conditionId,\\r\\n        uint256 indexSet\\r\\n    ) external view returns (bytes32);\\r\\n\\r\\n    function getPositionId(address collateralToken, bytes32 collectionId) external pure returns (uint256);\\r\\n\\r\\n    function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256);\\r\\n\\r\\n    function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;\\r\\n\\r\\n    function balanceOf(address owner, uint256 id) external view returns (uint256);\\r\\n}\\r\\n\\r\\ninterface ISingleSwapRouter {\\r\\n    struct ExactInputSingleParams {\\r\\n        address tokenIn;\\r\\n        address tokenOut;\\r\\n        address recipient;\\r\\n        uint256 deadline;\\r\\n        uint256 amountIn;\\r\\n        uint256 amountOutMinimum;\\r\\n        uint160 limitSqrtPrice;\\r\\n    }\\r\\n\\r\\n    /// @notice Swaps `amountIn` of one token for as much as possible of another token\\r\\n    /// @param params The parameters necessary for the swap, encoded as `ExactInputSingleParams` in calldata\\r\\n    /// @return amountOut The amount of the received token\\r\\n    function exactInputSingle(\\r\\n        ExactInputSingleParams calldata params\\r\\n    ) external payable returns (uint256 amountOut);\\r\\n\\r\\n    struct ExactOutputSingleParams {\\r\\n        address tokenIn;\\r\\n        address tokenOut;\\r\\n        uint24 fee;\\r\\n        address recipient;\\r\\n        uint256 deadline;\\r\\n        uint256 amountOut;\\r\\n        uint256 amountInMaximum;\\r\\n        uint160 limitSqrtPrice;\\r\\n    }\\r\\n\\r\\n    /// @notice Swaps as little as possible of one token for `amountOut` of another token\\r\\n    /// @param params The parameters necessary for the swap, encoded as `ExactOutputSingleParams` in calldata\\r\\n    /// @return amountIn The amount of the input token\\r\\n    function exactOutputSingle(\\r\\n        ExactOutputSingleParams calldata params\\r\\n    ) external payable returns (uint256 amountIn);\\r\\n}\\r\\n\\r\\n/// @title Quoter Interface\\r\\n/// @notice Supports quoting the calculated amounts from exact input or exact output swaps\\r\\n/// @dev These functions are not marked view because they rely on calling non-view functions and reverting\\r\\n/// to compute the result. They are also not gas efficient and should not be called on-chain.\\r\\n/// Credit to Uniswap Labs under GPL-2.0-or-later license:\\r\\n/// https://github.com/Uniswap/v3-periphery\\r\\ninterface ISingleQuoter {\\r\\n    /// @notice Returns the amount out received for a given exact input but for a swap of a single pool\\r\\n    /// @param tokenIn The token being swapped in\\r\\n    /// @param tokenOut The token being swapped out\\r\\n    /// @param amountIn The desired input amount\\r\\n    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap\\r\\n    /// @return amountOut The amount of `tokenOut` that would be received\\r\\n    function quoteExactInputSingle(\\r\\n        address tokenIn,\\r\\n        address tokenOut,\\r\\n        uint256 amountIn,\\r\\n        uint160 limitSqrtPrice\\r\\n    ) external returns (uint256 amountOut, uint16 fee);\\r\\n\\r\\n    /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool\\r\\n    /// @param tokenIn The token being swapped in\\r\\n    /// @param tokenOut The token being swapped out\\r\\n    /// @param amountOut The desired output amount\\r\\n    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap\\r\\n    /// @return amountIn The amount required as the input for the swap in order to receive `amountOut`\\r\\n    function quoteExactOutputSingle(\\r\\n        address tokenIn,\\r\\n        address tokenOut,\\r\\n        uint256 amountOut,\\r\\n        uint160 limitSqrtPrice\\r\\n    ) external returns (uint256 amountIn, uint16 fee);\\r\\n}\\r\\n\\r\\ninterface SavingsXDaiAdapter {\\r\\n    function deposit(\\r\\n        uint256 assets,\\r\\n        address receiver\\r\\n    ) external returns (uint256);\\r\\n\\r\\n    function depositXDAI(address receiver) external payable returns (uint256);\\r\\n\\r\\n    function redeem(\\r\\n        uint256 shares,\\r\\n        address receiver\\r\\n    ) external returns (uint256);\\r\\n\\r\\n    function redeemXDAI(\\r\\n        uint256 shares,\\r\\n        address receiver\\r\\n    ) external payable returns (uint256);\\r\\n}\\r\\n\\r\\ninterface IERC4626 is IERC20 {\\r\\n    function previewDeposit(uint256 assets) external view returns (uint256);\\r\\n\\r\\n    function previewRedeem(uint256 shares) external view returns (uint256);\\r\\n}\\r\\n\",\"keccak256\":\"0x2ad2416ce0d1287cee5ae2bdacbf7eba1a78cc10883bc953acacdd8c88918a84\",\"license\":\"MIT\"},\"src/trade/TradeManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity 0.8.20;\\r\\n\\r\\nimport \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\r\\nimport \\\"./Interfaces.sol\\\";\\r\\n\\r\\n/// @title TradeManager\\r\\n/// @dev A specialized contract for swapping and minting Seer market outcome tokens. Handles complex token swapping and minting operations across different markets and tokens.\\r\\ncontract TradeManager {\\r\\n    /// @dev Dummy address representing xDAI.\\r\\n    address public constant xDAI =\\r\\n        address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);\\r\\n    /// @dev SavingsXDai contract.\\r\\n    IERC4626 public constant sDAI =\\r\\n        IERC4626(0xaf204776c7245bF4147c2612BF6e5972Ee483701);\\r\\n    /// @dev SavingsXDaiAdapter contract.\\r\\n    SavingsXDaiAdapter public constant savingsXDaiAdapter =\\r\\n        SavingsXDaiAdapter(0xD499b51fcFc66bd31248ef4b28d656d67E591A94);\\r\\n\\r\\n    /// @dev ERC20 token used as collateral for ConditionalTokens.\\r\\n    IERC20 public immutable collateral;\\r\\n    /// @dev SwapRouter contract.\\r\\n    ISingleSwapRouter public immutable swaprRouter;\\r\\n    /// @dev GnosisRouter contract.\\r\\n    IRouter public immutable gnosisRouter;\\r\\n    /// @dev ConditionalTokens contract.\\r\\n    IConditionalTokens public immutable conditionalTokens;\\r\\n\\r\\n    /// @dev Enum to define trade choices between swapping and minting.\\r\\n    enum TradeChoice {\\r\\n        Swap,\\r\\n        Mint\\r\\n    }\\r\\n\\r\\n    /// @dev Struct to define token path (tokenIn -> tokenOut) for trading.\\r\\n    /// @param tokenIn Input token address.\\r\\n    /// @param tokenOut Output token address.\\r\\n    /// @param tokenInMarket Market of the input token.\\r\\n    /// @param tokenOutMarket Market of the output token.\\r\\n    /// @param choice Trade choice (swap or mint).\\r\\n    struct TokenPath {\\r\\n        address tokenIn;\\r\\n        address tokenOut;\\r\\n        address tokenInMarket;\\r\\n        address tokenOutMarket;\\r\\n        TradeChoice choice;\\r\\n    }\\r\\n\\r\\n    /// @dev Struct for additional trade parameters.\\r\\n    /// @param recipient Recipient of the traded tokens.\\r\\n    /// @param originalRecipient Original intended recipient.\\r\\n    /// @param deadline Deadline for the trade.\\r\\n    /// @param amountIn Amount of input tokens.\\r\\n    /// @param amountOutMinimum Minimum amount of output tokens.\\r\\n    struct AdditionalTradeParams {\\r\\n        address recipient;\\r\\n        address originalRecipient;\\r\\n        uint256 deadline;\\r\\n        uint256 amountIn;\\r\\n        uint256 amountOutMinimum;\\r\\n    }\\r\\n\\r\\n    /// @dev Constructor.\\r\\n    /// @param _swaprRouter SwapRouter contract.\\r\\n    /// @param _gnosisRouter GnosisRouter contract.\\r\\n    /// @param _conditionalTokens ConditionalTokens contract.\\r\\n    /// @param _collateral ERC20 token used as collateral in ConditionalTokens.\\r\\n    constructor(\\r\\n        ISingleSwapRouter _swaprRouter,\\r\\n        IRouter _gnosisRouter,\\r\\n        IConditionalTokens _conditionalTokens,\\r\\n        IERC20 _collateral\\r\\n    ) {\\r\\n        swaprRouter = _swaprRouter;\\r\\n        gnosisRouter = _gnosisRouter;\\r\\n        conditionalTokens = _conditionalTokens;\\r\\n        collateral = _collateral;\\r\\n    }\\r\\n\\r\\n    /// @dev Performs exact input trades across multiple token paths.\\r\\n    /// @param paths Array of token paths to trade.\\r\\n    /// @param additionalTradeParams Additional trade parameters.\\r\\n    /// @return amountOut Total amount of output tokens.\\r\\n    function exactInput(\\r\\n        TokenPath[] memory paths,\\r\\n        AdditionalTradeParams memory additionalTradeParams\\r\\n    ) public payable returns (uint256 amountOut) {\\r\\n        uint256 originalAmountOutMinimum = additionalTradeParams\\r\\n            .amountOutMinimum;\\r\\n        additionalTradeParams.amountOutMinimum = 0;\\r\\n        for (uint256 i = 0; i < paths.length; i++) {\\r\\n            if (i < paths.length - 1) {\\r\\n                require(\\r\\n                    paths[i].tokenOut != xDAI,\\r\\n                    \\\"Token in the middle of a swap cannot be xDAI\\\"\\r\\n                );\\r\\n                require(\\r\\n                    paths[i].tokenOut != address(sDAI),\\r\\n                    \\\"Token in the middle of a swap cannot be sDAI\\\"\\r\\n                );\\r\\n                additionalTradeParams.recipient = address(this);\\r\\n            } else {\\r\\n                additionalTradeParams.recipient = additionalTradeParams\\r\\n                    .originalRecipient;\\r\\n            }\\r\\n            amountOut = exactInputSingle(\\r\\n                paths[i],\\r\\n                additionalTradeParams,\\r\\n                i > 0\\r\\n            );\\r\\n            additionalTradeParams.amountIn = amountOut;\\r\\n        }\\r\\n        require(amountOut >= originalAmountOutMinimum, \\\"Too little received.\\\");\\r\\n        return amountOut;\\r\\n    }\\r\\n\\r\\n    /// @dev Performs a single input trade for a specific token path.\\r\\n    /// @param path Token path for the trade.\\r\\n    /// @param additionalTradeParams Additional trade parameters.\\r\\n    /// @param isFromManager Flag indicating if the trade is initiated from the manager.\\r\\n    /// @return Amount of output tokens.\\r\\n    function exactInputSingle(\\r\\n        TokenPath memory path,\\r\\n        AdditionalTradeParams memory additionalTradeParams,\\r\\n        bool isFromManager\\r\\n    ) public payable returns (uint256 /*amountOut*/) {\\r\\n        if (path.choice == TradeChoice.Swap) {\\r\\n            return swapSingle(path, additionalTradeParams, isFromManager);\\r\\n        }\\r\\n        return mintSingle(path, additionalTradeParams, isFromManager);\\r\\n    }\\r\\n\\r\\n    /// @dev Performs a single token swap.\\r\\n    /// @param path Token path for the swap.\\r\\n    /// @param additionalTradeParams Additional trade parameters.\\r\\n    /// @param isFromManager Flag indicating if the swap is initiated from the manager.\\r\\n    /// @return Amount of output tokens.\\r\\n    function swapSingle(\\r\\n        TokenPath memory path,\\r\\n        AdditionalTradeParams memory additionalTradeParams,\\r\\n        bool isFromManager\\r\\n    ) public payable returns (uint256 /*amountOut*/) {\\r\\n        ISingleSwapRouter.ExactInputSingleParams\\r\\n            memory params = ISingleSwapRouter.ExactInputSingleParams({\\r\\n                tokenIn: path.tokenIn,\\r\\n                tokenOut: path.tokenOut,\\r\\n                recipient: additionalTradeParams.recipient,\\r\\n                deadline: additionalTradeParams.deadline,\\r\\n                amountIn: additionalTradeParams.amountIn,\\r\\n                amountOutMinimum: additionalTradeParams.amountOutMinimum,\\r\\n                limitSqrtPrice: 0\\r\\n            });\\r\\n        if (params.tokenIn == xDAI) {\\r\\n            require(msg.value > 0, \\\"Not enough native tokens.\\\");\\r\\n            params.amountIn = savingsXDaiAdapter.depositXDAI{value: msg.value}(\\r\\n                address(this)\\r\\n            );\\r\\n            params.tokenIn = address(sDAI);\\r\\n        } else if (!isFromManager) {\\r\\n            IERC20(params.tokenIn).transferFrom(\\r\\n                msg.sender,\\r\\n                address(this),\\r\\n                params.amountIn\\r\\n            );\\r\\n        }\\r\\n        IERC20(params.tokenIn).approve(address(swaprRouter), params.amountIn);\\r\\n\\r\\n        if (params.tokenOut == xDAI) {\\r\\n            address _recipient = params.recipient;\\r\\n            params.recipient = address(this);\\r\\n            params.tokenOut = address(sDAI);\\r\\n\\r\\n            uint256 sDAIAmountOut = swaprRouter.exactInputSingle(params);\\r\\n            sDAI.approve(address(savingsXDaiAdapter), sDAIAmountOut);\\r\\n\\r\\n            return savingsXDaiAdapter.redeemXDAI(sDAIAmountOut, _recipient);\\r\\n        }\\r\\n\\r\\n        return swaprRouter.exactInputSingle(params);\\r\\n    }\\r\\n\\r\\n    /// @dev Mints full set of market outcome tokens, keep desired outcome tokens while trying to sell the rest to re-buy more desired tokens.\\r\\n    /// @param path Token path.\\r\\n    /// @param additionalTradeParams Additional trade parameters.\\r\\n    /// @param isFromManager Flag indicating if the mint is initiated from the manager.\\r\\n    /// @return Total amount of tokens after minting + selling/re-buying.\\r\\n    function mintSingle(\\r\\n        TokenPath memory path,\\r\\n        AdditionalTradeParams memory additionalTradeParams,\\r\\n        bool isFromManager\\r\\n    ) public payable returns (uint256 /*amountOut*/) {\\r\\n        require(\\r\\n            path.tokenOutMarket != address(0),\\r\\n            \\\"Token out market must not be null.\\\"\\r\\n        );\\r\\n        address tokenOutParentMarket = IMarket(path.tokenOutMarket)\\r\\n            .parentMarket();\\r\\n        require(\\r\\n            tokenOutParentMarket == address(path.tokenInMarket),\\r\\n            \\\"Cannot use mint for this pair.\\\"\\r\\n        );\\r\\n\\r\\n        if (path.tokenIn == xDAI) {\\r\\n            require(msg.value > 0, \\\"Not enough native tokens.\\\");\\r\\n            additionalTradeParams.amountIn = savingsXDaiAdapter.depositXDAI{\\r\\n                value: msg.value\\r\\n            }(address(this));\\r\\n            path.tokenIn = address(sDAI);\\r\\n        } else if (!isFromManager) {\\r\\n            IERC20(path.tokenIn).transferFrom(\\r\\n                msg.sender,\\r\\n                address(this),\\r\\n                additionalTradeParams.amountIn\\r\\n            );\\r\\n        }\\r\\n        IERC20(path.tokenIn).approve(\\r\\n            address(gnosisRouter),\\r\\n            additionalTradeParams.amountIn\\r\\n        );\\r\\n        gnosisRouter.splitPosition(\\r\\n            address(collateral),\\r\\n            address(path.tokenOutMarket),\\r\\n            additionalTradeParams.amountIn\\r\\n        );\\r\\n\\r\\n        bytes32 conditionId = IMarket(path.tokenOutMarket).conditionId();\\r\\n        uint256 outcomeSlotCount = conditionalTokens.getOutcomeSlotCount(\\r\\n            conditionId\\r\\n        );\\r\\n        uint256 tokenInSurplus = 0;\\r\\n        uint256 totalTokenOut = additionalTradeParams.amountIn;\\r\\n        // we try to sell other outcomes to tokenIn (or sDai if tokenIn is xDAI) to buy tokenOut again\\r\\n        for (uint256 j = 0; j < outcomeSlotCount; j++) {\\r\\n            (IERC20 wrapped1155, ) = IMarket(path.tokenOutMarket)\\r\\n                .wrappedOutcome(j);\\r\\n\\r\\n            if (address(wrapped1155) != path.tokenOut) {\\r\\n                ISingleSwapRouter.ExactInputSingleParams\\r\\n                    memory params = ISingleSwapRouter.ExactInputSingleParams({\\r\\n                        tokenIn: address(wrapped1155),\\r\\n                        tokenOut: path.tokenIn == xDAI\\r\\n                            ? address(sDAI)\\r\\n                            : path.tokenIn,\\r\\n                        recipient: address(this),\\r\\n                        deadline: additionalTradeParams.deadline,\\r\\n                        amountIn: additionalTradeParams.amountIn,\\r\\n                        amountOutMinimum: 0,\\r\\n                        limitSqrtPrice: 0\\r\\n                    });\\r\\n                wrapped1155.approve(\\r\\n                    address(swaprRouter),\\r\\n                    additionalTradeParams.amountIn\\r\\n                );\\r\\n                try swaprRouter.exactInputSingle(params) returns (\\r\\n                    uint256 amountOut\\r\\n                ) {\\r\\n                    tokenInSurplus += amountOut;\\r\\n                } catch {\\r\\n                    require(\\r\\n                        wrapped1155.transfer(\\r\\n                            additionalTradeParams.originalRecipient,\\r\\n                            additionalTradeParams.amountIn\\r\\n                        ),\\r\\n                        \\\"Wrapped token transfer failed.\\\"\\r\\n                    );\\r\\n                }\\r\\n            }\\r\\n        }\\r\\n        if (tokenInSurplus > 0) {\\r\\n            address tokenIn = path.tokenIn == xDAI\\r\\n                ? address(sDAI)\\r\\n                : path.tokenIn;\\r\\n            ISingleSwapRouter.ExactInputSingleParams\\r\\n                memory params = ISingleSwapRouter.ExactInputSingleParams({\\r\\n                    tokenIn: tokenIn,\\r\\n                    tokenOut: path.tokenOut,\\r\\n                    recipient: address(this),\\r\\n                    deadline: additionalTradeParams.deadline,\\r\\n                    amountIn: tokenInSurplus,\\r\\n                    amountOutMinimum: 0,\\r\\n                    limitSqrtPrice: 0\\r\\n                });\\r\\n            IERC20(tokenIn).approve(address(swaprRouter), tokenInSurplus);\\r\\n            try swaprRouter.exactInputSingle(params) returns (\\r\\n                uint256 amountOut\\r\\n            ) {\\r\\n                totalTokenOut += amountOut;\\r\\n            } catch {\\r\\n                if (path.tokenIn == xDAI) {\\r\\n                    sDAI.approve(address(savingsXDaiAdapter), tokenInSurplus);\\r\\n                    savingsXDaiAdapter.redeemXDAI(\\r\\n                        tokenInSurplus,\\r\\n                        additionalTradeParams.originalRecipient\\r\\n                    );\\r\\n                } else {\\r\\n                    require(\\r\\n                        IERC20(tokenIn).transfer(\\r\\n                            additionalTradeParams.originalRecipient,\\r\\n                            tokenInSurplus\\r\\n                        ),\\r\\n                        \\\"Wrapped token transfer failed.\\\"\\r\\n                    );\\r\\n                }\\r\\n            }\\r\\n        }\\r\\n\\r\\n        // transfer tokenOut to the recipient.\\r\\n        require(\\r\\n            IERC20(path.tokenOut).transfer(\\r\\n                additionalTradeParams.recipient,\\r\\n                totalTokenOut\\r\\n            ),\\r\\n            \\\"Wrapped token transfer failed.\\\"\\r\\n        );\\r\\n\\r\\n        return totalTokenOut;\\r\\n    }\\r\\n}\\r\\n\",\"keccak256\":\"0x5a4d4e281f8eae184885fe8d1c2500b56c181506cec34f52d11bafd013b8915b\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x6101006040523480156200001257600080fd5b5060405162001cc138038062001cc1833981016040819052620000359162000071565b6001600160a01b0393841660a05291831660c052821660e05216608052620000d9565b6001600160a01b03811681146200006e57600080fd5b50565b600080600080608085870312156200008857600080fd5b8451620000958162000058565b6020860151909450620000a88162000058565b6040860151909350620000bb8162000058565b6060860151909250620000ce8162000058565b939692955090935050565b60805160a05160c05160e051611b6162000160600039600081816101590152610e220152600081816101db01528181610c7f0152610d0d0152600081816101250152818161044001528181610514015281816106ce01528181610ff9015281816110950152818161127701526112fc01526000818161020f0152610d3a0152611b616000f3fe60806040526004361061009c5760003560e01c80636fe76b13116100645780636fe76b131461017b57806384e7a9571461018e578063abf7e273146101a1578063bf1f7677146101c9578063d8dfeb45146101fd578063de8b61491461023157600080fd5b806311ef62ac146100a15780632ccdcee0146100df5780632d6ea3a9146101005780634ad74299146101135780635bd9e29914610147575b600080fd5b3480156100ad57600080fd5b506100c973eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee81565b6040516100d691906115fe565b60405180910390f35b6100f26100ed366004611789565b610259565b6040519081526020016100d6565b6100f261010e366004611789565b610751565b34801561011f57600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561015357600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b6100f26101893660046117d4565b610794565b6100f261019c366004611789565b6109b9565b3480156101ad57600080fd5b506100c973d499b51fcfc66bd31248ef4b28d656d67e591a9481565b3480156101d557600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561020957600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561023d57600080fd5b506100c973af204776c7245bf4147c2612bf6e5972ee48370181565b6040805160e08101825284516001600160a01b039081168083526020808801518316908401528551909116828401529184015160608083019190915284015160808083019190915284015160a0820152600060c082018190529173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed190161039457600034116102f75760405162461bcd60e51b81526004016102ee90611896565b60405180910390fd5b60405163f716a92b60e01b815273d499b51fcfc66bd31248ef4b28d656d67e591a949063f716a92b9034906103309030906004016115fe565b60206040518083038185885af115801561034e573d6000803e3d6000fd5b50505050506040513d601f19601f8201168201806040525081019061037391906118c9565b608082015273af204776c7245bf4147c2612bf6e5972ee4837018152610414565b8261041457805160808201516040516323b872dd60e01b81526001600160a01b03909216916323b872dd916103cf91339130916004016118e2565b6020604051808303816000875af11580156103ee573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104129190611906565b505b8051608082015160405163095ea7b360e01b81526001600160a01b039092169163095ea7b391610469917f00000000000000000000000000000000000000000000000000000000000000009190600401611923565b6020604051808303816000875af1158015610488573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104ac9190611906565b5073eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b031681602001516001600160a01b0316036106b757604080820180513090915273af204776c7245bf4147c2612bf6e5972ee4837016020840152905163178ca23160e31b81526000907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063bc6511889061055190869060040161193c565b6020604051808303816000875af1158015610570573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061059491906118c9565b60405163095ea7b360e01b815290915073af204776c7245bf4147c2612bf6e5972ee4837019063095ea7b3906105e49073d499b51fcfc66bd31248ef4b28d656d67e591a94908590600401611923565b6020604051808303816000875af1158015610603573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106279190611906565b5060405163d1ff824160e01b8152600481018290526001600160a01b038316602482015273d499b51fcfc66bd31248ef4b28d656d67e591a949063d1ff8241906044016020604051808303816000875af1158015610689573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106ad91906118c9565b935050505061074a565b60405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc6511889061070390849060040161193c565b6020604051808303816000875af1158015610722573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061074691906118c9565b9150505b9392505050565b6000808460800151600181111561076a5761076a611995565b036107815761077a848484610259565b905061074a565b61078c8484846109b9565b949350505050565b608081018051600091829052815b845181101561096957600185516107b991906119c1565b8110156109165773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b03168582815181106107f0576107f06119d4565b6020026020010151602001516001600160a01b0316036108675760405162461bcd60e51b815260206004820152602c60248201527f546f6b656e20696e20746865206d6964646c65206f662061207377617020636160448201526b6e6e6f74206265207844414960a01b60648201526084016102ee565b73af204776c7245bf4147c2612bf6e5972ee4837016001600160a01b0316858281518110610897576108976119d4565b6020026020010151602001516001600160a01b03160361090e5760405162461bcd60e51b815260206004820152602c60248201527f546f6b656e20696e20746865206d6964646c65206f662061207377617020636160448201526b6e6e6f74206265207344414960a01b60648201526084016102ee565b308452610927565b60208401516001600160a01b031684525b61094e85828151811061093c5761093c6119d4565b60200260200101518560008411610751565b60608501819052925080610961816119ea565b9150506107a2565b50808210156109b15760405162461bcd60e51b81526020600482015260146024820152732a37b7903634ba3a3632903932b1b2b4bb32b21760611b60448201526064016102ee565b505b92915050565b60608301516000906001600160a01b0316610a215760405162461bcd60e51b815260206004820152602260248201527f546f6b656e206f7574206d61726b6574206d757374206e6f74206265206e756c604482015261361760f11b60648201526084016102ee565b600084606001516001600160a01b031663d03ecc646040518163ffffffff1660e01b8152600401602060405180830381865afa158015610a65573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a899190611a03565b905084604001516001600160a01b0316816001600160a01b031614610af05760405162461bcd60e51b815260206004820152601e60248201527f43616e6e6f7420757365206d696e7420666f72207468697320706169722e000060448201526064016102ee565b84516001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed1901610bd35760003411610b365760405162461bcd60e51b81526004016102ee90611896565b60405163f716a92b60e01b815273d499b51fcfc66bd31248ef4b28d656d67e591a949063f716a92b903490610b6f9030906004016115fe565b60206040518083038185885af1158015610b8d573d6000803e3d6000fd5b50505050506040513d601f19601f82011682018060405250810190610bb291906118c9565b606085015273af204776c7245bf4147c2612bf6e5972ee4837018552610c53565b82610c5357845160608501516040516323b872dd60e01b81526001600160a01b03909216916323b872dd91610c0e91339130916004016118e2565b6020604051808303816000875af1158015610c2d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c519190611906565b505b8451606085015160405163095ea7b360e01b81526001600160a01b039092169163095ea7b391610ca8917f00000000000000000000000000000000000000000000000000000000000000009190600401611923565b6020604051808303816000875af1158015610cc7573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ceb9190611906565b50606080860151908501516040516301abf04560e71b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169263d5f8228092610d64927f00000000000000000000000000000000000000000000000000000000000000009291906004016118e2565b600060405180830381600087803b158015610d7e57600080fd5b505af1158015610d92573d6000803e3d6000fd5b50505050600085606001516001600160a01b0316632ddc7de76040518163ffffffff1660e01b8152600401602060405180830381865afa158015610dda573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610dfe91906118c9565b604051636a16e06160e11b8152600481018290529091506000906001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063d42dc0c290602401602060405180830381865afa158015610e69573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e8d91906118c9565b6060870151909150600090815b838110156111c45760608a0151604051630315311560e31b8152600481018390526000916001600160a01b0316906318a988a890602401600060405180830381865afa158015610eee573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610f169190810190611a20565b5090508a602001516001600160a01b0316816001600160a01b0316146111b15760006040518060e00160405280836001600160a01b0316815260200173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b03168e600001516001600160a01b031614610f8a578d51610fa0565b73af204776c7245bf4147c2612bf6e5972ee4837015b6001600160a01b03168152602001306001600160a01b031681526020018c6040015181526020018c6060015181526020016000815260200160006001600160a01b03168152509050816001600160a01b031663095ea7b37f00000000000000000000000000000000000000000000000000000000000000008d606001516040518363ffffffff1660e01b815260040161103a929190611923565b6020604051808303816000875af1158015611059573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061107d9190611906565b5060405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc651188906110ca90849060040161193c565b6020604051808303816000875af1925050508015611105575060408051601f3d908101601f19168201909252611102918101906118c9565b60015b6111a15760208b015160608c015160405163a9059cbb60e01b81526001600160a01b0385169263a9059cbb9261113d92600401611923565b6020604051808303816000875af115801561115c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111809190611906565b61119c5760405162461bcd60e51b81526004016102ee90611ae1565b6111af565b6111ab8187611b18565b9550505b505b50806111bc816119ea565b915050610e9a565b50811561155f5788516000906001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee146111fa578951611210565b73af204776c7245bf4147c2612bf6e5972ee4837015b6040805160e0810182526001600160a01b0380841680835260208f8101519092169183019190915230828401528c830151606083015260808201879052600060a0830181905260c0830152915163095ea7b360e01b81529293509163095ea7b3906112a1907f0000000000000000000000000000000000000000000000000000000000000000908890600401611923565b6020604051808303816000875af11580156112c0573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906112e49190611906565b5060405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc6511889061133190849060040161193c565b6020604051808303816000875af192505050801561136c575060408051601f3d908101601f19168201909252611369918101906118c9565b60015b61154e578a516001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed19016114b85760405163095ea7b360e01b815273af204776c7245bf4147c2612bf6e5972ee4837019063095ea7b3906113e39073d499b51fcfc66bd31248ef4b28d656d67e591a94908890600401611923565b6020604051808303816000875af1158015611402573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906114269190611906565b5060208a015160405163d1ff824160e01b8152600481018690526001600160a01b03909116602482015273d499b51fcfc66bd31248ef4b28d656d67e591a949063d1ff8241906044016020604051808303816000875af115801561148e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906114b291906118c9565b5061155c565b60208a015160405163a9059cbb60e01b81526001600160a01b0384169163a9059cbb916114ea91908890600401611923565b6020604051808303816000875af1158015611509573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061152d9190611906565b6115495760405162461bcd60e51b81526004016102ee90611ae1565b61155c565b6115588185611b18565b9350505b50505b6020890151885160405163a9059cbb60e01b81526001600160a01b039092169163a9059cbb91611593918590600401611923565b6020604051808303816000875af11580156115b2573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906115d69190611906565b6115f25760405162461bcd60e51b81526004016102ee90611ae1565b98975050505050505050565b6001600160a01b0391909116815260200190565b634e487b7160e01b600052604160045260246000fd5b60405160a0810167ffffffffffffffff8111828210171561164b5761164b611612565b60405290565b604051601f8201601f1916810167ffffffffffffffff8111828210171561167a5761167a611612565b604052919050565b6001600160a01b038116811461169757600080fd5b50565b600060a082840312156116ac57600080fd5b6116b4611628565b905081356116c181611682565b815260208201356116d181611682565b602082015260408201356116e481611682565b604082015260608201356116f781611682565b606082015260808201356002811061170e57600080fd5b608082015292915050565b600060a0828403121561172b57600080fd5b611733611628565b9050813561174081611682565b8152602082013561175081611682565b8060208301525060408201356040820152606082013560608201526080820135608082015292915050565b801515811461169757600080fd5b6000806000610160848603121561179f57600080fd5b6117a9858561169a565b92506117b88560a08601611719565b91506101408401356117c98161177b565b809150509250925092565b60008060c083850312156117e757600080fd5b823567ffffffffffffffff808211156117ff57600080fd5b818501915085601f83011261181357600080fd5b813560208282111561182757611827611612565b611835818360051b01611651565b828152818101935060a092830285018201928984111561185457600080fd5b948201945b8386101561187a5761186b8a8761169a565b85529485019493820193611859565b50955061188988888301611719565b9450505050509250929050565b6020808252601990820152782737ba1032b737bab3b4103730ba34bb32903a37b5b2b7399760391b604082015260600190565b6000602082840312156118db57600080fd5b5051919050565b6001600160a01b039384168152919092166020820152604081019190915260600190565b60006020828403121561191857600080fd5b815161074a8161177b565b6001600160a01b03929092168252602082015260400190565b81516001600160a01b039081168252602080840151821690830152604080840151821690830152606080840151908301526080808401519083015260a0838101519083015260c092830151169181019190915260e00190565b634e487b7160e01b600052602160045260246000fd5b634e487b7160e01b600052601160045260246000fd5b818103818111156109b3576109b36119ab565b634e487b7160e01b600052603260045260246000fd5b6000600182016119fc576119fc6119ab565b5060010190565b600060208284031215611a1557600080fd5b815161074a81611682565b60008060408385031215611a3357600080fd5b8251611a3e81611682565b8092505060208084015167ffffffffffffffff80821115611a5e57600080fd5b818601915086601f830112611a7257600080fd5b815181811115611a8457611a84611612565b611a96601f8201601f19168501611651565b91508082528784828501011115611aac57600080fd5b60005b81811015611aca578381018501518382018601528401611aaf565b506000848284010152508093505050509250929050565b6020808252601e908201527f5772617070656420746f6b656e207472616e73666572206661696c65642e0000604082015260600190565b808201808211156109b3576109b36119ab56fea2646970667358221220604f585d43460c1e0d405ae50cf9312ffc9b9d8a8da60fb5d61315985c72fc9f64736f6c63430008140033",
+  "deployedBytecode": "0x60806040526004361061009c5760003560e01c80636fe76b13116100645780636fe76b131461017b57806384e7a9571461018e578063abf7e273146101a1578063bf1f7677146101c9578063d8dfeb45146101fd578063de8b61491461023157600080fd5b806311ef62ac146100a15780632ccdcee0146100df5780632d6ea3a9146101005780634ad74299146101135780635bd9e29914610147575b600080fd5b3480156100ad57600080fd5b506100c973eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee81565b6040516100d691906115fe565b60405180910390f35b6100f26100ed366004611789565b610259565b6040519081526020016100d6565b6100f261010e366004611789565b610751565b34801561011f57600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561015357600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b6100f26101893660046117d4565b610794565b6100f261019c366004611789565b6109b9565b3480156101ad57600080fd5b506100c973d499b51fcfc66bd31248ef4b28d656d67e591a9481565b3480156101d557600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561020957600080fd5b506100c97f000000000000000000000000000000000000000000000000000000000000000081565b34801561023d57600080fd5b506100c973af204776c7245bf4147c2612bf6e5972ee48370181565b6040805160e08101825284516001600160a01b039081168083526020808801518316908401528551909116828401529184015160608083019190915284015160808083019190915284015160a0820152600060c082018190529173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed190161039457600034116102f75760405162461bcd60e51b81526004016102ee90611896565b60405180910390fd5b60405163f716a92b60e01b815273d499b51fcfc66bd31248ef4b28d656d67e591a949063f716a92b9034906103309030906004016115fe565b60206040518083038185885af115801561034e573d6000803e3d6000fd5b50505050506040513d601f19601f8201168201806040525081019061037391906118c9565b608082015273af204776c7245bf4147c2612bf6e5972ee4837018152610414565b8261041457805160808201516040516323b872dd60e01b81526001600160a01b03909216916323b872dd916103cf91339130916004016118e2565b6020604051808303816000875af11580156103ee573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104129190611906565b505b8051608082015160405163095ea7b360e01b81526001600160a01b039092169163095ea7b391610469917f00000000000000000000000000000000000000000000000000000000000000009190600401611923565b6020604051808303816000875af1158015610488573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104ac9190611906565b5073eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b031681602001516001600160a01b0316036106b757604080820180513090915273af204776c7245bf4147c2612bf6e5972ee4837016020840152905163178ca23160e31b81526000907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063bc6511889061055190869060040161193c565b6020604051808303816000875af1158015610570573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061059491906118c9565b60405163095ea7b360e01b815290915073af204776c7245bf4147c2612bf6e5972ee4837019063095ea7b3906105e49073d499b51fcfc66bd31248ef4b28d656d67e591a94908590600401611923565b6020604051808303816000875af1158015610603573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106279190611906565b5060405163d1ff824160e01b8152600481018290526001600160a01b038316602482015273d499b51fcfc66bd31248ef4b28d656d67e591a949063d1ff8241906044016020604051808303816000875af1158015610689573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106ad91906118c9565b935050505061074a565b60405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc6511889061070390849060040161193c565b6020604051808303816000875af1158015610722573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061074691906118c9565b9150505b9392505050565b6000808460800151600181111561076a5761076a611995565b036107815761077a848484610259565b905061074a565b61078c8484846109b9565b949350505050565b608081018051600091829052815b845181101561096957600185516107b991906119c1565b8110156109165773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b03168582815181106107f0576107f06119d4565b6020026020010151602001516001600160a01b0316036108675760405162461bcd60e51b815260206004820152602c60248201527f546f6b656e20696e20746865206d6964646c65206f662061207377617020636160448201526b6e6e6f74206265207844414960a01b60648201526084016102ee565b73af204776c7245bf4147c2612bf6e5972ee4837016001600160a01b0316858281518110610897576108976119d4565b6020026020010151602001516001600160a01b03160361090e5760405162461bcd60e51b815260206004820152602c60248201527f546f6b656e20696e20746865206d6964646c65206f662061207377617020636160448201526b6e6e6f74206265207344414960a01b60648201526084016102ee565b308452610927565b60208401516001600160a01b031684525b61094e85828151811061093c5761093c6119d4565b60200260200101518560008411610751565b60608501819052925080610961816119ea565b9150506107a2565b50808210156109b15760405162461bcd60e51b81526020600482015260146024820152732a37b7903634ba3a3632903932b1b2b4bb32b21760611b60448201526064016102ee565b505b92915050565b60608301516000906001600160a01b0316610a215760405162461bcd60e51b815260206004820152602260248201527f546f6b656e206f7574206d61726b6574206d757374206e6f74206265206e756c604482015261361760f11b60648201526084016102ee565b600084606001516001600160a01b031663d03ecc646040518163ffffffff1660e01b8152600401602060405180830381865afa158015610a65573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a899190611a03565b905084604001516001600160a01b0316816001600160a01b031614610af05760405162461bcd60e51b815260206004820152601e60248201527f43616e6e6f7420757365206d696e7420666f72207468697320706169722e000060448201526064016102ee565b84516001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed1901610bd35760003411610b365760405162461bcd60e51b81526004016102ee90611896565b60405163f716a92b60e01b815273d499b51fcfc66bd31248ef4b28d656d67e591a949063f716a92b903490610b6f9030906004016115fe565b60206040518083038185885af1158015610b8d573d6000803e3d6000fd5b50505050506040513d601f19601f82011682018060405250810190610bb291906118c9565b606085015273af204776c7245bf4147c2612bf6e5972ee4837018552610c53565b82610c5357845160608501516040516323b872dd60e01b81526001600160a01b03909216916323b872dd91610c0e91339130916004016118e2565b6020604051808303816000875af1158015610c2d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c519190611906565b505b8451606085015160405163095ea7b360e01b81526001600160a01b039092169163095ea7b391610ca8917f00000000000000000000000000000000000000000000000000000000000000009190600401611923565b6020604051808303816000875af1158015610cc7573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ceb9190611906565b50606080860151908501516040516301abf04560e71b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169263d5f8228092610d64927f00000000000000000000000000000000000000000000000000000000000000009291906004016118e2565b600060405180830381600087803b158015610d7e57600080fd5b505af1158015610d92573d6000803e3d6000fd5b50505050600085606001516001600160a01b0316632ddc7de76040518163ffffffff1660e01b8152600401602060405180830381865afa158015610dda573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610dfe91906118c9565b604051636a16e06160e11b8152600481018290529091506000906001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063d42dc0c290602401602060405180830381865afa158015610e69573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e8d91906118c9565b6060870151909150600090815b838110156111c45760608a0151604051630315311560e31b8152600481018390526000916001600160a01b0316906318a988a890602401600060405180830381865afa158015610eee573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610f169190810190611a20565b5090508a602001516001600160a01b0316816001600160a01b0316146111b15760006040518060e00160405280836001600160a01b0316815260200173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6001600160a01b03168e600001516001600160a01b031614610f8a578d51610fa0565b73af204776c7245bf4147c2612bf6e5972ee4837015b6001600160a01b03168152602001306001600160a01b031681526020018c6040015181526020018c6060015181526020016000815260200160006001600160a01b03168152509050816001600160a01b031663095ea7b37f00000000000000000000000000000000000000000000000000000000000000008d606001516040518363ffffffff1660e01b815260040161103a929190611923565b6020604051808303816000875af1158015611059573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061107d9190611906565b5060405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc651188906110ca90849060040161193c565b6020604051808303816000875af1925050508015611105575060408051601f3d908101601f19168201909252611102918101906118c9565b60015b6111a15760208b015160608c015160405163a9059cbb60e01b81526001600160a01b0385169263a9059cbb9261113d92600401611923565b6020604051808303816000875af115801561115c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111809190611906565b61119c5760405162461bcd60e51b81526004016102ee90611ae1565b6111af565b6111ab8187611b18565b9550505b505b50806111bc816119ea565b915050610e9a565b50811561155f5788516000906001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee146111fa578951611210565b73af204776c7245bf4147c2612bf6e5972ee4837015b6040805160e0810182526001600160a01b0380841680835260208f8101519092169183019190915230828401528c830151606083015260808201879052600060a0830181905260c0830152915163095ea7b360e01b81529293509163095ea7b3906112a1907f0000000000000000000000000000000000000000000000000000000000000000908890600401611923565b6020604051808303816000875af11580156112c0573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906112e49190611906565b5060405163178ca23160e31b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063bc6511889061133190849060040161193c565b6020604051808303816000875af192505050801561136c575060408051601f3d908101601f19168201909252611369918101906118c9565b60015b61154e578a516001600160a01b031673eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed19016114b85760405163095ea7b360e01b815273af204776c7245bf4147c2612bf6e5972ee4837019063095ea7b3906113e39073d499b51fcfc66bd31248ef4b28d656d67e591a94908890600401611923565b6020604051808303816000875af1158015611402573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906114269190611906565b5060208a015160405163d1ff824160e01b8152600481018690526001600160a01b03909116602482015273d499b51fcfc66bd31248ef4b28d656d67e591a949063d1ff8241906044016020604051808303816000875af115801561148e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906114b291906118c9565b5061155c565b60208a015160405163a9059cbb60e01b81526001600160a01b0384169163a9059cbb916114ea91908890600401611923565b6020604051808303816000875af1158015611509573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061152d9190611906565b6115495760405162461bcd60e51b81526004016102ee90611ae1565b61155c565b6115588185611b18565b9350505b50505b6020890151885160405163a9059cbb60e01b81526001600160a01b039092169163a9059cbb91611593918590600401611923565b6020604051808303816000875af11580156115b2573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906115d69190611906565b6115f25760405162461bcd60e51b81526004016102ee90611ae1565b98975050505050505050565b6001600160a01b0391909116815260200190565b634e487b7160e01b600052604160045260246000fd5b60405160a0810167ffffffffffffffff8111828210171561164b5761164b611612565b60405290565b604051601f8201601f1916810167ffffffffffffffff8111828210171561167a5761167a611612565b604052919050565b6001600160a01b038116811461169757600080fd5b50565b600060a082840312156116ac57600080fd5b6116b4611628565b905081356116c181611682565b815260208201356116d181611682565b602082015260408201356116e481611682565b604082015260608201356116f781611682565b606082015260808201356002811061170e57600080fd5b608082015292915050565b600060a0828403121561172b57600080fd5b611733611628565b9050813561174081611682565b8152602082013561175081611682565b8060208301525060408201356040820152606082013560608201526080820135608082015292915050565b801515811461169757600080fd5b6000806000610160848603121561179f57600080fd5b6117a9858561169a565b92506117b88560a08601611719565b91506101408401356117c98161177b565b809150509250925092565b60008060c083850312156117e757600080fd5b823567ffffffffffffffff808211156117ff57600080fd5b818501915085601f83011261181357600080fd5b813560208282111561182757611827611612565b611835818360051b01611651565b828152818101935060a092830285018201928984111561185457600080fd5b948201945b8386101561187a5761186b8a8761169a565b85529485019493820193611859565b50955061188988888301611719565b9450505050509250929050565b6020808252601990820152782737ba1032b737bab3b4103730ba34bb32903a37b5b2b7399760391b604082015260600190565b6000602082840312156118db57600080fd5b5051919050565b6001600160a01b039384168152919092166020820152604081019190915260600190565b60006020828403121561191857600080fd5b815161074a8161177b565b6001600160a01b03929092168252602082015260400190565b81516001600160a01b039081168252602080840151821690830152604080840151821690830152606080840151908301526080808401519083015260a0838101519083015260c092830151169181019190915260e00190565b634e487b7160e01b600052602160045260246000fd5b634e487b7160e01b600052601160045260246000fd5b818103818111156109b3576109b36119ab565b634e487b7160e01b600052603260045260246000fd5b6000600182016119fc576119fc6119ab565b5060010190565b600060208284031215611a1557600080fd5b815161074a81611682565b60008060408385031215611a3357600080fd5b8251611a3e81611682565b8092505060208084015167ffffffffffffffff80821115611a5e57600080fd5b818601915086601f830112611a7257600080fd5b815181811115611a8457611a84611612565b611a96601f8201601f19168501611651565b91508082528784828501011115611aac57600080fd5b60005b81811015611aca578381018501518382018601528401611aaf565b506000848284010152508093505050509250929050565b6020808252601e908201527f5772617070656420746f6b656e207472616e73666572206661696c65642e0000604082015260600190565b808201808211156109b3576109b36119ab56fea2646970667358221220604f585d43460c1e0d405ae50cf9312ffc9b9d8a8da60fb5d61315985c72fc9f64736f6c63430008140033",
+  "devdoc": {
+    "details": "A specialized contract for swapping and minting Seer market outcome tokens. Handles complex token swapping and minting operations across different markets and tokens.",
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "details": "Constructor.",
+        "params": {
+          "_collateral": "ERC20 token used as collateral in ConditionalTokens.",
+          "_conditionalTokens": "ConditionalTokens contract.",
+          "_gnosisRouter": "GnosisRouter contract.",
+          "_swaprRouter": "SwapRouter contract."
+        }
+      },
+      "exactInput((address,address,address,address,uint8)[],(address,address,uint256,uint256,uint256))": {
+        "details": "Performs exact input trades across multiple token paths.",
+        "params": {
+          "additionalTradeParams": "Additional trade parameters.",
+          "paths": "Array of token paths to trade."
+        },
+        "returns": {
+          "amountOut": "Total amount of output tokens."
+        }
+      },
+      "exactInputSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)": {
+        "details": "Performs a single input trade for a specific token path.",
+        "params": {
+          "additionalTradeParams": "Additional trade parameters.",
+          "isFromManager": "Flag indicating if the trade is initiated from the manager.",
+          "path": "Token path for the trade."
+        },
+        "returns": {
+          "_0": "Amount of output tokens."
+        }
+      },
+      "mintSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)": {
+        "details": "Mints full set of market outcome tokens, keep desired outcome tokens while trying to sell the rest to re-buy more desired tokens.",
+        "params": {
+          "additionalTradeParams": "Additional trade parameters.",
+          "isFromManager": "Flag indicating if the mint is initiated from the manager.",
+          "path": "Token path."
+        },
+        "returns": {
+          "_0": "Total amount of tokens after minting + selling/re-buying."
+        }
+      },
+      "swapSingle((address,address,address,address,uint8),(address,address,uint256,uint256,uint256),bool)": {
+        "details": "Performs a single token swap.",
+        "params": {
+          "additionalTradeParams": "Additional trade parameters.",
+          "isFromManager": "Flag indicating if the swap is initiated from the manager.",
+          "path": "Token path for the swap."
+        },
+        "returns": {
+          "_0": "Amount of output tokens."
+        }
+      }
+    },
+    "stateVariables": {
+      "collateral": {
+        "details": "ERC20 token used as collateral for ConditionalTokens."
+      },
+      "conditionalTokens": {
+        "details": "ConditionalTokens contract."
+      },
+      "gnosisRouter": {
+        "details": "GnosisRouter contract."
+      },
+      "sDAI": {
+        "details": "SavingsXDai contract."
+      },
+      "savingsXDaiAdapter": {
+        "details": "SavingsXDaiAdapter contract."
+      },
+      "swaprRouter": {
+        "details": "SwapRouter contract."
+      },
+      "xDAI": {
+        "details": "Dummy address representing xDAI."
+      }
+    },
+    "title": "TradeManager",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}

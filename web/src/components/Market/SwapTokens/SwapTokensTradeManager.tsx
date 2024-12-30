@@ -1,40 +1,39 @@
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
-import { useConvertToAssets, useConvertToShares } from "@/hooks/trade/handleSDAI";
+import { useConvertToShares } from "@/hooks/trade/handleSDAI";
+import { useTradeManager } from "@/hooks/trade/useTradeManager";
+import { useTradeQuoter } from "@/hooks/trade/useTradeQuoter";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
-import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
+import { Token } from "@/lib/tokens";
+import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
-import { gnosis } from "viem/chains";
 import { Alert } from "../../Alert";
-import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
-import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
-import SwapButtons from "./components/SwapButtons";
+import { SwapTokensTradeManagerConfirmation } from "./SwapTokensTradeManagerConfirmation";
+import SwapButtonsTradeManager from "./components/SwapButtonsTradeManager";
 
 interface SwapFormValues {
   type: "buy" | "sell";
   amount: string;
-  useAltCollateral: boolean;
+  isUseNativeToken: boolean;
 }
 
 interface SwapTokensProps {
+  market: Market;
   account: Address | undefined;
   chainId: SupportedChain;
   outcomeText: string;
   outcomeToken: Token;
-  hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
   isInvalidResult: boolean;
   parentCollateral: Token | undefined;
@@ -42,24 +41,12 @@ interface SwapTokensProps {
   setUseTradeManager: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
-  if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
-      return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
-    }
-
-    return COLLATERAL_TOKENS[chainId].secondary as Token;
-  }
-
-  return COLLATERAL_TOKENS[chainId].primary;
-}
-
-export function SwapTokens({
+export function SwapTokensTradeManager({
+  market,
   account,
   chainId,
   outcomeText,
   outcomeToken,
-  hasEnoughLiquidity,
   outcomeImage,
   isInvalidResult,
   parentCollateral,
@@ -75,7 +62,7 @@ export function SwapTokens({
     defaultValues: {
       type: "buy",
       amount: "0",
-      useAltCollateral: false,
+      isUseNativeToken: false,
     },
   });
 
@@ -89,21 +76,16 @@ export function SwapTokens({
     trigger,
   } = useFormReturn;
 
-  const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
+  const [amount, isUseNativeToken] = watch(["amount", "isUseNativeToken"]);
   const {
     Modal: ConfirmSwapModal,
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
-  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(
-    account,
-    WXDAI[chainId]?.address as `0x${string}`,
-    chainId,
-  );
-  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
-  const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
-  const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
+  const selectedCollateral = isUseNativeToken
+    ? { address: NATIVE_TOKEN as Address, symbol: "xDai", decimals: 18 }
+    : COLLATERAL_TOKENS[chainId].primary;
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
@@ -119,83 +101,49 @@ export function SwapTokens({
   const {
     data: quoteData,
     isPending: quoteIsPending,
-    fetchStatus: quoteFetchStatus,
-    isError: quoteIsError,
-  } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
+    error: quoteError,
+  } = useTradeQuoter(market.id, outcomeToken.address, parseUnits(amount, 18), isUseNativeToken, swapType === "buy");
 
-  const isCowFastQuote =
-    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+  const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
+    isUseNativeToken ? parseUnits(amount, 18) : 0n,
+    chainId,
+  );
+  const amountInToSDai = isUseNativeToken ? Number(formatUnits(assetsToShares ?? 0n, 18)) : Number(amount);
 
-  const tradeTokens = useTrade(async () => {
+  const receivedAmount = quoteData ? Number(formatUnits(quoteData.amountOut, 18)) : 0;
+  const amountOutMinimum = receivedAmount * (1 - Number(maxSlippage) / 100);
+  const collateralPerShare = receivedAmount ? amountInToSDai / receivedAmount : 0;
+
+  // check if current token price higher than 1 collateral per token
+  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
+  const tradeTokens = useTradeManager(async () => {
     reset();
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async () => {
     await tradeTokens.mutateAsync({
-      trade,
-      account: account!,
+      paths: quoteData?.paths ?? [],
+      amountIn: parseUnits(amount, 18),
+      amountOutMinimum: parseUnits(amountOutMinimum.toString(), 18),
+      isUseNativeToken,
     });
   };
-  const sDAI = COLLATERAL_TOKENS[chainId].primary;
-
-  // convert sell result to xdai or wxdai if using multisteps swap
-  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
-  const isMultiStepsSwap = isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
-  const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
-  const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
-
-  const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
-    isMultiStepsSell ? (quoteData?.value ?? 0n) : 0n,
-    chainId,
-  );
-  const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
-    isCowSwapDai
-      ? swapType === "buy"
-        ? parseUnits(amount, selectedCollateral.decimals)
-        : (quoteData?.value ?? 0n)
-      : 0n,
-    chainId,
-  );
-  const cowSwapDaiAmount = assetsToShares ? Number(formatUnits(assetsToShares, selectedCollateral.decimals)) : 0;
-
-  // calculate price per share
-  const multiStepSellDaiReceived = sharesToAssets
-    ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals))
-    : 0;
-  const inputAmount = quoteData
-    ? Number(
-        formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
-      )
-    : 0;
-  const receivedAmount = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
-  const collateralPerShare = (() => {
-    if (!quoteData) return 0;
-    if (!isCowSwapDai) {
-      return Number(inputAmount) / receivedAmount;
-    }
-    if (swapType === "buy") {
-      return cowSwapDaiAmount / receivedAmount;
-    }
-    return Number(inputAmount) / cowSwapDaiAmount;
-  })();
-
-  // check if current token price higher than 1 collateral per token
-  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
-
   return (
     <>
       <ConfirmSwapModal
         title="Confirm Swap"
         content={
-          <SwapTokensConfirmation
-            trade={quoteData?.trade}
+          <SwapTokensTradeManagerConfirmation
+            quoteData={{
+              buyToken,
+              sellToken,
+              amountIn: Number(amount),
+              amountOut: receivedAmount,
+            }}
             closeModal={closeConfirmSwapModal}
-            reset={() => reset()}
             isLoading={tradeTokens.isPending}
             onSubmit={onSubmit}
-            collateral={selectedCollateral}
-            originalAmount={amount}
           />
         }
       />
@@ -207,20 +155,6 @@ export function SwapTokens({
             </div>
             <div className="text-[16px]">{outcomeText}</div>
           </div>
-
-          {hasEnoughLiquidity === false && (
-            <Alert type="warning">
-              This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
-              <a
-                href={getLiquidityUrl(chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-primary"
-              >
-                provide liquidity.
-              </a>
-            </Alert>
-          )}
           {parentCollateral && (
             <button
               className="text-purple-primary hover:underline text-[14px]"
@@ -232,9 +166,7 @@ export function SwapTokens({
                 : `${swapType === "buy" ? "Buy with" : "Sell to"} sDai/xDai`}
             </button>
           )}
-          <div
-            className={clsx("space-y-5", hasEnoughLiquidity === false && "grayscale opacity-40 pointer-events-none")}
-          >
+          <div className={clsx("space-y-5")}>
             <div role="tablist" className="tabs tabs-bordered">
               <button
                 type="button"
@@ -309,7 +241,7 @@ export function SwapTokens({
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
                 Price per share ={" "}
-                {quoteIsPending || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
+                {quoteIsPending || isFetchingAssetsToShares ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
@@ -318,7 +250,7 @@ export function SwapTokens({
                         ? (1 / collateralPerShare).toFixed(3)
                         : 0
                       : collateralPerShare.toFixed(3)}{" "}
-                    {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+                    sDAI
                   </>
                 )}
               </div>
@@ -326,33 +258,23 @@ export function SwapTokens({
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
                 {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-                {quoteIsPending || isFetchingSharesToAssets ? (
+                {quoteIsPending ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
-                    {isMultiStepsSell ? multiStepSellDaiReceived.toFixed(3) : receivedAmount.toFixed(3)}{" "}
-                    {buyToken.symbol}
+                    {receivedAmount.toFixed(3)} {buyToken.symbol}
                   </>
                 )}
               </div>
             )}
 
             {isPriceTooHigh && (
-              <Alert type="warning">
-                Price exceeds 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the
-                input amount.
-              </Alert>
+              <Alert type="warning">Price exceeds 1 sDAI per share. Try to reduce the input amount.</Alert>
             )}
-            {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
+            {quoteError && <Alert type="error">{quoteError.message}</Alert>}
 
             <div className="flex justify-between flex-wrap gap-4">
-              {isUndefined(parentCollateral) && (
-                <AltCollateralSwitch
-                  {...register("useAltCollateral")}
-                  chainId={chainId}
-                  isUseWrappedToken={isUseWrappedToken}
-                />
-              )}
+              <AltCollateralSwitch {...register("isUseNativeToken")} chainId={chainId} isUseWrappedToken={false} />
               <div className="text-[12px] text-black-secondary flex items-center gap-2">
                 Max slippage:{" "}
                 <div
@@ -364,39 +286,16 @@ export function SwapTokens({
                 </div>
               </div>
             </div>
-            <div>
-              {isCowFastQuote ? (
-                <Button
-                  variant="primary"
-                  type="button"
-                  disabled={true}
-                  isLoading={true}
-                  text="Calculating best price..."
-                />
-              ) : quoteData?.trade ? (
-                <SwapButtons
-                  account={account}
-                  trade={quoteData.trade}
-                  swapType={swapType}
-                  isDisabled={
-                    isUndefined(quoteData?.value) ||
-                    quoteData?.value === 0n ||
-                    !account ||
-                    !isValid ||
-                    tradeTokens.isPending ||
-                    isPriceTooHigh
-                  }
-                  isLoading={
-                    tradeTokens.isPending ||
-                    (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending) ||
-                    isFetchingSharesToAssets
-                  }
-                  isMultiStepsSwap={isMultiStepsSwap}
-                />
-              ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
-                <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
-              ) : null}
-            </div>
+          </div>
+          <div>
+            <SwapButtonsTradeManager
+              account={account}
+              tokenIn={sellToken.address}
+              amountIn={parseUnits(amount, 18)}
+              swapType={swapType}
+              isDisabled={!receivedAmount || !account || !isValid || tradeTokens.isPending || isPriceTooHigh}
+              isLoading={tradeTokens.isPending || (receivedAmount > 0 && quoteIsPending) || isFetchingAssetsToShares}
+            />
           </div>
         </form>
       )}
