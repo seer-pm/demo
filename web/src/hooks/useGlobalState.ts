@@ -1,42 +1,38 @@
+import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 type State = {
+  accessToken: string;
   pendingOrders: string[];
-  favorites: {
-    [address: string]: string[];
+  // Deprecated. We are now storing the favorites on supabase
+  favoritesDeprecated: {
+    [address: string]: Address[];
   };
   maxSlippage: string;
 };
 
 type Action = {
+  setAccessToken: (accessToken: string) => void;
   addPendingOrder: (orderId: string) => void;
   removePendingOrder: (orderId: string) => void;
-  toggleFavorite: (address: string, marketId: string) => void;
   setMaxSlippage: (value: string) => void;
 };
 
 const useGlobalState = create<State & Action>()(
   persist(
     (set) => ({
+      accessToken: "",
       pendingOrders: [],
-      favorites: {},
+      favoritesDeprecated: {},
       maxSlippage: "1",
+      setAccessToken: (accessToken: string) =>
+        set(() => ({
+          accessToken,
+        })),
       addPendingOrder: (orderId: string) => set((state) => ({ pendingOrders: [...state.pendingOrders, orderId] })),
       removePendingOrder: (orderId: string) =>
         set((state) => ({ pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId) })),
-      toggleFavorite: (address: string, marketId: string) =>
-        set((state) => {
-          if (!address) {
-            return state;
-          }
-          const favorites = structuredClone(state.favorites);
-          const currentFavorites = favorites[address] ?? [];
-          favorites[address] = currentFavorites.find((x) => x === marketId)
-            ? currentFavorites.filter((x) => x !== marketId)
-            : currentFavorites.concat(marketId);
-          return { favorites };
-        }),
       setMaxSlippage: (maxSlippage: string) =>
         set(() => ({
           maxSlippage,
@@ -45,6 +41,17 @@ const useGlobalState = create<State & Action>()(
     {
       name: "seer-storage",
       storage: createJSONStorage(() => localStorage),
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version === 0) {
+          // @ts-ignore
+          persistedState.favoritesDeprecated = persistedState.favorites;
+          // @ts-ignore
+          persistedState.favorites = undefined;
+        }
+
+        return persistedState;
+      },
     },
   ),
 );

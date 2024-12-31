@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { useGlobalState } from "./useGlobalState";
+import { useFavorites } from "./useFavorites";
 import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 import useMarketsSearchParams from "./useMarketsSearchParams";
@@ -102,7 +102,7 @@ export const useMarkets = ({
 export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   const result = useMarkets(params);
   const { address = "" } = useAccount();
-  const favorites = useGlobalState((state) => state.favorites);
+  const { data: favorites = [] } = useFavorites();
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
@@ -124,7 +124,7 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   // favorite markets on top, we use reduce to keep the current sort order
   const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
     (total, market) => {
-      if (favorites[address]?.find((x) => x === market.id)) {
+      if (favorites.includes(market.id)) {
         total[0].push(market);
       } else {
         total[1].push(market);

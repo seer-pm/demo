@@ -6,6 +6,7 @@ import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
+import { updateCollectionItem } from "@/hooks/useUpdateCollectionItem";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
@@ -18,7 +19,6 @@ import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
-import { useAccount } from "wagmi";
 import {
   DateFormValues,
   FormWithPrevStep,
@@ -243,7 +243,6 @@ export function PreviewForm({
     parentMarket?.outcomes?.findIndex((outcome) => outcome === searchParams.get("parentOutcome")) ?? -1;
   parentOutcomeIndex = Math.max(parentOutcomeIndex, 0);
 
-  const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
@@ -261,7 +260,7 @@ export function PreviewForm({
   const { data: submissionDeposit } = useSubmissionDeposit();
 
   const { Modal, openModal } = useModal("answer-modal");
-  const { toggleFavorite } = useGlobalState();
+  const accessToken = useGlobalState((state) => state.accessToken);
 
   const createMarket = useCreateMarket(async (receipt: TransactionReceipt) => {
     const marketId = parseEventLogs({
@@ -272,7 +271,7 @@ export function PreviewForm({
 
     if (marketId) {
       setNewMarketId(marketId);
-      toggleFavorite(address, marketId);
+      updateCollectionItem({ marketIds: [marketId], accessToken });
       fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
     }
   });

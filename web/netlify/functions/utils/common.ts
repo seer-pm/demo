@@ -1,4 +1,4 @@
-import { getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
+import { getPublicClient, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import { TransactionNotFoundError, TransactionReceiptNotFoundError, WaitForTransactionReceiptTimeoutError } from "viem";
 import { SupportedChain, config } from "./config";
 
@@ -69,4 +69,8 @@ async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, i
     const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries
     await new Promise((resolve) => setTimeout(resolve, backoffTime + jitter));
   }
+}
+
+export function getPublicClientForNetwork(networkId: SupportedChain) {
+  return getPublicClient(config, { chainId: networkId });
 }

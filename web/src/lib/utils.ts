@@ -138,3 +138,17 @@ export function parseFraction(floatString: string) {
 function findGCD(a: number, b: number): number {
   return b === 0 ? a : findGCD(b, a % b);
 }
+
+export function isAccessTokenExpired(accessToken: string) {
+  if (!accessToken) {
+    return true;
+  }
+  try {
+    const [, payload] = accessToken.split(".");
+    const decodedPayload = JSON.parse(atob(payload));
+    const expirationTime = decodedPayload.exp * 1000; // Convert to milliseconds
+    return Date.now() > expirationTime;
+  } catch (e) {
+    return true;
+  }
+}
