@@ -159,6 +159,7 @@ function MarkeVerifyPage() {
             <Button
               type="submit"
               text="Verify Market"
+              className="whitespace-nowrap"
               disabled={!marketReadyToVerify || verifyMarket.isPending}
               isLoading={verifyMarket.isPending}
             />
