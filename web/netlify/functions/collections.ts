@@ -1,38 +1,16 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import jwt from "jsonwebtoken";
+import { verifyToken } from "./utils/auth";
 
 require("dotenv").config();
 
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   try {
-    const { authorization } = event.headers;
-    if (!authorization) {
+    const userId = verifyToken(event.headers.authorization);
+    if (!userId) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: "No authorization header" }),
-      };
-    }
-
-    type DecodedToken = {
-      sub: string;
-      iat: number;
-      iss: string;
-    };
-    let decoded: DecodedToken;
-    try {
-      const token = authorization.split(" ")[1];
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
-    } catch (jwtError) {
-      if (jwtError instanceof jwt.TokenExpiredError) {
-        return {
-          statusCode: 401,
-          body: JSON.stringify({ error: "Token expired" }),
-        };
-      }
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ error: "Invalid token" }),
+        body: JSON.stringify({ error: "Unauthorized" }),
       };
     }
 
@@ -43,7 +21,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
       const { data: favorites } = await supabase
         .from("collections_markets")
         .select("market_id")
-        .eq("user_id", decoded.sub.toLocaleLowerCase())
+        .eq("user_id", userId)
         .is("collection_id", null);
 
       return {
@@ -67,8 +45,8 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
         const { data: existing } = await supabase
           .from("collections_markets")
           .select("market_id")
-          .eq("user_id", decoded.sub.toLocaleLowerCase())
-          .eq("market_id", marketIds[0].toLocaleLowerCase())
+          .eq("user_id", userId)
+          .eq("market_id", marketIds[0].toLowerCase())
           [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
 
         if (existing && existing.length > 0) {
@@ -76,14 +54,14 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
           await supabase
             .from("collections_markets")
             .delete()
-            .eq("user_id", decoded.sub.toLocaleLowerCase())
-            .eq("market_id", marketIds[0].toLocaleLowerCase())
+            .eq("user_id", userId)
+            .eq("market_id", marketIds[0].toLowerCase())
             [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
         } else {
           // Add the market if it doesn't exist
           const { error: insertError } = await supabase.from("collections_markets").insert({
-            user_id: decoded.sub.toLocaleLowerCase(),
-            market_id: marketIds[0].toLocaleLowerCase(),
+            user_id: userId,
+            market_id: marketIds[0].toLowerCase(),
             collection_id: collectionId,
           });
 
@@ -100,13 +78,13 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
         await supabase
           .from("collections_markets")
           .delete()
-          .eq("user_id", decoded.sub.toLocaleLowerCase())
+          .eq("user_id", userId)
           [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
 
         if (marketIds.length > 0) {
           const newFavorites = marketIds.map((marketId) => ({
-            user_id: decoded.sub.toLocaleLowerCase(),
-            market_id: marketId.toLocaleLowerCase(),
+            user_id: userId,
+            market_id: marketId.toLowerCase(),
             collection_id: collectionId,
           }));
 

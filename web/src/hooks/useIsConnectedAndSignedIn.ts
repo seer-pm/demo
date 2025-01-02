@@ -7,5 +7,6 @@ export const useIsConnectedAndSignedIn = () => {
   const { isConnected } = useAccount();
   const { hasAccount } = useCheckAccount();
   const accessToken = useGlobalState((state) => state.accessToken);
+
   return isConnected && hasAccount && !isAccessTokenExpired(accessToken);
 };

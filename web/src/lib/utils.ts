@@ -152,3 +152,24 @@ export function isAccessTokenExpired(accessToken: string) {
     return true;
   }
 }
+
+export async function fetchAuth(
+  accessToken: string,
+  url: string,
+  method: "GET" | "POST",
+  body?: Record<string, string | string[] | number | undefined | null>,
+) {
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: method === "POST" ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+  return await response.json();
+}

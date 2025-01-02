@@ -20,12 +20,14 @@ import {
   TelegramIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useDisconnect } from "wagmi";
 import AccountDisplay from "../ConnectWallet/AccountDisplay";
 import ChainDropdown from "../ConnectWallet/ChainDropdown";
 import Button from "../Form/Button";
+import { NotificationsForm } from "../Market/Header/NotificationsForm";
 
 function AccountSettings() {
   const [activeTab, setActiveTab] = useState<"general" | "notifications">("general");
@@ -33,10 +35,21 @@ function AccountSettings() {
   const { hasAccount } = useCheckAccount();
   const { disconnect } = useDisconnect();
   const accessToken = useGlobalState((state) => state.accessToken);
+  const isAuthValid = !isAccessTokenExpired(accessToken);
+  const [email, setEmail] = useState("");
 
   const isAccountConnected = isConnected && hasAccount;
 
   const signIn = useSignIn();
+
+  useEffect(() => {
+    (async () => {
+      if (accessToken) {
+        const data = await fetchAuth(accessToken, "/.netlify/functions/me", "GET");
+        setEmail(data?.user?.email || "");
+      }
+    })();
+  }, [accessToken]);
 
   return (
     <div className="w-[416px] max-w-full px-[32px] py-[35px]">
@@ -72,7 +85,7 @@ function AccountSettings() {
 
       {isAccountConnected && activeTab === "notifications" && (
         <div className="text-center space-y-4">
-          {accessToken === "" && (
+          {!isAuthValid && (
             <Button
               variant="primary"
               size="large"
@@ -80,7 +93,7 @@ function AccountSettings() {
               onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
             />
           )}
-          {accessToken !== "" && <div>CREATE FORM</div>}
+          {email && <NotificationsForm email={email} accessToken={accessToken} />}
         </div>
       )}
 
