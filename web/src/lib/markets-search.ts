@@ -233,7 +233,10 @@ export const fetchMarkets = async (
   const verificationStatusList = await getVerificationStatusList(chainId);
   let marketToMarketDataMapping: { [key: string]: MarketExtraData } | undefined;
   try {
-    const { data } = await fetch("/.netlify/functions/supabase-query/markets").then((res) => res.json());
+    const isClient = typeof window !== "undefined";
+    const { data } = await fetch(
+      `${isClient ? "" : "https://app.seer.pm"}/.netlify/functions/supabase-query/markets`,
+    ).then((res) => res.json());
     const markets = data as MarketExtraData[];
     marketToMarketDataMapping = markets.reduce(
       (acc, curr) => {
