@@ -1,4 +1,5 @@
 import { getPublicClient, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
+import * as postmark from "postmark";
 import { TransactionNotFoundError, TransactionReceiptNotFoundError, WaitForTransactionReceiptTimeoutError } from "viem";
 import { SupportedChain, config } from "./config";
 
@@ -73,4 +74,10 @@ async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, i
 
 export function getPublicClientForNetwork(networkId: SupportedChain) {
   return getPublicClient(config, { chainId: networkId });
+}
+
+export function getPostmarkClient() {
+  // TODO: move to an env variable
+  const serverToken = "50a4845b-c55c-4f58-8fbf-3dac83ab59f7";
+  return new postmark.ServerClient(serverToken);
 }

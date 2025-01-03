@@ -130,8 +130,8 @@ async function getExistingRealityQuestionIds(
   );
 }
 
-// TODO: add all the required fields, create ID based on tx hash to avoid duplications?
 interface NotificationQueueItem {
+  event_id: string;
   email: string;
 }
 
@@ -139,7 +139,7 @@ async function getUsersEmailsByMarket(
   marketIds: string[]
 ): Promise<Map<string, string[]>> {
   try {
-    // Get users who favorited these markets and their emails in a single query
+    // Get users who favorited these markets and have verified emails
     const { data: favoriteData, error } = await supabase
       .from("collections_markets")
       .select(
@@ -151,7 +151,8 @@ async function getUsersEmailsByMarket(
       `
       )
       .in("market_id", marketIds)
-      .is("collection_id", null);
+      .is("collection_id", null)
+      .eq("users.email_verified", true);
 
     if (error) {
       throw error;
@@ -160,13 +161,11 @@ async function getUsersEmailsByMarket(
     // Create a map of market_id to array of user emails
     const marketToEmails = new Map<string, string[]>();
 
-    favoriteData.forEach(
-      (favorite: { market_id: string; users: { email: string } }) => {
-        const emails = marketToEmails.get(favorite.market_id) || [];
-        emails.push(favorite.users.email);
-        marketToEmails.set(favorite.market_id, emails);
-      }
-    );
+    favoriteData.forEach((favorite) => {
+      const emails = marketToEmails.get(favorite.market_id) || [];
+      emails.push(favorite.users.email);
+      marketToEmails.set(favorite.market_id, emails);
+    });
 
     return marketToEmails;
   } catch (error) {
@@ -175,12 +174,16 @@ async function getUsersEmailsByMarket(
   }
 }
 
+type EventType = "answer" | "resolution";
+
 async function processEvent(
   questionId: string,
   marketIds: string[],
   networkId: SupportedChain,
-  eventType: "answer" | "resolution",
-  marketToEmails: Map<string, string[]>
+  eventType: EventType,
+  marketToEmails: Map<string, string[]>,
+  log: { transactionHash: string; blockNumber: bigint; logIndex: number },
+  marketNames: Map<string, string>
 ) {
   try {
     // Create notifications for each market and its users
@@ -188,7 +191,14 @@ async function processEvent(
 
     for (const marketId of marketIds) {
       const emails = marketToEmails.get(marketId) || [];
-      notifications.push(...emails.map((email) => ({ email })));
+      const marketName = marketNames.get(marketId) || "";
+      notifications.push(
+        ...emails.map((email) => ({
+          event_id: `${networkId}-${log.transactionHash}-${log.logIndex}-${eventType}-${email}`,
+          email,
+          data: getNotificationData(marketId, marketName, networkId, eventType),
+        }))
+      );
     }
 
     if (notifications.length === 0) {
@@ -198,7 +208,9 @@ async function processEvent(
 
     const { error } = await supabase
       .from("notifications_queue")
-      .insert(notifications);
+      .upsert(notifications, {
+        onConflict: "event_id",
+      });
 
     if (error) {
       throw error;
@@ -215,6 +227,32 @@ async function processEvent(
     console.error("Error storing notifications:", error);
     throw error;
   }
+}
+
+function getNotificationData(
+  marketId: string,
+  marketName: string,
+  networkId: number,
+  eventType: EventType
+): any {
+  const title = {
+    answer: `The market "${marketName}" has a new answer`,
+    resolution: `The market "${marketName}" has been resolved`,
+  }[eventType];
+
+  const subject = {
+    answer: "New answer submitted for a market you follow",
+    resolution: "A market you follow has been resolved",
+  }[eventType];
+
+  return {
+    TemplateAlias: "market-update",
+    TemplateModel: {
+      title,
+      market_url: `https://app.seer.pm/markets/${networkId}/${marketId}`,
+      subject,
+    },
+  };
 }
 
 async function getAnswerEvents(networkId: SupportedChain, fromBlock: bigint) {
@@ -272,6 +310,29 @@ async function getInitialBlock(networkId: SupportedChain) {
   return networkId === 100 ? 37266169n : 21430618n;
 }
 
+async function getMarketNamesByMarket(
+  marketIds: string[],
+  networkId: SupportedChain
+): Promise<Map<string, string>> {
+  const query = `
+    query GetMarketNames($marketIds: [ID!]!) {
+      markets(where: { id_in: $marketIds }) {
+        id
+        marketName
+      }
+    }
+  `;
+
+  const { data } = await fetchSubgraph(query, { marketIds }, networkId);
+
+  const marketNames = new Map<string, string>();
+  data.markets.forEach((market: { id: string; marketName: string }) => {
+    marketNames.set(market.id, market.marketName);
+  });
+
+  return marketNames;
+}
+
 async function processNetworkEvents(networkId: SupportedChain) {
   const fromBlock = await getInitialBlock(networkId);
 
@@ -305,8 +366,11 @@ async function processNetworkEvents(networkId: SupportedChain) {
   // Get all unique market IDs
   const allMarketIds = Array.from(marketsForQuestionId.values()).flat();
 
-  // Get emails for all markets at once
-  const marketToEmails = await getUsersEmailsByMarket(allMarketIds);
+  // Get emails and market names for all markets at once
+  const [marketToEmails, marketNames] = await Promise.all([
+    getUsersEmailsByMarket(allMarketIds),
+    getMarketNamesByMarket(allMarketIds, networkId),
+  ]);
 
   for (const log of answerLogs) {
     const questionId = log.args.question_id as string;
@@ -316,7 +380,9 @@ async function processNetworkEvents(networkId: SupportedChain) {
         marketsForQuestionId.get(questionId) || [],
         networkId,
         "answer",
-        marketToEmails
+        marketToEmails,
+        log,
+        marketNames
       );
     }
   }
@@ -329,7 +395,9 @@ async function processNetworkEvents(networkId: SupportedChain) {
         marketsForQuestionId.get(questionId) || [],
         networkId,
         "resolution",
-        marketToEmails
+        marketToEmails,
+        log,
+        marketNames
       );
     }
   }

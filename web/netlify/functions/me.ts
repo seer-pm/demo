@@ -1,7 +1,8 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
-
+import { getPostmarkClient } from "./utils/common";
+import { FROM_EMAIL } from "./utils/constants";
 require("dotenv").config();
 
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
@@ -50,10 +51,12 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
           body: JSON.stringify({ error: "Email is required" }),
         };
       }
-      // TODO: send email confirmation
+
+      const verificationToken = crypto.randomUUID();
+
       const { data: user, error: updateError } = await supabase
         .from("users")
-        .update({ email })
+        .update({ email, verified: false, verification_token: verificationToken })
         .eq("id", userId)
         .select()
         .single();
@@ -64,6 +67,15 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
           body: JSON.stringify({ error: "Failed to update email" }),
         };
       }
+
+      getPostmarkClient().sendEmailWithTemplate({
+        From: FROM_EMAIL,
+        To: email,
+        TemplateAlias: "welcome",
+        TemplateModel: {
+          confirm_url: `https://www.seer.pm/confirm-email/${verificationToken}`,
+        },
+      });
 
       return {
         statusCode: 200,
