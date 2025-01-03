@@ -20,10 +20,10 @@ const IMAGE_CLASS = "w-[48px] h-[48px] rounded-full mx-auto";
 
 export function OutcomeImage({
   image,
-  isInvalidResult,
+  isInvalidOutcome,
   title,
-}: { image: string | undefined; isInvalidResult: boolean; title: string }) {
-  if (isInvalidResult) {
+}: { image: string | undefined; isInvalidOutcome: boolean; title: string }) {
+  if (isInvalidOutcome) {
     return <InvalidOutcomeImage width="20" height="24" className={clsx(IMAGE_CLASS, "bg-black-medium")} />;
   }
 

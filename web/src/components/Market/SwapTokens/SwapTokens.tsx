@@ -1,11 +1,14 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useConvertToAssets, useConvertToShares } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
+import { COLLATERAL_TOKENS, getLiquidityUrlByMarket } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
+import { FUTARCHY_LP_PAIRS_MAPPING } from "@/lib/market";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
@@ -31,13 +34,12 @@ interface SwapFormValues {
 
 interface SwapTokensProps {
   account: Address | undefined;
-  chainId: SupportedChain;
-  outcomeText: string;
+  market: Market;
+  outcomeIndex: number;
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
-  isInvalidResult: boolean;
-  parentCollateral: Token | undefined;
+  fixedCollateral: Token | undefined;
 }
 
 function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
@@ -52,15 +54,36 @@ function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolea
   return COLLATERAL_TOKENS[chainId].primary;
 }
 
+function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
+  const [, setSearchParams] = useSearchParams();
+
+  const collateralPair = [outcomeIndex, FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]
+    .sort()
+    .map((collateralIndex) => market.wrappedTokens[collateralIndex]) as [Address, Address];
+
+  return (
+    <AltCollateralSwitch
+      key={collateralPair.join("-")}
+      onChange={() =>
+        setSearchParams(
+          { outcome: market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]] },
+          { overwriteLastHistoryEntry: true, keepScrollPosition: true },
+        )
+      }
+      collateralPair={collateralPair}
+      market={market}
+    />
+  );
+}
+
 export function SwapTokens({
   account,
-  chainId,
-  outcomeText,
+  market,
+  outcomeIndex,
   outcomeToken,
   hasEnoughLiquidity,
   outcomeImage,
-  isInvalidResult,
-  parentCollateral,
+  fixedCollateral,
 }: SwapTokensProps) {
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
@@ -85,6 +108,8 @@ export function SwapTokens({
     trigger,
   } = useFormReturn;
 
+  const chainId = market.chainId;
+
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
   const {
     Modal: ConfirmSwapModal,
@@ -99,7 +124,7 @@ export function SwapTokens({
   const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
   const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
 
-  const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
+  const selectedCollateral = fixedCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
@@ -136,7 +161,7 @@ export function SwapTokens({
   const sDAI = COLLATERAL_TOKENS[chainId].primary;
 
   // convert sell result to xdai or wxdai if using multisteps swap
-  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
+  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(fixedCollateral);
   const isMultiStepsSwap = isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
   const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
   const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
@@ -177,7 +202,9 @@ export function SwapTokens({
   })();
 
   // check if current token price higher than 1 collateral per token
-  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
+  const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
+
+  const outcomeText = market.outcomes[outcomeIndex];
 
   return (
     <>
@@ -199,7 +226,11 @@ export function SwapTokens({
         <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
           <div className="flex items-center space-x-[12px]">
             <div>
-              <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />
+              <OutcomeImage
+                image={outcomeImage}
+                isInvalidOutcome={market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1}
+                title={outcomeText}
+              />
             </div>
             <div className="text-[16px]">{outcomeText}</div>
           </div>
@@ -208,7 +239,7 @@ export function SwapTokens({
             <Alert type="warning">
               This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
               <a
-                href={getLiquidityUrl(chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
+                href={getLiquidityUrlByMarket(market, outcomeIndex)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary"
@@ -332,13 +363,14 @@ export function SwapTokens({
             {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
 
             <div className="flex justify-between flex-wrap gap-4">
-              {isUndefined(parentCollateral) && (
+              {market.type === "Generic" && isUndefined(fixedCollateral) && (
                 <AltCollateralSwitch
                   {...register("useAltCollateral")}
-                  chainId={chainId}
+                  market={market}
                   isUseWrappedToken={isUseWrappedToken}
                 />
               )}
+              {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
               <div className="text-[12px] text-black-secondary flex items-center gap-2">
                 Max slippage:{" "}
                 <div

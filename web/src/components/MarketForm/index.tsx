@@ -1,5 +1,6 @@
 import { MarketTypes } from "@/lib/market";
 import { FieldValues, UseFormReturn } from "react-hook-form";
+import { Address } from "viem";
 
 export const MISC_CATEGORY = "misc";
 
@@ -88,13 +89,15 @@ export type MarketTypeFormValues = {
 
 export type OutcomesFormValues = {
   market: string;
-  image: File;
+  image: File | "";
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
+  collateralToken1: Address | ""; // for futarchy markets
+  collateralToken2: Address | ""; // for futarchy markets
   lowerBound: { value: number; token: string }; // for scalar markets
   upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
 };
 
-export interface DateFormValues {
+export type DateFormValues = {
   openingTime: string;
-}
+};
