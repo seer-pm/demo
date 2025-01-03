@@ -36,7 +36,7 @@ export function NotificationsForm({ email, accessToken }: { email: string; acces
   const onSubmit = async (data: NotificationsFormData) => {
     await toastify(() => fetchAuth(accessToken, "/.netlify/functions/me", "POST", { email: data.email }), {
       txSent: { title: "Updating email..." },
-      txSuccess: { title: "Email updated!" },
+      txSuccess: { title: "Please check your inbox for a verification email." },
     });
   };
 

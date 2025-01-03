@@ -77,7 +77,5 @@ export function getPublicClientForNetwork(networkId: SupportedChain) {
 }
 
 export function getPostmarkClient() {
-  // TODO: move to an env variable
-  const serverToken = "50a4845b-c55c-4f58-8fbf-3dac83ab59f7";
-  return new postmark.ServerClient(serverToken);
+  return new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!);
 }

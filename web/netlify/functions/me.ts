@@ -56,7 +56,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
 
       const { data: user, error: updateError } = await supabase
         .from("users")
-        .update({ email, verified: false, verification_token: verificationToken })
+        .update({ email, email_verified: false, verification_token: verificationToken })
         .eq("id", userId)
         .select()
         .single();
