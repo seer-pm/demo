@@ -107,7 +107,7 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
 export const getLiquidityUrlByMarket = (market: Market, outcomeIndex: number) => {
   const liquidityPair = getLiquidityPair(market, outcomeIndex);
 
-  return getLiquidityUrl(market.chainId, liquidityPair.token0, liquidityPair.token0);
+  return getLiquidityUrl(market.chainId, liquidityPair.token0, liquidityPair.token1);
 };
 
 export const getPoolUrl = (chainId: number, poolId: string) => {
