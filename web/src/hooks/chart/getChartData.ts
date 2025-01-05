@@ -9,7 +9,6 @@ import {
   isOdd,
 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { getDexScreenerPriceUSD } from "@/lib/tokens";
 import { subDays } from "date-fns";
 import { BigNumber } from "ethers";
 import combineQuery from "graphql-combine-query";
@@ -271,13 +270,10 @@ function getGenericMarketData(
 }
 
 async function getFutarchyMarketData(
-  market: Market,
   timestamps: number[],
   collateralByOutcome: CollateralByOutcome[],
   poolHourDatasSets: PoolHourDatasSets,
 ) {
-  const quoteTokenUSDPrice = await getDexScreenerPriceUSD(market.collateralToken2, market.chainId);
-
   const pricesMapping = timestamps.reduce(
     (acc, timestamp) => {
       const tokenPrices = collateralByOutcome.map((token, tokenIndex) => {
@@ -298,11 +294,8 @@ async function getFutarchyMarketData(
       });
 
       // tokenPrices[0] is the price of YES_GNO/YES_wstETH (e.g. 1 YES_GNO = 0.079 YES_wstETH)
-      // quoteTokenUSDPrice is the wstETH price in USD
-      // Example: if quoteTokenUSDPrice = $4100 USD/wstETH
-      // Then YES_GNO price in USD = 0.079 * $4100 = $323.90 USD
-      const yesPrice = tokenPrices[0] * quoteTokenUSDPrice;
-      const noPrice = tokenPrices[1] * quoteTokenUSDPrice;
+      const yesPrice = tokenPrices[0];
+      const noPrice = tokenPrices[1];
 
       acc[String(timestamp)] = Number.isNaN(yesPrice) || Number.isNaN(noPrice) ? null : [yesPrice, noPrice];
       return acc;
@@ -358,7 +351,7 @@ export async function getChartData(market: Market, dayCount: number, interval: n
 
     return market.type === "Generic"
       ? getGenericMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets)
-      : await getFutarchyMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets);
+      : getFutarchyMarketData(timestamps, collateralByOutcome, poolHourDatasSets);
   } catch (e) {
     return { chartData: [], timestamps: [] };
   }

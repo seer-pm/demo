@@ -102,7 +102,7 @@ function MarketChart({ market }: { market: Market }) {
       trigger: "axis",
       valueFormatter: (value: number) => {
         if (market.type === "Futarchy") {
-          return `$${value}`;
+          return `${value}`;
         }
 
         if (isScalarMarket) {
@@ -176,7 +176,7 @@ function MarketChart({ market }: { market: Market }) {
       axisLabel: {
         formatter: (value: number) => {
           if (market.type === "Futarchy") {
-            return `$${Number(value).toLocaleString()}`;
+            return `${Number(value).toLocaleString()}`;
           }
 
           if (isScalarMarket) {
