@@ -73,7 +73,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
         To: email,
         TemplateAlias: "welcome",
         TemplateModel: {
-          confirm_url: `https://www.seer.pm/confirm-email/${verificationToken}`,
+          confirm_url: `https://app.seer.pm/confirm-email/${verificationToken}`,
         },
       });
 

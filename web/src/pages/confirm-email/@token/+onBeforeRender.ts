@@ -1,3 +1,4 @@
+import { getAppUrl } from "@/lib/utils";
 import { PageContext } from "vike/types";
 
 export default async function onBeforeRender(pageContext: PageContext) {
@@ -14,9 +15,7 @@ export default async function onBeforeRender(pageContext: PageContext) {
   }
 
   try {
-    const result = await fetch(
-      `${import.meta.env.VITE_WEBSITE_URL || "https://www.seer.pm"}/.netlify/functions/confirm-email?token=${verificationToken}`,
-    );
+    const result = await fetch(`${getAppUrl()}/.netlify/functions/confirm-email?token=${verificationToken}`);
     const data = await result.json();
 
     return {

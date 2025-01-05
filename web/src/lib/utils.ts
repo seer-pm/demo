@@ -173,3 +173,7 @@ export async function fetchAuth(
   }
   return await response.json();
 }
+
+export function getAppUrl() {
+  return import.meta.env.VITE_WEBSITE_URL || "https://app.seer.pm";
+}
