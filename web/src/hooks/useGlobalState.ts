@@ -6,7 +6,7 @@ type State = {
   accessToken: string;
   pendingOrders: string[];
   // Deprecated. We are now storing the favorites on supabase
-  favoritesDeprecated: {
+  favorites: {
     [address: string]: Address[];
   };
   maxSlippage: string;
@@ -16,6 +16,7 @@ type Action = {
   setAccessToken: (accessToken: string) => void;
   addPendingOrder: (orderId: string) => void;
   removePendingOrder: (orderId: string) => void;
+  migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
 };
 
@@ -24,7 +25,7 @@ const useGlobalState = create<State & Action>()(
     (set) => ({
       accessToken: "",
       pendingOrders: [],
-      favoritesDeprecated: {},
+      favorites: {},
       maxSlippage: "1",
       setAccessToken: (accessToken: string) =>
         set(() => ({
@@ -33,6 +34,15 @@ const useGlobalState = create<State & Action>()(
       addPendingOrder: (orderId: string) => set((state) => ({ pendingOrders: [...state.pendingOrders, orderId] })),
       removePendingOrder: (orderId: string) =>
         set((state) => ({ pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId) })),
+      migrateDeprecatedFavorites: (address: Address) =>
+        set((state) => {
+          if (!address) {
+            return state;
+          }
+          const favorites = structuredClone(state.favorites);
+          delete favorites[address];
+          return { favorites };
+        }),
       setMaxSlippage: (maxSlippage: string) =>
         set(() => ({
           maxSlippage,
@@ -41,17 +51,6 @@ const useGlobalState = create<State & Action>()(
     {
       name: "seer-storage",
       storage: createJSONStorage(() => localStorage),
-      version: 1,
-      migrate: (persistedState, version) => {
-        if (version === 0) {
-          // @ts-ignore
-          persistedState.favoritesDeprecated = persistedState.favorites;
-          // @ts-ignore
-          persistedState.favorites = undefined;
-        }
-
-        return persistedState;
-      },
     },
   ),
 );

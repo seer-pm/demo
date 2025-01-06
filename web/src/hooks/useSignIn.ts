@@ -77,16 +77,20 @@ async function signIn(props: SignInProps): Promise<SignInResult> {
 
 export const useSignIn = (onSuccess?: (data: SignInResult) => unknown) => {
   const { address } = useAccount();
-  const [favorites, setAccessToken] = useGlobalState((state) => [state.favoritesDeprecated, state.setAccessToken]);
+  const [favorites, migrateDeprecatedFavorites, setAccessToken] = useGlobalState((state) => [
+    state.favorites,
+    state.migrateDeprecatedFavorites,
+    state.setAccessToken,
+  ]);
   return useMutation({
     mutationFn: signIn,
-    onSuccess: (data: SignInResult) => {
+    onSuccess: async (data: SignInResult) => {
       setAccessToken(data.token);
       queryClient.invalidateQueries({ queryKey: ["useFavorites"] });
 
       if (address && (favorites[address] || []).length > 0) {
-        // TODO: clear local storage data
-        updateCollectionItem({ marketIds: favorites[address], accessToken: data.token });
+        migrateDeprecatedFavorites(address);
+        await updateCollectionItem({ marketIds: favorites[address], accessToken: data.token });
       }
 
       onSuccess?.(data);
