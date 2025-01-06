@@ -1,6 +1,9 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
+import useCheckAccount from "@/hooks/useCheckAccount";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
+import { useSignIn } from "@/hooks/useSignIn";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import {
@@ -13,12 +16,95 @@ import {
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
+  SettingsIcon,
   TelegramIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
+import AccountDisplay from "../ConnectWallet/AccountDisplay";
+import Button from "../Form/Button";
+import { NotificationsForm } from "../Market/Header/NotificationsForm";
+
+function AccountSettings() {
+  const [activeTab, setActiveTab] = useState<"general" | "notifications">("general");
+  const { isConnected, address, chainId } = useAccount();
+  const { hasAccount } = useCheckAccount();
+  const { disconnect } = useDisconnect();
+  const accessToken = useGlobalState((state) => state.accessToken);
+  const isAuthValid = !isAccessTokenExpired(accessToken);
+  const [email, setEmail] = useState("");
+
+  const isAccountConnected = isConnected && hasAccount;
+
+  const signIn = useSignIn();
+
+  useEffect(() => {
+    (async () => {
+      if (accessToken) {
+        const data = await fetchAuth(accessToken, "/.netlify/functions/me", "GET");
+        setEmail(data?.user?.email || "");
+      }
+    })();
+  }, [accessToken]);
+
+  return (
+    <div className="w-[416px] max-w-full px-[32px] py-[35px]">
+      <div className="text-[24px] font-semibold text-center pb-[15px]">Settings</div>
+
+      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
+        <button
+          type="button"
+          role="tab"
+          className={`tab ${activeTab === "general" && "tab-active"}`}
+          onClick={() => setActiveTab("general")}
+        >
+          General
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`tab ${activeTab === "notifications" && "tab-active"}`}
+          onClick={() => setActiveTab("notifications")}
+        >
+          Notifications
+        </button>
+      </div>
+
+      {isAccountConnected && activeTab === "general" && (
+        <div className="text-center space-y-4">
+          <div>
+            <AccountDisplay isMobile={true} />
+          </div>
+          <Button variant="primary" size="large" text="Disconnect" onClick={() => disconnect()} />
+        </div>
+      )}
+
+      {isAccountConnected && activeTab === "notifications" && (
+        <div className="text-center space-y-4">
+          {!isAuthValid ? (
+            <Button
+              variant="primary"
+              size="large"
+              text="Sign In"
+              onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
+            />
+          ) : (
+            <NotificationsForm key={`email-${email}`} email={email} accessToken={accessToken} />
+          )}
+        </div>
+      )}
+
+      {!isAccountConnected && (
+        <div className="text-center">
+          <ConnectWallet size="large" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Header() {
   const pageContext = usePageContext();
@@ -110,7 +196,17 @@ export default function Header() {
             <ConnectWallet />
           </li>
 
-          <li className="flex items-center">
+          <li className="flex items-center space-x-2">
+            <div className="dropdown dropdown-end">
+              <button type="button" tabIndex={0} className="hover:opacity-85">
+                <SettingsIcon />
+              </button>
+              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+                <li>
+                  <AccountSettings />
+                </li>
+              </ul>
+            </div>
             <div className="dropdown dropdown-end">
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
@@ -276,8 +372,11 @@ function MobileMenu() {
         </ul>
 
         <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px]">
-          <ConnectWallet isMobile />
+          <ConnectWallet isMobile={true} />
         </div>
+        <button type="button" tabIndex={0} className="hover:opacity-85">
+          <SettingsIcon />
+        </button>
         <div className="dropdown dropdown-end">
           <button type="button" tabIndex={0} className="flex items-center gap-2 hover:font-semibold">
             <QuestionIcon fill="#9747FF" /> Help

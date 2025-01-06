@@ -219,7 +219,7 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <p className="font-semibold flex items-center gap-2 flex-wrap">
+      <div className="font-semibold flex items-center gap-2 flex-wrap">
         Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
         {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
         <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
@@ -237,7 +237,7 @@ export default function LiquidityBarChart({
           </div>
           <span className="text-sm text-gray-600 min-w-[3ch]">{priceList.length - 1}</span>
         </div>
-      </p>
+      </div>
       <div
         className="h-[400px] flex justify-center"
         onWheel={(event) => {

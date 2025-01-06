@@ -138,3 +138,42 @@ export function parseFraction(floatString: string) {
 function findGCD(a: number, b: number): number {
   return b === 0 ? a : findGCD(b, a % b);
 }
+
+export function isAccessTokenExpired(accessToken: string) {
+  if (!accessToken) {
+    return true;
+  }
+  try {
+    const [, payload] = accessToken.split(".");
+    const decodedPayload = JSON.parse(atob(payload));
+    const expirationTime = decodedPayload.exp * 1000; // Convert to milliseconds
+    return Date.now() > expirationTime;
+  } catch (e) {
+    return true;
+  }
+}
+
+export async function fetchAuth(
+  accessToken: string,
+  url: string,
+  method: "GET" | "POST",
+  body?: Record<string, string | string[] | number | undefined | null>,
+) {
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: method === "POST" ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+export function getAppUrl() {
+  return import.meta.env.VITE_WEBSITE_URL || "https://app.seer.pm";
+}
