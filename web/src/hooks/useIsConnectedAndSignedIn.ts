@@ -3,10 +3,16 @@ import { useAccount } from "wagmi";
 import useCheckAccount from "./useCheckAccount";
 import { useGlobalState } from "./useGlobalState";
 
-export const useIsConnectedAndSignedIn = () => {
+export const useIsAccountConnected = () => {
   const { isConnected } = useAccount();
   const { hasAccount } = useCheckAccount();
+
+  return isConnected && hasAccount;
+};
+
+export const useIsConnectedAndSignedIn = () => {
+  const isAccountConnected = useIsAccountConnected();
   const accessToken = useGlobalState((state) => state.accessToken);
 
-  return isConnected && hasAccount && !isAccessTokenExpired(accessToken);
+  return isAccountConnected && !isAccessTokenExpired(accessToken);
 };

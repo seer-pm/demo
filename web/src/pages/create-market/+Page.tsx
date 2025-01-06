@@ -5,9 +5,10 @@ import { DateForm } from "@/components/MarketForm/DateForm";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
-import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
+import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useSignIn } from "@/hooks/useSignIn";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import clsx from "clsx";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -40,6 +41,8 @@ function CreateMarket() {
   const { address, chainId = DEFAULT_CHAIN } = useAccount();
   const [activeStep, setActiveStep] = useState(FormSteps.MARKET_TYPE);
   const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
+  const isAccountConnected = useIsAccountConnected();
+  const { open } = useWeb3Modal();
   const signIn = useSignIn();
 
   const useMarketTypeFormReturn = useForm<MarketTypeFormValues>({
@@ -85,16 +88,26 @@ function CreateMarket() {
 
   return (
     <div className="container-fluid !w-[924px] py-[65px] text-center">
-      {!isAccountConnectedAndSignedIn && (
-        <Alert type="warning">
-          <Button
-            variant="primary"
-            size="large"
-            text="Sign in to create a market"
-            onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
-          />
-        </Alert>
-      )}
+      {!isAccountConnectedAndSignedIn &&
+        (isAccountConnected ? (
+          <Alert type="warning">
+            <Button
+              variant="primary"
+              size="large"
+              text="Sign in to create a market"
+              onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
+            />
+          </Alert>
+        ) : (
+          <Alert type="warning">
+            <Button
+              variant="primary"
+              size="large"
+              text="Connect your wallet to a supported network."
+              onClick={() => open({ view: "Connect" })}
+            />
+          </Alert>
+        ))}
 
       {isAccountConnectedAndSignedIn && (
         <>
