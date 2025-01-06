@@ -85,21 +85,22 @@ function AccountSettings() {
 
       {isAccountConnected && activeTab === "notifications" && (
         <div className="text-center space-y-4">
-          {!isAuthValid && (
+          {!isAuthValid ? (
             <Button
               variant="primary"
               size="large"
               text="Sign In"
               onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
             />
+          ) : (
+            <NotificationsForm email={email} accessToken={accessToken} />
           )}
-          {email && <NotificationsForm email={email} accessToken={accessToken} />}
         </div>
       )}
 
       {!isAccountConnected && (
-        <div>
-          <ConnectWallet />
+        <div className="text-center">
+          <ConnectWallet size="large" />
         </div>
       )}
     </div>

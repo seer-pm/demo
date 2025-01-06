@@ -21,12 +21,16 @@ export const SwitchChainButton: React.FC = () => {
   );
 };
 
-const ConnectButton = () => {
-  const { open } = useWeb3Modal();
-  return <Button text={"Connect"} variant="primary" size="small" onClick={async () => open({ view: "Connect" })} />;
+type ConnectButtonProps = {
+  size?: "small" | "large";
 };
 
-const ConnectWallet = () => {
+const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
+  const { open } = useWeb3Modal();
+  return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
+};
+
+const ConnectWallet = (props: ConnectButtonProps) => {
   const { isConnected, chain } = useAccount();
   const { hasAccount } = useCheckAccount();
 
@@ -44,7 +48,7 @@ const ConnectWallet = () => {
 
     return null;
   }
-  return <ConnectButton />;
+  return <ConnectButton {...props} />;
 };
 
 export default ConnectWallet;
