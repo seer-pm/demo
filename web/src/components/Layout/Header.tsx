@@ -92,7 +92,7 @@ function AccountSettings() {
               onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
             />
           ) : (
-            <NotificationsForm email={email} accessToken={accessToken} />
+            <NotificationsForm key={`email-${email}`} email={email} accessToken={accessToken} />
           )}
         </div>
       )}

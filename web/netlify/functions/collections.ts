@@ -73,32 +73,24 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
             };
           }
         }
-      } else {
-        // Replace all favorite markets
-        await supabase
-          .from("collections_markets")
-          .delete()
-          .eq("user_id", userId)
-          [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
+      } else if (marketIds.length > 1) {
+        // Add all favorite markets
+        const newFavorites = marketIds.map((marketId) => ({
+          user_id: userId,
+          market_id: marketId.toLowerCase(),
+          collection_id: collectionId,
+        }));
 
-        if (marketIds.length > 0) {
-          const newFavorites = marketIds.map((marketId) => ({
-            user_id: userId,
-            market_id: marketId.toLowerCase(),
-            collection_id: collectionId,
-          }));
+        const { error: bulkInsertError } = await supabase.from("collections_markets").insert(newFavorites);
 
-          const { error: bulkInsertError } = await supabase.from("collections_markets").insert(newFavorites);
-
-          if (bulkInsertError) {
-            console.error("Bulk insert error:", bulkInsertError);
-            return {
-              statusCode: 500,
-              body: JSON.stringify({
-                error: "Failed to update favorite markets",
-              }),
-            };
-          }
+        if (bulkInsertError) {
+          console.error("Bulk insert error:", bulkInsertError);
+          return {
+            statusCode: 500,
+            body: JSON.stringify({
+              error: "Failed to add favorite markets",
+            }),
+          };
         }
       }
 

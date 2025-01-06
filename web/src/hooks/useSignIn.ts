@@ -86,13 +86,13 @@ export const useSignIn = (onSuccess?: (data: SignInResult) => unknown) => {
     mutationFn: signIn,
     onSuccess: async (data: SignInResult) => {
       setAccessToken(data.token);
-      queryClient.invalidateQueries({ queryKey: ["useFavorites"] });
 
       if (address && (favorites[address] || []).length > 0) {
         migrateDeprecatedFavorites(address);
         await updateCollectionItem({ marketIds: favorites[address], accessToken: data.token });
       }
 
+      queryClient.invalidateQueries({ queryKey: ["useFavorites"] });
       onSuccess?.(data);
     },
   });
