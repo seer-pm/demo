@@ -25,7 +25,6 @@ import { useEffect, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useDisconnect } from "wagmi";
 import AccountDisplay from "../ConnectWallet/AccountDisplay";
-import ChainDropdown from "../ConnectWallet/ChainDropdown";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
 
@@ -210,7 +209,6 @@ export default function Header() {
         <ul className="hidden lg:menu-horizontal gap-[16px] justify-end w-1/3">
           <li>
             <ConnectWallet />
-            <ChainDropdown />
           </li>
 
           <li className="flex items-center space-x-2">
@@ -389,8 +387,7 @@ function MobileMenu() {
         </ul>
 
         <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px]">
-          <ConnectWallet />
-          <ChainDropdown />
+          <ConnectWallet isMobile={true} />
         </div>
         <button type="button" tabIndex={0} className="hover:opacity-85">
           <SettingsIcon />

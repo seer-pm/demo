@@ -4,6 +4,8 @@ import { Orbis } from "@orbisclub/orbis-sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import { useAccount, useAccountEffect } from "wagmi";
+import AccountDisplay from "./AccountDisplay";
+import ChainDropdown from "./ChainDropdown";
 
 export const SwitchChainButton: React.FC = () => {
   const { open } = useWeb3Modal();
@@ -30,7 +32,11 @@ const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
   return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
 };
 
-const ConnectWallet = (props: ConnectButtonProps) => {
+type ConnectWallerProps = ConnectButtonProps & {
+  isMobile?: boolean;
+};
+
+const ConnectWallet = ({ isMobile = false, ...props }: ConnectWallerProps) => {
   const { isConnected, chain } = useAccount();
   const { hasAccount } = useCheckAccount();
 
@@ -46,7 +52,12 @@ const ConnectWallet = (props: ConnectButtonProps) => {
       return <SwitchChainButton />;
     }
 
-    return null;
+    return (
+      <div className="flex items-center gap-4">
+        <ChainDropdown isMobile={isMobile} />
+        <AccountDisplay isMobile={isMobile} />
+      </div>
+    );
   }
   return <ConnectButton {...props} />;
 };
