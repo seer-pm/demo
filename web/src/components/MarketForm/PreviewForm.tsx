@@ -1,7 +1,7 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -13,6 +13,7 @@ import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { queryClient } from "@/lib/query-client";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, fetchAuth, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
@@ -272,12 +273,16 @@ export function PreviewForm({
 
     if (marketId) {
       setNewMarketId(marketId);
-      updateCollectionItem({ marketIds: [marketId], accessToken });
-      fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
-        marketId,
-        categories: marketTypeValues.marketCategories,
-      });
-      fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
+      await Promise.allSettled([
+        updateCollectionItem({ marketIds: [marketId], accessToken }),
+        fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+          marketId,
+          categories: marketTypeValues.marketCategories,
+        }),
+        fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
+      ]);
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId) });
+      queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
     }
   });
 

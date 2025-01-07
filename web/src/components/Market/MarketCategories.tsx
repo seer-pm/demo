@@ -1,8 +1,9 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market } from "@/hooks/useMarket";
+import { Market, getUseGraphMarketKey } from "@/hooks/useMarket";
 import { useSignIn } from "@/hooks/useSignIn";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { CloseIcon, EditIcon, SaveIcon } from "@/lib/icons";
+import { queryClient } from "@/lib/query-client";
 import { toastError } from "@/lib/toastify";
 import { fetchAuth, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
 import { useState } from "react";
@@ -36,10 +37,14 @@ function MarketCategories({ market }: { market: Market }) {
         marketId: market.id,
         categories,
       });
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(market.id) });
+      queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
       setEdit(false);
       // biome-ignore lint/suspicious/noExplicitAny:
     } catch (e: any) {
-      toastError({ title: e.message ?? e });
+      if (e && e?.cause?.code !== 4001) {
+        toastError({ title: e?.details || e?.message || e });
+      }
     }
     setLoading(false);
   };
