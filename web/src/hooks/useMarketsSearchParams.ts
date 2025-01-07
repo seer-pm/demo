@@ -15,6 +15,7 @@ function useMarketsSearchParams() {
       ? undefined
       : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
   const chainsList = searchParams.getAll("chains").length === 0 ? undefined : searchParams.getAll("chains");
+  const categoryList = searchParams.getAll("category").length === 0 ? undefined : searchParams.getAll("category");
   const orderBy = searchParams.get("orderBy") as Market_OrderBy;
   const page = Number(searchParams.get("page") ?? 1);
   const isShowMyMarkets = searchParams.get("myMarkets") === "true";
@@ -72,6 +73,19 @@ function useMarketsSearchParams() {
     });
   };
 
+  const setCategories = (categories: string[] | undefined) => {
+    setSearchParams((params) => {
+      params.delete("category");
+      if (categories) {
+        categories.map((x) => params.append("category", x));
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
   const setOrderBy = (orderBy: Market_OrderBy | "default") => {
     setSearchParams((params) => {
       if (orderBy === "default") {
@@ -112,6 +126,7 @@ function useMarketsSearchParams() {
     marketStatusList,
     verificationStatusList,
     chainsList,
+    categoryList,
     orderBy,
     page,
 
@@ -120,6 +135,7 @@ function useMarketsSearchParams() {
     setVerificationStatus,
     setChains,
     setOrderBy,
+    setCategories,
     setPage,
 
     isShowMyMarkets,

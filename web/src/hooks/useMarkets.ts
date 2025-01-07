@@ -79,6 +79,7 @@ export interface UseMarketsProps {
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
+  categoryList?: string[];
   chainsList?: Array<string | "all">;
   creator?: Address | "";
   participant?: Address | "";

@@ -18,6 +18,8 @@ startServer()
 async function startServer() {
   const app = express()
   app.use(compression())
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   // Vite integration
   if (isProduction) {
     // In production, we need to serve our static assets ourselves.
@@ -39,7 +41,27 @@ async function startServer() {
   }
   // ...
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
-  // ...
+  // Proxy middleware for Netlify functions
+  app.all('/.netlify/*', async (req, res) => {
+    const url = `https://app.seer.pm${req.url}`;
+    try {
+      const response = await fetch(url, {
+        method: req.method,
+        headers: {
+          "Content-Type": req.headers["content-type"],
+          Authorization: req.headers.authorization
+        },
+        body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? JSON.stringify(req.body) : undefined
+      });
+
+      const data = await response.text();
+      res.status(response.status);
+      res.send(data);
+    } catch (error) {
+      console.log(error)
+      res.status(500).json({ error: error.message });
+    }
+  });
   // Vike middleware. It should always be our last middleware (because it's a
   // catch-all middleware superseding any middleware placed after it).
   app.get('*', async (req, res, next) => {

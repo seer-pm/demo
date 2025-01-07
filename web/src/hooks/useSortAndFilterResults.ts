@@ -1,30 +1,17 @@
 import { ITEMS_PER_PAGE } from "@/lib/markets-search";
 import { UseQueryResult } from "@tanstack/react-query";
-import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { useGlobalState } from "./useGlobalState";
-import { Market, VerificationStatus } from "./useMarket";
-import { MarketStatus } from "./useMarketStatus";
+import { useFavorites } from "./useFavorites";
+import { Market } from "./useMarket";
+import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
-
-export interface UseMarketsProps {
-  marketName?: string;
-  marketStatusList?: MarketStatus[];
-  verificationStatusList?: VerificationStatus[];
-  chainsList?: Array<string | "all">;
-  creator?: Address | "";
-  participant?: Address | "";
-  orderBy?: Market_OrderBy;
-  isShowMyMarkets?: boolean;
-}
 
 export const useSortAndFilterResults = (
   params: UseMarketsProps,
   result: UseQueryResult<Market[] | undefined, Error>,
 ) => {
   const { address = "" } = useAccount();
-  const favorites = useGlobalState((state) => state.favorites);
+  const { data: favorites = [] } = useFavorites();
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
@@ -43,10 +30,17 @@ export const useSortAndFilterResults = (
     });
   }
 
+  // filter by category
+  if (params.categoryList) {
+    data = data.filter((market: Market) => {
+      return params.categoryList?.some((category) => market.categories?.includes(category));
+    });
+  }
+
   // favorite markets on top, we use reduce to keep the current sort order
   const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
     (total, market) => {
-      if (favorites[address]?.find((x) => x === market.id)) {
+      if (favorites.includes(market.id)) {
         total[0].push(market);
       } else {
         total[1].push(market);

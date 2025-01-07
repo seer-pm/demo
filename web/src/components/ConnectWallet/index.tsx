@@ -1,13 +1,11 @@
 import Button from "@/components/Form/Button";
 import useCheckAccount from "@/hooks/useCheckAccount";
-import { DEFAULT_CHAIN } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import { DownArrow } from "@/lib/icons";
 import { Orbis } from "@orbisclub/orbis-sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import { useAccount, useAccountEffect } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
+import ChainDropdown from "./ChainDropdown";
 
 export const SwitchChainButton: React.FC = () => {
   const { open } = useWeb3Modal();
@@ -25,20 +23,23 @@ export const SwitchChainButton: React.FC = () => {
   );
 };
 
-const ConnectButton = () => {
-  const { open } = useWeb3Modal();
-  return <Button text={"Connect"} variant="primary" size="small" onClick={async () => open({ view: "Connect" })} />;
+type ConnectButtonProps = {
+  size?: "small" | "large";
 };
 
-const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
-  const { isConnected, chain, chainId = DEFAULT_CHAIN } = useAccount();
+const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
   const { open } = useWeb3Modal();
+  return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
+};
 
+type ConnectWallerProps = ConnectButtonProps & {
+  isMobile?: boolean;
+};
+
+const ConnectWallet = ({ isMobile = false, ...props }: ConnectWallerProps) => {
+  const { isConnected, chain } = useAccount();
   const { hasAccount } = useCheckAccount();
 
-  const handleSwitch = () => {
-    open({ view: "Networks" });
-  };
   useAccountEffect({
     onDisconnect() {
       const orbis = new Orbis();
@@ -53,17 +54,12 @@ const ConnectWallet = ({ isMobile = false }: { isMobile?: boolean }) => {
 
     return (
       <div className="flex items-center gap-4">
-        {NETWORK_ICON_MAPPING[chainId] && (
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85" onClick={handleSwitch}>
-            <img alt="network-icon" className="w-7 h-7 rounded-full" src={NETWORK_ICON_MAPPING[chainId]}></img>
-            <DownArrow width={12} height={12} fill={isMobile ? "#9747FF" : "white"} />
-          </div>
-        )}
-        <AccountDisplay chainId={chainId} isMobile={isMobile} />
+        <ChainDropdown isMobile={isMobile} />
+        <AccountDisplay isMobile={isMobile} />
       </div>
     );
   }
-  return <ConnectButton />;
+  return <ConnectButton {...props} />;
 };
 
 export default ConnectWallet;

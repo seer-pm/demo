@@ -1,27 +1,29 @@
 import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getOutcomes, getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
+import { updateCollectionItem } from "@/hooks/useUpdateCollectionItem";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { queryClient } from "@/lib/query-client";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, fetchAuth, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
-import { useAccount } from "wagmi";
 import {
   DateFormValues,
   FormWithPrevStep,
+  MARKET_CATEGORIES,
   MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
@@ -245,7 +247,6 @@ export function PreviewForm({
     parentMarket?.outcomes?.findIndex((outcome) => outcome === searchParams.get("parentOutcome")) ?? -1;
   parentOutcomeIndex = Math.max(parentOutcomeIndex, 0);
 
-  const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
@@ -263,7 +264,7 @@ export function PreviewForm({
   const { data: submissionDeposit } = useSubmissionDeposit();
 
   const { Modal, openModal } = useModal("answer-modal");
-  const { toggleFavorite } = useGlobalState();
+  const accessToken = useGlobalState((state) => state.accessToken);
 
   const createMarket = useCreateMarket(isFutarchyMarket, async (receipt: TransactionReceipt) => {
     const marketId = isFutarchyMarket
@@ -280,8 +281,16 @@ export function PreviewForm({
 
     if (marketId) {
       setNewMarketId(marketId);
-      toggleFavorite(address, marketId);
-      fetch(`https://app.seer.pm/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
+      await Promise.allSettled([
+        updateCollectionItem({ marketIds: [marketId], accessToken }),
+        fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+          marketId: marketId.toLowerCase(),
+          categories: marketTypeValues.marketCategories,
+        }),
+        fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
+      ]);
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId) });
+      queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
     }
   });
 
@@ -387,6 +396,7 @@ export function PreviewForm({
       status: marketReadyToVerify && verifyNow ? "verified" : "not_verified",
       itemID: "",
     },
+    categories: ["misc"],
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
@@ -406,6 +416,22 @@ export function PreviewForm({
           chainId={chainId}
         />
         <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
+        <div className="text-left flex items-center gap-2 flex-wrap">
+          Categories:{" "}
+          {MARKET_CATEGORIES.map((category) => {
+            if (marketTypeValues.marketCategories.includes(category.value)) {
+              return (
+                <div
+                  className="border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] text-[14px] text-center"
+                  key={category.value}
+                >
+                  {category.text}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </DashedBox>
 
       <Modal

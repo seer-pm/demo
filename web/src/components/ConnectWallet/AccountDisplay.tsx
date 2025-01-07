@@ -47,13 +47,13 @@ export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Ad
   );
 };
 
-const AccountDisplay: React.FC<{ chainId: number; isMobile: boolean }> = ({ chainId: _chainId, isMobile }) => {
+const AccountDisplay: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const { open } = useWeb3Modal();
   const { chain } = useAccount();
   return (
     <div
       className={clsx(
-        "flex gap-2 text-[14px] rounded-[300px] px-[16px] py-[5px] cursor-pointer hover:opacity-90",
+        "inline-flex gap-2 text-[14px] rounded-[300px] px-[16px] py-[5px] cursor-pointer hover:opacity-90",
         isMobile ? "bg-blue-medium text-purple-primary" : "bg-blue-light text-black",
       )}
       onClick={() => open({ view: "Account" })}

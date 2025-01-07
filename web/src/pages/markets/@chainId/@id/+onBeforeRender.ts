@@ -16,14 +16,15 @@ export default async function onBeforeRender(pageContext: PageContext) {
       );
     },
   });
-
   const dehydratedState = dehydrate(queryClient);
 
   return {
     pageContext: {
       dehydratedState,
       title: `Seer | ${market.marketName}`,
-      description: `Answer opening date: ${getOpeningTime(market)}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`,
+      description: `Answer opening date: ${getOpeningTime(market)}. Outcomes: ${market.outcomes
+        .slice(0, -1)
+        .join(", ")}.`,
     },
   };
 }

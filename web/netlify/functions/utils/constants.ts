@@ -53,3 +53,5 @@ export const routerAddressMapping = {
 export const liquidityManagerAddressMapping = {
   100: "0x031778c7A1c08787aba7a2e0B5149fEb5DECabD7",
 };
+
+export const FROM_EMAIL = "gen@seer.pm";

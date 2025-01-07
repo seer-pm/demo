@@ -177,7 +177,7 @@ export function ImageUpload<
           {!!image && (
             <>
               <div className="w-full flex justify-center mt-4">
-                <Button text="Edit image" className="!px-[10px]" onClick={openModal} size="small" />
+                <Button text="Edit image" className="!px-[10px] whitespace-nowrap" onClick={openModal} size="small" />
               </div>
               <Modal
                 title="Edit Image"

@@ -85,7 +85,7 @@ export function SwapTokensConfirmation({
   outputToken = (isMultiStepsSell ? collateral.symbol : outputToken)?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
-    ? (Number(inputAmount) / Number(outputAmount)).toFixed(6)
+    ? (Number(outputAmount) / Number(inputAmount)).toFixed(6)
     : price;
   invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(6) : invertedPrice;
 

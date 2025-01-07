@@ -1,4 +1,5 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
@@ -6,16 +7,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
+import { MARKET_CATEGORIES } from "../MarketForm";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
 export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
   const { address } = useAccount();
+  const [searchParams] = useSearchParams();
   const {
     setMarketName: setMarketNameParam,
     isShowMyMarkets,
     toggleShowMyMarkets,
     hasFilters,
     marketName: marketNameParam,
+    categoryList,
+    setCategories,
   } = useMarketsSearchParams();
   const [marketName, setMarketName] = useState(marketNameParam);
   useEffect(() => {
@@ -25,7 +30,7 @@ export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
     debounce((value) => {
       setMarketNameParam(value);
     }, 300),
-    [],
+    [searchParams],
   );
   const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = (event.target as HTMLInputElement).value;
@@ -90,6 +95,38 @@ export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
             />
           </div>
         )}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap mt-8">
+        {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
+          if (category.value === "all") {
+            return (
+              <button
+                className={clsx(
+                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-black-medium text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                  !categoryList && "bg-purple-primary text-white",
+                )}
+                key={category.value}
+                onClick={() => setCategories(undefined)}
+                type="button"
+              >
+                {category.text}
+              </button>
+            );
+          }
+          return (
+            <button
+              className={clsx(
+                "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-black-medium text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                categoryList?.includes(category.value) && "bg-purple-primary text-white",
+              )}
+              key={category.value}
+              onClick={() => setCategories([category.value])}
+              type="button"
+            >
+              {category.text}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

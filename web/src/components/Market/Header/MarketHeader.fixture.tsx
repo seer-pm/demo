@@ -37,6 +37,7 @@ const baseMarket: Market = {
   questions: [],
   openingTs: 0,
   encodedQuestions: [],
+  categories: ["misc"],
 };
 
 const baseQuestion: Question = {

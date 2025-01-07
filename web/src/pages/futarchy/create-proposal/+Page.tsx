@@ -76,6 +76,7 @@ function CreateProposal() {
 
   const marketTypeValues: MarketTypeFormValues = {
     marketType: MarketTypes.CATEGORICAL,
+    marketCategories: ["misc"],
   };
 
   return (

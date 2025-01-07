@@ -1,11 +1,15 @@
 import { Alert } from "@/components/Alert";
+import Button from "@/components/Form/Button";
 import { DateFormValues, MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { DateForm } from "@/components/MarketForm/DateForm";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
+import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
+import { useSignIn } from "@/hooks/useSignIn";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
@@ -18,13 +22,18 @@ enum FormSteps {
 }
 
 function CreateMarket() {
-  const { chain, chainId = DEFAULT_CHAIN } = useAccount();
+  const { address, chainId = DEFAULT_CHAIN } = useAccount();
   const [activeStep, setActiveStep] = useState(FormSteps.MARKET_TYPE);
+  const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
+  const isAccountConnected = useIsAccountConnected();
+  const { open } = useWeb3Modal();
+  const signIn = useSignIn();
 
   const useMarketTypeFormReturn = useForm<MarketTypeFormValues>({
     mode: "all",
     defaultValues: {
       marketType: undefined,
+      marketCategories: ["misc"],
     },
   });
 
@@ -64,9 +73,28 @@ function CreateMarket() {
 
   return (
     <div className="container-fluid !w-[924px] py-[65px] text-center">
-      {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
+      {!isAccountConnectedAndSignedIn &&
+        (isAccountConnected ? (
+          <Alert type="warning">
+            <Button
+              variant="primary"
+              size="large"
+              text="Sign in to create a market"
+              onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
+            />
+          </Alert>
+        ) : (
+          <Alert type="warning">
+            <Button
+              variant="primary"
+              size="large"
+              text="Connect your wallet to a supported network."
+              onClick={() => open({ view: "Connect" })}
+            />
+          </Alert>
+        ))}
 
-      {chain && (
+      {isAccountConnectedAndSignedIn && (
         <>
           <div className="text-[16px] text-purple-primary mb-[24px]">Create New Market</div>
 

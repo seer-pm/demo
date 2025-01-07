@@ -4,6 +4,18 @@ import { Address } from "viem";
 
 export const MISC_CATEGORY = "misc";
 
+export const MARKET_CATEGORIES: { value: string; text: string }[] = [
+  { value: "elections", text: "Elections" },
+  { value: "politics", text: "Politics" },
+  { value: "business", text: "Business" },
+  { value: "science", text: "Science" },
+  { value: "crypto", text: "Crypto" },
+  { value: "pop_culture", text: "Pop Culture" },
+  { value: "sports", text: "Sports" },
+  { value: "mentions", text: "Mentions" },
+  { value: "misc", text: "Miscellaneous" },
+];
+
 export function getQuestionParts(
   marketName: string,
   marketType: MarketTypes,
@@ -85,6 +97,7 @@ export interface FormWithNextStep {
 
 export type MarketTypeFormValues = {
   marketType: MarketTypes;
+  marketCategories: string[];
 };
 
 export type OutcomesFormValues = {
