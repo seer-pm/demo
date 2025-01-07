@@ -1,7 +1,8 @@
 import { MarketTypes } from "@/lib/market";
 import { FormProvider } from "react-hook-form";
-import { FormStepProps, FormWithNextStep, MarketTypeFormValues } from ".";
+import { FormStepProps, FormWithNextStep, MARKET_CATEGORIES, MarketTypeFormValues } from ".";
 import { Alert } from "../Alert";
+import MultiSelect from "../Form/MultiSelect";
 import Select from "../Form/Select";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 
@@ -60,6 +61,21 @@ export function MarketTypeForm({
             ></div>
           </Alert>
         )}
+
+        <div className="text-[24px] font-semibold mb-[32px]">Categories</div>
+
+        <MultiSelect
+          options={MARKET_CATEGORIES}
+          useFormReturn={useFormReturn}
+          {...register("marketCategories", {
+            validate: {
+              arrayNotEmpty: (v) => v.length > 0 || "Select at least one.",
+            },
+          })}
+          value={watch("marketCategories")}
+          onChange={(values) => useFormReturn.setValue("marketCategories", values)}
+          placeholder="Select one or more options"
+        />
 
         <ButtonsWrapper goToNextStep={goToNextStep} disabled={!isValid} />
       </form>

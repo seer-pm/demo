@@ -49,6 +49,7 @@ function CreateMarket() {
     mode: "all",
     defaultValues: {
       marketType: undefined,
+      marketCategories: ["misc"],
     },
   });
 

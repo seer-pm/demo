@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { navigate } from "vike/client/router";
 
 function Home() {
-  const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets } =
+  const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets, categoryList } =
     useMarketsSearchParams();
   const {
     data: markets = [],
@@ -21,6 +21,7 @@ function Home() {
     chainsList,
     orderBy,
     isShowMyMarkets,
+    categoryList,
   });
 
   useEffect(() => {

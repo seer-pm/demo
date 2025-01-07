@@ -18,6 +18,8 @@ startServer()
 async function startServer() {
   const app = express()
   app.use(compression())
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   // Vite integration
   if (isProduction) {
     // In production, we need to serve our static assets ourselves.
@@ -42,11 +44,13 @@ async function startServer() {
   // Proxy middleware for Netlify functions
   app.all('/.netlify/*', async (req, res) => {
     const url = `https://app.seer.pm${req.url}`;
-
     try {
       const response = await fetch(url, {
         method: req.method,
-        headers: req.headers,
+        headers: {
+          "Content-Type": req.headers["content-type"],
+          Authorization: req.headers.authorization
+        },
         body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? JSON.stringify(req.body) : undefined
       });
 
@@ -54,6 +58,7 @@ async function startServer() {
       res.status(response.status);
       res.send(data);
     } catch (error) {
+      console.log(error)
       res.status(500).json({ error: error.message });
     }
   });

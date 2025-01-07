@@ -3,6 +3,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
+import MarketCategories from "@/components/Market/MarketCategories";
 import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
@@ -140,7 +141,7 @@ function MarketPage() {
         />
 
         <MarketHeader market={market} images={images} />
-
+        {market.categories?.length > 0 && <MarketCategories market={market} />}
         {!reliableMarket && (
           <Alert
             type="error"

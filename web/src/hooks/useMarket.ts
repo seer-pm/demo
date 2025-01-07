@@ -30,6 +30,7 @@ interface MarketOffChainFields {
   liquidityUSD: number;
   incentive: number;
   hasLiquidity: boolean;
+  categories: string[];
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
@@ -136,6 +137,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           liquidityUSD: 0,
           incentive: 0,
           hasLiquidity: false,
+          categories: ["misc"],
         },
       );
     },

@@ -73,6 +73,7 @@ interface UseMarketsProps {
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
+  categoryList?: string[];
   chainsList?: Array<string | "all">;
   creator?: Address | "";
   participant?: Address | "";
@@ -118,6 +119,13 @@ export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
   if (params.isShowMyMarkets) {
     data = data.filter((market: Market) => {
       return address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase();
+    });
+  }
+
+  // filter by category
+  if (params.categoryList) {
+    data = data.filter((market: Market) => {
+      return params.categoryList?.some((category) => market.categories?.includes(category));
     });
   }
 

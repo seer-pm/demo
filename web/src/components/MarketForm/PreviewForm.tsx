@@ -13,7 +13,7 @@ import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, fetchAuth, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
@@ -22,6 +22,7 @@ import { navigate } from "vike/client/router";
 import {
   DateFormValues,
   FormWithPrevStep,
+  MARKET_CATEGORIES,
   MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
@@ -272,6 +273,10 @@ export function PreviewForm({
     if (marketId) {
       setNewMarketId(marketId);
       updateCollectionItem({ marketIds: [marketId], accessToken });
+      fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+        marketId,
+        categories: marketTypeValues.marketCategories,
+      });
       fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
     }
   });
@@ -371,6 +376,7 @@ export function PreviewForm({
       status: marketReadyToVerify && verifyNow ? "verified" : "not_verified",
       itemID: "",
     },
+    categories: ["misc"],
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
@@ -390,6 +396,22 @@ export function PreviewForm({
           chainId={chainId}
         />
         <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
+        <div className="text-left flex items-center gap-2 flex-wrap">
+          Categories:{" "}
+          {MARKET_CATEGORIES.map((category) => {
+            if (marketTypeValues.marketCategories.includes(category.value)) {
+              return (
+                <div
+                  className="border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] text-[14px] text-center"
+                  key={category.value}
+                >
+                  {category.text}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </DashedBox>
 
       <Modal

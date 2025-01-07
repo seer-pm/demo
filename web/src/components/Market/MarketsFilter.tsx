@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
+import { MARKET_CATEGORIES } from "../MarketForm";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
 export function MarketsFilter() {
@@ -16,6 +17,8 @@ export function MarketsFilter() {
     toggleShowMyMarkets,
     hasFilters,
     marketName: marketNameParam,
+    categoryList,
+    setCategories,
   } = useMarketsSearchParams();
   const [marketName, setMarketName] = useState(marketNameParam);
   useEffect(() => {
@@ -90,6 +93,38 @@ export function MarketsFilter() {
             />
           </div>
         )}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap mt-8">
+        {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
+          if (category.value === "all") {
+            return (
+              <button
+                className={clsx(
+                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-black-medium text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                  !categoryList && "bg-purple-primary text-white",
+                )}
+                key={category.value}
+                onClick={() => setCategories(undefined)}
+                type="button"
+              >
+                {category.text}
+              </button>
+            );
+          }
+          return (
+            <button
+              className={clsx(
+                "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-black-medium text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                categoryList?.includes(category.value) && "bg-purple-primary text-white",
+              )}
+              key={category.value}
+              onClick={() => setCategories([category.value])}
+              type="button"
+            >
+              {category.text}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

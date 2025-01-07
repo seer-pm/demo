@@ -150,6 +150,7 @@ function mapGraphMarket(
     liquidityUSD: number;
     incentive: number;
     hasLiquidity: boolean;
+    categories: string[];
   },
 ): Market {
   return {
@@ -196,6 +197,7 @@ interface MarketExtraData {
   liquidity: number | null;
   incentive: number | null;
   odds: (number | null)[];
+  categories: string[];
 }
 
 export const fetchMarkets = async (
@@ -256,6 +258,7 @@ export const fetchMarkets = async (
         liquidityUSD: MarketExtraData?.liquidity ?? 0,
         incentive: MarketExtraData?.incentive ?? 0,
         hasLiquidity: MarketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+        categories: MarketExtraData?.categories ?? [],
       });
     })
     .sort(sortMarkets(orderBy));
@@ -350,6 +353,13 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
   )
     .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
     .map((market) =>
-      mapOnChainMarket(market, { chainId, outcomesSupply: 0n, liquidityUSD: 0, incentive: 0, hasLiquidity: false }),
+      mapOnChainMarket(market, {
+        chainId,
+        outcomesSupply: 0n,
+        liquidityUSD: 0,
+        incentive: 0,
+        hasLiquidity: false,
+        categories: ["misc"],
+      }),
     );
 }
