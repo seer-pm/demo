@@ -2,34 +2,19 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
-import { useSortAndFilterMarkets } from "@/hooks/useMarkets";
+import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { useEffect } from "react";
 import { navigate } from "vike/client/router";
 
-function Home() {
-  const { marketName, marketStatusList, verificationStatusList, chainsList, orderBy, isShowMyMarkets, categoryList } =
-    useMarketsSearchParams();
+function PageContent({ params }: { params: UseMarketsProps }) {
+  const results = useMarkets(params);
   const {
     data: markets = [],
     isPending,
     pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterMarkets({
-    marketName,
-    marketStatusList,
-    verificationStatusList,
-    chainsList,
-    orderBy,
-    isShowMyMarkets,
-    categoryList,
-  });
-
-  useEffect(() => {
-    if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
-      // redirect old client urls
-      navigate(window.location.hash.slice(1));
-    }
-  }, []);
+  } = useSortAndFilterResults(params, results);
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
@@ -43,7 +28,7 @@ function Home() {
         </div>
       )}
 
-      {!isPending && markets.length === 0 && <Alert type="warning">No markets found.</Alert>}
+      {!isPending && markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
@@ -53,6 +38,19 @@ function Home() {
       <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
     </div>
   );
+}
+
+function Home() {
+  const params = useMarketsSearchParams();
+
+  useEffect(() => {
+    if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
+      // redirect old client urls
+      navigate(window.location.hash.slice(1));
+    }
+  }, []);
+
+  return <PageContent params={params} />;
 }
 
 export default Home;
