@@ -1,4 +1,5 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
@@ -11,6 +12,7 @@ import { MarketsFilterBox } from "./MarketsFilterBox";
 
 export function MarketsFilter() {
   const { address } = useAccount();
+  const [searchParams] = useSearchParams();
   const {
     setMarketName: setMarketNameParam,
     isShowMyMarkets,
@@ -28,7 +30,7 @@ export function MarketsFilter() {
     debounce((value) => {
       setMarketNameParam(value);
     }, 300),
-    [],
+    [searchParams],
   );
   const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = (event.target as HTMLInputElement).value;
