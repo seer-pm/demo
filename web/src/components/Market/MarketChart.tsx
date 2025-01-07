@@ -7,7 +7,6 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import ReactECharts from "echarts-for-react";
 import { useMemo, useState } from "react";
-import { useEffect } from "react";
 
 const chartOptions = {
   "1D": {
@@ -58,24 +57,6 @@ function MarketChart({ market }: { market: Market }) {
         })
         .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
         .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const getLegendHeight = (outcomes: readonly string[]) => {
-    const rowHeight = 20;
-    const itemsPerRow = windowWidth < 550 ? 1 : 3;
-    const rows = Math.ceil(outcomes.length / itemsPerRow);
-    return rows * rowHeight;
-  };
-
   const option = {
     color: [
       "#f58231",
@@ -122,7 +103,7 @@ function MarketChart({ market }: { market: Market }) {
     grid: {
       left: 80,
       right: 80,
-      top: `${getLegendHeight(market.outcomes) + 20}px`,
+      top: "15%",
       bottom: "15%",
     },
 
@@ -192,9 +173,7 @@ function MarketChart({ market }: { market: Market }) {
         {isLoadingChart || isLoadingOdds ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
         ) : chartData?.length ? (
-          <div style={{ height: `${getLegendHeight(market.outcomes) + 300}px` }}>
-            <ReactECharts key={finalChartData[0].name} option={option} style={{ height: "100%" }} />
-          </div>
+          <ReactECharts key={finalChartData[0].name} option={option} />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
