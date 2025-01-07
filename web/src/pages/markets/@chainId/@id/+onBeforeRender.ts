@@ -15,7 +15,6 @@ export default async function onBeforeRender(pageContext: PageContext) {
         Number(pageContext.routeParams.chainId) as SupportedChain,
       );
     },
-    staleTime: 0,
   });
   const dehydratedState = dehydrate(queryClient);
 

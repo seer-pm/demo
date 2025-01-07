@@ -276,7 +276,7 @@ export function PreviewForm({
       await Promise.allSettled([
         updateCollectionItem({ marketIds: [marketId], accessToken }),
         fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
-          marketId,
+          marketId: marketId.toLowerCase(),
           categories: marketTypeValues.marketCategories,
         }),
         fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
