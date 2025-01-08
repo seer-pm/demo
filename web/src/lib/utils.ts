@@ -207,10 +207,13 @@ export async function fetchAuth(
     body: method === "POST" ? JSON.stringify(body) : undefined,
   });
 
+  const json = await response.json();
+
   if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.statusText}`);
+    throw new Error(json?.error || `Failed to fetch: ${response.statusText}`);
   }
-  return await response.json();
+
+  return json;
 }
 
 export function getAppUrl() {
