@@ -7,7 +7,7 @@ import {
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { getCollateralFromDexTx, getToken1Token0 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
@@ -40,7 +40,7 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
         and: [
           {
             or: Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
-              getToken1Token0(tokenId, collateralToken),
+              getToken0Token1(tokenId, collateralToken),
             ),
           },
           {

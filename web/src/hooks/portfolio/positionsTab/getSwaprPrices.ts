@@ -6,7 +6,7 @@ import {
   getSdk,
 } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain } from "@/lib/chains";
-import { getToken1Token0 } from "@/lib/market";
+import { getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient } from "@/lib/subgraph";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
@@ -35,7 +35,7 @@ export async function getSwaprHistoryTokensPrices(
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
           orderDirection: OrderDirection.Desc,
           where: {
-            pool_: getToken1Token0(tokenId, collateralToken),
+            pool_: getToken0Token1(tokenId, collateralToken),
             periodStartUnix_lte: startTime,
             periodStartUnix_gte: startTime - 60 * 60 * 24 * 30 * 3,
           },

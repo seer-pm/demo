@@ -6,7 +6,7 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { getCollateralFromDexTx, getToken1Token0 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
 import { MarketDataMapping } from "../getMappings";
@@ -40,7 +40,7 @@ export async function getLiquidityWithdrawEvents(
         and: [
           {
             or: Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
-              getToken1Token0(tokenId, collateralToken),
+              getToken0Token1(tokenId, collateralToken),
             ),
           },
           {

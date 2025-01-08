@@ -2,11 +2,11 @@ import { SupportedChain } from "@/lib/chains";
 import {
   CollateralByOutcome,
   MarketTypes,
-  Token1Token0,
+  Token0Token1,
   getCollateralByOutcome,
   getMarketEstimate,
   getMarketType,
-  getToken1Token0,
+  getToken0Token1,
   isOdd,
 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
@@ -68,7 +68,7 @@ async function getLastNotEmptyStartTime(
             and: [
               { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
               {
-                pool_: getToken1Token0(tokenId, collateralToken),
+                pool_: getToken0Token1(tokenId, collateralToken),
                 periodStartUnix_lte: startTime,
                 periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
               },
@@ -117,7 +117,7 @@ async function getPoolHourDatasByToken(
         and: [
           { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
           {
-            pool_: getToken1Token0(tokenId, collateral),
+            pool_: getToken0Token1(tokenId, collateral),
             ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
           },
         ],
@@ -307,7 +307,7 @@ async function getFutarchyMarketData(
   if (timestamps.length > 0 && pricesMapping?.[timestamps[0]]?.[0] === 0 && pricesMapping?.[timestamps[0]]?.[1] === 0) {
     const initialLiquidity = await Promise.all(
       collateralByOutcome.map(({ tokenId, collateralToken }, tokenIndex) =>
-        getInitialLiquidityPrice(market.chainId, getToken1Token0(tokenId, collateralToken), tokenIndex),
+        getInitialLiquidityPrice(market.chainId, getToken0Token1(tokenId, collateralToken), tokenIndex),
       ),
     );
 
@@ -339,7 +339,7 @@ async function getFutarchyMarketData(
 
 export async function getInitialLiquidityPrice(
   chainId: SupportedChain,
-  poolPair: Token1Token0,
+  poolPair: Token0Token1,
   tokenIndex: number,
 ): Promise<number> {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);

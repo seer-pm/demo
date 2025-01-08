@@ -182,8 +182,8 @@ export function getCollateralByIndex(market: Market, index: number) {
   return index < 2 ? market.collateralToken1 : market.collateralToken2;
 }
 
-export function getMarketPoolsPairs(market: Market): Token1Token0[] {
-  const pools = new Set<Token1Token0>();
+export function getMarketPoolsPairs(market: Market): Token0Token1[] {
+  const pools = new Set<Token0Token1>();
   market.wrappedTokens.forEach((_, index) => {
     pools.add(getLiquidityPair(market, index));
   });
@@ -196,12 +196,12 @@ export function getMarketPoolsPairs(market: Market): Token1Token0[] {
 // outcome3 pairs with outcome1
 export const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
 
-export function getLiquidityPair(market: Market, outcomeIndex: number): Token1Token0 {
+export function getLiquidityPair(market: Market, outcomeIndex: number): Token0Token1 {
   if (market.type === "Generic") {
-    return getToken1Token0(market.wrappedTokens[outcomeIndex], market.collateralToken);
+    return getToken0Token1(market.wrappedTokens[outcomeIndex], market.collateralToken);
   }
 
-  return getToken1Token0(
+  return getToken0Token1(
     market.wrappedTokens[outcomeIndex],
     market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]],
   );
@@ -215,12 +215,12 @@ export function getLiquidityPairForToken(market: Market, outcomeIndex: number): 
   return market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]];
 }
 
-export type Token1Token0 = { token1: Address; token0: Address };
+export type Token0Token1 = { token1: Address; token0: Address };
 
-export function getToken1Token0(token1: Address, token2: Address): Token1Token0 {
-  return token1.toLocaleLowerCase() > token2.toLocaleLowerCase()
-    ? { token1: token1.toLocaleLowerCase() as Address, token0: token2.toLocaleLowerCase() as Address }
-    : { token0: token1.toLocaleLowerCase() as Address, token1: token2.toLocaleLowerCase() as Address };
+export function getToken0Token1(token0: Address, token1: Address): Token0Token1 {
+  return token0.toLocaleLowerCase() > token1.toLocaleLowerCase()
+    ? { token1: token0.toLocaleLowerCase() as Address, token0: token1.toLocaleLowerCase() as Address }
+    : { token0: token0.toLocaleLowerCase() as Address, token1: token1.toLocaleLowerCase() as Address };
 }
 
 export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
