@@ -13,6 +13,7 @@ import { SwapUpdater } from "../SwapUpdater.tsx";
 import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
 import { Query, defaultShouldDehydrateQuery } from "@tanstack/react-query";
+import { AuthUpdater } from "../AuthUpdater.tsx";
 
 globalThis.Buffer = Buffer;
 
@@ -46,6 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             },
           }}
         >
+          <AuthUpdater />
           <SwapUpdater />
           <ToastContainer />
           <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
