@@ -1,18 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
-import {
-  CollateralByOutcome,
-  MarketTypes,
-  Token0Token1,
-  getCollateralByOutcome,
-  getMarketEstimate,
-  getMarketType,
-  getToken0Token1,
-  isOdd,
-} from "@/lib/market";
+import { MarketTypes, Token0Token1, getMarketEstimate, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { subDays } from "date-fns";
 import combineQuery from "graphql-combine-query";
-import { Address, formatUnits } from "viem";
+import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import {
   GetPoolHourDatasQuery,
@@ -39,12 +30,8 @@ function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
   return { token0Price, token1Price };
 }
 
-async function getLastNotEmptyStartTime(
-  collateralByOutcome: CollateralByOutcome[],
-  chainId: SupportedChain,
-  startTime: number,
-) {
-  if (collateralByOutcome.length === 0) {
+async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: SupportedChain, startTime: number) {
+  if (poolsPairs.length === 0) {
     return [];
   }
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -59,7 +46,7 @@ async function getLastNotEmptyStartTime(
   const { document, variables } = (() =>
     combineQuery("GetPoolHourDatas").addN(
       GetPoolHourDatasDocument,
-      collateralByOutcome.map(({ tokenId, collateralToken }) => {
+      poolsPairs.map((poolPairs) => {
         return {
           first: 1,
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
@@ -68,7 +55,7 @@ async function getLastNotEmptyStartTime(
             and: [
               { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
               {
-                pool_: getToken0Token1(tokenId, collateralToken),
+                pool_: poolPairs,
                 periodStartUnix_lte: startTime,
                 periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
               },
@@ -90,8 +77,7 @@ async function getLastNotEmptyStartTime(
 }
 
 async function getPoolHourDatasByToken(
-  tokenId: Address,
-  collateral: Address,
+  poolPairs: Token0Token1,
   initialStartTime: number,
   chainId: SupportedChain,
 ): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
@@ -117,7 +103,7 @@ async function getPoolHourDatasByToken(
         and: [
           { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
           {
-            pool_: getToken0Token1(tokenId, collateral),
+            pool_: poolPairs,
             ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
           },
         ],
@@ -136,15 +122,15 @@ async function getPoolHourDatasByToken(
 type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];
 
 async function getPoolHourDatas(
-  collateralByOutcome: CollateralByOutcome[],
+  poolsPairs: Token0Token1[],
   chainId: SupportedChain,
   startTime: number,
 ): Promise<PoolHourDatasSets> {
-  if (collateralByOutcome.length === 0) {
+  if (poolsPairs.length === 0) {
     return [];
   }
   const lastNotEmptyStartTimes = await Promise.any([
-    getLastNotEmptyStartTime(collateralByOutcome, chainId, startTime),
+    getLastNotEmptyStartTime(poolsPairs, chainId, startTime),
     new Promise<number[]>((resolve) => {
       setTimeout(() => {
         resolve([]);
@@ -152,8 +138,8 @@ async function getPoolHourDatas(
     }),
   ]);
   return await Promise.all(
-    collateralByOutcome.map(({ tokenId, collateralToken }, index) => {
-      return getPoolHourDatasByToken(tokenId, collateralToken, lastNotEmptyStartTimes[index] ?? startTime, chainId);
+    poolsPairs.map((poolPairs, index) => {
+      return getPoolHourDatasByToken(poolPairs, lastNotEmptyStartTimes[index] ?? startTime, chainId);
     }),
   );
 }
@@ -197,12 +183,12 @@ function getTimestamps(
 function getGenericMarketData(
   market: Market,
   timestamps: number[],
-  collateralByOutcome: CollateralByOutcome[],
+  poolsPairs: Token0Token1[],
   poolHourDatasSets: PoolHourDatasSets,
 ) {
   const oddsMapping = timestamps.reduce(
     (acc, timestamp) => {
-      const tokenPrices = collateralByOutcome.map((token, tokenIndex) => {
+      const tokenPrices = poolsPairs.map(({ token1 }, tokenIndex) => {
         const poolHourDatas = poolHourDatasSets[tokenIndex];
         const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
         const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
@@ -214,7 +200,7 @@ function getGenericMarketData(
           token1Price = formatUnits(_token1Price, 18);
         }
 
-        return token.tokenId.toLocaleLowerCase() > token.collateralToken.toLocaleLowerCase()
+        return token1.toLocaleLowerCase() > market.collateralToken.toLocaleLowerCase()
           ? Number(token0Price)
           : Number(token1Price);
       });
@@ -256,9 +242,9 @@ function getGenericMarketData(
     return { chartData, timestamps };
   }
 
-  const chartData = collateralByOutcome.map((token, tokenIndex) => {
+  const chartData = poolsPairs.map((_, tokenIndex) => {
     return {
-      name: token.outcomeName,
+      name: market.outcomes[tokenIndex],
       type: "line",
       data: timestamps.map((timestamp) => {
         const odd = oddsMapping[String(timestamp)]![tokenIndex];
@@ -273,12 +259,12 @@ function getGenericMarketData(
 async function getFutarchyMarketData(
   market: Market,
   timestamps: number[],
-  collateralByOutcome: CollateralByOutcome[],
+  poolsPairs: Token0Token1[],
   poolHourDatasSets: PoolHourDatasSets,
 ) {
   const pricesMapping = timestamps.reduce(
     (acc, timestamp) => {
-      const tokenPrices = collateralByOutcome.map((_, tokenIndex) => {
+      const tokenPrices = poolsPairs.map((_, tokenIndex) => {
         const poolHourDatas = poolHourDatasSets[tokenIndex];
         const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
         const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
@@ -306,9 +292,7 @@ async function getFutarchyMarketData(
   // Check if first price mapping is [0,0] and replace with initial liquidity if so
   if (timestamps.length > 0 && pricesMapping?.[timestamps[0]]?.[0] === 0 && pricesMapping?.[timestamps[0]]?.[1] === 0) {
     const initialLiquidity = await Promise.all(
-      collateralByOutcome.map(({ tokenId, collateralToken }, tokenIndex) =>
-        getInitialLiquidityPrice(market.chainId, getToken0Token1(tokenId, collateralToken), tokenIndex),
-      ),
+      poolsPairs.map((poolPair, tokenIndex) => getInitialLiquidityPrice(market.chainId, poolPair, tokenIndex)),
     );
 
     if (initialLiquidity[0] > 0 || initialLiquidity[1] > 0) {
@@ -389,20 +373,20 @@ export async function getChartData(market: Market, dayCount: number, interval: n
     return { chartData: [], timestamps: [] };
   }
 
-  const collateralByOutcome = getCollateralByOutcome(market);
+  const poolsPairs = getMarketPoolsPairs(market);
 
   try {
     const { firstTimestamp, lastTimestamp } = getFirstAndLastTimestamps(market, interval, dayCount);
 
-    const poolHourDatasSets = await getPoolHourDatas(collateralByOutcome, market.chainId, firstTimestamp);
+    const poolHourDatasSets = await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp);
 
     const latestPoolHourDataTimestamp = Math.max(...poolHourDatasSets.flat().map((x) => x.periodStartUnix));
 
     const timestamps = getTimestamps(firstTimestamp, lastTimestamp, interval, latestPoolHourDataTimestamp);
 
     return market.type === "Generic"
-      ? getGenericMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets)
-      : getFutarchyMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets);
+      ? getGenericMarketData(market, timestamps, poolsPairs, poolHourDatasSets)
+      : getFutarchyMarketData(market, timestamps, poolsPairs, poolHourDatasSets);
   } catch (e) {
     return { chartData: [], timestamps: [] };
   }

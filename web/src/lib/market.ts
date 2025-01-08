@@ -161,20 +161,6 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   return Number(estimate).toLocaleString();
 }
 
-export type CollateralByOutcome = {
-  tokenId: Address;
-  outcomeName: string;
-  collateralToken: Address;
-};
-
-export function getCollateralByOutcome(market: Market): CollateralByOutcome[] {
-  return market.wrappedTokens.map((tokenId, i) => ({
-    tokenId,
-    outcomeName: market.outcomes[i],
-    collateralToken: getLiquidityPairForToken(market, i),
-  }));
-}
-
 export function getCollateralByIndex(market: Market, index: number) {
   if (market.type === "Generic") {
     return market.collateralToken;
@@ -184,7 +170,8 @@ export function getCollateralByIndex(market: Market, index: number) {
 
 export function getMarketPoolsPairs(market: Market): Token0Token1[] {
   const pools = new Set<Token0Token1>();
-  market.wrappedTokens.forEach((_, index) => {
+  const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
+  tokens.forEach((_, index) => {
     pools.add(getLiquidityPair(market, index));
   });
   return [...pools];
@@ -219,7 +206,7 @@ export type Token0Token1 = { token1: Address; token0: Address };
 
 export function getToken0Token1(token0: Address, token1: Address): Token0Token1 {
   return token0.toLocaleLowerCase() > token1.toLocaleLowerCase()
-    ? { token1: token0.toLocaleLowerCase() as Address, token0: token1.toLocaleLowerCase() as Address }
+    ? { token0: token1.toLocaleLowerCase() as Address, token1: token0.toLocaleLowerCase() as Address }
     : { token0: token0.toLocaleLowerCase() as Address, token1: token1.toLocaleLowerCase() as Address };
 }
 
