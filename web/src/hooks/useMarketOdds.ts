@@ -93,9 +93,12 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
           }
         }),
       );
-      if (prices.some((price) => price > 1)) {
-        return Array(market.wrappedTokens.length).fill(Number.NaN);
-      }
+
+      // This IF is commented out because returning empty odds prevent trading, despite enough market liquidity
+      //if (prices.some((price) => price > 1)) {
+      //return Array(market.wrappedTokens.length).fill(Number.NaN);
+      //}
+
       return normalizeOdds(prices);
     },
   });
