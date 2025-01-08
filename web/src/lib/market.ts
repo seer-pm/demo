@@ -215,7 +215,7 @@ export function getLiquidityPairForToken(market: Market, outcomeIndex: number): 
   return market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]];
 }
 
-type Token1Token0 = { token1: Address; token0: Address };
+export type Token1Token0 = { token1: Address; token0: Address };
 
 export function getToken1Token0(token1: Address, token2: Address): Token1Token0 {
   return token1.toLocaleLowerCase() > token2.toLocaleLowerCase()

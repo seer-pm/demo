@@ -2,6 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import {
   CollateralByOutcome,
   MarketTypes,
+  Token1Token0,
   getCollateralByOutcome,
   getMarketEstimate,
   getMarketType,
@@ -22,6 +23,7 @@ import {
 } from "../queries/gql-generated-swapr";
 import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import {
+  Mint_OrderBy,
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
 } from "../queries/gql-generated-uniswap";
@@ -269,13 +271,14 @@ function getGenericMarketData(
 }
 
 async function getFutarchyMarketData(
+  market: Market,
   timestamps: number[],
   collateralByOutcome: CollateralByOutcome[],
   poolHourDatasSets: PoolHourDatasSets,
 ) {
   const pricesMapping = timestamps.reduce(
     (acc, timestamp) => {
-      const tokenPrices = collateralByOutcome.map((token, tokenIndex) => {
+      const tokenPrices = collateralByOutcome.map((_, tokenIndex) => {
         const poolHourDatas = poolHourDatasSets[tokenIndex];
         const poolHourTimestamps = poolHourDatas.map((x) => x.periodStartUnix);
         const poolHourDataIndex = findClosestLessThanOrEqualToTimestamp(poolHourTimestamps, timestamp);
@@ -287,9 +290,7 @@ async function getFutarchyMarketData(
           token1Price = formatUnits(_token1Price, 18);
         }
 
-        return token.tokenId.toLocaleLowerCase() > token.collateralToken.toLocaleLowerCase()
-          ? Number(token0Price)
-          : Number(token1Price);
+        return tokenIndex === 1 ? Number(token0Price) : Number(token1Price);
       });
 
       // tokenPrices[0] is the price of YES_GNO/YES_wstETH (e.g. 1 YES_GNO = 0.079 YES_wstETH)
@@ -301,6 +302,19 @@ async function getFutarchyMarketData(
     },
     {} as { [key: string]: number[] | null },
   );
+
+  // Check if first price mapping is [0,0] and replace with initial liquidity if so
+  if (timestamps.length > 0 && pricesMapping?.[timestamps[0]]?.[0] === 0 && pricesMapping?.[timestamps[0]]?.[1] === 0) {
+    const initialLiquidity = await Promise.all(
+      collateralByOutcome.map(({ tokenId, collateralToken }, tokenIndex) =>
+        getInitialLiquidityPrice(market.chainId, getToken1Token0(tokenId, collateralToken), tokenIndex),
+      ),
+    );
+
+    if (initialLiquidity[0] > 0 || initialLiquidity[1] > 0) {
+      pricesMapping[timestamps[0]] = initialLiquidity;
+    }
+  }
 
   // biome-ignore lint/style/noParameterAssign:
   timestamps = timestamps.filter((x) => pricesMapping[String(x)]);
@@ -321,6 +335,44 @@ async function getFutarchyMarketData(
   });
 
   return { chartData, timestamps };
+}
+
+export async function getInitialLiquidityPrice(
+  chainId: SupportedChain,
+  poolPair: Token1Token0,
+  tokenIndex: number,
+): Promise<number> {
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  if (!graphQLClient) {
+    throw new Error("Subgraph not available");
+  }
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+
+  const { mints } = await graphQLSdk(graphQLClient).GetMints({
+    // biome-ignore lint/suspicious/noExplicitAny:
+    orderBy: Mint_OrderBy.Timestamp as any,
+    // biome-ignore lint/suspicious/noExplicitAny:
+    orderDirection: OrderDirection.Asc as any,
+    first: 1,
+    where: {
+      pool_: poolPair,
+    },
+  });
+
+  if (mints.length === 0) {
+    return 0;
+  }
+
+  const amount0 = Number.parseFloat(mints[0].amount0);
+  const amount1 = Number.parseFloat(mints[0].amount1);
+
+  if (amount0 === 0 || amount1 === 0) {
+    return 0;
+  }
+
+  const price0Per1 = amount1 / amount0;
+  const price1Per0 = amount0 / amount1;
+  return tokenIndex === 0 ? Number(price0Per1) : Number(price1Per0);
 }
 
 export type ChartData = {
@@ -350,7 +402,7 @@ export async function getChartData(market: Market, dayCount: number, interval: n
 
     return market.type === "Generic"
       ? getGenericMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets)
-      : getFutarchyMarketData(timestamps, collateralByOutcome, poolHourDatasSets);
+      : getFutarchyMarketData(market, timestamps, collateralByOutcome, poolHourDatasSets);
   } catch (e) {
     return { chartData: [], timestamps: [] };
   }
