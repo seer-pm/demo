@@ -10,7 +10,6 @@ import {
 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { subDays } from "date-fns";
-import { BigNumber } from "ethers";
 import combineQuery from "graphql-combine-query";
 import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
@@ -32,10 +31,10 @@ import { normalizeOdds } from "../useMarketOdds";
 import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
 
 function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
-  const sqrtPriceBN = BigNumber.from(sqrtPrice);
-  const token0PriceBN = BigNumber.from(2).pow(192).mul(BigNumber.from(10).pow(18)).div(sqrtPriceBN.mul(sqrtPriceBN));
-  const token1PriceBN = sqrtPriceBN.mul(sqrtPriceBN).mul(BigNumber.from(10).pow(18)).div(BigNumber.from(2).pow(192));
-  return { token0PriceBN, token1PriceBN };
+  const sqrtPriceBigInt = BigInt(sqrtPrice);
+  const token0Price = (2n ** 192n * 10n ** 18n) / (sqrtPriceBigInt * sqrtPriceBigInt);
+  const token1Price = (sqrtPriceBigInt * sqrtPriceBigInt * 10n ** 18n) / 2n ** 192n;
+  return { token0Price, token1Price };
 }
 
 async function getLastNotEmptyStartTime(
@@ -208,9 +207,9 @@ function getGenericMarketData(
         let { token0Price = "0", token1Price = "0", sqrtPrice } = poolHourDatas[poolHourDataIndex] ?? {};
 
         if (token0Price === "0" && token1Price === "0" && sqrtPrice && sqrtPrice !== "0") {
-          const { token0PriceBN, token1PriceBN } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
-          token0Price = formatUnits(token0PriceBN.toBigInt(), 18);
-          token1Price = formatUnits(token1PriceBN.toBigInt(), 18);
+          const { token0Price: _token0Price, token1Price: _token1Price } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
+          token0Price = formatUnits(_token0Price, 18);
+          token1Price = formatUnits(_token1Price, 18);
         }
 
         return token.tokenId.toLocaleLowerCase() > token.collateralToken.toLocaleLowerCase()
@@ -283,9 +282,9 @@ async function getFutarchyMarketData(
         let { token0Price = "0", token1Price = "0", sqrtPrice } = poolHourDatas[poolHourDataIndex] ?? {};
 
         if (token0Price === "0" && token1Price === "0" && sqrtPrice && sqrtPrice !== "0") {
-          const { token0PriceBN, token1PriceBN } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
-          token0Price = formatUnits(token0PriceBN.toBigInt(), 18);
-          token1Price = formatUnits(token1PriceBN.toBigInt(), 18);
+          const { token0Price: _token0Price, token1Price: _token1Price } = calculateTokenPricesFromSqrtPrice(sqrtPrice);
+          token0Price = formatUnits(_token0Price, 18);
+          token1Price = formatUnits(_token1Price, 18);
         }
 
         return token.tokenId.toLocaleLowerCase() > token.collateralToken.toLocaleLowerCase()
