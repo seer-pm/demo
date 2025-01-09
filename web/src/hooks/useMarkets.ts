@@ -76,6 +76,7 @@ export interface UseMarketsProps {
   participant?: Address | "";
   orderBy?: Market_OrderBy;
   isShowMyMarkets?: boolean;
+  isShowConditionalMarkets?: boolean;
 }
 
 export const useMarkets = ({

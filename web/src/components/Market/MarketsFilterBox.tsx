@@ -83,6 +83,7 @@ interface MarketFilters {
   verificationStatusList: VerificationStatus[];
   chainsList: string[];
   orderBy: Market_OrderBy | "default";
+  isShowConditionalMarkets: boolean;
 }
 
 export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFilters: boolean) => void }) {
@@ -91,15 +92,19 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     verificationStatusList: initialVerificationStatusList,
     chainsList: initialChainsList,
     orderBy: initialOrderBy,
+    isShowConditionalMarkets: initialShowConditionalMarkets,
     setMarketStatus,
     setVerificationStatus,
     setChains,
     setOrderBy,
+    toggleShowConditionalMarkets,
   } = useMarketsSearchParams();
   const {
     handleSubmit,
     formState: { errors },
     control,
+    watch,
+    setValue,
   } = useForm<MarketFilters>({
     mode: "all",
     defaultValues: {
@@ -108,11 +113,12 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         initialVerificationStatusList ?? VERIFY_STATUS_OPTIONS.slice(1).map((x) => x.value as VerificationStatus),
       chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
+      isShowConditionalMarkets: initialShowConditionalMarkets ?? false,
     },
   });
 
   const apply: SubmitHandler<MarketFilters> = (data) => {
-    const { marketStatusList, verificationStatusList, chainsList, orderBy } = data;
+    const { marketStatusList, verificationStatusList, chainsList, orderBy, isShowConditionalMarkets } = data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
@@ -120,12 +126,13 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setChains(chainsList.length === CHAINS_OPTIONS.slice(1).length ? undefined : chainsList);
     setOrderBy(orderBy);
     setShowFilters(false);
+    toggleShowConditionalMarkets(isShowConditionalMarkets);
   };
 
   return (
     <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
-      <div className="flex justify-start mb-6 flex-wrap flex-col @[620px]:flex-row ">
-        <div className=" border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 flex-shrink-0 @[620px]:border-r">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-10 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
+        <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-5">
             Market States{" "}
             <div className="flex-shrink-0">
@@ -186,7 +193,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="flex-shrink-0 border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 @[920px]:border-r">
+        <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-5">
             Verification Status{" "}
             <div className="flex-shrink-0">
@@ -247,7 +254,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3">
+        <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-5">
             Chain{" "}
             <div className="flex-shrink-0">
@@ -308,7 +315,9 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               </div>
             )}
           />
-          <div className="font-semibold flex items-center gap-2 pb-5 mt-12">
+        </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-5">
             Sort By <ArrowSwap />
           </div>
           <Controller
@@ -349,6 +358,26 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               </div>
             )}
           />
+        </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-5">
+            Conditional Market{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-conditional-market"
+              type="checkbox"
+              checked={watch("isShowConditionalMarkets")}
+              onChange={(e) => setValue("isShowConditionalMarkets", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-conditional-market">
+              Show only conditional markets
+            </label>
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-end px-9 gap-8">
