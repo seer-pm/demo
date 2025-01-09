@@ -37,8 +37,12 @@ export async function fetchMarkets(chainId: string) {
   const query = `{
     markets(first: 1000) {
       id
+      type
       marketName
       outcomes
+      collateralToken
+      collateralToken1
+      collateralToken2
       outcomesSupply
       payoutReported
       payoutNumerators

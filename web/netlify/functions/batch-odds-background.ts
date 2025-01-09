@@ -15,6 +15,7 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
   try {
     //save to db
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
+    console.log("fetching markets...");
     const markets = (
       await Promise.all(
         chainIds.map((chainId) =>
@@ -23,22 +24,8 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
       )
     ).flat();
 
-    // update odds for each market
-    const limit = pLimit(20);
-    const results = await Promise.all(markets.map((market) => limit(() => getMarketOdds(market))));
-    const { error } = await supabase.from("markets").upsert(
-      markets.map((market, index) => ({
-        id: market.id,
-        odds: results[index].map((x) => (Number.isNaN(x) ? null : x)),
-        updated_at: new Date(),
-      })),
-    );
-
-    if (error) {
-      throw error;
-    }
-
     // update liquidity for each market
+    console.log("fetching liquidity...");
     const liquidityToMarketMapping = await getMarketsLiquidity(markets);
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
@@ -51,8 +38,27 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
       throw errorLiquidity;
     }
 
+    // update odds for each market
+    console.log("fetching odds...");
+    const limit = pLimit(20);
+    const results = await Promise.all(
+      markets.map((market) => limit(() => getMarketOdds(market, liquidityToMarketMapping))),
+    );
+    const { error } = await supabase.from("markets").upsert(
+      markets.map((market, index) => ({
+        id: market.id,
+        odds: results[index].map((x) => (Number.isNaN(x) ? null : x)),
+        updated_at: new Date(),
+      })),
+    );
+
+    if (error) {
+      throw error;
+    }
+
     //update incentive for each market (currently only gnosis markets have)
     //TODO: mainnet markets incentives
+    console.log("fetching incentives...");
     const marketToIncentiveMapping = await getMarketsIncentive(markets);
     const { error: errorIncentive } = await supabase.from("markets").upsert(
       markets.map((market) => ({

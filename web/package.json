@@ -14,7 +14,8 @@
     "server:dev": "node ./server",
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
-    "cosmos-export": "cosmos-export"
+    "cosmos-export": "cosmos-export",
+    "typecheck-netlify-functions": "npx tsc --noEmit --project netlify/tsconfig.json"
   },
   "dependencies": {
     "@biomejs/biome": "1.9.3",
