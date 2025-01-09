@@ -238,6 +238,7 @@ export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Tok
             { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
           ],
         },
+        first: 1000,
       });
       return pools;
     },
