@@ -251,6 +251,7 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
   return useQuery<PoolsDeposits | undefined, Error>({
     queryKey: ["usePoolsDeposits", chainId, pools, owner],
     enabled: !!owner,
+    refetchOnWindowFocus: "always",
     queryFn: async () => {
       const algebraFarmingClient = swaprGraphQLClient(chainId, "algebrafarming");
 
