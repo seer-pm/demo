@@ -76,6 +76,49 @@ function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcome
   );
 }
 
+function PricePerShare({
+  swapType,
+  collateralPerShare,
+  isCollateralDai,
+  selectedCollateral,
+  buyToken,
+  sellToken,
+  outcomeIndex,
+  isFutarchyMarket,
+}: {
+  swapType: "buy" | "sell";
+  collateralPerShare: number;
+  isCollateralDai: boolean;
+  selectedCollateral: Token;
+  buyToken: Token;
+  sellToken: Token;
+  outcomeIndex: number;
+  isFutarchyMarket: boolean;
+}) {
+  if (isFutarchyMarket) {
+    const tokenPair = outcomeIndex <= 1 ? [buyToken.symbol, sellToken.symbol] : [sellToken.symbol, buyToken.symbol];
+    const swapTerms = swapType === "sell" ? `${tokenPair[1]} / ${tokenPair[0]}` : `${tokenPair[0]} / ${tokenPair[1]}`;
+
+    return `${
+      swapType === "sell"
+        ? collateralPerShare > 0
+          ? (outcomeIndex <= 1 ? collateralPerShare.toFixed(3) : (1 / collateralPerShare).toFixed(3))
+          : 0
+        : outcomeIndex <= 1
+          ? (1 / collateralPerShare).toFixed(3)
+          : collateralPerShare.toFixed(3)
+    }  ${swapTerms}`;
+  }
+
+  return `${
+    swapType === "sell"
+      ? collateralPerShare > 0
+        ? (1 / collateralPerShare).toFixed(3)
+        : 0
+      : collateralPerShare.toFixed(3)
+  } ${isCollateralDai ? "sDAI" : selectedCollateral.symbol}`;
+}
+
 export function SwapTokens({
   account,
   market,
@@ -329,14 +372,16 @@ export function SwapTokens({
                 {quoteIsPending || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
-                  <>
-                    {swapType === "sell"
-                      ? collateralPerShare > 0
-                        ? (1 / collateralPerShare).toFixed(3)
-                        : 0
-                      : collateralPerShare.toFixed(3)}{" "}
-                    {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                  </>
+                  <PricePerShare
+                    swapType={swapType}
+                    collateralPerShare={collateralPerShare}
+                    isCollateralDai={isCollateralDai}
+                    selectedCollateral={selectedCollateral}
+                    buyToken={buyToken}
+                    sellToken={sellToken}
+                    outcomeIndex={outcomeIndex}
+                    isFutarchyMarket={market.type === "Futarchy"}
+                  />
                 )}
               </div>
             )}

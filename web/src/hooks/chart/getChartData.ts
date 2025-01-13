@@ -280,8 +280,8 @@ async function getFutarchyMarketData(
       });
 
       // tokenPrices[0] is the price of YES_GNO/YES_wstETH (e.g. 1 YES_GNO = 0.079 YES_wstETH)
-      const yesPrice = tokenPrices[0];
-      const noPrice = tokenPrices[1];
+      const yesPrice = tokenPrices[0] > 0 ? 1 / tokenPrices[0] : 0;
+      const noPrice = tokenPrices[1] > 0 ? 1 / tokenPrices[1] : 0;
 
       acc[String(timestamp)] = Number.isNaN(yesPrice) || Number.isNaN(noPrice) ? null : [yesPrice, noPrice];
       return acc;
