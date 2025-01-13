@@ -10,7 +10,7 @@ import { COLLATERAL_TOKENS, getLiquidityUrlByMarket } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING } from "@/lib/market";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
@@ -368,7 +368,7 @@ export function SwapTokens({
             </div>
             {Number(amount) > 0 && (
               <div className="flex space-x-2 text-purple-primary">
-                Price per share ={" "}
+                {market.type === "Futarchy" ? "Price" : "Price per share"} ={" "}
                 {quoteIsPending || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
@@ -392,8 +392,7 @@ export function SwapTokens({
                   <div className="shimmer-container ml-2 flex-grow" />
                 ) : (
                   <>
-                    {isMultiStepsSell ? multiStepSellDaiReceived.toFixed(3) : receivedAmount.toFixed(3)}{" "}
-                    {buyToken.symbol}
+                    {displayNumber(isMultiStepsSell ? multiStepSellDaiReceived : receivedAmount, 3)} {buyToken.symbol}
                   </>
                 )}
               </div>

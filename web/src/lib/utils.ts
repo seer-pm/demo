@@ -126,6 +126,10 @@ function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
 export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {
   const number = Number(formatUnits(amount, decimals));
 
+  return displayNumber(number, 2, formatAmount);
+}
+
+export function displayNumber(number: number, decimals = 2, formatAmount = false) {
   if (number < 0.01) {
     return formatNumberWithZeroCount(number);
   }
@@ -138,7 +142,7 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
     return String(number);
   }
 
-  return number.toFixed(number < 0.1 ? 4 : 2);
+  return number.toFixed(number < 0.1 ? 4 : decimals);
 }
 
 export function bigIntMax(...args: bigint[]): bigint {
