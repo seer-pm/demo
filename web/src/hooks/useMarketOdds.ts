@@ -68,9 +68,10 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
   const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
   return useQuery<number[] | undefined, Error>({
     enabled,
-    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity],
+    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity, market.odds],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
+    ...(market.odds.length > 0 && market.odds.every((x) => x !== null) && { initialData: market.odds as number[] }),
     queryFn: async () => {
       if (!hasLiquidity) {
         return Array(market.wrappedTokens.length).fill(Number.NaN);

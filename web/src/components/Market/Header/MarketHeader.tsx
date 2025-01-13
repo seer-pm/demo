@@ -136,10 +136,27 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const colors = marketStatus && COLORS[marketStatus];
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
+  const marketTokenInfo = (
+    <ul className="list-decimal mx-4">
+      {market.outcomes.map((_, j) => {
+        const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+        const outcome = market.outcomes[i];
+        const tokenBalanceInfo = market.tokenBalanceInfo[i];
+        if (!tokenBalanceInfo) return null;
+        return (
+          <li key={outcome}>
+            {outcome}: {formatBigNumbers(tokenBalanceInfo.tokenBalance)} {tokenBalanceInfo.tokenSymbol} /{" "}
+            {formatBigNumbers(tokenBalanceInfo.collateralBalance)} {tokenBalanceInfo.collateralSymbol}
+          </li>
+        );
+      })}
+    </ul>
+  );
   return (
     <div
       className={clsx(
@@ -298,6 +315,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <span className="text-black-secondary @[510px]:inline-block hidden">Liquidity:</span>
               <span className="ml-1">{liquidityUSD}</span>
               <USDIcon />
+              {market.liquidityUSD > 0 && (
+                <div className="tooltip">
+                  <p className="tooltiptext !text-left min-w-[300px]">{marketTokenInfo}</p>
+                  <QuestionIcon fill="#9747FF" />
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">

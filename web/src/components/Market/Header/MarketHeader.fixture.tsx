@@ -33,6 +33,8 @@ const baseMarket: Market = {
   openingTs: 0,
   encodedQuestions: [],
   categories: ["misc"],
+  tokenBalanceInfo: [],
+  odds: [],
 };
 
 const baseQuestion: Question = {

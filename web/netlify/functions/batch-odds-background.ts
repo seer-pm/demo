@@ -43,7 +43,8 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
-        liquidity: liquidityToMarketMapping[market.id],
+        liquidity: liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0,
+        token_balance_info: liquidityToMarketMapping[market.id]?.tokenBalanceInfo,
         updated_at: new Date(),
       })),
     );

@@ -18,8 +18,8 @@ export async function fetchTokenBalance(token: Address, owner: Address, chainId:
 
 interface Pool {
   id: string;
-  token0: { id: string };
-  token1: { id: string };
+  token0: { id: string; symbol: string };
+  token1: { id: string; symbol: string };
   token0Price: string;
   token1Price: string;
   balance0: number;
@@ -37,9 +37,11 @@ export async function fetchBestPoolPerPair(market: Market, tokenPair: string[], 
         id
         token0 {
           id
+          symbol
         }
         token1 {
           id
+          symbol
         }
         token0Price
         token1Price
@@ -156,6 +158,10 @@ export async function getMarketsLiquidity(markets: Market[]) {
     acc[curr.isToken0Collateral ? curr.token1.id : curr.token0.id] = {
       liquidity,
       tokenPriceInSDai,
+      tokenSymbol: curr.isToken0Collateral ? curr.token1.symbol : curr.token0.symbol,
+      collateralSymbol: curr.isToken0Collateral ? curr.token0.symbol : curr.token1.symbol,
+      tokenBalance: balanceToken,
+      collateralBalance: balanceCollateral,
     };
     return acc;
   }, {});
@@ -174,6 +180,10 @@ export async function getMarketsLiquidity(markets: Market[]) {
     acc[curr.isToken0Collateral ? curr.token1.id : curr.token0.id] = {
       tokenPriceInSDai,
       liquidity,
+      tokenSymbol: curr.isToken0Collateral ? curr.token1.symbol : curr.token0.symbol,
+      collateralSymbol: curr.isToken0Collateral ? curr.token0.symbol : curr.token1.symbol,
+      tokenBalance: balanceToken,
+      collateralBalance: balanceCollateral,
     };
     return acc;
   }, {});
@@ -185,10 +195,26 @@ export async function getMarketsLiquidity(markets: Market[]) {
 
   const liquidityToMarketMapping = markets.reduce((acc, market) => {
     let totalLiquidity = 0;
+    const tokenBalanceInfo: (string | null)[] = [];
     for (const outcomeToken of market.wrappedTokens) {
-      totalLiquidity += tokenToLiquidityMapping[outcomeToken.toLowerCase()]?.liquidity ?? 0;
+      const data = tokenToLiquidityMapping[outcomeToken.toLowerCase()];
+      totalLiquidity += data?.liquidity ?? 0;
+      tokenBalanceInfo.push(
+        data
+          ? JSON.stringify({
+              tokenSymbol: data.tokenSymbol,
+              collateralSymbol: data.collateralSymbol,
+              tokenBalance: data.tokenBalance,
+              collateralBalance: data.collateralBalance,
+            })
+          : null,
+      );
     }
-    acc[market.id] = totalLiquidity;
+    if (!acc[market.id]) {
+      acc[market.id] = {};
+    }
+    acc[market.id].totalLiquidity = totalLiquidity;
+    acc[market.id].tokenBalanceInfo = tokenBalanceInfo;
     return acc;
   }, {});
   return liquidityToMarketMapping;

@@ -151,6 +151,13 @@ function mapGraphMarket(
     incentive: number;
     hasLiquidity: boolean;
     categories: string[];
+    tokenBalanceInfo: ({
+      tokenBalance: number;
+      tokenSymbol: number;
+      collateralBalance: number;
+      collateralSymbol: number;
+    } | null)[];
+    odds: (number | null)[];
   },
 ): Market {
   return {
@@ -198,6 +205,7 @@ interface MarketExtraData {
   incentive: number | null;
   odds: (number | null)[];
   categories: string[];
+  token_balance_info: (string | null)[];
 }
 
 export const fetchMarkets = async (
@@ -251,14 +259,25 @@ export const fetchMarkets = async (
   }
   return markets
     .map((market) => {
-      const MarketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
+      const marketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
-        liquidityUSD: MarketExtraData?.liquidity ?? 0,
-        incentive: MarketExtraData?.incentive ?? 0,
-        hasLiquidity: MarketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-        categories: MarketExtraData?.categories ?? [],
+        liquidityUSD: marketExtraData?.liquidity ?? 0,
+        incentive: marketExtraData?.incentive ?? 0,
+        hasLiquidity: marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+        odds: marketExtraData?.odds ?? [],
+        categories: marketExtraData?.categories ?? [],
+        tokenBalanceInfo: marketExtraData?.token_balance_info
+          ? marketExtraData.token_balance_info.map((x) => {
+              if (x) {
+                try {
+                  return JSON.parse(x);
+                } catch (e) {}
+              }
+              return null;
+            })
+          : [],
       });
     })
     .sort(sortMarkets(orderBy));
@@ -360,6 +379,8 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
         incentive: 0,
         hasLiquidity: false,
         categories: ["misc"],
+        tokenBalanceInfo: [],
+        odds: [],
       }),
     );
 }

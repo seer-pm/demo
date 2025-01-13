@@ -382,6 +382,8 @@ export function PreviewForm({
       itemID: "",
     },
     categories: ["misc"],
+    tokenBalanceInfo: [],
+    odds: [],
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

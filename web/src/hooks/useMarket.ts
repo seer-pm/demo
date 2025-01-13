@@ -31,6 +31,13 @@ interface MarketOffChainFields {
   incentive: number;
   hasLiquidity: boolean;
   categories: string[];
+  tokenBalanceInfo: ({
+    tokenBalance: number;
+    tokenSymbol: number;
+    collateralBalance: number;
+    collateralSymbol: number;
+  } | null)[];
+  odds: (number | null)[];
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
@@ -138,6 +145,8 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           incentive: 0,
           hasLiquidity: false,
           categories: ["misc"],
+          tokenBalanceInfo: [],
+          odds: [],
         },
       );
     },
