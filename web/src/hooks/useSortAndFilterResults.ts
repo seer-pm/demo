@@ -1,5 +1,6 @@
 import { ITEMS_PER_PAGE } from "@/lib/markets-search";
 import { UseQueryResult } from "@tanstack/react-query";
+import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useFavorites } from "./useFavorites";
 import { Market } from "./useMarket";
@@ -27,6 +28,13 @@ export const useSortAndFilterResults = (
   if (params.isShowMyMarkets) {
     data = data.filter((market: Market) => {
       return address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase();
+    });
+  }
+
+  // filter conditional markets
+  if (params.isShowConditionalMarkets) {
+    data = data.filter((market: Market) => {
+      return market.parentMarket.id !== zeroAddress;
     });
   }
 

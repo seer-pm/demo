@@ -152,6 +152,8 @@ function mapGraphMarket(
     incentive: number;
     hasLiquidity: boolean;
     categories: string[];
+    poolBalance: MarketExtraData["pool_balance"];
+    odds: (number | null)[];
   },
 ): Market {
   return {
@@ -199,6 +201,10 @@ interface MarketExtraData {
   incentive: number | null;
   odds: (number | null)[];
   categories: string[];
+  pool_balance: Array<{
+    token0: { symbol: string; balance: number };
+    token1: { symbol: string; balance: number };
+  } | null>;
 }
 
 export const fetchMarkets = async (
@@ -252,14 +258,17 @@ export const fetchMarkets = async (
   }
   return markets
     .map((market) => {
-      const MarketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
+      const marketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
+      console.log({ marketExtraData });
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
-        liquidityUSD: MarketExtraData?.liquidity ?? 0,
-        incentive: MarketExtraData?.incentive ?? 0,
-        hasLiquidity: MarketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-        categories: MarketExtraData?.categories ?? [],
+        liquidityUSD: marketExtraData?.liquidity ?? 0,
+        incentive: marketExtraData?.incentive ?? 0,
+        hasLiquidity: marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+        odds: marketExtraData?.odds ?? [],
+        categories: marketExtraData?.categories ?? [],
+        poolBalance: marketExtraData?.pool_balance || [],
       });
     })
     .sort(sortMarkets(orderBy));
@@ -366,6 +375,8 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
         incentive: 0,
         hasLiquidity: false,
         categories: ["misc"],
+        poolBalance: [],
+        odds: [],
       }),
     );
 }

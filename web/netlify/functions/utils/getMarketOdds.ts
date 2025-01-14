@@ -3,6 +3,7 @@ import { bigIntMax, getLiquidityPairForToken, isTwoStringsEqual } from "./common
 import { COLLATERAL_TOKENS, SupportedChain } from "./config.ts";
 import { POOL_SUBGRAPH_URLS } from "./constants.ts";
 import { fetchMarket } from "./fetchMarkets.ts";
+import { LiquidityToMarketMapping } from "./getMarketsLiquidity.ts";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./getQuotes.ts";
 import { getTokenInfo } from "./getTokenInfo.ts";
 import { Address, Market, Token } from "./types.ts";
@@ -90,8 +91,8 @@ async function getTokenPrice(
   return 0n;
 }
 
-export async function getMarketOdds(market: Market, liquidityToMarketMapping: Record<Address, number>) {
-  const hasLiquidity = (liquidityToMarketMapping[market.id] || 0) > 0;
+export async function getMarketOdds(market: Market, liquidityToMarketMapping: LiquidityToMarketMapping) {
+  const hasLiquidity = (liquidityToMarketMapping[market.id].totalLiquidity || 0) > 0;
   if (!hasLiquidity) {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
   }

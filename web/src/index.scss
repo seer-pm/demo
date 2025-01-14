@@ -263,12 +263,12 @@ body {
 }
 
 /* Tooltip text */
-.tooltip .tooltiptext {
+.tooltip > .tooltiptext {
   visibility: hidden;
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #9747ff;
+  background-color: #626262;
   color: #fff;
   text-align: center;
   font-weight: normal;
@@ -285,7 +285,7 @@ body {
   }
 }
 
-.tooltip .tooltiptext::after {
+.tooltip > .tooltiptext::after {
   content: " ";
   position: absolute;
   top: 100%; /* At the bottom of the tooltip */
@@ -293,11 +293,11 @@ body {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #9747ff transparent transparent transparent;
+  border-color: var(--tooltip-arrow-color, #626262) transparent transparent transparent;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
+.tooltip:hover > .tooltiptext {
   visibility: visible;
 }
 

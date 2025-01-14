@@ -397,6 +397,8 @@ export function PreviewForm({
       itemID: "",
     },
     categories: ["misc"],
+    poolBalance: [],
+    odds: [],
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

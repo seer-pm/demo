@@ -38,6 +38,8 @@ const baseMarket: Market = {
   openingTs: 0,
   encodedQuestions: [],
   categories: ["misc"],
+  poolBalance: [],
+  odds: [],
 };
 
 const baseQuestion: Question = {

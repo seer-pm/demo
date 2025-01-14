@@ -68,7 +68,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
         };
       }
 
-      getPostmarkClient().sendEmailWithTemplate({
+      await getPostmarkClient().sendEmailWithTemplate({
         From: FROM_EMAIL,
         To: email,
         TemplateAlias: "welcome",

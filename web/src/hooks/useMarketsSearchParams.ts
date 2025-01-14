@@ -19,6 +19,7 @@ function useMarketsSearchParams() {
   const orderBy = searchParams.get("orderBy") as Market_OrderBy;
   const page = Number(searchParams.get("page") ?? 1);
   const isShowMyMarkets = searchParams.get("myMarkets") === "true";
+  const isShowConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
 
   const setMarketName = (value: string) => {
     setSearchParams((params) => {
@@ -121,6 +122,20 @@ function useMarketsSearchParams() {
     });
   };
 
+  const toggleShowConditionalMarkets = (showConditionalMarkets: boolean) => {
+    setSearchParams((params) => {
+      if (showConditionalMarkets) {
+        params.set("conditionalMarkets", "true");
+      } else {
+        params.delete("conditionalMarkets");
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
   return {
     marketName,
     marketStatusList,
@@ -140,7 +155,14 @@ function useMarketsSearchParams() {
 
     isShowMyMarkets,
     toggleShowMyMarkets,
-    hasFilters: verificationStatusList?.length || marketStatusList?.length || chainsList?.length || orderBy,
+    isShowConditionalMarkets,
+    toggleShowConditionalMarkets,
+    hasFilters:
+      verificationStatusList?.length ||
+      marketStatusList?.length ||
+      chainsList?.length ||
+      orderBy ||
+      isShowConditionalMarkets,
   };
 }
 
