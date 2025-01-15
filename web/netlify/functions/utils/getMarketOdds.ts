@@ -101,7 +101,13 @@ export async function getMarketOdds(market: Market, liquidityToMarketMapping: Li
   const prices = await Promise.all(
     market.wrappedTokens.map(async (wrappedAddress, i) => {
       try {
-        const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+        // const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+        const collateralToken = {
+          address: getLiquidityPairForToken(market, i),
+          decimals: 18,
+          name: "",
+          symbol: "",
+        };
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
 
         if (price === 0n) {
