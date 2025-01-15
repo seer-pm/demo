@@ -115,7 +115,7 @@ contract MarketView {
             outcomes: outcomes,
             parentMarket: getParentMarketInfo(market, marketFactory.conditionalTokens()),
             parentOutcome: market.parentOutcome(),
-            collateralToken: getCollateralToken(market),
+            collateralToken: getCollateralToken(market, marketFactory),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
             lowerBound: getLowerBound(market),
@@ -170,10 +170,10 @@ contract MarketView {
         }
     }
 
-    function getCollateralToken(Market market) internal view returns (address) {
+    function getCollateralToken(Market market, IMarketFactory marketFactory) internal view returns (address) {
         address parentMarket = market.parentMarket();
         if (parentMarket == address(0)) {
-            return address(0);
+            return marketFactory.collateralToken();
         }
 
         try Market(parentMarket).wrappedOutcome(market.parentOutcome()) returns (IERC20 wrapped1155, bytes memory) {
