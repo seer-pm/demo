@@ -23,7 +23,14 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
+import {
+  MarketTypes,
+  formatOdds,
+  getCollateralByIndex,
+  getMarketEstimate,
+  getMarketPoolsPairs,
+  getMarketType,
+} from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
@@ -124,6 +131,61 @@ function OutcomesInfo({
   );
 }
 
+type PoolTokensInfo = {
+  outcome: string;
+  token0: { symbol: string; balance: number };
+  token1: { symbol: string; balance: number };
+}[];
+
+function PoolTokensInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+
+  const poolsPairs = getMarketPoolsPairs(market);
+  const poolTokensInfo: PoolTokensInfo = poolsPairs.reduce((tokensInfo, _, j) => {
+    const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+    const tokenBalanceInfo = market.poolBalance[i];
+    if (!tokenBalanceInfo) {
+      return tokensInfo;
+    }
+    const poolPair = poolsPairs[i];
+
+    if (market.type === "Futarchy") {
+      // futarchy markets have 2 pools (YES and NO)
+      tokensInfo.push({
+        outcome: i === 0 ? "Yes" : "No",
+        ...tokenBalanceInfo,
+      });
+      return tokensInfo;
+    }
+
+    // generic markets have one pool for each outcome
+    const collateral = getCollateralByIndex(market, i);
+
+    const [token0, token1] =
+      collateral === poolPair.token0
+        ? [tokenBalanceInfo.token1, tokenBalanceInfo.token0]
+        : [tokenBalanceInfo.token0, tokenBalanceInfo.token1];
+
+    tokensInfo.push({
+      outcome: market.outcomes[i],
+      token0: token0,
+      token1: token1,
+    });
+    return tokensInfo;
+  }, [] as PoolTokensInfo);
+
+  return (
+    <ul className="list-decimal mx-4">
+      {poolTokensInfo.map((pti) => (
+        <li key={pti.outcome}>
+          {pti.outcome}: {formatBigNumbers(pti.token0.balance)} {pti.token0.symbol} /{" "}
+          {formatBigNumbers(pti.token1.balance)} {pti.token1.symbol}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
@@ -136,27 +198,10 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const colors = marketStatus && COLORS[marketStatus];
 
   const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
   const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
-  const marketTokenInfo = (
-    <ul className="list-decimal mx-4">
-      {market.outcomes.map((_, j) => {
-        const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
-        const outcome = market.outcomes[i];
-        const tokenBalanceInfo = market.tokenBalanceInfo[i];
-        if (!tokenBalanceInfo) return null;
-        return (
-          <li key={outcome}>
-            {outcome}: {formatBigNumbers(tokenBalanceInfo.tokenBalance)} {tokenBalanceInfo.tokenSymbol} /{" "}
-            {formatBigNumbers(tokenBalanceInfo.collateralBalance)} {tokenBalanceInfo.collateralSymbol}
-          </li>
-        );
-      })}
-    </ul>
-  );
   return (
     <div
       className={clsx(
@@ -317,7 +362,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <USDIcon />
               {market.liquidityUSD > 0 && (
                 <div className="tooltip">
-                  <p className="tooltiptext !text-left min-w-[300px]">{marketTokenInfo}</p>
+                  <div className="tooltiptext !text-left min-w-[300px]">
+                    <PoolTokensInfo market={market} marketStatus={marketStatus} />
+                  </div>
                   <QuestionIcon fill="#9747FF" />
                 </div>
               )}

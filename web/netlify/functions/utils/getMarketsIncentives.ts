@@ -1,9 +1,9 @@
 import pLimit from "p-limit";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { COLLATERAL_TOKENS } from "./config.ts";
+import { getMarketPoolsPairs } from "./common.ts";
 import { POOL_SUBGRAPH_URLS, SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS } from "./constants.ts";
-import { Market } from "./types.ts";
+import { Market, Token0Token1 } from "./types.ts";
 
 interface Pool {
   id: string;
@@ -11,17 +11,16 @@ interface Pool {
   token1: { id: string };
   token0Price: string;
   token1Price: string;
-  isToken0Collateral: boolean;
   chainId: number;
   outcomesCountWithoutInvalid: number;
   marketId: string;
 }
 
-export async function fetchPoolsPerPair(market: Market, tokenPair: string[], isToken0Collateral: boolean) {
+async function fetchPoolsPerPair(market: Market, tokenPair: Token0Token1) {
   try {
     const chainId = market.chainId.toString();
     const query = `{
-      pools(first: 1000, where: { token0: "${tokenPair[0].toLocaleLowerCase()}", token1: "${tokenPair[1].toLocaleLowerCase()}" }) {
+      pools(first: 1000, where: { token0: "${tokenPair.token0}", token1: "${tokenPair.token1}" }) {
         id
         token0 {
           id
@@ -46,7 +45,6 @@ export async function fetchPoolsPerPair(market: Market, tokenPair: string[], isT
     const pools = json?.data?.pools ?? [];
     return pools.map((pool) => ({
       ...pool,
-      isToken0Collateral,
       chainId: Number(chainId),
       marketId: market.id,
       outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
@@ -56,7 +54,7 @@ export async function fetchPoolsPerPair(market: Market, tokenPair: string[], isT
   }
 }
 
-export async function fetchEternalFarmings(poolIds: string[]) {
+async function fetchEternalFarmings(poolIds: string[]) {
   try {
     const query = `{
       eternalFarmings(first: 1000, where: {pool_in:${JSON.stringify(poolIds)}}) {
@@ -87,34 +85,20 @@ export async function fetchEternalFarmings(poolIds: string[]) {
   }
 }
 
-async function fetchMarketPools(market: Market, collateralTokenAddress: string) {
+async function fetchMarketPools(market: Market) {
   return await Promise.all(
-    market.wrappedTokens.map((outcomeToken) => {
-      const isToken0Collateral = outcomeToken.toLocaleLowerCase() > collateralTokenAddress.toLocaleLowerCase();
-      const tokenPair = isToken0Collateral
-        ? [collateralTokenAddress, outcomeToken]
-        : [outcomeToken, collateralTokenAddress];
-      return fetchPoolsPerPair(market, tokenPair, isToken0Collateral);
+    getMarketPoolsPairs(market).map((poolPair) => {
+      return fetchPoolsPerPair(market, poolPair);
     }),
   );
 }
 
 export async function getMarketsIncentive(markets: Market[]) {
-  const marketIdToMarketMapping = markets.reduce(
-    (acc, curr) => {
-      acc[curr.id] = curr;
-      return acc;
-    },
-    {} as { [key: string]: Market },
-  );
   const limit = pLimit(20);
   const allPossiblePools = (
     await Promise.all(
       markets.map((market) => {
-        const parentMarket = marketIdToMarketMapping[market.parentMarket.id];
-        const parentCollateral = parentMarket?.wrappedTokens?.[Number(market.parentOutcome)];
-        const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary.address;
-        return limit(() => fetchMarketPools(market, collateralToken));
+        return limit(() => fetchMarketPools(market));
       }),
     )
   )

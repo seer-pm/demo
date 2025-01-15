@@ -13,9 +13,13 @@ fragment Question on Question {
 
 fragment Market on Market {
   id
+  type
   marketName
   outcomes
   wrappedTokens
+  collateralToken
+  collateralToken1
+  collateralToken2
   parentMarket {
     id
     payoutReported

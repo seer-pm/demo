@@ -31,11 +31,15 @@ interface MarketOffChainFields {
   incentive: number;
   hasLiquidity: boolean;
   categories: string[];
-  tokenBalanceInfo: ({
-    tokenBalance: number;
-    tokenSymbol: number;
-    collateralBalance: number;
-    collateralSymbol: number;
+  poolBalance: ({
+    token0: {
+      symbol: string;
+      balance: number;
+    };
+    token1: {
+      symbol: string;
+      balance: number;
+    };
   } | null)[];
   odds: (number | null)[];
   creator?: string | null;
@@ -46,8 +50,12 @@ interface MarketOffChainFields {
 
 export interface Market extends MarketOffChainFields {
   id: Address;
+  type: "Generic" | "Futarchy";
   marketName: string;
   outcomes: readonly string[];
+  collateralToken: Address;
+  collateralToken1: Address;
+  collateralToken2: Address;
   wrappedTokens: Address[];
   parentMarket: {
     id: Address;
@@ -76,6 +84,7 @@ export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: MarketOffChainFields): Market {
   const market: Market = {
     ...onChainMarket,
+    type: onChainMarket.collateralToken1 === zeroAddress ? "Generic" : "Futarchy",
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
     outcomes: onChainMarket.outcomes.map((outcome) => {
@@ -145,7 +154,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           incentive: 0,
           hasLiquidity: false,
           categories: ["misc"],
-          tokenBalanceInfo: [],
+          poolBalance: [],
           odds: [],
         },
       );

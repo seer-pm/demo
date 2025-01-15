@@ -22,8 +22,12 @@ interface MarketOffChainFields {
 
 export interface Market extends MarketOffChainFields {
   id: Address;
+  type: "Generic" | "Futarchy";
   marketName: string;
   outcomes: readonly string[];
+  collateralToken: Address;
+  collateralToken1: Address;
+  collateralToken2: Address;
   wrappedTokens: Address[];
   parentMarket: { id: Address };
   parentOutcome: bigint;
@@ -108,3 +112,5 @@ export interface Token {
   decimals: number;
   wrapped?: Token;
 }
+
+export type Token0Token1 = { token1: Address; token0: Address };

@@ -2,10 +2,15 @@ import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
+import { zeroAddress } from "viem";
 import { MarketHeader } from "./MarketHeader";
 
 const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",
+  type: "Generic",
+  collateralToken: zeroAddress,
+  collateralToken1: zeroAddress,
+  collateralToken2: zeroAddress,
   chainId: 1,
   marketName: "Ethereum ETF approved by May 31?",
   outcomes: ["Yes", "No"],
@@ -33,7 +38,7 @@ const baseMarket: Market = {
   openingTs: 0,
   encodedQuestions: [],
   categories: ["misc"],
-  tokenBalanceInfo: [],
+  poolBalance: [],
   odds: [],
 };
 

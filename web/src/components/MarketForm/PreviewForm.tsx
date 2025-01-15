@@ -334,6 +334,10 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
+    type: "Generic",
+    collateralToken: zeroAddress,
+    collateralToken1: zeroAddress,
+    collateralToken2: zeroAddress,
     chainId,
     marketName:
       marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
@@ -382,7 +386,7 @@ export function PreviewForm({
       itemID: "",
     },
     categories: ["misc"],
-    tokenBalanceInfo: [],
+    poolBalance: [],
     odds: [],
   };
 
