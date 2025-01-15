@@ -67,22 +67,20 @@ async function getTokenPrice(
   amount: string,
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
-  // TODO: Re-enable Cowswap quotes in the future to support additional DEXs.
-  //  Currently disabled to improve performance since Swapr and Uniswap provide equivalent pricing with faster response times.
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
-  const [uniswapQuote, swaprQuote /*, cowQuote*/] = await Promise.allSettled([
+  const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
     getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
     getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
-    //getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
+    getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
   ]);
 
   if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
     return uniswapQuote.value.value;
   }
 
-  /*if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
+  if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
     return cowQuote.value.value;
-  }*/
+  }
 
   if (swaprQuote.status === "fulfilled" && swaprQuote?.value?.value && swaprQuote.value.value > 0n) {
     return swaprQuote.value.value;
