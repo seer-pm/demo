@@ -4,7 +4,6 @@ import { readContracts } from "@wagmi/core";
 import { subDays } from "date-fns";
 import { Address, erc20Abi, formatUnits } from "viem";
 
-import { readConditionalTokensPayoutNumerators } from "@/hooks/contracts/generated";
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -124,22 +123,14 @@ const getHistoryBalanceMapping = async (
   );
 
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
-  const tokenDecimals = (await readContracts(config, {
-    contracts: allTokensIds.map((wrappedAddress) => ({
-      abi: erc20Abi,
-      address: wrappedAddress,
-      functionName: "decimals",
-      args: [],
-    })),
-    allowFailure: false,
-  })) as bigint[];
+
   // history balance
   const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
   const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
   const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
   return historyBalances.reduce(
     (acc, balance, index) => {
-      acc[allTokensIds[index]] = balance > 0n ? Number(formatUnits(balance, Number(tokenDecimals[index]))) : undefined;
+      acc[allTokensIds[index]] = balance > 0n ? Number(formatUnits(balance, 18)) : undefined;
       return acc;
     },
     {} as { [key: string]: number | undefined },
@@ -204,36 +195,14 @@ export const fetchPositions = async (
     }
     return acumm;
   }, [] as PortfolioPosition[]);
-  const marketsWithPositions = [...new Set(positions.map((position) => position.marketAddress))] as Address[];
-  const marketsPayouts = await Promise.all(
-    marketsWithPositions.map((marketAddress) => fetchMarketPayouts(marketIdToMarket[marketAddress])),
-  );
-  const marketToMarketPayouts = marketsWithPositions.reduce(
-    (acc, marketAddress, index) => {
-      acc[marketAddress] = marketsPayouts[index];
-      return acc;
-    },
-    {} as { [key: Address]: bigint[] },
-  );
+
   return positions.filter((position) => {
-    const payouts = marketToMarketPayouts[position.marketAddress as Address];
+    const market = marketIdToMarket[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {
-      return payouts[position.tokenIndex] > 0;
+      return market.payoutReported && market.payoutNumerators[position.tokenIndex] > 0n;
     }
     return true;
   });
-};
-
-const fetchMarketPayouts = async (market: Market | undefined) => {
-  if (!market) return [];
-  return await Promise.all(
-    market.outcomes.map((_, index) =>
-      readConditionalTokensPayoutNumerators(config, {
-        args: [market.conditionId, BigInt(index)],
-        chainId: market.chainId,
-      }),
-    ),
-  );
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {

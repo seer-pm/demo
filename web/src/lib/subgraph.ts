@@ -13,6 +13,12 @@ export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
   [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
 };
+
+export const CURATE_SUBGRAPH_FALLBACK_URLS: Partial<Record<SupportedChain, string>> = {
+  [gnosis.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-gnosis/version/latest",
+  [mainnet.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-mainnet/version/latest",
+};
+
 export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
 };
@@ -33,8 +39,8 @@ export function graphQLClient(chainId: SupportedChain) {
   return new GraphQLClient(subgraphUrl);
 }
 
-export function curateGraphQLClient(chainId: SupportedChain) {
-  const subgraphUrl = CURATE_SUBGRAPH_URLS[chainId];
+export function curateGraphQLClient(chainId: SupportedChain, isUseFallbackUrls?: boolean) {
+  const subgraphUrl = (isUseFallbackUrls ? CURATE_SUBGRAPH_FALLBACK_URLS : CURATE_SUBGRAPH_URLS)[chainId];
 
   if (!subgraphUrl) {
     return;
