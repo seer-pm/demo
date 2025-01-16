@@ -36,10 +36,10 @@ contract FutarchyRealityProxy {
 
         // FutarchyFactory prepares the condition with two outcomes (YES / NO)
         if (answer == 0) {
-            // accept proposal
+            // accept proposal if result is YES
             payouts[0] = 1;
         } else {
-            // reject proposal
+            // reject proposal if result is NO or INVALID
             payouts[1] = 1;
         }
 

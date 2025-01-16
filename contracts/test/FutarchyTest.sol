@@ -58,11 +58,12 @@ contract FutarchyFactoryTest is Test {
             new FutarchyRouter(IConditionalTokens(conditionalTokens), IWrapped1155Factory(wrapped1155Factory));
     }
 
-    function getProposal(
-        uint256 minBond,
-        uint256 parentOutcome,
-        address parentProposal
-    ) public returns (FutarchyProposal) {
+    function getProposal(uint256 minBond)
+        //uint256 parentOutcome,
+        //address parentProposal
+        public
+        returns (FutarchyProposal)
+    {
         FutarchyProposal market = FutarchyProposal(
             futarchyFactory.createProposal(
                 FutarchyFactory.CreateProposalParams({
@@ -89,7 +90,7 @@ contract FutarchyFactoryTest is Test {
     ) public returns (FutarchyProposal proposal) {
         vm.assume(answer != ANSWERED_TOO_SOON);
 
-        proposal = getProposal(MIN_BOND, 0, address(0));
+        proposal = getProposal(MIN_BOND);
         skip(60); // skip opening timestamp
 
         submitAnswer(proposal.questionId(), answer);
@@ -112,35 +113,30 @@ contract FutarchyFactoryTest is Test {
         IERC20(collateralToken2).approve(address(futarchyRouter), amountSplit2);
 
         // split
-        if (amountSplit1 > 0 && amountSplit2 > 0) {
-            // split both collateral tokens
-            require(amountSplit1 == amountSplit2, "Both split amounts must be the same");
+        if (amountSplit1 > 0) {
+            // split collateralToken1
             deal(address(collateralToken1), address(msg.sender), amountSplit1);
-            deal(address(collateralToken2), address(msg.sender), amountSplit1);
-            futarchyRouter.splitProposal(proposal, amountSplit1);
-        } else if (amountSplit1 > 0) {
-            // split only collateralToken1
-            deal(address(collateralToken1), address(msg.sender), amountSplit1);
-            futarchyRouter.splitPosition(proposal, true, amountSplit1);
-        } else if (amountSplit2 > 0) {
-            // split only collateralToken2
+            futarchyRouter.splitPosition(proposal, proposal.collateralToken1(), amountSplit1);
+        }
+
+        if (amountSplit2 > 0) {
+            // split collateralToken2
             deal(address(collateralToken2), address(msg.sender), amountSplit2);
-            futarchyRouter.splitPosition(proposal, false, amountSplit2);
+            futarchyRouter.splitPosition(proposal, proposal.collateralToken2(), amountSplit2);
         }
 
         // merge half
         uint256 halfAmount1 = amountSplit1 / 2;
         uint256 halfAmount2 = amountSplit2 / 2;
         approveWrappedTokens(address(futarchyRouter), proposal, halfAmount1, halfAmount2);
-        if (amountSplit1 > 0 && amountSplit2 > 0) {
-            // merge both collateral tokens
-            futarchyRouter.mergeProposal(proposal, halfAmount1);
-        } else if (amountSplit1 > 0) {
-            // merge only collateralToken1
-            futarchyRouter.mergePositions(proposal, true, halfAmount1);
-        } else if (amountSplit2 > 0) {
-            // merge only collateralToken2
-            futarchyRouter.mergePositions(proposal, false, halfAmount2);
+        if (amountSplit1 > 0) {
+            // merge collateralToken1
+            futarchyRouter.mergePositions(proposal, proposal.collateralToken1(), halfAmount1);
+        }
+
+        if (amountSplit2 > 0) {
+            // merge collateralToken2
+            futarchyRouter.mergePositions(proposal, proposal.collateralToken2(), halfAmount2);
         }
 
         // redeem half
@@ -217,7 +213,7 @@ contract FutarchyFactoryTest is Test {
     }
 
     function test_marketView() public {
-        FutarchyProposal proposal = getProposal(MIN_BOND, 0, address(0));
+        FutarchyProposal proposal = getProposal(MIN_BOND);
 
         MarketView marketView = new MarketView();
 

@@ -20,37 +20,26 @@ contract FutarchyRouter is ERC1155Holder {
         wrapped1155Factory = _wrapped1155Factory;
     }
 
-    /// @notice Splits a position using two collateral tokens and sends the ERC20 outcome tokens back to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
-    /// @param proposal The futarchy proposal to split.
-    /// @param amount The amount to split.
-    function splitProposal(FutarchyProposal proposal, uint256 amount) external {
-        splitPosition(proposal, true, amount);
-        splitPosition(proposal, false, amount);
-    }
-
     /// @notice Transfers the collateral to the Router, splits the position and sends the ERC20 outcome tokens back to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are deposited only if we are not splitting a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to split.
-    /// @param useFirstCollateral Whether to split the first or second collateral.
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount The amount of collateral to split.
-    function splitPosition(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
+    function splitPosition(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) public {
         if (proposal.parentCollectionId() == bytes32(0)) {
             // transfer the collateral tokens to the Router.
             collateralToken.transferFrom(msg.sender, address(this), amount);
         }
-        _splitPosition(proposal, useFirstCollateral, amount);
+        _splitPosition(proposal, collateralToken, amount);
     }
 
     /// @notice Splits a position and sends the ERC20 outcome tokens to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @param proposal The Proposal to split.
-    /// @param useFirstCollateral Whether to split the first or second collateral.
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount The amount of collateral to split.
-    function _splitPosition(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) internal {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
+    function _splitPosition(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) internal {
         bytes32 parentCollectionId = proposal.parentCollectionId();
         bytes32 conditionId = proposal.conditionId();
 
@@ -72,11 +61,13 @@ contract FutarchyRouter is ERC1155Holder {
 
         conditionalTokens.splitPosition(address(collateralToken), parentCollectionId, conditionId, partition, amount);
 
+        bool isFirstCollateral = collateralToken == proposal.collateralToken1();
+
         // wrap & transfer the minted outcome tokens.
         for (uint256 j = 0; j < 2; j++) {
             uint256 tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, 1 << j);
 
-            (IERC20 wrapped1155, bytes memory data) = proposal.wrappedOutcome(useFirstCollateral ? j : j + 2);
+            (IERC20 wrapped1155, bytes memory data) = proposal.wrappedOutcome(isFirstCollateral ? j : j + 2);
 
             // wrap to erc20.
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
@@ -88,22 +79,12 @@ contract FutarchyRouter is ERC1155Holder {
 
     /// @notice Merges positions and sends the collateral tokens to the user.
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
-    /// @param proposal The futarchy proposal to merge.
-    /// @param amount The amount to merge.
-    function mergeProposal(FutarchyProposal proposal, uint256 amount) external {
-        mergePositions(proposal, true, amount);
-        mergePositions(proposal, false, amount);
-    }
-
-    /// @notice Merges positions and sends the collateral tokens to the user.
-    /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are withdrawn only if we are not merging a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to merge.
-    /// @param useFirstCollateral Whether to merge the first or second collateral.
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount The amount of outcome tokens to merge.
-    function mergePositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
-        _mergePositions(proposal, useFirstCollateral, amount);
+    function mergePositions(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) public {
+        _mergePositions(proposal, collateralToken, amount);
 
         if (proposal.parentCollectionId() == bytes32(0)) {
             // send collateral tokens back to the user.
@@ -114,10 +95,9 @@ contract FutarchyRouter is ERC1155Holder {
     /// @notice Merges positions and receives the collateral tokens.
     /// @dev Callers to this function must send the collateral to the user.
     /// @param proposal The Proposal to merge.
-    /// @param useFirstCollateral Whether to merge the first or second collateral.
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount The amount of outcome tokens to merge.
-    function _mergePositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) internal {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
+    function _mergePositions(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) internal {
         bytes32 parentCollectionId = proposal.parentCollectionId();
         bytes32 conditionId = proposal.conditionId();
 
@@ -125,11 +105,13 @@ contract FutarchyRouter is ERC1155Holder {
         partition[0] = 1;
         partition[1] = 2;
 
+        bool isFirstCollateral = collateralToken == proposal.collateralToken1();
+
         // we need to unwrap the outcome tokens because they will be burnt during the merge.
         for (uint256 j = 0; j < 2; j++) {
             uint256 tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, 1 << j);
 
-            (IERC20 wrapped1155, bytes memory data) = proposal.wrappedOutcome(useFirstCollateral ? j : j + 2);
+            (IERC20 wrapped1155, bytes memory data) = proposal.wrappedOutcome(isFirstCollateral ? j : j + 2);
 
             wrapped1155.transferFrom(msg.sender, address(this), amount);
             wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amount, address(this), data);
@@ -158,8 +140,8 @@ contract FutarchyRouter is ERC1155Holder {
     /// @param amount1 Amount to redeem for the first collateral.
     /// @param amount2 Amount to redeem for the second collateral.
     function redeemProposal(FutarchyProposal proposal, uint256 amount1, uint256 amount2) external {
-        redeemPositions(proposal, true, amount1);
-        redeemPositions(proposal, false, amount2);
+        redeemPositions(proposal, proposal.collateralToken1(), amount1);
+        redeemPositions(proposal, proposal.collateralToken2(), amount2);
     }
 
     /// @notice Redeems positions and sends the collateral tokens to the user.
@@ -167,9 +149,10 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to redeem.
     /// @param useFirstCollateral Whether to redeem the first or second collateral.
+
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount Amount to redeem.
-    function redeemPositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) public {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
+    function redeemPositions(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) public {
         bytes32 parentCollectionId = proposal.parentCollectionId();
         uint256 initialBalance;
 
@@ -177,7 +160,7 @@ contract FutarchyRouter is ERC1155Holder {
             initialBalance = collateralToken.balanceOf(address(this));
         }
 
-        _redeemPositions(proposal, useFirstCollateral, amount);
+        _redeemPositions(proposal, collateralToken, amount);
 
         if (parentCollectionId == bytes32(0)) {
             uint256 finalBalance = collateralToken.balanceOf(address(this));
@@ -194,22 +177,21 @@ contract FutarchyRouter is ERC1155Holder {
     /// @notice Redeems positions and receives the collateral tokens.
     /// @dev Callers to this function must send the collateral to the user.
     /// @param proposal The Proposal to redeem.
-    /// @param useFirstCollateral Whether to redeem the first or second collateral.
+    /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount Amount to redeem.
-    function _redeemPositions(FutarchyProposal proposal, bool useFirstCollateral, uint256 amount) internal {
-        IERC20 collateralToken = useFirstCollateral ? proposal.collateralToken1() : proposal.collateralToken2();
+    function _redeemPositions(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) internal {
         bytes32 parentCollectionId = proposal.parentCollectionId();
         bytes32 conditionId = proposal.conditionId();
-        uint256 tokenId = 0;
 
         uint256[] memory indexSets = new uint256[](1);
         bool isApproved = conditionalTokens.payoutNumerators(conditionId, 0) == 1;
         uint256 j = isApproved ? 0 : 1;
         indexSets[0] = 1 << j;
-        tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, indexSets[0]);
+        uint256 tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, indexSets[0]);
 
         // first we need to unwrap the outcome tokens that will be redeemed.
-        (IERC20 wrapped1155, bytes memory data) = proposal.wrappedOutcome(useFirstCollateral ? j : j + 2);
+        (IERC20 wrapped1155, bytes memory data) =
+            proposal.wrappedOutcome(collateralToken == proposal.collateralToken1() ? j : j + 2);
 
         wrapped1155.transferFrom(msg.sender, address(this), amount);
 

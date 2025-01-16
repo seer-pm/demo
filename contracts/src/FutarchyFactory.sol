@@ -122,20 +122,20 @@ contract FutarchyFactory {
         IERC20 collateralToken1,
         IERC20 collateralToken2
     ) internal view returns (string[] memory, string[] memory) {
-        string memory token1 = collateralToken1.symbol();
-        string memory token2 = collateralToken2.symbol();
+        string memory tokenSymbol1 = collateralToken1.symbol();
+        string memory tokenSymbol2 = collateralToken2.symbol();
 
         string[] memory outcomes = new string[](4);
-        outcomes[0] = string(abi.encodePacked("Yes-", token1));
-        outcomes[1] = string(abi.encodePacked("No-", token1));
-        outcomes[2] = string(abi.encodePacked("Yes-", token2));
-        outcomes[3] = string(abi.encodePacked("No-", token2));
+        outcomes[0] = string(abi.encodePacked("Yes-", tokenSymbol1));
+        outcomes[1] = string(abi.encodePacked("No-", tokenSymbol1));
+        outcomes[2] = string(abi.encodePacked("Yes-", tokenSymbol2));
+        outcomes[3] = string(abi.encodePacked("No-", tokenSymbol2));
 
         string[] memory tokenNames = new string[](4);
-        tokenNames[0] = string(abi.encodePacked("YES_", token1));
-        tokenNames[1] = string(abi.encodePacked("NO_", token1));
-        tokenNames[2] = string(abi.encodePacked("YES_", token2));
-        tokenNames[3] = string(abi.encodePacked("NO_", token2));
+        tokenNames[0] = string(abi.encodePacked("YES_", tokenSymbol1));
+        tokenNames[1] = string(abi.encodePacked("NO_", tokenSymbol1));
+        tokenNames[2] = string(abi.encodePacked("YES_", tokenSymbol2));
+        tokenNames[3] = string(abi.encodePacked("NO_", tokenSymbol2));
 
         return (outcomes, tokenNames);
     }
@@ -154,7 +154,7 @@ contract FutarchyFactory {
             askRealityQuestion(encodedQuestion, REALITY_SINGLE_SELECT_TEMPLATE, params.openingTime, params.minBond);
         bytes32 conditionId = prepareCondition(questionId, 2); // two outcomes (YES / NO)
 
-        (IERC20[] memory wrapped1155, bytes[] memory data) = deployERC20Positions(
+        (IERC20[] memory wrapped1155, bytes[] memory tokenData) = deployERC20Positions(
             params.collateralToken1, params.collateralToken2, parentCollectionId, conditionId, tokenNames
         );
 
@@ -167,7 +167,7 @@ contract FutarchyFactory {
             parentOutcome: 0,
             parentMarket: address(0),
             wrapped1155: wrapped1155,
-            data: data,
+            tokenData: tokenData,
             encodedQuestion: encodedQuestion
         });
     }
@@ -209,6 +209,7 @@ contract FutarchyFactory {
         );
 
         if (realitio.getTimeout(question_id) != 0) {
+            // question already exists
             return question_id;
         }
 
@@ -225,6 +226,7 @@ contract FutarchyFactory {
         bytes32 conditionId = conditionalTokens.getConditionId(address(realityProxy), questionId, outcomeSlotCount);
 
         if (conditionalTokens.getOutcomeSlotCount(conditionId) == 0) {
+            // prepare the condition if it doesn't already exist
             conditionalTokens.prepareCondition(address(realityProxy), questionId, outcomeSlotCount);
         }
 

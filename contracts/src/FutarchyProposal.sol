@@ -37,7 +37,7 @@ contract FutarchyProposal {
         bytes32 questionId;
         string encodedQuestion;
         IERC20[] wrapped1155;
-        bytes[] data;
+        bytes[] tokenData;
     }
 
     /// @dev The name of the proposal.
@@ -123,7 +123,7 @@ contract FutarchyProposal {
     /// @return wrapped1155 The wrapped token.
     /// @return data The token data.
     function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data) {
-        return (futarchyProposalParams.wrapped1155[index], futarchyProposalParams.data[index]);
+        return (futarchyProposalParams.wrapped1155[index], futarchyProposalParams.tokenData[index]);
     }
 
     /// @dev Returns the wrapped1155 and the data corresponding to the parent proposal.
