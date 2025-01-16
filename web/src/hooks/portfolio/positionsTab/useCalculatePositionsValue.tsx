@@ -5,7 +5,7 @@ import { subDays } from "date-fns";
 import { useMemo } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { useGetHistoryBalances, usePositions } from "./usePortfolioPositions";
+import { usePositions } from "./usePortfolioPositions";
 
 function useCalculatePositionsValue() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
@@ -22,11 +22,7 @@ function useCalculatePositionsValue() {
     yesterdayInSeconds,
   );
 
-  const { data: historyBalanceMapping, isLoading: isGettingHistoryBalance } = useGetHistoryBalances(
-    address,
-    chainId as SupportedChain,
-  );
-  const currentPortfolioValue = positions.reduce((acc, curr) => {
+  const currentPortfolioValue = (positions ?? []).reduce((acc, curr) => {
     const tokenPrice = tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ?? 0;
     const tokenValue = tokenPrice * curr.tokenBalance;
     return acc + tokenValue;
@@ -36,7 +32,7 @@ function useCalculatePositionsValue() {
       tokenIdToTokenHistoryPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       0;
-    const tokenValue = tokenPrice * (historyBalanceMapping?.[curr.tokenId.toLocaleLowerCase()] ?? curr.tokenBalance);
+    const tokenValue = tokenPrice * curr.tokenBalance;
     return acc + tokenValue;
   }, 0);
 
@@ -52,7 +48,7 @@ function useCalculatePositionsValue() {
 
   return {
     isCalculating: isLoadingCurrentPrices,
-    isCalculatingDelta: isGettingHistoryBalance || isLoadingHistoryPrices,
+    isCalculatingDelta: isLoadingHistoryPrices,
     isGettingPositions: isPending,
     delta,
     positions: positionsWithTokenValue,

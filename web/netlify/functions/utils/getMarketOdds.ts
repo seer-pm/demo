@@ -1,11 +1,8 @@
 import { formatUnits } from "viem";
-import { bigIntMax, getLiquidityPairForToken, isTwoStringsEqual } from "./common.ts";
-import { COLLATERAL_TOKENS, SupportedChain } from "./config.ts";
-import { POOL_SUBGRAPH_URLS } from "./constants.ts";
-import { fetchMarket } from "./fetchMarkets.ts";
+import { getLiquidityPairForToken } from "./common.ts";
+import { SupportedChain } from "./config.ts";
 import { LiquidityToMarketMapping } from "./getMarketsLiquidity.ts";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./getQuotes.ts";
-import { getTokenInfo } from "./getTokenInfo.ts";
 import { Address, Market, Token } from "./types.ts";
 
 export function normalizeOdds(prices: number[]): number[] {
@@ -28,38 +25,6 @@ export function normalizeOdds(prices: number[]): number[] {
   return odds;
 }
 
-export async function fetchPools(chainId: string, collateralToken: Token) {
-  const query = `{
-    pools(first: 1000, where: {
-          or: [
-            { token0: "${collateralToken.address.toLocaleLowerCase()}" },
-            { token1: "${collateralToken.address.toLocaleLowerCase()}" },
-          ],
-        }) {
-      id
-      liquidity
-      token0 {
-        id
-      }
-      token1 {
-        id
-      }
-    }
-  }`;
-  const results = await fetch(POOL_SUBGRAPH_URLS[chainId]!, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query,
-    }),
-  });
-  const json = await results.json();
-
-  return json?.data?.pools ?? [];
-}
-
 async function getTokenPrice(
   wrappedAddress: Address,
   collateralToken: Token,
@@ -67,22 +32,20 @@ async function getTokenPrice(
   amount: string,
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
-  // TODO: Re-enable Cowswap quotes in the future to support additional DEXs.
-  //  Currently disabled to improve performance since Swapr and Uniswap provide equivalent pricing with faster response times.
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
-  const [uniswapQuote, swaprQuote /*, cowQuote*/] = await Promise.allSettled([
+  const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
     getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
     getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
-    //getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
+    getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
   ]);
 
   if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
     return uniswapQuote.value.value;
   }
 
-  /*if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
+  if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
     return cowQuote.value.value;
-  }*/
+  }
 
   if (swaprQuote.status === "fulfilled" && swaprQuote?.value?.value && swaprQuote.value.value > 0n) {
     return swaprQuote.value.value;
@@ -101,7 +64,13 @@ export async function getMarketOdds(market: Market, liquidityToMarketMapping: Li
   const prices = await Promise.all(
     market.wrappedTokens.map(async (wrappedAddress, i) => {
       try {
-        const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+        // const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+        const collateralToken = {
+          address: getLiquidityPairForToken(market, i),
+          decimals: 18,
+          name: "",
+          symbol: "",
+        };
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
 
         if (price === 0n) {

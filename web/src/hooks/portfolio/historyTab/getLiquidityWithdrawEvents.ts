@@ -52,11 +52,14 @@ export async function getLiquidityWithdrawEvents(
     });
     const burns = data.burns as GetBurnsQuery["burns"];
     total = total.concat(burns);
-    timestamp = burns[burns.length - 1]?.timestamp;
-    attempt++;
+    if (burns[burns.length - 1]?.timestamp === timestamp) {
+      break;
+    }
     if (burns.length < 1000) {
       break;
     }
+    timestamp = burns[burns.length - 1]?.timestamp;
+    attempt++;
   }
   return total.reduce((acc, swap) => {
     const amount0 = parseUnits(Math.abs(Number(swap.amount0)).toString(), Number(swap.token0.decimals));

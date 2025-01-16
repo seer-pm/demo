@@ -52,11 +52,14 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
     });
     const swaps = data.swaps as GetSwapsQuery["swaps"];
     total = total.concat(swaps);
-    timestamp = swaps[swaps.length - 1]?.timestamp;
-    attempt++;
+    if (swaps[swaps.length - 1]?.timestamp === timestamp) {
+      break;
+    }
     if (swaps.length < 1000) {
       break;
     }
+    timestamp = swaps[swaps.length - 1]?.timestamp;
+    attempt++;
   }
   const swapsFromSubgraph = total.reduce((acc, swap) => {
     const amount0 = parseUnits(Math.abs(Number(swap.amount0)).toString(), Number(swap.token0.decimals));

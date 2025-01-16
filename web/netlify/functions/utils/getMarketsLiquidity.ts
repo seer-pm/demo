@@ -1,101 +1,9 @@
-import { getBalance } from "@wagmi/core";
-import pLimit from "p-limit";
-import { formatUnits, zeroAddress } from "viem";
-import { getCollateralByIndex, getDexScreenerPriceUSD, getMarketPoolsPairs } from "./common.ts";
-import { COLLATERAL_TOKENS, NATIVE_TOKEN, SupportedChain, chainIds, config } from "./config.ts";
-import { POOL_SUBGRAPH_URLS } from "./constants.ts";
-import { Address, Market, Token0Token1 } from "./types.ts";
-
-export async function fetchTokenBalance(token: Address, owner: Address, chainId: SupportedChain) {
-  return (
-    await getBalance(config, {
-      address: owner,
-      token: token.toLowerCase() === NATIVE_TOKEN ? undefined : token,
-      chainId,
-    })
-  ).value;
-}
-
-interface Pool {
-  id: Address;
-  token0: { id: Address; symbol: string };
-  token1: { id: Address; symbol: string };
-  token0Price: string;
-  token1Price: string;
-  balance0: number;
-  balance1: number;
-  isToken0Collateral: boolean;
-  chainId: SupportedChain;
-  outcomesCountWithoutInvalid: number;
-  market: Market;
-}
-
-export async function fetchBestPoolPerPair(market: Market, tokenPair: Token0Token1) {
-  try {
-    const chainId = market.chainId.toString();
-    const query = `{
-      pools(first: 1000, where: { token0: "${tokenPair.token0}", token1: "${tokenPair.token1}" }) {
-        id
-        token0 {
-          id
-          symbol
-        }
-        token1 {
-          id
-          symbol
-        }
-        token0Price
-        token1Price
-      }
-    }`;
-    const results = await fetch(POOL_SUBGRAPH_URLS[chainId]!, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-      }),
-    });
-    const json = await results.json();
-    const pools = (json?.data?.pools ?? []) as Pool[];
-
-    const poolBalances = await Promise.all(
-      pools.map(async ({ id, token0, token1 }) => {
-        const balance0BigInt = await fetchTokenBalance(token0.id, id, Number(chainId) as SupportedChain);
-        const balance1BigInt = await fetchTokenBalance(token1.id, id, Number(chainId) as SupportedChain);
-        return {
-          balance0: Number(formatUnits(balance0BigInt, 18)).toFixed(4),
-          balance1: Number(formatUnits(balance1BigInt, 18)).toFixed(4),
-        };
-      }),
-    );
-
-    const poolWithBalances = pools.map((pool, index) => ({
-      ...pool,
-      market,
-      balance0: Number(poolBalances[index].balance0),
-      balance1: Number(poolBalances[index].balance1),
-      // For generic markets, isToken0Collateral indicates whether token0 is the market's collateral token.
-      // For futarchy markets, this flag is unused since they have two collateral tokens.
-      isToken0Collateral: tokenPair.token0 === market.collateralToken,
-      chainId: Number(chainId),
-      outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
-    })) as Pool[];
-    poolWithBalances.sort((a, b) => (a.isToken0Collateral ? b.balance0 - a.balance0 : b.balance1 - a.balance1));
-    return poolWithBalances[0];
-  } catch (e) {
-    console.log(e);
-  }
-}
-
-async function fetchMarketPools(market: Market) {
-  return await Promise.all(
-    getMarketPoolsPairs(market).map((poolPair) => {
-      return fetchBestPoolPerPair(market, poolPair);
-    }),
-  );
-}
+import { readContracts } from "@wagmi/core";
+import { erc20Abi, formatUnits, zeroAddress } from "viem";
+import { getCollateralByIndex, getDexScreenerPriceUSD, getMarketPoolsPairs, isTwoStringsEqual } from "./common.ts";
+import { COLLATERAL_TOKENS, SupportedChain, chainIds, config } from "./config.ts";
+import { Pool } from "./fetchPools.ts";
+import { Address, Market } from "./types.ts";
 
 type sDaiPriceByChain = Record<SupportedChain, number>;
 
@@ -182,7 +90,17 @@ function getGenericTokenToLiquidityMapping(
       : [curr.balance0, curr.balance1];
     const liquidity =
       (tokenPriceInSDai * balanceToken + balanceCollateral) * (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
-    acc[curr.isToken0Collateral ? curr.token1.id : curr.token0.id] = {
+    const key = curr.isToken0Collateral ? curr.token1.id : curr.token0.id;
+    // if multiple pool, only use one with the highest collateral
+    if (acc[key]) {
+      const isCurrCollateralBalanceHigher =
+        (curr.isToken0Collateral && curr.balance0 > acc[key].tokenBalanceInfo.token0.balance) ||
+        (!curr.isToken0Collateral && curr.balance1 > acc[key].tokenBalanceInfo.token1.balance);
+      if (!isCurrCollateralBalanceHigher) {
+        return acc;
+      }
+    }
+    acc[key] = {
       liquidity,
       tokenPriceInSDai,
       tokenBalanceInfo: {
@@ -212,7 +130,17 @@ function getConditionalTokenToLiquidityMapping(
       : [curr.balance0, curr.balance1];
     const liquidity =
       (tokenPriceInSDai * balanceToken + balanceCollateral) * (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
-    acc[curr.isToken0Collateral ? curr.token1.id : curr.token0.id] = {
+    const key = curr.isToken0Collateral ? curr.token1.id : curr.token0.id;
+    // if multiple pool, only use one with the highest collateral
+    if (acc[key]) {
+      const isCurrCollateralBalanceHigher =
+        (curr.isToken0Collateral && curr.balance0 > acc[key].tokenBalanceInfo.token0.balance) ||
+        (!curr.isToken0Collateral && curr.balance1 > acc[key].tokenBalanceInfo.token1.balance);
+      if (!isCurrCollateralBalanceHigher) {
+        return acc;
+      }
+    }
+    acc[key] = {
       liquidity,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
@@ -261,9 +189,7 @@ export type LiquidityToMarketMapping = Record<
   }
 >;
 
-export async function getMarketsLiquidity(markets: Market[]): Promise<LiquidityToMarketMapping> {
-  const limit = pLimit(20);
-
+export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): Promise<LiquidityToMarketMapping> {
   const marketGroups = markets.reduce(
     (acc, market) => {
       if (market.type === "Generic") {
@@ -280,24 +206,28 @@ export async function getMarketsLiquidity(markets: Market[]): Promise<LiquidityT
     },
   );
 
-  const genericTokenPools: Pool[] = (
-    await Promise.all(marketGroups.genericMarkets.map((market) => limit(() => fetchMarketPools(market))))
-  )
-    .flat()
-    .filter((pool): pool is Pool => pool !== undefined);
-
-  const conditionalTokenPools: Pool[] = (
-    await Promise.all(marketGroups.conditionalMarkets.map((market) => limit(() => fetchMarketPools(market))))
-  )
-    .flat()
-    .filter((pool): pool is Pool => pool !== undefined);
-
-  const futarchyTokenPools: Pool[] = (
-    await Promise.all(marketGroups.futarchyMarkets.map((market) => limit(() => fetchMarketPools(market))))
-  )
-    .flat()
-    .filter((pool): pool is Pool => pool !== undefined);
-
+  const { genericTokenPools, conditionalTokenPools, futarchyTokenPools } = allPools.reduce(
+    (acc, curr) => {
+      const { market } = curr;
+      if (market.type === "Generic") {
+        market.parentMarket.id === zeroAddress
+          ? acc.genericTokenPools.push(curr)
+          : acc.conditionalTokenPools.push(curr);
+      } else if (market.type === "Futarchy") {
+        acc.futarchyTokenPools.push(curr);
+      }
+      return acc;
+    },
+    {
+      genericTokenPools: [],
+      conditionalTokenPools: [],
+      futarchyTokenPools: [],
+    } as {
+      genericTokenPools: Pool[];
+      conditionalTokenPools: Pool[];
+      futarchyTokenPools: Pool[];
+    },
+  );
   const sDaiPriceByChainMapping = await getsDaiPriceByChainMapping();
 
   const futarchyCollateralsByChainMapping = await getFutarchyCollateralsByChainMapping(marketGroups.futarchyMarkets);
