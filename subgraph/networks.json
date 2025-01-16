@@ -8,6 +8,10 @@
       "address": "0xEcFbc2272c85DEe97D7816CB25A4fFB80230942F",
       "startBlock": 37353745
     },
+    "FutarchyFactoryV2": {
+      "address": "0xe789e4A240d153AC55e32106821e785E71f6b792",
+      "startBlock": 38042685
+    },
     "Reality": {
       "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
       "startBlock": 36404701

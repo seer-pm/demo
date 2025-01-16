@@ -5,9 +5,9 @@
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
-    "build:gnosis": "graph build --network gnosis",
+    "build:gnosis": "ENABLE_FUTARCHY_FACTORY=true ./subgraph-template.sh && graph build --network gnosis",
     "deploy:gnosis": "graph deploy --studio seer-pm --network gnosis",
-    "build:mainnet": "graph build --network mainnet",
+    "build:mainnet": "ENABLE_FUTARCHY_FACTORY=false ./subgraph-template.sh && graph build --network mainnet",
     "deploy:mainnet": "graph deploy --studio seer-pm-mainnet --network mainnet",
     "create-local": "graph create --node http://localhost:8020/ xyzseer/seer-pm",
     "remove-local": "graph remove --node http://localhost:8020/ xyzseer/seer-pm",

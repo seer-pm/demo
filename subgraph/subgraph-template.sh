@@ -1,3 +1,6 @@
+#!/bin/bash
+ENABLE_FUTARCHY_FACTORY=${ENABLE_FUTARCHY_FACTORY:-"false"}
+cat <<EOF > subgraph.yaml
 specVersion: 1.0.0
 indexerHints:
   prune: auto
@@ -27,6 +30,9 @@ dataSources:
         - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
           handler: handleNewMarket
       file: ./src/market-factory.ts
+EOF
+if [ "$ENABLE_FUTARCHY_FACTORY" == "true" ]; then
+cat <<EOF >> subgraph.yaml 
   - kind: ethereum
     name: FutarchyFactory
     network: gnosis
@@ -50,6 +56,32 @@ dataSources:
         - event: NewProposal(indexed address,string,bytes32,bytes32)
           handler: handleNewProposal
       file: ./src/market-factory.ts
+  - kind: ethereum
+    name: FutarchyFactoryV2
+    network: gnosis
+    source:
+      abi: FutarchyFactory
+      address: "0x7e1acbb3C118A57E25C5fDcb1bFEae7443DfD1dB"
+      startBlock: 37314394
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities: []
+      abis:
+        - name: FutarchyFactory
+          file: ./abis/FutarchyFactory.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+        - name: FutarchyProposal
+          file: ./abis/FutarchyProposal.json
+      eventHandlers:
+        - event: NewProposal(indexed address,string,bytes32,bytes32)
+          handler: handleNewProposal
+      file: ./src/market-factory.ts
+EOF
+fi
+cat <<EOF >> subgraph.yaml 
   - kind: ethereum
     name: Reality
     network: gnosis
@@ -164,3 +196,4 @@ dataSources:
         - event: MetaEvidence(indexed uint256,string)
           handler: handleArbitratorMetaEvidence
       file: ./src/evidence-metadata.ts
+EOF
