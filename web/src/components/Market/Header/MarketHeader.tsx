@@ -325,7 +325,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
           {!isPendingOdds && (
             <span className="tooltip">
-              <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w[400px] ">
+              <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
               </p>
               <QuestionIcon fill="#9747FF" />
