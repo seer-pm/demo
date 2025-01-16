@@ -1,16 +1,11 @@
-import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { readContracts } from "@wagmi/core";
-import { subDays } from "date-fns";
-import { Address, erc20Abi, formatUnits } from "viem";
+import { Address, formatUnits } from "viem";
 
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
-import { isUndefined } from "@/lib/utils";
-import { BigNumber, ethers } from "ethers";
-import { getBlockNumberAtTime, getTokensInfo } from "../utils";
+import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
   tokenName: string;
@@ -28,114 +23,6 @@ export interface PortfolioPosition {
   parentMarketName?: string;
   parentOutcome?: string;
 }
-
-const getBalancesAtBlock = async (initialBlockNumber: number, allTokensIds: Address[], address: Address) => {
-  let blockNumber = initialBlockNumber;
-  const maxAttempts = 10; // Limit the number of attempts
-  let attempts = 0;
-
-  // Initialize results array with null values
-  const results = new Array(allTokensIds.length).fill(null) as bigint[];
-  let remainingIndices = allTokensIds.map((_, index) => index);
-
-  while (attempts < maxAttempts && remainingIndices.length > 0) {
-    try {
-      const batchResults = await readContracts(config, {
-        contracts: remainingIndices.map((index) => ({
-          abi: erc20Abi,
-          address: allTokensIds[index],
-          functionName: "balanceOf",
-          args: [address],
-        })),
-        allowFailure: true,
-        blockNumber: BigInt(blockNumber),
-      });
-      const newRemainingIndices: number[] = [];
-      // Process results
-      batchResults.forEach((result, batchIndex) => {
-        const originalIndex = remainingIndices[batchIndex];
-        if (!("error" in result)) {
-          results[originalIndex] = BigInt(result.result);
-        } else {
-          newRemainingIndices.push(originalIndex);
-        }
-      });
-
-      remainingIndices = newRemainingIndices;
-
-      // If all succeeded, return the results
-      if (remainingIndices.length === 0) {
-        return results;
-      }
-
-      // Increment block number and attempts
-      blockNumber++;
-      attempts++;
-    } catch (error) {
-      blockNumber++;
-      attempts++;
-    }
-  }
-  // if no result try one last time with ethers
-  if (!results.filter((x) => x).length) {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const data = await Promise.allSettled(
-        allTokensIds.map((tokenId) => {
-          const contract = new ethers.Contract(tokenId, erc20Abi, provider);
-          return contract
-            .balanceOf(address, {
-              blockTag: initialBlockNumber,
-            })
-            .then((data: BigNumber) => data.toBigInt());
-        }),
-      );
-      return data.map((result) => {
-        if (result.status === "fulfilled" && !isUndefined(result.value)) {
-          return result.value;
-        }
-        return null;
-      });
-    } catch (e) {}
-  }
-  return results;
-};
-
-const getHistoryBalanceMapping = async (
-  initialMarkets: Market[] | undefined,
-  address: Address,
-  chainId: SupportedChain,
-) => {
-  if (!initialMarkets) return {};
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
-  const tokenToMarket = markets.reduce(
-    (acum, market) => {
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum[tokenId] = {
-          marketAddress: market.id,
-          tokenIndex: i,
-        };
-      }
-      return acum;
-    },
-    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
-  );
-
-  const allTokensIds = Object.keys(tokenToMarket) as Address[];
-
-  // history balance
-  const yesterdayInSeconds = Math.floor(subDays(new Date(), 1).getTime() / 1000);
-  const blockNumber = await getBlockNumberAtTime(yesterdayInSeconds);
-  const historyBalances = await getBalancesAtBlock(blockNumber, allTokensIds, address);
-  return historyBalances.reduce(
-    (acc, balance, index) => {
-      acc[allTokensIds[index]] = balance > 0n ? Number(formatUnits(balance, 18)) : undefined;
-      return acc;
-    },
-    {} as { [key: string]: number | undefined },
-  );
-};
 
 export const fetchPositions = async (
   initialMarkets: Market[] | undefined,
@@ -211,16 +98,5 @@ export const usePositions = (address: Address, chainId: SupportedChain) => {
     enabled: !!address,
     queryKey: ["usePositions", address, !!markets, chainId],
     queryFn: async () => fetchPositions(markets, address, chainId),
-  });
-};
-
-export const useGetHistoryBalances = (address: Address | undefined, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
-  return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
-    enabled: !!address,
-    gcTime: 1000 * 60 * 60 * 24, //24 hours
-    staleTime: 0,
-    queryKey: ["useGetHistoryBalances", address, !!markets, chainId],
-    queryFn: async () => getHistoryBalanceMapping(markets, address!, chainId),
   });
 };
