@@ -126,11 +126,14 @@ async function getPoolHourDatasByToken(
       },
     });
     total = total.concat(poolHourDatas);
-    startTime = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
-    attempt++;
+    if (poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix === startTime) {
+      break;
+    }
     if (poolHourDatas.length < 1000) {
       break;
     }
+    startTime = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
+    attempt++;
   }
   return total;
 }

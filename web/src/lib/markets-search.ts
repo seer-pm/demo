@@ -218,26 +218,28 @@ export const fetchMarkets = async (
   }
 
   let markets: GetMarketsQuery["markets"] = [];
-
-  let skip = 0;
+  const maxAttempts = 20;
+  let attempt = 1;
+  let currentId = undefined;
   // try to fetch all markets on subgraph
-  // skip cannot be higher than 5000
-  while (skip <= 5000) {
+
+  while (attempt < maxAttempts) {
     const { markets: currentMarkets } = await getSeerSdk(client).GetMarkets({
-      where,
-      orderDirection: OrderDirection.Desc,
+      where: isUndefined(currentId) ? where : where ? { and: [where, { id_gt: currentId }] } : { id_gt: currentId },
+      orderDirection: OrderDirection.Asc,
+      orderBy: Market_OrderBy.Id,
       first: MARKETS_COUNT_PER_QUERY,
-      skip,
     });
     markets = markets.concat(currentMarkets);
-
+    if (currentMarkets[currentMarkets.length - 1]?.id === currentId) {
+      break;
+    }
     if (currentMarkets.length < MARKETS_COUNT_PER_QUERY) {
       break; // We've fetched all markets
     }
-
-    skip += MARKETS_COUNT_PER_QUERY;
+    currentId = currentMarkets[currentMarkets.length - 1]?.id;
+    attempt++;
   }
-
   const verificationStatusList = await getVerificationStatusList(chainId);
   let marketToMarketDataMapping: { [key: string]: MarketExtraData } | undefined;
   try {

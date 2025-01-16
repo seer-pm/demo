@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import { chainIds } from "./utils/config";
 import { fetchMarkets } from "./utils/fetchMarkets";
+import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketOdds } from "./utils/getMarketOdds";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
@@ -24,9 +25,12 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
       )
     ).flat();
 
+    const pools = await getAllMarketPools(markets);
+    if (!pools.length) throw "No pool found";
+
     // update liquidity for each market
     console.log("fetching liquidity...");
-    const liquidityToMarketMapping = await getMarketsLiquidity(markets);
+    const liquidityToMarketMapping = await getMarketsLiquidity(markets, pools);
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
@@ -60,7 +64,7 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
     //update incentive for each market (currently only gnosis markets have)
     //TODO: mainnet markets incentives
     console.log("fetching incentives...");
-    const marketToIncentiveMapping = await getMarketsIncentive(markets);
+    const marketToIncentiveMapping = await getMarketsIncentive(pools);
     const { error: errorIncentive } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
@@ -71,9 +75,9 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
     if (errorIncentive) {
       throw errorIncentive;
     }
+    console.log("Batch odds background ok");
   } catch (e) {
     console.log(e);
   }
-  console.log("Batch odds background ok");
   return {};
 };

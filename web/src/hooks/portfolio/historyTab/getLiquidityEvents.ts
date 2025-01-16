@@ -65,11 +65,14 @@ export async function getLiquidityEvents(mappings: MarketDataMapping, account: s
     });
     const mints = data.mints as GetMintsQuery["mints"];
     total = total.concat(mints);
-    timestamp = mints[mints.length - 1]?.timestamp;
-    attempt++;
+    if (mints[mints.length - 1]?.timestamp === timestamp) {
+      break;
+    }
     if (mints.length < 1000) {
       break;
     }
+    timestamp = mints[mints.length - 1]?.timestamp;
+    attempt++;
   }
   return total.reduce((acc, swap) => {
     const amount0 = parseUnits(Math.abs(Number(swap.amount0)).toString(), Number(swap.token0.decimals));
