@@ -91,7 +91,12 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
       router,
       market: market,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
+      collateralToken:
+        market.type === "Futarchy"
+          ? selectedCollateral.address
+          : !useAltCollateral
+            ? selectedCollateral.address
+            : undefined,
     });
   };
 

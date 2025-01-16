@@ -74,7 +74,12 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
       router: router,
       market: market,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
+      collateralToken:
+        market.type === "Futarchy"
+          ? selectedCollateral.address
+          : !useAltCollateral
+            ? selectedCollateral.address
+            : undefined,
     });
   };
 

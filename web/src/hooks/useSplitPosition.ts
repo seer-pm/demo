@@ -1,5 +1,5 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { CHAIN_ROUTERS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -17,31 +17,38 @@ interface SplitPositionProps {
   router: Address;
   market: Market;
   amount: bigint;
-  isMainCollateral: boolean;
+  collateralToken: Address | undefined;
 }
 
-async function splitFromRouter(isMainCollateral: boolean, router: Address, market: Market, amount: bigint) {
+async function splitFromRouter(collateralToken: Address | undefined, router: Address, market: Market, amount: bigint) {
   if (market.type === "Futarchy") {
+    // futarchy markets have two collateral tokens
+    if (!collateralToken) {
+      throw new Error("Missing collateral token to split");
+    }
     return await writeFutarchyRouterSplitPosition(config, {
-      args: [market.id, isMainCollateral, amount],
+      args: [market.id, collateralToken, amount],
     });
   }
 
-  if (isMainCollateral) {
+  if (collateralToken) {
+    // split from the market main collateral (sDAI)
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "splitPosition",
-      args: [COLLATERAL_TOKENS[market.chainId].primary.address, market.id, amount],
+      args: [collateralToken, market.id, amount],
     });
   }
 
   if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
+    // split from DAI on mainnet
     return await writeMainnetRouterSplitFromDai(config, {
       args: [market.id, amount],
     });
   }
 
+  // split from xDAI on gnosis
   return await writeGnosisRouterSplitFromBase(config, {
     args: [market.id],
     value: amount,
@@ -50,7 +57,7 @@ async function splitFromRouter(isMainCollateral: boolean, router: Address, marke
 
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () => splitFromRouter(props.isMainCollateral, props.router, props.market, props.amount),
+    () => splitFromRouter(props.collateralToken, props.router, props.market, props.amount),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
   );
 

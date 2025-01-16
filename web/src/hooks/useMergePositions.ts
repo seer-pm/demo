@@ -1,5 +1,5 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { CHAIN_ROUTERS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -17,31 +17,38 @@ interface MergePositionProps {
   router: Address;
   market: Market;
   amount: bigint;
-  isMainCollateral: boolean;
+  collateralToken: Address | undefined;
 }
 
-async function mergeFromRouter(isMainCollateral: boolean, router: Address, market: Market, amount: bigint) {
+async function mergeFromRouter(collateralToken: Address | undefined, router: Address, market: Market, amount: bigint) {
   if (market.type === "Futarchy") {
+    // futarchy markets have two collateral tokens
+    if (!collateralToken) {
+      throw new Error("Missing collateral token to merge");
+    }
     return await writeFutarchyRouterMergePositions(config, {
-      args: [market.id, isMainCollateral, amount],
+      args: [market.id, collateralToken, amount],
     });
   }
 
-  if (isMainCollateral) {
+  if (collateralToken) {
+    // merge to the market main collateral (sDAI)
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "mergePositions",
-      args: [COLLATERAL_TOKENS[market.chainId].primary.address, market.id, amount],
+      args: [collateralToken, market.id, amount],
     });
   }
 
   if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
+    // merge to DAI on mainnet
     return await writeMainnetRouterMergeToDai(config, {
       args: [market.id, amount],
     });
   }
 
+  // merge to xDAI on gnosis
   return await writeGnosisRouterMergeToBase(config, {
     args: [market.id, amount],
   });
@@ -49,7 +56,7 @@ async function mergeFromRouter(isMainCollateral: boolean, router: Address, marke
 
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () => mergeFromRouter(props.isMainCollateral, props.router, props.market, props.amount),
+    () => mergeFromRouter(props.collateralToken, props.router, props.market, props.amount),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
   );
 
