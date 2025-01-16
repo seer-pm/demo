@@ -39,7 +39,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useHistoryTransactions")) {
                   return true;
                 }
-                if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useOddChartData")) {
+                if (defaultShouldDehydrateQuery(query) && query.queryHash.includes("useChartData")) {
                   return true;
                 }
                 return false;

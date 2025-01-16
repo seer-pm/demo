@@ -1,4 +1,5 @@
-import { useOddChartData } from "@/hooks/chart/useOddChartData";
+import { ChartData } from "@/hooks/chart/getChartData";
+import { useChartData } from "@/hooks/chart/useChartData";
 import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
@@ -26,22 +27,41 @@ const chartOptions = {
 
 type ChartOptionPeriod = keyof typeof chartOptions;
 
+function getSeries(market: Market, chartData: ChartData["chartData"]) {
+  if (market.type === "Futarchy") {
+    return chartData
+      .map((x, index) => {
+        return {
+          ...x,
+          data: x.data,
+          originalIndex: index,
+        };
+      })
+      .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
+  }
+
+  if (getMarketType(market) === MarketTypes.SCALAR) {
+    return chartData;
+  }
+
+  return chartData
+    .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
+    .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
+}
+
 function MarketChart({ market }: { market: Market }) {
   const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
-  const { data, isLoading: isLoadingChart } = useOddChartData(
+  const { data, isPending: isPendingChart } = useChartData(
     market,
     chartOptions[period].dayCount,
     chartOptions[period].interval,
   );
+
   const { chartData = [], timestamps = [] } = data ?? {};
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
-  const finalChartData = isScalarMarket
-    ? chartData
-    : chartData
-        .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
-        .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
+  const series = getSeries(market, chartData);
 
   const option = {
     color: [
@@ -56,9 +76,14 @@ function MarketChart({ market }: { market: Market }) {
       "#9A6324",
       "#ffe119",
     ],
+
     tooltip: {
       trigger: "axis",
       valueFormatter: (value: number) => {
+        if (market.type === "Futarchy") {
+          return `${value}`;
+        }
+
         if (isScalarMarket) {
           return `${Number(value).toLocaleString()}`;
         }
@@ -68,9 +93,13 @@ function MarketChart({ market }: { market: Market }) {
         return `${value}%`;
       },
     },
+
     legend: {
       formatter: (name: string) => {
-        const odds = finalChartData.map((x) => x.data[x.data.length - 1][1]);
+        if (market.type === "Futarchy") {
+          return name;
+        }
+        const odds = series.map((x) => x.data[x.data.length - 1][1]);
         if (isScalarMarket) {
           return `${name} ${getMarketEstimate(odds, market, true)}`;
         }
@@ -109,18 +138,23 @@ function MarketChart({ market }: { market: Market }) {
           formatter: (params: { value: number }) => format(params.value * 1000, "MMM dd, hh:mmaaa"),
         },
       },
+
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
         customValues: timestamps.filter((_, index) => index % 4 === 0),
       },
     },
+
     yAxis: {
       min: "dataMin",
       max: "dataMax",
-
       axisLabel: {
         formatter: (value: number) => {
+          if (market.type === "Futarchy") {
+            return `${Number(value).toLocaleString()}`;
+          }
+
           if (isScalarMarket) {
             return `${Number(value).toLocaleString()}`;
           }
@@ -131,7 +165,7 @@ function MarketChart({ market }: { market: Market }) {
         },
       },
     },
-    series: finalChartData,
+    series,
   };
 
   return (
@@ -160,10 +194,10 @@ function MarketChart({ market }: { market: Market }) {
             <QuestionIcon fill="#9747FF" />
           </div>
         </div>
-        {isLoadingChart ? (
+        {isPendingChart ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
-        ) : chartData?.length ? (
-          <ReactECharts key={finalChartData[0].name} option={option} />
+        ) : series.length > 0 ? (
+          <ReactECharts key={series[0].name} option={option} />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
