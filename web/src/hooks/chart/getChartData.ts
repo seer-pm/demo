@@ -79,6 +79,7 @@ async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: Sup
 async function getPoolHourDatasByToken(
   poolPairs: Token0Token1,
   initialStartTime: number,
+  lastPointBeforeStartTime: boolean,
   chainId: SupportedChain,
 ): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -93,8 +94,13 @@ async function getPoolHourDatasByToken(
   let attempt = 1;
   let startTime = initialStartTime;
   while (attempt < maxAttempts) {
+    const dateOperator = lastPointBeforeStartTime
+      ? "periodStartUnix_lte"
+      : attempt === 1
+        ? "periodStartUnix_gte"
+        : "periodStartUnix_gt";
     const { poolHourDatas } = await graphQLSdk(graphQLClient).GetPoolHourDatas({
-      first: 1000,
+      first: lastPointBeforeStartTime ? 1 : 1000,
       // biome-ignore lint/suspicious/noExplicitAny:
       orderBy: PoolHourData_OrderBy.PeriodStartUnix as any,
       // biome-ignore lint/suspicious/noExplicitAny:
@@ -104,7 +110,7 @@ async function getPoolHourDatasByToken(
           { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
           {
             pool_: poolPairs,
-            ...(attempt === 1 ? { periodStartUnix_gte: startTime } : { periodStartUnix_gt: startTime }),
+            [dateOperator]: startTime,
           },
         ],
       },
@@ -124,10 +130,30 @@ async function getPoolHourDatasByToken(
 
 type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];
 
+async function getChartHourDatas(poolPairs: Token0Token1, startTime: number, endTime: number, chainId: SupportedChain) {
+  let poolHourData = await getPoolHourDatasByToken(poolPairs, startTime, false, chainId);
+
+  if (poolHourData.length > 0) {
+    return poolHourData;
+  }
+
+  // If no data exists for the requested time period, fetch the last available data point before this period
+  // and use it to create a constant line across the entire period
+  poolHourData = await getPoolHourDatasByToken(poolPairs, startTime, true, chainId);
+
+  if (poolHourData.length === 1) {
+    poolHourData[0].periodStartUnix = startTime;
+    poolHourData.push({ ...poolHourData[0], periodStartUnix: endTime });
+  }
+
+  return poolHourData;
+}
+
 async function getPoolHourDatas(
   poolsPairs: Token0Token1[],
   chainId: SupportedChain,
   startTime: number,
+  endTime: number,
 ): Promise<PoolHourDatasSets> {
   if (poolsPairs.length === 0) {
     return [];
@@ -142,7 +168,7 @@ async function getPoolHourDatas(
   ]);
   return await Promise.all(
     poolsPairs.map((poolPairs, index) => {
-      return getPoolHourDatasByToken(poolPairs, lastNotEmptyStartTimes[index] ?? startTime, chainId);
+      return getChartHourDatas(poolPairs, lastNotEmptyStartTimes[index] ?? startTime, endTime, chainId);
     }),
   );
 }
@@ -176,7 +202,8 @@ function getTimestamps(
     currentTimestamp += interval;
   }
 
-  timestamps = timestamps.filter((timestamp) => timestamp < latestPoolHourDataTimestamp);
+  timestamps = timestamps.filter((timestamp) => timestamp <= latestPoolHourDataTimestamp);
+
   if (timestamps.length) {
     timestamps = [...timestamps, latestPoolHourDataTimestamp];
   }
@@ -381,7 +408,7 @@ export async function getChartData(market: Market, dayCount: number, interval: n
   try {
     const { firstTimestamp, lastTimestamp } = getFirstAndLastTimestamps(market, interval, dayCount);
 
-    const poolHourDatasSets = await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp);
+    const poolHourDatasSets = await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp, lastTimestamp);
 
     const latestPoolHourDataTimestamp = Math.max(...poolHourDatasSets.flat().map((x) => x.periodStartUnix));
 
