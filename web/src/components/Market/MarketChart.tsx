@@ -103,8 +103,8 @@ function MarketChart({ market }: { market: Market }) {
         if (isScalarMarket) {
           return `${name} ${Number(latestDataSet[0]).toLocaleString()}`;
         }
-        for (let i = 0; i < market.outcomes.length; i++) {
-          const outcome = market.outcomes[i];
+        for (let i = 0; i < series.length; i++) {
+          const outcome = series[i].name;
           if (name === outcome) {
             if (isMultiCategoricalMarket) {
               return `${name} ${!isOdd(latestDataSet[i]) ? "NA" : (latestDataSet[i] / 100).toFixed(3)}`;
