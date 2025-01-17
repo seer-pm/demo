@@ -12,9 +12,7 @@ const MarkdownRenderer: DocRenderer = ({ mainState: { currentDocument } }) => {
         className="bg-white"
         components={{
           a: ({ node, ...props }) => <a className="text-base" {...props} />,
-          code: ({ node, ...props }) => (
-            <code className="text-secondary" {...props} />
-          ),
+          code: ({ node, ...props }) => <code className="text-secondary" {...props} />,
         }}
       >
         {decodedData}

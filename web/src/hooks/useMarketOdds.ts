@@ -1,12 +1,12 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getLiquidityPairForToken } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
-import { Market, useMarket } from "./useMarket";
+import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
-import { useTokenInfo } from "./useTokenInfo";
+import { getTokenInfo } from "./useTokenInfo";
 
 export function normalizeOdds(prices: number[]): number[] {
   const sumArray = (data: number[]) =>
@@ -58,14 +58,7 @@ async function getTokenPrice(
 }
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-
-  const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
+  const hasLiquidity = useMarketHasLiquidity(market);
   return useQuery<number[] | undefined, Error>({
     enabled,
     queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity, market.odds],
@@ -73,16 +66,17 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
     staleTime: 0,
     ...(market.odds.length > 0 && market.odds.every((x) => x !== null) && { initialData: market.odds as number[] }),
     queryFn: async () => {
-      if (!hasLiquidity) {
+      if (!hasLiquidity || market.type === "Futarchy") {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
 
       const BUY_AMOUNT = 3; //collateral token
 
       const prices = await Promise.all(
-        market.wrappedTokens.map(async (wrappedAddress) => {
+        market.wrappedTokens.map(async (wrappedToken, i) => {
           try {
-            const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
+            const collateralToken = await getTokenInfo(getLiquidityPairForToken(market, i), market.chainId);
+            const price = await getTokenPrice(wrappedToken, collateralToken, market.chainId, String(BUY_AMOUNT));
 
             if (price === 0n) {
               return 0;

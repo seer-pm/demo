@@ -1,64 +1,63 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { RouterTypes } from "@/lib/config";
+import { CHAIN_ROUTERS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { writeGnosisRouterSplitFromBase, writeMainnetRouterSplitFromDai } from "./contracts/generated";
+import {
+  writeFutarchyRouterSplitPosition,
+  writeGnosisRouterSplitFromBase,
+  writeMainnetRouterSplitFromDai,
+} from "./contracts/generated";
+import { Market } from "./useMarket";
 
 interface SplitPositionProps {
-  account: Address;
   router: Address;
-  market: Address;
-  collateralToken: Address;
-  outcomeSlotCount: number;
+  market: Market;
   amount: bigint;
-  isMainCollateral: boolean;
-  routerType: RouterTypes;
+  collateralToken: Address | undefined;
 }
 
-async function splitFromRouter(
-  isMainCollateral: boolean,
-  routerType: RouterTypes,
-  router: Address,
-  collateralToken: Address,
-  market: Address,
-  amount: bigint,
-) {
-  if (isMainCollateral) {
+async function splitFromRouter(collateralToken: Address | undefined, router: Address, market: Market, amount: bigint) {
+  if (market.type === "Futarchy") {
+    // futarchy markets have two collateral tokens
+    if (!collateralToken) {
+      throw new Error("Missing collateral token to split");
+    }
+    return await writeFutarchyRouterSplitPosition(config, {
+      args: [market.id, collateralToken, amount],
+    });
+  }
+
+  if (collateralToken) {
+    // split from the market main collateral (sDAI)
     return await writeContract(config, {
       address: router,
       abi: RouterAbi,
       functionName: "splitPosition",
-      args: [collateralToken, market, amount],
+      args: [collateralToken, market.id, amount],
     });
   }
 
-  if (routerType === "mainnet") {
+  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
+    // split from DAI on mainnet
     return await writeMainnetRouterSplitFromDai(config, {
-      args: [market, amount],
+      args: [market.id, amount],
     });
   }
 
+  // split from xDAI on gnosis
   return await writeGnosisRouterSplitFromBase(config, {
-    args: [market],
+    args: [market.id],
     value: amount,
   });
 }
 
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () =>
-      splitFromRouter(
-        props.isMainCollateral,
-        props.routerType,
-        props.router,
-        props.collateralToken,
-        props.market,
-        props.amount,
-      ),
+    () => splitFromRouter(props.collateralToken, props.router, props.market, props.amount),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
   );
 

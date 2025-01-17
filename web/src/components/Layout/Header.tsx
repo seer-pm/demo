@@ -22,6 +22,7 @@ import {
 import { paths } from "@/lib/paths";
 import { fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useDisconnect } from "wagmi";
 import AccountDisplay from "../ConnectWallet/AccountDisplay";
@@ -108,6 +109,7 @@ function AccountSettings() {
 
 export default function Header() {
   const pageContext = usePageContext();
+  const { chainId = DEFAULT_CHAIN } = useAccount();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
@@ -157,6 +159,13 @@ export default function Header() {
               Create Market
             </Link>
           </li>
+          {chainId === gnosis.id && (
+            <li>
+              <Link to={"/futarchy"} className="whitespace-nowrap hover:opacity-85">
+                Futarchy
+              </Link>
+            </li>
+          )}
           <li>
             <div className="dropdown dropdown-end">
               <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
@@ -165,12 +174,12 @@ export default function Header() {
               <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <Link to={"/policy/verified"} className="flex items-center space-x-2">
-                      <PolicyIcon /> <span> Verified Market Policy </span>
+                    <PolicyIcon /> <span> Verified Market Policy </span>
                   </Link>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <Link to={"/policy/rules"} className="flex items-center space-x-2">
-                      <PolicyIcon /> <span>Market Rules Policy</span>
+                    <PolicyIcon /> <span>Market Rules Policy</span>
                   </Link>
                 </li>
               </ul>
@@ -332,6 +341,13 @@ function MobileMenu() {
               Create Market
             </Link>
           </li>
+          {chainId === gnosis.id && (
+            <li>
+              <Link to={"/futarchy"} className="hover:font-semibold">
+                Futarchy
+              </Link>
+            </li>
+          )}
           <li>
             <div>
               <span>Policies</span>

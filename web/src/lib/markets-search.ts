@@ -8,6 +8,7 @@ import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/
 import {
   GetMarketQuery,
   GetMarketsQuery,
+  MarketType,
   Market_Filter,
   Market_OrderBy,
   OrderDirection,
@@ -275,6 +276,7 @@ export const fetchMarkets = async (
   return markets
     .map((market) => {
       const marketExtraData = marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
+      console.log({ marketExtraData });
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
@@ -291,6 +293,7 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
+  type: "Generic" | "Futarchy" | "",
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -301,6 +304,10 @@ export async function searchGraphMarkets(
 
   let where: Market_Filter = { marketName_contains_nocase: marketName };
   const or = [];
+
+  if (type) {
+    where["type"] = type as MarketType;
+  }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
     or.push({

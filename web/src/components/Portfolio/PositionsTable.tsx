@@ -54,13 +54,11 @@ export function MarketImage({
 
 function RedeemModalContent({
   account,
-  router,
   marketId,
   chainId,
   closeModal,
 }: {
   account?: Address;
-  router: Address;
   marketId: Address;
   chainId: SupportedChain;
   closeModal: () => void;
@@ -72,10 +70,11 @@ function RedeemModalContent({
   if (!market) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
   }
+  const router = getRouterAddress(market);
   return (
     <div className="space-y-4">
       <p className="font-semibold text-purple-primary">{market.marketName}</p>
-      <RedeemForm account={account} router={router} market={market} successCallback={() => closeModal()} />
+      <RedeemForm account={account} router={router!} market={market} successCallback={() => closeModal()} />
     </div>
   );
 }
@@ -83,7 +82,7 @@ function RedeemModalContent({
 export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const { address: account } = useAccount();
-  const router = getRouterAddress(chainId);
+
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
@@ -241,7 +240,6 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               </button>
               <RedeemModalContent
                 account={account}
-                router={router}
                 marketId={selectedMarketId as Address}
                 chainId={chainId}
                 closeModal={closeModal}

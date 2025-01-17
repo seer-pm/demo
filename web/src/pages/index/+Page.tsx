@@ -6,9 +6,11 @@ import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { useEffect } from "react";
+import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 
-function PageContent({ params }: { params: UseMarketsProps }) {
+function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; params: UseMarketsProps }) {
+  params.type = isFutarchyPage ? "Futarchy" : "Generic";
   const results = useMarkets(params);
   const {
     data: markets = [],
@@ -18,8 +20,8 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
-      <div className="text-[24px] font-semibold">Markets</div>
-      <MarketsFilter />
+      <div className="text-[24px] font-semibold">{isFutarchyPage ? "Proposals" : "Markets"}</div>
+      <MarketsFilter isFutarchyPage={isFutarchyPage} />
 
       {isPending && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -41,6 +43,8 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 }
 
 function Home() {
+  const { pageId } = usePageContext();
+  const isFutarchyPage = pageId === "/src/pages/futarchy";
   const params = useMarketsSearchParams();
 
   useEffect(() => {
@@ -50,7 +54,7 @@ function Home() {
     }
   }, []);
 
-  return <PageContent params={params} />;
+  return <PageContent isFutarchyPage={isFutarchyPage} params={params} />;
 }
 
 export default Home;

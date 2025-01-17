@@ -79,5 +79,6 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
   } catch (e) {
     console.log(e);
   }
+  console.log("Batch odds background ok");
   return {};
 };
