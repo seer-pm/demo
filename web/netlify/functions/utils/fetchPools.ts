@@ -19,22 +19,14 @@ export interface Pool {
   market: Market;
 }
 
-export async function fetchTokenBalances(tokenList: { token: Address; owner: Address }[], chainId: SupportedChain) {
+export async function fetchTokenBalances(
+  tokenList: { token: Address; owner: Address }[],
+  chainId: SupportedChain,
+  groupCount: number,
+  retry?: boolean,
+) {
   try {
-    return await readContracts(config, {
-      allowFailure: false,
-      contracts: tokenList.map(({ token, owner }) => ({
-        address: token,
-        abi: erc20Abi,
-        args: [owner],
-        functionName: "balanceOf",
-        chainId,
-      })),
-      batchSize: 0,
-    });
-  } catch (e) {
-    // try to batch call 8 each
-    const groupCount = 8;
+    // try to batch call
     let balances: bigint[] = [];
     for (let i = 0; i < Math.ceil(tokenList.length / groupCount); i++) {
       const data = await readContracts(config, {
@@ -53,6 +45,11 @@ export async function fetchTokenBalances(tokenList: { token: Address; owner: Add
       await new Promise((res) => setTimeout(res, 200));
     }
     return balances;
+  } catch (e) {
+    if (retry) {
+      return await fetchTokenBalances(tokenList, chainId, 8);
+    }
+    throw e;
   }
 }
 
@@ -142,7 +139,7 @@ export async function getAllMarketPools(markets: Market[]) {
           },
           [] as { token: `0x${string}`; owner: `0x${string}` }[],
         );
-        const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId)) as bigint[];
+        const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId, 50, true)) as bigint[];
         const poolTokenBalanceMapping = tokenPoolList.reduce(
           (acc, curr, index) => {
             acc[`${curr.token}-${curr.owner}`] = Number(Number(formatUnits(poolTokenBalances[index], 18)).toFixed(4));
