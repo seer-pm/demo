@@ -207,7 +207,7 @@ function getTimestamps(
   if (timestamps.length) {
     timestamps = [...timestamps, latestPoolHourDataTimestamp];
   }
-  return timestamps;
+  return Array.from(new Set(timestamps));
 }
 
 function getGenericMarketData(
