@@ -2,7 +2,7 @@ import { ChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
 import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
-import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -99,17 +99,17 @@ function MarketChart({ market }: { market: Market }) {
         if (market.type === "Futarchy") {
           return name;
         }
-        const odds = series.map((x) => x.data[x.data.length - 1][1]);
+        const latestDataSet = series.map((x) => x.data[x.data.length - 1][1]);
         if (isScalarMarket) {
-          return `${name} ${getMarketEstimate(odds, market, true)}`;
+          return `${name} ${Number(latestDataSet[0]).toLocaleString()}`;
         }
         for (let i = 0; i < market.outcomes.length; i++) {
           const outcome = market.outcomes[i];
           if (name === outcome) {
             if (isMultiCategoricalMarket) {
-              return `${name} ${!isOdd(odds[i]) ? "NA" : (odds[i] / 100).toFixed(3)}`;
+              return `${name} ${!isOdd(latestDataSet[i]) ? "NA" : (latestDataSet[i] / 100).toFixed(3)}`;
             }
-            return `${name} ${!isOdd(odds[i]) ? "NA" : `${odds[i]}%`}`;
+            return `${name} ${!isOdd(latestDataSet[i]) ? "NA" : `${latestDataSet[i]}%`}`;
           }
         }
         return name;
