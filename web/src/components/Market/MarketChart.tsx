@@ -12,17 +12,17 @@ import { useState } from "react";
 const chartOptions = {
   "1D": {
     dayCount: 1,
-    interval: 60 * 60,
+    interval: 60 * 5,
   },
   "1W": {
     dayCount: 7,
-    interval: 60 * 60 * 24,
+    interval: 60 * 30,
   },
   "1M": {
     dayCount: 30,
-    interval: 60 * 60 * 24,
+    interval: 60 * 60 * 3,
   },
-  All: { dayCount: 365 * 10, interval: 60 * 60 * 24 },
+  All: { dayCount: 365 * 10, interval: 60 * 60 * 12 },
 };
 
 type ChartOptionPeriod = keyof typeof chartOptions;
@@ -79,6 +79,9 @@ function MarketChart({ market }: { market: Market }) {
 
     tooltip: {
       trigger: "axis",
+      axisPointer: {
+        type: "none",
+      },
       valueFormatter: (value: number) => {
         if (market.type === "Futarchy") {
           return `${value}`;
@@ -131,7 +134,7 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: timestamps.filter((_, index) => index % 4 === 0),
+        customValues: timestamps.filter((_, index) => index % Math.floor(timestamps.length / 5) === 0),
       },
       axisPointer: {
         label: {
@@ -142,7 +145,7 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: timestamps.filter((_, index) => index % 4 === 0),
+        customValues: timestamps.filter((_, index) => index % Math.floor(timestamps.length / 5) === 0),
       },
     },
 
@@ -165,7 +168,12 @@ function MarketChart({ market }: { market: Market }) {
         },
       },
     },
-    series,
+    series: series.map((x) => ({
+      ...x,
+      symbol: "circle",
+      symbolSize: 7,
+      showSymbol: false,
+    })),
   };
 
   return (
