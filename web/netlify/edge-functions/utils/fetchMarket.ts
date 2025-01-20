@@ -1,7 +1,6 @@
 import { unescapeJson } from "./common.ts";
-import { SupportedChain } from "./config.ts";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, SEER_SUBGRAPH_URLS, zeroAddress } from "./constants.ts";
-import { Address, Market, VerificationResult } from "./types.ts";
+import { Address, Market, SupportedChain, VerificationResult } from "./types.ts";
 
 export async function fetchMarket(marketId: string, chainId: string, verificationStatusList) {
   if (!marketId) {

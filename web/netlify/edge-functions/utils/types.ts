@@ -1,5 +1,9 @@
-import { isUndefined } from "./common.ts";
-import { SupportedChain } from "./config.ts";
+import { gnosis, mainnet, sepolia } from "https://esm.sh/viem@2.17.5/chains";
+import { REALITY_TEMPLATE_MULTIPLE_SELECT, REALITY_TEMPLATE_SINGLE_SELECT } from "./constants.ts";
+
+const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
+
+export type SupportedChain = (typeof chainIds)[number];
 
 export enum MarketStatus {
   NOT_OPEN = "not_open",
@@ -57,66 +61,25 @@ export interface Question {
   min_bond: bigint;
 }
 
-export type ColorConfig = {
-  backgroundColor: string;
-  color: string;
-};
-export const COLORS: Record<MarketStatus, ColorConfig> = {
-  [MarketStatus.NOT_OPEN]: {
-    backgroundColor: "#FBFBFB",
-    color: "#25cdfe",
-  },
-  [MarketStatus.OPEN]: {
-    backgroundColor: "#FBF8FF",
-    color: "#9747FF",
-  },
-  [MarketStatus.ANSWER_NOT_FINAL]: {
-    backgroundColor: "#FFF9F0",
-    color: "#FF9900",
-  },
-  [MarketStatus.IN_DISPUTE]: {
-    backgroundColor: "#F8FAFF",
-    color: "#200FB9",
-  },
-  [MarketStatus.PENDING_EXECUTION]: {
-    backgroundColor: "#E5FDFF",
-    color: "#13C0CB",
-  },
-  [MarketStatus.CLOSED]: {
-    backgroundColor: "#F0FBF2",
-    color: "#00C42B",
-  },
-};
-
-export const STATUS_TEXTS: Record<MarketStatus, (hasLiquidity?: boolean) => string> = {
-  [MarketStatus.NOT_OPEN]: (hasLiquidity?: boolean) => {
-    if (isUndefined(hasLiquidity)) {
-      return "Reports not open yet";
-    }
-
-    return hasLiquidity ? "Trading Open" : "Liquidity Required";
-  },
-  [MarketStatus.OPEN]: () => "Reports open",
-  [MarketStatus.ANSWER_NOT_FINAL]: () => "Waiting for answer",
-  [MarketStatus.IN_DISPUTE]: () => "In Dispute",
-  [MarketStatus.PENDING_EXECUTION]: () => "Pending execution",
-  [MarketStatus.CLOSED]: () => "Closed",
-};
-
-export interface Token {
-  address: Address;
-  symbol: string;
-  decimals: number;
-  wrapped?: Token;
+export enum MarketTypes {
+  CATEGORICAL = "categorical",
+  SCALAR = "scalar",
+  MULTI_CATEGORICAL = "multi_categorical",
+  MULTI_SCALAR = "multi_scalar",
 }
 
-export enum Status {
-  /** The item is not registered on the TCR and there are no pending requests. */
-  Absent = "Absent",
-  /** The item is registered on the TCR, but there is a pending removal request. These are sometimes also called removal requests. */
-  ClearingRequested = "ClearingRequested",
-  /** The item is registered and there are no pending requests. */
-  Registered = "Registered",
-  /** The item is not registered on the TCR, but there is a pending registration request. */
-  RegistrationRequested = "RegistrationRequested",
+export function getMarketType(market: Market): MarketTypes {
+  if (market.templateId === BigInt(REALITY_TEMPLATE_SINGLE_SELECT)) {
+    return MarketTypes.CATEGORICAL;
+  }
+
+  if (market.templateId === BigInt(REALITY_TEMPLATE_MULTIPLE_SELECT)) {
+    return MarketTypes.MULTI_CATEGORICAL;
+  }
+
+  if (market.questions.length > 1) {
+    return MarketTypes.MULTI_SCALAR;
+  }
+
+  return MarketTypes.SCALAR;
 }

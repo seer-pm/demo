@@ -1,6 +1,5 @@
 import { formatUnits } from "https://esm.sh/viem@2.17.5";
-import { MarketTypes } from "./market.ts";
-import { Market } from "./types.ts";
+import { Market, MarketTypes } from "./types.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny:
 export const isUndefined = (maybeObject: any): maybeObject is undefined | null => {

@@ -2,11 +2,10 @@ import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
 import React from "https://esm.sh/react@18.2.0";
 import { isAddress } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
-import { displayBalance, formatBigNumbers, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
+import { formatBigNumbers, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, VITE_SUPABASE_API_KEY, VITE_SUPABASE_PROJECT_URL } from "./utils/constants.ts";
 import { fetchMarket } from "./utils/fetchMarket.ts";
-import { convertFromSDAI } from "./utils/handleSDai.ts";
-import { MarketTypes, getMarketType } from "./utils/market.ts";
+import { MarketTypes, getMarketType } from "./utils/types.ts";
 
 async function fetchMarketDataById(
   marketId: string,
