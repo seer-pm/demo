@@ -78,7 +78,7 @@ async function sendPendingNotifications() {
   }
 }
 
-export const handler = async () => {
+export default async () => {
   try {
     await sendPendingNotifications();
   } catch (e) {

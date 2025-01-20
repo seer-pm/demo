@@ -6,7 +6,7 @@ import { SEER_SUBGRAPH_URLS } from "./utils/constants.ts";
 
 require("dotenv").config();
 
-export const handler = async () => {
+export default async () => {
   const chainId = 100;
   const now = Math.round(new Date().getTime() / 1000);
 

@@ -463,7 +463,7 @@ async function processNetworkEvents(networkId: SupportedChain) {
   console.log(`[Network ${networkId}] Finished processing events`);
 }
 
-export const handler = async () => {
+export default async () => {
   try {
     await Promise.all(
       Object.keys(NETWORK_CONTRACTS).map((networkId) =>
