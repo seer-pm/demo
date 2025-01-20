@@ -110,7 +110,7 @@ function CollateralField({ collateralNumber, useFormReturn, chainId, searchColla
 
   return (
     <div className="text-left">
-      <div className="text-[14px] mb-[10px]">{collateralNumber === 1 ? "Main Token" : "Quote Token"}</div>
+      <div className="text-[14px] mb-[10px]">{collateralNumber === 1 ? "Token" : "Currency"}</div>
       <div className="relative">
         <Input
           autoComplete="off"
