@@ -470,11 +470,8 @@ export const handler = async () => {
         processNetworkEvents(Number(networkId) as SupportedChain)
       )
     );
-
-    return { statusCode: 200 };
   } catch (e) {
     console.error("Error in notification events loader:", e);
-    return { statusCode: 501 };
   }
 };
 

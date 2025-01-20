@@ -54,11 +54,7 @@ export const handler = async () => {
       }),
     ),
   );
-
-  return {
-    statusCode: 200,
-    result: result,
-  };
+  console.log(result);
 };
 
 export const config: Config = {

@@ -81,10 +81,8 @@ async function sendPendingNotifications() {
 export const handler = async () => {
   try {
     await sendPendingNotifications();
-    return { statusCode: 200 };
   } catch (e) {
     console.error("Error in notification events sender:", e);
-    return { statusCode: 501 };
   }
 };
 
