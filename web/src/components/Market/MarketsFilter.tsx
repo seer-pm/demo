@@ -49,6 +49,11 @@ export function MarketsFilter() {
             icon={<SearchIcon />}
             value={marketName}
             onChange={onChangeName}
+            isClearable
+            onClear={() => {
+              setMarketName("");
+              debounceSetMarketNameParams("");
+            }}
           />
         </div>
         <button

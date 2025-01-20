@@ -35,6 +35,7 @@ const useGraphMarkets = (
   creator: Address | "",
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
+  orderDirection: "asc" | "desc" | undefined,
 ) => {
   const chainIds = (
     chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
@@ -43,18 +44,17 @@ const useGraphMarkets = (
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
   return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainIds /*,marketName*/, marketStatusList, creator, orderBy],
+    queryKey: ["useGraphMarkets", chainIds /*,marketName*/, marketStatusList, creator, orderBy, orderDirection],
     queryFn: async () => {
       const markets = (
         await Promise.all(
           chainIds.map((chainId) =>
-            searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
+            searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy, orderDirection),
           ),
         )
       ).flat();
-
       // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy));
+      markets.sort(sortMarkets(orderBy, orderDirection || "desc"));
 
       for (const market of markets) {
         queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
@@ -77,6 +77,7 @@ export interface UseMarketsProps {
   orderBy?: Market_OrderBy;
   isShowMyMarkets?: boolean;
   isShowConditionalMarkets?: boolean;
+  orderDirection?: "asc" | "desc";
 }
 
 export const useMarkets = ({
@@ -86,9 +87,18 @@ export const useMarkets = ({
   creator = "",
   participant = "",
   orderBy,
+  orderDirection,
 }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
-  const graphMarkets = useGraphMarkets(chainsList, marketName, marketStatusList, creator, participant, orderBy);
+  const graphMarkets = useGraphMarkets(
+    chainsList,
+    marketName,
+    marketStatusList,
+    creator,
+    participant,
+    orderBy,
+    orderDirection,
+  );
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;

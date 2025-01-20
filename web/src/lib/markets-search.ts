@@ -85,14 +85,17 @@ async function getVerificationStatusList(
   return {};
 }
 
-export function sortMarkets(orderBy: Market_OrderBy | "liquidityUSD" | undefined) {
+export function sortMarkets(
+  orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | undefined,
+  orderDirection: "asc" | "desc",
+) {
   const STATUS_PRIORITY = {
     verified: 0,
     verifying: 1,
     challenged: 2,
     not_verified: 3,
   };
-
+  const directionMultiplier = orderDirection === "asc" ? -1 : 1;
   return (a: Market, b: Market) => {
     if (!orderBy) {
       // closed markets will be put on the back
@@ -149,11 +152,14 @@ export function sortMarkets(orderBy: Market_OrderBy | "liquidityUSD" | undefined
     }
 
     if (orderBy === "liquidityUSD") {
-      return b.liquidityUSD - a.liquidityUSD;
+      return (b.liquidityUSD - a.liquidityUSD) * directionMultiplier;
     }
 
+    if (orderBy === "creationDate") {
+      return (Number(b.blockTimestamp) - Number(a.blockTimestamp)) * directionMultiplier;
+    }
     // by opening date
-    return a.openingTs - b.openingTs;
+    return (b.openingTs - a.openingTs) * directionMultiplier;
   };
 }
 
@@ -225,6 +231,7 @@ export const fetchMarkets = async (
   chainId: SupportedChain,
   where?: Market_Filter,
   orderBy?: Market_OrderBy,
+  orderDirection?: "asc" | "desc",
 ): Promise<Market[]> => {
   const client = graphQLClient(chainId);
 
@@ -286,7 +293,7 @@ export const fetchMarkets = async (
         poolBalance: marketExtraData?.pool_balance || [],
       });
     })
-    .sort(sortMarkets(orderBy));
+    .sort(sortMarkets(orderBy, orderDirection || "desc"));
 };
 
 export async function searchGraphMarkets(
@@ -296,6 +303,7 @@ export async function searchGraphMarkets(
   creator: Address | "",
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
+  orderDirection: "asc" | "desc" | undefined,
 ) {
   const now = String(Math.round(new Date().getTime() / 1000));
 
@@ -366,7 +374,7 @@ export async function searchGraphMarkets(
     where["creator"] = creator;
   }
 
-  return await fetchMarkets(chainId, where, orderBy);
+  return await fetchMarkets(chainId, where, orderBy, orderDirection);
 }
 
 export async function searchOnChainMarkets(chainId: SupportedChain) {

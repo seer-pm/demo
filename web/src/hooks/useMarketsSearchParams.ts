@@ -20,6 +20,7 @@ function useMarketsSearchParams() {
   const page = Number(searchParams.get("page") ?? 1);
   const isShowMyMarkets = searchParams.get("myMarkets") === "true";
   const isShowConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
+  const orderDirection = searchParams.get("orderDirection") as "asc" | "desc";
 
   const setMarketName = (value: string) => {
     setSearchParams((params) => {
@@ -91,9 +92,20 @@ function useMarketsSearchParams() {
     setSearchParams((params) => {
       if (orderBy === "default") {
         params.delete("orderBy");
+        params.delete("orderDirection");
       } else {
         params.set("orderBy", orderBy);
       }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
+  const setOrderDirection = (orderDirection: "asc" | "desc") => {
+    setSearchParams((params) => {
+      params.set("orderDirection", orderDirection);
       if (page > 1) {
         params.set("page", "1");
       }
@@ -144,6 +156,9 @@ function useMarketsSearchParams() {
     categoryList,
     orderBy,
     page,
+    isShowMyMarkets,
+    isShowConditionalMarkets,
+    orderDirection,
 
     setMarketName,
     setMarketStatus,
@@ -152,11 +167,10 @@ function useMarketsSearchParams() {
     setOrderBy,
     setCategories,
     setPage,
-
-    isShowMyMarkets,
     toggleShowMyMarkets,
-    isShowConditionalMarkets,
     toggleShowConditionalMarkets,
+    setOrderDirection,
+
     hasFilters:
       verificationStatusList?.length ||
       marketStatusList?.length ||
