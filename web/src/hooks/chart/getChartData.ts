@@ -187,8 +187,8 @@ async function getPoolHourDatasByToken(
         sqrtPrice: TickMath.getSqrtRatioAtTick(Number(swap.tick)).toString(),
         pool: swap.pool,
       };
-    });
-    return total.concat(swapsToPoolHourDatas).sort((a, b) => a.periodStartUnix - b.periodStartUnix);
+    }) as GetPoolHourDatasQuery["poolHourDatas"];
+    return [...total, ...swapsToPoolHourDatas].sort((a, b) => a.periodStartUnix - b.periodStartUnix);
   } catch (e) {
     return total;
   }
