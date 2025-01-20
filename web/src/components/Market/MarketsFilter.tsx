@@ -44,7 +44,7 @@ export function MarketsFilter() {
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
         <div className="grow">
           <Input
-            placeholder="Search"
+            placeholder="Search By Market Name Or Outcome"
             className="w-full"
             icon={<SearchIcon />}
             value={marketName}

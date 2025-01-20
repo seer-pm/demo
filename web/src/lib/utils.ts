@@ -180,3 +180,14 @@ export async function fetchAuth(
 export function getAppUrl() {
   return import.meta.env.VITE_WEBSITE_URL || "https://app.seer.pm";
 }
+
+export function stripDiacritics(str: string) {
+  return str
+    .normalize("NFD") // Decompose characters into base + diacritical marks
+    .replace(/[^A-Za-z0-9\s!]/g, "")
+    .normalize("NFC");
+}
+
+export function isTextInString(text: string, string: string) {
+  return stripDiacritics(string).toLowerCase().includes(stripDiacritics(text).toLowerCase());
+}

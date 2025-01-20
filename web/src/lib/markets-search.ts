@@ -291,7 +291,7 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
-  marketName: string,
+  _marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
   participant: Address | "",
@@ -299,7 +299,7 @@ export async function searchGraphMarkets(
 ) {
   const now = String(Math.round(new Date().getTime() / 1000));
 
-  let where: Market_Filter = { marketName_contains_nocase: marketName };
+  let where: Market_Filter = {};
   const or = [];
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {

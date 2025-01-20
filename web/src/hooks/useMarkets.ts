@@ -43,7 +43,7 @@ const useGraphMarkets = (
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
   return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
+    queryKey: ["useGraphMarkets", chainIds /*,marketName*/, marketStatusList, creator, orderBy],
     queryFn: async () => {
       const markets = (
         await Promise.all(
