@@ -11,5 +11,6 @@ export const useFavorites = () => {
     queryFn: async () => {
       return fetchAuth(accessToken, "/.netlify/functions/collections", "GET");
     },
+    refetchInterval: 1000, // Refetch every 1 seconds
   });
 };
