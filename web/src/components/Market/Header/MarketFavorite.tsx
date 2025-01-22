@@ -16,17 +16,19 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
   const signIn = useSignIn();
   const updateCollectionItem = useUpdateCollectionItem();
 
-  const { data: favorites = [] } = useFavorites();
-  const isFavorite = favorites.includes(market.id) || updateCollectionItem.isPending; // optimistic update
+  const { data: favorites = [], isLoading } = useFavorites();
+  const isFavorite = favorites.includes(market.id);
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={() =>
           isAccountConnectedAndSignedIn
             ? updateCollectionItem.mutateAsync({ marketIds: [market.id], accessToken })
             : signIn.mutateAsync({ address: address!, chainId: chainId! })
         }
         className="cursor-pointer !ml-auto flex items-center"
+        disabled={updateCollectionItem.isPending || isLoading}
       >
         {isFavorite ? (
           <div className="tooltip">
@@ -41,7 +43,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
             <StarOutlined fill="currentColor" />
           </div>
         )}
-      </div>
+      </button>
     </>
   );
 }
