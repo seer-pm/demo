@@ -29,6 +29,7 @@ export function NotificationsForm({ email, accessToken }: { email: string; acces
   });
 
   const {
+    watch,
     handleSubmit,
     formState: { isValid },
   } = useFormReturn;
@@ -51,7 +52,13 @@ export function NotificationsForm({ email, accessToken }: { email: string; acces
       />
 
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" disabled={!isValid} isLoading={false} text="Save" />
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={!isValid || watch("email") === email}
+          isLoading={false}
+          text="Save"
+        />
       </div>
     </form>
   );

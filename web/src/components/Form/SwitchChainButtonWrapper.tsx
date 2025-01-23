@@ -1,8 +1,7 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { checkWalletConnectCallback } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { useAccount } from "wagmi";
-import { useSwitchChain } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import Button from "./Button";
 
 export function SwitchChainButtonWrapper({
@@ -13,7 +12,6 @@ export function SwitchChainButtonWrapper({
   children: React.ReactNode;
 }) {
   const { isPending, switchChain } = useSwitchChain();
-  const { open } = useWeb3Modal();
   const { chainId: connectedChainId } = useAccount();
 
   const chainIdRef = useRef(connectedChainId);
@@ -29,13 +27,7 @@ export function SwitchChainButtonWrapper({
       type="button"
       onClick={() => {
         if (!connectedChainId) {
-          open({ view: "Connect" });
-          const interval = setInterval(() => {
-            if (chainIdRef.current) {
-              switchChain({ chainId });
-              clearInterval(interval);
-            }
-          }, 2000);
+          checkWalletConnectCallback(() => switchChain({ chainId }), 2000);
           return;
         }
         switchChain({ chainId });

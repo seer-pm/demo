@@ -13,26 +13,24 @@ import {
   DownArrow,
   EthIcon,
   Menu,
+  NotificationIcon,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
-  SettingsIcon,
   TelegramIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { fetchAuth, isAccessTokenExpired } from "@/lib/utils";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount, useDisconnect } from "wagmi";
-import AccountDisplay from "../ConnectWallet/AccountDisplay";
+import { useAccount } from "wagmi";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
 
-function AccountSettings() {
-  const [activeTab, setActiveTab] = useState<"general" | "notifications">("general");
+function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const { isConnected, address, chainId } = useAccount();
   const { hasAccount } = useCheckAccount();
-  const { disconnect } = useDisconnect();
   const accessToken = useGlobalState((state) => state.accessToken);
   const isAuthValid = !isAccessTokenExpired(accessToken);
   const [email, setEmail] = useState("");
@@ -51,38 +49,12 @@ function AccountSettings() {
   }, [accessToken]);
 
   return (
-    <div className="w-[416px] max-w-full px-[32px] py-[35px]">
-      <div className="text-[24px] font-semibold text-center pb-[15px]">Settings</div>
-
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "general" && "tab-active"}`}
-          onClick={() => setActiveTab("general")}
-        >
-          General
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "notifications" && "tab-active"}`}
-          onClick={() => setActiveTab("notifications")}
-        >
-          Notifications
-        </button>
-      </div>
-
-      {isAccountConnected && activeTab === "general" && (
-        <div className="text-center space-y-4">
-          <div>
-            <AccountDisplay isMobile={true} />
-          </div>
-          <Button variant="primary" size="large" text="Disconnect" onClick={() => disconnect()} />
-        </div>
-      )}
-
-      {isAccountConnected && activeTab === "notifications" && (
+    <div className={clsx(isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6")}>
+      {!isMobile && <div className="text-[20px] font-semibold text-center">Email Notifications</div>}
+      <p className="text-[14px] text-black-secondary">
+        Receive email notifications for your followed markets and important updates.
+      </p>
+      {isAccountConnected && (
         <div className="text-center space-y-4">
           {!isAuthValid ? (
             <Button
@@ -97,10 +69,13 @@ function AccountSettings() {
         </div>
       )}
 
-      {!isAccountConnected && (
+      {!isAccountConnected && !isMobile && (
         <div className="text-center">
           <ConnectWallet size="large" />
         </div>
+      )}
+      {!isAccountConnected && isMobile && (
+        <p className="text-[14px] text-black-secondary">Connect wallet to continue.</p>
       )}
     </div>
   );
@@ -165,12 +140,12 @@ export default function Header() {
               <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
                 <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <Link to={"/policy/verified"} className="flex items-center space-x-2">
-                      <PolicyIcon /> <span> Verified Market Policy </span>
+                    <PolicyIcon /> <span> Verified Market Policy </span>
                   </Link>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
                   <Link to={"/policy/rules"} className="flex items-center space-x-2">
-                      <PolicyIcon /> <span>Market Rules Policy</span>
+                    <PolicyIcon /> <span>Market Rules Policy</span>
                   </Link>
                 </li>
               </ul>
@@ -199,7 +174,7 @@ export default function Header() {
           <li className="flex items-center space-x-2">
             <div className="dropdown dropdown-end">
               <button type="button" tabIndex={0} className="hover:opacity-85">
-                <SettingsIcon />
+                <NotificationIcon />
               </button>
               <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
                 <li>
@@ -374,9 +349,10 @@ function MobileMenu() {
         <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px]">
           <ConnectWallet isMobile={true} />
         </div>
-        <button type="button" tabIndex={0} className="hover:opacity-85">
-          <SettingsIcon />
-        </button>
+        <div className="mb-6">
+          <div className="mb-2">Email Notifications</div>
+          <AccountSettings isMobile />
+        </div>
         <div className="dropdown dropdown-end">
           <button type="button" tabIndex={0} className="flex items-center gap-2 hover:font-semibold">
             <QuestionIcon fill="#9747FF" /> Help
