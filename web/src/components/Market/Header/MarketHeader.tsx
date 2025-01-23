@@ -99,7 +99,7 @@ function OutcomesInfo({
               to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
-                <div className="w-[65px]">
+                <div className="w-[65px] flex-shrink-0">
                   <OutcomeImage
                     image={images?.[i]}
                     isInvalidResult={i === market.outcomes.length - 1}
