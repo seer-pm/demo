@@ -2,8 +2,6 @@ import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
-require("dotenv").config();
-
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   try {
     const userId = verifyToken(event.headers.authorization);

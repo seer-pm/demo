@@ -7,7 +7,6 @@ import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketOdds } from "./utils/getMarketOdds";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
-require("dotenv").config();
 
 export const handler = async (_event: HandlerEvent, _context: HandlerContext) => {
   if (!process.env.VITE_SUPABASE_PROJECT_URL || !process.env.VITE_SUPABASE_API_KEY) {

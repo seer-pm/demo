@@ -1,6 +1,6 @@
 import { http, createConfig } from "wagmi";
 import { gnosis, mainnet, sepolia } from "wagmi/chains";
-require("dotenv").config();
+
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 export const config = createConfig({

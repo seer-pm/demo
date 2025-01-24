@@ -1,8 +1,6 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 
-require("dotenv").config();
-
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   const [tableName, recordId] = event.path
     .split("/")

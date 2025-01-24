@@ -5,8 +5,6 @@ import jwt from "jsonwebtoken";
 import { parseSiweMessage } from "viem/siwe";
 import { config } from "./utils/config";
 
-require("dotenv").config();
-
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   if (event.httpMethod !== "POST") {
     return {

@@ -4,8 +4,6 @@ import { verifyToken } from "./utils/auth";
 import { isTwoStringsEqual } from "./utils/common";
 import { fetchMarket } from "./utils/fetchMarkets";
 
-require("dotenv").config();
-
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   try {
     const userId = verifyToken(event.headers.authorization);

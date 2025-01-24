@@ -10,8 +10,6 @@ import { S_DAI_ADAPTER, liquidityManagerAddressMapping, zeroAddress } from "./ut
 import { fetchMarket } from "./utils/fetchMarkets";
 import { convertFromSDAI } from "./utils/handleSDai";
 
-require("dotenv").config();
-
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   const [chainIdString, marketId] = event.path
     .split("/")

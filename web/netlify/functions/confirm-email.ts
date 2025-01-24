@@ -1,6 +1,5 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-require("dotenv").config();
 
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
