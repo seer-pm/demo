@@ -37,13 +37,17 @@ interface PositionsProps {
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
-  const poolIncentive =
+  const { poolIncentive, endTime } =
     pool.incentives.length > 0
-      ? pool.incentives[0].apr === 0
-        ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
-        : `${pool.incentives[0].apr.toFixed(2)}% APR`
-      : "0 SEER / day";
-  const endTime = formatDate(Number(pool.incentives[0].endTime));
+      ? {
+          poolIncentive:
+            pool.incentives[0].apr === 0
+              ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
+              : `${pool.incentives[0].apr.toFixed(2)}% APR`,
+          endTime: formatDate(Number(pool.incentives[0].endTime)),
+        }
+      : { poolIncentive: "0 SEER / day", endTime: "" };
+
   return (
     <div>
       <div>
