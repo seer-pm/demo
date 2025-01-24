@@ -202,7 +202,7 @@ async function enterFarming(props: FarmingProps): Promise<TransactionReceipt> {
         functionName: "enterFarming",
         args: [incentiveKey, props.tokenId, 0n, false],
       }),
-    { txSent: { title: "Enter farming..." }, txSuccess: { title: "Tokens entered!" } },
+    { txSent: { title: "Enter farming..." }, txSuccess: { title: "Token entered!" } },
   );
 
   if (!result.status) {
@@ -270,7 +270,7 @@ async function withdrawNft(props: WithdrawNftProps): Promise<TransactionReceipt>
         functionName: "withdrawToken",
         args: [props.tokenId, props.account, "0x0000000000000000000000000000000000000000000000000000000000000000"],
       }),
-    { txSent: { title: "Withdrawing tokens..." }, txSuccess: { title: "Tokens withdrawn!" } },
+    { txSent: { title: "Withdrawing token..." }, txSuccess: { title: "Token withdrawn!" } },
   );
 
   if (!result.status) {
