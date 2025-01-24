@@ -289,7 +289,7 @@ export const fetchMarkets = async (
         incentive: marketExtraData?.incentive ?? 0,
         hasLiquidity: marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
         odds: marketExtraData?.odds ?? [],
-        categories: marketExtraData?.categories ?? [],
+        categories: marketExtraData?.categories ?? ["misc"],
         poolBalance: marketExtraData?.pool_balance || [],
       });
     })

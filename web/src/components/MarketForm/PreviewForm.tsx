@@ -14,7 +14,7 @@ import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, fetchAuth, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
@@ -275,10 +275,10 @@ export function PreviewForm({
       setNewMarketId(marketId);
       await Promise.allSettled([
         updateCollectionItem({ marketIds: [marketId], accessToken }),
-        fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
-          marketId: marketId.toLowerCase(),
-          categories: marketTypeValues.marketCategories,
-        }),
+        // fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+        //   marketId: marketId.toLowerCase(),
+        //   categories: marketTypeValues.marketCategories,
+        // }),
         fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
       ]);
       await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId) });
