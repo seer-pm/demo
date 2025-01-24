@@ -202,14 +202,14 @@ async function enterFarming(props: FarmingProps): Promise<TransactionReceipt> {
         functionName: "enterFarming",
         args: [incentiveKey, props.tokenId, 0n, false],
       }),
-    { txSent: { title: "Depositing tokens..." }, txSuccess: { title: "Tokens deposited!" } },
+    { txSent: { title: "Enter farming..." }, txSuccess: { title: "Tokens entered!" } },
   );
 
   if (!result.status) {
     throw result.error;
   }
   //delay to update subgraph
-  await new Promise((res) => setTimeout(res, 2000));
+  await new Promise((res) => setTimeout(res, 3000));
   return result.receipt;
 }
 
@@ -230,14 +230,14 @@ async function exitFarming(props: FarmingProps): Promise<TransactionReceipt> {
         functionName: "exitFarming",
         args: [incentiveKey, props.tokenId, false],
       }),
-    { txSent: { title: "Withdrawing token..." }, txSuccess: { title: "Token withdrawn!" } },
+    { txSent: { title: "Exit farming..." }, txSuccess: { title: "Token exited!" } },
   );
 
   if (!result.status) {
     throw result.error;
   }
   //delay to update subgraph
-  await new Promise((res) => setTimeout(res, 2000));
+  await new Promise((res) => setTimeout(res, 3000));
   return result.receipt;
 }
 
@@ -257,7 +257,7 @@ async function depositNft(props: DepositNftProps): Promise<TransactionReceipt> {
     throw result.error;
   }
   //delay to update subgraph
-  await new Promise((res) => setTimeout(res, 2000));
+  await new Promise((res) => setTimeout(res, 3000));
   return result.receipt;
 }
 
@@ -277,7 +277,7 @@ async function withdrawNft(props: WithdrawNftProps): Promise<TransactionReceipt>
     throw result.error;
   }
   //delay to update subgraph
-  await new Promise((res) => setTimeout(res, 2000));
+  await new Promise((res) => setTimeout(res, 3000));
   return result.receipt;
 }
 
