@@ -44,7 +44,6 @@ function poolRewardsInfo(pool: PoolInfo) {
         : `${pool.incentives[0].apr.toFixed(2)}% APR`
       : "0 SEER / day";
   const endTime = formatDate(Number(pool.incentives[0].endTime));
-  console.log(differenceInYears(new Date(endTime), new Date()));
   return (
     <div>
       <div>
