@@ -1,23 +1,5 @@
-const SUBGRAPH_API_KEY = "8b2690ffdd390bad59638b894ee8d9f6";
-
-export const SEER_SUBGRAPH_URLS: Partial<Record<string, string>> = {
-  "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
-  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
-};
-
-export const POOL_SUBGRAPH_URLS: Partial<Record<string, string>> = {
-  "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
-  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
-};
-
-export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<string, string>> = {
-  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
-};
-
-export const CURATE_SUBGRAPH_URLS: Partial<Record<string, string>> = {
-  "1": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
-  "100": `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_API_KEY}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
-};
+import { Address } from "viem";
+import { SupportedChain } from "./config";
 
 export const CURATE_REGISTRY_ADDRESSES: Partial<Record<string, string>> = {
   "1": "0x4A9f8e73b3c4c9d7fA0210b9de457b1c493a3AdA",
@@ -50,7 +32,7 @@ export const routerAddressMapping = {
   100: "0xeC9048b59b3467415b1a38F63416407eA0c70fB8",
 };
 
-export const liquidityManagerAddressMapping = {
+export const liquidityManagerAddressMapping: Partial<Record<SupportedChain, Address>> = {
   100: "0x031778c7A1c08787aba7a2e0B5149fEb5DECabD7",
 };
 

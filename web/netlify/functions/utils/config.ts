@@ -1,7 +1,10 @@
+import { Address } from "viem";
 import { http, createConfig } from "wagmi";
 import { gnosis, mainnet, sepolia } from "wagmi/chains";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+export { gnosis, mainnet };
 
 export const config = createConfig({
   chains: [mainnet, sepolia, gnosis],
@@ -12,7 +15,16 @@ export const config = createConfig({
   },
 });
 
-export const COLLATERAL_TOKENS = {
+export interface Token {
+  address: Address;
+  symbol: string;
+  decimals: number;
+  wrapped?: Token;
+}
+
+type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | undefined }>;
+
+export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
     primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
     secondary: {

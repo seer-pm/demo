@@ -19,7 +19,7 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
     const markets = (
       await Promise.all(
         chainIds.map((chainId) =>
-          fetchMarkets(chainId.toString()).then((markets) => markets.map((market) => ({ ...market, chainId }))),
+          fetchMarkets(chainId).then((markets) => markets.map((market) => ({ ...market, chainId }))),
         ),
       )
     ).flat();

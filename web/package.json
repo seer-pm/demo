@@ -37,6 +37,7 @@
     "@tanstack/react-query-devtools": "^5.20.5",
     "@tanstack/react-query-persist-client": "^5.59.9",
     "@tanstack/react-table": "^8.20.5",
+    "@types/jsonwebtoken": "^9.0.7",
     "@uniswap/v3-sdk": "^3.19.0",
     "@web3modal/wagmi": "^5.0.7",
     "@yornaath/batshit": "^0.10.1",
