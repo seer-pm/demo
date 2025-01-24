@@ -278,6 +278,7 @@ export function PreviewForm({
         // fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
         //   marketId: marketId.toLowerCase(),
         //   categories: marketTypeValues.marketCategories,
+        //   chainId
         // }),
         fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
       ]);

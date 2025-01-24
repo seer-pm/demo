@@ -16,6 +16,7 @@ export async function fetchMarket(marketId: string, chainId: string) {
       }
       parentOutcome
       wrappedTokens
+      creator
     }
   }`;
   const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {
@@ -57,6 +58,7 @@ export async function fetchMarkets(chainId: string) {
             }
             parentOutcome
             wrappedTokens
+            creator
           }
         }`;
     const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {

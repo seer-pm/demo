@@ -1,9 +1,7 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
@@ -64,18 +62,14 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
+  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, isIntersecting);
 
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
-  const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
-  const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
     <div ref={ref}>
-      <div
-        className={clsx("space-y-3", isAllLoading ? "market-card__outcomes__loading" : "market-card__outcomes__loaded")}
-      >
+      <div className={clsx("space-y-3")}>
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const outcome = market.outcomes[i];

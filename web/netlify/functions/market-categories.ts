@@ -2,6 +2,7 @@ import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 import { isTwoStringsEqual } from "./utils/common";
+import { fetchMarket } from "./utils/fetchMarkets";
 
 require("dotenv").config();
 
@@ -19,7 +20,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
 
     // Handle POST request
     if (event.httpMethod === "POST") {
-      const { marketId, categories } = JSON.parse(event.body || "{}");
+      const { marketId, categories, chainId } = JSON.parse(event.body || "{}");
       if (!marketId) {
         return {
           statusCode: 400,
@@ -32,11 +33,24 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
           body: JSON.stringify({ error: "Missing categories" }),
         };
       }
+      if (!chainId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Missing chainId" }),
+        };
+      }
       const { data: existing } = await supabase.from("markets").select().eq("id", marketId);
-      if (!existing?.length) {
+      if (!existing?.[0]?.creator) {
+        const market = await fetchMarket(marketId, chainId.toString());
+        if (!isTwoStringsEqual(market.creator, userId)) {
+          return {
+            statusCode: 500,
+            body: JSON.stringify({ error: "User is not creator" }),
+          };
+        }
         const { error } = await supabase
           .from("markets")
-          .insert({ id: marketId, creator: userId.toLowerCase(), categories });
+          .upsert({ id: marketId, creator: userId.toLowerCase(), categories });
         if (error) {
           throw error;
         }
