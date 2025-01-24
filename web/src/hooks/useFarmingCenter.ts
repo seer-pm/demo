@@ -15,8 +15,14 @@ interface FarmingProps {
   tokenId: bigint;
 }
 
-interface ApproveFarmingProps {
+interface DepositNftProps {
   nonFungiblePositionManager: Address;
+  farmingCenter: Address;
+  account: Address;
+  tokenId: bigint;
+}
+
+interface WithdrawNftProps {
   farmingCenter: Address;
   account: Address;
   tokenId: bigint;
@@ -128,6 +134,29 @@ const FARMING_CENTER_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "to",
+        type: "address",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "withdrawToken",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 const NON_FUNGIBLE_POSITION_MANAGER_ABI = [
@@ -179,7 +208,8 @@ async function enterFarming(props: FarmingProps): Promise<TransactionReceipt> {
   if (!result.status) {
     throw result.error;
   }
-
+  //delay to update subgraph
+  await new Promise((res) => setTimeout(res, 2000));
   return result.receipt;
 }
 
@@ -206,11 +236,12 @@ async function exitFarming(props: FarmingProps): Promise<TransactionReceipt> {
   if (!result.status) {
     throw result.error;
   }
-
+  //delay to update subgraph
+  await new Promise((res) => setTimeout(res, 2000));
   return result.receipt;
 }
 
-async function approveFarming(props: ApproveFarmingProps): Promise<TransactionReceipt> {
+async function depositNft(props: DepositNftProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () =>
       writeContract(config, {
@@ -219,13 +250,34 @@ async function approveFarming(props: ApproveFarmingProps): Promise<TransactionRe
         functionName: "safeTransferFrom",
         args: [props.account, props.farmingCenter, props.tokenId],
       }),
-    { txSent: { title: "Approving token..." }, txSuccess: { title: "Token approved!" } },
+    { txSent: { title: "Depositing token..." }, txSuccess: { title: "Token deposited!" } },
   );
 
   if (!result.status) {
     throw result.error;
   }
+  //delay to update subgraph
+  await new Promise((res) => setTimeout(res, 2000));
+  return result.receipt;
+}
 
+async function withdrawNft(props: WithdrawNftProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      writeContract(config, {
+        address: props.farmingCenter,
+        abi: FARMING_CENTER_ABI,
+        functionName: "withdrawToken",
+        args: [props.tokenId, props.account, "0x0000000000000000000000000000000000000000000000000000000000000000"],
+      }),
+    { txSent: { title: "Withdrawing tokens..." }, txSuccess: { title: "Tokens withdrawn!" } },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+  //delay to update subgraph
+  await new Promise((res) => setTimeout(res, 2000));
   return result.receipt;
 }
 
@@ -247,9 +299,18 @@ export const useExitFarming = () => {
   });
 };
 
-export const useApproveFarming = () => {
+export const useDepositNft = () => {
   return useMutation({
-    mutationFn: approveFarming,
+    mutationFn: depositNft,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usePoolsDeposits"] });
+    },
+  });
+};
+
+export const useWithdrawNft = () => {
+  return useMutation({
+    mutationFn: withdrawNft,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usePoolsDeposits"] });
     },

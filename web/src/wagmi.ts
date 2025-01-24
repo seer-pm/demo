@@ -22,7 +22,7 @@ export const config = defaultWagmiConfig({
     walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID, showQrModal: false }),
   ],
   transports: {
-    [gnosis.id]: http(),
+    [gnosis.id]: http("https://gnosis-pokt.nodies.app"),
     [mainnet.id]: http("https://eth-pokt.nodies.app"),
     [sepolia.id]: http(),
     [hardhat.id]: http(),

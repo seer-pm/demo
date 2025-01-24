@@ -1,5 +1,5 @@
 import { Link } from "@/components/Link";
-import { useApproveFarming, useEnterFarming, useExitFarming } from "@/hooks/useFarmingCenter";
+import { useDepositNft, useEnterFarming, useExitFarming, useWithdrawNft } from "@/hooks/useFarmingCenter";
 import { Market, useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
@@ -71,9 +71,10 @@ function AddLiquidityInfo({
 
   const enterFarming = useEnterFarming();
   const exitFarming = useExitFarming();
-  const approveFarming = useApproveFarming();
+  const depositNft = useDepositNft();
+  const withdrawNft = useWithdrawNft();
 
-  const depositHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
+  const enterFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await enterFarming.mutateAsync({
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
@@ -87,7 +88,7 @@ function AddLiquidityInfo({
     };
   };
 
-  const withdrawHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
+  const exitFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await exitFarming.mutateAsync({
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
@@ -101,9 +102,9 @@ function AddLiquidityInfo({
     };
   };
 
-  const approveHandler = (tokenId: string) => {
+  const depositHandler = (tokenId: string) => {
     return async () => {
-      await approveFarming.mutateAsync({
+      await depositNft.mutateAsync({
         nonFungiblePositionManager: SWAPR_CONFIG[chainId]?.NON_FUNGIBLE_POSITION_MANAGER!,
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
         account: address!,
@@ -112,6 +113,16 @@ function AddLiquidityInfo({
     };
   };
 
+  const withdrawHandler = (tokenId: string) => {
+    return async () => {
+      await withdrawNft.mutateAsync({
+        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+        account: address!,
+        tokenId: BigInt(tokenId),
+      });
+    };
+  };
+  const isLoading = enterFarming.isPending || exitFarming.isPending || depositNft.isPending || withdrawNft.isPending;
   return (
     <div>
       <Alert type="info" title="Farming Rewards">
@@ -153,22 +164,39 @@ function AddLiquidityInfo({
                     </div>
                     <div>
                       {!deposit.onFarmingCenter && (
-                        <Button text="Approve" size="small" variant="secondary" onClick={approveHandler(deposit.id)} />
+                        <Button
+                          text="Deposit NFT"
+                          size="small"
+                          variant="secondary"
+                          onClick={depositHandler(deposit.id)}
+                          disabled={isLoading}
+                        />
                       )}
                       {deposit.onFarmingCenter &&
                         (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                          <Button
-                            text="Deposit"
-                            size="small"
-                            variant="secondary"
-                            onClick={depositHandler(pool, pool.incentives[0], deposit.id)}
-                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              text="Withdraw NFT"
+                              size="small"
+                              variant="secondary"
+                              onClick={withdrawHandler(deposit.id)}
+                              disabled={isLoading}
+                            />
+                            <Button
+                              text="Enter Farming"
+                              size="small"
+                              variant="secondary"
+                              onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                              disabled={isLoading}
+                            />
+                          </div>
                         ) : (
                           <Button
-                            text="Withdraw"
+                            text="Exit Farming"
                             size="small"
                             variant="secondary"
-                            onClick={withdrawHandler(pool, pool.incentives[0], deposit.id)}
+                            onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                            disabled={isLoading}
                           />
                         ))}
                     </div>
