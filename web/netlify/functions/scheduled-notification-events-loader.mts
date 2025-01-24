@@ -2,8 +2,8 @@ import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
 import { config as wagmiConfig, SupportedChain } from "./utils/config.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
-import { SEER_SUBGRAPH_URLS } from "./utils/constants.ts";
 import { createClient } from "@supabase/supabase-js";
+import { SUBGRAPHS } from "./utils/subgraph.ts";
 const supabase = createClient(
   process.env.VITE_SUPABASE_PROJECT_URL!,
   process.env.VITE_SUPABASE_API_KEY!
@@ -39,9 +39,9 @@ const CTF_RESOLUTION_EVENT = parseAbiItem(
 async function fetchSubgraph(
   query: string,
   variables: Record<string, string | string[]>,
-  chainId: number
+  chainId: SupportedChain
 ) {
-  const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {
+  const results = await fetch(SUBGRAPHS.seer[chainId]!, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -161,6 +161,7 @@ async function getUsersEmailsByMarket(
 
     favoriteData.forEach((favorite) => {
       const emails = marketToEmails.get(favorite.market_id) || [];
+      // @ts-ignore
       emails.push(favorite.users.email);
       marketToEmails.set(favorite.market_id, emails);
     });

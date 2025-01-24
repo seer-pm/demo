@@ -4,7 +4,7 @@ import {
   marketFactoryAddress,
   readMarketViewGetMarkets,
 } from "@/hooks/contracts/generated";
-import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
+import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate";
 import {
   GetMarketQuery,
   GetMarketsQuery,
@@ -32,29 +32,13 @@ async function getVerificationStatusList(
   const client = curateGraphQLClient(chainId);
 
   const registryAddress = lightGeneralizedTcrAddress[chainId];
-  let litems: GetImagesQuery["litems"] = [];
   if (client && !isUndefined(registryAddress)) {
-    try {
-      const data = await getCurateSdk(client).GetImages({
-        where: {
-          registryAddress,
-        },
-      });
-      litems = data.litems;
-    } catch (e) {
-      const fallbackClient = curateGraphQLClient(chainId, true);
-      if (fallbackClient) {
-        const data = await getCurateSdk(fallbackClient).GetImages({
-          where: {
-            registryAddress,
-          },
-        });
-        litems = data.litems;
-      } else {
-        throw e;
-      }
-    }
-    return litems.reduce(
+    const data = await getCurateSdk(client).GetImages({
+      where: {
+        registryAddress,
+      },
+    });
+    return data.litems.reduce(
       (obj, item) => {
         const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
         if (!marketId) {

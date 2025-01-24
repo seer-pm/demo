@@ -1,32 +1,26 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
 import { gnosis, mainnet } from "viem/chains";
-import {
-  CURATE_SUBGRAPH_URLS,
-  SUBGRAPH_URLS,
-  SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS,
-  SWAPR_ALGEBRA_SUBGRAPH_URLS,
-  UNISWAP_SUBGRAPH_URLS,
-} from "./src/lib/subgraph";
+import { SUBGRAPHS } from "./netlify/functions/utils/subgraph";
 
 const schemasAndDocuments = [
   {
     type: "seer",
-    schema: SUBGRAPH_URLS[gnosis.id]!,
+    schema: SUBGRAPHS.seer[gnosis.id]!,
     documents: "./src/queries/markets.graphql",
   },
   {
     type: "curate",
-    schema: CURATE_SUBGRAPH_URLS[gnosis.id]!,
+    schema: SUBGRAPHS.curate[gnosis.id]!,
     documents: "./src/queries/curate.graphql",
   },
   {
     type: "swapr",
-    schema: [SWAPR_ALGEBRA_SUBGRAPH_URLS[gnosis.id]!, SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS[gnosis.id]!],
+    schema: [SUBGRAPHS.algebra[gnosis.id]!, SUBGRAPHS.algebrafarming[gnosis.id]!],
     documents: "./src/queries/swapr.graphql",
   },
   {
     type: "uniswap",
-    schema: UNISWAP_SUBGRAPH_URLS[mainnet.id],
+    schema: SUBGRAPHS.uniswap[mainnet.id]!,
     documents: "./src/queries/uniswap.graphql",
   },
 ];

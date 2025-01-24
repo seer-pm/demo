@@ -1,8 +1,10 @@
 import { isUndefined } from "./common.ts";
-import { SEER_SUBGRAPH_URLS, zeroAddress } from "./constants.ts";
+import { SupportedChain } from "./config.ts";
+import { zeroAddress } from "./constants.ts";
+import { SUBGRAPHS } from "./subgraph.ts";
 import { Market } from "./types.ts";
 
-export async function fetchMarket(marketId: string, chainId: string) {
+export async function fetchMarket(marketId: string, chainId: SupportedChain) {
   const query = `{
     market(id: "${marketId.toLocaleLowerCase()}") {
       id
@@ -19,7 +21,7 @@ export async function fetchMarket(marketId: string, chainId: string) {
       creator
     }
   }`;
-  const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {
+  const results = await fetch(SUBGRAPHS.seer[chainId]!, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -33,7 +35,7 @@ export async function fetchMarket(marketId: string, chainId: string) {
   return market ? { ...market, parentMarket: market.parentMarket ?? { id: zeroAddress } } : undefined;
 }
 
-export async function fetchMarkets(chainId: string) {
+export async function fetchMarkets(chainId: SupportedChain) {
   const maxAttempts = 20;
   let attempt = 0;
   let allMarkets: Market[] = [];
@@ -61,7 +63,7 @@ export async function fetchMarkets(chainId: string) {
             creator
           }
         }`;
-    const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {
+    const results = await fetch(SUBGRAPHS.seer[chainId]!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

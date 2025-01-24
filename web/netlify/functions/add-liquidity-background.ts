@@ -17,11 +17,11 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
       event.path.split("/").indexOf("add-liquidity-background") + 1,
       event.path.split("/").indexOf("add-liquidity-background") + 3,
     );
-  if (chainIdString !== "100") {
+  const chainId = Number(chainIdString) as SupportedChain;
+  if (chainId !== 100) {
     return {};
   }
-  const chainId = Number(chainIdString) as SupportedChain;
-  const market = await fetchMarket(marketId, chainIdString);
+  const market = await fetchMarket(marketId, chainId);
   const parentMarket = market.parentMarket.id;
   if (parentMarket && !isTwoStringsEqual(parentMarket, zeroAddress)) {
     console.log("skip conditional market ", marketId);
@@ -61,13 +61,13 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
     chainId,
     COLLATERAL_TOKENS[chainId].primary.address,
     account,
-    liquidityManagerAddressMapping[chainId],
+    liquidityManagerAddressMapping[chainId]!,
     totalLiquidityAmount,
   );
   console.log("adding index liquidity");
   await writeContract(config, {
     account,
-    address: liquidityManagerAddressMapping[chainId],
+    address: liquidityManagerAddressMapping[chainId]!,
     abi: LiquidityManagerAbi,
     functionName: "addIndexLiquidityToMarket",
     args: [marketId, liquidityAmount],
