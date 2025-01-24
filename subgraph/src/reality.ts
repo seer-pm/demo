@@ -135,6 +135,10 @@ export function processReopenedQuestion(
     // replace with new question
     marketQuestions[i].question = newQuestion.id;
     marketQuestions[i].save();
+
+    const market = Market.load(marketQuestions[i].market)!;
+    market.finalizeTs = getFinalizeTs(market);
+    market.save();
   }
 
   // remove old question
