@@ -20,6 +20,7 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
+import { differenceInYears } from "date-fns";
 import { useEffect } from "react";
 import { Address, RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
@@ -42,13 +43,27 @@ function poolRewardsInfo(pool: PoolInfo) {
         ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
         : `${pool.incentives[0].apr.toFixed(2)}% APR`
       : "0 SEER / day";
-
+  const endTime = formatDate(Number(pool.incentives[0].endTime));
+  console.log(differenceInYears(new Date(endTime), new Date()));
   return (
     <div>
       <div>
         <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
       </div>
-      {pool.incentives.length > 0 && <div>Rewards end: {formatDate(Number(pool.incentives[0].endTime))}</div>}
+      {pool.incentives.length > 0 && (
+        <div className="flex items-center gap-2">
+          <p>Rewards end: {endTime}</p>
+          {differenceInYears(new Date(endTime), new Date()) > 50 && (
+            <div className="tooltip ml-auto">
+              <p className="tooltiptext w-[300px] !whitespace-break-spaces">
+                The end date you see serves as a default since eternal farming is indefinite. You can enter or exit
+                farming at any time.
+              </p>
+              <QuestionIcon fill="#9747FF" />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
