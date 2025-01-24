@@ -337,6 +337,7 @@ export async function searchGraphMarkets(
     or.push({
       finalizeTs_lt: now,
       payoutReported: false,
+      questionsInArbitration: "0",
     });
   }
   if (marketStatusList?.includes(MarketStatus.CLOSED)) {
