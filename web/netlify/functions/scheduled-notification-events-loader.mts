@@ -4,8 +4,6 @@ import { config as wagmiConfig, SupportedChain } from "./utils/config.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { SEER_SUBGRAPH_URLS } from "./utils/constants.ts";
 import { createClient } from "@supabase/supabase-js";
-require("dotenv").config();
-
 const supabase = createClient(
   process.env.VITE_SUPABASE_PROJECT_URL!,
   process.env.VITE_SUPABASE_API_KEY!

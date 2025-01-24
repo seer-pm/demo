@@ -4,8 +4,6 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { SEER_SUBGRAPH_URLS } from "./utils/constants.ts";
 
-require("dotenv").config();
-
 export default async () => {
   const chainId = 100;
   const now = Math.round(new Date().getTime() / 1000);
