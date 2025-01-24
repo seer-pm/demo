@@ -1,6 +1,6 @@
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
-import { http } from "wagmi";
+import { http, fallback } from "wagmi";
 import { Chain, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
@@ -22,7 +22,11 @@ export const config = defaultWagmiConfig({
     walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID, showQrModal: false }),
   ],
   transports: {
-    [gnosis.id]: http("https://gnosis-pokt.nodies.app"),
+    [gnosis.id]: fallback([
+      http("https://gnosis-pokt.nodies.app"),
+      http("https://rpc.gnosischain.com"),
+      http("https://rpc.ankr.com/gnosis"),
+    ]),
     [mainnet.id]: http("https://eth-pokt.nodies.app"),
     [sepolia.id]: http(),
     [hardhat.id]: http(),
