@@ -1,4 +1,3 @@
-import { ITEMS_PER_PAGE } from "@/lib/markets-search";
 import { isTextInString } from "@/lib/utils";
 import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
@@ -7,6 +6,8 @@ import { useFavorites } from "./useFavorites";
 import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
+
+const ITEMS_PER_PAGE = 10;
 
 export const useSortAndFilterResults = (
   params: UseMarketsProps,

@@ -1,9 +1,10 @@
-import { formatUnits } from "viem";
-import { getLiquidityPairForToken } from "./common.ts";
-import { SupportedChain } from "./config.ts";
+import { Address, formatUnits } from "viem";
 import { LiquidityToMarketMapping } from "./getMarketsLiquidity.ts";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./getQuotes.ts";
-import { Address, Market, Token } from "./types.ts";
+import { Token } from "../../../src/lib/tokens.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { Market } from "../../../src/hooks/useMarket.ts";
+import { getLiquidityPairForToken } from "../../../src/lib/market.ts";
 
 export function normalizeOdds(prices: number[]): number[] {
   const sumArray = (data: number[]) =>

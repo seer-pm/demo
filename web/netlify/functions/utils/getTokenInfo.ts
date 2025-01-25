@@ -1,7 +1,7 @@
 import { readContracts } from "@wagmi/core";
-import { erc20Abi } from "viem";
-import { SupportedChain, config } from "./config.ts";
-import { Address } from "./types.ts";
+import { Address, erc20Abi } from "viem";
+import { config } from "./config.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
 
 export async function getTokenInfo(address: Address, chainId: SupportedChain) {
   const [decimals, name, symbol] = await readContracts(config, {

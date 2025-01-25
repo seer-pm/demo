@@ -1,9 +1,9 @@
-import { isUndefined } from "./common.ts";
-import { SupportedChain } from "./config.ts";
-import { zeroAddress } from "./constants.ts";
+import { zeroAddress } from "viem";
+import { SupportedChain } from "../../../src/lib/chains.ts";
 import { SUBGRAPHS } from "./subgraph.ts";
-import { Market } from "./types.ts";
+import { isUndefined } from "../../../src/lib/utils.ts";
 
+// TODO: remove this function
 export async function fetchMarket(marketId: string, chainId: SupportedChain) {
   const query = `{
     market(id: "${marketId.toLocaleLowerCase()}") {
@@ -38,7 +38,7 @@ export async function fetchMarket(marketId: string, chainId: SupportedChain) {
 export async function fetchMarkets(chainId: SupportedChain) {
   const maxAttempts = 20;
   let attempt = 0;
-  let allMarkets: Market[] = [];
+  let allMarkets: any[] = [];
   let currentId = undefined;
   while (attempt < maxAttempts) {
     const query = `{
@@ -73,7 +73,7 @@ export async function fetchMarkets(chainId: SupportedChain) {
       }),
     });
     const json = await results.json();
-    const markets = (json?.data?.markets ?? []) as Market[];
+    const markets = (json?.data?.markets ?? []) as any[];
     allMarkets = allMarkets.concat(markets);
 
     if (markets[markets.length - 1]?.id === currentId) {
@@ -85,8 +85,8 @@ export async function fetchMarkets(chainId: SupportedChain) {
     currentId = markets[markets.length - 1]?.id;
     attempt++;
   }
-  return allMarkets.map((market: Market) => ({
+  return allMarkets.map((market: any) => ({
     ...market,
     parentMarket: market.parentMarket ?? { id: zeroAddress },
-  })) as Market[];
+  })) as any[];
 }

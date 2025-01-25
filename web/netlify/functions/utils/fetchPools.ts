@@ -1,11 +1,13 @@
 import { readContracts } from "@wagmi/core";
-import { erc20Abi, formatUnits } from "viem";
-import { getMarketPoolsPairs, isTwoStringsEqual } from "./common.ts";
-import { SupportedChain, chainIds, config } from "./config.ts";
-import { zeroAddress } from "./constants.ts";
+import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
+import { chainIds, config } from "./config.ts";
 
 import { SUBGRAPHS } from "./subgraph.ts";
-import { Address, Market, Token0Token1 } from "./types.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { Market } from "../../../src/hooks/useMarket.ts";
+import { getMarketPoolsPairs, Token0Token1 } from "../../../src/lib/market.ts";
+import { isTwoStringsEqual } from "../../../src/lib/utils.ts";
+
 export interface Pool {
   id: Address;
   token0: { id: Address; symbol: string };

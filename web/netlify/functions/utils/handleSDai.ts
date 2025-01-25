@@ -1,5 +1,7 @@
 import { readContract } from "@wagmi/core";
-import { COLLATERAL_TOKENS, SupportedChain, config } from "./config.ts";
+import { config } from "./config.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { COLLATERAL_TOKENS } from "@/lib/config.ts";
 
 export async function convertFromSDAI(amount: bigint, chainId: SupportedChain) {
   return await readContract(config, {

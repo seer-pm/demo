@@ -36,9 +36,10 @@ import { useState } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { OutcomeImage } from "../OutcomeImage";
+import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
+import { COLORS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;

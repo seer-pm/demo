@@ -1,8 +1,8 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
-import { isTwoStringsEqual } from "./utils/common";
 import { fetchMarket } from "./utils/fetchMarkets";
+import { isTwoStringsEqual } from "../../src/lib/utils";
 
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   try {

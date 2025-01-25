@@ -1,5 +1,4 @@
 import { MarketStatus } from "@/hooks/useMarketStatus";
-import { CategoricalIcon, MultiCategoricalIcon, MultiScalarIcon, ScalarIcon } from "@/lib/icons";
 import { MarketTypes } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 
@@ -23,13 +22,6 @@ export const MARKET_TYPES_TEXTS: Record<MarketTypes, string> = {
   [MarketTypes.SCALAR]: "Scalar",
   [MarketTypes.MULTI_CATEGORICAL]: "Multi Categorical",
   [MarketTypes.MULTI_SCALAR]: "Multi Scalar",
-};
-
-export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
-  [MarketTypes.CATEGORICAL]: <CategoricalIcon />,
-  [MarketTypes.SCALAR]: <ScalarIcon />,
-  [MarketTypes.MULTI_CATEGORICAL]: <MultiCategoricalIcon />,
-  [MarketTypes.MULTI_SCALAR]: <MultiScalarIcon />,
 };
 
 export type ColorConfig = {
