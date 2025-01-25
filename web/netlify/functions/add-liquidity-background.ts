@@ -1,14 +1,17 @@
 import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { readContract, writeContract } from "@wagmi/core";
-import { PrivateKeyAccount, erc20Abi } from "viem";
+import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
-import { isTwoStringsEqual, waitForContractWrite } from "./utils/common";
-import { COLLATERAL_TOKENS, SupportedChain, config } from "./utils/config";
-import { S_DAI_ADAPTER, liquidityManagerAddressMapping, zeroAddress } from "./utils/constants";
+import { waitForContractWrite } from "./utils/common";
+import { config } from "./utils/config";
+import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/constants";
 import { fetchMarket } from "./utils/fetchMarkets";
 import { convertFromSDAI } from "./utils/handleSDai";
+import { isTwoStringsEqual } from "../../src/lib/utils";
+import { SupportedChain } from "../../src/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 
 export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
   const [chainIdString, marketId] = event.path

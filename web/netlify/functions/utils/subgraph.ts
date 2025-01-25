@@ -1,5 +1,6 @@
 import { GraphQLClient } from "graphql-request";
-import { SupportedChain, gnosis, mainnet } from "./config";
+import { gnosis, mainnet } from "./config";
+import { SupportedChain } from "../../../src/lib/chains";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 

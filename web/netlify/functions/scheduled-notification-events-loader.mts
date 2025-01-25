@@ -1,9 +1,10 @@
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
-import { config as wagmiConfig, SupportedChain } from "./utils/config.ts";
+import { config as wagmiConfig } from "./utils/config.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { createClient } from "@supabase/supabase-js";
 import { SUBGRAPHS } from "./utils/subgraph.ts";
+import { SupportedChain } from "../../src/lib/chains.ts";
 const supabase = createClient(
   process.env.VITE_SUPABASE_PROJECT_URL!,
   process.env.VITE_SUPABASE_API_KEY!

@@ -14,9 +14,11 @@ import {
 import { readContract } from "@wagmi/core";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
-import { isTwoStringsEqual } from "./common.ts";
-import { COLLATERAL_TOKENS, NATIVE_TOKEN, SupportedChain, config } from "./config.ts";
-import { Token } from "./types.ts";
+import { config } from "./config.ts";
+import { Token } from "../../../src/lib/tokens.ts";
+import { isTwoStringsEqual, NATIVE_TOKEN } from "../../../src/lib/utils.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { COLLATERAL_TOKENS } from "@/lib/config.ts";
 
 const SDAI_ABI = [
   {

@@ -9,9 +9,12 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "paths": {
+      "@/*": ["../src/*"],
+    },
   },
-  "include": ["./functions/**/*"]
+  "include": ["./functions/**/*", "../src/hooks/queries/**/*", "../src/hooks/contracts/**/*", "../src/lib/chains.ts", "../src/lib/utils.ts"]
 }
 
 
