@@ -1,4 +1,3 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import { chainIds } from "./utils/config";
@@ -8,12 +7,11 @@ import { getMarketOdds } from "./utils/getMarketOdds";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 
-export const handler = async (_event: HandlerEvent, _context: HandlerContext) => {
+export default async () => {
   if (!process.env.VITE_SUPABASE_PROJECT_URL || !process.env.VITE_SUPABASE_API_KEY) {
     return;
   }
   try {
-    //save to db
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
     console.log("fetching markets...");
     const markets = (

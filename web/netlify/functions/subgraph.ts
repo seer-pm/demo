@@ -1,9 +1,8 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { SUBGRAPHS } from "./utils/subgraph";
 
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
-  const subgraph = event.queryStringParameters?._subgraph;
-  const chainId = Number.parseInt(event.queryStringParameters?._chainId || "");
+export default async (req: Request) => {
+  const subgraph = new URL(req.url).searchParams.get("_subgraph");
+  const chainId = Number.parseInt(new URL(req.url).searchParams.get("_chainId") || "");
 
   // @ts-ignore
   const subgraphUrl = SUBGRAPHS[subgraph][chainId];
@@ -15,20 +14,16 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
       headers: {
         "Content-Type": "application/json",
       },
-      body: event.body,
+      body: await req.text(),
     });
 
-    return {
-      body: await response.text(),
-      statusCode: 200,
+    return new Response(await response.text(), {
+      status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
       },
-    };
+    });
   }
 
-  return {
-    statusCode: 404,
-    body: JSON.stringify({ error: "Subgraph not found" }),
-  };
+  return new Response(JSON.stringify({ error: "Subgraph not found" }), { status: 404 });
 };

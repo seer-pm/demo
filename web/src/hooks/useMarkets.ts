@@ -1,18 +1,12 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { fetchMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import {
-  Market,
-  SerializedMarket,
-  VerificationStatus,
-  deserializeMarket,
-  getUseGraphMarketKey,
-  mapOnChainMarket,
-} from "./useMarket";
+import { Market, VerificationStatus, getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
 
 export async function searchOnChainMarkets(chainId: SupportedChain) {
@@ -68,23 +62,22 @@ export type UseGraphMarketsParams = {
   orderDirection: "asc" | "desc" | undefined;
 };
 
+export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
+
+export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
+  const markets = await fetchMarkets(params);
+  for (const market of markets) {
+    queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+  }
+
+  return markets;
+};
+
 function useGraphMarkets(params: UseGraphMarketsParams) {
   return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", params],
+    queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
-      const response = await fetch("/.netlify/functions/markets-search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      });
-      const markets: Market[] = (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
-      for (const market of markets) {
-        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
-      }
-
-      return markets;
+      return useGraphMarketsQueryFn(params);
     },
     retry: false,
   });

@@ -1,8 +1,8 @@
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain, gnosis, mainnet } from "./chains";
-import SEER_ENV from "./env";
+import { getAppUrl } from "./utils";
 
-const SUBGRAPH_ENDPOINT = `${SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm"}/.netlify/functions/subgraph`;
+const SUBGRAPH_ENDPOINT = `${getAppUrl()}/.netlify/functions/subgraph`;
 
 export function getSubgraphuUrl(
   subgraphType: "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming",
