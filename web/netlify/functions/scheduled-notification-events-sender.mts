@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getPostmarkClient } from "./utils/common";
-import { FROM_EMAIL } from "./utils/constants";
+import { FROM_EMAIL } from "./utils/common";
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_PROJECT_URL!,
