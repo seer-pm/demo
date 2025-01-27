@@ -41,7 +41,10 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       } else if (order.status === OrderStatus.CANCELLED) {
         toastInfo({ title: "Swap cancelled" });
       }
-      queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["useCowOrders"] }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+      });
       removePendingOrder(pendingOrderId);
     }),
   );
