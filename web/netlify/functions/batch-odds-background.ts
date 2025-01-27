@@ -76,5 +76,5 @@ export default async () => {
   } catch (e) {
     console.log(e);
   }
-  return {};
+  return;
 };

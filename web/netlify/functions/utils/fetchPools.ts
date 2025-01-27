@@ -1,12 +1,12 @@
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
-import { chainIds, config } from "./config.ts";
+import { chainIds, config, mainnet } from "./config.ts";
 
-import { SUBGRAPHS } from "./subgraph.ts";
-import { SupportedChain } from "../../../src/lib/chains.ts";
 import { Market } from "../../../src/hooks/useMarket.ts";
-import { getMarketPoolsPairs, Token0Token1 } from "../../../src/lib/market.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { Token0Token1, getMarketPoolsPairs } from "../../../src/lib/market.ts";
 import { isTwoStringsEqual } from "../../../src/lib/utils.ts";
+import { SUBGRAPHS } from "./subgraph.ts";
 
 export interface Pool {
   id: Address;
@@ -84,7 +84,7 @@ export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Toke
           token1Price
         }
       }`;
-    const results = await fetch(SUBGRAPHS.algebra[chainId]!, {
+    const results = await fetch(chainId === mainnet.id ? SUBGRAPHS.uniswap[chainId]! : SUBGRAPHS.algebra[chainId]!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -16,7 +16,7 @@ export default async (req: Request) => {
   const [chainIdString, marketId] = req.url.replace(/\/$/, "").split("/").slice(-2);
   const chainId = Number(chainIdString) as SupportedChain;
   if (chainId !== 100) {
-    return {};
+    return;
   }
   const market = await fetchMarket(marketId, chainId);
   const parentMarket = market.parentMarket.id;
@@ -74,7 +74,7 @@ export default async (req: Request) => {
     marketName: market.marketName,
     marketId: market.id,
   });
-  return {};
+  return;
 };
 
 async function checkAllowanceAndApprove(
