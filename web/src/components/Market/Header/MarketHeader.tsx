@@ -21,20 +21,14 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import {
-  MarketTypes,
-  displayOdds,
-  getCollateralByIndex,
-  getMarketEstimate,
-  getMarketPoolsPairs,
-  getMarketType,
-} from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
+import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
@@ -114,7 +108,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : odds?.[i] ? displayOdds(odds[i], getMarketType(market)) : null}
+                  {oddsPending ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
                 </div>
               </div>
             </Link>

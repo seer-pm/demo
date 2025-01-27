@@ -13,7 +13,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, displayOdds, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
+import { DisplayOdds } from "./DisplayOdds";
 import { OutcomeImage } from "./OutcomeImage";
 import PoolDetails from "./PoolDetails/PoolDetails";
 
@@ -461,7 +462,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : odds?.[i] ? displayOdds(odds[i], getMarketType(market)) : null}
+                  {oddsPending ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
                 </div>
 
                 <input

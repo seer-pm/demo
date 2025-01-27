@@ -128,17 +128,6 @@ export function isMarketReliable(market: Market) {
   });
 }
 
-export function displayOdds(odd: number | undefined | null, marketType: MarketTypes) {
-  if (!isOdd(odd)) {
-    return "NA";
-  }
-  if (marketType === MarketTypes.SCALAR || marketType === MarketTypes.MULTI_CATEGORICAL) {
-    return odd === 0 ? 0 : (odd! / 100).toFixed(3);
-  }
-
-  return `${odd}%`;
-}
-
 export function isOdd(odd: number | undefined | null) {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
