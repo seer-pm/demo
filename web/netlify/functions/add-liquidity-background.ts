@@ -1,4 +1,6 @@
+import { convertFromSDAI } from "@/hooks/trade/handleSDAI";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { fetchMarket } from "@/lib/markets-search";
 import { readContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
@@ -9,8 +11,6 @@ import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
 import { waitForContractWrite } from "./utils/common";
 import { config } from "./utils/config";
 import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/constants";
-import { fetchMarket } from "./utils/fetchMarkets";
-import { convertFromSDAI } from "./utils/handleSDai";
 
 export default async (req: Request) => {
   const [chainIdString, marketId] = req.url.replace(/\/$/, "").split("/").slice(-2);
@@ -18,9 +18,8 @@ export default async (req: Request) => {
   if (chainId !== 100) {
     return;
   }
-  const market = await fetchMarket(marketId, chainId);
-  const parentMarket = market.parentMarket.id;
-  if (parentMarket && !isTwoStringsEqual(parentMarket, zeroAddress)) {
+  const market = await fetchMarket(chainId, marketId as Address);
+  if (!isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
     console.log("skip conditional market ", marketId);
     return;
   }
@@ -48,7 +47,10 @@ export default async (req: Request) => {
           abi: SDaiAdapterAbi,
           functionName: "depositXDAI",
           args: [account.address],
-          value: await convertFromSDAI(((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n, chainId), //convert a bit more than required to prevent slippage
+          value: await convertFromSDAI({
+            amount: ((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n,
+            chainId,
+          }), //convert a bit more than required to prevent slippage
           chainId,
         }),
       chainId,

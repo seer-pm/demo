@@ -4,6 +4,7 @@ import { Market, SerializedMarket, deserializeMarket } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { UseGraphMarketsParams } from "@/hooks/useMarkets";
 import { Address, zeroAddress } from "viem";
+import { SupportedChain } from "./chains";
 import { getAppUrl } from "./utils";
 
 export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; parentMarket?: Address };
@@ -18,6 +19,16 @@ export const fetchMarkets = async (params: FetchMarketParams): Promise<Market[]>
   });
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 };
+
+export async function fetchMarket(chainId: SupportedChain, id: Address) {
+  const markets = await fetchMarkets({ chainsList: [chainId.toString()], id: id.toLocaleLowerCase() as Address });
+
+  if (markets.length === 0) {
+    throw new Error("Market not found");
+  }
+
+  return markets[0];
+}
 
 export function sortMarkets(
   orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | undefined,

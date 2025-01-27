@@ -71,6 +71,49 @@ async function getTokenPrice(
   return 0n;
 }
 
+export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
+  if (!hasLiquidity) {
+    return Array(market.wrappedTokens.length).fill(Number.NaN);
+  }
+
+  const BUY_AMOUNT = 3; //collateral token
+
+  const collateralToken = {
+    address: market.collateralToken,
+    decimals: 18,
+    name: "",
+    symbol: "",
+  };
+
+  const prices = await Promise.all(
+    market.wrappedTokens.map(async (wrappedAddress) => {
+      try {
+        const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
+
+        if (price === 0n) {
+          return 0;
+        }
+
+        return BUY_AMOUNT / Number(formatUnits(price, 18));
+      } catch {
+        return 0;
+      }
+    }),
+  );
+
+  // We filter out odds greater than 1.1 (an arbitrary threshold) by converting them to NaN
+  // This handles cases where there is liquidity, but it's too thin or out of price range,
+  // resulting in extremely high share prices that would display misleading odds
+  // NaN values indicate to the UI that these odds should not be shown
+  const tmpPrices = prices.map((p) => (p > 1.1 ? Number.NaN : p));
+
+  if (getMarketType(market) === MarketTypes.MULTI_CATEGORICAL) {
+    return formatOdds(tmpPrices);
+  }
+
+  return normalizeOdds(tmpPrices);
+}
+
 export const useMarketOdds = (market: Market, enabled: boolean) => {
   const hasLiquidity = useMarketHasLiquidity(market);
   return useQuery<number[] | undefined, Error>({
@@ -81,46 +124,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
     staleTime: 0,
     ...(market.odds.length > 0 && market.odds.every((x) => x !== null) && { initialData: market.odds as number[] }),
     queryFn: async () => {
-      if (!hasLiquidity) {
-        return Array(market.wrappedTokens.length).fill(Number.NaN);
-      }
-
-      const BUY_AMOUNT = 3; //collateral token
-
-      const collateralToken = {
-        address: market.collateralToken,
-        decimals: 18,
-        name: "",
-        symbol: "",
-      };
-
-      const prices = await Promise.all(
-        market.wrappedTokens.map(async (wrappedAddress) => {
-          try {
-            const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
-
-            if (price === 0n) {
-              return 0;
-            }
-
-            return BUY_AMOUNT / Number(formatUnits(price, 18));
-          } catch {
-            return 0;
-          }
-        }),
-      );
-
-      // We filter out odds greater than 1.1 (an arbitrary threshold) by converting them to NaN
-      // This handles cases where there is liquidity, but it's too thin or out of price range,
-      // resulting in extremely high share prices that would display misleading odds
-      // NaN values indicate to the UI that these odds should not be shown
-      const tmpPrices = prices.map((p) => (p > 1.1 ? Number.NaN : p));
-
-      if (getMarketType(market) === MarketTypes.MULTI_CATEGORICAL) {
-        return formatOdds(tmpPrices);
-      }
-
-      return normalizeOdds(tmpPrices);
+      return getMarketOdds(market, hasLiquidity!);
     },
   });
 };

@@ -1,7 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { getOutcomes } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchMarket } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -186,15 +186,8 @@ export const getUseGraphMarketKey = (marketId: Address) => [
   marketId.toLocaleLowerCase(),
 ];
 
-export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) => {
-  const markets = await fetchMarkets({ chainsList: [chainId.toString()], id: marketId.toLocaleLowerCase() as Address });
-
-  if (markets.length === 0) {
-    throw new Error("Market not found");
-  }
-
-  return markets[0];
-};
+export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) =>
+  fetchMarket(chainId, marketId);
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({

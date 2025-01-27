@@ -1,9 +1,9 @@
+import { getMarketOdds } from "@/hooks/useMarketOdds";
+import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import { chainIds } from "./utils/config";
-import { fetchMarkets } from "./utils/fetchMarkets";
 import { getAllMarketPools } from "./utils/fetchPools";
-import { getMarketOdds } from "./utils/getMarketOdds";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 
@@ -14,13 +14,7 @@ export default async () => {
   try {
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
     console.log("fetching markets...");
-    const markets = (
-      await Promise.all(
-        chainIds.map((chainId) =>
-          fetchMarkets(chainId).then((markets) => markets.map((market) => ({ ...market, chainId }))),
-        ),
-      )
-    ).flat();
+    const markets = await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) });
 
     const pools = await getAllMarketPools(markets);
     if (!pools.length) throw "No pool found";
@@ -44,7 +38,12 @@ export default async () => {
     console.log("fetching odds...");
     const limit = pLimit(20);
     const results = await Promise.all(
-      markets.map((market) => limit(() => getMarketOdds(market, liquidityToMarketMapping))),
+      markets.map((market) =>
+        limit(() => {
+          const hasLiquidity = (liquidityToMarketMapping[market.id].totalLiquidity || 0) > 0;
+          return getMarketOdds(market, hasLiquidity);
+        }),
+      ),
     );
     const { error } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({
