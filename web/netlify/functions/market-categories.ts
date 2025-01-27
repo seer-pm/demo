@@ -1,7 +1,7 @@
+import { fetchMarket } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import { isTwoStringsEqual } from "../../src/lib/utils";
 import { verifyToken } from "./utils/auth";
-import { fetchMarket } from "./utils/fetchMarkets";
 
 export default async (req: Request) => {
   try {
@@ -26,7 +26,7 @@ export default async (req: Request) => {
       }
       const { data: existing } = await supabase.from("markets").select().eq("id", marketId);
       if (!existing?.[0]?.creator) {
-        const market = await fetchMarket(marketId, chainId.toString());
+        const market = await fetchMarket(chainId.toString(), marketId);
         if (!isTwoStringsEqual(market.creator, userId)) {
           return new Response(JSON.stringify({ error: "User is not creator" }), { status: 500 });
         }

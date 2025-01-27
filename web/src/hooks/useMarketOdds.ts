@@ -1,12 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
-import { Market, useMarket } from "./useMarket";
+import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
-import { useTokenInfo } from "./useTokenInfo";
 
 export function normalizeOdds(prices: number[]): number[] {
   const sumArray = (data: number[]) =>
@@ -57,13 +55,51 @@ async function getTokenPrice(
   return 0n;
 }
 
-export const useMarketOdds = (market: Market, enabled: boolean) => {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
+export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
+  if (!hasLiquidity) {
+    return Array(market.wrappedTokens.length).fill(Number.NaN);
+  }
+
+  const BUY_AMOUNT = 3; //collateral token
+
+  const collateralToken = {
+    address: market.collateralToken,
+    decimals: 18,
+    name: "",
+    symbol: "",
+  };
+
+  const prices = await Promise.all(
+    market.wrappedTokens.map(async (wrappedAddress) => {
+      try {
+        const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
+
+        if (price === 0n) {
+          return 0;
+        }
+
+        return BUY_AMOUNT / Number(formatUnits(price, 18));
+      } catch {
+        return 0;
+      }
+    }),
   );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
+
+  // This IF is commented out because returning empty odds prevent trading, despite enough market liquidity
+  //if (prices.some((price) => price > 1)) {
+  //return Array(market.wrappedTokens.length).fill(Number.NaN);
+  //}
+
+  return normalizeOdds(prices);
+}
+
+export const useMarketOdds = (market: Market, enabled: boolean) => {
+  const collateralToken = {
+    address: market.collateralToken,
+    decimals: 18,
+    name: "",
+    symbol: "",
+  };
 
   const hasLiquidity = useMarketHasLiquidity(market.chainId, market.wrappedTokens, collateralToken);
   return useQuery<number[] | undefined, Error>({
@@ -73,34 +109,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
     staleTime: 0,
     ...(market.odds.length > 0 && market.odds.every((x) => x !== null) && { initialData: market.odds as number[] }),
     queryFn: async () => {
-      if (!hasLiquidity) {
-        return Array(market.wrappedTokens.length).fill(Number.NaN);
-      }
-
-      const BUY_AMOUNT = 3; //collateral token
-
-      const prices = await Promise.all(
-        market.wrappedTokens.map(async (wrappedAddress) => {
-          try {
-            const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
-
-            if (price === 0n) {
-              return 0;
-            }
-
-            return BUY_AMOUNT / Number(formatUnits(price, 18));
-          } catch {
-            return 0;
-          }
-        }),
-      );
-
-      // This IF is commented out because returning empty odds prevent trading, despite enough market liquidity
-      //if (prices.some((price) => price > 1)) {
-      //return Array(market.wrappedTokens.length).fill(Number.NaN);
-      //}
-
-      return normalizeOdds(prices);
+      return getMarketOdds(market, hasLiquidity);
     },
   });
 };

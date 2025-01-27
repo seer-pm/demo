@@ -6,16 +6,8 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import { config } from "./config";
-import { isOdd } from "../../../src/lib/market";
 import { SupportedChain } from "../../../src/lib/chains";
-
-export function getMarketEstimate(odds: number[], lowerBound: bigint, upperBound: bigint) {
-  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
-    return "NA";
-  }
-  return ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(2);
-}
+import { config } from "./config";
 
 export const waitForContractWrite = async (contractWrite: () => Promise<`0x${string}`>, chainId: SupportedChain) => {
   let hash: `0x${string}` | undefined = undefined;
