@@ -5,13 +5,21 @@
     "moduleResolution": "node", 
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "target": "ES2020",
+    "target": "ES2021",
+    "module": "ESNext",
+    "jsx": "react-jsx",
     "noEmit": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "paths": {
+      "@/*": ["../src/*"],
+    },
   },
-  "include": ["./functions/**/*"]
+  "include": [
+    "./functions/**/*", 
+    "../src"
+  ]
 }
 
 

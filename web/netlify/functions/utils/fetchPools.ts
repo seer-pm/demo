@@ -1,10 +1,13 @@
 import { readContracts } from "@wagmi/core";
-import { erc20Abi, formatUnits } from "viem";
-import { getMarketPoolsPairs, isTwoStringsEqual } from "./common.ts";
-import { SupportedChain, chainIds, config } from "./config.ts";
-import { POOL_SUBGRAPH_URLS, zeroAddress } from "./constants.ts";
+import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
+import { chainIds, config, mainnet } from "./config.ts";
 
-import { Address, Market, Token0Token1 } from "./types.ts";
+import { Market } from "../../../src/hooks/useMarket.ts";
+import { SupportedChain } from "../../../src/lib/chains.ts";
+import { Token0Token1, getMarketPoolsPairs } from "../../../src/lib/market.ts";
+import { isTwoStringsEqual } from "../../../src/lib/utils.ts";
+import { SUBGRAPHS } from "./subgraph.ts";
+
 export interface Pool {
   id: Address;
   token0: { id: Address; symbol: string };
@@ -53,7 +56,7 @@ export async function fetchTokenBalances(
   }
 }
 
-export async function fetchPools(chainId: string, tokenPairs: Token0Token1[]) {
+export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
   const maxAttempts = 20;
   let attempt = 0;
   let allPools: Pool[] = [];
@@ -81,7 +84,7 @@ export async function fetchPools(chainId: string, tokenPairs: Token0Token1[]) {
           token1Price
         }
       }`;
-    const results = await fetch(POOL_SUBGRAPH_URLS[chainId]!, {
+    const results = await fetch(chainId === mainnet.id ? SUBGRAPHS.uniswap[chainId]! : SUBGRAPHS.algebra[chainId]!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -124,7 +127,7 @@ export async function getAllMarketPools(markets: Market[]) {
       chainIds.map(async (chainId) => {
         const marketsByChain = markets.filter((market) => market.chainId === chainId);
         const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketPoolsPairs(market));
-        const poolsByChain = await fetchPools(chainId.toString(), tokenPairsByChain);
+        const poolsByChain = await fetchPools(chainId, tokenPairsByChain);
         const tokenPoolList = poolsByChain.reduce(
           (acc, curr) => {
             acc.push({

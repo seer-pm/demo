@@ -8,6 +8,7 @@ import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Address, formatUnits, getAddress } from "viem";
 import { SupportedChain } from "./chains";
+import SEER_ENV from "./env";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
@@ -182,7 +183,7 @@ export async function fetchAuth(
 }
 
 export function getAppUrl() {
-  return import.meta.env.VITE_WEBSITE_URL || "https://app.seer.pm";
+  return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
 }
 
 export function stripDiacritics(str: string) {

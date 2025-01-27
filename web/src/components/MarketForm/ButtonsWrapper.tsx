@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import { isUndefined } from "@/lib/utils";
-import { FormWithNextStep, FormWithPrevStep } from "./index.tsx";
+import { FormWithNextStep, FormWithPrevStep } from "./index.ts";
 
 export function ButtonsWrapper({
   goToPrevStep,

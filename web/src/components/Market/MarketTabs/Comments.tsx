@@ -2,6 +2,7 @@ import Button from "@/components/Form/Button";
 import useCheckAccount from "@/hooks/useCheckAccount";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
 import { Market } from "@/hooks/useMarket";
+import SEER_ENV from "@/lib/env";
 import { Discussion } from "@orbisclub/components";
 import "@orbisclub/components/dist/index.modern.css";
 import { Orbis } from "@orbisclub/orbis-sdk";
@@ -45,7 +46,7 @@ function Comments({ market }: { market: Market }) {
           onClick={() => signOrbis()}
         />
       )}
-      <Discussion key={ceramicSession} context={`${import.meta.env.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`} />
+      <Discussion key={ceramicSession} context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`} />
     </>
   );
 }

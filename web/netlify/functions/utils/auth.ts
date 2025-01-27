@@ -6,7 +6,7 @@ export type DecodedToken = {
   iss: string;
 };
 
-export const verifyToken = (authHeader: string | undefined): string | null => {
+export const verifyToken = (authHeader: string | undefined | null): string | null => {
   if (!authHeader?.startsWith("Bearer ")) {
     return null;
   }

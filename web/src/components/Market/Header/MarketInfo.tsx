@@ -10,7 +10,7 @@ import { useState } from "react";
 import { AnswerForm } from "../AnswerForm";
 import { RaiseDisputeForm } from "../RaiseDisputeForm";
 import { QuestionLine } from "./QuestionLine";
-import { COLORS } from "./index.tsx";
+import { COLORS } from "./index.ts";
 
 interface MarketInfoProps {
   market: Market;

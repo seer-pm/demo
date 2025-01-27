@@ -7,7 +7,7 @@ import memoize from "micro-memoize";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { lightGeneralizedTcrAddress } from "./contracts/generated";
-import { GetImagesQuery, Status, getSdk } from "./queries/gql-generated-curate";
+import { Status, getSdk } from "./queries/gql-generated-curate";
 
 export const getMarketImages = memoize((chainId: SupportedChain) => {
   return batshit.create({
@@ -21,30 +21,13 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
       if (!client || isUndefined(registryAddress)) {
         throw new Error("Subgraph not available");
       }
-      let litems: GetImagesQuery["litems"] = [];
-      try {
-        const data = await getSdk(client).GetImages({
-          where: {
-            // status: registered ? Status.Registered : undefined,
-            registryAddress,
-          },
-        });
-        litems = data.litems;
-      } catch (e) {
-        const fallbackClient = curateGraphQLClient(chainId, true);
-        if (fallbackClient) {
-          const data = await getSdk(fallbackClient).GetImages({
-            where: {
-              // status: registered ? Status.Registered : undefined,
-              registryAddress,
-            },
-          });
-          litems = data.litems;
-        } else {
-          throw e;
-        }
-      }
-      return litems;
+      const data = await getSdk(client).GetImages({
+        where: {
+          // status: registered ? Status.Registered : undefined,
+          registryAddress,
+        },
+      });
+      return data.litems;
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (litems, marketId) =>

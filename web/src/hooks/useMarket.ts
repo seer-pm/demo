@@ -1,13 +1,13 @@
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { getOutcomes } from "@/lib/market";
+import { fetchMarket } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
-import { getOutcomes } from "./useCreateMarket";
 
 export interface Question {
   id: `0x${string}`;
@@ -24,7 +24,7 @@ export interface Question {
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
 export type VerificationResult = { status: VerificationStatus; itemID?: string };
 
-interface MarketOffChainFields {
+type MarketOffChainFields = {
   chainId: SupportedChain;
   outcomesSupply: bigint;
   liquidityUSD: number;
@@ -46,9 +46,9 @@ interface MarketOffChainFields {
   blockTimestamp?: number;
   verification?: VerificationResult;
   index?: number;
-}
+};
 
-export interface Market extends MarketOffChainFields {
+export type Market = MarketOffChainFields & {
   id: Address;
   type: "Generic" | "Futarchy";
   marketName: string;
@@ -77,6 +77,76 @@ export interface Market extends MarketOffChainFields {
   upperBound: bigint;
   payoutReported: boolean;
   payoutNumerators: readonly bigint[];
+};
+
+export type SerializedMarket = Omit<
+  Market,
+  | "outcomesSupply"
+  | "parentOutcome"
+  | "templateId"
+  | "questions"
+  | "lowerBound"
+  | "upperBound"
+  | "payoutNumerators"
+  | "parentMarket"
+> & {
+  outcomesSupply: string;
+  parentMarket: Omit<Market["parentMarket"], "payoutNumerators"> & {
+    payoutNumerators: readonly string[];
+  };
+  parentOutcome: string;
+  templateId: string;
+  questions: Array<
+    Omit<Question, "bond" | "min_bond"> & {
+      bond: string;
+      min_bond: string;
+    }
+  >;
+  lowerBound: string;
+  upperBound: string;
+  payoutNumerators: readonly string[];
+};
+
+export function serializeMarket(market: Market): SerializedMarket {
+  return {
+    ...market,
+    outcomesSupply: market.outcomesSupply.toString(),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => pn.toString()),
+    },
+    parentOutcome: market.parentOutcome.toString(),
+    templateId: market.templateId.toString(),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: question.bond.toString(),
+      min_bond: question.min_bond.toString(),
+    })),
+    lowerBound: market.lowerBound.toString(),
+    upperBound: market.upperBound.toString(),
+    payoutNumerators: market.payoutNumerators.map((pn) => pn.toString()),
+  };
+}
+
+export function deserializeMarket(market: SerializedMarket): Market {
+  return {
+    ...market,
+    outcomesSupply: BigInt(market.outcomesSupply),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => BigInt(pn)),
+    },
+    parentOutcome: BigInt(market.parentOutcome),
+    templateId: BigInt(market.templateId),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: BigInt(question.bond),
+      min_bond: BigInt(question.min_bond),
+    })),
+    lowerBound: BigInt(market.lowerBound),
+    upperBound: BigInt(market.upperBound),
+    payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+  };
 }
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
@@ -116,15 +186,8 @@ export const getUseGraphMarketKey = (marketId: Address) => [
   marketId.toLocaleLowerCase(),
 ];
 
-export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) => {
-  const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
-
-  if (markets.length === 0) {
-    throw new Error("Market not found");
-  }
-
-  return markets[0];
-};
+export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) =>
+  fetchMarket(chainId, marketId);
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
