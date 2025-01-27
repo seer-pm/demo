@@ -9,7 +9,7 @@ export default function MarketTabs({ market }: { market: Market }) {
     <div>
       <div
         role="tablist"
-        className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1 w-fit"
+        className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1 max-w-[400px]"
       >
         <button
           type="button"
@@ -22,7 +22,7 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] ${activeTab === "conditionalMarkets" && "tab-active"}`}
+          className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
           onClick={() => setActiveTab("conditionalMarkets")}
         >
           Related Conditional Markets

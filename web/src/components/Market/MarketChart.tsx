@@ -1,5 +1,6 @@
 import { ChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
 import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
@@ -62,7 +63,7 @@ function MarketChart({ market }: { market: Market }) {
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
   const series = getSeries(market, chartData);
-
+  const isSmallScreen = useIsSmallScreen();
   const option = {
     color: [
       "#f58231",
@@ -120,8 +121,8 @@ function MarketChart({ market }: { market: Market }) {
     },
 
     grid: {
-      left: 80,
-      right: 80,
+      left: isSmallScreen ? "20%" : 80,
+      right: isSmallScreen ? "20%" : 80,
       top: "15%",
       bottom: "15%",
     },
@@ -134,7 +135,9 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: timestamps.filter((_, index) => index % Math.floor(timestamps.length / 5) === 0),
+        customValues: timestamps.filter(
+          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        ),
       },
       axisPointer: {
         label: {
@@ -145,7 +148,9 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: timestamps.filter((_, index) => index % Math.floor(timestamps.length / 5) === 0),
+        customValues: timestamps.filter(
+          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        ),
       },
     },
 

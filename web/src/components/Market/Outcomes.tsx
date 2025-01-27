@@ -309,10 +309,10 @@ export function Outcomes({ market, images }: PositionsProps) {
     <div>
       <PoolDetailsModal
         title="Pool details"
-        className="!max-w-[80vw]"
+        className="!max-w-[99vw] min-[400px]:!max-w-[80vw]"
         content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
       />
-      <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
+      <div className="text-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
         {market.wrappedTokens.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
@@ -369,7 +369,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </div>
                     )}
                   </div>
-                  <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap">
+                  <div className="text-[12px] flex items-start gap-x-4 gap-y-2 flex-wrap flex-col justify-start min-[400px]:flex-row min-[400px]:items-center">
                     {balances && balances[i] > 0n && (
                       <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(i)}>
                         Add token to wallet
@@ -394,7 +394,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                           onClick={() => {
                             openModal();
                           }}
-                          className="text-purple-primary hover:underline"
+                          className="text-purple-primary hover:underline text-left"
                         >
                           Add Liquidity
                         </button>
@@ -409,7 +409,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                           )}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-purple-primary flex items-center space-x-2 hover:underline"
+                          className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
                         >
                           <span>Add Liquidity</span>
                         </a>
@@ -449,7 +449,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                     </Link>
                     {!isUndefined(pools[i]) && pools[i].length > 0 && (
                       <button
-                        className="text-purple-primary hover:underline"
+                        className="text-purple-primary hover:underline text-left"
                         type="button"
                         onClick={openPoolDetailsModal}
                       >
@@ -457,11 +457,10 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </button>
                     )}
                   </div>
-                  <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
                 </div>
               </div>
-              <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">
+              <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
+                <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
                   {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
                 </div>
 
