@@ -1,20 +1,22 @@
 import { STATUS_TEXTS } from "@/components/Market/Header";
-import { Market_Filter, Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { Market } from "@/hooks/useMarket";
+import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
+import { Market, SerializedMarket, deserializeMarket } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
-import { zeroAddress } from "viem";
-import { SupportedChain } from "./chains";
+import { UseGraphMarketsParams } from "@/hooks/useMarkets";
+import { Address, zeroAddress } from "viem";
+import { getAppUrl } from "./utils";
 
-export const fetchMarkets = async (
-  chainId: SupportedChain,
-  where?: Market_Filter,
-  orderBy?: Market_OrderBy,
-  orderDirection?: "asc" | "desc",
-): Promise<Market[]> => {
-  // TODO
-  console.log(chainId, where, orderBy, orderDirection);
+export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; parentMarket?: Address };
 
-  return [];
+export const fetchMarkets = async (params: FetchMarketParams): Promise<Market[]> => {
+  const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+  return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 };
 
 export function sortMarkets(

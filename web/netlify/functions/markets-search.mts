@@ -1,4 +1,3 @@
-import type { Context } from "@netlify/functions";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import {
   GetImagesQuery,
@@ -29,8 +28,7 @@ import { curateGraphQLClient, graphQLClient } from "./utils/subgraph";
 import { lightGeneralizedTcrAddress } from "../../src/hooks/contracts/generated";
 import { unescapeJson } from "../../src/lib/reality";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
-import { sortMarkets } from "../../src/lib/markets-search";
-import { UseGraphMarketsParams } from "../../src/hooks/useMarkets";
+import { FetchMarketParams, sortMarkets } from "../../src/lib/markets-search";
 import { readContracts } from "@wagmi/core";
 import { config } from "./utils/config";
 import { createClient } from "@supabase/supabase-js";
@@ -169,12 +167,19 @@ interface MarketExtraData {
   } | null>;
 }
 
-export const fetchMarkets = async (
-  chainId: SupportedChain,
-  where?: Market_Filter,
-  orderBy?: Market_OrderBy,
-  orderDirection?: "asc" | "desc"
-): Promise<Market[]> => {
+async function getMarketsExtraData(): Promise<{ [key: string]: MarketExtraData } | undefined> {
+  const {data, error} = await supabase.from('markets').select();
+  if (error) {
+    return;
+  }
+
+  return data.reduce((acc, curr) => {
+    acc[curr.id] = curr;
+    return acc;
+  }, {} as { [key: string]: MarketExtraData });
+}
+
+async function fetchAllMarkets(chainId: SupportedChain, where?: Market_Filter) {
   const client = graphQLClient(chainId);
 
   if (!client) {
@@ -208,26 +213,23 @@ export const fetchMarkets = async (
     currentId = currentMarkets[currentMarkets.length - 1]?.id;
     attempt++;
   }
-  const verificationStatusList = await getVerificationStatusList(chainId);
-  let marketToMarketDataMapping: { [key: string]: MarketExtraData } | undefined;
-  try {
-    const { data } = await fetch(
-      `${
-        process.env.VITE_WEBSITE_URL || "https://app.seer.pm"
-      }/.netlify/functions/supabase-query/markets`
-    ).then((res) => res.json());
-    const markets = data as MarketExtraData[];
-    marketToMarketDataMapping = markets.reduce((acc, curr) => {
-      acc[curr.id] = curr;
-      return acc;
-    }, {} as { [key: string]: MarketExtraData });
-  } catch (e) {
-    console.log(e);
-  }
+  return markets;
+}
+
+export const fetchMarkets = async (
+  chainId: SupportedChain,
+  where?: Market_Filter,
+  orderBy?: Market_OrderBy,
+  orderDirection?: "asc" | "desc"
+): Promise<Market[]> => {
+  const  [markets, verificationStatusList, marketsExtraData] = await Promise.all([fetchAllMarkets(chainId, where),
+  getVerificationStatusList(chainId),
+  getMarketsExtraData()]);
+  
   return markets
     .map((market) => {
       const marketExtraData =
-        marketToMarketDataMapping?.[market.id.toLowerCase() as Address];
+        marketsExtraData?.[market.id.toLowerCase() as Address];
       return mapGraphMarket(market, {
         chainId,
         verification: verificationStatusList?.[
@@ -248,6 +250,8 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
+  id: Address | "",
+  parentMarket: Address | "",
   _marketName: string,
   marketStatusList: MarketStatus[] | undefined,
   creator: Address | "",
@@ -259,6 +263,14 @@ export async function searchGraphMarkets(
 
   let where: Market_Filter = {};
   const or = [];
+
+  if (id) {
+    where['id'] = id.toLowerCase();
+  }
+
+  if (parentMarket) {
+    where['parentMarket'] = parentMarket.toLowerCase();
+  }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
     or.push({
@@ -365,15 +377,17 @@ export const fetchMarketsWithPositions = async (
   return [...marketsWithTokens];
 };
 
-async function multiChainSearch(body: UseGraphMarketsParams): Promise<SerializedMarket[]> {
+async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMarket[]> {
   const {
-    chainsList,
-    marketName,
+    chainsList = [],
+    id = '',
+    parentMarket = '',
+    marketName = '',
     marketStatusList,
-    creator,
-    participant,
+    creator = '',
+    participant = '',
     orderBy,
-    orderDirection,
+    orderDirection
   } = body;
 
   const chainIds = (
@@ -389,6 +403,8 @@ async function multiChainSearch(body: UseGraphMarketsParams): Promise<Serialized
       chainIds.map((chainId) =>
         searchGraphMarkets(
           chainId,
+          id,
+          parentMarket,
           marketName,
           marketStatusList,
           creator,
@@ -412,7 +428,7 @@ async function keyValueFetch(key: string, callback: () => Promise<any>) {
     .select("value")
     .eq("key", key)
     .single();
-
+    
   if (error && error.code !== "PGRST116") {
     // Handle error if it's not a "not found" error
     throw error;
@@ -429,15 +445,15 @@ async function keyValueFetch(key: string, callback: () => Promise<any>) {
       .upsert({
         key,
         value: {date: currentTime.toISOString(), value: result},
-      });
-
+      }, { onConflict: "key" });
+      
     if (saveError) {
       throw saveError;
     }
-
+    
     return result;
   }
-
+  
   return data.value.value;
 }
 
@@ -452,20 +468,25 @@ export default async (req: Request) => {
       },
     });
   }
-
-  const hashKey = `markets_search_${crypto.createHash('md5').update(JSON.stringify(body)).digest("hex")}`
-  const markets = await keyValueFetch(
-    hashKey,
-    () => multiChainSearch(body as UseGraphMarketsParams)
-  );
   
-  return new Response(
-    JSON.stringify(markets),
-    {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+
+  try {
+    const hashKey = `markets_search_${crypto.createHash('md5').update(JSON.stringify(body)).digest("hex")}`;
+    const markets = await keyValueFetch(
+      hashKey,
+      () => multiChainSearch(body as FetchMarketParams)
+    );
+    
+    return new Response(
+      JSON.stringify(markets),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (e) {
+return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+  }
 };

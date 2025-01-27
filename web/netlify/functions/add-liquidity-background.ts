@@ -1,7 +1,9 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { readContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
+import { SupportedChain } from "../../src/lib/chains";
+import { isTwoStringsEqual } from "../../src/lib/utils";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
 import { waitForContractWrite } from "./utils/common";
@@ -9,17 +11,9 @@ import { config } from "./utils/config";
 import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/constants";
 import { fetchMarket } from "./utils/fetchMarkets";
 import { convertFromSDAI } from "./utils/handleSDai";
-import { isTwoStringsEqual } from "../../src/lib/utils";
-import { SupportedChain } from "../../src/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
-  const [chainIdString, marketId] = event.path
-    .split("/")
-    .slice(
-      event.path.split("/").indexOf("add-liquidity-background") + 1,
-      event.path.split("/").indexOf("add-liquidity-background") + 3,
-    );
+export default async (req: Request) => {
+  const [chainIdString, marketId] = req.url.replace(/\/$/, "").split("/").slice(-2);
   const chainId = Number(chainIdString) as SupportedChain;
   if (chainId !== 100) {
     return {};

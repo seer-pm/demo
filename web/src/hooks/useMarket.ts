@@ -187,7 +187,7 @@ export const getUseGraphMarketKey = (marketId: Address) => [
 ];
 
 export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) => {
-  const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
+  const markets = await fetchMarkets({ chainsList: [chainId.toString()], id: marketId.toLocaleLowerCase() as Address });
 
   if (markets.length === 0) {
     throw new Error("Market not found");
