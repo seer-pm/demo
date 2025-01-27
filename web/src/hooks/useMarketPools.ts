@@ -1,7 +1,6 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
@@ -217,9 +216,9 @@ interface OutcomePool {
   liquidity: string;
 }
 
-export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Token) => {
+export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Address) => {
   return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", chainId, collateralToken.address],
+    queryKey: ["useAllOutcomePools", chainId, collateralToken],
     retry: false,
     queryFn: async () => {
       const graphQLClient =
@@ -234,8 +233,8 @@ export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Tok
       const { pools } = await graphQLSdk(graphQLClient).GetPools({
         where: {
           or: [
-            { token0_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
+            { token0_: { id: collateralToken.toLocaleLowerCase() as Address } },
+            { token1_: { id: collateralToken.toLocaleLowerCase() as Address } },
           ],
         },
         first: 1000,

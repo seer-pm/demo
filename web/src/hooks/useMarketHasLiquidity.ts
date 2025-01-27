@@ -1,13 +1,17 @@
-import { SupportedChain } from "@/lib/chains";
-import { Token } from "@/lib/tokens";
-import { bigIntMax, isTwoStringsEqual } from "@/lib/utils";
+import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { Market } from "./useMarket";
 import { useAllOutcomePools } from "./useMarketPools";
 
-function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${string}`[], collateralToken: Token) {
-  const { data: outcomePools = [] } = useAllOutcomePools(chainId as SupportedChain, collateralToken);
+function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
+  const { data: outcomePools = [], isPending } = useAllOutcomePools(market.chainId, market.collateralToken);
+
+  if (isPending) {
+    return;
+  }
+
   const outcomeLiquidityMapping = outcomePools.reduce(
     (obj, item) => {
-      const outcomeTokenId = isTwoStringsEqual(item.token0.id, collateralToken.address)
+      const outcomeTokenId = isTwoStringsEqual(item.token0.id, market.collateralToken)
         ? item.token1.id
         : item.token0.id;
       obj[outcomeTokenId.toLowerCase()] =
@@ -18,7 +22,13 @@ function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${s
     },
     {} as { [key: string]: bigint },
   );
-  return bigIntMax(...(wrappedAddresses?.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? [])) > 0n;
+
+  if (!isUndefined(outcomeIndex)) {
+    return (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n;
+  }
+  return (
+    bigIntMax(...(market.wrappedTokens.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? [])) > 0n
+  );
 }
 
 export default useMarketHasLiquidity;

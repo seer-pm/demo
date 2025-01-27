@@ -9,8 +9,8 @@ import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useMarketImages } from "@/hooks/useMarketImages";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
@@ -37,6 +37,7 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
+  const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
@@ -45,7 +46,7 @@ function SwapWidget({
     market.chainId,
   );
   const marketStatus = getMarketStatus(market);
-  const { data: odds = [], isLoading } = useMarketOdds(market, true);
+
   if (marketStatus === MarketStatus.CLOSED) {
     return null;
   }
@@ -61,7 +62,7 @@ function SwapWidget({
       outcomeToken={outcomeToken}
       outcomeImage={images?.[outcomeIndex]}
       isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
-      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0}
+      hasEnoughLiquidity={hasLiquidity}
       parentCollateral={parentCollateral}
     />
   );

@@ -23,7 +23,7 @@ import {
 } from "@/lib/icons";
 import {
   MarketTypes,
-  formatOdds,
+  displayOdds,
   getCollateralByIndex,
   getMarketEstimate,
   getMarketPoolsPairs,
@@ -114,7 +114,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
+                  {oddsPending ? <Spinner /> : odds?.[i] ? displayOdds(odds[i], getMarketType(market)) : null}
                 </div>
               </div>
             </Link>

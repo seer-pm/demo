@@ -128,7 +128,7 @@ export function isMarketReliable(market: Market) {
   });
 }
 
-export function formatOdds(odd: number | undefined | null, marketType: MarketTypes) {
+export function displayOdds(odd: number | undefined | null, marketType: MarketTypes) {
   if (!isOdd(odd)) {
     return "NA";
   }
