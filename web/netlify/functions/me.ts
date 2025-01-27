@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 import { getPostmarkClient } from "./utils/common";
-import { FROM_EMAIL } from "./utils/constants";
+import { FROM_EMAIL } from "./utils/common";
 
 export default async (req: Request) => {
   const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);

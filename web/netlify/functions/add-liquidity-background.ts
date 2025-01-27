@@ -9,8 +9,8 @@ import { isTwoStringsEqual } from "../../src/lib/utils";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
 import { waitForContractWrite } from "./utils/common";
+import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/common";
 import { config } from "./utils/config";
-import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/constants";
 
 export default async (req: Request) => {
   const [chainIdString, marketId] = req.url.replace(/\/$/, "").split("/").slice(-2);
