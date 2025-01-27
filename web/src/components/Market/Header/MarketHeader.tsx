@@ -2,13 +2,12 @@ import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
+import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
-import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
-
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -23,6 +22,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
 import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
@@ -56,7 +56,7 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, isIntersecting);
+  const { data: odds = [] } = useMarketOdds(market, isIntersecting);
 
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
@@ -108,7 +108,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
                 </div>
               </div>
             </Link>
@@ -185,8 +185,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
-  const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
+  const { data: odds = [] } = useMarketOdds(market, true);
+  const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
@@ -310,8 +310,10 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
-          {!isPendingOdds && (
+          <div className="flex items-center gap-2">
+            Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
+          </div>
+          {odds.length > 0 && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens

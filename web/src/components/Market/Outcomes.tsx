@@ -253,7 +253,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
+  const { data: odds = [] } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
@@ -462,7 +462,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               </div>
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
                 </div>
 
                 <input
