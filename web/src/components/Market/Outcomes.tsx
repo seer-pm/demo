@@ -144,83 +144,89 @@ function AddLiquidityInfo({
       <div className="mt-[32px] mb-[24px] font-semibold">Available Pools:</div>
 
       <div className="space-y-[12px]">
-        {pools.map((pool) => (
-          <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
-            <div className="flex justify-between items-center">
-              <div>{poolRewardsInfo(pool)}</div>
-              <div>
-                <a
-                  href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-purple-primary flex items-center space-x-2"
-                >
-                  <span>Open</span> <RightArrow />
-                </a>
+        {pools.map((pool) => {
+          const isRewardEnded =
+            pool.incentives.length > 0 ? Number(pool.incentives[0].endTime) * 1000 < new Date().getTime() : true;
+          return (
+            <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
+              <div className="flex justify-between items-center">
+                <div>{poolRewardsInfo(pool)}</div>
+                <div>
+                  <a
+                    href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-primary flex items-center space-x-2"
+                  >
+                    <span>Open</span> <RightArrow />
+                  </a>
+                </div>
               </div>
-            </div>
 
-            {deposits?.[pool.id] && (
-              <div className="space-y-[16px] mt-[16px]">
-                {deposits[pool.id].map((deposit) => (
-                  <div className="flex items-center justify-between items-center" key={deposit.id}>
-                    <div>
-                      <a
-                        href={getFarmingUrl(chainId, deposit.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-purple-primary hover:underline"
-                      >
-                        Position #{deposit.id}
-                      </a>
-                    </div>
-                    <div>
-                      {!deposit.onFarmingCenter && (
-                        <Button
-                          text="Deposit NFT"
-                          size="small"
-                          variant="secondary"
-                          onClick={depositHandler(deposit.id)}
-                          disabled={isLoading}
-                        />
-                      )}
-                      {deposit.onFarmingCenter &&
-                        (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Button
-                              text="Withdraw NFT"
-                              size="small"
-                              variant="secondary"
-                              onClick={withdrawHandler(deposit.id)}
-                              disabled={isLoading}
-                            />
-                            <div className="tooltip">
-                              <Button
-                                text="Enter Farming"
-                                size="small"
-                                variant="secondary"
-                                onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                                disabled={isLoading || Number(pool.incentives[0].endTime) * 1000 < new Date().getTime()}
-                              />
-                              <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
-                            </div>
-                          </div>
-                        ) : (
+              {deposits?.[pool.id] && (
+                <div className="space-y-[16px] mt-[16px]">
+                  {deposits[pool.id].map((deposit) => (
+                    <div className="flex items-center justify-between items-center" key={deposit.id}>
+                      <div>
+                        <a
+                          href={getFarmingUrl(chainId, deposit.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-primary hover:underline"
+                        >
+                          Position #{deposit.id}
+                        </a>
+                      </div>
+                      <div>
+                        {!deposit.onFarmingCenter && (
                           <Button
-                            text="Exit Farming"
+                            text="Deposit NFT"
                             size="small"
                             variant="secondary"
-                            onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                            onClick={depositHandler(deposit.id)}
                             disabled={isLoading}
                           />
-                        ))}
+                        )}
+                        {deposit.onFarmingCenter &&
+                          (deposit.limitFarming === null && deposit.eternalFarming === null ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Button
+                                text="Withdraw NFT"
+                                size="small"
+                                variant="secondary"
+                                onClick={withdrawHandler(deposit.id)}
+                                disabled={isLoading}
+                              />
+                              <div className="tooltip">
+                                <Button
+                                  text="Enter Farming"
+                                  size="small"
+                                  variant="secondary"
+                                  onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                  disabled={isLoading || isRewardEnded}
+                                />
+                                {isRewardEnded && (
+                                  <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              text="Exit Farming"
+                              size="small"
+                              variant="secondary"
+                              onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                              disabled={isLoading}
+                            />
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="text-center my-[32px]">
