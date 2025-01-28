@@ -180,7 +180,7 @@ export function SwapTokens({
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
   // potential return if buy
-  const returnPercentage = collateralPerShare ? 1 / collateralPerShare : 0;
+  const returnPercentage = collateralPerShare ? (1 / collateralPerShare - 1) * 100 : 0;
   const avgPrice = (() => {
     const price = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
     return price.toFixed(3);
@@ -328,11 +328,21 @@ export function SwapTokens({
               </div>
               {swapType === "buy" && (
                 <div className="flex justify-between text-[#828282] text-[14px]">
-                  Potential return
+                  <div className="flex items-center gap-2">
+                    Potential return{" "}
+                    <span className="tooltip">
+                      <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
+                        This will happen if the market resolves solely to this outcome. Each token can be redeemed for 1{" "}
+                        {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+                        {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}.
+                      </p>
+                      <QuestionIcon fill="#9747FF" />
+                    </span>
+                  </div>
                   {quoteIsLoading || isFetching ? (
                     <div className="shimmer-container ml-2 w-[100px]" />
                   ) : (
-                    <div className={returnPercentage >= 0 ? "text-success-primary" : "text-error-primary"}>
+                    <div className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary")}>
                       {(isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount).toFixed(3)}{" "}
                       {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}%)
                     </div>
