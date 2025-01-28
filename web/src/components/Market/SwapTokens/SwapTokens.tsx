@@ -1,11 +1,11 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
-import { useConvertToAssets, useConvertToShares } from "@/hooks/trade/handleSDAI";
+import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
-import { Parameter } from "@/lib/icons";
+import { Parameter, QuestionIcon } from "@/lib/icons";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
@@ -114,11 +114,10 @@ export function SwapTokens({
 
   const {
     data: quoteData,
-    isPending: quoteIsPending,
+    isLoading: quoteIsLoading,
     fetchStatus: quoteFetchStatus,
     isError: quoteIsError,
   } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
-
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
 
@@ -141,23 +140,20 @@ export function SwapTokens({
   const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
   const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
 
-  const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
-    isMultiStepsSell ? (quoteData?.value ?? 0n) : 0n,
-    chainId,
-  );
-  const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
-    isCowSwapDai
-      ? swapType === "buy"
-        ? parseUnits(amount, selectedCollateral.decimals)
-        : (quoteData?.value ?? 0n)
-      : 0n,
-    chainId,
-  );
-  const cowSwapDaiAmount = assetsToShares ? Number(formatUnits(assetsToShares, selectedCollateral.decimals)) : 0;
+  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(chainId);
+
+  const cowSwapDaiAmount = isCowSwapDai
+    ? swapType === "buy"
+      ? parseUnits(amount, selectedCollateral.decimals)
+      : (quoteData?.value ?? 0n)
+    : 0n;
+  const cowSwapSDaiAmount = cowSwapDaiAmount
+    ? Number(formatUnits(cowSwapDaiAmount, selectedCollateral.decimals)) * daiToSDai
+    : 0;
 
   // calculate price per share
-  const multiStepSellDaiReceived = sharesToAssets
-    ? Number(formatUnits(sharesToAssets, selectedCollateral.decimals))
+  const multiStepSellDaiReceived = quoteData?.value
+    ? Number(formatUnits(quoteData.value, selectedCollateral.decimals)) * sDaiToDai
     : 0;
   const inputAmount = quoteData
     ? Number(
@@ -167,18 +163,28 @@ export function SwapTokens({
   const receivedAmount = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
   const collateralPerShare = (() => {
     if (!quoteData) return 0;
-    if (!isCowSwapDai) {
-      return Number(inputAmount) / receivedAmount;
-    }
     if (swapType === "buy") {
-      return cowSwapDaiAmount / receivedAmount;
+      if (!isCowSwapDai) {
+        return Number(inputAmount) / receivedAmount;
+      }
+      return cowSwapSDaiAmount / receivedAmount;
     }
-    return Number(inputAmount) / cowSwapDaiAmount;
+
+    if (!isCowSwapDai) {
+      return receivedAmount / Number(inputAmount);
+    }
+    return cowSwapSDaiAmount / Number(inputAmount);
   })();
 
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
+  // potential return if buy
+  const returnPercentage = collateralPerShare ? 1 / collateralPerShare : 0;
+  const avgPrice = (() => {
+    const price = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
+    return price.toFixed(3);
+  })();
   return (
     <>
       <ConfirmSwapModal
@@ -292,36 +298,48 @@ export function SwapTokens({
                 useFormReturn={useFormReturn}
               />
             </div>
-            {Number(amount) > 0 && (
-              <div className="flex space-x-2 text-purple-primary">
-                Price per share ={" "}
-                {quoteIsPending || isFetchingSharesToAssets || isFetchingAssetsToShares ? (
-                  <div className="shimmer-container ml-2 flex-grow" />
+            <div className="space-y-1">
+              <div className="flex justify-between text-[#828282] text-[14px]">
+                Avg price
+                {quoteIsLoading || isFetching ? (
+                  <div className="shimmer-container ml-2 w-[100px]" />
                 ) : (
-                  <>
-                    {swapType === "sell"
-                      ? collateralPerShare > 0
-                        ? (1 / collateralPerShare).toFixed(3)
-                        : 0
-                      : collateralPerShare.toFixed(3)}{" "}
-                    {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                  </>
+                  <div className="flex items-center gap-2">
+                    {avgPrice} {selectedCollateral.symbol}
+                    {isCollateralDai && (
+                      <span className="tooltip">
+                        <p className="tooltiptext">{collateralPerShare.toFixed(3)} sDAI</p>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-            {Number(amount) > 0 && (
-              <div className="flex space-x-2 text-purple-primary">
-                {swapType === "buy" ? "Expected shares" : "Expected amount"} ={" "}
-                {quoteIsPending || isFetchingSharesToAssets ? (
-                  <div className="shimmer-container ml-2 flex-grow" />
+              <div className="flex justify-between text-[#828282] text-[14px]">
+                {swapType === "buy" ? "Shares" : "Est. amount received"}
+                {quoteIsLoading || isFetching ? (
+                  <div className="shimmer-container ml-2 w-[100px]" />
                 ) : (
-                  <>
+                  <div>
                     {isMultiStepsSell ? multiStepSellDaiReceived.toFixed(3) : receivedAmount.toFixed(3)}{" "}
                     {buyToken.symbol}
-                  </>
+                  </div>
                 )}
               </div>
-            )}
+              {swapType === "buy" && (
+                <div className="flex justify-between text-[#828282] text-[14px]">
+                  Potential return
+                  {quoteIsLoading || isFetching ? (
+                    <div className="shimmer-container ml-2 w-[100px]" />
+                  ) : (
+                    <div className={returnPercentage >= 0 ? "text-success-primary" : "text-error-primary"}>
+                      {(isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount).toFixed(3)}{" "}
+                      {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}%)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {isPriceTooHigh && (
               <Alert type="warning">
@@ -373,12 +391,12 @@ export function SwapTokens({
                 }
                 isLoading={
                   tradeTokens.isPending ||
-                  (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsPending) ||
-                  isFetchingSharesToAssets
+                  (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
+                  isFetching
                 }
                 isMultiStepsSwap={isMultiStepsSwap}
               />
-            ) : quoteIsPending && quoteFetchStatus === "fetching" ? (
+            ) : quoteIsLoading && quoteFetchStatus === "fetching" ? (
               <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
             ) : null}
           </div>
