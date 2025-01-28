@@ -39,7 +39,7 @@ function SwapWidget({
 }) {
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   // on child markets we want to buy/sell using parent outcomes
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
@@ -48,7 +48,10 @@ function SwapWidget({
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
-    return null;
+    return <Alert type="info">Trading is closed, but you can still mint, merge, or redeem tokens.</Alert>;
+  }
+  if (isPending) {
+    return <div className="shimmer-container w-full h-[400px]"></div>;
   }
   if (!outcomeToken) {
     return null;
@@ -170,7 +173,7 @@ function MarketPage() {
               images={images?.outcomes}
             />
 
-            <ConditionalTokenActions router={router} market={market} account={account} key={outcomeIndex} />
+            <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />

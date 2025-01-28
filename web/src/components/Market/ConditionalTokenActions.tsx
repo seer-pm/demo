@@ -1,5 +1,6 @@
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { useState } from "react";
 import { Address } from "viem";
@@ -11,6 +12,7 @@ interface ConditionalTokenActionsProps {
   account?: Address;
   router: Address;
   market: Market;
+  outcomeIndex: number;
 }
 
 const titles = {
@@ -19,9 +21,9 @@ const titles = {
   redeem: "Redeem",
 };
 
-export function ConditionalTokenActions({ account, router, market }: ConditionalTokenActionsProps) {
+export function ConditionalTokenActions({ account, router, market, outcomeIndex }: ConditionalTokenActionsProps) {
   const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
-
+  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   const marketStatus = getMarketStatus(market);
   const [isShow, setShow] = useState(false);
   const renderActionBox = () => (
@@ -66,9 +68,17 @@ export function ConditionalTokenActions({ account, router, market }: Conditional
         ))}
     </div>
   );
+
   if (marketStatus === MarketStatus.CLOSED) {
+    if (isPending) {
+      return <div className="shimmer-container w-full h-[400px]"></div>;
+    }
     return renderActionBox();
   }
+  if (!outcomeToken) {
+    return null;
+  }
+
   return (
     <div className="space-y-2">
       <button
