@@ -50,9 +50,11 @@ function poolRewardsInfo(pool: PoolInfo) {
       : { poolIncentive: "0 SEER / day", endTime: "", isRewardEnded: true };
   return (
     <div>
-      <div>
-        <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
-      </div>
+      {!isRewardEnded && (
+        <div>
+          <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
+        </div>
+      )}
       {pool.incentives.length > 0 && (
         <div className="flex items-center gap-2">
           <p>
