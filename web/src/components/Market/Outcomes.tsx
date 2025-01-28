@@ -20,7 +20,6 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { differenceInYears } from "date-fns";
 import { useEffect } from "react";
 import { Address, RpcError, zeroAddress } from "viem";
 import { watchAsset } from "viem/actions";
@@ -38,7 +37,7 @@ interface PositionsProps {
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
-  const { poolIncentive, endTime } =
+  const { poolIncentive, endTime, isRewardEnded } =
     pool.incentives.length > 0
       ? {
           poolIncentive:
@@ -46,9 +45,9 @@ function poolRewardsInfo(pool: PoolInfo) {
               ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
               : `${pool.incentives[0].apr.toFixed(2)}% APR`,
           endTime: formatDate(Number(pool.incentives[0].endTime)),
+          isRewardEnded: Number(pool.incentives[0].endTime) * 1000 < new Date().getTime(),
         }
-      : { poolIncentive: "0 SEER / day", endTime: "" };
-
+      : { poolIncentive: "0 SEER / day", endTime: "", isRewardEnded: true };
   return (
     <div>
       <div>
@@ -56,16 +55,10 @@ function poolRewardsInfo(pool: PoolInfo) {
       </div>
       {pool.incentives.length > 0 && (
         <div className="flex items-center gap-2">
-          <p>Rewards end: {endTime}</p>
-          {differenceInYears(new Date(endTime), new Date()) > 50 && (
-            <div className="tooltip ml-auto">
-              <p className="tooltiptext w-[300px] !whitespace-break-spaces">
-                The end date you see serves as a default since eternal farming is indefinite. You can enter or exit
-                farming at any time.
-              </p>
-              <QuestionIcon fill="#9747FF" />
-            </div>
-          )}
+          <p>
+            {isRewardEnded ? "Rewards ended on" : "Rewards end"}:{" "}
+            <span className={isRewardEnded ? "text-[#6E6E6E]" : "text-purple-primary"}>{endTime}</span>
+          </p>
         </div>
       )}
     </div>
@@ -193,7 +186,7 @@ function AddLiquidityInfo({
                       )}
                       {deposit.onFarmingCenter &&
                         (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Button
                               text="Withdraw NFT"
                               size="small"
@@ -201,13 +194,16 @@ function AddLiquidityInfo({
                               onClick={withdrawHandler(deposit.id)}
                               disabled={isLoading}
                             />
-                            <Button
-                              text="Enter Farming"
-                              size="small"
-                              variant="secondary"
-                              onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                              disabled={isLoading}
-                            />
+                            <div className="tooltip">
+                              <Button
+                                text="Enter Farming"
+                                size="small"
+                                variant="secondary"
+                                onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                disabled={isLoading || Number(pool.incentives[0].endTime) * 1000 < new Date().getTime()}
+                              />
+                              <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
+                            </div>
                           </div>
                         ) : (
                           <Button
