@@ -170,7 +170,7 @@ function MarketPage() {
               images={images?.outcomes}
             />
 
-            <ConditionalTokenActions router={router} market={market} account={account} />
+            <ConditionalTokenActions router={router} market={market} account={account} key={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />
