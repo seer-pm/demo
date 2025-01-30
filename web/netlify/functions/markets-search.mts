@@ -1,9 +1,8 @@
+import { createClient } from "@supabase/supabase-js";
+import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
-import {
-  GetImagesQuery,
-  Status,
-  getSdk as getCurateSdk,
-} from "../../src/hooks/queries/gql-generated-curate";
+import { lightGeneralizedTcrAddress } from "../../src/hooks/contracts/generated";
+import { GetImagesQuery, Status, getSdk as getCurateSdk } from "../../src/hooks/queries/gql-generated-curate";
 import {
   GetMarketQuery,
   GetMarketsQuery,
@@ -12,37 +11,22 @@ import {
   OrderDirection,
   getSdk as getSeerSdk,
 } from "../../src/hooks/queries/gql-generated-seer";
-import {
-  Market,
-  SerializedMarket,
-  serializeMarket,
-  VerificationResult,
-} from "../../src/hooks/useMarket";
-import { SUPPORTED_CHAINS, SupportedChain } from "../../src/lib/chains";
-import {
-  INVALID_RESULT_OUTCOME,
-  INVALID_RESULT_OUTCOME_TEXT,
-  isUndefined,
-} from "../../src/lib/utils";
-import { curateGraphQLClient, graphQLClient } from "./utils/subgraph";
-import { lightGeneralizedTcrAddress } from "../../src/hooks/contracts/generated";
-import { unescapeJson } from "../../src/lib/reality";
+import { Market, SerializedMarket, VerificationResult, serializeMarket } from "../../src/hooks/useMarket";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
+import { SUPPORTED_CHAINS, SupportedChain } from "../../src/lib/chains";
 import { FetchMarketParams, sortMarkets } from "../../src/lib/markets-search";
-import { readContracts } from "@wagmi/core";
+import { unescapeJson } from "../../src/lib/reality";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "../../src/lib/utils";
 import { config } from "./utils/config";
-import { createClient } from "@supabase/supabase-js";
-const crypto = require('crypto')
+import { curateGraphQLClient, graphQLClient } from "./utils/subgraph";
+const crypto = require("node:crypto");
 
 export const MARKETS_COUNT_PER_QUERY = 1000;
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_PROJECT_URL!,
-  process.env.VITE_SUPABASE_API_KEY!
-);
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 async function getVerificationStatusList(
-  chainId: SupportedChain
+  chainId: SupportedChain,
 ): Promise<Record<Address, VerificationResult | undefined>> {
   const client = curateGraphQLClient(chainId);
 
@@ -69,33 +53,32 @@ async function getVerificationStatusList(
         throw e;
       }
     }
-    return litems.reduce((obj, item) => {
-      const marketId = item.metadata?.props
-        ?.find((prop) => prop.label === "Market")
-        ?.value?.toLowerCase();
-      if (!marketId) {
-        return obj;
-      }
-      const isVerifiedBeforeClearing =
-        item.status === Status.ClearingRequested &&
-        item.requests.find(
-          (request) => request.requestType === Status.RegistrationRequested
-        )?.resolved;
-      if (item.status === Status.Registered || isVerifiedBeforeClearing) {
-        obj[marketId] = { status: "verified", itemID: item.itemID };
-        return obj;
-      }
-      if (item.status === Status.RegistrationRequested) {
-        if (item.disputed) {
-          obj[marketId] = { status: "challenged", itemID: item.itemID };
-        } else {
-          obj[marketId] = { status: "verifying", itemID: item.itemID };
+    return litems.reduce(
+      (obj, item) => {
+        const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+        if (!marketId) {
+          return obj;
         }
+        const isVerifiedBeforeClearing =
+          item.status === Status.ClearingRequested &&
+          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
+        if (item.status === Status.Registered || isVerifiedBeforeClearing) {
+          obj[marketId] = { status: "verified", itemID: item.itemID };
+          return obj;
+        }
+        if (item.status === Status.RegistrationRequested) {
+          if (item.disputed) {
+            obj[marketId] = { status: "challenged", itemID: item.itemID };
+          } else {
+            obj[marketId] = { status: "verifying", itemID: item.itemID };
+          }
+          return obj;
+        }
+        obj[marketId] = { status: "not_verified" };
         return obj;
-      }
-      obj[marketId] = { status: "not_verified" };
-      return obj;
-    }, {} as { [key: string]: VerificationResult });
+      },
+      {} as { [key: string]: VerificationResult },
+    );
   }
 
   return {};
@@ -126,7 +109,7 @@ function mapGraphMarket(
     poolBalance: MarketExtraData["pool_balance"];
     odds: (number | null)[];
     url: string;
-  }
+  },
 ): Market {
   return {
     ...market,
@@ -142,9 +125,7 @@ function mapGraphMarket(
       id: (market.parentMarket?.id as Address) || zeroAddress,
       conditionId: market.parentMarket?.conditionId || zeroHash,
       payoutReported: market.parentMarket?.payoutReported || false,
-      payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) =>
-        BigInt(n)
-      ),
+      payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
     },
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
@@ -170,15 +151,18 @@ function mapGraphMarket(
 }
 
 async function getMarketsExtraData(): Promise<{ [key: string]: MarketExtraData } | undefined> {
-  const {data, error} = await supabase.from('markets').select();
+  const { data, error } = await supabase.from("markets").select();
   if (error) {
     return;
   }
 
-  return data.reduce((acc, curr) => {
-    acc[curr.id] = curr;
-    return acc;
-  }, {} as { [key: string]: MarketExtraData });
+  return data.reduce(
+    (acc, curr) => {
+      acc[curr.id] = curr;
+      return acc;
+    },
+    {} as { [key: string]: MarketExtraData },
+  );
 }
 
 async function fetchAllMarkets(chainId: SupportedChain, where?: Market_Filter) {
@@ -196,11 +180,7 @@ async function fetchAllMarkets(chainId: SupportedChain, where?: Market_Filter) {
 
   while (attempt < maxAttempts) {
     const { markets: currentMarkets } = await getSeerSdk(client).GetMarkets({
-      where: isUndefined(currentId)
-        ? where
-        : where
-        ? { and: [where, { id_gt: currentId }] }
-        : { id_gt: currentId },
+      where: isUndefined(currentId) ? where : where ? { and: [where, { id_gt: currentId }] } : { id_gt: currentId },
       orderDirection: OrderDirection.Asc,
       orderBy: Market_OrderBy.Id,
       first: MARKETS_COUNT_PER_QUERY,
@@ -222,30 +202,27 @@ export const fetchMarkets = async (
   chainId: SupportedChain,
   where?: Market_Filter,
   orderBy?: Market_OrderBy,
-  orderDirection?: "asc" | "desc"
+  orderDirection?: "asc" | "desc",
 ): Promise<Market[]> => {
-  const  [markets, verificationStatusList, marketsExtraData] = await Promise.all([fetchAllMarkets(chainId, where),
-  getVerificationStatusList(chainId),
-  getMarketsExtraData()]);
-  
+  const [markets, verificationStatusList, marketsExtraData] = await Promise.all([
+    fetchAllMarkets(chainId, where),
+    getVerificationStatusList(chainId),
+    getMarketsExtraData(),
+  ]);
+
   return markets
     .map((market) => {
-      const marketExtraData =
-        marketsExtraData?.[market.id.toLowerCase() as Address];
+      const marketExtraData = marketsExtraData?.[market.id.toLowerCase() as Address];
       return mapGraphMarket(market, {
         chainId,
-        verification: verificationStatusList?.[
-          market.id.toLowerCase() as Address
-        ] ?? { status: "not_verified" },
+        verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
         liquidityUSD: marketExtraData?.liquidity ?? 0,
         incentive: marketExtraData?.incentive ?? 0,
-        hasLiquidity:
-          marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ??
-          false,
+        hasLiquidity: marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
         odds: marketExtraData?.odds ?? [],
         categories: marketExtraData?.categories ?? ["misc"],
         poolBalance: marketExtraData?.pool_balance || [],
-        url: marketExtraData?.url || ''
+        url: marketExtraData?.url || "",
       });
     })
     .sort(sortMarkets(orderBy, orderDirection || "desc"));
@@ -260,7 +237,7 @@ export async function searchGraphMarkets(
   creator: Address | "",
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
-  orderDirection: "asc" | "desc" | undefined
+  orderDirection: "asc" | "desc" | undefined,
 ) {
   const now = String(Math.round(new Date().getTime() / 1000));
 
@@ -268,11 +245,11 @@ export async function searchGraphMarkets(
   const or = [];
 
   if (id) {
-    where['id'] = id.toLowerCase();
+    where["id"] = id.toLowerCase();
   }
 
   if (parentMarket) {
-    where['parentMarket'] = parentMarket.toLowerCase();
+    where["parentMarket"] = parentMarket.toLowerCase();
   }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
@@ -318,9 +295,9 @@ export async function searchGraphMarkets(
 
   if (participant) {
     // markets this user is a participant in (participant = creator or trader)
-    const marketsWithUserPositions = (
-      await fetchMarketsWithPositions(participant, chainId)
-    ).map((a) => a.toLocaleLowerCase());
+    const marketsWithUserPositions = (await fetchMarketsWithPositions(participant, chainId)).map((a) =>
+      a.toLocaleLowerCase(),
+    );
     if (marketsWithUserPositions.length > 0) {
       // the user is an active trader in some market
       where = {
@@ -342,17 +319,17 @@ export async function searchGraphMarkets(
   return await fetchMarkets(chainId, where, orderBy, orderDirection);
 }
 
-export const fetchMarketsWithPositions = async (
-  address: Address,
-  chainId: SupportedChain
-) => {
+export const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
-  const tokenToMarket = (await fetchMarkets(chainId)).reduce((acum, market) => {
-    for (const tokenId of market.wrappedTokens) {
-      acum[tokenId] = market.id;
-    }
-    return acum;
-  }, {} as Record<`0x${string}`, Address>);
+  const tokenToMarket = (await fetchMarkets(chainId)).reduce(
+    (acum, market) => {
+      for (const tokenId of market.wrappedTokens) {
+        acum[tokenId] = market.id;
+      }
+      return acum;
+    },
+    {} as Record<`0x${string}`, Address>,
+  );
 
   // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];
@@ -382,32 +359,28 @@ export const fetchMarketsWithPositions = async (
 
 async function getMarketId(id: string | undefined, url: string | undefined) {
   if (!id && !url) {
-    return ''
+    return "";
   }
 
   if (url) {
-    const { data: market } = await supabase
-      .from('markets')
-      .select('id')
-      .eq('url', url)
-      .single();
+    const { data: market } = await supabase.from("markets").select("id").eq("url", url).single();
 
-    return market?.id || ''
+    return market?.id || "";
   }
 
-  return id || ''
+  return id || "";
 }
 
 async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
-    parentMarket = '',
-    marketName = '',
+    parentMarket = "",
+    marketName = "",
     marketStatusList,
-    creator = '',
-    participant = '',
+    creator = "",
+    participant = "",
     orderBy,
-    orderDirection
+    orderDirection,
   } = body;
 
   // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
@@ -415,9 +388,7 @@ async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMark
   const id = await getMarketId(body.id, body.url);
 
   const chainIds = (
-    chainsList.length === 0
-      ? Object.keys(SUPPORTED_CHAINS)
-      : chainsList.filter((chain) => chain !== "all")
+    chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
   )
     .filter((chain) => chain !== "31337")
     .map((chainId) => Number(chainId)) as SupportedChain[];
@@ -434,25 +405,21 @@ async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMark
           creator,
           participant,
           orderBy,
-          orderDirection
-        )
-      )
+          orderDirection,
+        ),
+      ),
     )
   ).flat();
-  
+
   // sort again because we are merging markets from multiple chains
   markets.sort(sortMarkets(orderBy, orderDirection || "desc"));
 
   return markets.map((market) => serializeMarket(market));
 }
 
-async function keyValueFetch(key: string, callback: () => Promise<any>) {
-  const { data, error } = await supabase
-    .from("key_value")
-    .select("value")
-    .eq("key", key)
-    .single();
-    
+async function keyValueFetch<T>(key: string, callback: () => Promise<T>) {
+  const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();
+
   if (error && error.code !== "PGRST116") {
     // Handle error if it's not a "not found" error
     throw error;
@@ -464,20 +431,21 @@ async function keyValueFetch(key: string, callback: () => Promise<any>) {
   if (!data || new Date(data.value.date) < fiveMinutesAgo) {
     const result = await callback();
 
-    const { error: saveError } = await supabase
-      .from("key_value")
-      .upsert({
+    const { error: saveError } = await supabase.from("key_value").upsert(
+      {
         key,
-        value: {date: currentTime.toISOString(), value: result},
-      }, { onConflict: "key" });
-      
+        value: { date: currentTime.toISOString(), value: result },
+      },
+      { onConflict: "key" },
+    );
+
     if (saveError) {
       throw saveError;
     }
-    
+
     return result;
   }
-  
+
   return data.value.value;
 }
 
@@ -494,21 +462,15 @@ export default async (req: Request) => {
   }
 
   try {
-    const hashKey = `markets_search_${crypto.createHash('md5').update(JSON.stringify(body)).digest("hex")}`;
-    const markets = await keyValueFetch(
-      hashKey,
-      () => multiChainSearch(body as FetchMarketParams)
-    );
-    
-    return new Response(
-      JSON.stringify(markets),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
+    const markets = await keyValueFetch(hashKey, () => multiChainSearch(body as FetchMarketParams));
+
+    return new Response(JSON.stringify(markets), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (e) {
     console.log(e);
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });

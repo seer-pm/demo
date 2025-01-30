@@ -2,7 +2,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "isolatedModules": true,
-    "moduleResolution": "node", 
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "target": "ES2021",
@@ -13,14 +13,8 @@
     "strictNullChecks": true,
     "noImplicitAny": true,
     "paths": {
-      "@/*": ["../src/*"],
-    },
+      "@/*": ["../src/*"]
+    }
   },
-  "include": [
-    "./functions/**/*", 
-    "../src"
-  ]
+  "include": ["./functions/**/*", "../src"]
 }
-
-
-

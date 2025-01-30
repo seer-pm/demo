@@ -31,7 +31,7 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[
   for (const market of markets) {
     // loop up to 5 times in case of duplicated market names
     for (let i = 1; i <= 5; i++) {
-      let url = slug(market.marketName, { lower: true, strict: true });
+      let url = slug(market.marketName);
 
       if (i > 1) {
         url += `-${i}`;
