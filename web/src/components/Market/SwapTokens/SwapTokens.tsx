@@ -1,11 +1,13 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
@@ -21,6 +23,7 @@ import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
+import PotentialReturnConfig from "./components/PotentialReturnConfig";
 import SwapButtons from "./components/SwapButtons";
 
 interface SwapFormValues {
@@ -30,6 +33,7 @@ interface SwapFormValues {
 }
 
 interface SwapTokensProps {
+  market: Market;
   account: Address | undefined;
   chainId: SupportedChain;
   outcomeText: string;
@@ -53,6 +57,7 @@ function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolea
 }
 
 export function SwapTokens({
+  market,
   account,
   chainId,
   outcomeText,
@@ -65,6 +70,7 @@ export function SwapTokens({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
+  const [returnPerToken, setReturnPerToken] = useState(1);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
@@ -91,6 +97,7 @@ export function SwapTokens({
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
+
   const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(
     account,
     WXDAI[chainId]?.address as `0x${string}`,
@@ -180,11 +187,13 @@ export function SwapTokens({
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
   // potential return if buy
-  const returnPercentage = collateralPerShare ? (1 / collateralPerShare - 1) * 100 : 0;
+  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
   const avgPrice = (() => {
     const price = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
     return price.toFixed(3);
   })();
+  const isOneOrNothingPotentialReturn =
+    getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
   return (
     <>
       <ConfirmSwapModal
@@ -328,22 +337,34 @@ export function SwapTokens({
               </div>
               {swapType === "buy" && (
                 <div className="flex justify-between text-[#828282] text-[14px]">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 relative">
                     Potential return{" "}
-                    <span className="tooltip">
-                      <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-                        This will happen if the market resolves solely to this outcome. Each token can be redeemed for 1{" "}
-                        {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                        {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}.
-                      </p>
-                      <QuestionIcon fill="#9747FF" />
-                    </span>
+                    {isOneOrNothingPotentialReturn ? (
+                      <span className="tooltip">
+                        <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
+                          Each token can be redeemed for 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+                          {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
+                          market resolves to {outcomeText}.
+                        </p>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                    ) : (
+                      <PotentialReturnConfig
+                        key={outcomeToken.address}
+                        market={market}
+                        returnPerToken={returnPerToken}
+                        setReturnPerToken={setReturnPerToken}
+                        selectedCollateral={selectedCollateral}
+                        outcomeToken={outcomeToken}
+                        outcomeText={outcomeText}
+                      />
+                    )}
                   </div>
                   {quoteIsLoading || isFetching ? (
                     <div className="shimmer-container ml-2 w-[100px]" />
                   ) : (
                     <div className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary")}>
-                      {(isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount).toFixed(3)}{" "}
+                      {((isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) * returnPerToken).toFixed(3)}{" "}
                       {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}%)
                     </div>
                   )}

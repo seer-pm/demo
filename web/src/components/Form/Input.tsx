@@ -36,7 +36,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
           )}
           ref={ref}
         />
-        {restProps.value && isClearable && (
+        {!!restProps.value && isClearable && (
           <button type="button" className="absolute right-[16px] top-0 bottom-0" onClick={() => onClear?.()}>
             <CloseIcon fill="" />
           </button>
