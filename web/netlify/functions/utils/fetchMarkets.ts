@@ -9,6 +9,10 @@ export async function fetchMarket(marketId: string, chainId: string) {
       marketName
       outcomes
       outcomesSupply
+      templateId
+      questions {
+        id
+      }
       payoutReported
       payoutNumerators
       parentMarket{
@@ -47,6 +51,10 @@ export async function fetchMarkets(chainId: string) {
             type
             marketName
             outcomes
+            templateId
+            questions {
+              id
+            }
             collateralToken
             collateralToken1
             collateralToken2
