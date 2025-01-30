@@ -186,14 +186,18 @@ export function SwapTokens({
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
 
-  // potential return if buy
-  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
   const avgPrice = (() => {
     const price = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
     return price.toFixed(3);
   })();
+
+  // potential return if buy
+  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
   const isOneOrNothingPotentialReturn =
     getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
+  const potentialReturn =
+    (isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) *
+    (isOneOrNothingPotentialReturn ? 1 : returnPerToken);
   return (
     <>
       <ConfirmSwapModal
@@ -364,8 +368,8 @@ export function SwapTokens({
                     <div className="shimmer-container ml-2 w-[100px]" />
                   ) : (
                     <div className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary")}>
-                      {((isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) * returnPerToken).toFixed(3)}{" "}
-                      {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}%)
+                      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} (
+                      {returnPercentage.toFixed(2)}%)
                     </div>
                   )}
                 </div>
