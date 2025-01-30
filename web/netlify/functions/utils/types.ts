@@ -1,5 +1,6 @@
 import { isUndefined } from "./common.ts";
 import { SupportedChain } from "./config.ts";
+import { REALITY_TEMPLATE_MULTIPLE_SELECT, REALITY_TEMPLATE_SINGLE_SELECT } from "./constants.ts";
 
 export enum MarketStatus {
   NOT_OPEN = "not_open",
@@ -114,3 +115,25 @@ export interface Token {
 }
 
 export type Token0Token1 = { token1: Address; token0: Address };
+
+export enum MarketTypes {
+  CATEGORICAL = "categorical",
+  SCALAR = "scalar",
+  MULTI_CATEGORICAL = "multi_categorical",
+  MULTI_SCALAR = "multi_scalar",
+}
+export function getMarketType(market: Market): MarketTypes {
+  if (market.templateId === BigInt(REALITY_TEMPLATE_SINGLE_SELECT)) {
+    return MarketTypes.CATEGORICAL;
+  }
+
+  if (market.templateId === BigInt(REALITY_TEMPLATE_MULTIPLE_SELECT)) {
+    return MarketTypes.MULTI_CATEGORICAL;
+  }
+
+  if (market.questions.length > 1) {
+    return MarketTypes.MULTI_SCALAR;
+  }
+
+  return MarketTypes.SCALAR;
+}
