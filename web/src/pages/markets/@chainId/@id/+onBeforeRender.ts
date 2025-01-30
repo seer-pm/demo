@@ -1,9 +1,11 @@
 import { getUseGraphMarketKey, useGraphMarketQueryFn } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
 import { getOpeningTime } from "@/lib/market";
+import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { dehydrate } from "@tanstack/react-query";
-import { Address } from "viem";
+import { Address, isAddress } from "viem";
+import { redirect } from "vike/abort";
 import { PageContext } from "vike/types";
 
 export default async function onBeforeRender(pageContext: PageContext) {
@@ -17,6 +19,11 @@ export default async function onBeforeRender(pageContext: PageContext) {
     },
   });
   const dehydratedState = dehydrate(queryClient);
+
+  if (isAddress(pageContext.routeParams.id) && market?.url) {
+    // we are fetching the market by address, redirect to the url
+    throw redirect(paths.market(market), 301);
+  }
 
   return {
     pageContext: {

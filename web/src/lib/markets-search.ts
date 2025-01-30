@@ -3,11 +3,11 @@ import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
 import { Market, SerializedMarket, deserializeMarket } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { UseGraphMarketsParams } from "@/hooks/useMarkets";
-import { Address, zeroAddress } from "viem";
+import { Address, isAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { getAppUrl } from "./utils";
 
-export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; parentMarket?: Address };
+export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; url?: string; parentMarket?: Address };
 
 export async function fetchMarkets(params: FetchMarketParams): Promise<Market[]> {
   const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-search`, {
@@ -20,8 +20,16 @@ export async function fetchMarkets(params: FetchMarketParams): Promise<Market[]>
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 }
 
-export async function fetchMarket(chainId: SupportedChain, id: Address): Promise<Market> {
-  const markets = await fetchMarkets({ chainsList: [chainId.toString()], id: id.toLocaleLowerCase() as Address });
+export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market> {
+  const params: FetchMarketParams = { chainsList: [chainId.toString()] };
+
+  if (!isAddress(idOrSlug, { strict: false })) {
+    params.url = idOrSlug;
+  } else {
+    params.id = idOrSlug;
+  }
+
+  const markets = await fetchMarkets(params);
 
   if (markets.length === 0) {
     throw new Error("Market not found");

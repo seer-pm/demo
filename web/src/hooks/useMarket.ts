@@ -2,6 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { getOutcomes } from "@/lib/market";
 import { fetchMarket } from "@/lib/markets-search";
+import { queryClient } from "@/lib/query-client";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -46,6 +47,7 @@ type MarketOffChainFields = {
   blockTimestamp?: number;
   verification?: VerificationResult;
   index?: number;
+  url: string;
 };
 
 export type Market = MarketOffChainFields & {
@@ -180,14 +182,20 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
   return market;
 }
 
-export const getUseGraphMarketKey = (marketId: Address) => [
+export const getUseGraphMarketKey = (marketIdOrSlug: string) => [
   "useMarket",
   "useGraphMarket",
-  marketId.toLocaleLowerCase(),
+  marketIdOrSlug.toLocaleLowerCase(),
 ];
 
-export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) =>
-  fetchMarket(chainId, marketId);
+export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: SupportedChain) => {
+  const market = await fetchMarket(chainId, marketIdOrSlug);
+
+  // Cache the market data under both its ID and URL keys to enable lookups by either value
+  queryClient.setQueryData(getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url), market);
+
+  return market;
+};
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
@@ -219,6 +227,7 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           categories: ["misc"],
           poolBalance: [],
           odds: [],
+          url: "",
         },
       );
     },

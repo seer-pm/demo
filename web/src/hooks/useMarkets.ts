@@ -27,6 +27,7 @@ export async function searchOnChainMarkets(chainId: SupportedChain) {
         categories: ["misc"],
         poolBalance: [],
         odds: [],
+        url: "",
       }),
     );
 }

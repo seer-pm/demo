@@ -35,13 +35,14 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
   });
 });
 
-export const useMarketImages = (marketId: Address, chainId: SupportedChain, registered = true) => {
+export const useMarketImages = (marketId: Address | undefined, chainId: SupportedChain, registered = true) => {
   const { address: currentUserAddress } = useAccount();
 
   return useQuery<{ market: string; outcomes: string[] }, Error>({
     queryKey: ["useMarketImages", marketId, chainId, currentUserAddress],
+    enabled: !isUndefined(marketId),
     queryFn: async () => {
-      const litems = (await getMarketImages(chainId).fetch(marketId)).filter((item) => {
+      const litems = (await getMarketImages(chainId).fetch(marketId!)).filter((item) => {
         if (item.latestRequester && item.latestRequester.toLowerCase() === currentUserAddress?.toLowerCase()) {
           return true;
         }

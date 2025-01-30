@@ -40,6 +40,7 @@ const baseMarket: Market = {
   categories: ["misc"],
   poolBalance: [],
   odds: [],
+  url: "",
 };
 
 const baseQuestion: Question = {

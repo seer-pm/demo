@@ -390,6 +390,7 @@ export function PreviewForm({
     categories: ["misc"],
     poolBalance: [],
     odds: [],
+    url: "",
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

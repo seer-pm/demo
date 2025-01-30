@@ -7,6 +7,7 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
+import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
@@ -85,7 +86,7 @@ function OutcomesInfo({
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
+              to={`${paths.market(market)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px] flex-shrink-0">
@@ -191,6 +192,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
+  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+
   return (
     <div
       className={clsx(
@@ -217,7 +220,13 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
             )}
 
-            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+            <a
+              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+            </a>
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
@@ -240,7 +249,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
           )}
           {type !== "default" && (
-            <Link to={paths.market(market.id, market.chainId)}>
+            <Link to={paths.market(market)}>
               {images?.market ? (
                 <img
                   src={images.market}
@@ -257,7 +266,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market.id, market.chainId)}>
+              <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
               </Link>
             )}
@@ -265,16 +274,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           {parentMarket && type !== "default" && (
             <p className="text-[14px] my-2">
               Conditional on{" "}
-              <Link
-                to={paths.market(parentMarket.id, market.chainId)}
-                target="_blank"
-                className="text-purple-primary font-medium"
-              >
+              <Link to={paths.market(parentMarket)} target="_blank" className="text-purple-primary font-medium">
                 "{parentMarket.marketName}"
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
+                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"

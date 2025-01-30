@@ -101,6 +101,19 @@ async function getVerificationStatusList(
   return {};
 }
 
+interface MarketExtraData {
+  id: string;
+  liquidity: number | null;
+  incentive: number | null;
+  odds: (number | null)[];
+  categories: string[];
+  pool_balance: Array<{
+    token0: { symbol: string; balance: number };
+    token1: { symbol: string; balance: number };
+  } | null>;
+  url: string | null;
+}
+
 function mapGraphMarket(
   market: NonNullable<GetMarketQuery["market"]>,
   extra: {
@@ -112,6 +125,7 @@ function mapGraphMarket(
     categories: string[];
     poolBalance: MarketExtraData["pool_balance"];
     odds: (number | null)[];
+    url: string;
   }
 ): Market {
   return {
@@ -153,18 +167,6 @@ function mapGraphMarket(
     payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
   };
-}
-
-interface MarketExtraData {
-  id: string;
-  liquidity: number | null;
-  incentive: number | null;
-  odds: (number | null)[];
-  categories: string[];
-  pool_balance: Array<{
-    token0: { symbol: string; balance: number };
-    token1: { symbol: string; balance: number };
-  } | null>;
 }
 
 async function getMarketsExtraData(): Promise<{ [key: string]: MarketExtraData } | undefined> {
@@ -243,6 +245,7 @@ export const fetchMarkets = async (
         odds: marketExtraData?.odds ?? [],
         categories: marketExtraData?.categories ?? ["misc"],
         poolBalance: marketExtraData?.pool_balance || [],
+        url: marketExtraData?.url || ''
       });
     })
     .sort(sortMarkets(orderBy, orderDirection || "desc"));
@@ -377,10 +380,27 @@ export const fetchMarketsWithPositions = async (
   return [...marketsWithTokens];
 };
 
+async function getMarketId(id: string | undefined, url: string | undefined) {
+  if (!id && !url) {
+    return ''
+  }
+
+  if (url) {
+    const { data: market } = await supabase
+      .from('markets')
+      .select('id')
+      .eq('url', url)
+      .single();
+
+    return market?.id || ''
+  }
+
+  return id || ''
+}
+
 async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
-    id = '',
     parentMarket = '',
     marketName = '',
     marketStatusList,
@@ -389,6 +409,10 @@ async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMark
     orderBy,
     orderDirection
   } = body;
+
+  // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
+  // we first look up the corresponding market ID in Supabase before querying the subgraph.
+  const id = await getMarketId(body.id, body.url);
 
   const chainIds = (
     chainsList.length === 0
@@ -468,7 +492,6 @@ export default async (req: Request) => {
       },
     });
   }
-  
 
   try {
     const hashKey = `markets_search_${crypto.createHash('md5').update(JSON.stringify(body)).digest("hex")}`;
@@ -487,6 +510,7 @@ export default async (req: Request) => {
       }
     );
   } catch (e) {
-return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+    console.log(e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
 };

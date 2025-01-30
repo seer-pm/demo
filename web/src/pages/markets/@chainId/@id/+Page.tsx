@@ -73,19 +73,19 @@ function MarketPage() {
   const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
 
-  const id = routeParams.id as Address;
+  const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
 
   const router = getRouterAddress(chainId);
 
-  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
-  const { data: images } = useMarketImages(id as Address, chainId);
+  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
+  const { data: images } = useMarketImages(market?.id, chainId);
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   useEffect(() => {
     //update latest data since onBeforeRender cached
-    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(id) });
+    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
   if (isMarketError) {
     return (

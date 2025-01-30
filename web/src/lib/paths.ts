@@ -1,9 +1,20 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated";
+import { Market } from "@/hooks/useMarket";
 import { Address } from "viem";
 import { SupportedChain } from "./chains";
 
+function marketPath(market: Market): string;
+function marketPath(id: Address | string, chainId: number): string;
+function marketPath(marketOrIdOrUrl: Market | Address | string, chainId?: number): string {
+  if (typeof marketOrIdOrUrl === "string") {
+    return `/markets/${chainId}/${marketOrIdOrUrl}`;
+  }
+
+  return `/markets/${marketOrIdOrUrl.chainId}/${marketOrIdOrUrl.url || marketOrIdOrUrl.id}`;
+}
+
 export const paths = {
-  market: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}`,
+  market: marketPath,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
