@@ -16,11 +16,11 @@ function useMarketsSearchParams() {
       : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
   const chainsList = searchParams.getAll("chains").length === 0 ? undefined : searchParams.getAll("chains");
   const categoryList = searchParams.getAll("category").length === 0 ? undefined : searchParams.getAll("category");
-  const orderBy = searchParams.get("orderBy") as Market_OrderBy;
+  const orderBy = (searchParams.get("orderBy") || undefined) as Market_OrderBy;
   const page = Number(searchParams.get("page") ?? 1);
   const isShowMyMarkets = searchParams.get("myMarkets") === "true";
   const isShowConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
-  const orderDirection = searchParams.get("orderDirection") as "asc" | "desc";
+  const orderDirection = (searchParams.get("orderDirection") || undefined) as "asc" | "desc";
 
   const setMarketName = (value: string) => {
     setSearchParams((params) => {

@@ -214,3 +214,10 @@ export function getOutcomeSlotCount(market: Market) {
 
   return 2;
 }
+export function getOutcomes(outcomes: string[], marketType: MarketTypes) {
+  if (marketType === MarketTypes.SCALAR) {
+    return ["DOWN", "UP", ...outcomes.slice(2)];
+  }
+
+  return outcomes;
+}
