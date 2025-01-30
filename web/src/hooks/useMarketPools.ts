@@ -56,6 +56,8 @@ function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
 }
 
 function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmings"][0]): PoolIncentive {
+  const rewardSeconds = BigInt(eternalFarming.reward) / BigInt(eternalFarming.rewardRate);
+  const endTime = BigInt(eternalFarming.startTime) + rewardSeconds;
   return {
     reward: BigInt(eternalFarming.reward),
     rewardRate: BigInt(eternalFarming.rewardRate),
@@ -63,7 +65,7 @@ function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmi
     rewardToken: eternalFarming.rewardToken,
     bonusRewardToken: eternalFarming.bonusRewardToken,
     startTime: BigInt(eternalFarming.startTime),
-    endTime: BigInt(eternalFarming.endTime),
+    endTime: BigInt(eternalFarming.endTime) > endTime ? endTime : BigInt(eternalFarming.endTime),
   };
 }
 

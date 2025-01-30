@@ -4,7 +4,7 @@ import { config } from "@/wagmi";
 import { ChainId } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
-import { Address } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 
 interface HandleSDAIProps {
   amount: bigint;
@@ -253,4 +253,14 @@ export function useConvertToAssets(amount: bigint, chainId: number) {
       return convertFromSDAI({ chainId, amount });
     },
   });
+}
+
+export function useSDaiDaiRatio(chainId: number) {
+  const { data: sDaiToDai, isFetching: isFetchingSharesToAssets } = useConvertToAssets(parseUnits("1", 18), chainId);
+  const { data: daiToSDai, isFetching: isFetchingAssetsToShares } = useConvertToShares(parseUnits("1", 18), chainId);
+  return {
+    isFetching: isFetchingAssetsToShares || isFetchingSharesToAssets,
+    sDaiToDai: sDaiToDai ? Number(formatUnits(sDaiToDai, 18)) : 0,
+    daiToSDai: daiToSDai ? Number(formatUnits(daiToSDai, 18)) : 0,
+  };
 }

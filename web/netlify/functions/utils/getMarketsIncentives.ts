@@ -6,6 +6,9 @@ import { SUBGRAPHS } from "./subgraph.ts";
 interface EternalFarming {
   id: string;
   rewardRate: string;
+  reward: string;
+  endTime: string;
+  startTime: string;
   pool: string;
 }
 
@@ -55,14 +58,20 @@ async function fetchEternalFarmings(poolIds: string[]): Promise<EternalFarming[]
 
 export async function getMarketsIncentive(pools: Pool[]) {
   const eternalFarmings = await fetchEternalFarmings(pools.map((pool) => pool.id));
+
   const incentiveToPoolMapping = eternalFarmings.reduce(
     (acc, curr) => {
-      const incentive = Number(formatUnits(BigInt(curr.rewardRate) * 86400n, 18));
+      const rewardSeconds = BigInt(curr.reward) / BigInt(curr.rewardRate);
+      let endTime = BigInt(curr.startTime) + rewardSeconds;
+      endTime = BigInt(curr.endTime) > endTime ? endTime : BigInt(curr.endTime);
+      const isRewardEnded = Number(endTime) * 1000 < new Date().getTime();
+      const incentive = isRewardEnded ? 0 : Number(formatUnits(BigInt(curr.rewardRate) * 86400n, 18));
       acc[curr.pool] = (acc[curr.pool] ?? 0) + incentive;
       return acc;
     },
     {} as { [key: string]: number },
   );
+
   const marketToIncentiveMapping = pools.reduce(
     (acc, curr) => {
       const incentive = incentiveToPoolMapping[curr.id] ?? 0;
