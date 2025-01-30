@@ -60,6 +60,7 @@ type Question @entity {
   bond: BigInt!
   min_bond: BigInt!
   arbitration_occurred: Boolean!
+  reopensQuestionId: Bytes!
   marketQuestions: [MarketQuestion!]! @derivedFrom(field: "question")
 }
 

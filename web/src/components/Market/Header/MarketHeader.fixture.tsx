@@ -4,6 +4,7 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
 import { zeroAddress } from "viem";
 import { MarketHeader } from "./MarketHeader";
+import { SUBGRAPH_EMPTY_BYTES } from "@/lib/config";
 
 const baseMarket: Market = {
   id: "0xC11712D7b3a22483a269a1B00F825E0916C5DDE4",
@@ -52,6 +53,7 @@ const baseQuestion: Question = {
   best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
   bond: 0n,
   min_bond: 100000000000000000n,
+  reopensQuestionId: SUBGRAPH_EMPTY_BYTES
 };
 
 let questionIdCounter = 1;

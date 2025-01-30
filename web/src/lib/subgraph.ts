@@ -6,7 +6,7 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
   [gnosis.id]:
     (typeof window !== "undefined" && import.meta.env.VITE_SUBGRAPH_GNOSIS) ||
-    `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
+    `https://api.studio.thegraph.com/query/74975/seer-pm/version/latest`,
   [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
 };
 export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {

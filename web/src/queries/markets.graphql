@@ -42,6 +42,7 @@ fragment Market on Market {
       best_answer
       bond
       min_bond
+      reopensQuestionId
     }
   }
   openingTs

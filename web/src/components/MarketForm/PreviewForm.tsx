@@ -38,6 +38,7 @@ import { ConditionalMarketAlert } from "../Market/ConditionalMarketAlert";
 import { MarketHeader } from "../Market/Header/MarketHeader";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 import { VerificationForm } from "./VerificationForm";
+import { SUBGRAPH_EMPTY_BYTES } from "@/lib/config";
 
 type FormStepPreview = {
   marketTypeValues: MarketTypeFormValues;
@@ -376,6 +377,7 @@ export function PreviewForm({
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
         bond: 0n,
         min_bond: 100000000000000000n,
+        reopensQuestionId: SUBGRAPH_EMPTY_BYTES,
       }),
     ),
     openingTs: 0,

@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 import { writeRealityReopenQuestion } from "./contracts/generated";
 import { Question } from "./useMarket";
+import { SUBGRAPH_EMPTY_BYTES } from "@/lib/config";
 
 interface ResolveMarketProps {
   question: Question;
@@ -12,7 +13,7 @@ interface ResolveMarketProps {
   encodedQuestion: string;
 }
 
-async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {
+async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {console.log('questionId', props.question.id, 'reopensQuestionId', props.question.reopensQuestionId, props.question.reopensQuestionId === SUBGRAPH_EMPTY_BYTES ?  props.question.id : props.question.reopensQuestionId);
   const result = await toastifyTx(
     () =>
       writeRealityReopenQuestion(config, {
@@ -24,7 +25,7 @@ async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionRec
           props.question.opening_ts,
           0n,
           props.question.min_bond,
-          props.question.id,
+          props.question.reopensQuestionId === SUBGRAPH_EMPTY_BYTES ?  props.question.id : props.question.reopensQuestionId,
         ],
       }),
     {

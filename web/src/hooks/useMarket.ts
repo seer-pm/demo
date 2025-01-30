@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
 import { getOutcomes } from "./useCreateMarket";
+import { SUBGRAPH_EMPTY_BYTES } from "@/lib/config";
 
 export interface Question {
   id: `0x${string}`;
@@ -19,6 +20,7 @@ export interface Question {
   best_answer: `0x${string}`;
   bond: bigint;
   min_bond: bigint;
+  reopensQuestionId: `0x${string}`;
 }
 
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
@@ -97,6 +99,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
       (question, i) =>
         ({
           id: onChainMarket.questionsIds[i],
+          reopensQuestionId: SUBGRAPH_EMPTY_BYTES,
           ...question,
         }) as Question,
     ),

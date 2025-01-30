@@ -126,6 +126,7 @@ export function processReopenedQuestion(
   newQuestion.bond = BigInt.zero();
   newQuestion.min_bond = oldQuestion.min_bond;
   newQuestion.arbitration_occurred = false;
+  newQuestion.reopensQuestionId = Bytes.fromHexString(oldQuestion.id);
 
   // save new question
   newQuestion.save();

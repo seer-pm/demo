@@ -118,3 +118,5 @@ export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
   [gnosis.id]: "/assets/images/gnosis.webp",
   [mainnet.id]: "/assets/images/ethereum.webp",
 };
+
+export const SUBGRAPH_EMPTY_BYTES = "0x00000000"

@@ -190,6 +190,7 @@ export function processMarket(
     question.bond = questionResult.bond;
     question.min_bond = questionResult.min_bond;
     question.arbitration_occurred = false;
+    question.reopensQuestionId = Bytes.empty();
     question.save();
 
     const marketQuestion = new MarketQuestion(
