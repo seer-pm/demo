@@ -9,7 +9,7 @@ import { getAppUrl } from "./utils";
 
 export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; parentMarket?: Address };
 
-export const fetchMarkets = async (params: FetchMarketParams): Promise<Market[]> => {
+export async function fetchMarkets(params: FetchMarketParams): Promise<Market[]> {
   const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-search`, {
     method: "POST",
     headers: {
@@ -18,9 +18,9 @@ export const fetchMarkets = async (params: FetchMarketParams): Promise<Market[]>
     body: JSON.stringify(params),
   });
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
-};
+}
 
-export async function fetchMarket(chainId: SupportedChain, id: Address) {
+export async function fetchMarket(chainId: SupportedChain, id: Address): Promise<Market> {
   const markets = await fetchMarkets({ chainsList: [chainId.toString()], id: id.toLocaleLowerCase() as Address });
 
   if (markets.length === 0) {
