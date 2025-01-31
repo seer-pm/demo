@@ -361,6 +361,7 @@ export function SwapTokens({
                         selectedCollateral={selectedCollateral}
                         outcomeToken={outcomeToken}
                         outcomeText={outcomeText}
+                        isCollateralDai={isCollateralDai}
                       />
                     )}
                   </div>

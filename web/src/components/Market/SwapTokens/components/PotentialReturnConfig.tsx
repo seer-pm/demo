@@ -1,5 +1,6 @@
 import Input from "@/components/Form/Input";
 import MultiSelect from "@/components/Form/MultiSelect";
+import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { Market } from "@/hooks/useMarket";
 import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
@@ -13,6 +14,7 @@ function PotentialReturnConfig({
   selectedCollateral,
   outcomeToken,
   outcomeText,
+  isCollateralDai,
 }: {
   market: Market;
   returnPerToken: number;
@@ -20,6 +22,7 @@ function PotentialReturnConfig({
   selectedCollateral: Token;
   outcomeToken: Token;
   outcomeText: string;
+  isCollateralDai: boolean;
 }) {
   const [isShow, setShow] = useState(false);
   const [input, setInput] = useState<{ multiCategorical: string[]; scalar: number; multiScalar: number[] }>({
@@ -163,6 +166,8 @@ function PotentialReturnConfig({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  const { sDaiToDai } = useSDaiDaiRatio(market.chainId);
+  const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
   return (
     <div ref={wrapperRef}>
       <button type="button" className="flex hover:opacity-80" onClick={() => setShow((state) => !state)}>
@@ -176,7 +181,8 @@ function PotentialReturnConfig({
           <p>
             Return per token:{" "}
             <span className="font-semibold text-purple-primary">
-              {returnPerToken.toFixed(3)} {selectedCollateral.symbol}
+              {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+              {isCollateralDai ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
             </span>
           </p>
         </div>
