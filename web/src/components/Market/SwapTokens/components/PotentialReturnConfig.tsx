@@ -66,12 +66,12 @@ function PotentialReturnConfig({
           <div className="space-y-1">
             <p className="whitespace-nowrap">Market resolution:</p>
             {market.outcomes.slice(0, -1).map((outcome, index) => (
-              <div key={outcome} className="flex items-center gap-2">
-                <p className="text-[14px]">{outcome}:</p>
+              <div key={outcome} className="flex items-center justify-between gap-2">
+                <p className="text-[14px]">{outcome}</p>
                 <Input
                   type="number"
                   min="0"
-                  className="h-[30px] w-full"
+                  className="h-[30px] w-[150px]"
                   onWheel={(e) => {
                     // stop scrolling
                     (e.target as HTMLInputElement).blur();
