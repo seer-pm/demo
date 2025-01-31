@@ -9,8 +9,8 @@ import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useMarketImages } from "@/hooks/useMarketImages";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
@@ -39,7 +39,7 @@ function SwapWidget({
 }) {
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
 
-  const { data: odds = [], isLoading } = useMarketOdds(market, true);
+  const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
 
   // on Futarchy markets we want to buy/sell using the associated outcome token,
   // on child markets we want to buy/sell using parent outcomes.
@@ -53,7 +53,11 @@ function SwapWidget({
   );
   const marketStatus = getMarketStatus(market);
 
-  if (marketStatus === MarketStatus.CLOSED || !outcomeToken) {
+  if (marketStatus === MarketStatus.CLOSED) {
+    return <Alert type="info">Trading is closed, but you can still mint, merge, or redeem tokens.</Alert>;
+  }
+
+  if (!outcomeToken) {
     return null;
   }
 
@@ -65,7 +69,7 @@ function SwapWidget({
       outcomeToken={outcomeToken}
       fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
-      hasEnoughLiquidity={isLoading ? undefined : odds[outcomeIndex] > 0 || market.type === "Futarchy"}
+      hasEnoughLiquidity={hasLiquidity}
     />
   );
 }
@@ -75,11 +79,11 @@ function MarketPage() {
   const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
 
-  const id = routeParams.id as Address;
+  const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
 
-  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(id as Address, chainId);
-  const { data: images } = useMarketImages(id as Address, chainId);
+  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
+  const { data: images } = useMarketImages(market?.id, chainId);
 
   const router = getRouterAddress(market);
 
@@ -88,7 +92,7 @@ function MarketPage() {
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   useEffect(() => {
     //update latest data since onBeforeRender cached
-    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(id) });
+    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
   if (isMarketError) {
     return (
@@ -173,7 +177,7 @@ function MarketPage() {
               images={images?.outcomes}
             />
 
-            <ConditionalTokenActions router={router} market={market} account={account} />
+            <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />

@@ -1,29 +1,20 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
+import { getMarketOdds } from "@/hooks/useMarketOdds";
+import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import { chainIds } from "./utils/config";
-import { fetchMarkets } from "./utils/fetchMarkets";
 import { getAllMarketPools } from "./utils/fetchPools";
-import { getMarketOdds } from "./utils/getMarketOdds";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
-require("dotenv").config();
 
-export const handler = async (_event: HandlerEvent, _context: HandlerContext) => {
+export default async () => {
   if (!process.env.VITE_SUPABASE_PROJECT_URL || !process.env.VITE_SUPABASE_API_KEY) {
     return;
   }
   try {
-    //save to db
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
     console.log("fetching markets...");
-    const markets = (
-      await Promise.all(
-        chainIds.map((chainId) =>
-          fetchMarkets(chainId.toString()).then((markets) => markets.map((market) => ({ ...market, chainId }))),
-        ),
-      )
-    ).flat();
+    const markets = await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) });
 
     const pools = await getAllMarketPools(markets);
     if (!pools.length) throw "No pool found";
@@ -47,7 +38,12 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
     console.log("fetching odds...");
     const limit = pLimit(20);
     const results = await Promise.all(
-      markets.map((market) => limit(() => getMarketOdds(market, liquidityToMarketMapping))),
+      markets.map((market) =>
+        limit(() => {
+          const hasLiquidity = (liquidityToMarketMapping[market.id].totalLiquidity || 0) > 0;
+          return getMarketOdds(market, hasLiquidity);
+        }),
+      ),
     );
     const { error } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({
@@ -79,6 +75,5 @@ export const handler = async (_event: HandlerEvent, _context: HandlerContext) =>
   } catch (e) {
     console.log(e);
   }
-  console.log("Batch odds background ok");
-  return {};
+  return;
 };

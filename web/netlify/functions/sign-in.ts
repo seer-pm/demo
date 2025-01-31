@@ -1,29 +1,20 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyMessage } from "@wagmi/core";
 import jwt from "jsonwebtoken";
 import { parseSiweMessage } from "viem/siwe";
 import { config } from "./utils/config";
 
-require("dotenv").config();
-
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+export default async (req: Request) => {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
   try {
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-    const { signature, message } = JSON.parse(event.body || "{}");
+    const { signature, message } = await req.json();
     if (!signature || !message) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing signature or message" }),
-      };
+      return new Response(JSON.stringify({ error: "Missing signature or message" }), { status: 400 });
     }
 
     // Parse the SIWE message
@@ -38,10 +29,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
     });
 
     if (!isValid) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: "Invalid signature" }),
-      };
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
     }
 
     // Store or update user in Supabase
@@ -56,10 +44,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
 
     if (upsertError) {
       console.error("Error upserting user:", upsertError);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Failed to update user data" }),
-      };
+      return new Response(JSON.stringify({ error: "Failed to update user data" }), { status: 500 });
     }
 
     // Create JWT token
@@ -73,18 +58,9 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
       { expiresIn: "1h" },
     );
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        token,
-        user,
-      }),
-    };
+    return new Response(JSON.stringify({ token, user }), { status: 200 });
   } catch (error) {
     console.error("Error processing request:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal server error" }),
-    };
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
 };

@@ -1,11 +1,36 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
+import { fetchMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
+import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
+import { Market, VerificationStatus, getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
 import { MarketStatus } from "./useMarketStatus";
+
+export async function searchOnChainMarkets(chainId: SupportedChain) {
+  return (
+    await readMarketViewGetMarkets(config, {
+      args: [BigInt(50), marketFactoryAddress[chainId]],
+      chainId,
+    })
+  )
+    .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
+    .map((market) =>
+      mapOnChainMarket(market, {
+        chainId,
+        outcomesSupply: 0n,
+        liquidityUSD: 0,
+        incentive: 0,
+        hasLiquidity: false,
+        categories: ["misc"],
+        poolBalance: [],
+        odds: [],
+        url: "",
+      }),
+    );
+}
 
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
@@ -28,51 +53,37 @@ const useOnChainMarkets = (
   });
 };
 
-const useGraphMarkets = (
-  chainsList: Array<string | "all">,
-  type: "Generic" | "Futarchy" | "",
-  marketName: string,
-  marketStatusList: MarketStatus[] | undefined,
-  creator: Address | "",
-  participant: Address | "",
-  orderBy: Market_OrderBy | undefined,
-) => {
-  const chainIds = (
-    chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
-  )
-    .filter((chain) => chain !== "31337")
-    .map((chainId) => Number(chainId)) as SupportedChain[];
+export type UseGraphMarketsParams = {
+  chainsList: Array<string | "all">;
+  type: "Generic" | "Futarchy" | "";
+  marketName: string;
+  marketStatusList: MarketStatus[] | undefined;
+  creator: Address | "";
+  participant: Address | "";
+  orderBy: Market_OrderBy | undefined;
+  orderDirection: "asc" | "desc" | undefined;
+};
 
-  return useQuery<Market[] | undefined, Error>({
-    queryKey: ["useGraphMarkets", chainIds, type, marketName, marketStatusList, creator, orderBy],
+export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
+
+export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
+  const markets = await fetchMarkets(params);
+  for (const market of markets) {
+    queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+  }
+
+  return markets;
+};
+
+function useGraphMarkets(params: UseGraphMarketsParams) {
+  return useQuery<Market[], Error>({
+    queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
-      const markets = (
-        await Promise.allSettled(
-          chainIds.map((chainId) =>
-            searchGraphMarkets(chainId, type, marketName, marketStatusList, creator, participant, orderBy),
-          ),
-        )
-      )
-        .reduce((markets, result) => {
-          if (result.status === "fulfilled") {
-            markets.push(result.value);
-          }
-          return markets;
-        }, [] as Market[][])
-        .flat();
-
-      // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy));
-
-      for (const market of markets) {
-        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
-      }
-
-      return markets;
+      return useGraphMarketsQueryFn(params);
     },
     retry: false,
   });
-};
+}
 
 export interface UseMarketsProps {
   type?: "Generic" | "Futarchy" | "";
@@ -86,6 +97,7 @@ export interface UseMarketsProps {
   orderBy?: Market_OrderBy;
   isShowMyMarkets?: boolean;
   isShowConditionalMarkets?: boolean;
+  orderDirection?: "asc" | "desc";
 }
 
 export const useMarkets = ({
@@ -96,9 +108,19 @@ export const useMarkets = ({
   creator = "",
   participant = "",
   orderBy,
+  orderDirection,
 }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
-  const graphMarkets = useGraphMarkets(chainsList, type, marketName, marketStatusList, creator, participant, orderBy);
+  const graphMarkets = useGraphMarkets({
+    chainsList,
+    type,
+    marketName,
+    marketStatusList,
+    creator,
+    participant,
+    orderBy,
+    orderDirection,
+  });
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;

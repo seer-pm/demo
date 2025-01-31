@@ -1,5 +1,5 @@
 import { getConfigNumber } from "@/lib/config";
-import { MarketTypes } from "@/lib/market";
+import { MarketTypes, getOutcomes } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { formatDate } from "@/lib/utils";
@@ -37,14 +37,6 @@ const MarketTypeFunction: Record<
   [MarketTypes.MULTI_CATEGORICAL]: "createMultiCategoricalMarket",
   [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
 } as const;
-
-export function getOutcomes(outcomes: string[], marketType: MarketTypes) {
-  if (marketType === MarketTypes.SCALAR) {
-    return ["DOWN", "UP", ...outcomes.slice(2)];
-  }
-
-  return outcomes;
-}
 
 function generateTokenName(outcome: string) {
   return outcome

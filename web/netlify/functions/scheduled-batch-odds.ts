@@ -1,7 +1,5 @@
 import { Config } from "@netlify/functions";
 
-// require("dotenv").config();
-
 export default async (req: Request) => {
   try {
     const { next_run } = await req.json();

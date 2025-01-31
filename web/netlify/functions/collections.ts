@@ -1,43 +1,31 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
-require("dotenv").config();
-
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
+export default async (req: Request) => {
   try {
-    const userId = verifyToken(event.headers.authorization);
+    const userId = verifyToken(req.headers.get("Authorization") || "");
     if (!userId) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
     // Handle GET request
-    if (event.httpMethod === "GET") {
+    if (req.method === "GET") {
       const { data: favorites } = await supabase
         .from("collections_markets")
         .select("market_id")
         .eq("user_id", userId)
         .is("collection_id", null);
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []),
-      };
+      return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
     }
 
     // Handle POST request
-    if (event.httpMethod === "POST") {
-      const { marketIds, collectionId = null } = JSON.parse(event.body || "{}");
+    if (req.method === "POST") {
+      const { marketIds, collectionId = null } = await req.json();
       if (!Array.isArray(marketIds)) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: "marketIds must be an array" }),
-        };
+        return new Response(JSON.stringify({ error: "marketIds must be an array" }), { status: 400 });
       }
 
       if (marketIds.length === 1) {
@@ -67,10 +55,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
 
           if (insertError) {
             console.error("Insert error:", insertError);
-            return {
-              statusCode: 500,
-              body: JSON.stringify({ error: "Failed to add favorite market" }),
-            };
+            return new Response(JSON.stringify({ error: "Failed to add favorite market" }), { status: 500 });
           }
         }
       } else if (marketIds.length > 1) {
@@ -85,30 +70,21 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
 
         if (bulkInsertError) {
           console.error("Bulk insert error:", bulkInsertError);
-          return {
-            statusCode: 500,
-            body: JSON.stringify({
+          return new Response(
+            JSON.stringify({
               error: "Failed to add favorite markets",
             }),
-          };
+            { status: 500 },
+          );
         }
       }
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ success: true }),
-      };
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
 
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   } catch (error) {
     console.error("Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal server error" }),
-    };
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
 };

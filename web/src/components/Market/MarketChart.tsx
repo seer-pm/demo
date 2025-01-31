@@ -1,8 +1,9 @@
 import { ChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
-import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -12,17 +13,17 @@ import { useState } from "react";
 const chartOptions = {
   "1D": {
     dayCount: 1,
-    interval: 60 * 60,
+    interval: 60 * 5,
   },
   "1W": {
     dayCount: 7,
-    interval: 60 * 60 * 24,
+    interval: 60 * 30,
   },
   "1M": {
     dayCount: 30,
-    interval: 60 * 60 * 24,
+    interval: 60 * 60 * 3,
   },
-  All: { dayCount: 365 * 10, interval: 60 * 60 * 24 },
+  All: { dayCount: 365 * 10, interval: 60 * 60 * 12 },
 };
 
 type ChartOptionPeriod = keyof typeof chartOptions;
@@ -62,7 +63,7 @@ function MarketChart({ market }: { market: Market }) {
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
   const series = getSeries(market, chartData);
-
+  const isSmallScreen = useIsSmallScreen();
   const option = {
     color: [
       "#f58231",
@@ -79,6 +80,9 @@ function MarketChart({ market }: { market: Market }) {
 
     tooltip: {
       trigger: "axis",
+      axisPointer: {
+        type: "none",
+      },
       valueFormatter: (value: number) => {
         if (market.type === "Futarchy") {
           return `${value}`;
@@ -99,17 +103,17 @@ function MarketChart({ market }: { market: Market }) {
         if (market.type === "Futarchy") {
           return name;
         }
-        const odds = series.map((x) => x.data[x.data.length - 1][1]);
+        const latestDataSet = series.map((x) => x.data[x.data.length - 1][1]);
         if (isScalarMarket) {
-          return `${name} ${getMarketEstimate(odds, market, true)}`;
+          return `${name} ${Number(latestDataSet[0]).toLocaleString()}`;
         }
-        for (let i = 0; i < market.outcomes.length; i++) {
-          const outcome = market.outcomes[i];
+        for (let i = 0; i < series.length; i++) {
+          const outcome = series[i].name;
           if (name === outcome) {
             if (isMultiCategoricalMarket) {
-              return `${name} ${!isOdd(odds[i]) ? "NA" : (odds[i] / 100).toFixed(3)}`;
+              return `${name} ${!isOdd(latestDataSet[i]) ? "NA" : (latestDataSet[i] / 100).toFixed(3)}`;
             }
-            return `${name} ${!isOdd(odds[i]) ? "NA" : `${odds[i]}%`}`;
+            return `${name} ${!isOdd(latestDataSet[i]) ? "NA" : `${latestDataSet[i]}%`}`;
           }
         }
         return name;
@@ -117,8 +121,8 @@ function MarketChart({ market }: { market: Market }) {
     },
 
     grid: {
-      left: 80,
-      right: 80,
+      left: isSmallScreen ? "20%" : 80,
+      right: isSmallScreen ? "20%" : 80,
       top: "15%",
       bottom: "15%",
     },
@@ -131,7 +135,9 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: timestamps.filter((_, index) => index % 4 === 0),
+        customValues: timestamps.filter(
+          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        ),
       },
       axisPointer: {
         label: {
@@ -142,7 +148,9 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: timestamps.filter((_, index) => index % 4 === 0),
+        customValues: timestamps.filter(
+          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        ),
       },
     },
 
@@ -165,7 +173,12 @@ function MarketChart({ market }: { market: Market }) {
         },
       },
     },
-    series,
+    series: series.map((x) => ({
+      ...x,
+      symbol: "circle",
+      symbolSize: 7,
+      showSymbol: false,
+    })),
   };
 
   return (

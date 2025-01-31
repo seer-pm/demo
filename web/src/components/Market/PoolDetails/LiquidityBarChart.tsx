@@ -3,6 +3,7 @@ import { Slider } from "@/components/Slider";
 import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData, tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { PoolInfo } from "@/hooks/useMarketPools";
 import { SwapIcon } from "@/lib/icons";
@@ -25,6 +26,7 @@ export default function LiquidityBarChart({
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
+  const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
   if (!ticksByPool?.[id]?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
@@ -37,7 +39,7 @@ export default function LiquidityBarChart({
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
     getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
-  const maxLabelCount = 10; //max label x axis
+  const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
   const chartOption = priceList
     ? {
         xAxis: [
@@ -121,8 +123,8 @@ export default function LiquidityBarChart({
           },
         ],
         grid: {
-          left: 60,
-          right: 60,
+          left: isSmallScreen ? "15%" : 60,
+          right: isSmallScreen ? "15%" : 60,
           top: "15%",
           bottom: "15%",
         },

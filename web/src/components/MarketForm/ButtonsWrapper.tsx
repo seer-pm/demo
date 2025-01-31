@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import { isUndefined } from "@/lib/utils";
-import { FormWithNextStep, FormWithPrevStep } from "./index.tsx";
+import { FormWithNextStep, FormWithPrevStep } from "./index.ts";
 
 export function ButtonsWrapper({
   goToPrevStep,
@@ -14,7 +14,7 @@ export function ButtonsWrapper({
   isLoading?: boolean;
 }) {
   return (
-    <div className="space-x-[24px]">
+    <div className="flex items-center justify-center gap-6 flex-wrap">
       {goToPrevStep && <Button type="button" variant="secondary" text="Return" onClick={goToPrevStep} />}
       <Button
         type="submit"

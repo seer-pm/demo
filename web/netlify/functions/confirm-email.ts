@@ -1,11 +1,9 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-require("dotenv").config();
 
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
+export default async (req: Request) => {
   const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-  const verificationToken = event.queryStringParameters?.token;
+  const verificationToken = new URL(req.url).searchParams.get("token");
   if (verificationToken) {
     const { data: user, error } = await supabase
       .from("users")
@@ -15,20 +13,11 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
       .single();
 
     if (error || !user) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ success: 0 }),
-      };
+      return new Response(JSON.stringify({ success: 0 }), { status: 200 });
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: 1 }),
-    };
+    return new Response(JSON.stringify({ success: 1 }), { status: 200 });
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ success: 0 }),
-  };
+  return new Response(JSON.stringify({ success: 0 }), { status: 200 });
 };

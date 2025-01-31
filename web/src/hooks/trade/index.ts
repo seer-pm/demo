@@ -3,6 +3,7 @@ import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
@@ -27,7 +28,7 @@ import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 import { convertToSDAI } from "./handleSDAI";
 
-const QUOTE_REFETCH_INTERVAL = Number(import.meta.env.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
+const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
 export interface QuoteTradeResult {
   value: bigint;

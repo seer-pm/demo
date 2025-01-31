@@ -42,13 +42,18 @@ export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
   return (
     <div>
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
-        <div className="grow">
+        <div className="grow @container">
           <Input
-            placeholder="Search"
-            className="w-full"
+            placeholder="Search by market or outcome"
+            className="w-full text-[13px] @[250px]:text-[14px] @[400px]:text-[16px]"
             icon={<SearchIcon />}
             value={marketName}
             onChange={onChangeName}
+            isClearable
+            onClear={() => {
+              setMarketName("");
+              debounceSetMarketNameParams("");
+            }}
           />
         </div>
         <button

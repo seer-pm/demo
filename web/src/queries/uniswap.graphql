@@ -125,6 +125,19 @@ query GetSwaps(
       id
       blockNumber
     }
+    tick
+    pool {
+      id
+      liquidity
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
+    }
   }
 }
 

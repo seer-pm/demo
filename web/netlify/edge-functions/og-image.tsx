@@ -1,31 +1,26 @@
 import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
-import React from "https://esm.sh/react@18.2.0";
-import { isAddress } from "https://esm.sh/viem@2.17.5";
+import { Address } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
-import { displayBalance, formatBigNumbers, formatOdds, getMarketEstimate, isOdd } from "./utils/common.ts";
-import { INVALID_RESULT_OUTCOME_TEXT, VITE_SUPABASE_API_KEY, VITE_SUPABASE_PROJECT_URL } from "./utils/constants.ts";
-import { fetchMarket } from "./utils/fetchMarket.ts";
-import { convertFromSDAI } from "./utils/handleSDai.ts";
-import { MarketTypes, getMarketType } from "./utils/market.ts";
+import { formatBigNumbers, formatOdds, getMarketEstimate, getMarketType, isOdd } from "./utils/common.ts";
+import { MarketTypes, SimpleMarket, SupportedChain } from "./utils/types.ts";
 
-async function fetchMarketDataById(
-  marketId: string,
-): Promise<{ odds: (number | null)[]; liquidity: number | null } | undefined> {
-  if (!isAddress(marketId)) {
-    return;
+const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
+
+async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address): Promise<SimpleMarket> {
+  const response = await fetch(`${baseUrl}/.netlify/functions/markets-search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ chainsList: [chainId.toString()], id: id.toLocaleLowerCase() as Address }),
+  });
+  const markets = await response.json();
+
+  if (markets.length === 0) {
+    throw new Error("Market not found");
   }
-  try {
-    const response = await fetch(`${VITE_SUPABASE_PROJECT_URL}/rest/v1/markets?id=eq.${marketId}&select=*&limit=1`, {
-      headers: {
-        apikey: VITE_SUPABASE_API_KEY!,
-        Authorization: `Bearer ${VITE_SUPABASE_API_KEY}`,
-      },
-    });
-    const data = await response.json();
-    return data[0];
-  } catch (e) {
-    console.log(e);
-  }
+
+  return markets[0];
 }
 
 export default async (request: Request, context: Context) => {
@@ -33,7 +28,7 @@ export default async (request: Request, context: Context) => {
     const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/);
     const { chainId = "0", marketId = "" } = match?.groups || {};
 
-    const market = await fetchMarket(marketId, chainId, {});
+    const market = await fetchMarket(context.site.url, chainId, marketId);
 
     if (!market) {
       return new ImageResponse(
@@ -55,9 +50,9 @@ export default async (request: Request, context: Context) => {
         { width: 2400, height: 1350, debug: false },
       );
     }
-    const marketData = await fetchMarketDataById(marketId);
-    const odds = marketData?.odds ?? [];
-    const liquidityUSD = formatBigNumbers(marketData?.liquidity ?? 0);
+
+    const odds = market?.odds ?? [];
+    const liquidityUSD = formatBigNumbers(market?.liquidityUSD ?? 0);
     const marketEstimate = getMarketEstimate(odds, market, true);
     const indexesOrderedByOdds = odds
       .map((odd, i) => ({ odd, i }))

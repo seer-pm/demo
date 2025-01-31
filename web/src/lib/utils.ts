@@ -1,9 +1,14 @@
+import { config } from "@/wagmi";
+import { getAccount } from "@wagmi/core";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
 import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
-import { formatUnits, getAddress } from "viem";
+import { Address, formatUnits, getAddress } from "viem";
+import { SupportedChain } from "./chains";
+import SEER_ENV from "./env";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
@@ -221,5 +226,36 @@ export async function fetchAuth(
 }
 
 export function getAppUrl() {
-  return import.meta.env.VITE_WEBSITE_URL || "https://app.seer.pm";
+  return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
+}
+
+export function stripDiacritics(str: string) {
+  return str
+    .normalize("NFD") // Decompose characters into base + diacritical marks
+    .replace(/[^A-Za-z0-9\s!]/g, "")
+    .normalize("NFC");
+}
+
+export function isTextInString(text: string, string: string) {
+  return stripDiacritics(string).toLowerCase().includes(stripDiacritics(text).toLowerCase());
+}
+
+export function checkWalletConnectCallback(
+  callback: (address: Address, chainId: SupportedChain) => void,
+  timeout = 1000,
+) {
+  const account = getAccount(config);
+  if (account.address && account.chainId && account.isConnected) {
+    callback(account.address, account.chainId as SupportedChain);
+    return;
+  }
+  const { open } = useWeb3Modal();
+  open({ view: "Connect" });
+  const interval = setInterval(() => {
+    const account = getAccount(config);
+    if (account.address && account.chainId && account.isConnected) {
+      callback(account.address, account.chainId as SupportedChain);
+      clearInterval(interval);
+    }
+  }, timeout);
 }

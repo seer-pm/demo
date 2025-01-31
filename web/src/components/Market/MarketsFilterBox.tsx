@@ -18,12 +18,14 @@ import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
+import Toggle from "../Form/Toggle";
 import { STATUS_TEXTS } from "./Header";
 
 const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },
   { value: "liquidityUSD", text: "Liquidity" },
   { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
+  { value: "creationDate", text: "Creation Date" },
 ];
 
 const VERIFY_STATUS_OPTIONS = [
@@ -84,6 +86,7 @@ interface MarketFilters {
   chainsList: string[];
   orderBy: Market_OrderBy | "default";
   isShowConditionalMarkets: boolean;
+  orderDirection: "asc" | "desc";
 }
 
 export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFilters: boolean) => void }) {
@@ -93,11 +96,13 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     chainsList: initialChainsList,
     orderBy: initialOrderBy,
     isShowConditionalMarkets: initialShowConditionalMarkets,
+    orderDirection: initialOrderDirection,
     setMarketStatus,
     setVerificationStatus,
     setChains,
     setOrderBy,
     toggleShowConditionalMarkets,
+    setOrderDirection,
   } = useMarketsSearchParams();
   const {
     handleSubmit,
@@ -114,11 +119,13 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
       isShowConditionalMarkets: initialShowConditionalMarkets ?? false,
+      orderDirection: initialOrderDirection ?? "desc",
     },
   });
 
   const apply: SubmitHandler<MarketFilters> = (data) => {
-    const { marketStatusList, verificationStatusList, chainsList, orderBy, isShowConditionalMarkets } = data;
+    const { marketStatusList, verificationStatusList, chainsList, orderBy, isShowConditionalMarkets, orderDirection } =
+      data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
@@ -127,8 +134,11 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setOrderBy(orderBy);
     setShowFilters(false);
     toggleShowConditionalMarkets(isShowConditionalMarkets);
+    if (orderBy !== "default") {
+      setOrderDirection(orderDirection);
+    }
   };
-
+  const isDefaultOrder = watch("orderBy") === "default" || !watch("orderBy");
   return (
     <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-10 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
@@ -319,6 +329,32 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-5">
             Sort By <ArrowSwap />
+            <div className="flex gap-2 ml-auto">
+              <div
+                className={clsx(
+                  "font-normal",
+                  watch("orderDirection") === "desc" && "text-purple-primary",
+                  isDefaultOrder && "!text-black-secondary",
+                )}
+              >
+                Desc
+              </div>
+              <Toggle
+                className="bg-purple-primary hover:bg-purple-primary disabled:bg-black-primary"
+                checked={watch("orderDirection") === "asc"}
+                onChange={(e) => setValue("orderDirection", e.target.checked ? "asc" : "desc")}
+                disabled={isDefaultOrder}
+              />
+              <div
+                className={clsx(
+                  "font-normal",
+                  watch("orderDirection") === "asc" && "text-purple-primary",
+                  isDefaultOrder && "!text-black-secondary",
+                )}
+              >
+                Asc
+              </div>
+            </div>
           </div>
           <Controller
             name="orderBy"

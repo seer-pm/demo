@@ -5,28 +5,36 @@ import { Market } from "@/hooks/useMarket";
 import { useSignIn } from "@/hooks/useSignIn";
 import { useUpdateCollectionItem } from "@/hooks/useUpdateCollectionItem";
 import { StarFilled, StarOutlined } from "@/lib/icons";
+import { checkWalletConnectCallback, isAccessTokenExpired } from "@/lib/utils";
 import clsx from "clsx";
-import { useAccount } from "wagmi";
 
 function MarketFavorite({ market, colorClassName }: { market: Market; colorClassName?: string }) {
-  const { address, chainId } = useAccount();
   const accessToken = useGlobalState((state) => state.accessToken);
   const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
 
   const signIn = useSignIn();
   const updateCollectionItem = useUpdateCollectionItem();
 
-  const { data: favorites = [] } = useFavorites();
-  const isFavorite = favorites.includes(market.id) || updateCollectionItem.isPending; // optimistic update
+  const { data: favorites = [], isLoading } = useFavorites();
+  const isFavorite = favorites.includes(market.id);
+  const checkWalletConnectAndSignIn = () => {
+    checkWalletConnectCallback((address, chainId) => {
+      if (isAccessTokenExpired(accessToken)) {
+        signIn.mutateAsync({ address: address, chainId: chainId });
+      }
+    });
+  };
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={() =>
           isAccountConnectedAndSignedIn
             ? updateCollectionItem.mutateAsync({ marketIds: [market.id], accessToken })
-            : signIn.mutateAsync({ address: address!, chainId: chainId! })
+            : checkWalletConnectAndSignIn()
         }
         className="cursor-pointer !ml-auto flex items-center"
+        disabled={updateCollectionItem.isPending || isLoading}
       >
         {isFavorite ? (
           <div className="tooltip">
@@ -41,7 +49,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
             <StarOutlined fill="currentColor" />
           </div>
         )}
-      </div>
+      </button>
     </>
   );
 }

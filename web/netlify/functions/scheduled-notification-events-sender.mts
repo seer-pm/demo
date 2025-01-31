@@ -1,12 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { getPostmarkClient } from "./utils/common";
-import { FROM_EMAIL } from "./utils/constants";
-require("dotenv").config();
+import { FROM_EMAIL } from "./utils/common";
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_PROJECT_URL!,
-  process.env.VITE_SUPABASE_API_KEY!
-);
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 async function sendPendingNotifications() {
   try {
@@ -45,13 +41,11 @@ async function sendPendingNotifications() {
           console.error("Error sending email:", error, notification);
           return { id: notification.id, success: false };
         }
-      })
+      }),
     );
 
     // Get IDs of successfully sent notifications
-    const successfulIds = sendResults
-      .filter((result) => result.success)
-      .map((result) => result.id);
+    const successfulIds = sendResults.filter((result) => result.success).map((result) => result.id);
 
     if (successfulIds.length > 0) {
       // Update sent_at for successful sends
@@ -78,13 +72,11 @@ async function sendPendingNotifications() {
   }
 }
 
-export const handler = async () => {
+export default async () => {
   try {
     await sendPendingNotifications();
-    return { statusCode: 200 };
   } catch (e) {
     console.error("Error in notification events sender:", e);
-    return { statusCode: 501 };
   }
 };
 

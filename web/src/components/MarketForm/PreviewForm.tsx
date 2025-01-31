@@ -1,5 +1,5 @@
 import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
-import { getOutcomes, getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
+import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
@@ -11,10 +11,11 @@ import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
+import { getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, fetchAuth, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
@@ -283,10 +284,11 @@ export function PreviewForm({
       setNewMarketId(marketId);
       await Promise.allSettled([
         updateCollectionItem({ marketIds: [marketId], accessToken }),
-        fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
-          marketId: marketId.toLowerCase(),
-          categories: marketTypeValues.marketCategories,
-        }),
+        // fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+        //   marketId: marketId.toLowerCase(),
+        //   categories: marketTypeValues.marketCategories,
+        //   chainId
+        // }),
         fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
       ]);
       await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId) });
@@ -399,6 +401,7 @@ export function PreviewForm({
     categories: ["misc"],
     poolBalance: [],
     odds: [],
+    url: "",
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

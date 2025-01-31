@@ -36,6 +36,7 @@ function MarketCategories({ market }: { market: Market }) {
       await fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
         marketId: market.id,
         categories,
+        chainId: market.chainId,
       });
       await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(market.id) });
       queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });

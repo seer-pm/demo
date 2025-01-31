@@ -12,12 +12,12 @@ type OutcomeWithOdds = {
 };
 
 export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
+  const { data: odds = [] } = useMarketOdds(market, true);
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
 
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
-    enabled: !oddsPending && odds.length > 0 && market.type === "Generic",
+    enabled: odds.length > 0 && market.type === "Generic",
     queryFn: () => {
       const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
 

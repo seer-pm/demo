@@ -7,6 +7,7 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
+import SEER_ENV from "./env";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 
 export const DEFAULT_TOAST_OPTIONS = {
@@ -118,7 +119,7 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
     toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash,
-      confirmations: import.meta.env.VITE_TX_CONFIRMATIONS || 0,
+      confirmations: Number(SEER_ENV.VITE_TX_CONFIRMATIONS) || 0,
       timeout: 20000, //20 seconds timeout, then we poll manually
     });
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });

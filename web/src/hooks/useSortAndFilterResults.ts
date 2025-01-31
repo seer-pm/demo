@@ -1,4 +1,4 @@
-import { ITEMS_PER_PAGE } from "@/lib/markets-search";
+import { isTextInString } from "@/lib/utils";
 import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -6,6 +6,8 @@ import { useFavorites } from "./useFavorites";
 import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
+
+const ITEMS_PER_PAGE = 10;
 
 export const useSortAndFilterResults = (
   params: UseMarketsProps,
@@ -16,6 +18,15 @@ export const useSortAndFilterResults = (
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
+
+  // filter by market name or market outcomes
+  if (params.marketName) {
+    data = data.filter((market) => {
+      const isMatchName = isTextInString(params.marketName!, market.marketName);
+      const isMatchOutcomes = market.outcomes.some((outcome) => isTextInString(params.marketName!, outcome));
+      return isMatchName || isMatchOutcomes;
+    });
+  }
 
   // filter by verification status
   if (params.verificationStatusList) {

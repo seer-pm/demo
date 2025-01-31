@@ -55,6 +55,7 @@ async function startServer() {
       });
 
       const data = await response.text();
+      res.set('Content-Type', response.headers.get('Content-Type'));
       res.status(response.status);
       res.send(data);
     } catch (error) {

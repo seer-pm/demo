@@ -1,14 +1,18 @@
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, Token0Token1, getMarketEstimate, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { TickMath } from "@uniswap/v3-sdk";
 import { subDays } from "date-fns";
 import combineQuery from "graphql-combine-query";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
+import { tickToPrice } from "../liquidity/getLiquidityChartData";
 import {
   GetPoolHourDatasQuery,
+  GetSwapsQuery,
   OrderDirection,
   PoolHourData_OrderBy,
+  Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
 } from "../queries/gql-generated-swapr";
@@ -76,6 +80,49 @@ async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: Sup
   return result.map((x) => x[0]?.periodStartUnix);
 }
 
+async function getSwapsByToken(
+  poolPairs: Token0Token1,
+  initialStartTime: number,
+  chainId: SupportedChain,
+): Promise<GetSwapsQuery["swaps"]> {
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+  if (!graphQLClient) {
+    throw new Error("Subgraph not available");
+  }
+
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+  let total: GetSwapsQuery["swaps"] = [];
+  const maxAttempts = 20;
+  let attempt = 1;
+  let startTime = initialStartTime;
+  while (attempt < maxAttempts) {
+    const dateOperator = attempt === 1 ? "timestamp_gte" : "timestamp_gt";
+    const { swaps } = await graphQLSdk(graphQLClient).GetSwaps({
+      first: 1000,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: Swap_OrderBy.Timestamp as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Asc as any,
+      where: {
+        pool_: poolPairs,
+        [dateOperator]: startTime,
+      },
+    });
+    total = total.concat(swaps);
+    if (!swaps[swaps.length - 1]?.timestamp || Number(swaps[swaps.length - 1]?.timestamp) === startTime) {
+      break;
+    }
+    if (swaps.length < 1000) {
+      break;
+    }
+    startTime = Number(swaps[swaps.length - 1].timestamp);
+    attempt++;
+  }
+
+  return total;
+}
+
 async function getPoolHourDatasByToken(
   poolPairs: Token0Token1,
   initialStartTime: number,
@@ -125,7 +172,26 @@ async function getPoolHourDatasByToken(
     startTime = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
     attempt++;
   }
-  return total;
+  if (lastPointBeforeStartTime) {
+    return total;
+  }
+  // we will also try to get swap records to supplement the chart
+  try {
+    const swaps = await getSwapsByToken(poolPairs, initialStartTime, chainId);
+    const swapsToPoolHourDatas = swaps.map((swap) => {
+      const [token1Price, token0Price] = tickToPrice(Number(swap.tick));
+      return {
+        token0Price,
+        token1Price,
+        periodStartUnix: Number(swap.timestamp),
+        sqrtPrice: TickMath.getSqrtRatioAtTick(Number(swap.tick)).toString(),
+        pool: swap.pool,
+      };
+    }) as GetPoolHourDatasQuery["poolHourDatas"];
+    return [...total, ...swapsToPoolHourDatas].sort((a, b) => a.periodStartUnix - b.periodStartUnix);
+  } catch (e) {
+    return total;
+  }
 }
 
 type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];
@@ -189,25 +255,15 @@ function getFirstAndLastTimestamps(market: Market, interval: number, dayCount: n
   return { firstTimestamp, lastTimestamp };
 }
 
-function getTimestamps(
-  firstTimestamp: number,
-  lastTimestamp: number,
-  interval: number,
-  latestPoolHourDataTimestamp: number,
-) {
+function getTimestamps(firstTimestamp: number, lastTimestamp: number, interval: number) {
   let currentTimestamp = firstTimestamp;
-  let timestamps: number[] = [];
+  const timestamps: number[] = [];
   while (currentTimestamp <= lastTimestamp) {
     timestamps.push(currentTimestamp);
     currentTimestamp += interval;
   }
 
-  timestamps = timestamps.filter((timestamp) => timestamp <= latestPoolHourDataTimestamp);
-
-  if (timestamps.length) {
-    timestamps = [...timestamps, latestPoolHourDataTimestamp];
-  }
-  return timestamps;
+  return Array.from(new Set(timestamps));
 }
 
 function getGenericMarketData(
@@ -410,9 +466,7 @@ export async function getChartData(market: Market, dayCount: number, interval: n
 
     const poolHourDatasSets = await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp, lastTimestamp);
 
-    const latestPoolHourDataTimestamp = Math.max(...poolHourDatasSets.flat().map((x) => x.periodStartUnix));
-
-    const timestamps = getTimestamps(firstTimestamp, lastTimestamp, interval, latestPoolHourDataTimestamp);
+    const timestamps = getTimestamps(firstTimestamp, lastTimestamp, interval);
 
     return market.type === "Generic"
       ? getGenericMarketData(market, timestamps, poolsPairs, poolHourDatasSets)

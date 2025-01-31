@@ -1,16 +1,14 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import useDebounce from "@/hooks/useDebounce.ts";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages.ts";
+import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
+import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
-import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
-
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -23,23 +21,19 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import {
-  MarketTypes,
-  formatOdds,
-  getCollateralByIndex,
-  getMarketEstimate,
-  getMarketPoolsPairs,
-  getMarketType,
-} from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
 import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage";
+import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
+import { COLORS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
@@ -63,18 +57,14 @@ function OutcomesInfo({
   const { isIntersecting, ref } = useIntersectionObserver({
     threshold: 0.5,
   });
-  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
+  const { data: odds = [] } = useMarketOdds(market, isIntersecting);
 
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
-  const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
-  const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
   return (
     <div ref={ref}>
-      <div
-        className={clsx("space-y-3", isAllLoading ? "market-card__outcomes__loading" : "market-card__outcomes__loaded")}
-      >
+      <div className={clsx("space-y-3")}>
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const outcome = market.outcomes[i];
@@ -95,10 +85,10 @@ function OutcomesInfo({
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
+              to={`${paths.market(market)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
-                <div className="w-[65px]">
+                <div className="w-[65px] flex-shrink-0">
                   <OutcomeImage
                     image={images?.[i]}
                     isInvalidOutcome={i === market.outcomes.length - 1}
@@ -119,7 +109,7 @@ function OutcomesInfo({
               </div>
               <div className="flex space-x-10 items-center">
                 <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
+                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
                 </div>
               </div>
             </Link>
@@ -196,10 +186,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
-  const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
+  const { data: odds = [] } = useMarketOdds(market, true);
+  const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
+
+  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
 
   return (
     <div
@@ -227,7 +219,13 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
             )}
 
-            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+            <a
+              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+            </a>
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
@@ -250,7 +248,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
           )}
           {type !== "default" && (
-            <Link to={paths.market(market.id, market.chainId)}>
+            <Link to={paths.market(market)}>
               {images?.market ? (
                 <img
                   src={images.market}
@@ -267,7 +265,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market.id, market.chainId)}>
+              <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
               </Link>
             )}
@@ -275,16 +273,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           {parentMarket && type !== "default" && (
             <p className="text-[14px] my-2">
               Conditional on{" "}
-              <Link
-                to={paths.market(parentMarket.id, market.chainId)}
-                target="_blank"
-                className="text-purple-primary font-medium"
-              >
+              <Link to={paths.market(parentMarket)} target="_blank" className="text-purple-primary font-medium">
                 "{parentMarket.marketName}"
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
+                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"
@@ -321,8 +315,10 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
-          {!isPendingOdds && (
+          <div className="flex items-center gap-2">
+            Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
+          </div>
+          {odds.length > 0 && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens

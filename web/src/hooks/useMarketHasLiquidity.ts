@@ -1,9 +1,13 @@
-import { bigIntMax, isTwoStringsEqual } from "@/lib/utils";
+import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { Market } from "./useMarket";
 import { useMarketPools } from "./useMarketPools";
 
-function useMarketHasLiquidity(market: Market) {
-  const { data: outcomePools = [] } = useMarketPools(market);
+function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
+  const { data: outcomePools = [], isPending } = useMarketPools(market);
+
+  if (isPending) {
+    return;
+  }
 
   const outcomeLiquidityMapping = outcomePools.flat().reduce(
     (obj, item) => {
@@ -17,6 +21,10 @@ function useMarketHasLiquidity(market: Market) {
     },
     {} as { [key: string]: bigint },
   );
+
+  if (!isUndefined(outcomeIndex)) {
+    return (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n;
+  }
   return (
     bigIntMax(...(market.wrappedTokens.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? [])) > 0n
   );

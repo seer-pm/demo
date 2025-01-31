@@ -1,15 +1,11 @@
+import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
-import { config as wagmiConfig, SupportedChain } from "./utils/config.ts";
+import { SupportedChain } from "../../src/lib/chains.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
-import { SEER_SUBGRAPH_URLS } from "./utils/constants.ts";
-import { createClient } from "@supabase/supabase-js";
-require("dotenv").config();
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_PROJECT_URL!,
-  process.env.VITE_SUPABASE_API_KEY!
-);
+import { config as wagmiConfig } from "./utils/config.ts";
+import { SUBGRAPHS } from "./utils/subgraph.ts";
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 interface NetworkContracts {
   realityETH: `0x${string}`;
@@ -31,19 +27,15 @@ const NETWORK_CONTRACTS: Record<number, NetworkContracts> = {
 
 // ABI fragments for the events we want to listen to
 const REALITY_ETH_ANSWER_EVENT = parseAbiItem(
-  "event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)"
+  "event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)",
 );
 
 const CTF_RESOLUTION_EVENT = parseAbiItem(
-  "event ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)"
+  "event ConditionResolution(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount, uint256[] payoutNumerators)",
 );
 
-async function fetchSubgraph(
-  query: string,
-  variables: Record<string, string | string[]>,
-  chainId: number
-) {
-  const results = await fetch(SEER_SUBGRAPH_URLS[chainId]!, {
+async function fetchSubgraph(query: string, variables: Record<string, string | string[]>, chainId: SupportedChain) {
+  const results = await fetch(SUBGRAPHS.seer[chainId]!, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -58,7 +50,7 @@ async function fetchSubgraph(
 
 async function getMarketsForQuestionId(
   questionIds: string[],
-  networkId: SupportedChain
+  networkId: SupportedChain,
 ): Promise<Map<string, string[]>> {
   const result = (
     await Promise.all([
@@ -82,7 +74,7 @@ type QuestionAndMarkets = { questionId: string; marketIds: string[] }[];
 
 async function getExistingConditionalTokensQuestionIds(
   questionIds: string[],
-  networkId: SupportedChain
+  networkId: SupportedChain,
 ): Promise<QuestionAndMarkets> {
   const query = `
     query CheckQuestions($questionIds: [Bytes!]!) {
@@ -95,17 +87,15 @@ async function getExistingConditionalTokensQuestionIds(
 
   const { data } = await fetchSubgraph(query, { questionIds }, networkId);
 
-  return data.markets.map(
-    ({ id, questionId }: { id: string; questionId: string }) => ({
-      questionId,
-      marketIds: [id],
-    })
-  );
+  return data.markets.map(({ id, questionId }: { id: string; questionId: string }) => ({
+    questionId,
+    marketIds: [id],
+  }));
 }
 
 async function getExistingRealityQuestionIds(
   questionIds: string[],
-  networkId: SupportedChain
+  networkId: SupportedChain,
 ): Promise<QuestionAndMarkets> {
   const query = `
     query CheckQuestions($questionIds: [Bytes!]!) {
@@ -122,12 +112,10 @@ async function getExistingRealityQuestionIds(
 
   const { data } = await fetchSubgraph(query, { questionIds }, networkId);
 
-  return data.questions.map(
-    (res: { id: string; marketQuestions: { market: { id: string } }[] }) => ({
-      questionId: res.id,
-      marketIds: res.marketQuestions.map((mq) => mq.market.id),
-    })
-  );
+  return data.questions.map((res: { id: string; marketQuestions: { market: { id: string } }[] }) => ({
+    questionId: res.id,
+    marketIds: res.marketQuestions.map((mq) => mq.market.id),
+  }));
 }
 
 interface NotificationQueueItem {
@@ -135,9 +123,7 @@ interface NotificationQueueItem {
   email: string;
 }
 
-async function getUsersEmailsByMarket(
-  marketIds: string[]
-): Promise<Map<string, string[]>> {
+async function getUsersEmailsByMarket(marketIds: string[]): Promise<Map<string, string[]>> {
   try {
     // Get users who favorited these markets and have verified emails
     const { data: favoriteData, error } = await supabase
@@ -148,7 +134,7 @@ async function getUsersEmailsByMarket(
         users!inner (
           email
         )
-      `
+      `,
       )
       .in("market_id", marketIds)
       .is("collection_id", null)
@@ -161,11 +147,12 @@ async function getUsersEmailsByMarket(
     // Create a map of market_id to array of user emails
     const marketToEmails = new Map<string, string[]>();
 
-    favoriteData.forEach((favorite) => {
+    for (const favorite of favoriteData) {
       const emails = marketToEmails.get(favorite.market_id) || [];
+      // @ts-ignore
       emails.push(favorite.users.email);
       marketToEmails.set(favorite.market_id, emails);
-    });
+    }
 
     return marketToEmails;
   } catch (error) {
@@ -183,7 +170,7 @@ async function processEvent(
   eventType: EventType,
   marketToEmails: Map<string, string[]>,
   log: { transactionHash: string; blockNumber: bigint; logIndex: number },
-  marketNames: Map<string, string>
+  marketNames: Map<string, string>,
 ) {
   try {
     // Create notifications for each market and its users
@@ -197,7 +184,7 @@ async function processEvent(
           event_id: `${networkId}-${log.transactionHash}-${log.logIndex}-${eventType}-${email}`,
           email,
           data: getNotificationData(marketId, marketName, networkId, eventType),
-        }))
+        })),
       );
     }
 
@@ -206,11 +193,9 @@ async function processEvent(
       return;
     }
 
-    const { error } = await supabase
-      .from("notifications_queue")
-      .upsert(notifications, {
-        onConflict: "event_id",
-      });
+    const { error } = await supabase.from("notifications_queue").upsert(notifications, {
+      onConflict: "event_id",
+    });
 
     if (error) {
       throw error;
@@ -220,8 +205,8 @@ async function processEvent(
       `Stored ${
         notifications.length
       } notifications - ${eventType} event for question ${questionId} on chain ${networkId} with markets ${marketIds.join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
   } catch (error) {
     console.error("Error storing notifications:", error);
@@ -229,12 +214,7 @@ async function processEvent(
   }
 }
 
-function getNotificationData(
-  marketId: string,
-  marketName: string,
-  networkId: number,
-  eventType: EventType
-): any {
+function getNotificationData(marketId: string, marketName: string, networkId: number, eventType: EventType) {
   const title = {
     answer: `The market "${marketName}" has a new answer`,
     resolution: `The market "${marketName}" has been resolved`,
@@ -265,23 +245,15 @@ async function getAnswerEvents(networkId: SupportedChain, fromBlock: bigint) {
       toBlock: "latest",
     });
 
-    console.log(
-      `[Network ${networkId}] Found ${answerLogs.length} answer events`
-    );
+    console.log(`[Network ${networkId}] Found ${answerLogs.length} answer events`);
     return answerLogs;
   } catch (error) {
-    console.error(
-      `[Network ${networkId}] Error fetching answer events:`,
-      error
-    );
+    console.error(`[Network ${networkId}] Error fetching answer events:`, error);
     throw error;
   }
 }
 
-async function getResolutionEvents(
-  networkId: SupportedChain,
-  fromBlock: bigint
-) {
+async function getResolutionEvents(networkId: SupportedChain, fromBlock: bigint) {
   try {
     // Listen for ConditionalTokens resolutions
     const resolutionLogs = await getPublicClientForNetwork(networkId).getLogs({
@@ -291,15 +263,10 @@ async function getResolutionEvents(
       toBlock: "latest",
     });
 
-    console.log(
-      `[Network ${networkId}] Found ${resolutionLogs.length} resolution events`
-    );
+    console.log(`[Network ${networkId}] Found ${resolutionLogs.length} resolution events`);
     return resolutionLogs;
   } catch (error) {
-    console.error(
-      `[Network ${networkId}] Error fetching resolution events:`,
-      error
-    );
+    console.error(`[Network ${networkId}] Error fetching resolution events:`, error);
     throw error;
   }
 }
@@ -308,16 +275,10 @@ function getLastProcessedBlockKey(networkId: SupportedChain): string {
   return `notifications-events-${networkId}-last-block`;
 }
 
-async function getLastProcessedBlock(
-  networkId: SupportedChain
-): Promise<bigint> {
+async function getLastProcessedBlock(networkId: SupportedChain): Promise<bigint> {
   const key = getLastProcessedBlockKey(networkId);
 
-  const { data, error } = await supabase
-    .from("key_value")
-    .select("value")
-    .eq("key", key)
-    .single();
+  const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();
 
   if (error) {
     if (error.code !== "PGRST116") {
@@ -335,10 +296,7 @@ async function getLastProcessedBlock(
   return BigInt(data.value.blockNumber);
 }
 
-async function updateLastProcessedBlock(
-  networkId: SupportedChain,
-  blockNumber: bigint
-) {
+async function updateLastProcessedBlock(networkId: SupportedChain, blockNumber: bigint) {
   const key = getLastProcessedBlockKey(networkId);
 
   try {
@@ -347,25 +305,19 @@ async function updateLastProcessedBlock(
         key,
         value: { blockNumber: blockNumber.toString() },
       },
-      { onConflict: "key" }
+      { onConflict: "key" },
     );
 
     if (error) {
       throw error;
     }
   } catch (error) {
-    console.error(
-      `Error updating last processed block for network ${networkId}:`,
-      error
-    );
+    console.error(`Error updating last processed block for network ${networkId}:`, error);
     throw error;
   }
 }
 
-async function getMarketNamesByMarket(
-  marketIds: string[],
-  networkId: SupportedChain
-): Promise<Map<string, string>> {
+async function getMarketNamesByMarket(marketIds: string[], networkId: SupportedChain): Promise<Map<string, string>> {
   const query = `
     query GetMarketNames($marketIds: [ID!]!) {
       markets(where: { id_in: $marketIds }) {
@@ -378,9 +330,9 @@ async function getMarketNamesByMarket(
   const { data } = await fetchSubgraph(query, { marketIds }, networkId);
 
   const marketNames = new Map<string, string>();
-  data.markets.forEach((market: { id: string; marketName: string }) => {
+  for (const market of data.markets) {
     marketNames.set(market.id, market.marketName);
-  });
+  }
 
   return marketNames;
 }
@@ -411,10 +363,7 @@ async function processNetworkEvents(networkId: SupportedChain) {
     return;
   }
 
-  const marketsForQuestionId = await getMarketsForQuestionId(
-    questionIds,
-    networkId
-  );
+  const marketsForQuestionId = await getMarketsForQuestionId(questionIds, networkId);
 
   if (marketsForQuestionId.size === 0) {
     console.log(`[Network ${networkId}] No seer events found`);
@@ -440,7 +389,7 @@ async function processNetworkEvents(networkId: SupportedChain) {
         "answer",
         marketToEmails,
         log,
-        marketNames
+        marketNames,
       );
     }
   }
@@ -455,7 +404,7 @@ async function processNetworkEvents(networkId: SupportedChain) {
         "resolution",
         marketToEmails,
         log,
-        marketNames
+        marketNames,
       );
     }
   }
@@ -463,18 +412,13 @@ async function processNetworkEvents(networkId: SupportedChain) {
   console.log(`[Network ${networkId}] Finished processing events`);
 }
 
-export const handler = async () => {
+export default async () => {
   try {
     await Promise.all(
-      Object.keys(NETWORK_CONTRACTS).map((networkId) =>
-        processNetworkEvents(Number(networkId) as SupportedChain)
-      )
+      Object.keys(NETWORK_CONTRACTS).map((networkId) => processNetworkEvents(Number(networkId) as SupportedChain)),
     );
-
-    return { statusCode: 200 };
   } catch (e) {
     console.error("Error in notification events loader:", e);
-    return { statusCode: 501 };
   }
 };
 
