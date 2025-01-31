@@ -8,7 +8,7 @@ export const useRelatedMarkets = (chainId: SupportedChain, marketId: Address) =>
   return useQuery<Market[], Error>({
     queryKey: ["useRelatedMarkets", chainId, marketId],
     queryFn: async () => {
-      return await fetchMarkets(chainId, { parentMarket: marketId });
+      return await fetchMarkets({ chainsList: [chainId.toString()], parentMarket: marketId });
     },
   });
 };

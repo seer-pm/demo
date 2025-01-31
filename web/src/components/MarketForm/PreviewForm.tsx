@@ -1,5 +1,5 @@
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
@@ -11,6 +11,7 @@ import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
+import { getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
@@ -389,6 +390,7 @@ export function PreviewForm({
     categories: ["misc"],
     poolBalance: [],
     odds: [],
+    url: "",
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);

@@ -35,7 +35,7 @@ const COLORS = {
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{html,tsx}",
+    "./src/**/*.{html,tsx,ts}",
   ],
   theme: {
     extend: {

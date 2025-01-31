@@ -4,6 +4,7 @@ import { http, fallback } from "wagmi";
 import { Chain, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
+import SEER_ENV from "./lib/env";
 
 const metadata = {
   name: "Seer",
@@ -14,12 +15,12 @@ const metadata = {
 
 export const config = defaultWagmiConfig({
   metadata,
-  projectId: import.meta.env.VITE_WC_PROJECT_ID,
+  projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
   chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
   connectors: [
     injected(),
     coinbaseWallet({ appName: "Seer" }),
-    walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID, showQrModal: false }),
+    walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false }),
   ],
   transports: {
     [gnosis.id]: fallback([
@@ -36,7 +37,7 @@ export const config = defaultWagmiConfig({
 
 createWeb3Modal({
   wagmiConfig: config,
-  projectId: import.meta.env.VITE_WC_PROJECT_ID,
+  projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
   enableAnalytics: true,
   themeVariables: {
     "--w3m-z-index": 1000,
