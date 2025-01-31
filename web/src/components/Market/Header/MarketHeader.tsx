@@ -220,13 +220,16 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
             )}
 
-            <a
-              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
-            </a>
+            <div className="tooltip">
+              <p className="tooltiptext">View contract on explorer</p>
+              <a
+                href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+              </a>
+            </div>
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
