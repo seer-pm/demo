@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { UseFormReturn, get } from "react-hook-form";
 import FormError from "./FormError";
 
@@ -14,11 +15,11 @@ type MultiSelectProps = {
   placeholder?: string;
 };
 
-const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props) => {
+const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, ref) => {
   const { className, options, useFormReturn, value = [], onChange, name, placeholder = "Select options" } = props;
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
   const {
     formState: { errors, dirtyFields },
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined } };
@@ -37,11 +38,37 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props) =
       trigger(name);
     }
   };
+  useEffect(() => {
+    const updateDropdownPosition = () => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
+      }
+    };
 
+    if (isOpen) {
+      updateDropdownPosition();
+      window.addEventListener("scroll", updateDropdownPosition);
+      window.addEventListener("resize", updateDropdownPosition);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", updateDropdownPosition);
+      window.removeEventListener("resize", updateDropdownPosition);
+    };
+  }, [isOpen]);
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      // Check if click is inside trigger or dropdown
+      const isClickInsideTrigger = triggerRef.current?.contains(event.target as Node);
+      const isClickInsideDropdown = document.querySelector(".multi-select-dropdown")?.contains(event.target as Node);
+
+      if (!isClickInsideTrigger && !isClickInsideDropdown) {
         setIsOpen(false);
       }
     };
@@ -58,8 +85,9 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props) =
     : placeholder;
 
   return (
-    <div ref={dropdownRef} className="relative w-full">
+    <div className="relative w-full">
       <div
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           "select select-bordered bg-white cursor-pointer flex flex-col justify-center w-full",
@@ -71,21 +99,31 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props) =
         <p className="whitespace-nowrap overflow-hidden text-ellipsis">{selectedText}</p>
       </div>
 
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] max-h-[180px] overflow-auto">
-          {options.map((option) => (
-            <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={value.includes(option.value)}
-                onChange={() => handleCheckboxChange(option.value)}
-                className="checkbox checkbox-primary"
-              />
-              <span>{option.text}</span>
-            </label>
-          ))}
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={ref}
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+            }}
+            className="multi-select-dropdown absolute z-50 w-full mt-1 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] max-h-[180px] overflow-auto"
+          >
+            {options.map((option) => (
+              <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={value.includes(option.value)}
+                  onChange={() => handleCheckboxChange(option.value)}
+                  className="checkbox checkbox-primary"
+                />
+                <span>{option.text}</span>
+              </label>
+            ))}
+          </div>,
+          document.body,
+        )}
       <FormError errors={errors} name={name} />
     </div>
   );

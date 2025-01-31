@@ -60,6 +60,7 @@ function SwapWidget({
   return (
     <SwapTokens
       account={account}
+      market={market}
       chainId={market.chainId}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
