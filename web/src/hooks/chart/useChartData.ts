@@ -16,8 +16,6 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
     Error
   >({
     enabled: !!market,
-    gcTime: 1000 * 60 * 60 * 24, //24 hours
-    staleTime: 0,
     queryKey: ["useChartData", market.chainId, market.id, dayCount, intervalSeconds],
     retry: false,
     queryFn: async () => getChartData(market, dayCount, intervalSeconds),
