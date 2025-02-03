@@ -38,7 +38,11 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[
       }
 
       try {
-        const { error } = await supabase.from("markets").update({ url }).eq("id", market.id).is("url", null);
+        const { error } = await supabase
+          .from("markets")
+          .update({ url, chain_id: chainId })
+          .eq("id", market.id)
+          .is("url", null);
 
         if (error) {
           if (i === 5) {
