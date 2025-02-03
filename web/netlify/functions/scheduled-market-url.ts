@@ -1,4 +1,5 @@
 import { SupportedChain } from "@/lib/chains.ts";
+import { formatDate } from "@/lib/utils.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import slug from "slug";
@@ -16,6 +17,12 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[
         markets(where: {id_in: ${JSON.stringify(marketsWithoutUrl)}}) {
           id
           marketName
+          outcomes
+          questions {
+            question {
+              opening_ts
+            }
+          }
         }
       }`,
     }),
@@ -40,7 +47,16 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[
       try {
         const { error } = await supabase
           .from("markets")
-          .update({ url, chain_id: chainId })
+          .update({
+            url,
+            chain_id: chainId,
+            metadata: {
+              title: `Seer | ${market.marketName}`,
+              description: `Answer opening date: ${`${formatDate(
+                market.questions[0].question.opening_ts,
+              )} UTC`}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`,
+            },
+          })
           .eq("id", market.id)
           .is("url", null);
 
