@@ -6,6 +6,7 @@ import { GetImagesQuery, Status, getSdk as getCurateSdk } from "../../src/hooks/
 import {
   GetMarketQuery,
   GetMarketsQuery,
+  MarketType,
   Market_Filter,
   Market_OrderBy,
   OrderDirection,
@@ -230,6 +231,7 @@ export const fetchMarkets = async (
 
 export async function searchGraphMarkets(
   chainId: SupportedChain,
+  type: "Generic" | "Futarchy" | "",
   id: Address | "",
   parentMarket: Address | "",
   _marketName: string,
@@ -250,6 +252,10 @@ export async function searchGraphMarkets(
 
   if (parentMarket) {
     where["parentMarket"] = parentMarket.toLowerCase();
+  }
+
+  if (type) {
+    where["type"] = type as MarketType;
   }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
@@ -374,6 +380,7 @@ async function getMarketId(id: string | undefined, url: string | undefined) {
 async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
+    type = "",
     parentMarket = "",
     marketName = "",
     marketStatusList,
@@ -398,6 +405,7 @@ async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMark
       chainIds.map((chainId) =>
         searchGraphMarkets(
           chainId,
+          type,
           id,
           parentMarket,
           marketName,

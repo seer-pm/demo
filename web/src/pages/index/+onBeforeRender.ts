@@ -5,6 +5,7 @@ import { dehydrate } from "@tanstack/react-query";
 export default async function onBeforeRender() {
   const params: UseGraphMarketsParams = {
     chainsList: [],
+    type: "Generic",
     marketName: "",
     marketStatusList: [],
     creator: "",

@@ -16,12 +16,12 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
-import { isMarketReliable } from "@/lib/market";
+import { getLiquidityPairForToken, isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { useEffect } from "react";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
@@ -37,12 +37,18 @@ function SwapWidget({
   outcomeIndex: number;
   images?: string[];
 }) {
+  const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
-  // on child markets we want to buy/sell using parent outcomes
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+
+  // on Futarchy markets we want to buy/sell using the associated outcome token,
+  // on child markets we want to buy/sell using parent outcomes.
+  const { data: fixedCollateral } = useTokenInfo(
+    market.type === "Futarchy"
+      ? getLiquidityPairForToken(market, outcomeIndex)
+      : market.parentMarket.id !== zeroAddress
+        ? market.collateralToken
+        : undefined,
     market.chainId,
   );
   const marketStatus = getMarketStatus(market);
@@ -55,9 +61,7 @@ function SwapWidget({
       </Alert>
     );
   }
-  if (isPending) {
-    return <div className="shimmer-container w-full h-[400px]"></div>;
-  }
+
   if (!outcomeToken) {
     return null;
   }
@@ -66,13 +70,11 @@ function SwapWidget({
     <SwapTokens
       account={account}
       market={market}
-      chainId={market.chainId}
-      outcomeText={market.outcomes[outcomeIndex]}
+      outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
+      fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
-      isInvalidResult={outcomeIndex === market.wrappedTokens.length - 1}
       hasEnoughLiquidity={hasLiquidity}
-      parentCollateral={parentCollateral}
     />
   );
 }
@@ -85,10 +87,11 @@ function MarketPage() {
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
 
-  const router = getRouterAddress(chainId);
-
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
   const { data: images } = useMarketImages(market?.id, chainId);
+
+  const router = getRouterAddress(market);
+
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
@@ -165,10 +168,10 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        {market && <MarketChart market={market} />}
+        <MarketChart market={market} />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
-            {market && <Outcomes market={market} images={images?.outcomes} />}
+            <Outcomes market={market} images={images?.outcomes} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
             <SwapWidget

@@ -27,7 +27,6 @@ import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
 import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
-import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage";
@@ -60,7 +59,7 @@ function OutcomesInfo({
   });
   const { data: odds = [] } = useMarketOdds(market, isIntersecting);
 
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
   return (
@@ -92,7 +91,7 @@ function OutcomesInfo({
                 <div className="w-[65px] flex-shrink-0">
                   <OutcomeImage
                     image={images?.[i]}
-                    isInvalidResult={i === market.outcomes.length - 1}
+                    isInvalidOutcome={i === market.outcomes.length - 1}
                     title={outcome}
                   />
                 </div>
@@ -352,7 +351,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
                 {MARKET_TYPES_ICONS[marketType]}
               </div>
-              <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
+              <div className="@[510px]:block hidden">
+                {market.type === "Futarchy" ? "Futarchy" : MARKET_TYPES_TEXTS[marketType]}
+              </div>
             </div>
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>

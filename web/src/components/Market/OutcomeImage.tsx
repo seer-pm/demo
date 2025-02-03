@@ -22,16 +22,16 @@ const SMALL_IMAGE_CLASS = "w-[30px] h-[30px] rounded-full mx-auto";
 
 export function OutcomeImage({
   image,
-  isInvalidResult,
+  isInvalidOutcome,
   title,
 }: {
   image: string | undefined;
-  isInvalidResult: boolean;
+  isInvalidOutcome: boolean;
   title: string;
 }) {
   const isSmallScreen = useIsSmallScreen();
   const imageClass = isSmallScreen ? SMALL_IMAGE_CLASS : IMAGE_CLASS;
-  if (isInvalidResult) {
+  if (isInvalidOutcome) {
     return <InvalidOutcomeImage width="20" height="24" className={clsx(imageClass, "bg-black-medium")} />;
   }
 

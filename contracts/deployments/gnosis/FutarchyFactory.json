@@ -1,0 +1,424 @@
+{
+  "address": "0xe789e4A240d153AC55e32106821e785E71f6b792",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_proposal",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_arbitrator",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IRealityETH_v3_0",
+          "name": "_realitio",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IWrapped1155Factory",
+          "name": "_wrapped1155Factory",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "_conditionalTokens",
+          "type": "address"
+        },
+        {
+          "internalType": "contract FutarchyRealityProxy",
+          "name": "_realityProxy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_questionTimeout",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "ERC1167FailedCreateClone",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "proposal",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "marketName",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "conditionId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "questionId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "NewProposal",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "allMarkets",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "arbitrator",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "conditionalTokens",
+      "outputs": [
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "marketName",
+              "type": "string"
+            },
+            {
+              "internalType": "contract IERC20",
+              "name": "collateralToken1",
+              "type": "address"
+            },
+            {
+              "internalType": "contract IERC20",
+              "name": "collateralToken2",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "category",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "lang",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minBond",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint32",
+              "name": "openingTime",
+              "type": "uint32"
+            }
+          ],
+          "internalType": "struct FutarchyFactory.CreateProposalParams",
+          "name": "params",
+          "type": "tuple"
+        }
+      ],
+      "name": "createProposal",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "marketsCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proposal",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "proposals",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "questionTimeout",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "realitio",
+      "outputs": [
+        {
+          "internalType": "contract IRealityETH_v3_0",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "realityProxy",
+      "outputs": [
+        {
+          "internalType": "contract FutarchyRealityProxy",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "wrapped1155Factory",
+      "outputs": [
+        {
+          "internalType": "contract IWrapped1155Factory",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x3e3f24e60fe9ffbe6e2b74cd39a9b9e2e1224349c7a1fcc2d96e2f13f08ed1aa",
+  "receipt": {
+    "to": null,
+    "from": "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
+    "contractAddress": "0xe789e4A240d153AC55e32106821e785E71f6b792",
+    "transactionIndex": 1,
+    "gasUsed": "1533832",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x2dab585fa2c1b1dcd30ccdaab1d2a3cf19c653467e90d212612f39fc3728117b",
+    "transactionHash": "0x3e3f24e60fe9ffbe6e2b74cd39a9b9e2e1224349c7a1fcc2d96e2f13f08ed1aa",
+    "logs": [],
+    "blockNumber": 38042685,
+    "cumulativeGasUsed": "1555364",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xec4fb999Db0e8cA28011D85EAD177810055b484c",
+    "0x68154ea682f95bf582b80dd6453fa401737491dc",
+    "0xE78996A233895bE74a66F451f1019cA9734205cc",
+    "0xD194319D1804C1051DD21Ba1Dc931cA72410B79f",
+    "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
+    "0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc",
+    302400
+  ],
+  "numDeployments": 4,
+  "solcInputHash": "9bd5789cbaac467d0976302f58b5fb68",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_proposal\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_arbitrator\",\"type\":\"address\"},{\"internalType\":\"contract IRealityETH_v3_0\",\"name\":\"_realitio\",\"type\":\"address\"},{\"internalType\":\"contract IWrapped1155Factory\",\"name\":\"_wrapped1155Factory\",\"type\":\"address\"},{\"internalType\":\"contract IConditionalTokens\",\"name\":\"_conditionalTokens\",\"type\":\"address\"},{\"internalType\":\"contract FutarchyRealityProxy\",\"name\":\"_realityProxy\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"_questionTimeout\",\"type\":\"uint32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"ERC1167FailedCreateClone\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposal\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"marketName\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"conditionId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"questionId\",\"type\":\"bytes32\"}],\"name\":\"NewProposal\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"allMarkets\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"arbitrator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"conditionalTokens\",\"outputs\":[{\"internalType\":\"contract IConditionalTokens\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"marketName\",\"type\":\"string\"},{\"internalType\":\"contract IERC20\",\"name\":\"collateralToken1\",\"type\":\"address\"},{\"internalType\":\"contract IERC20\",\"name\":\"collateralToken2\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"category\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"lang\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"minBond\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"openingTime\",\"type\":\"uint32\"}],\"internalType\":\"struct FutarchyFactory.CreateProposalParams\",\"name\":\"params\",\"type\":\"tuple\"}],\"name\":\"createProposal\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"marketsCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposal\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"proposals\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"questionTimeout\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realitio\",\"outputs\":[{\"internalType\":\"contract IRealityETH_v3_0\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realityProxy\",\"outputs\":[{\"internalType\":\"contract FutarchyRealityProxy\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"wrapped1155Factory\",\"outputs\":[{\"internalType\":\"contract IWrapped1155Factory\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"MarketFactory modified to create futarchy proposals. Each proposal has four outcomes (Yes/Token1, Yes/Token2, No/Token1, No/Token2). There's one reality question asking whether or not the proposal should be accepted. If the proposal is accepted, the first two outcomes (Yes) are redeemable, otherwise, the last two are redeemable (No).\",\"errors\":{\"ERC1167FailedCreateClone()\":[{\"details\":\"A clone instance deployment failed.\"}]},\"events\":{\"NewProposal(address,string,bytes32,bytes32)\":{\"details\":\"To be emitted when a new proposal is created.\",\"params\":{\"conditionId\":\"Conditional Tokens conditionId.\",\"marketName\":\"The name of the proposal.\",\"proposal\":\"The new proposal address.\",\"questionId\":\"Conditional Tokens & Reality.eth questionId.\"}}},\"kind\":\"dev\",\"methods\":{\"allMarkets()\":{\"details\":\"Returns all the proposals created by this factory.\",\"returns\":{\"_0\":\"The addresses of the proposals.\"}},\"constructor\":{\"details\":\"Constructor.\",\"params\":{\"_arbitrator\":\"Address of the arbitrator that is going to resolve Realitio disputes.\",\"_conditionalTokens\":\"Address of the ConditionalTokens implementation.\",\"_proposal\":\"Address of the proposal contract that is going to be used for each new deployment.\",\"_questionTimeout\":\"Reality question timeout.\",\"_realitio\":\"Address of the Realitio implementation.\",\"_realityProxy\":\"Address of the RealityProxy implementation.\",\"_wrapped1155Factory\":\"Address of the Wrapped1155Factory implementation.\"}},\"createProposal((string,address,address,string,string,uint256,uint32))\":{\"details\":\"Creates the Proposal and deploys the wrapped ERC20 tokens.\",\"params\":{\"params\":\"CreateProposalParams instance.\"},\"returns\":{\"_0\":\"The new proposal address.\"}},\"marketsCount()\":{\"returns\":{\"_0\":\"The amount of proposals.\"}}},\"stateVariables\":{\"REALITY_SINGLE_SELECT_TEMPLATE\":{\"details\":\"Template for proposals.\"},\"arbitrator\":{\"details\":\"Arbitrator contract.\"},\"conditionalTokens\":{\"details\":\"Conditional Tokens contract.\"},\"proposal\":{\"details\":\"FutarchyProposal contract.\"},\"proposals\":{\"details\":\"Proposals created by this factory.\"},\"questionTimeout\":{\"details\":\"Reality question timeout.\"},\"realitio\":{\"details\":\"Reality.eth contract.\"},\"realityProxy\":{\"details\":\"Oracle contract.\"},\"wrapped1155Factory\":{\"details\":\"Wrapped1155Factory contract.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"marketsCount()\":{\"notice\":\"Returns the amount of proposals created by this factory.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/FutarchyFactory.sol\":\"FutarchyFactory\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/proxy/Clones.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (proxy/Clones.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev https://eips.ethereum.org/EIPS/eip-1167[EIP 1167] is a standard for\\n * deploying minimal proxy contracts, also known as \\\"clones\\\".\\n *\\n * > To simply and cheaply clone contract functionality in an immutable way, this standard specifies\\n * > a minimal bytecode implementation that delegates all calls to a known, fixed address.\\n *\\n * The library includes functions to deploy a proxy using either `create` (traditional deployment) or `create2`\\n * (salted deterministic deployment). It also includes functions to predict the addresses of clones deployed using the\\n * deterministic method.\\n */\\nlibrary Clones {\\n    /**\\n     * @dev A clone instance deployment failed.\\n     */\\n    error ERC1167FailedCreateClone();\\n\\n    /**\\n     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.\\n     *\\n     * This function uses the create opcode, which should never revert.\\n     */\\n    function clone(address implementation) internal returns (address instance) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes\\n            // of the `implementation` address with the bytecode before the address.\\n            mstore(0x00, or(shr(0xe8, shl(0x60, implementation)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))\\n            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.\\n            mstore(0x20, or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3))\\n            instance := create(0, 0x09, 0x37)\\n        }\\n        if (instance == address(0)) {\\n            revert ERC1167FailedCreateClone();\\n        }\\n    }\\n\\n    /**\\n     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.\\n     *\\n     * This function uses the create2 opcode and a `salt` to deterministically deploy\\n     * the clone. Using the same `implementation` and `salt` multiple time will revert, since\\n     * the clones cannot be deployed twice at the same address.\\n     */\\n    function cloneDeterministic(address implementation, bytes32 salt) internal returns (address instance) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes\\n            // of the `implementation` address with the bytecode before the address.\\n            mstore(0x00, or(shr(0xe8, shl(0x60, implementation)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))\\n            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.\\n            mstore(0x20, or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3))\\n            instance := create2(0, 0x09, 0x37, salt)\\n        }\\n        if (instance == address(0)) {\\n            revert ERC1167FailedCreateClone();\\n        }\\n    }\\n\\n    /**\\n     * @dev Computes the address of a clone deployed using {Clones-cloneDeterministic}.\\n     */\\n    function predictDeterministicAddress(\\n        address implementation,\\n        bytes32 salt,\\n        address deployer\\n    ) internal pure returns (address predicted) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            let ptr := mload(0x40)\\n            mstore(add(ptr, 0x38), deployer)\\n            mstore(add(ptr, 0x24), 0x5af43d82803e903d91602b57fd5bf3ff)\\n            mstore(add(ptr, 0x14), implementation)\\n            mstore(ptr, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73)\\n            mstore(add(ptr, 0x58), salt)\\n            mstore(add(ptr, 0x78), keccak256(add(ptr, 0x0c), 0x37))\\n            predicted := keccak256(add(ptr, 0x43), 0x55)\\n        }\\n    }\\n\\n    /**\\n     * @dev Computes the address of a clone deployed using {Clones-cloneDeterministic}.\\n     */\\n    function predictDeterministicAddress(\\n        address implementation,\\n        bytes32 salt\\n    ) internal view returns (address predicted) {\\n        return predictDeterministicAddress(implementation, salt, address(this));\\n    }\\n}\\n\",\"keccak256\":\"0xd18408af8a91bedb3d56343eeb9b30eb852e6dea93a5e2d5c6db9ca4cb905155\",\"license\":\"MIT\"},\"src/FutarchyFactory.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: []\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./FutarchyProposal.sol\\\";\\nimport \\\"./FutarchyRealityProxy.sol\\\";\\nimport {IConditionalTokens, IRealityETH_v3_0, IWrapped1155Factory} from \\\"./Interfaces.sol\\\";\\nimport \\\"@openzeppelin/contracts/proxy/Clones.sol\\\";\\n\\n/// @dev MarketFactory modified to create futarchy proposals.\\n/// Each proposal has four outcomes (Yes/Token1, Yes/Token2, No/Token1, No/Token2).\\n/// There's one reality question asking whether or not the proposal should be accepted.\\n/// If the proposal is accepted, the first two outcomes (Yes) are redeemable, otherwise, the last two are redeemable (No).\\ncontract FutarchyFactory {\\n    using Clones for address;\\n\\n    /// @dev Workaround \\\"stack too deep\\\" errors.\\n    /// @param marketName The name of the proposal.\\n    /// @param collateralToken1 First collateral token.\\n    /// @param collateralToken2 Second collateral token.\\n    /// @param category Reality question category.\\n    /// @param lang Reality question language.\\n    /// @param minBond Min bond to use on Reality.\\n    /// @param openingTime Reality question opening time.\\n    struct CreateProposalParams {\\n        string marketName;\\n        IERC20 collateralToken1;\\n        IERC20 collateralToken2;\\n        string category;\\n        string lang;\\n        uint256 minBond;\\n        uint32 openingTime;\\n    }\\n\\n    /// @dev Template for proposals.\\n    uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;\\n\\n    /// @dev Reality question timeout.\\n    uint32 public immutable questionTimeout;\\n\\n    /// @dev Arbitrator contract.\\n    address public immutable arbitrator;\\n    /// @dev Reality.eth contract.\\n    IRealityETH_v3_0 public immutable realitio;\\n    /// @dev Wrapped1155Factory contract.\\n    IWrapped1155Factory public immutable wrapped1155Factory;\\n    /// @dev Conditional Tokens contract.\\n    IConditionalTokens public immutable conditionalTokens;\\n    /// @dev Oracle contract.\\n    FutarchyRealityProxy public immutable realityProxy;\\n    /// @dev Proposals created by this factory.\\n    address[] public proposals;\\n    /// @dev FutarchyProposal contract.\\n    address public immutable proposal;\\n\\n    /// @dev To be emitted when a new proposal is created.\\n    /// @param proposal The new proposal address.\\n    /// @param marketName The name of the proposal.\\n    /// @param conditionId Conditional Tokens conditionId.\\n    /// @param questionId Conditional Tokens & Reality.eth questionId.\\n    event NewProposal(address indexed proposal, string marketName, bytes32 conditionId, bytes32 questionId);\\n\\n    /**\\n     *  @dev Constructor.\\n     *  @param _proposal Address of the proposal contract that is going to be used for each new deployment.\\n     *  @param _arbitrator Address of the arbitrator that is going to resolve Realitio disputes.\\n     *  @param _realitio Address of the Realitio implementation.\\n     *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.\\n     *  @param _conditionalTokens Address of the ConditionalTokens implementation.\\n     *  @param _realityProxy Address of the RealityProxy implementation.\\n     *  @param _questionTimeout Reality question timeout.\\n     */\\n    constructor(\\n        address _proposal,\\n        address _arbitrator,\\n        IRealityETH_v3_0 _realitio,\\n        IWrapped1155Factory _wrapped1155Factory,\\n        IConditionalTokens _conditionalTokens,\\n        FutarchyRealityProxy _realityProxy,\\n        uint32 _questionTimeout\\n    ) {\\n        proposal = _proposal;\\n        arbitrator = _arbitrator;\\n        realitio = _realitio;\\n        wrapped1155Factory = _wrapped1155Factory;\\n        conditionalTokens = _conditionalTokens;\\n        realityProxy = _realityProxy;\\n        questionTimeout = _questionTimeout;\\n    }\\n\\n    /// @dev Creates the Proposal and deploys the wrapped ERC20 tokens.\\n    /// @param params CreateProposalParams instance.\\n    /// @return The new proposal address.\\n    function createProposal(CreateProposalParams memory params) external returns (address) {\\n        (string[] memory outcomes, string[] memory tokenNames) =\\n            getOutcomesAndTokens(params.collateralToken1, params.collateralToken2);\\n\\n        (FutarchyProposal.FutarchyProposalParams memory futarchyProposalParams) =\\n            createNewProposalParams(params, tokenNames);\\n\\n        FutarchyProposal instance = FutarchyProposal(proposal.clone());\\n\\n        instance.initialize(params.marketName, outcomes, futarchyProposalParams, realityProxy);\\n\\n        emit NewProposal(\\n            address(instance), params.marketName, futarchyProposalParams.conditionId, futarchyProposalParams.questionId\\n        );\\n\\n        proposals.push(address(instance));\\n\\n        return address(instance);\\n    }\\n\\n    function getOutcomesAndTokens(\\n        IERC20 collateralToken1,\\n        IERC20 collateralToken2\\n    ) internal view returns (string[] memory, string[] memory) {\\n        string memory tokenSymbol1 = collateralToken1.symbol();\\n        string memory tokenSymbol2 = collateralToken2.symbol();\\n\\n        string[] memory outcomes = new string[](4);\\n        outcomes[0] = string(abi.encodePacked(\\\"Yes-\\\", tokenSymbol1));\\n        outcomes[1] = string(abi.encodePacked(\\\"No-\\\", tokenSymbol1));\\n        outcomes[2] = string(abi.encodePacked(\\\"Yes-\\\", tokenSymbol2));\\n        outcomes[3] = string(abi.encodePacked(\\\"No-\\\", tokenSymbol2));\\n\\n        string[] memory tokenNames = new string[](4);\\n        tokenNames[0] = string(abi.encodePacked(\\\"YES_\\\", tokenSymbol1));\\n        tokenNames[1] = string(abi.encodePacked(\\\"NO_\\\", tokenSymbol1));\\n        tokenNames[2] = string(abi.encodePacked(\\\"YES_\\\", tokenSymbol2));\\n        tokenNames[3] = string(abi.encodePacked(\\\"NO_\\\", tokenSymbol2));\\n\\n        return (outcomes, tokenNames);\\n    }\\n\\n    /// @dev Creates the structures needed to initialize the new proposal.\\n    /// @param params CreateProposalParams instance.\\n    /// @param tokenNames Token names.\\n    /// @return FutarchyProposal.FutarchyProposalParams instance.\\n    function createNewProposalParams(\\n        CreateProposalParams memory params,\\n        string[] memory tokenNames\\n    ) internal returns (FutarchyProposal.FutarchyProposalParams memory) {\\n        bytes32 parentCollectionId = bytes32(0);\\n        string memory encodedQuestion = encodeRealityQuestion(params.marketName, params.category, params.lang);\\n        bytes32 questionId =\\n            askRealityQuestion(encodedQuestion, REALITY_SINGLE_SELECT_TEMPLATE, params.openingTime, params.minBond);\\n        bytes32 conditionId = prepareCondition(questionId, 2); // two outcomes (YES / NO)\\n\\n        (IERC20[] memory wrapped1155, bytes[] memory tokenData) = deployERC20Positions(\\n            params.collateralToken1, params.collateralToken2, parentCollectionId, conditionId, tokenNames\\n        );\\n\\n        return FutarchyProposal.FutarchyProposalParams({\\n            conditionId: conditionId,\\n            collateralToken1: params.collateralToken1,\\n            collateralToken2: params.collateralToken2,\\n            questionId: questionId,\\n            parentCollectionId: parentCollectionId,\\n            parentOutcome: 0,\\n            parentMarket: address(0),\\n            wrapped1155: wrapped1155,\\n            tokenData: tokenData,\\n            encodedQuestion: encodedQuestion\\n        });\\n    }\\n\\n    /// @dev Encodes the question, category and language following the Reality structure.\\n    /// If any parameter has a special character like quotes, it must be properly escaped.\\n    /// @param question The question text.\\n    /// @param category The question category.\\n    /// @param lang The question language.\\n    /// @return The encoded question.\\n    function encodeRealityQuestion(\\n        string memory question,\\n        string memory category,\\n        string memory lang\\n    ) internal pure returns (string memory) {\\n        bytes memory separator = abi.encodePacked(unicode\\\"\\\\u241f\\\");\\n\\n        return string(abi.encodePacked(question, separator, '\\\"Yes\\\",\\\"No\\\"', separator, category, separator, lang));\\n    }\\n\\n    /// @dev Asks a question on reality.\\n    /// @param encodedQuestion The encoded question containing the Reality parameters.\\n    /// @param templateId The Reality template id.\\n    /// @param openingTime The question opening time.\\n    /// @param minBond The question min bond.\\n    /// @return The question id.\\n    function askRealityQuestion(\\n        string memory encodedQuestion,\\n        uint256 templateId,\\n        uint32 openingTime,\\n        uint256 minBond\\n    ) internal returns (bytes32) {\\n        bytes32 content_hash = keccak256(abi.encodePacked(templateId, openingTime, encodedQuestion));\\n\\n        bytes32 question_id = keccak256(\\n            abi.encodePacked(\\n                content_hash, arbitrator, questionTimeout, minBond, address(realitio), address(this), uint256(0)\\n            )\\n        );\\n\\n        if (realitio.getTimeout(question_id) != 0) {\\n            // question already exists\\n            return question_id;\\n        }\\n\\n        return realitio.askQuestionWithMinBond(\\n            templateId, encodedQuestion, arbitrator, questionTimeout, openingTime, 0, minBond\\n        );\\n    }\\n\\n    /// @dev Prepares the CTF condition and returns the conditionId.\\n    /// @param questionId An identifier for the question to be answered by the oracle.\\n    /// @param outcomeSlotCount The number of outcome slots which must be used for this condition. Must not exceed 256.\\n    /// @return Condition ID.\\n    function prepareCondition(bytes32 questionId, uint256 outcomeSlotCount) internal returns (bytes32) {\\n        bytes32 conditionId = conditionalTokens.getConditionId(address(realityProxy), questionId, outcomeSlotCount);\\n\\n        if (conditionalTokens.getOutcomeSlotCount(conditionId) == 0) {\\n            // prepare the condition if it doesn't already exist\\n            conditionalTokens.prepareCondition(address(realityProxy), questionId, outcomeSlotCount);\\n        }\\n\\n        return conditionId;\\n    }\\n\\n    /// @dev Wraps the ERC1155 outcome tokens to ERC20.\\n    /// @param collateralToken1 The first collateral token.\\n    /// @param collateralToken2 The second collateral token.\\n    /// @param parentCollectionId The parentCollectionId.\\n    /// @param conditionId The conditionId.\\n    /// @param tokenNames The name of each outcome token.\\n    /// @return wrapped1155 Array of outcome tokens wrapped to ERC20.\\n    /// @return data Array of token data used to create each ERC20.\\n    function deployERC20Positions(\\n        IERC20 collateralToken1,\\n        IERC20 collateralToken2,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        string[] memory tokenNames\\n    ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {\\n        wrapped1155 = new IERC20[](tokenNames.length);\\n        data = new bytes[](tokenNames.length);\\n\\n        for (uint256 j = 0; j < 4; j++) {\\n            // we loop over the 4 outcomes to deploy the tokens, but to build the collectionId both YES & NO outcomes have the same indexSet\\n            bytes32 collectionId =\\n                conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << (j < 2 ? j : j - 2));\\n            // first two tokens are YES/NO for collateral1, last two tokens are YES/NO for collateral2\\n            uint256 tokenId =\\n                conditionalTokens.getPositionId(address(j < 2 ? collateralToken1 : collateralToken2), collectionId);\\n\\n            require(bytes(tokenNames[j]).length != 0, \\\"Missing token name\\\");\\n\\n            bytes memory _data = abi.encodePacked(toString31(tokenNames[j]), toString31(tokenNames[j]), uint8(18));\\n\\n            IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(address(conditionalTokens), tokenId, _data);\\n\\n            wrapped1155[j] = _wrapped1155;\\n            data[j] = _data;\\n        }\\n    }\\n\\n    /// @dev Encodes a short string (less than than 31 bytes long) as for storage as expected by Solidity.\\n    /// See https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922\\n    /// @param value String to encode.\\n    /// @return encodedString The encoded string.\\n    function toString31(string memory value) internal pure returns (bytes32 encodedString) {\\n        uint256 length = bytes(value).length;\\n        require(length < 32, \\\"string too long\\\");\\n\\n        // Read the right-padded string data, which is guaranteed to fit into a single word because its length is less than 32.\\n        assembly {\\n            encodedString := mload(add(value, 0x20))\\n        }\\n\\n        // Now mask the string data, this ensures that the bytes past the string length are all 0s.\\n        bytes32 mask = bytes32(type(uint256).max << ((32 - length) << 3));\\n        encodedString = encodedString & mask;\\n\\n        // Finally, set the least significant byte to be the hex length of the encoded string, that is its byte-length times two.\\n        encodedString = encodedString | bytes32(length << 1);\\n    }\\n\\n    /// @dev Returns all the proposals created by this factory.\\n    /// @return The addresses of the proposals.\\n    function allMarkets() external view returns (address[] memory) {\\n        return proposals;\\n    }\\n\\n    /// @notice Returns the amount of proposals created by this factory.\\n    /// @return The amount of proposals.\\n    function marketsCount() external view returns (uint256) {\\n        return proposals.length;\\n    }\\n}\\n\",\"keccak256\":\"0xb6731346224a4db2ac3cabc026c159473985ce62b6b63bfe45700ff2119b8d90\",\"license\":\"MIT\"},\"src/FutarchyProposal.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: []\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./FutarchyRealityProxy.sol\\\";\\nimport {IERC20} from \\\"./Interfaces.sol\\\";\\n\\ncontract FutarchyProposal {\\n    /// @dev Flag to initialize the proposal only once.\\n    bool public initialized;\\n\\n    /// @dev Contains the information associated to the proposal.\\n    /// @param conditionId Conditional Tokens conditionId.\\n    /// @param collateralToken1 First collateral token.\\n    /// @param collateralToken2 Second collateral token.\\n    /// @param parentCollectionId Conditional Tokens parentCollectionId.\\n    /// @param parentOutcome Conditional outcome to use (optional).\\n    /// @param parentMarket Conditional proposal to use (optional).\\n    /// @param questionId Conditional Tokens questionId.\\n    /// @param encodedQuestion Encoded question, needed to create and reopen a question.\\n    /// @param wrapped1155 Outcome tokens Wrapped1155 address.\\n    /// @param data Wrapped1155 token data.\\n    struct FutarchyProposalParams {\\n        bytes32 conditionId;\\n        IERC20 collateralToken1;\\n        IERC20 collateralToken2;\\n        bytes32 parentCollectionId;\\n        uint256 parentOutcome;\\n        address parentMarket;\\n        bytes32 questionId;\\n        string encodedQuestion;\\n        IERC20[] wrapped1155;\\n        bytes[] tokenData;\\n    }\\n\\n    /// @dev The name of the proposal.\\n    string public marketName;\\n    /// @dev The proposal outcomes.\\n    string[] public outcomes;\\n    /// @dev Proposal parameters.\\n    FutarchyProposalParams public futarchyProposalParams;\\n    /// @dev Oracle contract.\\n    FutarchyRealityProxy public realityProxy;\\n\\n    /// @dev Initializer.\\n    /// @param _marketName The name of the proposal.\\n    /// @param _outcomes The proposal outcomes.\\n    /// @param _futarchyProposalParams Futarchy Proposal params.\\n    /// @param _realityProxy Oracle contract.\\n    function initialize(\\n        string memory _marketName,\\n        string[] memory _outcomes,\\n        FutarchyProposalParams memory _futarchyProposalParams,\\n        FutarchyRealityProxy _realityProxy\\n    ) external {\\n        require(!initialized, \\\"Already initialized.\\\");\\n\\n        marketName = _marketName;\\n        outcomes = _outcomes;\\n        futarchyProposalParams = _futarchyProposalParams;\\n        realityProxy = _realityProxy;\\n\\n        initialized = true;\\n    }\\n\\n    /// @dev Encoded question parameters, needed to create and reopen a question.\\n    /// @return The encoded question.\\n    function encodedQuestion() external view returns (string memory) {\\n        return futarchyProposalParams.encodedQuestion;\\n    }\\n\\n    /// @dev Conditional Tokens questionId.\\n    /// @return the question ID.\\n    function questionId() external view returns (bytes32) {\\n        return futarchyProposalParams.questionId;\\n    }\\n\\n    /// @dev Conditional Tokens conditionId.\\n    /// @return The condition ID.\\n    function conditionId() external view returns (bytes32) {\\n        return futarchyProposalParams.conditionId;\\n    }\\n\\n    /// @dev First collateral token.\\n    /// @return The collateral token.\\n    function collateralToken1() external view returns (IERC20) {\\n        return futarchyProposalParams.collateralToken1;\\n    }\\n\\n    /// @dev Second collateral token.\\n    /// @return The collateral token.\\n    function collateralToken2() external view returns (IERC20) {\\n        return futarchyProposalParams.collateralToken2;\\n    }\\n\\n    /// @dev Conditional Tokens parentCollectionId.\\n    /// @return The parent collection ID.\\n    function parentCollectionId() external view returns (bytes32) {\\n        return futarchyProposalParams.parentCollectionId;\\n    }\\n\\n    /// @dev The parent proposal (optional). This proposal redeems to an outcome token of the parent proposal.\\n    /// @return The parent proposal address.\\n    function parentMarket() external view returns (address) {\\n        return futarchyProposalParams.parentMarket;\\n    }\\n\\n    /// @dev The parent outcome (optional). The parent proposal's outcome token this proposal redeems for.\\n    /// @return The parent outcome index.\\n    function parentOutcome() external view returns (uint256) {\\n        return futarchyProposalParams.parentOutcome;\\n    }\\n\\n    /// @dev Returns the wrapped1155 and the data corresponding to an outcome token.\\n    /// @param index The outcome index.\\n    /// @return wrapped1155 The wrapped token.\\n    /// @return data The token data.\\n    function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data) {\\n        return (futarchyProposalParams.wrapped1155[index], futarchyProposalParams.tokenData[index]);\\n    }\\n\\n    /// @dev Returns the wrapped1155 and the data corresponding to the parent proposal.\\n    /// @return wrapped1155 The wrapped token.\\n    /// @return data The token data.\\n    function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data) {\\n        if (futarchyProposalParams.parentMarket != address(0)) {\\n            (wrapped1155, data) = FutarchyProposal(futarchyProposalParams.parentMarket).wrappedOutcome(\\n                futarchyProposalParams.parentOutcome\\n            );\\n        }\\n    }\\n\\n    /// @dev Returns the number of outcomes.\\n    /// @return numOutcomes The number of outcomes.\\n    function numOutcomes() external view returns (uint256) {\\n        return outcomes.length;\\n    }\\n\\n    /// @dev Helper function to resolve the proposal.\\n    function resolve() external {\\n        realityProxy.resolve(this);\\n    }\\n}\\n\",\"keccak256\":\"0x9e364091f59bc20c41d6d93aa16ff54a7d29eaa1d7b23b56c330efa3e0cf322b\",\"license\":\"MIT\"},\"src/FutarchyRealityProxy.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: []\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./FutarchyProposal.sol\\\";\\nimport {IConditionalTokens, IRealityETH_v3_0} from \\\"./Interfaces.sol\\\";\\n\\ncontract FutarchyRealityProxy {\\n    /// @dev Conditional Tokens contract.\\n    IConditionalTokens public immutable conditionalTokens;\\n    /// @dev Reality.eth contract.\\n    IRealityETH_v3_0 public immutable realitio;\\n\\n    /// @dev Constructor.\\n    /// @param _conditionalTokens Conditional Tokens contract address.\\n    /// @param _realitio Reality.eth contract address.\\n    constructor(IConditionalTokens _conditionalTokens, IRealityETH_v3_0 _realitio) {\\n        conditionalTokens = _conditionalTokens;\\n        realitio = _realitio;\\n    }\\n\\n    /// @dev Resolves the specified proposal.\\n    /// @param proposal Proposal to resolve. UNTRUSTED.\\n    function resolve(FutarchyProposal proposal) external {\\n        bytes32 questionId = proposal.questionId();\\n\\n        uint256 answer = uint256(realitio.resultForOnceSettled(questionId));\\n        uint256[] memory payouts = new uint256[](2);\\n\\n        // FutarchyFactory prepares the condition with two outcomes (YES / NO)\\n        if (answer == 0) {\\n            // accept proposal if result is YES\\n            payouts[0] = 1;\\n        } else {\\n            // reject proposal if result is NO or INVALID\\n            payouts[1] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n}\\n\",\"keccak256\":\"0x7b1ab8a8c07d4f0f24f8a39bb364f59853bf9fca5e4c50e67177a9c8b4ad7eb3\",\"license\":\"MIT\"},\"src/Interfaces.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\ninterface IERC20 {\\n    function symbol() external view returns (string memory);\\n\\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\\n\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    function balanceOf(address owner) external returns (uint256);\\n\\n    function totalSupply() external view returns (uint256);\\n}\\n\\n// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol\\ninterface IRealityETH_v3_0 {\\n    function askQuestionWithMinBond(\\n        uint256 template_id,\\n        string memory question,\\n        address arbitrator,\\n        uint32 timeout,\\n        uint32 opening_ts,\\n        uint256 nonce,\\n        uint256 min_bond\\n    ) external payable returns (bytes32);\\n\\n    function resultForOnceSettled(bytes32 question_id) external view returns (bytes32);\\n\\n    function getContentHash(bytes32 question_id) external view returns (bytes32);\\n\\n    function getTimeout(bytes32 question_id) external view returns (uint32);\\n\\n    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;\\n}\\n\\ninterface IConditionalTokens {\\n    function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256);\\n\\n    function payoutDenominator(bytes32 conditionId) external view returns (uint256);\\n\\n    function prepareCondition(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external;\\n\\n    function reportPayouts(bytes32 questionId, uint256[] calldata payouts) external;\\n\\n    function splitPosition(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata partition,\\n        uint256 amount\\n    ) external;\\n\\n    function mergePositions(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata partition,\\n        uint256 amount\\n    ) external;\\n\\n    function redeemPositions(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata indexSets\\n    ) external;\\n\\n    function getConditionId(\\n        address oracle,\\n        bytes32 questionId,\\n        uint256 outcomeSlotCount\\n    ) external pure returns (bytes32);\\n\\n    function getCollectionId(\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256 indexSet\\n    ) external view returns (bytes32);\\n\\n    function getPositionId(address collateralToken, bytes32 collectionId) external pure returns (uint256);\\n\\n    function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256);\\n\\n    function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;\\n\\n    function balanceOf(address owner, uint256 id) external view returns (uint256);\\n}\\n\\ninterface IWrapped1155Factory {\\n    function requireWrapped1155(\\n        /*IERC1155*/\\n        address multiToken,\\n        uint256 tokenId,\\n        bytes calldata data\\n    ) external /*Wrapped1155*/ returns (IERC20);\\n\\n    function unwrap(\\n        /*IERC1155*/\\n        address multiToken,\\n        uint256 tokenId,\\n        uint256 amount,\\n        address recipient,\\n        bytes calldata data\\n    ) external;\\n}\\n\",\"keccak256\":\"0x8892a345d504bf2d565948b1ec7a5302cf45024e6a0ea3ac810d5eb0b2827d77\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x6101606040523480156200001257600080fd5b5060405162001cd538038062001cd583398101604081905262000035916200008b565b6001600160a01b039687166101405294861660a05292851660c05290841660e0528316610100529091166101205263ffffffff166080526200013e565b6001600160a01b03811681146200008857600080fd5b50565b600080600080600080600060e0888a031215620000a757600080fd5b8751620000b48162000072565b6020890151909750620000c78162000072565b6040890151909650620000da8162000072565b6060890151909550620000ed8162000072565b6080890151909450620001008162000072565b60a0890151909350620001138162000072565b60c089015190925063ffffffff811681146200012e57600080fd5b8091505092959891949750929550565b60805160a05160c05160e051610100516101205161014051611abf62000216600039600081816101f401526102f90152600081816101570152818161035301528181610c480152610d9f01526000818161019301528181610c1901528181610ce101528181610d7201528181610eac01528181610f6c015261112a01526000818160e301526110fd01526000818161021b01528181610a3201528181610aa40152610b420152600081816101ba015281816109c90152610b7301526000818161010a01528181610a010152610b950152611abf6000f3fe608060405234801561001057600080fd5b50600436106100a95760003560e01c8063375a7cba11610071578063375a7cba146101795780635bd9e2991461018e5780636cc6cde1146101b557806373f25926146101dc578063753ec103146101ef578063bc8802a21461021657600080fd5b8063013cf08b146100ae578063150c5b97146100de5780631ba18b9b146101055780631e8b5708146101415780632ff8d50414610152575b600080fd5b6100c16100bc366004611284565b61023d565b6040516001600160a01b0390911681526020015b60405180910390f35b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b61012c7f000000000000000000000000000000000000000000000000000000000000000081565b60405163ffffffff90911681526020016100d5565b6000546040519081526020016100d5565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b610181610267565b6040516100d5919061129d565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c16101ea366004611415565b6102c9565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6000818154811061024d57600080fd5b6000918252602090912001546001600160a01b0316905081565b606060008054806020026020016040519081016040528092919081815260200182805480156102bf57602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116102a1575b5050505050905090565b60008060006102e08460200151856040015161044b565b9150915060006102f0858361077f565b905060006103267f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166108af565b8651604051632e0cccbb60e01b81529192506001600160a01b03831691632e0cccbb9161037b91889087907f0000000000000000000000000000000000000000000000000000000000000000906004016115ef565b600060405180830381600087803b15801561039557600080fd5b505af11580156103a9573d6000803e3d6000fd5b50508751845160c08601516040516001600160a01b03871695507fd05f26c1ddded17cf93f419cafa17cd29e4447ac6a070f6ad5150012a4dfaec094506103f293929190611749565b60405180910390a2600080546001810182559080527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e5630180546001600160a01b0319166001600160a01b03831617905595945050505050565b6060806000846001600160a01b03166395d89b416040518163ffffffff1660e01b8152600401600060405180830381865afa15801561048e573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f191682016040526104b6919081019061176e565b90506000846001600160a01b03166395d89b416040518163ffffffff1660e01b8152600401600060405180830381865afa1580156104f8573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610520919081019061176e565b60408051600480825260a0820190925291925060009190816020015b606081526020019060019003908161053c5790505090508260405160200161056491906117db565b6040516020818303038152906040528160008151811061058657610586611807565b6020026020010181905250826040516020016105a2919061181d565b604051602081830303815290604052816001815181106105c4576105c4611807565b6020026020010181905250816040516020016105e091906117db565b6040516020818303038152906040528160028151811061060257610602611807565b60200260200101819052508160405160200161061e919061181d565b6040516020818303038152906040528160038151811061064057610640611807565b602090810291909101015260408051600480825260a08201909252600091816020015b60608152602001906001900390816106635790505090508360405160200161068b9190611848565b604051602081830303815290604052816000815181106106ad576106ad611807565b6020026020010181905250836040516020016106c99190611867565b604051602081830303815290604052816001815181106106eb576106eb611807565b6020026020010181905250826040516020016107079190611848565b6040516020818303038152906040528160028151811061072957610729611807565b6020026020010181905250826040516020016107459190611867565b6040516020818303038152906040528160038151811061076757610767611807565b60209081029190910101529097909650945050505050565b604080516101408101825260008082526020820181905291810182905260608082018390526080820183905260a0820183905260c082019290925260e08101829052610100810182905261012081019190915282516060840151608085015160009283926107ec92610921565b9050600061080882600260ff168860c001518960a00151610983565b90506000610817826002610c14565b905060008061083189602001518a6040015188868c610e05565b915091506040518061014001604052808481526020018a602001516001600160a01b031681526020018a604001516001600160a01b031681526020018781526020016000815260200160006001600160a01b031681526020018581526020018681526020018381526020018281525096505050505050505b92915050565b6000763d602d80600a3d3981f3363d3d373d3d3d363d730000008260601b60e81c176000526e5af43d82803e903d91602b57fd5bf38260781b17602052603760096000f090506001600160a01b03811661091c576040516330be1a3d60e21b815260040160405180910390fd5b919050565b6060600060405160200161093e9062e2909f60e81b815260030190565b604051602081830303815290604052905084818286848760405160200161096a96959493929190611885565b6040516020818303038152906040529150509392505050565b60008084848760405160200161099b93929190611923565b60408051601f1981840301815282825280516020918201209083018190526bffffffffffffffffffffffff197f0000000000000000000000000000000000000000000000000000000000000000606090811b8216938501939093526001600160e01b03197f000000000000000000000000000000000000000000000000000000000000000060e01b166054850152605884018790527f0000000000000000000000000000000000000000000000000000000000000000831b811660788501523090921b909116608c830152600060a083018190529092509060c00160408051808303601f19018152908290528051602090910120634f8812e360e11b82526004820181905291507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690639f1025c690602401602060405180830381865afa158015610af3573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b17919061195c565b63ffffffff1615610b2b579150610c0c9050565b604051631212e4f160e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063484b93c490610bc49089908b907f0000000000000000000000000000000000000000000000000000000000000000907f0000000000000000000000000000000000000000000000000000000000000000908c906000908d90600401611979565b6020604051808303816000875af1158015610be3573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c0791906119c9565b925050505b949350505050565b6000807f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663852c6ae27f000000000000000000000000000000000000000000000000000000000000000086866040518463ffffffff1660e01b8152600401610c87939291906119e2565b602060405180830381865afa158015610ca4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610cc891906119c9565b604051636a16e06160e11b8152600481018290529091507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063d42dc0c290602401602060405180830381865afa158015610d30573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d5491906119c9565b600003610dfe5760405163365bb9d560e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063d96ee75490610dcb907f000000000000000000000000000000000000000000000000000000000000000090889088906004016119e2565b600060405180830381600087803b158015610de557600080fd5b505af1158015610df9573d6000803e3d6000fd5b505050505b9392505050565b60608082516001600160401b03811115610e2157610e216112ea565b604051908082528060200260200182016040528015610e4a578160200160208202803683370190505b50915082516001600160401b03811115610e6657610e666112ea565b604051908082528060200260200182016040528015610e9957816020015b6060815260200190600190039081610e845790505b50905060005b60048110156112035760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663856296f7888860028610610ef357610eee600287611a19565b610ef5565b855b6040516001600160e01b031960e086901b168152600481019390935260248301919091526001901b6044820152606401602060405180830381865afa158015610f42573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610f6691906119c9565b905060007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166339dd753060028510610fa7578a610fa9565b8b5b6040516001600160e01b031960e084901b1681526001600160a01b03909116600482015260248101859052604401602060405180830381865afa158015610ff4573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061101891906119c9565b905085838151811061102c5761102c611807565b60200260200101515160000361107e5760405162461bcd60e51b81526020600482015260126024820152714d697373696e6720746f6b656e206e616d6560701b60448201526064015b60405180910390fd5b60006110a287858151811061109557611095611807565b602002602001015161120e565b6110b788868151811061109557611095611807565b604080516020810193909352820152600960f91b606082015260610160408051601f1981840301815290829052631892c08760e11b825291506000906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690633125810e90611156907f00000000000000000000000000000000000000000000000000000000000000009087908790600401611a2c565b6020604051808303816000875af1158015611175573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111999190611a53565b9050808786815181106111ae576111ae611807565b60200260200101906001600160a01b031690816001600160a01b031681525050818686815181106111e1576111e1611807565b60200260200101819052505050505080806111fb90611a70565b915050610e9f565b509550959350505050565b8051600090602081106112555760405162461bcd60e51b815260206004820152600f60248201526e737472696e6720746f6f206c6f6e6760881b6044820152606401611075565b602083015191506000600382602061126d9190611a19565b600019911b1b9290921660019190911b1792915050565b60006020828403121561129657600080fd5b5035919050565b6020808252825182820181905260009190848201906040850190845b818110156112de5783516001600160a01b0316835292840192918401916001016112b9565b50909695505050505050565b634e487b7160e01b600052604160045260246000fd5b60405160e081016001600160401b0381118282101715611322576113226112ea565b60405290565b604051601f8201601f191681016001600160401b0381118282101715611350576113506112ea565b604052919050565b60006001600160401b03821115611371576113716112ea565b50601f01601f191660200190565b600082601f83011261139057600080fd5b81356113a361139e82611358565b611328565b8181528460208386010111156113b857600080fd5b816020850160208301376000918101602001919091529392505050565b6001600160a01b03811681146113ea57600080fd5b50565b803561091c816113d5565b63ffffffff811681146113ea57600080fd5b803561091c816113f8565b60006020828403121561142757600080fd5b81356001600160401b038082111561143e57600080fd5b9083019060e0828603121561145257600080fd5b61145a611300565b82358281111561146957600080fd5b6114758782860161137f565b825250611484602084016113ed565b6020820152611495604084016113ed565b60408201526060830135828111156114ac57600080fd5b6114b88782860161137f565b6060830152506080830135828111156114d057600080fd5b6114dc8782860161137f565b60808301525060a083013560a08201526114f860c0840161140a565b60c082015295945050505050565b60005b83811015611521578181015183820152602001611509565b50506000910152565b60008151808452611542816020860160208601611506565b601f01601f19169290920160200192915050565b600081518084526020808501945080840160005b8381101561158f5781516001600160a01b03168752958201959082019060010161156a565b509495945050505050565b600081518084526020808501808196508360051b8101915082860160005b858110156115e25782840389526115d084835161152a565b988501989350908401906001016115b8565b5091979650505050505050565b608081526000611602608083018761152a565b6020838203818501528187518084528284019150828160051b850101838a0160005b8381101561165257601f1987840301855261164083835161152a565b94860194925090850190600101611624565b5050868103604088015288518152838901516001600160a01b03811685830152610140955092506040890151935061169560408201856001600160a01b03169052565b606089015160608201526080890151608082015260a089015193506116c560a08201856001600160a01b03169052565b60c089015160c082015260e089015193508460e08201526116e88582018561152a565b94506101009350838901519250808503848201526117068584611556565b94506101209350838901519250808503848201525050611726838261159a565b935050505061174060608301846001600160a01b03169052565b95945050505050565b60608152600061175c606083018661152a565b60208301949094525060400152919050565b60006020828403121561178057600080fd5b81516001600160401b0381111561179657600080fd5b8201601f810184136117a757600080fd5b80516117b561139e82611358565b8181528560208385010111156117ca57600080fd5b611740826020830160208601611506565b635965732d60e01b8152600082516117fa816004850160208701611506565b9190910160040192915050565b634e487b7160e01b600052603260045260246000fd5b624e6f2d60e81b81526000825161183b816003850160208701611506565b9190910160030192915050565b635945535f60e01b8152600082516117fa816004850160208701611506565b624e4f5f60e81b81526000825161183b816003850160208701611506565b6000875160206118988285838d01611506565b8851918401916118ab8184848d01611506565b69112cb2b991161127379160b11b920191825287516118d081600a8501848c01611506565b87519201916118e581600a8501848b01611506565b86519201916118fa81600a8501848a01611506565b855192019161190f81600a8501848901611506565b91909101600a019998505050505050505050565b83815263ffffffff60e01b8360e01b1660208201526000825161194d816024850160208701611506565b91909101602401949350505050565b60006020828403121561196e57600080fd5b8151610dfe816113f8565b87815260e06020820152600061199260e083018961152a565b6001600160a01b039790971660408301525063ffffffff948516606082015292909316608083015260a082015260c0015292915050565b6000602082840312156119db57600080fd5b5051919050565b6001600160a01b039390931683526020830191909152604082015260600190565b634e487b7160e01b600052601160045260246000fd5b818103818111156108a9576108a9611a03565b60018060a01b0384168152826020820152606060408201526000611740606083018461152a565b600060208284031215611a6557600080fd5b8151610dfe816113d5565b600060018201611a8257611a82611a03565b506001019056fea2646970667358221220c61a15e25b215ee0c1ac50929bbb7a296665cd65319d16343c89df1eb8758f9564736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100a95760003560e01c8063375a7cba11610071578063375a7cba146101795780635bd9e2991461018e5780636cc6cde1146101b557806373f25926146101dc578063753ec103146101ef578063bc8802a21461021657600080fd5b8063013cf08b146100ae578063150c5b97146100de5780631ba18b9b146101055780631e8b5708146101415780632ff8d50414610152575b600080fd5b6100c16100bc366004611284565b61023d565b6040516001600160a01b0390911681526020015b60405180910390f35b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b61012c7f000000000000000000000000000000000000000000000000000000000000000081565b60405163ffffffff90911681526020016100d5565b6000546040519081526020016100d5565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b610181610267565b6040516100d5919061129d565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c16101ea366004611415565b6102c9565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6100c17f000000000000000000000000000000000000000000000000000000000000000081565b6000818154811061024d57600080fd5b6000918252602090912001546001600160a01b0316905081565b606060008054806020026020016040519081016040528092919081815260200182805480156102bf57602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116102a1575b5050505050905090565b60008060006102e08460200151856040015161044b565b9150915060006102f0858361077f565b905060006103267f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166108af565b8651604051632e0cccbb60e01b81529192506001600160a01b03831691632e0cccbb9161037b91889087907f0000000000000000000000000000000000000000000000000000000000000000906004016115ef565b600060405180830381600087803b15801561039557600080fd5b505af11580156103a9573d6000803e3d6000fd5b50508751845160c08601516040516001600160a01b03871695507fd05f26c1ddded17cf93f419cafa17cd29e4447ac6a070f6ad5150012a4dfaec094506103f293929190611749565b60405180910390a2600080546001810182559080527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e5630180546001600160a01b0319166001600160a01b03831617905595945050505050565b6060806000846001600160a01b03166395d89b416040518163ffffffff1660e01b8152600401600060405180830381865afa15801561048e573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f191682016040526104b6919081019061176e565b90506000846001600160a01b03166395d89b416040518163ffffffff1660e01b8152600401600060405180830381865afa1580156104f8573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610520919081019061176e565b60408051600480825260a0820190925291925060009190816020015b606081526020019060019003908161053c5790505090508260405160200161056491906117db565b6040516020818303038152906040528160008151811061058657610586611807565b6020026020010181905250826040516020016105a2919061181d565b604051602081830303815290604052816001815181106105c4576105c4611807565b6020026020010181905250816040516020016105e091906117db565b6040516020818303038152906040528160028151811061060257610602611807565b60200260200101819052508160405160200161061e919061181d565b6040516020818303038152906040528160038151811061064057610640611807565b602090810291909101015260408051600480825260a08201909252600091816020015b60608152602001906001900390816106635790505090508360405160200161068b9190611848565b604051602081830303815290604052816000815181106106ad576106ad611807565b6020026020010181905250836040516020016106c99190611867565b604051602081830303815290604052816001815181106106eb576106eb611807565b6020026020010181905250826040516020016107079190611848565b6040516020818303038152906040528160028151811061072957610729611807565b6020026020010181905250826040516020016107459190611867565b6040516020818303038152906040528160038151811061076757610767611807565b60209081029190910101529097909650945050505050565b604080516101408101825260008082526020820181905291810182905260608082018390526080820183905260a0820183905260c082019290925260e08101829052610100810182905261012081019190915282516060840151608085015160009283926107ec92610921565b9050600061080882600260ff168860c001518960a00151610983565b90506000610817826002610c14565b905060008061083189602001518a6040015188868c610e05565b915091506040518061014001604052808481526020018a602001516001600160a01b031681526020018a604001516001600160a01b031681526020018781526020016000815260200160006001600160a01b031681526020018581526020018681526020018381526020018281525096505050505050505b92915050565b6000763d602d80600a3d3981f3363d3d373d3d3d363d730000008260601b60e81c176000526e5af43d82803e903d91602b57fd5bf38260781b17602052603760096000f090506001600160a01b03811661091c576040516330be1a3d60e21b815260040160405180910390fd5b919050565b6060600060405160200161093e9062e2909f60e81b815260030190565b604051602081830303815290604052905084818286848760405160200161096a96959493929190611885565b6040516020818303038152906040529150509392505050565b60008084848760405160200161099b93929190611923565b60408051601f1981840301815282825280516020918201209083018190526bffffffffffffffffffffffff197f0000000000000000000000000000000000000000000000000000000000000000606090811b8216938501939093526001600160e01b03197f000000000000000000000000000000000000000000000000000000000000000060e01b166054850152605884018790527f0000000000000000000000000000000000000000000000000000000000000000831b811660788501523090921b909116608c830152600060a083018190529092509060c00160408051808303601f19018152908290528051602090910120634f8812e360e11b82526004820181905291507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690639f1025c690602401602060405180830381865afa158015610af3573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b17919061195c565b63ffffffff1615610b2b579150610c0c9050565b604051631212e4f160e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063484b93c490610bc49089908b907f0000000000000000000000000000000000000000000000000000000000000000907f0000000000000000000000000000000000000000000000000000000000000000908c906000908d90600401611979565b6020604051808303816000875af1158015610be3573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c0791906119c9565b925050505b949350505050565b6000807f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663852c6ae27f000000000000000000000000000000000000000000000000000000000000000086866040518463ffffffff1660e01b8152600401610c87939291906119e2565b602060405180830381865afa158015610ca4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610cc891906119c9565b604051636a16e06160e11b8152600481018290529091507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063d42dc0c290602401602060405180830381865afa158015610d30573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d5491906119c9565b600003610dfe5760405163365bb9d560e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063d96ee75490610dcb907f000000000000000000000000000000000000000000000000000000000000000090889088906004016119e2565b600060405180830381600087803b158015610de557600080fd5b505af1158015610df9573d6000803e3d6000fd5b505050505b9392505050565b60608082516001600160401b03811115610e2157610e216112ea565b604051908082528060200260200182016040528015610e4a578160200160208202803683370190505b50915082516001600160401b03811115610e6657610e666112ea565b604051908082528060200260200182016040528015610e9957816020015b6060815260200190600190039081610e845790505b50905060005b60048110156112035760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663856296f7888860028610610ef357610eee600287611a19565b610ef5565b855b6040516001600160e01b031960e086901b168152600481019390935260248301919091526001901b6044820152606401602060405180830381865afa158015610f42573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610f6691906119c9565b905060007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166339dd753060028510610fa7578a610fa9565b8b5b6040516001600160e01b031960e084901b1681526001600160a01b03909116600482015260248101859052604401602060405180830381865afa158015610ff4573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061101891906119c9565b905085838151811061102c5761102c611807565b60200260200101515160000361107e5760405162461bcd60e51b81526020600482015260126024820152714d697373696e6720746f6b656e206e616d6560701b60448201526064015b60405180910390fd5b60006110a287858151811061109557611095611807565b602002602001015161120e565b6110b788868151811061109557611095611807565b604080516020810193909352820152600960f91b606082015260610160408051601f1981840301815290829052631892c08760e11b825291506000906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690633125810e90611156907f00000000000000000000000000000000000000000000000000000000000000009087908790600401611a2c565b6020604051808303816000875af1158015611175573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111999190611a53565b9050808786815181106111ae576111ae611807565b60200260200101906001600160a01b031690816001600160a01b031681525050818686815181106111e1576111e1611807565b60200260200101819052505050505080806111fb90611a70565b915050610e9f565b509550959350505050565b8051600090602081106112555760405162461bcd60e51b815260206004820152600f60248201526e737472696e6720746f6f206c6f6e6760881b6044820152606401611075565b602083015191506000600382602061126d9190611a19565b600019911b1b9290921660019190911b1792915050565b60006020828403121561129657600080fd5b5035919050565b6020808252825182820181905260009190848201906040850190845b818110156112de5783516001600160a01b0316835292840192918401916001016112b9565b50909695505050505050565b634e487b7160e01b600052604160045260246000fd5b60405160e081016001600160401b0381118282101715611322576113226112ea565b60405290565b604051601f8201601f191681016001600160401b0381118282101715611350576113506112ea565b604052919050565b60006001600160401b03821115611371576113716112ea565b50601f01601f191660200190565b600082601f83011261139057600080fd5b81356113a361139e82611358565b611328565b8181528460208386010111156113b857600080fd5b816020850160208301376000918101602001919091529392505050565b6001600160a01b03811681146113ea57600080fd5b50565b803561091c816113d5565b63ffffffff811681146113ea57600080fd5b803561091c816113f8565b60006020828403121561142757600080fd5b81356001600160401b038082111561143e57600080fd5b9083019060e0828603121561145257600080fd5b61145a611300565b82358281111561146957600080fd5b6114758782860161137f565b825250611484602084016113ed565b6020820152611495604084016113ed565b60408201526060830135828111156114ac57600080fd5b6114b88782860161137f565b6060830152506080830135828111156114d057600080fd5b6114dc8782860161137f565b60808301525060a083013560a08201526114f860c0840161140a565b60c082015295945050505050565b60005b83811015611521578181015183820152602001611509565b50506000910152565b60008151808452611542816020860160208601611506565b601f01601f19169290920160200192915050565b600081518084526020808501945080840160005b8381101561158f5781516001600160a01b03168752958201959082019060010161156a565b509495945050505050565b600081518084526020808501808196508360051b8101915082860160005b858110156115e25782840389526115d084835161152a565b988501989350908401906001016115b8565b5091979650505050505050565b608081526000611602608083018761152a565b6020838203818501528187518084528284019150828160051b850101838a0160005b8381101561165257601f1987840301855261164083835161152a565b94860194925090850190600101611624565b5050868103604088015288518152838901516001600160a01b03811685830152610140955092506040890151935061169560408201856001600160a01b03169052565b606089015160608201526080890151608082015260a089015193506116c560a08201856001600160a01b03169052565b60c089015160c082015260e089015193508460e08201526116e88582018561152a565b94506101009350838901519250808503848201526117068584611556565b94506101209350838901519250808503848201525050611726838261159a565b935050505061174060608301846001600160a01b03169052565b95945050505050565b60608152600061175c606083018661152a565b60208301949094525060400152919050565b60006020828403121561178057600080fd5b81516001600160401b0381111561179657600080fd5b8201601f810184136117a757600080fd5b80516117b561139e82611358565b8181528560208385010111156117ca57600080fd5b611740826020830160208601611506565b635965732d60e01b8152600082516117fa816004850160208701611506565b9190910160040192915050565b634e487b7160e01b600052603260045260246000fd5b624e6f2d60e81b81526000825161183b816003850160208701611506565b9190910160030192915050565b635945535f60e01b8152600082516117fa816004850160208701611506565b624e4f5f60e81b81526000825161183b816003850160208701611506565b6000875160206118988285838d01611506565b8851918401916118ab8184848d01611506565b69112cb2b991161127379160b11b920191825287516118d081600a8501848c01611506565b87519201916118e581600a8501848b01611506565b86519201916118fa81600a8501848a01611506565b855192019161190f81600a8501848901611506565b91909101600a019998505050505050505050565b83815263ffffffff60e01b8360e01b1660208201526000825161194d816024850160208701611506565b91909101602401949350505050565b60006020828403121561196e57600080fd5b8151610dfe816113f8565b87815260e06020820152600061199260e083018961152a565b6001600160a01b039790971660408301525063ffffffff948516606082015292909316608083015260a082015260c0015292915050565b6000602082840312156119db57600080fd5b5051919050565b6001600160a01b039390931683526020830191909152604082015260600190565b634e487b7160e01b600052601160045260246000fd5b818103818111156108a9576108a9611a03565b60018060a01b0384168152826020820152606060408201526000611740606083018461152a565b600060208284031215611a6557600080fd5b8151610dfe816113d5565b600060018201611a8257611a82611a03565b506001019056fea2646970667358221220c61a15e25b215ee0c1ac50929bbb7a296665cd65319d16343c89df1eb8758f9564736f6c63430008140033",
+  "devdoc": {
+    "details": "MarketFactory modified to create futarchy proposals. Each proposal has four outcomes (Yes/Token1, Yes/Token2, No/Token1, No/Token2). There's one reality question asking whether or not the proposal should be accepted. If the proposal is accepted, the first two outcomes (Yes) are redeemable, otherwise, the last two are redeemable (No).",
+    "errors": {
+      "ERC1167FailedCreateClone()": [
+        {
+          "details": "A clone instance deployment failed."
+        }
+      ]
+    },
+    "events": {
+      "NewProposal(address,string,bytes32,bytes32)": {
+        "details": "To be emitted when a new proposal is created.",
+        "params": {
+          "conditionId": "Conditional Tokens conditionId.",
+          "marketName": "The name of the proposal.",
+          "proposal": "The new proposal address.",
+          "questionId": "Conditional Tokens & Reality.eth questionId."
+        }
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "allMarkets()": {
+        "details": "Returns all the proposals created by this factory.",
+        "returns": {
+          "_0": "The addresses of the proposals."
+        }
+      },
+      "constructor": {
+        "details": "Constructor.",
+        "params": {
+          "_arbitrator": "Address of the arbitrator that is going to resolve Realitio disputes.",
+          "_conditionalTokens": "Address of the ConditionalTokens implementation.",
+          "_proposal": "Address of the proposal contract that is going to be used for each new deployment.",
+          "_questionTimeout": "Reality question timeout.",
+          "_realitio": "Address of the Realitio implementation.",
+          "_realityProxy": "Address of the RealityProxy implementation.",
+          "_wrapped1155Factory": "Address of the Wrapped1155Factory implementation."
+        }
+      },
+      "createProposal((string,address,address,string,string,uint256,uint32))": {
+        "details": "Creates the Proposal and deploys the wrapped ERC20 tokens.",
+        "params": {
+          "params": "CreateProposalParams instance."
+        },
+        "returns": {
+          "_0": "The new proposal address."
+        }
+      },
+      "marketsCount()": {
+        "returns": {
+          "_0": "The amount of proposals."
+        }
+      }
+    },
+    "stateVariables": {
+      "REALITY_SINGLE_SELECT_TEMPLATE": {
+        "details": "Template for proposals."
+      },
+      "arbitrator": {
+        "details": "Arbitrator contract."
+      },
+      "conditionalTokens": {
+        "details": "Conditional Tokens contract."
+      },
+      "proposal": {
+        "details": "FutarchyProposal contract."
+      },
+      "proposals": {
+        "details": "Proposals created by this factory."
+      },
+      "questionTimeout": {
+        "details": "Reality question timeout."
+      },
+      "realitio": {
+        "details": "Reality.eth contract."
+      },
+      "realityProxy": {
+        "details": "Oracle contract."
+      },
+      "wrapped1155Factory": {
+        "details": "Wrapped1155Factory contract."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "marketsCount()": {
+        "notice": "Returns the amount of proposals created by this factory."
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 382,
+        "contract": "src/FutarchyFactory.sol:FutarchyFactory",
+        "label": "proposals",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_array(t_address)dyn_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_address)dyn_storage": {
+        "base": "t_address",
+        "encoding": "dynamic_array",
+        "label": "address[]",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

@@ -44,9 +44,7 @@ function AnswerColumn({
       )}
       {questionStatus === MarketStatus.CLOSED && marketStatus !== MarketStatus.PENDING_EXECUTION && <CheckCircleIcon />}
       {question.finalize_ts > 0 && (
-        <div className="whitespace-nowrap text-ellipsis overflow-hidden">
-          Answer: {getAnswerText(question, market.outcomes, market.templateId)}
-        </div>
+        <div className="whitespace-nowrap text-ellipsis overflow-hidden">Answer: {getAnswerText(question, market)}</div>
       )}
     </div>
   );

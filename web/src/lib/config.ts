@@ -1,7 +1,10 @@
 import * as generatedHooks from "@/hooks/contracts/generated";
+import { futarchyRouterAddress } from "@/hooks/contracts/generated";
+import { Market } from "@/hooks/useMarket";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
+import { getLiquidityPair } from "./market";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
 // to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
@@ -66,7 +69,16 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [sepolia.id]: "base",
 } as const;
 
-export const getRouterAddress = (chainId?: SupportedChain): Address => {
+export const getRouterAddress = (market: Market | undefined): Address | undefined => {
+  if (!market) {
+    return;
+  }
+
+  if (market.type === "Futarchy") {
+    // @ts-ignore
+    return futarchyRouterAddress[market.chainId];
+  }
+
   const addresses = Object.assign(
     {},
     gnosisRouterAddress,
@@ -74,7 +86,7 @@ export const getRouterAddress = (chainId?: SupportedChain): Address => {
     // biome-ignore lint/suspicious/noExplicitAny:
     (restGeneratedHooks as any)?.routerAddress || {},
   );
-  return addresses[chainId || DEFAULT_CHAIN];
+  return addresses[market.chainId || DEFAULT_CHAIN];
 };
 
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
@@ -90,6 +102,12 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
     default:
       return "#";
   }
+};
+
+export const getLiquidityUrlByMarket = (market: Market, outcomeIndex: number) => {
+  const liquidityPair = getLiquidityPair(market, outcomeIndex);
+
+  return getLiquidityUrl(market.chainId, liquidityPair.token0, liquidityPair.token1);
 };
 
 export const getPoolUrl = (chainId: number, poolId: string) => {
