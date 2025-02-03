@@ -77,6 +77,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   }
 
   const BUY_AMOUNT = 3; //collateral token
+  const SELL_AMOUNT = 3; //outcome token
 
   const collateralToken = {
     address: market.collateralToken,
@@ -91,7 +92,18 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
 
         if (price === 0n) {
-          return 0;
+          // try to get sell price instead
+          const sellPrice = await getTokenPrice(
+            wrappedAddress,
+            collateralToken,
+            market.chainId,
+            String(SELL_AMOUNT),
+            "sell",
+          );
+          if (sellPrice === 0n) {
+            return 0;
+          }
+          return Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
         }
 
         return BUY_AMOUNT / Number(formatUnits(price, 18));
