@@ -48,7 +48,12 @@ function SwapWidget({
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
-    return <Alert type="info">Trading is closed, but you can still mint, merge, or redeem tokens.</Alert>;
+    return (
+      <Alert type="info">
+        The trade widget is hidden for closed markets. But you can still interact with your ERC20 outcome tokens onchain
+        as well as mint, merge, redeem.
+      </Alert>
+    );
   }
   if (isPending) {
     return <div className="shimmer-container w-full h-[400px]"></div>;

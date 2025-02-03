@@ -5,6 +5,7 @@ import { Market } from "@/hooks/useMarket";
 import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
+import { isUndefined } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 function PotentialReturnConfig({
@@ -25,11 +26,13 @@ function PotentialReturnConfig({
   isCollateralDai: boolean;
 }) {
   const [isShow, setShow] = useState(false);
-  const [input, setInput] = useState<{ multiCategorical: string[]; scalar: number; multiScalar: number[] }>({
-    multiCategorical: [],
-    scalar: 0,
-    multiScalar: [],
-  });
+  const [input, setInput] = useState<{ multiCategorical: string[]; scalar: number | undefined; multiScalar: number[] }>(
+    {
+      multiCategorical: [],
+      scalar: undefined,
+      multiScalar: [],
+    },
+  );
   const multiSelectRef = useRef<HTMLDivElement>(null);
   const renderInputByMarketType = () => {
     const marketType = getMarketType(market);
@@ -106,6 +109,17 @@ function PotentialReturnConfig({
     const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
     switch (marketType) {
       case MarketTypes.SCALAR: {
+        if (isUndefined(input.scalar)) {
+          if (outcomeTokenIndex === 0) {
+            setInput((state) => ({ ...state, scalar: Number(market.lowerBound) }));
+            break;
+          }
+          if (outcomeTokenIndex === 1) {
+            setInput((state) => ({ ...state, scalar: Number(market.upperBound) }));
+            break;
+          }
+          break;
+        }
         if (outcomeTokenIndex === 0) {
           if (input.scalar <= Number(market.lowerBound)) {
             setReturnPerToken(1);
@@ -135,6 +149,10 @@ function PotentialReturnConfig({
         break;
       }
       case MarketTypes.MULTI_CATEGORICAL: {
+        if (!input.multiCategorical.length) {
+          setInput((state) => ({ ...state, multiCategorical: [outcomeText] }));
+          break;
+        }
         if (!input.multiCategorical.includes(outcomeText)) {
           setReturnPerToken(0);
           break;
@@ -143,6 +161,12 @@ function PotentialReturnConfig({
         break;
       }
       case MarketTypes.MULTI_SCALAR: {
+        if (!input.multiScalar.length) {
+          const defaultPoints: number[] = [];
+          defaultPoints[outcomeTokenIndex] = 1;
+          setInput((state) => ({ ...state, multiScalar: defaultPoints }));
+          break;
+        }
         const sum = input.multiScalar.reduce((acc, curr) => acc + curr, 0);
         setReturnPerToken(sum ? (input.multiScalar[outcomeTokenIndex] ?? 0) / sum : 0);
       }
