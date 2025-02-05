@@ -6,7 +6,8 @@ import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { InputPotentialReturnContext } from "@/pages/markets/@chainId/@id/+Page";
+import { useContext, useEffect, useRef, useState } from "react";
 
 function PotentialReturnConfig({
   market,
@@ -25,14 +26,9 @@ function PotentialReturnConfig({
   outcomeText: string;
   isCollateralDai: boolean;
 }) {
+  const { input, setInput } = useContext(InputPotentialReturnContext);
   const [isShow, setShow] = useState(false);
-  const [input, setInput] = useState<{ multiCategorical: string[]; scalar: number | undefined; multiScalar: number[] }>(
-    {
-      multiCategorical: [],
-      scalar: undefined,
-      multiScalar: [],
-    },
-  );
+
   const multiSelectRef = useRef<HTMLDivElement>(null);
   const renderInputByMarketType = () => {
     const marketType = getMarketType(market);
@@ -161,10 +157,12 @@ function PotentialReturnConfig({
         break;
       }
       case MarketTypes.MULTI_SCALAR: {
-        if (!input.multiScalar.length) {
-          const defaultPoints: number[] = [];
-          defaultPoints[outcomeTokenIndex] = 1;
-          setInput((state) => ({ ...state, multiScalar: defaultPoints }));
+        if (!input.multiScalar[outcomeTokenIndex]) {
+          setInput((state) => {
+            const defaultPoints = [...state.multiScalar];
+            defaultPoints[outcomeTokenIndex] = 1;
+            return { ...state, multiScalar: defaultPoints };
+          });
           break;
         }
         const sum = input.multiScalar.reduce((acc, curr) => acc + curr, 0);
@@ -190,6 +188,17 @@ function PotentialReturnConfig({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
+      return;
+    }
+    setInput({
+      multiCategorical: [],
+      scalar: undefined,
+      multiScalar: [],
+    });
+  }, [outcomeText]);
   const { sDaiToDai } = useSDaiDaiRatio(market.chainId);
   const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
   return (

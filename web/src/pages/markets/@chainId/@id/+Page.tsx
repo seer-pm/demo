@@ -20,10 +20,28 @@ import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
+
+export const InputPotentialReturnContext = createContext<{
+  input: { multiCategorical: string[]; scalar: number | undefined; multiScalar: number[] };
+  setInput: React.Dispatch<
+    React.SetStateAction<{
+      multiCategorical: string[];
+      scalar: number | undefined;
+      multiScalar: number[];
+    }>
+  >;
+}>({
+  input: {
+    multiCategorical: [],
+    scalar: undefined,
+    multiScalar: [],
+  },
+  setInput: () => {},
+});
 
 function SwapWidget({
   market,
@@ -81,10 +99,17 @@ function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
-
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
-
+  const [inputPotentialReturn, setInputPotentialReturn] = useState<{
+    multiCategorical: string[];
+    scalar: number | undefined;
+    multiScalar: number[];
+  }>({
+    multiCategorical: [],
+    scalar: undefined,
+    multiScalar: [],
+  });
   const router = getRouterAddress(chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
@@ -171,14 +196,17 @@ function MarketPage() {
             {market && <Outcomes market={market} images={images?.outcomes} />}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            <SwapWidget
-              router={router}
-              market={market}
-              account={account}
-              outcomeIndex={outcomeIndex}
-              images={images?.outcomes}
-            />
-
+            <InputPotentialReturnContext.Provider
+              value={{ input: inputPotentialReturn, setInput: setInputPotentialReturn }}
+            >
+              <SwapWidget
+                router={router}
+                market={market}
+                account={account}
+                outcomeIndex={outcomeIndex}
+                images={images?.outcomes}
+              />
+            </InputPotentialReturnContext.Provider>
             <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
