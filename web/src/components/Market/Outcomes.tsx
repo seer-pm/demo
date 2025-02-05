@@ -381,7 +381,7 @@ export function Outcomes({ market, images }: PositionsProps) {
                       </button>
                     )}
                     <a
-                      href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
+                      href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary tooltip"
