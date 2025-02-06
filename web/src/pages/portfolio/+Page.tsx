@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import DepositTab from "@/components/Portfolio/DepositTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
@@ -8,6 +9,13 @@ import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalcul
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { useAccount } from "wagmi";
+
+const PORTFOLIO_TABS = [
+  { id: "positions", label: "Positions" },
+  { id: "orders", label: "Orders" },
+  { id: "history", label: "History" },
+  { id: "deposit", label: "Deposit" },
+] as const;
 
 function PortfolioPage() {
   const { address } = useAccount();
@@ -66,50 +74,27 @@ function PortfolioPage() {
       </div>
 
       <div>
-        <div
-          role="tablist"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-[300px] mb-6"
-        >
-          <button
-            type="button"
-            role="tab"
-            className={`tab ${activeTab === "positions" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "positions",
-              })
-            }
-          >
-            Positions
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className={`tab ${activeTab === "orders" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "orders",
-              })
-            }
-          >
-            Orders
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className={`tab ${activeTab === "history" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "history",
-              })
-            }
-          >
-            History
-          </button>
+        <div role="tablist" className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 mb-6">
+          {PORTFOLIO_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              className={`tab ${activeTab === tab.id && "tab-active"}`}
+              onClick={() =>
+                setSearchParams({
+                  tab: tab.id,
+                })
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         {activeTab === "positions" && <PositionsTab />}
         {activeTab === "orders" && <OrdersTab />}
         {activeTab === "history" && <HistoryTab />}
+        {activeTab === "deposit" && <DepositTab />}
       </div>
     </div>
   );
