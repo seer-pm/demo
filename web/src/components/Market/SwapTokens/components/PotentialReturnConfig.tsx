@@ -165,7 +165,7 @@ function PotentialReturnConfig({
           });
           break;
         }
-        const sum = input.multiScalar.reduce((acc, curr) => acc + curr, 0);
+        const sum = input.multiScalar.reduce((acc, curr) => acc + (curr ?? 0), 0);
         setReturnPerToken(sum ? (input.multiScalar[outcomeTokenIndex] ?? 0) / sum : 0);
       }
     }
