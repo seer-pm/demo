@@ -105,6 +105,7 @@ function AddLiquidityInfo({
   const exitFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await exitFarming.mutateAsync({
+        account: address!,
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
         rewardToken: poolIncentive.rewardToken,
         bonusRewardToken: poolIncentive.bonusRewardToken,

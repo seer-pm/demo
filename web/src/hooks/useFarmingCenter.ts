@@ -3,7 +3,7 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt } from "viem";
+import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 
 interface FarmingProps {
   farmingCenter: Address;
@@ -13,6 +13,12 @@ interface FarmingProps {
   startTime: bigint;
   endTime: bigint;
   tokenId: bigint;
+}
+
+interface EnterFarmingProps extends FarmingProps {}
+
+interface ExitFarmingProps extends FarmingProps {
+  account: Address;
 }
 
 interface DepositNftProps {
@@ -157,6 +163,59 @@ const FARMING_CENTER_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "bytes[]",
+        name: "data",
+        type: "bytes[]",
+      },
+    ],
+    name: "multicall",
+    outputs: [
+      {
+        internalType: "bytes[]",
+        name: "results",
+        type: "bytes[]",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20Minimal",
+        name: "rewardToken",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "to",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "amountRequestedIncentive",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountRequestedEternal",
+        type: "uint256",
+      },
+    ],
+    name: "claimReward",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "reward",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 const NON_FUNGIBLE_POSITION_MANAGER_ABI = [
@@ -185,7 +244,7 @@ const NON_FUNGIBLE_POSITION_MANAGER_ABI = [
   },
 ] as const;
 
-async function enterFarming(props: FarmingProps): Promise<TransactionReceipt> {
+async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceipt> {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -213,7 +272,7 @@ async function enterFarming(props: FarmingProps): Promise<TransactionReceipt> {
   return result.receipt;
 }
 
-async function exitFarming(props: FarmingProps): Promise<TransactionReceipt> {
+async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt> {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -222,15 +281,29 @@ async function exitFarming(props: FarmingProps): Promise<TransactionReceipt> {
     endTime: props.endTime,
   };
 
+  const MAX_ETERNAL_AMOUNT = 0xffffffffffffffffffffffffffffffffn;
+
+  const exitFarmingData = encodeFunctionData({
+    abi: FARMING_CENTER_ABI,
+    functionName: "exitFarming",
+    args: [incentiveKey, props.tokenId, false],
+  });
+
+  const claimMainRewardData = encodeFunctionData({
+    abi: FARMING_CENTER_ABI,
+    functionName: "claimReward",
+    args: [props.rewardToken, props.account, 0n, MAX_ETERNAL_AMOUNT],
+  });
+
   const result = await toastifyTx(
     () =>
       writeContract(config, {
         address: props.farmingCenter,
         abi: FARMING_CENTER_ABI,
-        functionName: "exitFarming",
-        args: [incentiveKey, props.tokenId, false],
+        functionName: "multicall",
+        args: [[exitFarmingData, claimMainRewardData]],
       }),
-    { txSent: { title: "Exit farming..." }, txSuccess: { title: "Token exited!" } },
+    { txSent: { title: "Exit farming and claiming rewards..." }, txSuccess: { title: "Exited and claimed rewards!" } },
   );
 
   if (!result.status) {
