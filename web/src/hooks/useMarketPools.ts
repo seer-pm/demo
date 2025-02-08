@@ -26,6 +26,7 @@ export interface PoolIncentive {
   bonusRewardToken: Address;
   startTime: bigint;
   endTime: bigint;
+  realEndTime: bigint;
 }
 
 export interface PoolInfo {
@@ -65,7 +66,10 @@ function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmi
     rewardToken: eternalFarming.rewardToken,
     bonusRewardToken: eternalFarming.bonusRewardToken,
     startTime: BigInt(eternalFarming.startTime),
-    endTime: BigInt(eternalFarming.endTime) > endTime ? endTime : BigInt(eternalFarming.endTime),
+    // endTime is the value we need to use when interacting with the farming smart contract
+    endTime: BigInt(eternalFarming.endTime),
+    // realEndTime represents the actual end date displayed in the UI, calculated as min(endTime, reward/rewardRate)
+    realEndTime: BigInt(eternalFarming.endTime) > endTime ? endTime : BigInt(eternalFarming.endTime),
   };
 }
 
