@@ -32,7 +32,7 @@ async function fetchEternalFarmings(poolIds: string[]): Promise<EternalFarming[]
           endTime
         }
       }`;
-    const results = await fetch(SUBGRAPHS.algebra[gnosis.id]!, {
+    const results = await fetch(SUBGRAPHS.algebrafarming[gnosis.id]!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
