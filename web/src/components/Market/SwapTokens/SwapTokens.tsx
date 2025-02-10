@@ -215,7 +215,7 @@ export function SwapTokens({
         }
       />
       {!isShowMaxSlippage && (
-        <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
+        <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] shadow-md">
           <div className="flex items-center space-x-[12px]">
             <div>
               <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />

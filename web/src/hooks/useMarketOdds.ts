@@ -90,8 +90,8 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
     market.wrappedTokens.map(async (wrappedAddress) => {
       try {
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
-
-        if (price === 0n) {
+        const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
+        if (price === 0n || pricePerShare > 1.1) {
           // try to get sell price instead
           const sellPrice = await getTokenPrice(
             wrappedAddress,
@@ -106,7 +106,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
           return Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
         }
 
-        return BUY_AMOUNT / Number(formatUnits(price, 18));
+        return pricePerShare;
       } catch {
         return 0;
       }

@@ -27,7 +27,7 @@ export function ConditionalTokenActions({ account, router, market, outcomeIndex 
   const marketStatus = getMarketStatus(market);
   const [isShow, setShow] = useState(false);
   const renderActionBox = () => (
-    <div className="bg-white p-[24px] drop-shadow">
+    <div className="bg-white p-[24px] shadow-md">
       <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
@@ -84,7 +84,7 @@ export function ConditionalTokenActions({ account, router, market, outcomeIndex 
       <button
         type="button"
         onClick={() => setShow((state) => !state)}
-        className="w-full bg-white p-2 drop-shadow flex items-center justify-center gap-2"
+        className="w-full bg-white p-2 shadow-md flex items-center justify-center gap-2"
       >
         <p className="font-semibold">More</p>
         <div>{isShow ? <ArrowDropUp /> : <ArrowDropDown />}</div>
