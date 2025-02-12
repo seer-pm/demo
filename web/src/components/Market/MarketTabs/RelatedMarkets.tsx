@@ -1,10 +1,16 @@
 import { Alert } from "@/components/Alert";
 import { Market } from "@/hooks/useMarket";
+import { useMarketImages } from "@/hooks/useMarketImages";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
 import { MarketHeader } from "../Header/MarketHeader";
 
 interface RelatedMarketsProps {
   market: Market;
+}
+
+function RelatedMarket({ market }: RelatedMarketsProps) {
+  const { data: images } = useMarketImages(market.id, market.chainId);
+  return <MarketHeader market={market} type="small" images={images} />;
 }
 
 export function RelatedMarkets({ market }: RelatedMarketsProps) {
@@ -21,7 +27,7 @@ export function RelatedMarkets({ market }: RelatedMarketsProps) {
   return (
     <div className="space-y-3">
       {markets.map((market) => (
-        <MarketHeader market={market} type="small" key={market.id} />
+        <RelatedMarket market={market} key={market.id} />
       ))}
     </div>
   );
