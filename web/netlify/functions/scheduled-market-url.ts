@@ -5,12 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 import slug from "slug";
 import { Address } from "viem";
 import { chainIds } from "./utils/config.ts";
-import { SUBGRAPHS } from "./utils/subgraph.ts";
+import { getSubgraphUrl } from "./utils/subgraph.ts";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[]) {
-  const response = await fetch(SUBGRAPHS.seer[chainId]!, {
+  const response = await fetch(getSubgraphUrl("seer", chainId), {
     method: "POST",
     body: JSON.stringify({
       query: `{

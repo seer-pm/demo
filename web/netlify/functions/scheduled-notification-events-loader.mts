@@ -4,7 +4,7 @@ import { parseAbiItem } from "viem";
 import { SupportedChain } from "../../src/lib/chains.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
-import { SUBGRAPHS } from "./utils/subgraph.ts";
+import { getSubgraphUrl } from "./utils/subgraph.ts";
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 interface NetworkContracts {
@@ -35,7 +35,7 @@ const CTF_RESOLUTION_EVENT = parseAbiItem(
 );
 
 async function fetchSubgraph(query: string, variables: Record<string, string | string[]>, chainId: SupportedChain) {
-  const results = await fetch(SUBGRAPHS.seer[chainId]!, {
+  const results = await fetch(getSubgraphUrl("seer", chainId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

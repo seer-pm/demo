@@ -2,13 +2,13 @@ import { Config } from "@netlify/functions";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { config as wagmiConfig } from "./utils/config.ts";
-import { SUBGRAPHS } from "./utils/subgraph.ts";
+import { getSubgraphUrl } from "./utils/subgraph.ts";
 
 export default async () => {
   const chainId = 100;
   const now = Math.round(new Date().getTime() / 1000);
 
-  const response = await fetch(SUBGRAPHS.seer[chainId]!, {
+  const response = await fetch(getSubgraphUrl("seer", chainId), {
     method: "POST",
     body: JSON.stringify({
       query: `{
