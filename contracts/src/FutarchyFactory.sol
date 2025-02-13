@@ -297,8 +297,8 @@ contract FutarchyFactory {
         return proposals;
     }
 
-    /// @notice Returns the amount of proposals created by this factory.
-    /// @return The amount of proposals.
+    /// @notice Returns the total number of proposals created by this factory.
+    /// @return The count of proposals.
     function marketsCount() external view returns (uint256) {
         return proposals.length;
     }

@@ -148,8 +148,6 @@ contract FutarchyRouter is ERC1155Holder {
     /// @dev The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
     /// @dev Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0)).
     /// @param proposal The Proposal to redeem.
-    /// @param useFirstCollateral Whether to redeem the first or second collateral.
-
     /// @param collateralToken The address of the ERC20 used as collateral.
     /// @param amount Amount to redeem.
     function redeemPositions(FutarchyProposal proposal, IERC20 collateralToken, uint256 amount) public {
