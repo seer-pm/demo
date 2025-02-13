@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export function useIsSmallScreen(width = 500) {
+export function useIsSmallScreen(width = 640) {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
   useEffect(() => {

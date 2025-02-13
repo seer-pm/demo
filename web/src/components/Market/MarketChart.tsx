@@ -122,7 +122,7 @@ function MarketChart({ market }: { market: Market }) {
 
     grid: {
       left: isSmallScreen ? "20%" : 80,
-      right: isSmallScreen ? "20%" : 80,
+      right: isSmallScreen ? 20 : 80,
       top: "15%",
       bottom: "15%",
     },
