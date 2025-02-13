@@ -143,8 +143,6 @@ export function SwapTokens({
 
   // convert sell result to xdai or wxdai if using multisteps swap
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
-  const isMultiStepsSwap = isCollateralDai && !(quoteData?.trade instanceof CoWTrade);
-  const isMultiStepsSell = swapType === "sell" && isMultiStepsSwap;
   const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
 
   const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(chainId);
@@ -159,9 +157,6 @@ export function SwapTokens({
     : 0;
 
   // calculate price per share
-  const multiStepSellDaiReceived = quoteData?.value
-    ? Number(formatUnits(quoteData.value, selectedCollateral.decimals)) * sDaiToDai
-    : 0;
   const inputAmount = quoteData
     ? Number(
         formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
@@ -334,8 +329,7 @@ export function SwapTokens({
                   <div className="shimmer-container ml-2 w-[100px]" />
                 ) : (
                   <div>
-                    {isMultiStepsSell ? multiStepSellDaiReceived.toFixed(3) : receivedAmount.toFixed(3)}{" "}
-                    {buyToken.symbol}
+                    {receivedAmount.toFixed(3)} {buyToken.symbol}
                   </div>
                 )}
               </div>
@@ -430,7 +424,6 @@ export function SwapTokens({
                   (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
                   isFetching
                 }
-                isMultiStepsSwap={isMultiStepsSwap}
               />
             ) : quoteIsLoading && quoteFetchStatus === "fetching" ? (
               <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
