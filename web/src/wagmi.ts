@@ -2,7 +2,7 @@ import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
 import { http, fallback } from "wagmi";
 import { Chain, sepolia } from "wagmi/chains";
-import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
+import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
@@ -17,11 +17,8 @@ export const config = defaultWagmiConfig({
   metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
   chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
-  connectors: [
-    injected(),
-    coinbaseWallet({ appName: "Seer" }),
-    walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false }),
-  ],
+  connectors: [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })],
+  enableCoinbase: false,
   transports: {
     [gnosis.id]: fallback([
       http("https://gnosis-pokt.nodies.app"),
