@@ -3,8 +3,6 @@ import { SupportedChain } from "../../../src/lib/chains";
 import SEER_ENV from "../../../src/lib/env";
 import { gnosis, mainnet } from "./config";
 
-const api = "8b2690ffdd390bad59638b894ee8d9f6";
-
 export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
 
 function getAppUrl() {
