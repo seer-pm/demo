@@ -1,6 +1,6 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
 import { gnosis, mainnet } from "viem/chains";
-import { SUBGRAPHS } from "./netlify/functions/utils/subgraph";
+import { SUBGRAPHS } from "./netlify/edge-functions/subgraph.ts";
 
 const schemasAndDocuments = [
   {
