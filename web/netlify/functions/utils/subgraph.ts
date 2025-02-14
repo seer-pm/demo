@@ -1,6 +1,6 @@
-import { getAppUrl } from "@/lib/utils";
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain } from "../../../src/lib/chains";
+import { getAppUrl } from "../../../src/lib/utils";
 import { gnosis, mainnet } from "./config";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
