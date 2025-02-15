@@ -371,7 +371,7 @@ async function getMarketId(id: string | undefined, url: string | undefined) {
   return id || "";
 }
 
-async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMarket[]> {
+async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
     parentMarket = "",
@@ -382,10 +382,6 @@ async function multiChainSearch(body: FetchMarketParams): Promise<SerializedMark
     orderBy,
     orderDirection,
   } = body;
-
-  // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
-  // we first look up the corresponding market ID in Supabase before querying the subgraph.
-  const id = await getMarketId(body.id, body.url);
 
   const chainIds = (
     chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
@@ -462,8 +458,18 @@ export default async (req: Request) => {
   }
 
   try {
-    const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
-    const markets = await keyValueFetch(hashKey, () => multiChainSearch(body as FetchMarketParams));
+    let markets;
+    // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
+    // we first look up the corresponding market ID in Supabase before querying the subgraph.
+    const id = await getMarketId(body.id, body.url);
+
+    if (id === "") {
+      const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
+      markets = await keyValueFetch(hashKey, () => multiChainSearch(body as FetchMarketParams, id));
+    } else {
+      // Skip caching when querying by ID to ensure fresh data, particularly after user updates like category changes
+      markets = await multiChainSearch(body as FetchMarketParams, id);
+    }
 
     return new Response(JSON.stringify(markets), {
       status: 200,
