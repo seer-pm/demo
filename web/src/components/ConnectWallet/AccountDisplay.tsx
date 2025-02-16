@@ -2,7 +2,7 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
-import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { useAppKit } from "@reown/appkit/react";
 import clsx from "clsx";
 import React from "react";
 import { Address, isAddress } from "viem";
@@ -48,7 +48,7 @@ export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Ad
 };
 
 const AccountDisplay: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
-  const { open } = useWeb3Modal();
+  const { open } = useAppKit();
   const { chain } = useAccount();
   return (
     <div

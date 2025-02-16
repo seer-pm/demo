@@ -458,7 +458,7 @@ export default async (req: Request) => {
   }
 
   try {
-    let markets;
+    let markets: SerializedMarket[];
     // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
