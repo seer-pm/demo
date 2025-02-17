@@ -1,11 +1,11 @@
-import { Chain, gnosis as _gnosis, mainnet as _mainnet, hardhat /*, sepolia*/ } from "wagmi/chains";
+import { Chain, gnosis as _gnosis, mainnet as _mainnet, hardhat, sepolia } from "@reown/appkit/networks";
 import SEER_ENV from "./env";
 
 // override mainnet and gnosis here using defineChain() to test against a forked network
 const mainnet = _mainnet;
 const gnosis = _gnosis;
 
-export { mainnet, gnosis, hardhat };
+export { mainnet, gnosis, hardhat, sepolia };
 
 export const SUPPORTED_CHAINS = {
   [gnosis.id]: gnosis,
