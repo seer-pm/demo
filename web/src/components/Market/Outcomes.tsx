@@ -547,9 +547,11 @@ export function Outcomes({ market, images }: PositionsProps) {
                 </>
               )}
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
-                <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
-                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
-                </div>
+                {market.type === "Generic" && (
+                  <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
+                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  </div>
+                )}
 
                 <input
                   type="radio"

@@ -65,9 +65,9 @@ function OutcomesInfo({
   return (
     <div ref={ref}>
       <div className={clsx("space-y-3")}>
-        {market.outcomes.map((_, j) => {
+        {(market.type === "Generic" ? market.outcomes : ["Yes", "No"]).map((futarchyOutcome, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
-          const outcome = market.outcomes[i];
+          const outcome = market.type === "Futarchy" ? futarchyOutcome : market.outcomes[i];
 
           if (j >= visibleOutcomesLimit) {
             // render the first `visibleOutcomesLimit` outcomes
@@ -97,7 +97,7 @@ function OutcomesInfo({
                 </div>
                 <div className="space-y-1">
                   <div className="group-hover:underline flex items-center gap-2">
-                    #{j + 1} {market.outcomes[i]}{" "}
+                    #{j + 1} {outcome}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
                       `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
@@ -107,11 +107,13 @@ function OutcomesInfo({
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
-              <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">
-                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+              {market.type === "Generic" && (
+                <div className="flex space-x-10 items-center">
+                  <div className="text-[24px] font-semibold">
+                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  </div>
                 </div>
-              </div>
+              )}
             </Link>
           );
         })}
