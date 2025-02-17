@@ -6,3 +6,4 @@ build/*
 contracts/*
 tests/.bin
 tests/.latest.json
+subgraph.yaml

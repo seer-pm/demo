@@ -5,11 +5,12 @@ import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { getCollateralByIndex } from "@/lib/market";
 import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
   tokenName: string;
-  tokenId: string;
+  tokenId: Address;
   tokenIndex: number;
   marketAddress: string;
   marketName: string;
@@ -18,8 +19,8 @@ export interface PortfolioPosition {
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
-  parentTokenId?: string;
-  parentMarketId?: string;
+  collateralToken: Address;
+  parentMarketId?: Address;
   parentMarketName?: string;
   parentOutcome?: string;
 }
@@ -74,7 +75,7 @@ export const fetchPositions = async (
         marketName: market.marketName,
         marketStatus: market.marketStatus,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
-        parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
+        collateralToken: getCollateralByIndex(market, tokenIndex),
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
@@ -82,7 +83,6 @@ export const fetchPositions = async (
     }
     return acumm;
   }, [] as PortfolioPosition[]);
-
   return positions.filter((position) => {
     const market = marketIdToMarket[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {
@@ -93,10 +93,10 @@ export const fetchPositions = async (
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data: markets = [] } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address,
-    queryKey: ["usePositions", address, !!markets, chainId],
+    enabled: !!address && markets.length > 0,
+    queryKey: ["usePositions", address, chainId],
     queryFn: async () => fetchPositions(markets, address, chainId),
   });
 };

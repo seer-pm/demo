@@ -1,5 +1,5 @@
-import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { useCreateMarket } from "@/hooks/useCreateMarket";
+import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
+import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
@@ -233,9 +233,11 @@ export function PreviewForm({
   dateValues,
   goToPrevStep,
   chainId,
+  isFutarchyMarket,
   useOutcomesFormReturn,
 }: FormStepPreview &
   FormWithPrevStep & {
+    isFutarchyMarket: boolean;
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [searchParams] = useSearchParams();
@@ -265,12 +267,18 @@ export function PreviewForm({
   const { Modal, openModal } = useModal("answer-modal");
   const accessToken = useGlobalState((state) => state.accessToken);
 
-  const createMarket = useCreateMarket(async (receipt: TransactionReceipt) => {
-    const marketId = parseEventLogs({
-      abi: marketFactoryAbi,
-      eventName: "NewMarket",
-      logs: receipt.logs,
-    })?.[0]?.args?.market;
+  const createMarket = useCreateMarket(isFutarchyMarket, async (receipt: TransactionReceipt) => {
+    const marketId = isFutarchyMarket
+      ? parseEventLogs({
+          abi: futarchyFactoryAbi,
+          eventName: "NewProposal",
+          logs: receipt.logs,
+        })?.[0]?.args?.proposal
+      : parseEventLogs({
+          abi: marketFactoryAbi,
+          eventName: "NewMarket",
+          logs: receipt.logs,
+        })?.[0]?.args?.market;
 
     if (marketId) {
       setNewMarketId(marketId);
@@ -297,6 +305,8 @@ export function PreviewForm({
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
+      collateralToken1: outcomesValues.collateralToken1,
+      collateralToken2: outcomesValues.collateralToken2,
       outcomes: outcomes,
       tokenNames:
         marketTypeValues.marketType === MarketTypes.SCALAR
@@ -341,8 +351,9 @@ export function PreviewForm({
     collateralToken1: zeroAddress,
     collateralToken2: zeroAddress,
     chainId,
-    marketName:
-      marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
+    marketName: isFutarchyMarket
+      ? getProposalName(outcomesValues.market, openingTime)
+      : marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,
     outcomes: dummyOutcomes,

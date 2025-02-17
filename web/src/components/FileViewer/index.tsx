@@ -1,8 +1,8 @@
-import React from "react";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import React from "react";
 import "@cyntler/react-doc-viewer/dist/index.css";
-import MarkdownRenderer from "./MarkdownViewer";
 import { ExternalLinkIcon } from "@/lib/icons";
+import MarkdownRenderer from "./MarkdownViewer";
 
 const FileViewer: React.FC<{ url: string }> = ({ url }) => {
   const docs = [{ uri: url }];
@@ -10,13 +10,13 @@ const FileViewer: React.FC<{ url: string }> = ({ url }) => {
   return (
     <div>
       <div className="h-fit flex flex-col justify-end items-end px-7 py-2">
-        <a 
-          href={url} 
-          target="_blank" 
+        <a
+          href={url}
+          target="_blank"
           rel="noopener noreferrer"
           className="hover:opacity-65 text-purple-primary flex items-center p-2 space-x-2"
         >
-          Open PDF in new tab <ExternalLinkIcon/>
+          Open PDF in new tab <ExternalLinkIcon />
         </a>
       </div>
       <div className="text-primaryText  justify-center items-center mx-auto">

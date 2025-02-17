@@ -1,6 +1,5 @@
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
 import { Market } from "./useMarket";
 import { useMarketOdds } from "./useMarketOdds";
 import { MarketStatus } from "./useMarketStatus";
@@ -30,10 +29,11 @@ function sortOdds(
 
 export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
   const { data: odds = [] } = useMarketOdds(market, true);
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
+
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
-    enabled: odds.length > 0,
+    enabled: odds.length > 0 && market.type === "Generic",
     queryFn: () => {
       const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
 
