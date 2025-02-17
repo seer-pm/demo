@@ -12,20 +12,15 @@ export default function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
-  isMultiStepsSwap,
 }: {
   account?: Address;
   trade: Trade;
   swapType: "buy" | "sell";
   isDisabled: boolean;
   isLoading: boolean;
-  isMultiStepsSwap: boolean;
 }) {
   const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
-  const isShowApproval =
-    missingApprovals &&
-    missingApprovals.length > 0 &&
-    (swapType === "sell" || (swapType === "buy" && !isMultiStepsSwap));
+  const isShowApproval = missingApprovals && missingApprovals.length > 0;
 
   return (
     <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>

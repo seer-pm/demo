@@ -22,7 +22,7 @@ export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
     categoryList,
     setCategories,
   } = useMarketsSearchParams();
-  const [marketName, setMarketName] = useState(marketNameParam);
+  const [marketName, setMarketName] = useState(marketNameParam || "");
   useEffect(() => {
     setMarketName(marketNameParam ?? "");
   }, [marketNameParam]);

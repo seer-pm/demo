@@ -1,5 +1,6 @@
 import { ImageResponse } from "https://deno.land/x/og_edge/mod.ts";
-import { Address } from "https://esm.sh/viem@2.17.5";
+import React from "https://esm.sh/react@18.2.0";
+import { Address, isAddress } from "https://esm.sh/viem@2.17.5";
 import type { Config, Context } from "@netlify/edge-functions";
 import { formatBigNumbers, formatOdds, getMarketEstimate, getMarketType, isOdd } from "./utils/common.ts";
 import { MarketTypes, SimpleMarket, SupportedChain } from "./utils/types.ts";
@@ -7,12 +8,18 @@ import { MarketTypes, SimpleMarket, SupportedChain } from "./utils/types.ts";
 const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
 
 async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address): Promise<SimpleMarket> {
+  const params: Record<string, string | string[]> = { chainsList: [chainId.toString()] };
+  if (!isAddress(id, { strict: false })) {
+    params.url = id;
+  } else {
+    params.id = id;
+  }
   const response = await fetch(`${baseUrl}/.netlify/functions/markets-search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ chainsList: [chainId.toString()], id: id.toLocaleLowerCase() as Address }),
+    body: JSON.stringify(params),
   });
   const markets = await response.json();
 
@@ -25,7 +32,7 @@ async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address
 
 export default async (request: Request, context: Context) => {
   try {
-    const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/);
+    const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>[^/]+)/);
     const { chainId = "0", marketId = "" } = match?.groups || {};
 
     const market = await fetchMarket(context.site.url, chainId, marketId);

@@ -12,7 +12,7 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
   { value: "crypto", text: "Crypto" },
   { value: "pop_culture", text: "Pop Culture" },
   { value: "sports", text: "Sports" },
-  { value: "mentions", text: "Mentions" },
+  { value: "doge", text: "DOGE" },
   { value: "misc", text: "Miscellaneous" },
 ];
 

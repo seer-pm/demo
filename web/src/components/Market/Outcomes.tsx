@@ -37,17 +37,17 @@ interface PositionsProps {
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
-  const { poolIncentive, endTime, isRewardEnded } =
+  const { poolIncentive, realEndTime, isRewardEnded } =
     pool.incentives.length > 0
       ? {
           poolIncentive:
             pool.incentives[0].apr === 0
               ? `${displayBalance(pool.incentives[0].rewardRate * 86400n, 18, true)} SEER / day`
               : `${pool.incentives[0].apr.toFixed(2)}% APR`,
-          endTime: formatDate(Number(pool.incentives[0].endTime)),
-          isRewardEnded: Number(pool.incentives[0].endTime) * 1000 < new Date().getTime(),
+          realEndTime: formatDate(Number(pool.incentives[0].realEndTime)),
+          isRewardEnded: Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime(),
         }
-      : { poolIncentive: "0 SEER / day", endTime: "", isRewardEnded: true };
+      : { poolIncentive: "0 SEER / day", realEndTime: "", isRewardEnded: true };
   return (
     <div>
       {!isRewardEnded && (
@@ -59,7 +59,7 @@ function poolRewardsInfo(pool: PoolInfo) {
         <div className="flex items-center gap-2">
           <p>
             {isRewardEnded ? "Rewards ended on" : "Rewards end"}:{" "}
-            <span className={isRewardEnded ? "text-[#6E6E6E]" : "text-purple-primary"}>{endTime}</span>
+            <span className={isRewardEnded ? "text-[#6E6E6E]" : "text-purple-primary"}>{realEndTime}</span>
           </p>
         </div>
       )}
@@ -105,6 +105,7 @@ function AddLiquidityInfo({
   const exitFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
     return async () => {
       await exitFarming.mutateAsync({
+        account: address!,
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
         rewardToken: poolIncentive.rewardToken,
         bonusRewardToken: poolIncentive.bonusRewardToken,
@@ -410,7 +411,7 @@ function OutcomeDetails({
             </button>
           )}
           <a
-            href={blockExplorerUrl && `${blockExplorerUrl}/address/${wrappedAddress}`}
+            href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-purple-primary tooltip"

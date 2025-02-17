@@ -1,7 +1,7 @@
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { Pool } from "./fetchPools.ts";
-import { SUBGRAPHS } from "./subgraph.ts";
+import { getSubgraphUrl } from "./subgraph.ts";
 
 interface EternalFarming {
   id: string;
@@ -32,7 +32,7 @@ async function fetchEternalFarmings(poolIds: string[]): Promise<EternalFarming[]
           endTime
         }
       }`;
-    const results = await fetch(SUBGRAPHS.algebra[gnosis.id]!, {
+    const results = await fetch(getSubgraphUrl("algebrafarming", gnosis.id), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

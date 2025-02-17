@@ -5,7 +5,9 @@ import { Market } from "@/hooks/useMarket";
 import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
-import { useEffect, useRef, useState } from "react";
+import { isUndefined } from "@/lib/utils";
+import { InputPotentialReturnContext } from "@/pages/markets/@chainId/@id/+Page";
+import { useContext, useEffect, useRef, useState } from "react";
 
 function PotentialReturnConfig({
   market,
@@ -24,12 +26,9 @@ function PotentialReturnConfig({
   outcomeText: string;
   isCollateralDai: boolean;
 }) {
+  const { input, setInput } = useContext(InputPotentialReturnContext);
   const [isShow, setShow] = useState(false);
-  const [input, setInput] = useState<{ multiCategorical: string[]; scalar: number; multiScalar: number[] }>({
-    multiCategorical: [],
-    scalar: 0,
-    multiScalar: [],
-  });
+
   const multiSelectRef = useRef<HTMLDivElement>(null);
   const renderInputByMarketType = () => {
     const marketType = getMarketType(market);
@@ -106,6 +105,17 @@ function PotentialReturnConfig({
     const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
     switch (marketType) {
       case MarketTypes.SCALAR: {
+        if (isUndefined(input.scalar)) {
+          if (outcomeTokenIndex === 0) {
+            setInput((state) => ({ ...state, scalar: Number(market.lowerBound) }));
+            break;
+          }
+          if (outcomeTokenIndex === 1) {
+            setInput((state) => ({ ...state, scalar: Number(market.upperBound) }));
+            break;
+          }
+          break;
+        }
         if (outcomeTokenIndex === 0) {
           if (input.scalar <= Number(market.lowerBound)) {
             setReturnPerToken(1);
@@ -135,6 +145,10 @@ function PotentialReturnConfig({
         break;
       }
       case MarketTypes.MULTI_CATEGORICAL: {
+        if (!input.multiCategorical.length) {
+          setInput((state) => ({ ...state, multiCategorical: [outcomeText] }));
+          break;
+        }
         if (!input.multiCategorical.includes(outcomeText)) {
           setReturnPerToken(0);
           break;
@@ -143,7 +157,15 @@ function PotentialReturnConfig({
         break;
       }
       case MarketTypes.MULTI_SCALAR: {
-        const sum = input.multiScalar.reduce((acc, curr) => acc + curr, 0);
+        if (!input.multiScalar[outcomeTokenIndex]) {
+          setInput((state) => {
+            const defaultPoints = [...state.multiScalar];
+            defaultPoints[outcomeTokenIndex] = 1;
+            return { ...state, multiScalar: defaultPoints };
+          });
+          break;
+        }
+        const sum = input.multiScalar.reduce((acc, curr) => acc + (curr ?? 0), 0);
         setReturnPerToken(sum ? (input.multiScalar[outcomeTokenIndex] ?? 0) / sum : 0);
       }
     }
@@ -166,6 +188,17 @@ function PotentialReturnConfig({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
+      return;
+    }
+    setInput({
+      multiCategorical: [],
+      scalar: undefined,
+      multiScalar: [],
+    });
+  }, [outcomeText]);
   const { sDaiToDai } = useSDaiDaiRatio(market.chainId);
   const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
   return (

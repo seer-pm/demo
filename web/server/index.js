@@ -42,7 +42,7 @@ async function startServer() {
   // ...
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
   // Proxy middleware for Netlify functions
-  app.all('/.netlify/*', async (req, res) => {
+  app.all(['/.netlify/*', '/subgraph'], async (req, res) => {
     const url = `https://app.seer.pm${req.url}`;
     try {
       const response = await fetch(url, {

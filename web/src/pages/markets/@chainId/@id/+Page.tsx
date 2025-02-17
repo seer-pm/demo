@@ -20,10 +20,28 @@ import { getLiquidityPairForToken, isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
+
+export const InputPotentialReturnContext = createContext<{
+  input: { multiCategorical: string[]; scalar: number | undefined; multiScalar: number[] };
+  setInput: React.Dispatch<
+    React.SetStateAction<{
+      multiCategorical: string[];
+      scalar: number | undefined;
+      multiScalar: number[];
+    }>
+  >;
+}>({
+  input: {
+    multiCategorical: [],
+    scalar: undefined,
+    multiScalar: [],
+  },
+  setInput: () => {},
+});
 
 function SwapWidget({
   market,
@@ -54,7 +72,12 @@ function SwapWidget({
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
-    return <Alert type="info">Trading is closed, but you can still mint, merge, or redeem tokens.</Alert>;
+    return (
+      <Alert type="info">
+        The trade widget is hidden for closed markets. But you can still interact with your ERC20 outcome tokens onchain
+        as well as mint, merge, redeem.
+      </Alert>
+    );
   }
 
   if (!outcomeToken) {
@@ -78,9 +101,17 @@ function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
   const [searchParams] = useSearchParams();
-
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
+  const [inputPotentialReturn, setInputPotentialReturn] = useState<{
+    multiCategorical: string[];
+    scalar: number | undefined;
+    multiScalar: number[];
+  }>({
+    multiCategorical: [],
+    scalar: undefined,
+    multiScalar: [],
+  });
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
   const { data: images } = useMarketImages(market?.id, chainId);
@@ -169,14 +200,17 @@ function MarketPage() {
             <Outcomes market={market} images={images?.outcomes} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            <SwapWidget
-              router={router}
-              market={market}
-              account={account}
-              outcomeIndex={outcomeIndex}
-              images={images?.outcomes}
-            />
-
+            <InputPotentialReturnContext.Provider
+              value={{ input: inputPotentialReturn, setInput: setInputPotentialReturn }}
+            >
+              <SwapWidget
+                router={router}
+                market={market}
+                account={account}
+                outcomeIndex={outcomeIndex}
+                images={images?.outcomes}
+              />
+            </InputPotentialReturnContext.Provider>
             <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">

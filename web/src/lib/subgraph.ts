@@ -2,7 +2,7 @@ import { GraphQLClient } from "graphql-request";
 import { SupportedChain, gnosis, mainnet } from "./chains";
 import { getAppUrl } from "./utils";
 
-const SUBGRAPH_ENDPOINT = `${getAppUrl()}/.netlify/functions/subgraph`;
+const SUBGRAPH_ENDPOINT = `${getAppUrl()}/subgraph`;
 
 export function getSubgraphuUrl(
   subgraphType: "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming",

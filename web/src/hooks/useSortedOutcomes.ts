@@ -11,6 +11,22 @@ type OutcomeWithOdds = {
   isWinning?: boolean;
 };
 
+function sortOdds(
+  a: {
+    odd: number;
+    i: number;
+  },
+  b: {
+    odd: number;
+    i: number;
+  },
+) {
+  if (Number.isNaN(a.odd) && Number.isNaN(b.odd)) return 0;
+  if (Number.isNaN(a.odd)) return 1;
+  if (Number.isNaN(b.odd)) return -1;
+  return b.odd - a.odd;
+}
+
 export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
   const { data: odds = [] } = useMarketOdds(market, true);
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
@@ -25,7 +41,7 @@ export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
         const otherIndexes = odds
           .map((odd, i) => ({ odd, i }))
           .filter(({ i }) => i !== invalidIndex)
-          .sort((a, b) => b.odd - a.odd)
+          .sort(sortOdds)
           .map((obj) => obj.i);
 
         return [invalidIndex, ...otherIndexes];
@@ -42,9 +58,8 @@ export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
         }
       });
 
-      const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-      const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-
+      const sortedWinning = winningIndexes.sort(sortOdds).map((obj) => obj.i);
+      const sortedNonWinning = nonWinningIndexes.sort(sortOdds).map((obj) => obj.i);
       return [...sortedWinning, ...sortedNonWinning];
     },
   });

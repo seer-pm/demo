@@ -1,6 +1,36 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis, mainnet } from "viem/chains";
-import { SUBGRAPHS } from "./netlify/functions/utils/subgraph";
+import { gnosis, mainnet, sepolia } from "viem/chains";
+
+const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
+
+export type SupportedChain = (typeof chainIds)[number];
+const api = "8b2690ffdd390bad59638b894ee8d9f6";
+
+export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
+export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
+  seer: {
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
+    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
+  },
+  curate: {
+    // TODO: add fallback urls? or change subgraph?
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
+    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
+  },
+  "curate-fallback": {
+    [gnosis.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-gnosis/version/latest",
+    [mainnet.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-mainnet/version/latest",
+  },
+  algebra: {
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
+  },
+  algebrafarming: {
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
+  },
+  uniswap: {
+    [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  },
+};
 
 const schemasAndDocuments = [
   {

@@ -2,7 +2,6 @@ import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
@@ -10,8 +9,8 @@ import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import { PriceQuality } from "@cowprotocol/cow-sdk";
 import {
   CoWTrade,
+  Currency,
   CurrencyAmount,
-  DAI,
   Percent,
   Token as SwaprToken,
   SwaprV3Trade,
@@ -19,14 +18,12 @@ import {
   Trade,
   TradeType,
   UniswapTrade,
-  WXDAI,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
-import { convertToSDAI } from "./handleSDAI";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
@@ -41,9 +38,9 @@ export interface QuoteTradeResult {
 }
 
 function getUniswapTrade(
-  _currencyIn: SwaprToken,
-  currencyOut: SwaprToken,
-  currencyAmountIn: TokenAmount,
+  _currencyIn: Currency,
+  currencyOut: Currency,
+  currencyAmountIn: CurrencyAmount,
   maximumSlippage: Percent,
   account: Address | undefined,
   _chainId: number,
@@ -58,9 +55,9 @@ function getUniswapTrade(
 }
 
 function getSwaprTrade(
-  _currencyIn: SwaprToken,
-  currencyOut: SwaprToken,
-  currencyAmountIn: TokenAmount,
+  _currencyIn: Currency,
+  currencyOut: Currency,
+  currencyAmountIn: CurrencyAmount,
   maximumSlippage: Percent,
   account: Address | undefined,
   _chainId: number,
@@ -160,7 +157,7 @@ export const getCowQuote: QuoteTradeFn = async (
   swapType: "buy" | "sell",
   isFastQuery?: boolean,
 ) => {
-  const args = await getCowTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
 
   const trade = await CoWTrade.bestTradeExactIn({
     currencyAmountIn: args.currencyAmountIn,
@@ -186,71 +183,67 @@ export const getCowQuote: QuoteTradeFn = async (
   };
 };
 
-async function convertCollateralToShares(
+// async function convertCollateralToShares(
+//   chainId: number,
+//   amount: string,
+//   collateralToken: Token,
+//   swapType: "buy" | "sell",
+// ) {
+//   const sDAI = COLLATERAL_TOKENS[chainId].primary;
+//   if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address))) {
+//     return { amount, collateralToken: sDAI };
+//   }
+
+//   const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
+//   return { amount: formatUnits(newAmount, sDAI.decimals), collateralToken: sDAI };
+// }
+
+// export function iswxsDAI(token: Token, chainId: number) {
+//   return (
+//     isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
+//     (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
+//     isTwoStringsEqual(token.address, WXDAI[chainId]?.address) || // wxDAI
+//     isTwoStringsEqual(token.address, DAI[chainId]?.address)
+//   );
+// }
+
+function getCurrenciesFromTokens(
   chainId: number,
+  buyToken: Token,
+  sellToken: Token,
   amount: string,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-) {
-  const sDAI = COLLATERAL_TOKENS[chainId].primary;
-  if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address))) {
-    return { amount, collateralToken: sDAI };
+): {
+  currencyIn: Currency;
+  currencyOut: Currency;
+  currencyAmountIn: CurrencyAmount;
+} {
+  let currencyIn: Currency;
+  let currencyAmountIn: CurrencyAmount;
+  if (isTwoStringsEqual(sellToken.address, NATIVE_TOKEN)) {
+    currencyIn = SwaprToken.getNative(chainId);
+    currencyAmountIn = CurrencyAmount.nativeCurrency(parseUnits(String(amount), currencyIn.decimals), chainId);
+  } else {
+    const tokenIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
+    currencyAmountIn = new TokenAmount(tokenIn, parseUnits(String(amount), tokenIn.decimals));
+    currencyIn = tokenIn;
   }
 
-  const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
-  return { amount: formatUnits(newAmount, sDAI.decimals), collateralToken: sDAI };
-}
+  let currencyOut: Currency;
+  if (isTwoStringsEqual(buyToken.address, NATIVE_TOKEN)) {
+    currencyOut = SwaprToken.getNative(chainId);
+  } else {
+    currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
+  }
 
-export function iswxsDAI(token: Token, chainId: number) {
-  return (
-    isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
-    (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
-    isTwoStringsEqual(token.address, WXDAI[chainId]?.address) || // wxDAI
-    isTwoStringsEqual(token.address, DAI[chainId]?.address)
-  );
+  return {
+    currencyIn,
+    currencyOut,
+    currencyAmountIn,
+  };
 }
 
 async function getTradeArgs(
   chainId: number,
-  initialAmount: string,
-  outcomeToken: Token,
-  initialCollateralToken: Token,
-  swapType: "buy" | "sell",
-) {
-  // convert wxdai,xdai or dai to sDAI
-  const { amount, collateralToken } = iswxsDAI(initialCollateralToken, chainId)
-    ? await convertCollateralToShares(chainId, initialAmount, initialCollateralToken, swapType)
-    : { amount: initialAmount, collateralToken: initialCollateralToken };
-  const [buyToken, sellToken] =
-    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
-
-  const sellAmount = parseUnits(String(amount), sellToken.decimals);
-
-  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
-
-  const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
-
-  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
-  const [numerator, denominator] = parseFraction(slippage) ?? [];
-  const maximumSlippage =
-    Number.isInteger(numerator) && Number.isInteger(denominator)
-      ? new Percent(String(numerator), String(denominator))
-      : new Percent("1", "100");
-
-  return {
-    buyToken,
-    sellToken,
-    sellAmount,
-    currencyIn,
-    currencyOut,
-    currencyAmountIn,
-    maximumSlippage,
-  };
-}
-
-async function getCowTradeArgs(
-  chainId: number,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
@@ -261,14 +254,7 @@ async function getCowTradeArgs(
 
   const sellAmount = parseUnits(String(amount), sellToken.decimals);
 
-  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
-  let currencyAmountIn: CurrencyAmount;
-  if (isTwoStringsEqual(sellToken.address, NATIVE_TOKEN)) {
-    currencyAmountIn = CurrencyAmount.nativeCurrency(parseUnits(String(amount), currencyIn.decimals), chainId);
-  } else {
-    currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
-  }
+  const { currencyIn, currencyOut, currencyAmountIn } = getCurrenciesFromTokens(chainId, buyToken, sellToken, amount);
 
   const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
   const [numerator, denominator] = parseFraction(slippage) ?? [];

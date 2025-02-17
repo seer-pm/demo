@@ -140,10 +140,10 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
   };
   const isDefaultOrder = watch("orderBy") === "default" || !watch("orderBy");
   return (
-    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-10 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
+    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-5 @container">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
         <div className="px-10">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Market States{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -159,7 +159,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {MARKET_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -204,7 +204,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="px-10">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Verification Status{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -220,7 +220,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {VERIFY_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -265,7 +265,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="px-10">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Chain{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -281,7 +281,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {CHAINS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -327,7 +327,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="px-10">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Sort By <ArrowSwap />
             <div className="flex gap-2 ml-auto">
               <div
@@ -364,7 +364,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {ORDER_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -396,7 +396,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
           />
         </div>
         <div className="px-10">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Conditional Market{" "}
             <div className="flex-shrink-0">
               <Filter />

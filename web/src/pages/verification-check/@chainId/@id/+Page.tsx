@@ -97,7 +97,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
               <div className="flex items-center justify-center space-x-2" key={i}>
                 <span>{token.name}</span>{" "}
                 <a
-                  href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[i]}`}
+                  href={blockExplorerUrl && `${blockExplorerUrl}/token/${market.wrappedTokens[i]}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-purple-primary"
