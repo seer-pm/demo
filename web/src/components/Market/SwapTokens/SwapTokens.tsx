@@ -213,7 +213,7 @@ export function SwapTokens({
         <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] shadow-md">
           <div className="flex items-center space-x-[12px]">
             <div>
-              <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />
+              <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidResult} title={outcomeText} />
             </div>
             <div className="text-[16px]">{outcomeText}</div>
           </div>

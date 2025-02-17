@@ -92,7 +92,7 @@ function OutcomesInfo({
                 <div className="w-[65px] flex-shrink-0">
                   <OutcomeImage
                     image={images?.[i]}
-                    isInvalidResult={i === market.outcomes.length - 1}
+                    isInvalidOutcome={i === market.outcomes.length - 1}
                     title={outcome}
                   />
                 </div>
