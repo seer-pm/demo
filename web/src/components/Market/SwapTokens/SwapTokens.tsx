@@ -362,7 +362,12 @@ export function SwapTokens({
                   {quoteIsLoading || isFetching ? (
                     <div className="shimmer-container ml-2 w-[100px]" />
                   ) : (
-                    <div className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary")}>
+                    <div
+                      className={clsx(
+                        "text-right",
+                        returnPercentage >= 0 ? "text-success-primary" : "text-error-primary",
+                      )}
+                    >
                       {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} (
                       {returnPercentage.toFixed(2)}%)
                     </div>
