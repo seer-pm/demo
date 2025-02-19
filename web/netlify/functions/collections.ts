@@ -1,13 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
+function parseCollectionId(url: string) {
+  return url.split("/collections/")[1].split("/")[0] || null;
+}
+
 export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
     if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
-
+    const collectionId = parseCollectionId(req.url);
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
     // Handle GET request
@@ -16,7 +20,7 @@ export default async (req: Request) => {
         .from("collections_markets")
         .select("market_id")
         .eq("user_id", userId)
-        .is("collection_id", null);
+        [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
 
       return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
     }
