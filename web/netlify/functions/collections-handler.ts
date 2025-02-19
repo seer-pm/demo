@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
-require("dotenv").config();
 
 function parseCollectionId(url: string) {
   return url.split("/collections-handler/")[1].split("/")[0] || null;
