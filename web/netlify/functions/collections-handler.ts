@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
 function parseCollectionId(url: string) {
-  return url.split("/collections-handler/")[1].split("/")[0] || null;
+  return url.split("/")[url.split("/").indexOf("collections-handler") + 1] || null;
 }
 
 export default async (req: Request) => {
