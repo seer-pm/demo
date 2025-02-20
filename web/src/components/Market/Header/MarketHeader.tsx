@@ -41,7 +41,6 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
-  isHideFavorite?: boolean;
 }
 
 function OutcomesInfo({
@@ -177,13 +176,7 @@ function PoolTokensInfo({ market, marketStatus }: { market: Market; marketStatus
   );
 }
 
-export function MarketHeader({
-  market,
-  images,
-  type = "default",
-  outcomesCount = 0,
-  isHideFavorite,
-}: MarketHeaderProps) {
+export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketStatus = getMarketStatus(market);
@@ -237,9 +230,7 @@ export function MarketHeader({
                 <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
               </a>
             </div>
-            {market.id !== "0x000" && !isHideFavorite && (
-              <MarketFavorite market={market} colorClassName={colors?.text} />
-            )}
+            {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
         <div>{market.index && `#${market.index}`}</div>
