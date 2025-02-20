@@ -21,7 +21,7 @@ import { useSignIn } from "@/hooks/useSignIn";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { EditIcon, PlusCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { checkWalletConnectCallback, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
+import { checkWalletConnectCallback, isAccessTokenExpired, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
@@ -82,7 +82,7 @@ function CollectionsPage() {
   });
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
+    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] ">
       <Breadcrumb links={[{ title: "Collections" }]} />
       <AddCollectionModal
         className="max-w-[500px]"
@@ -161,20 +161,13 @@ function CollectionsPage() {
       />
       {!address ||
         (isAccessTokenExpired(accessToken) && (
-          <div className="container-fluid py-[24px] lg:py-[65px] space-y-4">
-            <Alert type="info" title="Sign in">
-              Sign in to view and manage your market collections.
-              <div className="mt-2">
-                <Button
-                  type="button"
-                  text="Sign In"
-                  onClick={async () => {
-                    checkWalletConnectAndSignIn();
-                  }}
-                />
-              </div>
-            </Alert>
-          </div>
+          <button
+            className="text-purple-primary hover:opacity-80"
+            type="button"
+            onClick={() => checkWalletConnectAndSignIn()}
+          >
+            Sign in to view and manage your market collections
+          </button>
         ))}
 
       {isAccountConnectedAndSignedIn && collections.length > 0 && (
@@ -210,7 +203,12 @@ function CollectionsPage() {
       {currentCollection && (
         <div>
           <div className="flex gap-2 items-center">
-            <p className="text-[24px] font-semibold">{currentCollection.name}</p>
+            <p className="text-[24px] font-semibold">
+              {currentCollection.name}
+              {isTwoStringsEqual(currentCollection.userId, address)
+                ? ""
+                : ` (${shortenAddress(currentCollection.userId)}'s collection)`}
+            </p>
             {id !== "default" &&
               isAccountConnectedAndSignedIn &&
               isTwoStringsEqual(currentCollection.userId, address) && (
@@ -262,11 +260,7 @@ function CollectionsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
-          <PreviewCard
-            key={market.id}
-            market={market}
-            isHideFavorite={isTwoStringsEqual(currentCollection?.userId, address)}
-          />
+          <PreviewCard key={market.id} market={market} />
         ))}
       </div>
       <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
