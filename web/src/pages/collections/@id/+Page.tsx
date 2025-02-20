@@ -159,16 +159,15 @@ function CollectionsPage() {
           </div>
         }
       />
-      {!address ||
-        (isAccessTokenExpired(accessToken) && (
-          <button
-            className="text-purple-primary hover:opacity-80"
-            type="button"
-            onClick={() => checkWalletConnectAndSignIn()}
-          >
-            Sign in to view and manage your market collections
-          </button>
-        ))}
+      {(!address || isAccessTokenExpired(accessToken)) && (
+        <button
+          className="text-purple-primary hover:opacity-80"
+          type="button"
+          onClick={() => checkWalletConnectAndSignIn()}
+        >
+          Sign in to view and manage your market collections
+        </button>
+      )}
 
       {isAccountConnectedAndSignedIn && collections.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
