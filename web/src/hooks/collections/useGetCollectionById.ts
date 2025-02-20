@@ -1,8 +1,10 @@
 import { getAppUrl } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { id } from "ethers/lib/utils";
 
 export function useGetCollectionById(collectionId: string) {
   return useQuery<{ id: string; name: string; userId: string }>({
+    enabled: !!id,
     queryKey: ["useGetCollectionById", collectionId],
     queryFn: async () => {
       return fetch(`${getAppUrl()}/.netlify/functions/collections-handler/${collectionId}`)

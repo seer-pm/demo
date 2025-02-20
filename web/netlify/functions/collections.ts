@@ -12,6 +12,9 @@ export default async (req: Request) => {
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
     // Handle GET request
     if (req.method === "GET") {
+      if (!collectionId && !userId) {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
       let query = supabase
         .from("collections_markets")
         .select("market_id")

@@ -48,8 +48,8 @@ function CollectionsPage() {
   let { data: collections = [] } = useGetCollections();
   collections = [{ id: "default", name: "Default" }, ...collections];
 
-  const { data: currentCollection } = useGetCollectionById(id);
-
+  let { data: currentCollection } = useGetCollectionById(id === "default" ? "" : id);
+  currentCollection = id === "default" ? { id: "default", name: "Default", userId: address ?? "" } : currentCollection;
   const { data: collectionMarkets } = useCollectionMarkets(id === "default" ? "" : id);
   const params = useMarketsSearchParams();
   const results = useMarkets({ ...params, marketIds: collectionMarkets, disabled: !collectionMarkets?.length });
@@ -207,7 +207,9 @@ function CollectionsPage() {
               {currentCollection.name}
               {isTwoStringsEqual(currentCollection.userId, address)
                 ? ""
-                : ` (${shortenAddress(currentCollection.userId)}'s collection)`}
+                : currentCollection.userId
+                  ? ` (${shortenAddress(currentCollection.userId)}'s collection)`
+                  : ""}
             </p>
             {id !== "default" &&
               isAccountConnectedAndSignedIn &&
@@ -222,7 +224,7 @@ function CollectionsPage() {
                         type="button"
                         className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
                         onClick={() => {
-                          setInput(currentCollection.name);
+                          setInput(currentCollection!.name);
                           openUpdateCollectionModal();
                         }}
                       >
