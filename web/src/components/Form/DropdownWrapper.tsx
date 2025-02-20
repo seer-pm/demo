@@ -16,6 +16,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
   const { className, children, content, offset, direction = "left", isOpen, setIsOpen } = props;
   const [actualDirection, setActualDirection] = useState<"left" | "right">("left");
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, right: 0 });
+  const [isPositioned, setIsPositioned] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -53,6 +54,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
           left: triggerRect.left + window.scrollX,
           right: triggerRect.right,
         });
+        setIsPositioned(true);
       }
     };
 
@@ -101,6 +103,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
               (contentRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
             }}
             style={{
+              visibility: isPositioned ? "visible" : "hidden",
               top: `${dropdownPosition.top + (offset?.top ?? 0)}px`,
               ...(actualDirection === "left"
                 ? { left: `${dropdownPosition.left + (offset?.left ?? 0)}px` }
