@@ -161,7 +161,7 @@ export function isAccessTokenExpired(accessToken: string) {
 export async function fetchAuth(
   accessToken: string,
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   body?: Record<string, string | string[] | number | undefined | null>,
 ) {
   const response = await fetch(url, {
@@ -170,7 +170,7 @@ export async function fetchAuth(
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: method === "POST" ? JSON.stringify(body) : undefined,
+    body: method === "POST" || method === "PATCH" ? JSON.stringify(body) : undefined,
   });
 
   const json = await response.json();

@@ -238,6 +238,7 @@ export async function searchGraphMarkets(
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
   orderDirection: "asc" | "desc" | undefined,
+  marketIds: string[] | undefined,
 ) {
   const now = String(Math.round(new Date().getTime() / 1000));
 
@@ -250,6 +251,10 @@ export async function searchGraphMarkets(
 
   if (parentMarket) {
     where["parentMarket"] = parentMarket.toLowerCase();
+  }
+
+  if (marketIds?.length) {
+    where.id_in = marketIds;
   }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
@@ -381,6 +386,7 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     participant = "",
     orderBy,
     orderDirection,
+    marketIds,
   } = body;
 
   const chainIds = (
@@ -402,6 +408,7 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
           participant,
           orderBy,
           orderDirection,
+          marketIds,
         ),
       ),
     )

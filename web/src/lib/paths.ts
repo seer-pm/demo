@@ -17,6 +17,7 @@ export const paths = {
   market: marketPath,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
+  collection: (collectionId: string) => `/collections/${collectionId}`,
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
     `https://resolve.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
   farmingProgram: () => "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",

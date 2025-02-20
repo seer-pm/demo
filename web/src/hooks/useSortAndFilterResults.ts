@@ -2,7 +2,7 @@ import { isTextInString } from "@/lib/utils";
 import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
-import { useFavorites } from "./useFavorites";
+import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
 import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
@@ -14,7 +14,7 @@ export const useSortAndFilterResults = (
   result: UseQueryResult<Market[] | undefined, Error>,
 ) => {
   const { address = "" } = useAccount();
-  const { data: favorites = [] } = useFavorites();
+  const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
@@ -59,7 +59,8 @@ export const useSortAndFilterResults = (
   // favorite markets on top, we use reduce to keep the current sort order
   const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
     (total, market) => {
-      if (favorites.includes(market.id)) {
+      const isFavorite = collectionsMarkets.map((x) => x.marketId).includes(market.id);
+      if (isFavorite) {
         total[0].push(market);
       } else {
         total[1].push(market);

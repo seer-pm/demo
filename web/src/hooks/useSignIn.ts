@@ -6,8 +6,8 @@ import { signMessage } from "@wagmi/core";
 import { Address } from "viem";
 import { createSiweMessage, generateSiweNonce } from "viem/siwe";
 import { useAccount } from "wagmi";
+import { updateCollectionItem } from "./collections/useUpdateCollectionItem";
 import { useGlobalState } from "./useGlobalState";
-import { updateCollectionItem } from "./useUpdateCollectionItem";
 
 export const createMessage = (address: `0x${string}`, nonce: string, chainId: number, statement?: string) => {
   const domain = window.location.host;
