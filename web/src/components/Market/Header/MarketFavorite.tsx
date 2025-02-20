@@ -76,33 +76,37 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
           // biome-ignore lint/complexity/noUselessFragments:
           <>
             {isAccountConnectedAndSignedIn ? (
-              <div className="p-4 space-y-3  max-h-[300px] overflow-y-auto custom-scrollbar">
+              <div className="p-4 space-y-3">
                 <p className="font-semibold">Collections</p>
-                {collections.map((collection) => (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    className="text-[14px] w-full flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
-                    onClick={() => {
-                      updateCollectionItem.mutateAsync({
-                        marketIds: [market.id],
-                        accessToken,
-                        collectionId: collection.id === "default" ? undefined : collection.id,
-                      });
-                      setIsOpen(false);
-                    }}
-                  >
-                    <p>{collection.name}</p>
-                    {collectionsMarkets
-                      .filter((x) => (!x.collectionId ? collection.id === "default" : x.collectionId === collection.id))
-                      .map((x) => x.marketId)
-                      .includes(market.id) ? (
-                      <CheckIcon />
-                    ) : (
-                      <PlusIcon />
-                    )}
-                  </button>
-                ))}
+                <div className="space-y-3 max-h-[200px] overflow-y-auto custom-scrollbar">
+                  {collections.map((collection) => (
+                    <button
+                      key={collection.id}
+                      type="button"
+                      className="text-[14px] w-full flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                      onClick={() => {
+                        updateCollectionItem.mutateAsync({
+                          marketIds: [market.id],
+                          accessToken,
+                          collectionId: collection.id === "default" ? undefined : collection.id,
+                        });
+                        setIsOpen(false);
+                      }}
+                    >
+                      <p>{collection.name}</p>
+                      {collectionsMarkets
+                        .filter((x) =>
+                          !x.collectionId ? collection.id === "default" : x.collectionId === collection.id,
+                        )
+                        .map((x) => x.marketId)
+                        .includes(market.id) ? (
+                        <CheckIcon />
+                      ) : (
+                        <PlusIcon />
+                      )}
+                    </button>
+                  ))}
+                </div>
                 <div className="w-full h-[1px] bg-[#eaeaea]" />
                 <button
                   className={clsx(
