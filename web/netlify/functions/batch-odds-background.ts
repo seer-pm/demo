@@ -7,12 +7,10 @@ import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
 export default async () => {
-  if (!process.env.VITE_SUPABASE_PROJECT_URL || !process.env.VITE_SUPABASE_API_KEY) {
-    return;
-  }
   try {
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
     console.log("fetching markets...");
     const markets = await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) });
 

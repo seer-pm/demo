@@ -1,14 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
 export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
     if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
     // Handle GET request
     if (req.method === "GET") {
       const { data: collectionsMarkets } = await supabase.from("collections_markets").select().eq("user_id", userId);

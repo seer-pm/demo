@@ -3,9 +3,9 @@ import { verifyToken } from "./utils/auth";
 import { getPostmarkClient } from "./utils/common";
 import { FROM_EMAIL } from "./utils/common";
 
-export default async (req: Request) => {
-  const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
+export default async (req: Request) => {
   // Handle GET request
   if (req.method === "GET") {
     const userId = verifyToken(req.headers.get("Authorization") || "");

@@ -5,12 +5,13 @@ import { SupportedChain } from "../../src/lib/chains.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { getSubgraphUrl } from "./utils/subgraph.ts";
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 interface NetworkContracts {
   realityETH: `0x${string}`;
   conditionalTokens: `0x${string}`;
 }
+
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 const NETWORK_CONTRACTS: Record<number, NetworkContracts> = {
   // Mainnet

@@ -4,14 +4,14 @@ import jwt from "jsonwebtoken";
 import { parseSiweMessage } from "viem/siwe";
 import { config } from "./utils/config";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
 export default async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
   try {
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
     const { signature, message } = await req.json();
     if (!signature || !message) {
       return new Response(JSON.stringify({ error: "Missing signature or message" }), { status: 400 });

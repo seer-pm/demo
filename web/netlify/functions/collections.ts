@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
 function parseCollectionId(url: string) {
   return url.split("/")[url.split("/").indexOf("collections") + 1] || null;
 }
@@ -9,7 +11,6 @@ export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
     const collectionId = parseCollectionId(req.url);
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
     // Handle GET request
     if (req.method === "GET") {
       if (!collectionId && !userId) {
