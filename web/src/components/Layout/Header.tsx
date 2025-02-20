@@ -7,6 +7,7 @@ import { useSignIn } from "@/hooks/useSignIn";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import {
+  AccountCircleIcon,
   BookIcon,
   BugIcon,
   CloseIcon,
@@ -112,8 +113,8 @@ export default function Header() {
 
   return (
     <header>
-      <nav className="navbar justify-between bg-purple-dark px-[24px] text-white gap-4">
-        <div className="min-[1150px]:w-1/3 w-1/4">
+      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4">
+        <div>
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
@@ -121,7 +122,7 @@ export default function Header() {
 
         {mobileMenuOpen && <MobileMenu />}
 
-        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center">
+        <ul className="ml-10 hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center">
           <li>
             <Link to={"/"} className="hover:opacity-85">
               Markets
@@ -159,20 +160,37 @@ export default function Header() {
               Airdrop
             </Link>
           </li>
-          <li>
-            <Link to={"/portfolio"} className="hover:opacity-85">
-              Portfolio
-            </Link>
-          </li>
         </ul>
 
-        <ul className="hidden lg:menu-horizontal gap-[16px] justify-end w-1/3">
+        <ul className="hidden lg:menu-horizontal gap-[16px] justify-end w-1/3 ml-auto">
           <li>
             <ConnectWallet />
           </li>
-
+          <div className="dropdown dropdown-end mt-[5px]">
+            <button type="button" tabIndex={0} className="hover:opacity-85">
+              <AccountCircleIcon />
+            </button>
+            <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+              <li>
+                <Link
+                  to={"/portfolio"}
+                  className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                >
+                  Portfolio
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to={"/collections/default"}
+                  className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                >
+                  Market Collections
+                </Link>
+              </li>
+            </ul>
+          </div>
           <li className="flex items-center space-x-2">
-            <div className="dropdown dropdown-end">
+            <div className="dropdown dropdown-end mt-[5px]">
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <NotificationIcon />
               </button>
@@ -182,7 +200,7 @@ export default function Header() {
                 </li>
               </ul>
             </div>
-            <div className="dropdown dropdown-end">
+            <div className="dropdown dropdown-end mt-[3px]">
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
               </button>
@@ -246,7 +264,7 @@ export default function Header() {
             </div>
           </li>
         </ul>
-        <div className="lg:hidden">
+        <div className="lg:hidden ml-auto">
           <button type="button" onClick={toggleMenu}>
             {mobileMenuOpen ? <CloseIcon /> : <Menu />}
           </button>
@@ -342,6 +360,11 @@ function MobileMenu() {
           <li>
             <Link to={"/portfolio"} className="hover:font-semibold">
               Portfolio
+            </Link>
+          </li>
+          <li>
+            <Link to={"/collections/default"} className="hover:font-semibold">
+              Market Collections
             </Link>
           </li>
         </ul>

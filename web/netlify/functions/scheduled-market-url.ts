@@ -1,4 +1,5 @@
 import { SupportedChain } from "@/lib/chains.ts";
+import { unescapeJson } from "@/lib/reality.ts";
 import { formatDate } from "@/lib/utils.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
@@ -51,7 +52,7 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: Address[
             url,
             chain_id: chainId,
             metadata: {
-              title: `Seer | ${market.marketName}`,
+              title: `Seer | ${unescapeJson(market.marketName)}`,
               description: `Answer opening date: ${`${formatDate(
                 market.questions[0].question.opening_ts,
               )} UTC`}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`,
