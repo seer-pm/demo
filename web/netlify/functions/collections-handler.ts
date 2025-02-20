@@ -8,18 +8,26 @@ function parseCollectionId(url: string) {
 export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    }
+
     const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
     const collectionId = parseCollectionId(req.url);
 
     // Handle GET request
     if (req.method === "GET") {
-      const { data: collections = [] } = await supabase.from("collections").select().eq("user_id", userId);
+      let query = supabase.from("collections").select();
+      if (collectionId) {
+        query = query.eq("id", collectionId);
+      }
+      if (userId) {
+        query = query.eq("user_id", userId);
+      }
+      const { data: collections = [] } = await query;
       return new Response(JSON.stringify({ data: collections }), { status: 200 });
     }
 
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
     // Handle POST request
     if (req.method === "POST") {
       //create a new collection
@@ -27,7 +35,6 @@ export default async (req: Request) => {
       if (!name) {
         return new Response(JSON.stringify({ error: "collection name must be provided" }), { status: 400 });
       }
-      console.log(name, userId);
       const { error: insertError } = await supabase.from("collections").insert({
         user_id: userId,
         name,

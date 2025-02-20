@@ -8,19 +8,20 @@ import { PreviewCard } from "@/components/Market/PreviewCard";
 import { useCollectionMarkets } from "@/hooks/collections/useCollectionMarkets";
 import { useCreateCollection } from "@/hooks/collections/useCreateCollection";
 import { useDeleteCollection } from "@/hooks/collections/useDeleteCollection";
+import { useGetCollectionById } from "@/hooks/collections/useGetCollectionById";
 import { useGetCollections } from "@/hooks/collections/useGetCollections";
 import { useUpdateCollection } from "@/hooks/collections/useUpdateCollection";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useModal } from "@/hooks/useModal";
-
 import { useSignIn } from "@/hooks/useSignIn";
+
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
-import { DEFAULT_CHAIN } from "@/lib/chains";
 import { EditIcon, PlusCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { isAccessTokenExpired } from "@/lib/utils";
+import { checkWalletConnectCallback, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
@@ -28,15 +29,27 @@ import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
 function CollectionsPage() {
-  const { address, chainId = DEFAULT_CHAIN } = useAccount();
-  let accessToken = useGlobalState((state) => state.accessToken);
+  const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
+  const { address } = useAccount();
   const signIn = useSignIn();
-  const [input, setInput] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  let { data: collections = [] } = useGetCollections();
+  const checkWalletConnectAndSignIn = () => {
+    checkWalletConnectCallback((address, chainId) => {
+      if (isAccessTokenExpired(accessToken)) {
+        signIn.mutateAsync({ address: address, chainId: chainId });
+      }
+    });
+  };
+  const accessToken = useGlobalState((state) => state.accessToken);
   const {
     routeParams: { id },
   } = usePageContext();
+  const [input, setInput] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  let { data: collections = [] } = useGetCollections();
+  collections = [{ id: "default", name: "Default" }, ...collections];
+
+  const { data: currentCollection } = useGetCollectionById(id);
+
   const { data: collectionMarkets } = useCollectionMarkets(id === "default" ? "" : id);
   const params = useMarketsSearchParams();
   const results = useMarkets({ ...params, marketIds: collectionMarkets, disabled: !collectionMarkets?.length });
@@ -45,7 +58,6 @@ function CollectionsPage() {
     isLoading,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterResults(params, results);
-  collections = [{ id: "default", name: "Default" }, ...collections];
   const {
     Modal: AddCollectionModal,
     openModal: openAddCollectionModal,
@@ -69,35 +81,6 @@ function CollectionsPage() {
     closeDeleteCollectionModal();
   });
 
-  if (!address) {
-    return (
-      <div className="container-fluid py-[24px] lg:py-[65px]">
-        <Alert type="warning" title="Account not found">
-          Connect your wallet to see your market collections.
-        </Alert>
-      </div>
-    );
-  }
-  if (isAccessTokenExpired(accessToken)) {
-    return (
-      <div className="container-fluid py-[24px] lg:py-[65px] space-y-4">
-        <Alert type="info" title="Sign in required">
-          Sign in to see your market collections.
-          <div className="mt-2">
-            <Button
-              type="button"
-              text="Sign In"
-              onClick={async () => {
-                const data = await signIn.mutateAsync({ address: address!, chainId: chainId! });
-                accessToken = data.token;
-              }}
-            />
-          </div>
-        </Alert>
-      </div>
-    );
-  }
-  const currentCollection = collections.find((x) => x.id === id);
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Collections" }]} />
@@ -176,8 +159,25 @@ function CollectionsPage() {
           </div>
         }
       />
+      {!address ||
+        (isAccessTokenExpired(accessToken) && (
+          <div className="container-fluid py-[24px] lg:py-[65px] space-y-4">
+            <Alert type="info" title="Sign in">
+              Sign in to view and manage your market collections.
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  text="Sign In"
+                  onClick={async () => {
+                    checkWalletConnectAndSignIn();
+                  }}
+                />
+              </div>
+            </Alert>
+          </div>
+        ))}
 
-      {collections.length > 0 && (
+      {isAccountConnectedAndSignedIn && collections.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           {collections.map((collection) => {
             return (
@@ -211,41 +211,43 @@ function CollectionsPage() {
         <div>
           <div className="flex gap-2 items-center">
             <p className="text-[24px] font-semibold">{currentCollection.name}</p>
-            {id !== "default" && (
-              <DropdownWrapper
-                isOpen={isOpen}
-                setIsOpen={setIsOpen}
-                className="w-[200px]"
-                content={
-                  <div className="p-2">
-                    <button
-                      type="button"
-                      className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
-                      onClick={() => {
-                        setInput(currentCollection.name);
-                        openUpdateCollectionModal();
-                      }}
-                    >
-                      Edit Collection Name
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
-                      onClick={() => openDeleteCollectionModal()}
-                    >
-                      Remove Collection
-                    </button>
+            {id !== "default" &&
+              isAccountConnectedAndSignedIn &&
+              isTwoStringsEqual(currentCollection.userId, address) && (
+                <DropdownWrapper
+                  isOpen={isOpen}
+                  setIsOpen={setIsOpen}
+                  className="w-[200px]"
+                  content={
+                    <div className="p-2">
+                      <button
+                        type="button"
+                        className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                        onClick={() => {
+                          setInput(currentCollection.name);
+                          openUpdateCollectionModal();
+                        }}
+                      >
+                        Edit Collection Name
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                        onClick={() => openDeleteCollectionModal()}
+                      >
+                        Remove Collection
+                      </button>
+                    </div>
+                  }
+                >
+                  <div className="fill-purple-primary group tooltip cursor-pointer">
+                    <p className="tooltiptext">Edit</p>
+                    <div className="group-hover:opacity-80">
+                      <EditIcon />
+                    </div>
                   </div>
-                }
-              >
-                <div className="fill-purple-primary group tooltip cursor-pointer">
-                  <p className="tooltiptext">Edit</p>
-                  <div className="group-hover:opacity-80">
-                    <EditIcon />
-                  </div>
-                </div>
-              </DropdownWrapper>
-            )}
+                </DropdownWrapper>
+              )}
           </div>
         </div>
       )}
@@ -260,7 +262,11 @@ function CollectionsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {markets.map((market) => (
-          <PreviewCard key={market.id} market={market} />
+          <PreviewCard
+            key={market.id}
+            market={market}
+            isHideFavorite={isTwoStringsEqual(currentCollection?.userId, address)}
+          />
         ))}
       </div>
       <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />

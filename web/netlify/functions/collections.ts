@@ -8,23 +8,23 @@ function parseCollectionId(url: string) {
 export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
+    const collectionId = parseCollectionId(req.url);
+    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+    // Handle GET request
+    if (req.method === "GET") {
+      let query = supabase
+        .from("collections_markets")
+        .select("market_id")
+        [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
+      if (userId) {
+        query = query.eq("user_id", userId);
+      }
+      const { data: favorites } = await query;
+      return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
+    }
     if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
-    const collectionId = parseCollectionId(req.url);
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
-    // Handle GET request
-    if (req.method === "GET") {
-      const { data: favorites } = await supabase
-        .from("collections_markets")
-        .select("market_id")
-        .eq("user_id", userId)
-        [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
-
-      return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
-    }
-
     // Handle POST request
     if (req.method === "POST") {
       const { marketIds, collectionId = null } = await req.json();

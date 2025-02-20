@@ -113,7 +113,7 @@ export function bigIntMax(...args: bigint[]): bigint {
 }
 
 export function isTwoStringsEqual(str1: string | undefined | null, str2: string | undefined | null) {
-  return str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
+  return !!str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
 }
 
 export function parseFraction(floatString: string) {

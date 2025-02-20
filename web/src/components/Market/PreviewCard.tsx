@@ -4,8 +4,10 @@ import { MarketHeader } from "./Header/MarketHeader";
 
 export function PreviewCard({
   market,
+  isHideFavorite,
 }: {
   market: Market;
+  isHideFavorite: boolean;
 }) {
   const { data: images } = useMarketImages(market.id, market.chainId);
 
