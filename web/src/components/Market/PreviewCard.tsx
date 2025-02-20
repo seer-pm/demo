@@ -7,9 +7,11 @@ export function PreviewCard({
   isHideFavorite,
 }: {
   market: Market;
-  isHideFavorite: boolean;
+  isHideFavorite?: boolean;
 }) {
   const { data: images } = useMarketImages(market.id, market.chainId);
 
-  return <MarketHeader market={market} type="preview" outcomesCount={3} images={images} />;
+  return (
+    <MarketHeader market={market} type="preview" outcomesCount={3} images={images} isHideFavorite={isHideFavorite} />
+  );
 }
