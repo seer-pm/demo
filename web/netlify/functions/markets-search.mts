@@ -53,32 +53,29 @@ async function getVerificationStatusList(
         throw e;
       }
     }
-    return litems.reduce(
-      (obj, item) => {
-        const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
-        if (!marketId) {
-          return obj;
-        }
-        const isVerifiedBeforeClearing =
-          item.status === Status.ClearingRequested &&
-          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
-        if (item.status === Status.Registered || isVerifiedBeforeClearing) {
-          obj[marketId] = { status: "verified", itemID: item.itemID };
-          return obj;
-        }
-        if (item.status === Status.RegistrationRequested) {
-          if (item.disputed) {
-            obj[marketId] = { status: "challenged", itemID: item.itemID };
-          } else {
-            obj[marketId] = { status: "verifying", itemID: item.itemID };
-          }
-          return obj;
-        }
-        obj[marketId] = { status: "not_verified" };
+    return litems.reduce((obj, item) => {
+      const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+      if (!marketId) {
         return obj;
-      },
-      {} as { [key: string]: VerificationResult },
-    );
+      }
+      const isVerifiedBeforeClearing =
+        item.status === Status.ClearingRequested &&
+        item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
+      if (item.status === Status.Registered || isVerifiedBeforeClearing) {
+        obj[marketId] = { status: "verified", itemID: item.itemID };
+        return obj;
+      }
+      if (item.status === Status.RegistrationRequested) {
+        if (item.disputed) {
+          obj[marketId] = { status: "challenged", itemID: item.itemID };
+        } else {
+          obj[marketId] = { status: "verifying", itemID: item.itemID };
+        }
+        return obj;
+      }
+      obj[marketId] = { status: "not_verified" };
+      return obj;
+    }, {} as { [key: string]: VerificationResult });
   }
 
   return {};
@@ -156,13 +153,10 @@ async function getMarketsExtraData(): Promise<{ [key: string]: MarketExtraData }
     return;
   }
 
-  return data.reduce(
-    (acc, curr) => {
-      acc[curr.id] = curr;
-      return acc;
-    },
-    {} as { [key: string]: MarketExtraData },
-  );
+  return data.reduce((acc, curr) => {
+    acc[curr.id] = curr;
+    return acc;
+  }, {} as { [key: string]: MarketExtraData });
 }
 
 async function fetchAllMarkets(chainId: SupportedChain, where?: Market_Filter) {
@@ -238,6 +232,7 @@ export async function searchGraphMarkets(
   participant: Address | "",
   orderBy: Market_OrderBy | undefined,
   orderDirection: "asc" | "desc" | undefined,
+  marketIds: string[] | undefined,
 ) {
   const now = String(Math.round(new Date().getTime() / 1000));
 
@@ -250,6 +245,10 @@ export async function searchGraphMarkets(
 
   if (parentMarket) {
     where["parentMarket"] = parentMarket.toLowerCase();
+  }
+
+  if (marketIds?.length) {
+    where.id_in = marketIds;
   }
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
@@ -321,15 +320,12 @@ export async function searchGraphMarkets(
 
 export const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   // tokenId => marketId
-  const tokenToMarket = (await fetchMarkets(chainId)).reduce(
-    (acum, market) => {
-      for (const tokenId of market.wrappedTokens) {
-        acum[tokenId] = market.id;
-      }
-      return acum;
-    },
-    {} as Record<`0x${string}`, Address>,
-  );
+  const tokenToMarket = (await fetchMarkets(chainId)).reduce((acum, market) => {
+    for (const tokenId of market.wrappedTokens) {
+      acum[tokenId] = market.id;
+    }
+    return acum;
+  }, {} as Record<`0x${string}`, Address>);
 
   // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];
@@ -381,6 +377,7 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     participant = "",
     orderBy,
     orderDirection,
+    marketIds,
   } = body;
 
   const chainIds = (
@@ -402,6 +399,7 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
           participant,
           orderBy,
           orderDirection,
+          marketIds,
         ),
       ),
     )
