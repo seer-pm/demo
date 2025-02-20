@@ -2,11 +2,11 @@ import Input from "@/components/Form/Input";
 import MultiSelect from "@/components/Form/MultiSelect";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { Market } from "@/hooks/useMarket";
+import { InputPotentialReturnContext } from "@/lib/context";
 import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
-import { InputPotentialReturnContext } from "@/pages/markets/@chainId/@id/+Page";
 import { useContext, useEffect, useRef, useState } from "react";
 
 function PotentialReturnConfig({

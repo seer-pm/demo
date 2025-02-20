@@ -16,32 +16,15 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
+import { InputPotentialReturnContext } from "@/lib/context";
 import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
-
-export const InputPotentialReturnContext = createContext<{
-  input: { multiCategorical: string[]; scalar: number | undefined; multiScalar: number[] };
-  setInput: React.Dispatch<
-    React.SetStateAction<{
-      multiCategorical: string[];
-      scalar: number | undefined;
-      multiScalar: number[];
-    }>
-  >;
-}>({
-  input: {
-    multiCategorical: [],
-    scalar: undefined,
-    multiScalar: [],
-  },
-  setInput: () => {},
-});
 
 function SwapWidget({
   market,
