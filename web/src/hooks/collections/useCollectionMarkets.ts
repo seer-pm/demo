@@ -8,10 +8,14 @@ export const useCollectionMarkets = (collectionId: string | undefined) => {
   return useQuery<Address[] | undefined, Error>({
     queryKey: ["useCollectionMarkets", collectionId, accessToken],
     queryFn: async () => {
-      if (isAccessTokenExpired(accessToken) || !accessToken) {
-        return fetch(`/.netlify/functions/collections/${collectionId ?? ""}`).then((res) => res.json());
+      //only fetch auth when !collectionId
+      if (!collectionId) {
+        if (isAccessTokenExpired(accessToken)) {
+          return [];
+        }
+        return fetchAuth(accessToken, "/.netlify/functions/collections", "GET");
       }
-      return fetchAuth(accessToken, `/.netlify/functions/collections/${collectionId ?? ""}`, "GET");
+      return fetch(`/.netlify/functions/collections/${collectionId}`).then((res) => res.json());
     },
   });
 };
