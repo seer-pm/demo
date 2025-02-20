@@ -76,7 +76,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
           // biome-ignore lint/complexity/noUselessFragments:
           <>
             {isAccountConnectedAndSignedIn ? (
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3  max-h-[300px] overflow-y-auto custom-scrollbar">
                 <p className="font-semibold">Collections</p>
                 {collections.map((collection) => (
                   <button
