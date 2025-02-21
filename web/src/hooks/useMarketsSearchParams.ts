@@ -193,7 +193,8 @@ function useMarketsSearchParams() {
       marketStatusList?.length ||
       chainsList?.length ||
       orderBy ||
-      isShowConditionalMarkets,
+      isShowConditionalMarkets ||
+      isShowMarketsWithRewards,
   };
 }
 
