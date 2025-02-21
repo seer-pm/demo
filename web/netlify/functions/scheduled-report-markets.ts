@@ -1,30 +1,30 @@
 import { Config } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { config as wagmiConfig } from "./utils/config.ts";
-import { getSubgraphUrl } from "./utils/subgraph.ts";
+import { Database } from "./utils/supabase.ts";
+
+const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 export default async () => {
   const chainId = 100;
   const now = Math.round(new Date().getTime() / 1000);
 
-  const response = await fetch(getSubgraphUrl("seer", chainId), {
-    method: "POST",
-    body: JSON.stringify({
-      query: `{
-        markets(where: {payoutReported: false, finalizeTs_lt: ${now}}) {
-          id
-          marketName 
-          finalizeTs
-        }
-      }`,
-    }),
-  });
-  const {
-    data: { markets },
-  } = await response.json();
+  const { data: markets, error } = await supabase
+    .from("markets")
+    .select("id,subgraph_data->marketName,subgraph_data->payoutReported,subgraph_data->finalizeTs")
+    .eq("chain_id", chainId)
+    .not("subgraph_data", "is", null)
+    .eq("subgraph_data->payoutReported::boolean", false)
+    .lt("subgraph_data->>finalizeTs::bigint", now);
 
-  if (!markets) {
+  if (error) {
+    console.error("Error fetching markets:", error);
+    return;
+  }
+
+  if (!markets || markets.length === 0) {
     console.log("No results found");
     return;
   }
@@ -38,7 +38,7 @@ export default async () => {
     try {
       const simulation = await simulateContract(wagmiConfig, {
         account,
-        address: market.id,
+        address: market.id as `0x${string}`,
         functionName: "resolve",
         chainId,
         abi: [
