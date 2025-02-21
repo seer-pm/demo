@@ -49,6 +49,13 @@ export const useSortAndFilterResults = (
     });
   }
 
+  // filter markets with rewards
+  if (params.isShowMarketsWithRewards) {
+    data = data.filter((market: Market) => {
+      return market.incentive > 0;
+    });
+  }
+
   // filter by category
   if (params.categoryList) {
     data = data.filter((market: Market) => {

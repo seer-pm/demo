@@ -100,6 +100,7 @@ export interface UseMarketsProps {
   orderBy?: Market_OrderBy;
   isShowMyMarkets?: boolean;
   isShowConditionalMarkets?: boolean;
+  isShowMarketsWithRewards?: boolean;
   orderDirection?: "asc" | "desc";
   marketIds?: string[];
   disabled?: boolean;
