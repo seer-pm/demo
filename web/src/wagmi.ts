@@ -1,9 +1,9 @@
-import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { AppKitNetwork } from "@reown/appkit/networks";
-import { createAppKit } from "@reown/appkit/react";
+import { createWeb3Modal } from "@web3modal/wagmi/react";
+import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
 import { http, fallback } from "wagmi";
+import { Chain, sepolia } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
-import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet, sepolia } from "./lib/chains";
+import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
 const metadata = {
@@ -13,12 +13,12 @@ const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
-const chains = Object.values(SUPPORTED_CHAINS) as unknown as [AppKitNetwork, ...AppKitNetwork[]];
-
-const wagmiAdapter = new WagmiAdapter({
+export const config = defaultWagmiConfig({
+  metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
-  networks: chains,
+  chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
   connectors: [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })],
+  enableCoinbase: false,
   transports: {
     [gnosis.id]: fallback([
       http("https://gnosis-pokt.nodies.app"),
@@ -32,22 +32,17 @@ const wagmiAdapter = new WagmiAdapter({
   ssr: true,
 });
 
-export const config = wagmiAdapter.wagmiConfig;
-
-createAppKit({
-  metadata,
-  adapters: [wagmiAdapter],
-  networks: chains,
-  defaultNetwork: gnosis,
+createWeb3Modal({
+  wagmiConfig: config,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
-  features: {
-    email: false,
-    socials: [],
-    emailShowWallets: true,
-  },
-  allWallets: "SHOW",
-  allowUnsupportedChain: true,
+  enableAnalytics: true,
   themeVariables: {
-    "--w3m-z-index": 10000,
+    "--w3m-z-index": 1000,
   },
 });
+
+declare module "wagmi" {
+  interface Register {
+    config: typeof config;
+  }
+}

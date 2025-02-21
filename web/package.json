@@ -30,8 +30,6 @@
     "@netlify/functions": "^2.8.2",
     "@orbisclub/components": "https://github.com/nvm1410/social-components#custom-comments",
     "@orbisclub/orbis-sdk": "^0.4.89",
-    "@reown/appkit": "^1.6.8",
-    "@reown/appkit-adapter-wagmi": "^1.6.8",
     "@supabase/supabase-js": "^2.46.2",
     "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#96f4160592da759705f6b65b980a7202c4cefa0b",
     "@tanstack/react-query": "^5.17.19",
@@ -41,6 +39,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/slug": "^5.0.9",
     "@uniswap/v3-sdk": "^3.19.0",
+    "@web3modal/wagmi": "5.0.7",
     "@yornaath/batshit": "^0.10.1",
     "clsx": "^2.1.0",
     "compression": "^1.7.4",
@@ -104,8 +103,7 @@
   },
   "workspaces": {
     "nohoist": [
-      "@reown/appkit",
-      "@reown/appkit-adapter-wagmi"
+      "@web3modal/wagmi"
     ]
   },
   "lint-staged": {

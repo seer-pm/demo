@@ -7,20 +7,17 @@ function useCheckAccount() {
     const checkAccount = async () => {
       setIsLoading(true);
       if (window.ethereum) {
-        // biome-ignore lint/suspicious/noExplicitAny:
-        const accounts = await (window.ethereum as any)?.request({ method: "eth_accounts" });
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
         sethasAccount(accounts.length > 0);
       }
       setIsLoading(false);
     };
 
     checkAccount();
-    // biome-ignore lint/suspicious/noExplicitAny:
-    (window.ethereum as any)?.on("accountsChanged", checkAccount);
+    window.ethereum?.on("accountsChanged", checkAccount);
 
     return () => {
-      // biome-ignore lint/suspicious/noExplicitAny:
-      (window.ethereum as any)?.removeListener("accountsChanged", checkAccount);
+      window.ethereum?.removeListener("accountsChanged", checkAccount);
     };
   }, []);
   return { hasAccount, isLoading };

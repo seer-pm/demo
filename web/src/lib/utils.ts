@@ -1,6 +1,6 @@
 import { config } from "@/wagmi";
-import { useAppKit } from "@reown/appkit/react";
 import { getAccount } from "@wagmi/core";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
@@ -206,7 +206,7 @@ export function checkWalletConnectCallback(
     callback(account.address, account.chainId as SupportedChain);
     return;
   }
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   open({ view: "Connect" });
   const interval = setInterval(() => {
     const account = getAccount(config);

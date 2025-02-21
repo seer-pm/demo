@@ -1,14 +1,14 @@
 import Button from "@/components/Form/Button";
 import useCheckAccount from "@/hooks/useCheckAccount";
 import { Orbis } from "@orbisclub/orbis-sdk";
-import { useAppKit } from "@reown/appkit/react";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
 import { useAccount, useAccountEffect } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 import ChainDropdown from "./ChainDropdown";
 
 export const SwitchChainButton: React.FC = () => {
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   const handleSwitch = () => {
     open({ view: "Networks" });
   };
@@ -28,7 +28,7 @@ type ConnectButtonProps = {
 };
 
 const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
 };
 

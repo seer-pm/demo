@@ -4,8 +4,9 @@ import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { ChainId } from "@swapr/sdk";
-import { getBlock, readContracts } from "@wagmi/core";
-import { Address, Block, erc20Abi } from "viem";
+import { readContracts } from "@wagmi/core";
+import { ethers } from "ethers";
+import { Address, erc20Abi } from "viem";
 import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 
@@ -74,30 +75,31 @@ export function getTokenPricesMapping(
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }
 
-async function getBlockNumberAtTime(timestamp: number, parentBlockCache?: Map<number, Block>): Promise<number> {
-  const blockCache = parentBlockCache ?? new Map<number, Block>();
-
+export async function getBlockNumberAtTime(timestamp: number, parentBlockCache?: Map<number, ethers.providers.Block>) {
+  // Connect to an Ethereum node (replace with your own provider URL)
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const blockCache = parentBlockCache ?? new Map<number, ethers.providers.Block>();
   // Get the latest block
-  const latestBlock = await getBlock(config);
+  const latestBlock = await provider.getBlock("latest");
 
   // Binary search to find the block closest to the target timestamp
   let left = 1;
-  let right = Number(latestBlock.number!);
+  let right = latestBlock.number;
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
-    let block: Block;
+    let block: ethers.providers.Block;
     if (blockCache.has(mid)) {
       block = blockCache.get(mid)!;
     } else {
-      block = await getBlock(config, { blockNumber: BigInt(mid) });
+      block = await provider.getBlock(mid);
       blockCache.set(mid, block);
     }
 
-    if (Number(block.timestamp) === timestamp) {
-      return Number(block.number);
+    if (block.timestamp === timestamp) {
+      return block.number;
     }
-    if (Number(block.timestamp) < timestamp) {
+    if (block.timestamp < timestamp) {
       left = mid + 1;
     } else {
       right = mid - 1;
@@ -117,12 +119,13 @@ export async function getBlockTimestamp(initialBlockNumber: number) {
   let blockNumber = initialBlockNumber;
   const maxAttempts = 10; // Limit the number of attempts
   let attempts = 0;
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
 
   while (attempts < maxAttempts) {
     try {
-      const block = await getBlock(config, { blockNumber: BigInt(blockNumber) });
+      const block = await provider.getBlock(blockNumber);
       if (block.timestamp) {
-        return Number(block.timestamp);
+        return block.timestamp;
       }
       // Increment block number and attempts
       blockNumber++;
