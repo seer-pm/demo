@@ -11,9 +11,10 @@
 //    - You can use Bati (https://batijs.dev/) to scaffold a Vike + HatTip app. Note that Bati generates apps that use the V1 design (https://vike.dev/migration/v1-design) and Vike packages (https://vike.dev/vike-packages)
 import express from 'express'
 import compression from 'compression'
-import { renderPage } from 'vike/server'
+import { renderPage, createDevMiddleware } from 'vike/server'
 import { root } from './root.js'
 const isProduction = process.env.NODE_ENV === 'production'
+
 startServer()
 async function startServer() {
   const app = express()
@@ -30,14 +31,8 @@ async function startServer() {
     // We instantiate Vite's development server and integrate its middleware to our server.
     // ⚠️ We instantiate it only in development. (It isn't needed in production and it
     // would unnecessarily bloat our production server.)
-    const vite = await import('vite')
-    const viteDevMiddleware = (
-      await vite.createServer({
-        root,
-        server: { middlewareMode: true },
-      })
-    ).middlewares
-    app.use(viteDevMiddleware)
+    const {devMiddleware} = await createDevMiddleware({root})
+    app.use(devMiddleware)
   }
   // ...
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
