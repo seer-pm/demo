@@ -74,6 +74,7 @@ export type Market = MarketOffChainFields & {
   templateId: bigint;
   questions: readonly Question[];
   openingTs: number;
+  finalizeTs: number;
   encodedQuestions: readonly string[];
   lowerBound: bigint;
   upperBound: bigint;
@@ -173,6 +174,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
         }) as Question,
     ),
     openingTs: onChainMarket.questions[0].opening_ts,
+    finalizeTs: 0,
     ...offChainFields,
   };
 

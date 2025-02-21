@@ -12,7 +12,15 @@ const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.en
 export default async () => {
   try {
     console.log("fetching markets...");
-    const markets = await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) });
+
+    // ignore markets finalized more than two days ago
+    const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
+
+    const markets = (await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) })).filter((market) => {
+      return market.finalizeTs > twoDaysAgo;
+    });
+
+    console.log("markets length", markets.length);
 
     const pools = await getAllMarketPools(markets);
     if (!pools.length) throw "No pool found";

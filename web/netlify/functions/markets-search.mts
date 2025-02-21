@@ -130,6 +130,7 @@ function mapGraphMarket(
     parentOutcome: BigInt(market.parentOutcome),
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),
+    finalizeTs: Number(market.finalizeTs),
     questions: market.questions.map((question) => {
       return {
         ...question.question,
@@ -486,6 +487,11 @@ export default async (req: Request) => {
     });
   } catch (e) {
     console.log(e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 };

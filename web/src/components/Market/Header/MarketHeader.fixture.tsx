@@ -36,6 +36,7 @@ const baseMarket: Market = {
   payoutNumerators: [0n, 0n],
   questions: [],
   openingTs: 0,
+  finalizeTs: 0,
   encodedQuestions: [],
   categories: ["misc"],
   poolBalance: [],

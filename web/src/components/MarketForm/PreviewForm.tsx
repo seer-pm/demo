@@ -380,6 +380,7 @@ export function PreviewForm({
       }),
     ),
     openingTs: 0,
+    finalizeTs: 0,
     encodedQuestions: [
       ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
     ].map((_) => ""),
