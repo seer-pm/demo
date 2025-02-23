@@ -51,7 +51,7 @@ function getSeries(market: Market, chartData: ChartData["chartData"]) {
 }
 
 function MarketChart({ market }: { market: Market }) {
-  const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
+  const [period, setPeriod] = useState<ChartOptionPeriod>("All");
   const { data, isPending: isPendingChart } = useChartData(
     market,
     chartOptions[period].dayCount,
