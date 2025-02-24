@@ -6,7 +6,7 @@ const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.en
 
 function parseCollectionId(url: string) {
   const idOrSlug = url.split("/")[url.split("/").indexOf("collections-handler") + 1] || "";
-  return idOrSlug.split("-").slice(-1)[0] || idOrSlug;
+  return idOrSlug.split("-").slice(-1)[0] || idOrSlug || null;
 }
 
 export default async (req: Request) => {
