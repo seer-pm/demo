@@ -1,14 +1,17 @@
-import { ChartData } from "@/hooks/chart/getChartData";
+import { ChartData, getChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
-import { QuestionIcon } from "@/lib/icons";
+import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv, formatDate } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
+import slug from "slug";
+import { Spinner } from "../Spinner";
 
 const chartOptions = {
   "1D": {
@@ -180,7 +183,36 @@ function MarketChart({ market }: { market: Market }) {
       showSymbol: false,
     })),
   };
-
+  const exportData = async () => {
+    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24);
+    const series = getSeries(market, chartData);
+    const headers = [
+      {
+        key: "date",
+        title: "Date (UTC)",
+      },
+      {
+        key: "timestamp",
+        title: "Timestamp (UTC)",
+      },
+      ...series.map((x) => ({ key: x.name, title: x.name })),
+    ];
+    const rows = timestamps.map((timestamp, index) => {
+      return {
+        date: formatDate(timestamp, "MM-dd-yyyy HH:mm"),
+        timestamp,
+        ...series.reduce(
+          (acc, curr) => {
+            acc[curr.name] = curr.data[index][1];
+            return acc;
+          },
+          {} as { [key: string]: number },
+        ),
+      };
+    });
+    downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
+  };
+  const mutateExport = useMutation({ mutationFn: exportData });
   return (
     <>
       <div className="w-full bg-white p-5 text-[12px] drop-shadow">
@@ -206,6 +238,15 @@ function MarketChart({ market }: { market: Market }) {
             </p>
             <QuestionIcon fill="#9747FF" />
           </div>
+          <button
+            type="button"
+            className="hover:opacity-80 ml-auto tooltip"
+            onClick={() => mutateExport.mutate()}
+            disabled={mutateExport.isPending}
+          >
+            {!mutateExport.isPending && <span className="tooltiptext">Export Data</span>}
+            {mutateExport.isPending ? <Spinner className="bg-black-secondary" /> : <ExportIcon />}
+          </button>
         </div>
         {isPendingChart ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
