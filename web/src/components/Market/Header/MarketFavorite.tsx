@@ -83,7 +83,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
                     <button
                       key={collection.id}
                       type="button"
-                      className="text-[14px] w-full flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                      className="text-[14px] w-full gap-2 flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
                       onClick={() => {
                         updateCollectionItem.mutateAsync({
                           marketIds: [market.id],
@@ -93,7 +93,9 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
                         setIsOpen(false);
                       }}
                     >
-                      <p>{collection.name}</p>
+                      <p className="whitespace-nowrap max-w-[250px] overflow-x-hidden text-ellipsis">
+                        {collection.name}
+                      </p>
                       {collectionsMarkets
                         .filter((x) =>
                           !x.collectionId ? collection.id === "default" : x.collectionId === collection.id,
