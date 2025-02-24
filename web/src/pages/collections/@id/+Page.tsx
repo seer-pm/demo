@@ -41,12 +41,13 @@ function CollectionsPage() {
   };
   const accessToken = useGlobalState((state) => state.accessToken);
   const {
-    routeParams: { id },
+    routeParams: { id: idOrSlug },
   } = usePageContext();
+  const id = idOrSlug.split("-").slice(-1)[0] || idOrSlug;
   const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   let { data: collections = [] } = useGetCollections();
-  collections = [{ id: "default", name: "Default" }, ...collections];
+  collections = [{ id: "default", name: "Default", url: "default" }, ...collections];
 
   let { data: currentCollection } = useGetCollectionById(id === "default" ? "" : id);
   currentCollection = id === "default" ? { id: "default", name: "Default", userId: address ?? "" } : currentCollection;
@@ -179,7 +180,7 @@ function CollectionsPage() {
                   id === collection.id && "bg-purple-primary text-white",
                 )}
                 key={collection.id}
-                onClick={() => navigate(paths.collection(collection.id))}
+                onClick={() => navigate(paths.collection(collection.url ?? collection.id))}
                 type="button"
               >
                 {collection.name}

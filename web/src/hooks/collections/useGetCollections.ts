@@ -4,7 +4,7 @@ import { useGlobalState } from "../useGlobalState";
 
 export function useGetCollections() {
   const accessToken = useGlobalState((state) => state.accessToken);
-  return useQuery<{ id: string; name: string }[]>({
+  return useQuery<{ id: string; name: string; url: string }[]>({
     queryKey: ["useGetCollections"],
     enabled: !isAccessTokenExpired(accessToken),
     queryFn: async () => {

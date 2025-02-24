@@ -123,11 +123,10 @@ export function SwapTokens({
     data: quoteData,
     isLoading: quoteIsLoading,
     fetchStatus: quoteFetchStatus,
-    isError: quoteIsError,
+    error: quoteError,
   } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
-
   const tradeTokens = useTrade(async () => {
     reset();
     closeConfirmSwapModal();
@@ -328,7 +327,7 @@ export function SwapTokens({
                 {quoteIsLoading || isFetching ? (
                   <div className="shimmer-container ml-2 w-[100px]" />
                 ) : (
-                  <div>
+                  <div className="text-right">
                     {receivedAmount.toFixed(3)} {buyToken.symbol}
                   </div>
                 )}
@@ -382,7 +381,7 @@ export function SwapTokens({
                 input amount.
               </Alert>
             )}
-            {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
+            {quoteError && <Alert type="error">{quoteError.message ?? "Error when quoting price"}</Alert>}
 
             <div className="flex justify-between flex-wrap gap-4">
               {isUndefined(parentCollateral) && (

@@ -4,7 +4,8 @@ import { verifyToken } from "./utils/auth";
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 function parseCollectionId(url: string) {
-  return url.split("/")[url.split("/").indexOf("collections") + 1] || null;
+  const idOrSlug = url.split("/")[url.split("/").indexOf("collections") + 1] || "";
+  return idOrSlug.split("-").slice(-1)[0] || idOrSlug;
 }
 
 export default async (req: Request) => {

@@ -1,10 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import slug from "slug";
 import { verifyToken } from "./utils/auth";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 function parseCollectionId(url: string) {
-  return url.split("/")[url.split("/").indexOf("collections-handler") + 1] || null;
+  const idOrSlug = url.split("/")[url.split("/").indexOf("collections-handler") + 1] || "";
+  return idOrSlug.split("-").slice(-1)[0] || idOrSlug;
 }
 
 export default async (req: Request) => {
@@ -36,14 +38,32 @@ export default async (req: Request) => {
       if (!name) {
         return new Response(JSON.stringify({ error: "collection name must be provided" }), { status: 400 });
       }
-      const { error: insertError } = await supabase.from("collections").insert({
-        user_id: userId,
-        name,
-      });
 
+      const { error: insertError, data: collections } = await supabase
+        .from("collections")
+        .insert({
+          user_id: userId,
+          name,
+        })
+        .select();
       if (insertError) {
         console.error("Insert error:", insertError);
         return new Response(JSON.stringify({ error: "Failed to add collection" }), { status: 500 });
+      }
+
+      // update url
+      if (collections[0]?.id) {
+        const url = `${slug(name).slice(0, 80)}-${collections[0].id}`;
+        const { error: updateError } = await supabase
+          .from("collections")
+          .update({
+            url,
+          })
+          .eq("id", collections[0].id);
+        if (updateError) {
+          console.error("Update url error:", updateError);
+          return new Response(JSON.stringify({ error: "Failed to update url collection" }), { status: 500 });
+        }
       }
 
       return new Response(JSON.stringify({ success: true }), { status: 200 });
@@ -67,6 +87,7 @@ export default async (req: Request) => {
         .from("collections")
         .update({
           name,
+          url: `${slug(name).slice(0, 80)}-${collectionId}`,
         })
         .eq("id", collectionId);
 

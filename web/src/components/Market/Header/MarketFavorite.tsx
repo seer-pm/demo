@@ -25,7 +25,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
   const [isOpen, setIsOpen] = useState(false);
   const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
   let { data: collections = [] } = useGetCollections();
-  collections = [{ id: "default", name: "Default" }, ...collections];
+  collections = [{ id: "default", name: "Default", url: "default" }, ...collections];
   const isFavorite = collectionsMarkets.map((x) => x.marketId).includes(market.id);
   const checkWalletConnectAndSignIn = () => {
     checkWalletConnectCallback((address, chainId) => {
