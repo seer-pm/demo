@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -23,8 +22,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
-import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
@@ -55,16 +53,14 @@ function OutcomesInfo({
   marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
-  const { isIntersecting, ref } = useIntersectionObserver({
-    threshold: 0.5,
-  });
-  const { data: odds = [] } = useMarketOdds(market, isIntersecting);
+
+  const { data: odds = [] } = useMarketOdds(market, true);
 
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
 
   return (
-    <div ref={ref}>
+    <div>
       <div className={clsx("space-y-3")}>
         {market.outcomes.map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;

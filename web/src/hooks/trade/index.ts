@@ -20,6 +20,7 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import pLimit from "p-limit";
 import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
@@ -54,6 +55,8 @@ function getUniswapTrade(
   });
 }
 
+const limit = pLimit(5);
+
 function getSwaprTrade(
   _currencyIn: Currency,
   currencyOut: Currency,
@@ -62,13 +65,15 @@ function getSwaprTrade(
   account: Address | undefined,
   _chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  return SwaprV3Trade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
+  return limit(() =>
+    SwaprV3Trade.getQuote({
+      amount: currencyAmountIn,
+      quoteCurrency: currencyOut,
+      maximumSlippage,
+      recipient: account || zeroAddress,
+      tradeType: TradeType.EXACT_INPUT,
+    }),
+  );
 }
 
 type QuoteTradeFn = (
