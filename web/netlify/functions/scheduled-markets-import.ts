@@ -79,6 +79,8 @@ async function processChain(chainId: SupportedChain) {
           conditionId
           questionId
           templateId
+          hasAnswers
+          questionsInArbitration
           questions {
             question {
               id
@@ -118,7 +120,8 @@ async function processChain(chainId: SupportedChain) {
   const verificationStatusList = await getVerificationStatusList(chainId);
 
   await supabase.from("markets").upsert(
-    markets.map((market) => ({
+    // biome-ignore lint/suspicious/noExplicitAny:
+    markets.map((market: any) => ({
       id: market.id,
       chain_id: chainId,
       subgraph_data: market,

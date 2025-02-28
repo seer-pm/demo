@@ -5,14 +5,12 @@ import { GetMarketQuery, Market_OrderBy } from "../../src/hooks/queries/gql-gene
 import { Market, SerializedMarket, VerificationResult, serializeMarket } from "../../src/hooks/useMarket";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
 import { SUPPORTED_CHAINS, SupportedChain } from "../../src/lib/chains";
-import { FetchMarketParams } from "../../src/lib/markets-search";
+import { FetchMarketParams, sortMarkets } from "../../src/lib/markets-search";
 import { unescapeJson } from "../../src/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "../../src/lib/utils";
 import { config } from "./utils/config";
 import { Database, Json } from "./utils/supabase";
 const crypto = require("node:crypto");
-
-const MARKETS_COUNT_PER_QUERY = 1000;
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
@@ -93,7 +91,7 @@ export async function searchMarkets(
 
   let query = supabase
     .from("markets")
-    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance")
+    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification")
     .not("subgraph_data", "is", null);
 
   if (id) {
@@ -111,24 +109,24 @@ export async function searchMarkets(
   const conditions = [];
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
-    conditions.push(`(subgraph_data->openingTs.gt.${now})`);
+    conditions.push(`subgraph_data->>openingTs.gt.${now}`);
   }
   if (marketStatusList?.includes(MarketStatus.OPEN)) {
-    conditions.push(`(subgraph_data->openingTs.lt.${now} and subgraph_data->hasAnswers.eq.false)`);
+    conditions.push(`and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.false)`);
   }
   if (marketStatusList?.includes(MarketStatus.ANSWER_NOT_FINAL)) {
     conditions.push(
-      `(subgraph_data->openingTs.lt.${now} and subgraph_data->hasAnswers.eq.true and subgraph_data->finalizeTs.gt.${now})`,
+      `and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.true,subgraph_data->>finalizeTs.gt.${now})`,
     );
   }
   if (marketStatusList?.includes(MarketStatus.IN_DISPUTE)) {
-    conditions.push("(subgraph_data->questionsInArbitration.gt.0)");
+    conditions.push("subgraph_data->>questionsInArbitration.gt.0");
   }
   if (marketStatusList?.includes(MarketStatus.PENDING_EXECUTION)) {
-    conditions.push(`(subgraph_data->finalizeTs.lt.${now} and subgraph_data->payoutReported.eq.false)`);
+    conditions.push(`and(subgraph_data->>finalizeTs.lt.${now},subgraph_data->payoutReported.eq.false)`);
   }
   if (marketStatusList?.includes(MarketStatus.CLOSED)) {
-    conditions.push("(subgraph_data->payoutReported.eq.true)");
+    conditions.push("subgraph_data->payoutReported.eq.true");
   }
 
   if (conditions.length > 0) {
@@ -145,7 +143,7 @@ export async function searchMarkets(
     } else {
       query = query.eq("subgraph_data->creator", participant);
     }
-  } else if (creator !== "") {
+  } else if (creator) {
     query = query.eq("subgraph_data->creator", creator);
   }
 
@@ -167,7 +165,7 @@ export async function searchMarkets(
   return data.map((result) => {
     return mapGraphMarket(result.subgraph_data as SubgraphMarket, {
       chainId: result.chain_id as SupportedChain,
-      verification: result.verification,
+      verification: result.verification as VerificationResult,
       liquidityUSD: result?.liquidity ?? 0,
       incentive: result?.incentive ?? 0,
       hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
@@ -179,11 +177,11 @@ export async function searchMarkets(
   });
 }
 
-const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
+const fetchMarketsWithPositions = async (address: Address, chainIds: SupportedChain[]) => {
   const { data: markets, error } = await supabase
     .from("markets")
     .select("id,subgraph_data->wrappedTokens")
-    .eq("chain_id", chainId);
+    .in("chain_id", chainIds);
 
   if (error) {
     throw error;
@@ -273,6 +271,8 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     marketIds,
   );
 
+  markets.sort(sortMarkets(orderBy, orderDirection || "desc"));
+
   return markets.map((market) => serializeMarket(market));
 }
 
@@ -323,12 +323,14 @@ export default async (req: Request) => {
   }
 
   try {
-    let markets: Market[];
+    let markets: SerializedMarket[];
     // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    if (id === "") {
+    const cachingEnabled = true;
+
+    if (id === "" && cachingEnabled) {
       const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
       markets = await keyValueFetch(
         hashKey,
