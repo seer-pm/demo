@@ -1,4 +1,3 @@
-import useCheckAccount from "@/hooks/useCheckAccount";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { DownArrow } from "@/lib/icons";
@@ -9,13 +8,11 @@ const ChainDropdown = ({ isMobile = false }: { isMobile?: boolean }) => {
   const { isConnected, chainId = DEFAULT_CHAIN } = useAccount();
   const { open } = useWeb3Modal();
 
-  const { hasAccount } = useCheckAccount();
-
   const handleSwitch = () => {
     open({ view: "Networks" });
   };
 
-  if (isConnected && hasAccount) {
+  if (isConnected) {
     return (
       <div className="flex items-center gap-4">
         {NETWORK_ICON_MAPPING[chainId] && (

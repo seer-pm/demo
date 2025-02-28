@@ -1,5 +1,5 @@
 import Button from "@/components/Form/Button";
-import useCheckAccount from "@/hooks/useCheckAccount";
+import { useIsAccountConnected } from "@/hooks/useIsConnectedAndSignedIn";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
 import { Market } from "@/hooks/useMarket";
 import SEER_ENV from "@/lib/env";
@@ -11,14 +11,14 @@ import { useEffect, useState } from "react";
 function Comments({ market }: { market: Market }) {
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});
   const [isLoading, setLoading] = useState(false);
-  const { hasAccount, isLoading: isLoadingAccount } = useCheckAccount();
+  const isConnected = useIsAccountConnected();
 
   useEffect(() => {
-    if (ceramicSession && !isLoadingAccount && !hasAccount) {
+    if (ceramicSession && !isConnected) {
       const orbis = new Orbis();
       orbis.logout({});
     }
-  }, [ceramicSession, isLoadingAccount, hasAccount]);
+  }, [ceramicSession, isConnected]);
   useEffect(() => {
     const orbisContainer = document.querySelector("._MBDTd");
     if (!orbisContainer) return;

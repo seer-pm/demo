@@ -1,6 +1,5 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
-import useCheckAccount from "@/hooks/useCheckAccount";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useSignIn } from "@/hooks/useSignIn";
@@ -31,12 +30,11 @@ import { NotificationsForm } from "../Market/Header/NotificationsForm";
 
 function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const { isConnected, address, chainId } = useAccount();
-  const { hasAccount } = useCheckAccount();
   const accessToken = useGlobalState((state) => state.accessToken);
   const isAuthValid = !isAccessTokenExpired(accessToken);
   const [email, setEmail] = useState("");
 
-  const isAccountConnected = isConnected && hasAccount;
+  const isAccountConnected = isConnected;
 
   const signIn = useSignIn();
 
