@@ -83,8 +83,6 @@ export async function searchMarkets(
   marketStatusList?: MarketStatus[] | undefined,
   creator?: Address | "",
   participant?: Address | "",
-  orderBy?: Market_OrderBy | undefined,
-  orderDirection?: "asc" | "desc" | undefined,
   marketIds?: string[] | undefined,
 ): Promise<Market[]> {
   const now = Math.round(new Date().getTime() / 1000);
@@ -135,26 +133,23 @@ export async function searchMarkets(
 
   if (participant) {
     // markets this user is a participant in (participant = creator or trader)
-    const marketsWithUserPositions = (await fetchMarketsWithPositions(participant, chainsIds)).map((a) =>
-      a.toLocaleLowerCase(),
-    );
+    const marketsWithUserPositions = (
+      await Promise.all(chainsIds.map((chainId) => fetchMarketsWithPositions(participant, chainId)))
+    )
+      .flat()
+      .map((a) => a.toLocaleLowerCase());
     if (marketsWithUserPositions.length > 0) {
-      query = query.or(`id.in.(${marketsWithUserPositions.join(",")}),eq(subgraph_data->creator,${participant})`);
+      // the user is an active trader in some market
+      query = query.or(`id.in.(${marketsWithUserPositions.join(",")}),subgraph_data->>creator.eq.${participant})`);
     } else {
-      query = query.eq("subgraph_data->creator", participant);
+      // the user is not trading, search only created markets
+      query = query.eq("subgraph_data->>creator", participant);
     }
   } else if (creator) {
-    query = query.eq("subgraph_data->creator", creator);
+    query = query.eq("subgraph_data->>creator", creator);
   }
 
   query = query.in("chain_id", chainsIds);
-
-  if (orderBy) {
-    const orderByField = `subgraph_data->${orderBy}`;
-    query = query.order(orderByField, {
-      ascending: orderDirection === "asc",
-    });
-  }
 
   const { data, error } = await query;
 
@@ -177,11 +172,11 @@ export async function searchMarkets(
   });
 }
 
-const fetchMarketsWithPositions = async (address: Address, chainIds: SupportedChain[]) => {
+const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   const { data: markets, error } = await supabase
     .from("markets")
     .select("id,subgraph_data->wrappedTokens")
-    .in("chain_id", chainIds);
+    .eq("chain_id", chainId);
 
   if (error) {
     throw error;
@@ -207,6 +202,7 @@ const fetchMarketsWithPositions = async (address: Address, chainIds: SupportedCh
     contracts: allTokensIds.map((wrappedAddresses) => ({
       abi: erc20Abi,
       address: wrappedAddresses,
+      chainId,
       functionName: "balanceOf",
       args: [address],
     })),
@@ -266,8 +262,6 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     marketStatusList,
     creator,
     participant,
-    orderBy,
-    orderDirection,
     marketIds,
   );
 
@@ -328,7 +322,7 @@ export default async (req: Request) => {
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    const cachingEnabled = true;
+    const cachingEnabled = false;
 
     if (id === "" && cachingEnabled) {
       const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
