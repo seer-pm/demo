@@ -3,6 +3,7 @@ import { getPostmarkClient } from "./utils/common";
 import { FROM_EMAIL } from "./utils/common";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const postmarkClient = getPostmarkClient();
 
 async function sendPendingNotifications() {
   try {
@@ -30,7 +31,7 @@ async function sendPendingNotifications() {
       pendingNotifications.map(async (notification) => {
         try {
           const { data } = notification;
-          await getPostmarkClient().sendEmailWithTemplate({
+          await postmarkClient.sendEmailWithTemplate({
             TemplateAlias: data.TemplateAlias,
             TemplateModel: data.TemplateModel,
             From: FROM_EMAIL,
