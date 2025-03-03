@@ -152,6 +152,17 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
+          if (position.redeemedPrice) {
+            return (
+              <div className="font-semibold text-[14px] flex items-center gap-2">
+                <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+                <span className="tooltip">
+                  <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
+                  <QuestionIcon fill="#9747FF" />
+                </span>
+              </div>
+            );
+          }
           if (position.parentMarketId) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2">

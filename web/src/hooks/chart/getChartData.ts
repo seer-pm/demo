@@ -239,8 +239,8 @@ async function getPoolHourDatas(
   );
 }
 
-function getFirstAndLastTimestamps(market: Market, interval: number, dayCount: number) {
-  const lastTimestamp = getNearestRoundedDownTimestamp(Math.floor(new Date().getTime() / 1000), interval);
+function getFirstAndLastTimestamps(market: Market, interval: number, dayCount: number, endDate: Date | undefined) {
+  const lastTimestamp = getNearestRoundedDownTimestamp(Math.floor((endDate ?? new Date()).getTime() / 1000), interval);
   let firstTimestamp = getNearestRoundedDownTimestamp(
     Math.floor(subDays(new Date(), dayCount).getTime() / 1000),
     interval,
@@ -454,7 +454,12 @@ export type ChartData = {
   timestamps: number[];
 };
 
-export async function getChartData(market: Market, dayCount: number, interval: number): Promise<ChartData> {
+export async function getChartData(
+  market: Market,
+  dayCount: number,
+  interval: number,
+  endDate: Date | undefined,
+): Promise<ChartData> {
   if (!interval) {
     return { chartData: [], timestamps: [] };
   }
@@ -462,7 +467,7 @@ export async function getChartData(market: Market, dayCount: number, interval: n
   const poolsPairs = getMarketPoolsPairs(market);
 
   try {
-    const { firstTimestamp, lastTimestamp } = getFirstAndLastTimestamps(market, interval, dayCount);
+    const { firstTimestamp, lastTimestamp } = getFirstAndLastTimestamps(market, interval, dayCount, endDate);
 
     const poolHourDatasSets = await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp, lastTimestamp);
 

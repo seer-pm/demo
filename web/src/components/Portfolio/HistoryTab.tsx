@@ -61,12 +61,14 @@ function HistoryTab() {
                 text={
                   !startDate && !endDate
                     ? "Filter By Date"
-                    : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${endDate ? format(endDate, "MMM d, yyyy") : "_"}`
+                    : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                        endDate ? format(endDate, "MMM d, yyyy") : "_"
+                      }`
                 }
                 onClick={() => setShowDateRangePicker((state) => !state)}
               />
               {isShowDateRangePicker && (
-                <div className="absolute right-0 top-[60px]">
+                <div className="absolute right-0 top-[60px] z-10">
                   <DateRangePicker
                     startDate={startDate}
                     endDate={endDate}

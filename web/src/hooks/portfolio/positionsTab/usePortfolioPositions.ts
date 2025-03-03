@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits } from "viem";
+import { Address, formatUnits, zeroAddress } from "viem";
 
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
@@ -22,7 +23,27 @@ export interface PortfolioPosition {
   parentMarketId?: string;
   parentMarketName?: string;
   parentOutcome?: string;
+  redeemedPrice: number;
+  marketFinalizeTs: number;
 }
+
+const getRedeemedPrice = (market: Market, tokenIndex: number) => {
+  if (!market.payoutReported) return 0;
+  const sumPayout = market.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+  if (isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
+    return Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+  }
+  const isParentPayout =
+    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
+  if (isParentPayout) {
+    const sumParentPayout = market.parentMarket.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+    const payoutPrice = Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+    const parentPayoutPrice =
+      Number(market.parentMarket.payoutNumerators[Number(market.parentOutcome)]) / sumParentPayout;
+    return payoutPrice * parentPayoutPrice;
+  }
+  return 0;
+};
 
 export const fetchPositions = async (
   initialMarkets: Market[] | undefined,
@@ -73,11 +94,13 @@ export const fetchPositions = async (
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
         marketName: market.marketName,
         marketStatus: market.marketStatus,
+        marketFinalizeTs: market.finalizeTs,
         outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
         parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
+        redeemedPrice: getRedeemedPrice(market, tokenIndex),
       });
     }
     return acumm;
@@ -86,7 +109,11 @@ export const fetchPositions = async (
   return positions.filter((position) => {
     const market = marketIdToMarket[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {
-      return market.payoutReported && market.payoutNumerators[position.tokenIndex] > 0n;
+      const isPayout = market.payoutReported && market.payoutNumerators[position.tokenIndex] > 0n;
+      const isParentPayout =
+        !market.parentMarket.payoutReported ||
+        (market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n);
+      return isPayout && isParentPayout;
     }
     return true;
   });

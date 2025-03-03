@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Market } from "../useMarket";
 import { getChartData } from "./getChartData";
 
-export const useChartData = (market: Market, dayCount: number, intervalSeconds: number) => {
+export const useChartData = (market: Market, dayCount: number, intervalSeconds: number, endDate: Date | undefined) => {
   return useQuery<
     | {
         chartData: {
@@ -16,8 +16,8 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
     Error
   >({
     enabled: !!market,
-    queryKey: ["useChartData", market.chainId, market.id, dayCount, intervalSeconds],
+    queryKey: ["useChartData", market.chainId, market.id, dayCount, intervalSeconds, endDate],
     retry: false,
-    queryFn: async () => getChartData(market, dayCount, intervalSeconds),
+    queryFn: async () => getChartData(market, dayCount, intervalSeconds, endDate),
   });
 };

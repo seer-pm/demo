@@ -7,10 +7,11 @@ import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv, formatDate } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 import slug from "slug";
+import DateRangePicker from "../Portfolio/DateRangePicker";
 import { Spinner } from "../Spinner";
 
 const chartOptions = {
@@ -55,12 +56,42 @@ function getSeries(market: Market, chartData: ChartData["chartData"]) {
 
 function MarketChart({ market }: { market: Market }) {
   const [period, setPeriod] = useState<ChartOptionPeriod>("All");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
+  const onChangeDate = (dates: (Date | null)[]) => {
+    const [start, end] = dates;
+    if (!start && !end) {
+      setPeriod("All");
+    }
+    setStartDate(start ?? undefined);
+    setEndDate(end ?? undefined);
+  };
+  const chartTimeConfig = (() => {
+    if (startDate) {
+      const dayCount = differenceInDays(new Date(), startDate);
+      return {
+        dayCount,
+        interval: 60 * 60 * 3,
+      };
+    }
+    if (endDate) {
+      return {
+        dayCount: 365 * 10,
+        interval: 60 * 60 * 3,
+      };
+    }
+    return {
+      dayCount: chartOptions[period].dayCount,
+      interval: chartOptions[period].interval,
+    };
+  })();
   const { data, isPending: isPendingChart } = useChartData(
     market,
-    chartOptions[period].dayCount,
-    chartOptions[period].interval,
+    chartTimeConfig.dayCount,
+    chartTimeConfig.interval,
+    endDate,
   );
-
   const { chartData = [], timestamps = [] } = data ?? {};
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
@@ -184,7 +215,7 @@ function MarketChart({ market }: { market: Market }) {
     })),
   };
   const exportData = async () => {
-    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24);
+    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, undefined);
     const series = getSeries(market, chartData);
     const headers = [
       {
@@ -222,15 +253,43 @@ function MarketChart({ market }: { market: Market }) {
               key={option}
               onClick={() => {
                 setPeriod(option as ChartOptionPeriod);
+                setStartDate(undefined);
+                setEndDate(undefined);
               }}
               className={clsx(
                 "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
-                period === option && "!border-purple-primary",
+                !startDate && !endDate && period === option && "!border-purple-primary",
               )}
             >
               {option}
             </div>
           ))}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDateRangePicker((state) => !state)}
+              className={clsx(
+                "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
+                (startDate || endDate) && "!border-purple-primary",
+              )}
+            >
+              {!startDate && !endDate
+                ? "Custom"
+                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                    endDate ? format(endDate, "MMM d, yyyy") : "_"
+                  }`}
+            </button>
+            {isShowDateRangePicker && (
+              <div className="absolute left-0 top-[60px] z-10">
+                <DateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={onChangeDate}
+                  onClose={() => setShowDateRangePicker(false)}
+                />
+              </div>
+            )}
+          </div>
           <div className="tooltip">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
               The chart represents the token distribution in the liquidity pool over time and may not fully align with

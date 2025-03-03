@@ -82,6 +82,7 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
 
 export default function Header() {
   const pageContext = usePageContext();
+  const { isConnected } = useAccount();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
@@ -164,29 +165,31 @@ export default function Header() {
           <li>
             <ConnectWallet />
           </li>
-          <div className="dropdown dropdown-end mt-[5px]">
-            <button type="button" tabIndex={0} className="hover:opacity-85">
-              <AccountCircleIcon />
-            </button>
-            <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
-              <li>
-                <Link
-                  to={"/portfolio"}
-                  className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
-                >
-                  Portfolio
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to={"/collections/default"}
-                  className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
-                >
-                  Market Collections
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {isConnected && (
+            <div className="dropdown dropdown-end mt-[5px]">
+              <button type="button" tabIndex={0} className="hover:opacity-85">
+                <AccountCircleIcon />
+              </button>
+              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+                <li>
+                  <Link
+                    to={"/portfolio"}
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    Portfolio
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/collections/default"}
+                    className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    Market Collections
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
           <li className="flex items-center space-x-2">
             <div className="dropdown dropdown-end mt-[5px]">
               <button type="button" tabIndex={0} className="hover:opacity-85">
