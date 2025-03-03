@@ -239,8 +239,15 @@ async function getPoolHourDatas(
   );
 }
 
-function getFirstAndLastTimestamps(market: Market, interval: number, dayCount: number, endDate: Date | undefined) {
-  const lastTimestamp = getNearestRoundedDownTimestamp(Math.floor((endDate ?? new Date()).getTime() / 1000), interval);
+function getFirstAndLastTimestamps(
+  market: Market,
+  interval: number,
+  dayCount: number,
+  initialEndDate: Date | undefined,
+) {
+  const now = new Date();
+  const endDate = initialEndDate ? (initialEndDate > now ? now : initialEndDate) : now;
+  const lastTimestamp = getNearestRoundedDownTimestamp(Math.floor(endDate.getTime() / 1000), interval);
   let firstTimestamp = getNearestRoundedDownTimestamp(
     Math.floor(subDays(new Date(), dayCount).getTime() / 1000),
     interval,
