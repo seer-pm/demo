@@ -21,7 +21,7 @@ import {
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import pLimit from "p-limit";
-import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
+import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
@@ -55,7 +55,7 @@ function getUniswapTrade(
   });
 }
 
-const limit = pLimit(5);
+const limit = pLimit(3);
 
 function getSwaprTrade(
   _currencyIn: Currency,
@@ -186,6 +186,36 @@ export const getCowQuote: QuoteTradeFn = async (
     sellAmount: args.sellAmount.toString(),
     swapType,
   };
+};
+
+export const getBestCowQuote = async (
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  isFastQuery?: boolean,
+) => {
+  const cowQuotes = await Promise.allSettled(
+    Array(3)
+      .fill(null)
+      .map(async (_, index) => {
+        await new Promise((res) => setTimeout(res, index * 1000));
+        return getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType ?? "buy", isFastQuery);
+      }),
+  );
+  const settledResult = cowQuotes.find((quote) => {
+    if (quote.status === "fulfilled" && quote?.value?.value > 0n) {
+      const pricePerShare =
+        swapType === "buy"
+          ? Number(amount) / Number(formatUnits(quote.value.value, 18))
+          : Number(formatUnits(quote.value.value, 18)) / Number(amount);
+      return pricePerShare < 2;
+    }
+    return false;
+  });
+  return settledResult?.status === "fulfilled" ? settledResult.value : undefined;
 };
 
 // async function convertCollateralToShares(
@@ -323,7 +353,8 @@ export function useCowQuote(
     queryKey: queryKey,
     enabled: Number(amount) > 0,
     retry: false,
-    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
+    queryFn: async () =>
+      getBestCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
     // If we used a fast quote, refetch immediately to obtain the verified quote
     refetchInterval: (query) => (query.state.dataUpdateCount <= 1 ? 1 : QUOTE_REFETCH_INTERVAL),
   });

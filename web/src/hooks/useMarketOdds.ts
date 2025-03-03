@@ -4,7 +4,7 @@ import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
-import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
+import { getBestCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { Market } from "./useMarket";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
@@ -52,7 +52,14 @@ async function getTokenPrice(
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
   // call cowQuote first, if not possible then we call using rpc
   try {
-    const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy");
+    const cowQuote = await getBestCowQuote(
+      chainId,
+      undefined,
+      amount,
+      outcomeToken,
+      collateralToken,
+      swapType ?? "buy",
+    );
     if (cowQuote?.value && cowQuote.value > 0n) {
       return cowQuote.value;
     }
