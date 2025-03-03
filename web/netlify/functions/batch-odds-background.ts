@@ -1,7 +1,7 @@
 import { getMarketOdds } from "@/hooks/useMarketOdds";
-import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
+import { searchMarkets } from "./markets-search.mts";
 import { chainIds } from "./utils/config";
 import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
@@ -16,7 +16,7 @@ export default async () => {
     // ignore markets finalized more than two days ago
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
-    const markets = (await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) })).filter((market) => {
+    const markets = (await searchMarkets(chainIds.map((c) => c))).filter((market) => {
       return market.finalizeTs > twoDaysAgo;
     });
 
