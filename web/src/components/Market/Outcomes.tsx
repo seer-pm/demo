@@ -11,7 +11,7 @@ import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket } from "@/lib/config";
+import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -172,13 +172,28 @@ function AddLiquidityInfo({
                     <div className="flex items-center justify-between items-center" key={deposit.id}>
                       <div>
                         <a
-                          href={getFarmingUrl(chainId, deposit.id)}
+                          href={getPositionUrl(chainId, deposit.id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-purple-primary hover:underline"
+                          className="text-purple-primary hover:underline block"
                         >
                           Position #{deposit.id}
                         </a>
+                        {deposit.onFarmingCenter && (
+                          <>
+                            {" "}
+                            <a
+                              href={getFarmingUrl(chainId, deposit.id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-purple-primary hover:underline text-[13px]"
+                            >
+                              {deposit.limitFarming === null && deposit.eternalFarming === null
+                                ? "(On Farming Center)"
+                                : "(In Farming)"}
+                            </a>
+                          </>
+                        )}
                       </div>
                       <div>
                         {!deposit.onFarmingCenter && (
@@ -192,7 +207,7 @@ function AddLiquidityInfo({
                         )}
                         {deposit.onFarmingCenter &&
                           (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
                               <Button
                                 text="Withdraw NFT"
                                 size="small"
@@ -434,7 +449,9 @@ function OutcomeDetails({
 
           {market.type === "Generic" && (
             <Link
-              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
+              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
+                market.outcomes[outcomeIndex],
+              )}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setSearchParams(
