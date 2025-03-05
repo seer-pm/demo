@@ -2,7 +2,6 @@ import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarket } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
@@ -23,34 +22,10 @@ import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
+import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import { RedeemForm } from "../Market/RedeemForm";
 import TextOverflowTooltip from "../TextOverflowTooltip";
-
-export function MarketImage({
-  marketAddress,
-  marketName,
-  chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
-  const { data: images } = useMarketImages(marketAddress, chainId);
-  return (
-    <div>
-      {images?.market ? (
-        <img
-          src={images.market}
-          alt={marketName}
-          className="w-[40px] h-[40px] min-w-[40px] min-h-[40px] rounded-full"
-        />
-      ) : (
-        <div className="w-[40px] h-[40px] rounded-full bg-purple-primary"></div>
-      )}
-    </div>
-  );
-}
 
 function RedeemModalContent({
   account,
@@ -98,11 +73,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MarketImage
-                marketAddress={position.marketAddress as Address}
-                marketName={position.marketName}
-                chainId={chainId as SupportedChain}
-              />
+              <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
             </a>
           );

@@ -145,6 +145,7 @@ export type Database = {
           created_at: string | null;
           creator: string | null;
           id: string;
+          images: Json | null;
           incentive: number | null;
           liquidity: number | null;
           metadata: Json | null;
@@ -161,6 +162,7 @@ export type Database = {
           created_at?: string | null;
           creator?: string | null;
           id: string;
+          images?: Json | null;
           incentive?: number | null;
           liquidity?: number | null;
           metadata?: Json | null;
@@ -177,6 +179,7 @@ export type Database = {
           created_at?: string | null;
           creator?: string | null;
           id?: string;
+          images?: Json | null;
           incentive?: number | null;
           liquidity?: number | null;
           metadata?: Json | null;

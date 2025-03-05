@@ -10,7 +10,6 @@ import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
@@ -96,7 +95,6 @@ function MarketPage() {
   const router = getRouterAddress(chainId);
 
   const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
-  const { data: images } = useMarketImages(market?.id, chainId);
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
@@ -163,7 +161,7 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader market={market} images={images} />
+        <MarketHeader market={market} images={market.images} />
         {market.categories?.length > 0 && <MarketCategories market={market} />}
         {!reliableMarket && (
           <Alert
@@ -176,7 +174,7 @@ function MarketPage() {
         {market && <MarketChart market={market} />}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
-            {market && <Outcomes market={market} images={images?.outcomes} />}
+            {market && <Outcomes market={market} images={market?.images?.outcomes} />}
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
             <InputPotentialReturnContext.Provider
@@ -187,7 +185,7 @@ function MarketPage() {
                 market={market}
                 account={account}
                 outcomeIndex={outcomeIndex}
-                images={images?.outcomes}
+                images={market?.images?.outcomes}
               />
             </InputPotentialReturnContext.Provider>
             <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />

@@ -1,6 +1,5 @@
 import { Alert } from "@/components/Alert";
 import { Market } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
 import { MarketHeader } from "../Header/MarketHeader";
 
@@ -9,8 +8,7 @@ interface RelatedMarketsProps {
 }
 
 function RelatedMarket({ market }: RelatedMarketsProps) {
-  const { data: images } = useMarketImages(market.id, market.chainId);
-  return <MarketHeader market={market} type="small" images={images} />;
+  return <MarketHeader market={market} type="small" images={market?.images} />;
 }
 
 export function RelatedMarkets({ market }: RelatedMarketsProps) {

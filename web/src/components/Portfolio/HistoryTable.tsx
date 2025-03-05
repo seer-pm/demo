@@ -1,7 +1,6 @@
 import React from "react";
 
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -18,29 +17,9 @@ import {
 import clsx from "clsx";
 import { format } from "date-fns";
 import { Address } from "viem";
+import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
-
-export function MarketImage({
-  marketAddress,
-  marketName,
-  chainId,
-}: { marketAddress: Address; marketName: string; chainId: SupportedChain }) {
-  const { data: images } = useMarketImages(marketAddress, chainId);
-  return (
-    <div>
-      {images?.market ? (
-        <img
-          src={images.market}
-          alt={marketName}
-          className="w-[40px] h-[40px] min-w-[40px] min-h-[40px] rounded-full"
-        />
-      ) : (
-        <div className="w-[40px] h-[40px] rounded-full bg-purple-primary"></div>
-      )}
-    </div>
-  );
-}
 
 export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: SupportedChain }) {
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
@@ -73,11 +52,7 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MarketImage
-                marketAddress={data.marketId as Address}
-                marketName={data.marketName}
-                chainId={chainId as SupportedChain}
-              />
+              <MarketImage marketAddress={data.marketId as Address} chainId={chainId as SupportedChain} />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
             </a>
           );

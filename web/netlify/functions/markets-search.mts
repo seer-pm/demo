@@ -21,6 +21,8 @@ type PoolBalance = Array<{
   token1: { symbol: string; balance: number };
 } | null>;
 
+type VerificationImages = { market: string; outcomes: string[] };
+
 function mapGraphMarket(
   market: SubgraphMarket,
   extra: {
@@ -33,6 +35,7 @@ function mapGraphMarket(
     poolBalance: PoolBalance;
     odds: (number | null)[];
     url: string;
+    images: VerificationImages | undefined;
   },
 ): Market {
   return {
@@ -89,7 +92,7 @@ export async function searchMarkets(
 
   let query = supabase
     .from("markets")
-    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification")
+    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images")
     .not("subgraph_data", "is", null);
 
   if (id) {
@@ -168,6 +171,7 @@ export async function searchMarkets(
       categories: result?.categories ?? ["misc"],
       poolBalance: (result?.pool_balance || []) as PoolBalance,
       url: result?.url || "",
+      images: (result?.images as VerificationImages) || undefined,
     });
   });
 }
