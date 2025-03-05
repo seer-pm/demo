@@ -1,3 +1,5 @@
+import { unescapeJson } from "@/lib/reality";
+import { formatDate } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
@@ -24,18 +26,27 @@ export default async (req: Request) => {
   }
   try {
     const { data, error } = id
-      ? await supabase.from("markets").select("metadata").eq("id", id).single()
-      : await supabase.from("markets").select("metadata").eq("url", url).single();
+      ? await supabase.from("markets").select("subgraph_data").eq("id", id).single()
+      : await supabase.from("markets").select("subgraph_data").eq("url", url).single();
 
     if (error) {
       throw error;
     }
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
+
+    return new Response(
+      JSON.stringify({
+        title: `Seer | ${unescapeJson(data.subgraph_data.marketName)}`,
+        description: `Answer opening date: ${`${formatDate(
+          data.subgraph_data.questions[0].question.opening_ts,
+        )} UTC`}. Outcomes: ${data.subgraph_data.outcomes.slice(0, -1).join(", ")}.`,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
   } catch (e) {
     console.log(e);
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });

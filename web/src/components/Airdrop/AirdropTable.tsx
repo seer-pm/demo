@@ -1,7 +1,6 @@
 import React from "react";
 
 import { AirdropTokenInfo } from "@/hooks/airdrop/useGetListAirdropTokens";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -17,33 +16,9 @@ import {
 import clsx from "clsx";
 import { Address } from "viem";
 import { navigate } from "vike/client/router";
+import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
-
-export function MarketImage({
-  marketAddress,
-  marketName,
-  chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
-  const { data: images } = useMarketImages(marketAddress, chainId);
-  return (
-    <div>
-      {images?.market ? (
-        <img
-          src={images.market}
-          alt={marketName}
-          className="w-[40px] h-[40px] min-w-[40px] min-h-[40px] rounded-full"
-        />
-      ) : (
-        <div className="w-[40px] h-[40px] rounded-full bg-purple-primary"></div>
-      )}
-    </div>
-  );
-}
 
 export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo[]; chainId: SupportedChain }) {
   const columns = React.useMemo<ColumnDef<AirdropTokenInfo>[]>(
@@ -84,11 +59,7 @@ export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo
           }
           return (
             <div className="flex gap-2 items-center text-[14px]">
-              <MarketImage
-                marketAddress={position.marketAddress as Address}
-                marketName={position.marketName}
-                chainId={chainId as SupportedChain}
-              />
+              <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
             </div>
           );

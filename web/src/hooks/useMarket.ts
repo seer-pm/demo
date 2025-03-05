@@ -46,6 +46,7 @@ type MarketOffChainFields = {
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
+  images?: { market: string; outcomes: string[] } | undefined;
   index?: number;
   url: string;
 };
@@ -149,6 +150,12 @@ export function deserializeMarket(market: SerializedMarket): Market {
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+    images: market.images
+      ? {
+          market: `https://cdn.kleros.link${market.images.market}`,
+          outcomes: ((market.images.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
+        }
+      : undefined,
   };
 }
 

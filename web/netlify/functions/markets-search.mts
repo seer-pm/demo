@@ -1,104 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
-import { lightGeneralizedTcrAddress } from "../../src/hooks/contracts/generated";
-import { GetImagesQuery, Status, getSdk as getCurateSdk } from "../../src/hooks/queries/gql-generated-curate";
-import {
-  GetMarketQuery,
-  GetMarketsQuery,
-  Market_Filter,
-  Market_OrderBy,
-  OrderDirection,
-  getSdk as getSeerSdk,
-} from "../../src/hooks/queries/gql-generated-seer";
+import { GetMarketQuery, Market_OrderBy } from "../../src/hooks/queries/gql-generated-seer";
 import { Market, SerializedMarket, VerificationResult, serializeMarket } from "../../src/hooks/useMarket";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
 import { SUPPORTED_CHAINS, SupportedChain } from "../../src/lib/chains";
 import { FetchMarketParams, sortMarkets } from "../../src/lib/markets-search";
 import { unescapeJson } from "../../src/lib/reality";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "../../src/lib/utils";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "../../src/lib/utils";
 import { config } from "./utils/config";
-import { curateGraphQLClient, graphQLClient } from "./utils/subgraph";
+import { Database, Json } from "./utils/supabase";
 const crypto = require("node:crypto");
 
-export const MARKETS_COUNT_PER_QUERY = 1000;
+const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
 
-async function getVerificationStatusList(
-  chainId: SupportedChain,
-): Promise<Record<Address, VerificationResult | undefined>> {
-  const client = curateGraphQLClient(chainId);
+type PoolBalance = Array<{
+  token0: { symbol: string; balance: number };
+  token1: { symbol: string; balance: number };
+} | null>;
 
-  const registryAddress = lightGeneralizedTcrAddress[chainId];
-  let litems: GetImagesQuery["litems"] = [];
-  if (client && !isUndefined(registryAddress)) {
-    try {
-      const data = await getCurateSdk(client).GetImages({
-        where: {
-          registryAddress,
-        },
-      });
-      litems = data.litems;
-    } catch (e) {
-      const fallbackClient = curateGraphQLClient(chainId, true);
-      if (fallbackClient) {
-        const data = await getCurateSdk(fallbackClient).GetImages({
-          where: {
-            registryAddress,
-          },
-        });
-        litems = data.litems;
-      } else {
-        throw e;
-      }
-    }
-    return litems.reduce(
-      (obj, item) => {
-        const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
-        if (!marketId) {
-          return obj;
-        }
-        const isVerifiedBeforeClearing =
-          item.status === Status.ClearingRequested &&
-          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
-        if (item.status === Status.Registered || isVerifiedBeforeClearing) {
-          obj[marketId] = { status: "verified", itemID: item.itemID };
-          return obj;
-        }
-        if (item.status === Status.RegistrationRequested) {
-          if (item.disputed) {
-            obj[marketId] = { status: "challenged", itemID: item.itemID };
-          } else {
-            obj[marketId] = { status: "verifying", itemID: item.itemID };
-          }
-          return obj;
-        }
-        obj[marketId] = { status: "not_verified" };
-        return obj;
-      },
-      {} as { [key: string]: VerificationResult },
-    );
-  }
-
-  return {};
-}
-
-interface MarketExtraData {
-  id: string;
-  liquidity: number | null;
-  incentive: number | null;
-  odds: (number | null)[];
-  categories: string[];
-  pool_balance: Array<{
-    token0: { symbol: string; balance: number };
-    token1: { symbol: string; balance: number };
-  } | null>;
-  url: string | null;
-}
+type VerificationImages = { market: string; outcomes: string[] };
 
 function mapGraphMarket(
-  market: NonNullable<GetMarketQuery["market"]>,
+  market: SubgraphMarket,
   extra: {
     chainId: SupportedChain;
     verification: VerificationResult | undefined;
@@ -106,9 +32,10 @@ function mapGraphMarket(
     incentive: number;
     hasLiquidity: boolean;
     categories: string[];
-    poolBalance: MarketExtraData["pool_balance"];
+    poolBalance: PoolBalance;
     odds: (number | null)[];
     url: string;
+    images: VerificationImages | undefined;
   },
 ): Market {
   return {
@@ -151,186 +78,120 @@ function mapGraphMarket(
   };
 }
 
-async function getMarketsExtraData(): Promise<{ [key: string]: MarketExtraData } | undefined> {
-  const { data, error } = await supabase.from("markets").select();
-  if (error) {
-    return;
-  }
+export async function searchMarkets(
+  chainsIds: SupportedChain[],
+  id?: Address | "",
+  parentMarket?: Address | "",
+  _marketName?: string,
+  marketStatusList?: MarketStatus[] | undefined,
+  creator?: Address | "",
+  participant?: Address | "",
+  marketIds?: string[] | undefined,
+): Promise<Market[]> {
+  const now = Math.round(new Date().getTime() / 1000);
 
-  return data.reduce(
-    (acc, curr) => {
-      acc[curr.id] = curr;
-      return acc;
-    },
-    {} as { [key: string]: MarketExtraData },
-  );
-}
-
-async function fetchAllMarkets(chainId: SupportedChain, where?: Market_Filter) {
-  const client = graphQLClient(chainId);
-
-  if (!client) {
-    throw new Error("Subgraph not available");
-  }
-
-  let markets: GetMarketsQuery["markets"] = [];
-  const maxAttempts = 20;
-  let attempt = 1;
-  let currentId = undefined;
-  // try to fetch all markets on subgraph
-
-  while (attempt < maxAttempts) {
-    const { markets: currentMarkets } = await getSeerSdk(client).GetMarkets({
-      where: isUndefined(currentId) ? where : where ? { and: [where, { id_gt: currentId }] } : { id_gt: currentId },
-      orderDirection: OrderDirection.Asc,
-      orderBy: Market_OrderBy.Id,
-      first: MARKETS_COUNT_PER_QUERY,
-    });
-    markets = markets.concat(currentMarkets);
-    if (currentMarkets[currentMarkets.length - 1]?.id === currentId) {
-      break;
-    }
-    if (currentMarkets.length < MARKETS_COUNT_PER_QUERY) {
-      break; // We've fetched all markets
-    }
-    currentId = currentMarkets[currentMarkets.length - 1]?.id;
-    attempt++;
-  }
-  return markets;
-}
-
-export const fetchMarkets = async (
-  chainId: SupportedChain,
-  where?: Market_Filter,
-  orderBy?: Market_OrderBy,
-  orderDirection?: "asc" | "desc",
-): Promise<Market[]> => {
-  const [markets, verificationStatusList, marketsExtraData] = await Promise.all([
-    fetchAllMarkets(chainId, where),
-    getVerificationStatusList(chainId),
-    getMarketsExtraData(),
-  ]);
-
-  return markets
-    .map((market) => {
-      const marketExtraData = marketsExtraData?.[market.id.toLowerCase() as Address];
-      return mapGraphMarket(market, {
-        chainId,
-        verification: verificationStatusList?.[market.id.toLowerCase() as Address] ?? { status: "not_verified" },
-        liquidityUSD: marketExtraData?.liquidity ?? 0,
-        incentive: marketExtraData?.incentive ?? 0,
-        hasLiquidity: marketExtraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-        odds: marketExtraData?.odds ?? [],
-        categories: marketExtraData?.categories ?? ["misc"],
-        poolBalance: marketExtraData?.pool_balance || [],
-        url: marketExtraData?.url || "",
-      });
-    })
-    .sort(sortMarkets(orderBy, orderDirection || "desc"));
-};
-
-export async function searchGraphMarkets(
-  chainId: SupportedChain,
-  id: Address | "",
-  parentMarket: Address | "",
-  _marketName: string,
-  marketStatusList: MarketStatus[] | undefined,
-  creator: Address | "",
-  participant: Address | "",
-  orderBy: Market_OrderBy | undefined,
-  orderDirection: "asc" | "desc" | undefined,
-  marketIds: string[] | undefined,
-) {
-  const now = String(Math.round(new Date().getTime() / 1000));
-
-  let where: Market_Filter = {};
-  const or = [];
+  let query = supabase
+    .from("markets")
+    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images")
+    .not("subgraph_data", "is", null);
 
   if (id) {
-    where["id"] = id.toLowerCase();
+    query = query.eq("id", id.toLowerCase());
   }
 
   if (parentMarket) {
-    where["parentMarket"] = parentMarket.toLowerCase();
+    query = query.eq("subgraph_data->parentMarket->id", parentMarket.toLowerCase());
   }
 
   if (marketIds?.length) {
-    where.id_in = marketIds;
+    query = query.in("id", marketIds);
   }
+
+  const conditions = [];
 
   if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
-    or.push({
-      openingTs_gt: now,
-    });
+    conditions.push(`subgraph_data->>openingTs.gt.${now}`);
   }
   if (marketStatusList?.includes(MarketStatus.OPEN)) {
-    or.push({
-      openingTs_lt: now,
-      hasAnswers: false,
-    });
+    conditions.push(`and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.false)`);
   }
   if (marketStatusList?.includes(MarketStatus.ANSWER_NOT_FINAL)) {
-    or.push({
-      openingTs_lt: now,
-      hasAnswers: true,
-      finalizeTs_gt: now,
-    });
+    conditions.push(
+      `and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.true,subgraph_data->>finalizeTs.gt.${now})`,
+    );
   }
   if (marketStatusList?.includes(MarketStatus.IN_DISPUTE)) {
-    or.push({
-      questionsInArbitration_gt: "0",
-    });
+    conditions.push("subgraph_data->>questionsInArbitration.gt.0");
   }
   if (marketStatusList?.includes(MarketStatus.PENDING_EXECUTION)) {
-    or.push({
-      finalizeTs_lt: now,
-      payoutReported: false,
-    });
+    conditions.push(`and(subgraph_data->>finalizeTs.lt.${now},subgraph_data->payoutReported.eq.false)`);
   }
   if (marketStatusList?.includes(MarketStatus.CLOSED)) {
-    or.push({
-      payoutReported: true,
-    });
+    conditions.push("subgraph_data->payoutReported.eq.true");
   }
 
-  if (or.length > 0) {
-    where = {
-      and: [where, { or }],
-    };
+  if (conditions.length > 0) {
+    query = query.or(conditions.join(","));
   }
 
   if (participant) {
     // markets this user is a participant in (participant = creator or trader)
-    const marketsWithUserPositions = (await fetchMarketsWithPositions(participant, chainId)).map((a) =>
-      a.toLocaleLowerCase(),
-    );
+    const marketsWithUserPositions = (
+      await Promise.all(chainsIds.map((chainId) => fetchMarketsWithPositions(participant, chainId)))
+    )
+      .flat()
+      .map((a) => a.toLocaleLowerCase());
     if (marketsWithUserPositions.length > 0) {
       // the user is an active trader in some market
-      where = {
-        and: [
-          where,
-          {
-            or: [{ id_in: marketsWithUserPositions }, { creator: participant }],
-          },
-        ],
-      };
+      query = query.or(`id.in.(${marketsWithUserPositions.join(",")}),subgraph_data->>creator.eq.${participant})`);
     } else {
       // the user is not trading, search only created markets
-      where["creator"] = participant;
+      query = query.eq("subgraph_data->>creator", participant);
     }
-  } else if (creator !== "") {
-    where["creator"] = creator;
+  } else if (creator) {
+    query = query.eq("subgraph_data->>creator", creator);
   }
 
-  return await fetchMarkets(chainId, where, orderBy, orderDirection);
+  query = query.in("chain_id", chainsIds);
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return data.map((result) => {
+    return mapGraphMarket(result.subgraph_data as SubgraphMarket, {
+      chainId: result.chain_id as SupportedChain,
+      verification: result.verification as VerificationResult,
+      liquidityUSD: result?.liquidity ?? 0,
+      incentive: result?.incentive ?? 0,
+      hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+      odds: result?.odds ?? [],
+      categories: result?.categories ?? ["misc"],
+      poolBalance: (result?.pool_balance || []) as PoolBalance,
+      url: result?.url || "",
+      images: (result?.images as VerificationImages) || undefined,
+    });
+  });
 }
 
-export const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
+const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
+  const { data: markets, error } = await supabase
+    .from("markets")
+    .select("id,subgraph_data->wrappedTokens")
+    .eq("chain_id", chainId);
+
+  if (error) {
+    throw error;
+  }
+
   // tokenId => marketId
-  const tokenToMarket = (await fetchMarkets(chainId)).reduce(
+  const tokenToMarket = markets.reduce(
     (acum, market) => {
-      for (const tokenId of market.wrappedTokens) {
-        acum[tokenId] = market.id;
+      const wrappedTokens = (market.wrappedTokens as string[]) || [];
+      for (const tokenId of wrappedTokens) {
+        acum[tokenId as `0x${string}`] = market.id as Address;
       }
       return acum;
     },
@@ -345,6 +206,7 @@ export const fetchMarketsWithPositions = async (address: Address, chainId: Suppo
     contracts: allTokensIds.map((wrappedAddresses) => ({
       abi: erc20Abi,
       address: wrappedAddresses,
+      chainId,
       functionName: "balanceOf",
       args: [address],
     })),
@@ -363,7 +225,7 @@ export const fetchMarketsWithPositions = async (address: Address, chainId: Suppo
   return [...marketsWithTokens];
 };
 
-async function getMarketId(id: string | undefined, url: string | undefined) {
+async function getMarketId(id: string | undefined, url: string | undefined): Promise<"" | Address> {
   if (!id && !url) {
     return "";
   }
@@ -371,10 +233,10 @@ async function getMarketId(id: string | undefined, url: string | undefined) {
   if (url) {
     const { data: market } = await supabase.from("markets").select("id").eq("url", url).single();
 
-    return market?.id || "";
+    return (market?.id as Address) || "";
   }
 
-  return id || "";
+  return (id as Address) || "";
 }
 
 async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Promise<SerializedMarket[]> {
@@ -396,32 +258,23 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     .filter((chain) => chain !== "31337")
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
-  const markets = (
-    await Promise.all(
-      chainIds.map((chainId) =>
-        searchGraphMarkets(
-          chainId,
-          id,
-          parentMarket,
-          marketName,
-          marketStatusList,
-          creator,
-          participant,
-          orderBy,
-          orderDirection,
-          marketIds,
-        ),
-      ),
-    )
-  ).flat();
+  const markets = await searchMarkets(
+    chainIds,
+    id,
+    parentMarket,
+    marketName,
+    marketStatusList,
+    creator,
+    participant,
+    marketIds,
+  );
 
-  // sort again because we are merging markets from multiple chains
   markets.sort(sortMarkets(orderBy, orderDirection || "desc"));
 
   return markets.map((market) => serializeMarket(market));
 }
 
-async function keyValueFetch<T>(key: string, callback: () => Promise<T>) {
+async function keyValueFetch<T extends Json>(key: string, callback: () => Promise<T>) {
   const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();
 
   if (error && error.code !== "PGRST116") {
@@ -432,6 +285,7 @@ async function keyValueFetch<T>(key: string, callback: () => Promise<T>) {
   const currentTime = new Date();
   const fiveMinutesAgo = new Date(currentTime.getTime() - 5 * 60 * 1000);
 
+  // @ts-ignore
   if (!data || new Date(data.value.date) < fiveMinutesAgo) {
     const result = await callback();
 
@@ -450,6 +304,7 @@ async function keyValueFetch<T>(key: string, callback: () => Promise<T>) {
     return result;
   }
 
+  // @ts-ignore
   return data.value.value;
 }
 
@@ -466,14 +321,19 @@ export default async (req: Request) => {
   }
 
   try {
-    let markets: Market[];
+    let markets: SerializedMarket[];
     // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    if (id === "") {
+    const cachingEnabled = false;
+
+    if (id === "" && cachingEnabled) {
       const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
-      markets = await keyValueFetch(hashKey, () => multiChainSearch(body as FetchMarketParams, id));
+      markets = await keyValueFetch(
+        hashKey,
+        () => multiChainSearch(body as FetchMarketParams, id) as unknown as Promise<Json>,
+      );
     } else {
       // Skip caching when querying by ID to ensure fresh data, particularly after user updates like category changes
       markets = await multiChainSearch(body as FetchMarketParams, id);
