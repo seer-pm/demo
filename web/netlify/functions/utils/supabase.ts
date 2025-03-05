@@ -99,6 +99,27 @@ export type Database = {
           },
         ];
       };
+      curate: {
+        Row: {
+          chain_id: number;
+          item_id: string;
+          metadata: Json | null;
+          metadata_path: string;
+        };
+        Insert: {
+          chain_id: number;
+          item_id: string;
+          metadata?: Json | null;
+          metadata_path: string;
+        };
+        Update: {
+          chain_id?: number;
+          item_id?: string;
+          metadata?: Json | null;
+          metadata_path?: string;
+        };
+        Relationships: [];
+      };
       key_value: {
         Row: {
           id: number;
