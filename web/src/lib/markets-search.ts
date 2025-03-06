@@ -80,6 +80,14 @@ export function sortMarkets(
         }
       }
 
+      //by verification status
+      const statusDiff =
+        STATUS_PRIORITY[a.verification?.status || "not_verified"] -
+        STATUS_PRIORITY[b.verification?.status || "not_verified"];
+      if (statusDiff !== 0) {
+        return statusDiff;
+      }
+
       // if market has no liquidity we not prioritize it
       try {
         const statusTextA = STATUS_TEXTS[getMarketStatus(a)](a.hasLiquidity);
@@ -93,15 +101,7 @@ export function sortMarkets(
       }
 
       // by liquidity
-      if (b.liquidityUSD !== a.liquidityUSD) {
-        return b.liquidityUSD - a.liquidityUSD;
-      }
-
-      //by verification status
-      const statusDiff =
-        STATUS_PRIORITY[a.verification?.status || "not_verified"] -
-        STATUS_PRIORITY[b.verification?.status || "not_verified"];
-      return statusDiff;
+      return b.liquidityUSD - a.liquidityUSD;
     }
 
     if (orderBy === "liquidityUSD") {
