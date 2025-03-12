@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "./Router.sol";
 
-/// @dev Router implementation with functions to interact with xDAI on Gnosis Chain.
+/// @dev Router implementation with functions to redeem conditional positions to collateral.
 contract ConditionalRouter is Router {
     /// @dev Constructor.
     /// @param _conditionalTokens Conditional Tokens contract.
@@ -20,7 +20,6 @@ contract ConditionalRouter is Router {
     /// @param outcomeIndexes The index of the outcomes to redeem.
     /// @param parentOutcomeIndexes The index of the parent market outcomes to redeem.
     /// @param amounts Amount to redeem of each outcome.
-
     function redeemConditionalToCollateral(
         IERC20 collateralToken,
         Market market,
@@ -30,25 +29,13 @@ contract ConditionalRouter is Router {
     ) public {
         uint256 initialBalance = collateralToken.balanceOf(address(this));
 
-        _redeemConditionalPositions(
-            collateralToken,
-            market,
-            outcomeIndexes,
-            parentOutcomeIndexes,
-            amounts
-        );
+        _redeemConditionalPositions(collateralToken, market, outcomeIndexes, parentOutcomeIndexes, amounts);
 
         uint256 finalBalance = collateralToken.balanceOf(address(this));
 
         if (finalBalance > initialBalance) {
             // send collateral tokens back to the user.
-            require(
-                collateralToken.transfer(
-                    msg.sender,
-                    finalBalance - initialBalance
-                ),
-                "Collateral transfer failed"
-            );
+            require(collateralToken.transfer(msg.sender, finalBalance - initialBalance), "Collateral transfer failed");
         }
     }
 
@@ -74,62 +61,32 @@ contract ConditionalRouter is Router {
 
         for (uint256 j = 0; j < outcomeIndexes.length; j++) {
             indexSets[j] = 1 << outcomeIndexes[j];
-            tokenId = getTokenId(
-                collateralToken,
-                parentCollectionId,
-                conditionId,
-                indexSets[j]
-            );
+            tokenId = getTokenId(collateralToken, parentCollectionId, conditionId, indexSets[j]);
 
             // first we need to unwrap the outcome tokens that will be redeemed.
-            (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(
-                outcomeIndexes[j]
-            );
+            (IERC20 wrapped1155, bytes memory data) = market.wrappedOutcome(outcomeIndexes[j]);
 
             wrapped1155.transferFrom(msg.sender, address(this), amounts[j]);
 
-            wrapped1155Factory.unwrap(
-                address(conditionalTokens),
-                tokenId,
-                amounts[j],
-                address(this),
-                data
-            );
+            wrapped1155Factory.unwrap(address(conditionalTokens), tokenId, amounts[j], address(this), data);
         }
 
         uint256 initialBalance = 0;
 
         if (parentCollectionId != bytes32(0)) {
             // if we are redeeming from a child market, the user may already have parent tokens so we need to track the balance change.
-            tokenId = conditionalTokens.getPositionId(
-                address(collateralToken),
-                parentCollectionId
-            );
-            initialBalance = conditionalTokens.balanceOf(
-                address(this),
-                tokenId
-            );
+            tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
+            initialBalance = conditionalTokens.balanceOf(address(this), tokenId);
         }
 
-        conditionalTokens.redeemPositions(
-            address(collateralToken),
-            parentCollectionId,
-            conditionId,
-            indexSets
-        );
+        conditionalTokens.redeemPositions(address(collateralToken), parentCollectionId, conditionId, indexSets);
 
         if (parentCollectionId != bytes32(0)) {
-            // if we are redeeming from a child market, redeemPositions() returned outcome tokens of the parent market. We need to continue to redeem these tokens to collateral tokens.
-            uint256 finalBalance = conditionalTokens.balanceOf(
-                address(this),
-                tokenId
-            );
+            // if we are redeeming from a child market, redeemPositions() returned outcome tokens of the parent market.
+            // We need to continue to redeem these tokens to collateral tokens.
+            uint256 finalBalance = conditionalTokens.balanceOf(address(this), tokenId);
             if (finalBalance > initialBalance) {
-                _redeemToCollateral(
-                    collateralToken,
-                    market,
-                    parentOutcomeIndexes
-                );
+                _redeemToCollateral(collateralToken, market, parentOutcomeIndexes);
             }
         }
     }
@@ -143,26 +100,16 @@ contract ConditionalRouter is Router {
         Market market,
         uint256[] calldata parentOutcomeIndexes
     ) internal {
-        bytes32 parentMarketParentCollectionId = Market(market.parentMarket())
-            .parentCollectionId();
-        require(
-            parentMarketParentCollectionId == bytes32(0),
-            "Parent market cannot be conditional"
-        );
-        bytes32 parentMarketConditionId = Market(market.parentMarket())
-            .conditionId();
+        bytes32 parentMarketParentCollectionId = Market(market.parentMarket()).parentCollectionId();
+        require(parentMarketParentCollectionId == bytes32(0), "Parent market cannot be conditional");
+        bytes32 parentMarketConditionId = Market(market.parentMarket()).conditionId();
 
-        uint256[] memory parentMarketIndexSets = new uint256[](
-            parentOutcomeIndexes.length
-        );
+        uint256[] memory parentMarketIndexSets = new uint256[](parentOutcomeIndexes.length);
         for (uint256 i = 0; i < parentOutcomeIndexes.length; i++) {
             parentMarketIndexSets[i] = 1 << parentOutcomeIndexes[i];
         }
         conditionalTokens.redeemPositions(
-            address(collateralToken),
-            parentMarketParentCollectionId,
-            parentMarketConditionId,
-            parentMarketIndexSets
+            address(collateralToken), parentMarketParentCollectionId, parentMarketConditionId, parentMarketIndexSets
         );
     }
 }
