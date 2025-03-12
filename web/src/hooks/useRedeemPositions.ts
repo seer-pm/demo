@@ -6,7 +6,11 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { writeGnosisRouterRedeemToBase, writeMainnetRouterRedeemToDai } from "./contracts/generated";
+import {
+  writeConditionalRouterRedeemConditionalToCollateral,
+  writeGnosisRouterRedeemToBase,
+  writeMainnetRouterRedeemToDai,
+} from "./contracts/generated";
 
 interface RedeemPositionProps {
   router: Address;
@@ -16,6 +20,14 @@ interface RedeemPositionProps {
   amounts: bigint[];
   isMainCollateral: boolean;
   routerType: RouterTypes;
+}
+
+interface RedeemConditionalPositionProps {
+  market: Address;
+  collateralToken: Address;
+  outcomeIndexes: bigint[];
+  parentOutcomeIndexes: bigint[];
+  amounts: bigint[];
 }
 
 async function redeemFromRouter(
@@ -72,9 +84,43 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
   return result.receipt;
 }
 
+async function redeemConditionalPositions(props: RedeemConditionalPositionProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      writeConditionalRouterRedeemConditionalToCollateral(config, {
+        args: [props.collateralToken, props.market, props.outcomeIndexes, props.parentOutcomeIndexes, props.amounts],
+      }),
+    {
+      txSent: { title: "Redeeming tokens..." },
+      txSuccess: { title: "Tokens redeemed!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
 export const useRedeemPositions = (successCallback?: () => void) => {
   return useMutation({
     mutationFn: redeemPositions,
+    onSuccess: async (/*data: TransactionReceipt*/) => {
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      // have to wait for market positions to finish invalidate
+      await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+      successCallback?.();
+    },
+  });
+};
+
+export const useRedeemConditionalPositions = (successCallback?: () => void) => {
+  return useMutation({
+    mutationFn: redeemConditionalPositions,
     onSuccess: async (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
