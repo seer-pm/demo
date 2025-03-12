@@ -100,7 +100,7 @@ export async function searchMarkets(
   }
 
   if (parentMarket) {
-    query = query.eq("subgraph_data->parentMarket->id", parentMarket.toLowerCase());
+    query = query.eq("subgraph_data->parentMarket->>id", parentMarket.toLowerCase());
   }
 
   if (marketIds?.length) {
