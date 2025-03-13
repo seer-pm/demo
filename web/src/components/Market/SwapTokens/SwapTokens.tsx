@@ -7,7 +7,6 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token, hasAltCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
@@ -23,7 +22,7 @@ import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
-import PotentialReturnConfig from "./components/PotentialReturnConfig";
+import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
 interface SwapFormValues {
@@ -70,7 +69,6 @@ export function SwapTokens({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
-  const [returnPerToken, setReturnPerToken] = useState(1);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
@@ -185,13 +183,6 @@ export function SwapTokens({
     return price.toFixed(3);
   })();
 
-  // potential return if buy
-  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
-  const isOneOrNothingPotentialReturn =
-    getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
-  const potentialReturn =
-    (isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) *
-    (isOneOrNothingPotentialReturn ? 1 : returnPerToken);
   return (
     <>
       <ConfirmSwapModal
@@ -332,47 +323,21 @@ export function SwapTokens({
                   </div>
                 )}
               </div>
-              {swapType === "buy" && (
-                <div className="flex justify-between text-[#828282] text-[14px]">
-                  <div className="flex items-center gap-2 relative">
-                    Potential return{" "}
-                    {isOneOrNothingPotentialReturn ? (
-                      <span className="tooltip">
-                        <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-                          Each token can be redeemed for 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                          {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
-                          market resolves to {outcomeText}.
-                        </p>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                    ) : (
-                      <PotentialReturnConfig
-                        key={outcomeToken.address}
-                        market={market}
-                        returnPerToken={returnPerToken}
-                        setReturnPerToken={setReturnPerToken}
-                        selectedCollateral={selectedCollateral}
-                        outcomeToken={outcomeToken}
-                        outcomeText={outcomeText}
-                        isCollateralDai={isCollateralDai}
-                      />
-                    )}
-                  </div>
-                  {quoteIsLoading || isFetching ? (
-                    <div className="shimmer-container ml-2 w-[100px]" />
-                  ) : (
-                    <div
-                      className={clsx(
-                        "text-right",
-                        returnPercentage >= 0 ? "text-success-primary" : "text-error-primary",
-                      )}
-                    >
-                      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} (
-                      {returnPercentage.toFixed(2)}%)
-                    </div>
-                  )}
-                </div>
-              )}
+              <PotentialReturn
+                {...{
+                  swapType,
+                  isCollateralDai,
+                  selectedCollateral,
+                  sDaiToDai,
+                  outcomeText,
+                  outcomeToken,
+                  market,
+                  quoteIsLoading,
+                  isFetching,
+                  receivedAmount,
+                  collateralPerShare,
+                }}
+              />
             </div>
 
             {isPriceTooHigh && (

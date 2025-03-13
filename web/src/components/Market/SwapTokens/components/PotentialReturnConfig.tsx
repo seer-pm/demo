@@ -1,104 +1,29 @@
+import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import MultiSelect from "@/components/Form/MultiSelect";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { Market } from "@/hooks/useMarket";
+import { useModal } from "@/hooks/useModal";
 import { InputPotentialReturnContext } from "@/lib/context";
-import { Visibility } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
-import { useContext, useEffect, useRef, useState } from "react";
+import { ReactNode, useContext, useEffect, useRef } from "react";
+import { PotentialReturnResult } from "./PotentialReturn";
 
-function PotentialReturnConfig({
+function RenderInputByMarketType({
   market,
-  returnPerToken,
-  setReturnPerToken,
-  selectedCollateral,
   outcomeToken,
   outcomeText,
-  isCollateralDai,
+  setReturnPerToken,
 }: {
   market: Market;
-  returnPerToken: number;
-  setReturnPerToken: (returnPerToken: number) => void;
-  selectedCollateral: Token;
   outcomeToken: Token;
   outcomeText: string;
-  isCollateralDai: boolean;
-}) {
+  setReturnPerToken: (returnPerToken: number) => void;
+}): ReactNode {
   const { input, setInput } = useContext(InputPotentialReturnContext);
-  const [isShow, setShow] = useState(false);
-
   const multiSelectRef = useRef<HTMLDivElement>(null);
-  const renderInputByMarketType = () => {
-    const marketType = getMarketType(market);
-    switch (marketType) {
-      case MarketTypes.MULTI_CATEGORICAL: {
-        return (
-          <div className="space-y-1">
-            <p className="whitespace-nowrap">Market resolution:</p>
-            <MultiSelect
-              ref={multiSelectRef}
-              options={market.outcomes.slice(0, -1).map((x) => ({
-                value: x,
-                text: x,
-              }))}
-              value={input.multiCategorical ?? []}
-              onChange={(values) => setInput((state) => ({ ...state, multiCategorical: values }))}
-              placeholder="Select winning outcomes"
-            />
-          </div>
-        );
-      }
-      case MarketTypes.SCALAR: {
-        return (
-          <div className="space-y-1">
-            <p className="whitespace-nowrap">Market resolution:</p>
-            <Input
-              type="number"
-              className="h-[30px] w-full"
-              value={input.scalar}
-              onChange={(e) => setInput((state) => ({ ...state, scalar: Number(e.target.value) }))}
-            />
-          </div>
-        );
-      }
-      case MarketTypes.MULTI_SCALAR: {
-        return (
-          <div className="space-y-1">
-            <p className="whitespace-nowrap">Market resolution:</p>
-            {market.outcomes.slice(0, -1).map((outcome, index) => (
-              <div key={outcome} className="flex items-center justify-between gap-2">
-                <p className="text-[14px]">{outcome}</p>
-                <Input
-                  type="number"
-                  min="0"
-                  className="h-[30px] w-[150px]"
-                  onWheel={(e) => {
-                    // stop scrolling
-                    (e.target as HTMLInputElement).blur();
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  value={input.multiScalar[index]}
-                  onChange={(e) =>
-                    setInput((state) => {
-                      const updatedMultiScalar = [...state.multiScalar];
-                      updatedMultiScalar[index] = Number(e.target.value);
-                      return {
-                        ...state,
-                        multiScalar: updatedMultiScalar,
-                      };
-                    })
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        );
-      }
-    }
-  };
 
   useEffect(() => {
     const marketType = getMarketType(market);
@@ -169,25 +94,7 @@ function PotentialReturnConfig({
         setReturnPerToken(sum ? (input.multiScalar[outcomeTokenIndex] ?? 0) / sum : 0);
       }
     }
-  }, [input.multiCategorical, input.scalar, input.multiScalar]);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (multiSelectRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setShow(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  }, [input, market, outcomeToken, outcomeText, setReturnPerToken, setInput]);
 
   useEffect(() => {
     if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
@@ -198,28 +105,167 @@ function PotentialReturnConfig({
       scalar: undefined,
       multiScalar: [],
     });
-  }, [outcomeText]);
+  }, [outcomeText, market, setInput]);
+
+  const marketType = getMarketType(market);
+  switch (marketType) {
+    case MarketTypes.MULTI_CATEGORICAL: {
+      return (
+        <div className="space-y-1">
+          <p className="whitespace-nowrap">Market resolution:</p>
+          <MultiSelect
+            ref={multiSelectRef}
+            options={market.outcomes.slice(0, -1).map((x) => ({
+              value: x,
+              text: x,
+            }))}
+            value={input.multiCategorical ?? []}
+            onChange={(values) => setInput((state) => ({ ...state, multiCategorical: values }))}
+            placeholder="Select winning outcomes"
+          />
+        </div>
+      );
+    }
+    case MarketTypes.SCALAR: {
+      return (
+        <div className="space-y-1">
+          <p className="whitespace-nowrap">Market resolution:</p>
+          <Input
+            type="number"
+            className="h-[30px] w-full"
+            value={input.scalar || ""}
+            onChange={(e) => setInput((state) => ({ ...state, scalar: Number(e.target.value) }))}
+          />
+        </div>
+      );
+    }
+    case MarketTypes.MULTI_SCALAR: {
+      return (
+        <div className="space-y-1">
+          <p className="whitespace-nowrap">Market resolution:</p>
+          {market.outcomes.slice(0, -1).map((outcome, index) => (
+            <div key={outcome} className="flex items-center justify-between gap-2">
+              <p className="text-[14px]">{outcome}</p>
+              <Input
+                type="number"
+                min="0"
+                className="h-[30px] w-[150px]"
+                onWheel={(e) => {
+                  // stop scrolling
+                  (e.target as HTMLInputElement).blur();
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                value={input.multiScalar[index] || ""}
+                onChange={(e) =>
+                  setInput((state) => {
+                    const updatedMultiScalar = [...state.multiScalar];
+                    updatedMultiScalar[index] = Number(e.target.value);
+                    return {
+                      ...state,
+                      multiScalar: updatedMultiScalar,
+                    };
+                  })
+                }
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+  }
+}
+
+function PotentialReturnConfig({
+  market,
+  returnPerToken,
+  setReturnPerToken,
+  selectedCollateral,
+  outcomeToken,
+  outcomeText,
+  isCollateralDai,
+  quoteIsLoading = false,
+  isFetching = false,
+  receivedAmount,
+  collateralPerShare,
+}: {
+  market: Market;
+  returnPerToken: number;
+  setReturnPerToken: (returnPerToken: number) => void;
+  selectedCollateral: Token;
+  outcomeToken: Token;
+  outcomeText: string;
+  isCollateralDai: boolean;
+  quoteIsLoading: boolean;
+  isFetching: boolean;
+  receivedAmount: number;
+  collateralPerShare: number;
+}) {
+  const { Modal, openModal, closeModal } = useModal("potential-return-config", false);
+
   const { sDaiToDai } = useSDaiDaiRatio(market.chainId);
   const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
+
+  const modalContent = (
+    <div className="space-y-2 w-full">
+      <p>Enter a possible market resolution to see your potential return.</p>
+      <p className="font-semibold text-purple-primary py-4">Current Outcome: {outcomeText}</p>
+      <div className="max-h-[200px] overflow-auto">
+        <RenderInputByMarketType
+          market={market}
+          outcomeToken={outcomeToken}
+          outcomeText={outcomeText}
+          setReturnPerToken={setReturnPerToken}
+        />
+      </div>
+      <p>
+        Return per token:{" "}
+        <span className="font-semibold text-purple-primary">
+          {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+          {isCollateralDai ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
+        </span>
+      </p>
+      <div>
+        Potential return:{" "}
+        <PotentialReturnResult
+          quoteIsLoading={quoteIsLoading}
+          isFetching={isFetching}
+          isCollateralDai={isCollateralDai}
+          selectedCollateral={selectedCollateral}
+          receivedAmount={receivedAmount}
+          sDaiToDai={sDaiToDai ?? 0}
+          returnPerToken={returnPerToken}
+          collateralPerShare={collateralPerShare}
+          isOneOrNothingPotentialReturn={false}
+        />
+      </div>
+
+      <div className="text-center pt-4">
+        <Button type="button" variant="primary" size="small" text="Close" onClick={closeModal} />
+      </div>
+    </div>
+  );
+
   return (
-    <div ref={wrapperRef}>
-      <button type="button" className="flex hover:opacity-80" onClick={() => setShow((state) => !state)}>
-        <Visibility />
+    <div>
+      <button
+        type="button"
+        className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[15px]"
+        disabled={receivedAmount === 0}
+        onClick={openModal}
+      >
+        {receivedAmount === 0 ? (
+          <div className="tooltip ml-auto">
+            <p className="tooltiptext w-[300px] !whitespace-break-spaces">
+              You need to buy more than 0 shares to calculate your potential return.
+            </p>
+            Calculate your potential return
+          </div>
+        ) : (
+          "Calculate your potential return"
+        )}
       </button>
-      {isShow && (
-        <div className="bg-white border border-black-secondary p-2 drop-shadow absolute w-[300px] left-0 bottom-[25px] space-y-2">
-          <p className="text-[14px]">Enter a possible market resolution to see your potential return.</p>
-          <p className="text-[14px] font-semibold text-purple-primary">Current Outcome: {outcomeText}</p>
-          <div className="max-h-[200px] overflow-auto">{renderInputByMarketType()}</div>
-          <p>
-            Return per token:{" "}
-            <span className="font-semibold text-purple-primary">
-              {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-              {isCollateralDai ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
-            </span>
-          </p>
-        </div>
-      )}
+      <Modal title="Potential return calculator" content={modalContent} />
     </div>
   );
 }

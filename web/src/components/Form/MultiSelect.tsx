@@ -108,7 +108,7 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, r
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`,
             }}
-            className="multi-select-dropdown absolute z-50 w-full mt-1 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] max-h-[180px] overflow-auto"
+            className="multi-select-dropdown absolute z-[1000] w-full mt-1 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] max-h-[180px] overflow-auto"
           >
             {options.map((option) => (
               <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer">
