@@ -135,4 +135,5 @@ export const getPositionUrl = (chainId: number, farmId: string) => {
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
   [gnosis.id]: "/assets/images/gnosis.webp",
   [mainnet.id]: "/assets/images/ethereum.webp",
+  [sepolia.id]: "/assets/images/ethereum.webp",
 };

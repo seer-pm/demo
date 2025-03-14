@@ -7,12 +7,13 @@ const gnosis = _gnosis;
 
 export { mainnet, gnosis, hardhat, sepolia };
 
-export const SUPPORTED_CHAINS: Record<typeof gnosis.id | typeof mainnet.id, Chain> &
-  Partial<Record<typeof sepolia.id /*| typeof hardhat.id*/, Chain>> = {
-  [gnosis.id]: gnosis,
-  [mainnet.id]: mainnet,
+export const SUPPORTED_CHAINS: Partial<
+  Record<typeof gnosis.id | typeof mainnet.id | typeof sepolia.id /*| typeof hardhat.id*/, Chain>
+> = {
   //...((SEER_ENV.VITE_ADD_HARDHAT_NETWORK === "1" ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
-  ...((SEER_ENV.VITE_TESTNET_WEBSITE === "1" ? { [sepolia.id]: sepolia } : ({} as Chain)) as Record<number, Chain>),
+  ...((SEER_ENV.VITE_TESTNET_WEBSITE === "1"
+    ? { [sepolia.id]: sepolia }
+    : { [gnosis.id]: gnosis, [mainnet.id]: mainnet }) as Record<number, Chain>),
 } as const satisfies Record<string, Chain>;
 
 export type SupportedChain = keyof typeof SUPPORTED_CHAINS;

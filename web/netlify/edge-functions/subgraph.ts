@@ -8,7 +8,7 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
   seer: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
-    [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/D3GwDsD5uH2W96suKJcUtKAGmYSs5zLs7TpiVtd5G4uk`,
+    [sepolia.id]: "https://api.studio.thegraph.com/query/74975/seer-pm-sepolia/version/latest",
   },
   curate: {
     // TODO: add fallback urls? or change subgraph?

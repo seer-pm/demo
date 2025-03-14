@@ -16,10 +16,7 @@ const metadata = {
 export const config = defaultWagmiConfig({
   metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
-  chains:
-    import.meta.env.VITE_TESTNET_WEBSITE === "1"
-      ? [sepolia]
-      : (Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]]),
+  chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
   connectors: [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })],
   enableCoinbase: false,
   transports: {
@@ -29,7 +26,7 @@ export const config = defaultWagmiConfig({
       http("https://rpc.ankr.com/gnosis"),
     ]),
     [mainnet.id]: http("https://eth-pokt.nodies.app"),
-    [sepolia.id]: http(),
+    [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
     [hardhat.id]: http(),
   },
   ssr: true,

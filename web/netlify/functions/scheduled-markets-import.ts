@@ -5,7 +5,6 @@ import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber, readContracts } from "@wagmi/core";
 import { Address, parseAbiItem } from "viem";
-import { Status } from "../../src/hooks/queries/gql-generated-curate";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { chainIds, config as wagmiConfig } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";

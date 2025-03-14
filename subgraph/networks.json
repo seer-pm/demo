@@ -63,6 +63,18 @@
     "ConditionalTokens": {
       "address": "0x8bdC504dC3A05310059c1c67E0A2667309D27B93",
       "startBlock": 6992825
+    },
+    "LightGeneralizedTCR": {
+      "address": "0x06140fb869486363818196B61704493a8790F73C",
+      "startBlock": 7894106
+    },
+    "Realitio_v2_1_ArbitratorWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
+    },
+    "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
     }
   }
 }
