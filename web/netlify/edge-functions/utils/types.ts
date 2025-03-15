@@ -2,7 +2,7 @@ import { gnosis, mainnet, sepolia } from "https://esm.sh/viem@2.17.5/chains";
 
 const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
 
-export { gnosis, mainnet };
+export { gnosis, mainnet, sepolia };
 
 export type SupportedChain = (typeof chainIds)[number];
 

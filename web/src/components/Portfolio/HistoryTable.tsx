@@ -166,7 +166,7 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         accessorKey: "transactionHash",
         cell: (info) => {
           const data = info.row.original;
-          const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
+          const blockExplorerUrl = SUPPORTED_CHAINS?.[chainId]?.blockExplorers?.default?.url;
           if (!data.transactionHash) return "-";
           return (
             <a

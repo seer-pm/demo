@@ -5,7 +5,8 @@ type EnvKeys =
   | "VITE_QUOTE_REFETCH_INTERVAL"
   | "VITE_ORBIS_CONTEXT"
   | "VITE_WC_PROJECT_ID"
-  | "VITE_ADD_HARDHAT_NETWORK";
+  | "VITE_ADD_HARDHAT_NETWORK"
+  | "VITE_TESTNET_WEBSITE";
 let SEER_ENV: Partial<Record<EnvKeys, string | undefined>> = {};
 
 if (import.meta.env) {
@@ -19,6 +20,7 @@ if (import.meta.env) {
       VITE_ORBIS_CONTEXT: import.meta.env.VITE_ORBIS_CONTEXT,
       VITE_WC_PROJECT_ID: import.meta.env.VITE_WC_PROJECT_ID,
       VITE_ADD_HARDHAT_NETWORK: import.meta.env.VITE_ADD_HARDHAT_NETWORK,
+      VITE_TESTNET_WEBSITE: import.meta.env.VITE_TESTNET_WEBSITE,
     },
   );
 } else {
@@ -32,6 +34,7 @@ if (import.meta.env) {
       VITE_ORBIS_CONTEXT: process.env.VITE_ORBIS_CONTEXT,
       VITE_WC_PROJECT_ID: process.env.VITE_WC_PROJECT_ID,
       VITE_ADD_HARDHAT_NETWORK: process.env.VITE_ADD_HARDHAT_NETWORK,
+      VITE_TESTNET_WEBSITE: process.env.VITE_TESTNET_WEBSITE,
     },
   );
 }
