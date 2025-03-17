@@ -188,7 +188,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
-  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   return (
     <div

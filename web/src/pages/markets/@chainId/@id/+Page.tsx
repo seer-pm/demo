@@ -144,7 +144,7 @@ function MarketPage() {
               className="font-semibold cursor-pointer text-purple-primary"
               onClick={() => switchChain(config, { chainId })}
             >
-              {SUPPORTED_CHAINS[chainId].name}
+              {SUPPORTED_CHAINS?.[chainId]?.name}
             </span>
             .
           </Alert>

@@ -26,7 +26,7 @@ export const config = defaultWagmiConfig({
       http("https://rpc.ankr.com/gnosis"),
     ]),
     [mainnet.id]: http("https://eth-pokt.nodies.app"),
-    [sepolia.id]: http(),
+    [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
     [hardhat.id]: http(),
   },
   ssr: true,

@@ -9,6 +9,8 @@
     "deploy:gnosis": "graph deploy --studio seer-pm --network gnosis",
     "build:mainnet": "graph build --network mainnet",
     "deploy:mainnet": "graph deploy --studio seer-pm-mainnet --network mainnet",
+    "build:sepolia": "graph build --network sepolia",
+    "deploy:sepolia": "graph deploy --studio seer-pm-sepolia --network sepolia",
     "create-local": "graph create --node http://localhost:8020/ xyzseer/seer-pm",
     "remove-local": "graph remove --node http://localhost:8020/ xyzseer/seer-pm",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 xyzseer/seer-pm",

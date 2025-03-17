@@ -43,7 +43,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
     );
   }
 
-  const blockExplorerUrl = SUPPORTED_CHAINS[chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[chainId]?.blockExplorers?.default?.url;
 
   return (
     <div className="container-fluid w-[924px] py-[65px] text-center space-y-[24px]">

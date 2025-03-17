@@ -59,7 +59,7 @@ export async function getUniswapHistoryTokensPrices(
         token1Price: data.token1Price,
       };
     }),
-    chainId,
+    chainId as number,
   );
 }
 
@@ -85,5 +85,5 @@ export async function getUniswapCurrentTokensPrices(
     },
   });
 
-  return getTokenPricesMapping(tokens, pools, chainId);
+  return getTokenPricesMapping(tokens, pools, chainId as number);
 }

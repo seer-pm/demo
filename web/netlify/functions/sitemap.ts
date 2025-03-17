@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { sepolia } from "viem/chains";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
@@ -8,7 +9,8 @@ export default async () => {
       .from("markets")
       .select("url, chain_id")
       .not("url", "is", null)
-      .not("chain_id", "is", null);
+      .not("chain_id", "is", null)
+      .not("chain_id", "eq", sepolia.id);
 
     if (error) {
       throw error;

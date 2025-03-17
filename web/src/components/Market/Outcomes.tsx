@@ -340,7 +340,7 @@ function OutcomeDetails({
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const [, setSearchParams] = useSearchParams();
 
-  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   const addToWallet = (i: number) => {
     return async () => {
@@ -432,7 +432,7 @@ function OutcomeDetails({
             className="text-purple-primary tooltip"
           >
             <p className="tooltiptext">
-              View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS[market.chainId].name}
+              View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
             </p>
             <EtherscanIcon width="12" height="12" />
           </a>

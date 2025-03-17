@@ -4,7 +4,7 @@ import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import { GetMarketQuery, Market_OrderBy } from "../../src/hooks/queries/gql-generated-seer";
 import { Market, SerializedMarket, VerificationResult, serializeMarket } from "../../src/hooks/useMarket";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
-import { SUPPORTED_CHAINS, SupportedChain } from "../../src/lib/chains";
+import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "../../src/lib/chains";
 import { FetchMarketParams, sortMarkets } from "../../src/lib/markets-search";
 import { unescapeJson } from "../../src/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "../../src/lib/utils";
@@ -252,11 +252,12 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
     marketIds,
   } = body;
 
-  const chainIds = (
-    chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
-  )
-    .filter((chain) => chain !== "31337")
-    .map((chainId) => Number(chainId)) as SupportedChain[];
+  const chainIds =
+    process.env.VITE_TESTNET_WEBSITE === "1"
+      ? [sepolia.id]
+      : ((chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all"))
+          .filter((chain) => chain !== "31337")
+          .map((chainId) => Number(chainId)) as SupportedChain[]);
 
   const markets = await searchMarkets(
     chainIds,
