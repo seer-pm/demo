@@ -353,6 +353,18 @@ async function updateImages() {
   console.log(`Successfully updated images for ${successCount} out of ${results.length} markets`);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny:
+function sortQuestions(market: any) {
+  // Sort questions by index
+  const sortedQuestions = [...market.questions].sort(
+    (questionA, questionB) => questionA.question.index - questionB.question.index,
+  );
+  return {
+    ...market,
+    questions: sortedQuestions,
+  };
+}
+
 async function processChain(chainId: SupportedChain) {
   const response = await fetch(getSubgraphUrl("seer", chainId), {
     method: "POST",
@@ -394,6 +406,7 @@ async function processChain(chainId: SupportedChain) {
               best_answer
               bond
               min_bond
+              index
             }
           }
           openingTs
@@ -435,7 +448,7 @@ async function processChain(chainId: SupportedChain) {
     markets.map((market: any) => ({
       id: market.id,
       chain_id: chainId,
-      subgraph_data: market,
+      subgraph_data: sortQuestions(market),
       verification: verificationStatusList[market.id] ?? {
         status: "not_verified",
       },
