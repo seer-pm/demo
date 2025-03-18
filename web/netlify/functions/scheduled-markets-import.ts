@@ -8,6 +8,7 @@ import { Address, parseAbiItem } from "viem";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { chainIds, config as wagmiConfig } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
+import { readContractsInBatch } from "./utils/readContractsInBatch.ts";
 import { getSubgraphUrl } from "./utils/subgraph.ts";
 import { Database, Json } from "./utils/supabase.ts";
 
@@ -142,12 +143,15 @@ async function getVerification(chainId: SupportedChain, curateItems: CurateItem[
     chainId,
   } as const;
 
-  const items = await readContracts(wagmiConfig, {
-    contracts: curateItems.map(({ item_id: itemID }) => ({
+  const items: (readonly [number, bigint, bigint])[] = await readContractsInBatch(
+    curateItems.map(({ item_id: itemID }) => ({
       ...readItemsCall,
       args: [itemID],
     })),
-  });
+    chainId,
+    50,
+    true,
+  );
 
   const getRequestInfoCall = {
     address: lightGeneralizedTcrAddress[chainId],
@@ -156,15 +160,29 @@ async function getVerification(chainId: SupportedChain, curateItems: CurateItem[
     chainId,
   } as const;
 
-  const lastRequestInfo = await readContracts(wagmiConfig, {
-    contracts: curateItems.map(({ item_id: itemID }) => {
-      const requestCount = BigInt(items[0]?.result?.[2] || 1);
+  const lastRequestInfo: (readonly [
+    boolean,
+    bigint,
+    bigint,
+    boolean,
+    readonly [`0x${string}`, `0x${string}`, `0x${string}`],
+    bigint,
+    number,
+    `0x${string}`,
+    `0x${string}`,
+    bigint,
+  ])[] = await readContractsInBatch(
+    curateItems.map(({ item_id: itemID }) => {
+      const requestCount = BigInt(items[0]?.[2] || 1);
       return {
         ...getRequestInfoCall,
         args: [itemID, requestCount - 1n],
       };
     }),
-  });
+    chainId,
+    50,
+    true,
+  );
 
   return curateItems.map((item, n) => {
     const marketId =
@@ -176,17 +194,14 @@ async function getVerification(chainId: SupportedChain, curateItems: CurateItem[
     return {
       itemID: item.item_id,
       metadata: item.metadata,
-      status: items[n].status === "success" ? items[n].result[0] : 0,
-      disputed:
-        lastRequestInfo[n].status === "success" ? lastRequestInfo[n].result[0] && !lastRequestInfo[n].result[3] : false,
+      status: items[n]?.[0],
+      disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
       marketId,
     };
   });
 }
 
-async function getVerificationStatusList(
-  verificationItems: VerificationItem[],
-): Promise<Record<Address, VerificationResult>> {
+function getVerificationStatusList(verificationItems: VerificationItem[]): Record<Address, VerificationResult> {
   return verificationItems.reduce(
     (acc, item) => {
       if (item.marketId) {
@@ -341,6 +356,9 @@ async function updateImages() {
 async function processChain(chainId: SupportedChain) {
   const response = await fetch(getSubgraphUrl("seer", chainId), {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       query: `{
         markets(first: 1000) {
@@ -410,7 +428,7 @@ async function processChain(chainId: SupportedChain) {
     .not("metadata", "is", null);
 
   const verificationItems = await getVerification(chainId, (curateItems as CurateItem[]) || []);
-  const verificationStatusList = await getVerificationStatusList(verificationItems);
+  const verificationStatusList = getVerificationStatusList(verificationItems);
 
   await supabase.from("markets").upsert(
     // biome-ignore lint/suspicious/noExplicitAny:
@@ -433,7 +451,11 @@ async function processChain(chainId: SupportedChain) {
 export default async () => {
   // update markets & verification status
   for (const chainId of chainIds) {
-    await processChain(chainId);
+    try {
+      await processChain(chainId);
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   // update images
