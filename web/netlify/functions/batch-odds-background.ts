@@ -42,7 +42,7 @@ export default async () => {
 
     // update odds for each market
     console.log("fetching odds...");
-    const limit = pLimit(20);
+    const limit = pLimit(10);
     const results = await Promise.all(
       markets.map((market) =>
         limit(() => {

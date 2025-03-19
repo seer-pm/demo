@@ -167,7 +167,7 @@ export async function searchMarkets(
       liquidityUSD: result?.liquidity ?? 0,
       incentive: result?.incentive ?? 0,
       hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-      odds: result?.odds ?? [],
+      odds: result?.odds?.map((x) => x ?? NaN) ?? [],
       categories: result?.categories ?? ["misc"],
       poolBalance: (result?.pool_balance || []) as PoolBalance,
       url: result?.url || "",
@@ -187,16 +187,13 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
   }
 
   // tokenId => marketId
-  const tokenToMarket = markets.reduce(
-    (acum, market) => {
-      const wrappedTokens = (market.wrappedTokens as string[]) || [];
-      for (const tokenId of wrappedTokens) {
-        acum[tokenId as `0x${string}`] = market.id as Address;
-      }
-      return acum;
-    },
-    {} as Record<`0x${string}`, Address>,
-  );
+  const tokenToMarket = markets.reduce((acum, market) => {
+    const wrappedTokens = (market.wrappedTokens as string[]) || [];
+    for (const tokenId of wrappedTokens) {
+      acum[tokenId as `0x${string}`] = market.id as Address;
+    }
+    return acum;
+  }, {} as Record<`0x${string}`, Address>);
 
   // [tokenId, ..., ...]
   const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];

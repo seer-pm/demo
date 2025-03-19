@@ -480,7 +480,7 @@ export function Outcomes({ market, images }: PositionsProps) {
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const {
     Modal: PoolDetailsModal,
     openModal: openPoolDetailsModal,

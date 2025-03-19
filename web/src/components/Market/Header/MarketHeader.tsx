@@ -54,10 +54,10 @@ function OutcomesInfo({
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
 
-  const { data: odds = [] } = useMarketOdds(market, true);
+  const { data: odds = [] } = useMarketOdds(market, false);
 
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   return (
     <div>
@@ -123,8 +123,17 @@ type PoolTokensInfo = {
   token1: { symbol: string; balance: number };
 }[];
 
-function PoolTokensInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+function PoolTokensInfo({
+  market,
+  marketStatus,
+  type,
+}: {
+  market: Market;
+  marketStatus: MarketStatus;
+  type: "default" | "preview" | "small";
+}) {
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   const poolsPairs = getMarketPoolsPairs(market);
   const poolTokensInfo: PoolTokensInfo = poolsPairs.reduce((tokensInfo, _, j) => {
@@ -183,7 +192,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [] } = useMarketOdds(market, true);
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
   const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
@@ -358,7 +367,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               {market.liquidityUSD > 0 && (
                 <div className="tooltip">
                   <div className="tooltiptext !text-left min-w-[300px]">
-                    <PoolTokensInfo market={market} marketStatus={marketStatus} />
+                    <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                   </div>
                   <QuestionIcon fill="#9747FF" />
                 </div>

@@ -42,7 +42,7 @@ type MarketOffChainFields = {
       balance: number;
     };
   } | null)[];
-  odds: (number | null)[];
+  odds: number[];
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;

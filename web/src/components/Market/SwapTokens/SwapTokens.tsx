@@ -1,5 +1,6 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
+import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
@@ -117,14 +118,14 @@ export function SwapTokens({
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
+  const debouncedAmount = useDebounce(amount, 500);
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
     fetchStatus: quoteFetchStatus,
     error: quoteError,
-  } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
-  const isCowFastQuote =
-    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+  } = useQuoteTrade(chainId, account, debouncedAmount, outcomeToken, selectedCollateral, swapType);
+
   const tradeTokens = useTrade(async () => {
     reset();
     closeConfirmSwapModal();
@@ -367,15 +368,7 @@ export function SwapTokens({
                 </div>
               </div>
             </div>
-            {isCowFastQuote ? (
-              <Button
-                variant="primary"
-                type="button"
-                disabled={true}
-                isLoading={true}
-                text="Calculating best price..."
-              />
-            ) : quoteData?.trade ? (
+            {quoteData?.trade ? (
               <SwapButtons
                 account={account}
                 trade={quoteData.trade}

@@ -21,7 +21,7 @@ import {
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import pLimit from "p-limit";
-import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
@@ -188,36 +188,6 @@ export const getCowQuote: QuoteTradeFn = async (
   };
 };
 
-export const getBestCowQuote = async (
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  isFastQuery?: boolean,
-) => {
-  const cowQuotes = await Promise.allSettled(
-    Array(3)
-      .fill(null)
-      .map(async (_, index) => {
-        await new Promise((res) => setTimeout(res, index * 1000));
-        return getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType ?? "buy", isFastQuery);
-      }),
-  );
-  const settledResult = cowQuotes.find((quote) => {
-    if (quote.status === "fulfilled" && quote?.value?.value > 0n) {
-      const pricePerShare =
-        swapType === "buy"
-          ? Number(amount) / Number(formatUnits(quote.value.value, 18))
-          : Number(formatUnits(quote.value.value, 18)) / Number(amount);
-      return pricePerShare < 2;
-    }
-    return false;
-  });
-  return settledResult?.status === "fulfilled" ? settledResult.value : undefined;
-};
-
 // async function convertCollateralToShares(
 //   chainId: number,
 //   amount: string,
@@ -316,10 +286,11 @@ export function useSwaprQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === gnosis.id,
+    enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -353,8 +324,7 @@ export function useCowQuote(
     queryKey: queryKey,
     enabled: Number(amount) > 0,
     retry: false,
-    queryFn: async () =>
-      getBestCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
+    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
     // If we used a fast quote, refetch immediately to obtain the verified quote
     refetchInterval: (query) => (query.state.dataUpdateCount <= 1 ? 1 : QUOTE_REFETCH_INTERVAL),
   });
@@ -367,10 +337,11 @@ export function useUniswapQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === mainnet.id,
+    enabled: Number(amount) > 0 && chainId === mainnet.id && enabled,
     retry: false,
     queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -385,9 +356,31 @@ export function useQuoteTrade(
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) {
-  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  // try to get cow quote first, if not success we will get other sources
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const isFetchOtherSources =
+    cowResult.status === "error" || (cowResult.status === "success" && !cowResult.data?.value);
+  const swaprResult = useSwaprQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    isFetchOtherSources,
+  );
+  const uniswapResult = useUniswapQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    isFetchOtherSources,
+  );
+  if (!isFetchOtherSources) {
+    return cowResult;
+  }
   if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
     return cowResult;
   }
