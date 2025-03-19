@@ -24,13 +24,15 @@ export function OutcomeImage({
   image,
   isInvalidOutcome,
   title,
+  className,
 }: {
   image: string | undefined;
   isInvalidOutcome: boolean;
   title: string;
+  className?: string;
 }) {
   const isSmallScreen = useIsSmallScreen();
-  const imageClass = isSmallScreen ? SMALL_IMAGE_CLASS : IMAGE_CLASS;
+  const imageClass = className || (isSmallScreen ? SMALL_IMAGE_CLASS : IMAGE_CLASS);
   if (isInvalidOutcome) {
     return <InvalidOutcomeImage width="20" height="24" className={clsx(imageClass, "bg-black-medium")} />;
   }

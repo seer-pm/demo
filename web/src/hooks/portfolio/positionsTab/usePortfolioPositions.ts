@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits, zeroAddress } from "viem";
 
+import { getQuestionParts } from "@/components/MarketForm";
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { MarketTypes, getMarketType } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { getTokensInfo } from "../utils";
 
@@ -25,6 +27,8 @@ export interface PortfolioPosition {
   parentOutcome?: string;
   redeemedPrice: number;
   marketFinalizeTs: number;
+  outcomeImage?: string;
+  isInvalidOutcome: boolean;
 }
 
 const getRedeemedPrice = (market: Market, tokenIndex: number) => {
@@ -86,21 +90,31 @@ export const fetchPositions = async (
       const { marketAddress, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const market = marketIdToMarket[marketAddress];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
+      const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
+      const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
+      const marketType = getMarketType(market);
+      const parts = getQuestionParts(market.marketName, marketType);
+      const marketName =
+        marketType === MarketTypes.MULTI_SCALAR && parts
+          ? `${parts?.questionStart} ${market.outcomes[outcomeIndex]} ${parts?.questionEnd}`.trim()
+          : market.marketName;
       acumm.push({
         marketAddress,
         tokenIndex,
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
         tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
-        marketName: market.marketName,
+        marketName,
         marketStatus: market.marketStatus,
         marketFinalizeTs: market.finalizeTs,
-        outcome: market.outcomes[market.wrappedTokens.indexOf(allTokensIds[index])],
+        outcome: market.outcomes[outcomeIndex],
         parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
         redeemedPrice: getRedeemedPrice(market, tokenIndex),
+        outcomeImage: market.images?.outcomes?.[outcomeIndex],
+        isInvalidOutcome,
       });
     }
     return acumm;
