@@ -71,12 +71,27 @@ export function getMultiSelectAnswers(value: number): number[] {
   return indexes;
 }
 
+const overrideAnswerText: Record<`0x${string}`, string> = {
+  "0x279061d3049ad315f10358b579d24e44058dc3fed7387f66d6e6950c1adf4dbf": "120",
+  "0x723c67fd785dc5d653805c276b4123ded8a0e941ebbd7d0014f3554c188bd463": "208",
+  "0x261d589233f189fcd3fb6e093fffdcd135b9348836d2c2dfe23eb7c4b7441ca8": "85",
+  "0x2d5865b62af4a4a5a4e3a776e58bcc3d2cc9552ca70c954dc511e7aa03e71ba7": "0",
+  "0x0c68e62a358cd85f954ed524017c9a72c7298905ba6b2cd71ccdaea18d3544a4": "152",
+  "0x1d7dad8f80b30d8045f67b51c37f346d6bd5f798b3292af40f18dcb39a588525": "64",
+  "0x1d47e7fc07b61d441234b8770bee734c3a5aafd7d4e64750d2973d43993f3d7e": "0",
+  "0x13fc8e8fdfac473d5e9263604b36c6f203545125109976f9ffadee64b912289c": "1",
+};
+
 export function getAnswerText(
   question: Question,
   outcomes: Market["outcomes"],
   templateId: bigint,
   noAnswerText = "Not answered yet",
 ): string {
+  if (overrideAnswerText[question.id] !== undefined) {
+    return overrideAnswerText[question.id];
+  }
+
   if (question.finalize_ts === 0) {
     return noAnswerText;
   }
