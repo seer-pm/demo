@@ -9,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
 import ReactECharts from "echarts-for-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import slug from "slug";
 import DateRangePicker from "../Portfolio/DateRangePicker";
 import { Spinner } from "../Spinner";
@@ -96,7 +96,41 @@ function MarketChart({ market }: { market: Market }) {
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
-  const series = getSeries(market, chartData);
+  const series = useMemo(() => {
+    const rawSeries = getSeries(market, chartData);
+    if (!rawSeries.length) return rawSeries;
+
+    let validStartIndex = 0;
+    const dataLength = rawSeries[0].data.length;
+
+    for (let i = 0; i < dataLength; i++) {
+      const hasExtreme = rawSeries.some((series) => {
+        const value = series.data[i][1];
+        return value > 99.9 || value < 0.1;
+      });
+
+      if (!hasExtreme && i > 0) {
+        validStartIndex = i;
+        break;
+      }
+    }
+    if (validStartIndex > 0) {
+      return rawSeries.map((series) => ({
+        ...series,
+        data: series.data.slice(validStartIndex),
+      }));
+    }
+
+    return rawSeries;
+  }, [market, chartData]);
+
+  const adjustedTimestamps = useMemo(() => {
+    if (!timestamps.length || !series.length || series[0].data.length === timestamps.length) {
+      return timestamps;
+    }
+    return timestamps.slice(timestamps.length - series[0].data.length);
+  }, [timestamps, series]);
+
   const isSmallScreen = useIsSmallScreen();
   const option = {
     color: [
@@ -160,7 +194,6 @@ function MarketChart({ market }: { market: Market }) {
       top: "15%",
       bottom: "15%",
     },
-
     xAxis: {
       min: "dataMin",
       max: "dataMax",
@@ -169,8 +202,8 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: timestamps.filter(
-          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        customValues: adjustedTimestamps.filter(
+          (_: number, index: number) => index % Math.floor(adjustedTimestamps.length / (isSmallScreen ? 2 : 5)) === 0,
         ),
       },
       axisPointer: {
@@ -182,12 +215,11 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: timestamps.filter(
-          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        customValues: adjustedTimestamps.filter(
+          (_: number, index: number) => index % Math.floor(adjustedTimestamps.length / (isSmallScreen ? 2 : 5)) === 0,
         ),
       },
     },
-
     yAxis: {
       min: "dataMin",
       max: "dataMax",
