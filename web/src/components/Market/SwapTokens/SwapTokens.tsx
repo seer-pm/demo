@@ -125,7 +125,8 @@ export function SwapTokens({
     fetchStatus: quoteFetchStatus,
     error: quoteError,
   } = useQuoteTrade(chainId, account, debouncedAmount, outcomeToken, selectedCollateral, swapType);
-
+  const isCowFastQuote =
+    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
   const tradeTokens = useTrade(async () => {
     reset();
     closeConfirmSwapModal();
@@ -368,7 +369,15 @@ export function SwapTokens({
                 </div>
               </div>
             </div>
-            {quoteData?.trade ? (
+            {isCowFastQuote ? (
+              <Button
+                variant="primary"
+                type="button"
+                disabled={true}
+                isLoading={true}
+                text="Calculating best price..."
+              />
+            ) : quoteData?.trade ? (
               <SwapButtons
                 account={account}
                 trade={quoteData.trade}
