@@ -5,7 +5,6 @@ import { decodeQuestion, getAnswerText, getRealityLink } from "@/lib/reality.ts"
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
-import TelegramBot from "node-telegram-bot-api";
 import { parseAbiItem } from "viem";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { chainIds, config as wagmiConfig } from "./utils/config.ts";
@@ -15,15 +14,24 @@ const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-async function getTelegramBot(): Promise<TelegramBot | undefined> {
-  if (!process.env.TELEGRAM_NOTIFICATIONS_BOT_TOKEN) {
-    return;
+async function sendTelegramMessage(botToken: string, chatId: string, message: string) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: "HTML",
+    }),
+  });
+
+  if (response.ok) {
+    return await response.json();
   }
 
-  const TelegramBot = require("node-telegram-bot-api");
-  const bot = new TelegramBot(process.env.TELEGRAM_NOTIFICATIONS_BOT_TOKEN);
-
-  return bot;
+  throw new Error(`Failed to send Telegram message: ${response.status} ${response.statusText}`);
 }
 
 async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, string>) {
@@ -117,7 +125,7 @@ function getLastProcessedBlockKey(chainId: SupportedChain): string {
   return `reality-new-answer-events-${chainId}-last-block`;
 }
 
-async function processChain(chainId: SupportedChain, bot: TelegramBot) {
+async function processChain(chainId: SupportedChain, botToken: string) {
   const fromBlock = await getLastProcessedBlock(chainId, getLastProcessedBlockKey(chainId));
 
   const newAnswers = await getNewAnswerEvents(chainId, fromBlock);
@@ -136,9 +144,7 @@ Answer: ${getAnswerText(question, data.outcomes, BigInt(data.templateId))}\n
 
     // Send messages with a 2-second delay between each one
     for (const message of messages) {
-      await bot.sendMessage(SEER_NOTIFICATIONS_CHANNEL, message, {
-        parse_mode: "HTML",
-      });
+      await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, message);
 
       // Wait for 2 seconds before sending the next message
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -152,9 +158,7 @@ Answer: ${getAnswerText(question, data.outcomes, BigInt(data.templateId))}\n
 }
 
 export default async () => {
-  const bot = await getTelegramBot();
-
-  if (!bot) {
+  if (!process.env.TELEGRAM_NOTIFICATIONS_BOT_TOKEN) {
     console.log("Missing TELEGRAM_NOTIFICATIONS_BOT_TOKEN variable");
     return;
   }
@@ -165,7 +169,7 @@ export default async () => {
       continue;
     }
     try {
-      await processChain(chainId, bot);
+      await processChain(chainId, process.env.TELEGRAM_NOTIFICATIONS_BOT_TOKEN);
     } catch (e) {
       console.log(e);
     }
