@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
+import { useData } from "vike-react/useData";
 import { marketFactoryAddress, readMarketViewGetMarkets } from "./contracts/generated";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { Market, VerificationStatus, getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
@@ -88,15 +89,14 @@ export const getAllGraphMarkets = async () => {
 };
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
+  const { markets: initialMarkets, status: dataStatus } = useData<{ markets: Market[]; status: "ok" | "error" }>();
   const isFetchAll = Object.values(params).every((x) => (Array.isArray(x) && !x.length) || !x);
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
-    queryKey: getUseGraphMarketsKey(params),
+    queryKey: [...getUseGraphMarketsKey(params), dataStatus],
     queryFn: async () => {
-      if (isFetchAll) {
-        try {
-          return await getAllGraphMarkets();
-        } catch (e) {}
+      if (isFetchAll && dataStatus === "ok" && initialMarkets.length) {
+        return initialMarkets;
       }
       return useGraphMarketsQueryFn(params);
     },
