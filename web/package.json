@@ -27,6 +27,7 @@
     "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.4.2",
+    "@netlify/blobs": "^8.1.2",
     "@netlify/functions": "^2.8.2",
     "@orbisclub/components": "https://github.com/nvm1410/social-components#custom-comments",
     "@orbisclub/orbis-sdk": "^0.4.89",

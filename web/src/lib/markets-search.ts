@@ -20,6 +20,11 @@ export async function fetchMarkets(params: FetchMarketParams): Promise<Market[]>
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 }
 
+export async function fetchAllMarkets(): Promise<Market[]> {
+  const response = await fetch(`${getAppUrl()}/all-markets-search`);
+  return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
+}
+
 export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market> {
   const params: FetchMarketParams = { chainsList: [chainId.toString()] };
 

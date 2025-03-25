@@ -1,5 +1,5 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchAllMarkets, fetchMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -78,11 +78,26 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
   return markets;
 };
 
+export const getAllGraphMarkets = async () => {
+  const markets = await fetchAllMarkets();
+  for (const market of markets) {
+    queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+  }
+
+  return markets;
+};
+
 function useGraphMarkets(params: UseGraphMarketsParams) {
+  const isFetchAll = Object.values(params).every((x) => (Array.isArray(x) && !x.length) || !x);
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
+      if (isFetchAll) {
+        try {
+          return await getAllGraphMarkets();
+        } catch (e) {}
+      }
       return useGraphMarketsQueryFn(params);
     },
     retry: false,
