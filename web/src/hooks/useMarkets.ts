@@ -89,7 +89,8 @@ export const getAllGraphMarkets = async () => {
 };
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
-  const { markets: initialMarkets, status: dataStatus } = useData<{ markets: Market[]; status: "ok" | "error" }>();
+  const { markets: initialMarkets, status: dataStatus } =
+    useData<{ markets: Market[]; status: "ok" | "error" }>() || {};
   const isFetchAll = Object.values(params).every((x) => (Array.isArray(x) && !x.length) || !x);
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
