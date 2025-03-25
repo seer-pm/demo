@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { getStore } from "https://esm.sh/@netlify/blobs";
 import type { Config } from "@netlify/edge-functions";
 
 export default async (req: Request) => {
