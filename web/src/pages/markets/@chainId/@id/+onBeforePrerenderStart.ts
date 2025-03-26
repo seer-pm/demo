@@ -1,7 +1,6 @@
 import { fetchAllMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
 import { formatDate } from "@/lib/utils";
-
 export { onBeforePrerenderStart };
 
 async function onBeforePrerenderStart() {

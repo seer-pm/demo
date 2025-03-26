@@ -4,9 +4,6 @@ import { isAddress } from "viem";
 import { PageContext } from "vike/types";
 
 export default async function onBeforeRender(pageContext: PageContext) {
-  if ((pageContext?.data as { title: string })?.title) {
-    return { pageContext };
-  }
   try {
     const { id, chainId } = pageContext.routeParams;
 
@@ -17,7 +14,7 @@ export default async function onBeforeRender(pageContext: PageContext) {
     } else {
       params.id = id;
     }
-    const { metadata } = await fetch(`${getAppUrl()}/.netlify/functions/market-metadata`, {
+    const metadata = await fetch(`${getAppUrl()}/.netlify/functions/market-metadata`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -25,7 +22,6 @@ export default async function onBeforeRender(pageContext: PageContext) {
       body: JSON.stringify(params),
       signal: AbortSignal.timeout(2000),
     }).then((response) => response.json());
-
     if (metadata) {
       return {
         pageContext: {
