@@ -7,7 +7,7 @@ async function onBeforePrerenderStart() {
   try {
     const markets = await fetchAllMarkets();
     return markets
-      .filter((market) => market.url && market.url.length < 83)
+      .filter((market) => market.url && market.url.length < 120)
       .map((market) => {
         let description = "Efficient on-chain prediction markets.";
         try {
