@@ -19,8 +19,10 @@ async function onBeforePrerenderStart() {
         return {
           url: `/markets/${market.chainId}/${market.url}`,
           pageContext: {
-            title: `Seer | ${unescapeJson(market.marketName)}`,
-            description,
+            data: {
+              title: `Seer | ${unescapeJson(market.marketName)}`,
+              description,
+            },
           },
         };
       });

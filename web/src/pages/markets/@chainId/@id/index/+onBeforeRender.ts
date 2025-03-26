@@ -4,6 +4,9 @@ import { isAddress } from "viem";
 import { PageContext } from "vike/types";
 
 export default async function onBeforeRender(pageContext: PageContext) {
+  if ((pageContext?.data as { title: string })?.title) {
+    return { pageContext };
+  }
   try {
     const { id, chainId } = pageContext.routeParams;
 
@@ -26,7 +29,9 @@ export default async function onBeforeRender(pageContext: PageContext) {
     if (metadata) {
       return {
         pageContext: {
-          ...metadata,
+          data: {
+            ...metadata,
+          },
         },
       };
     }
@@ -36,8 +41,10 @@ export default async function onBeforeRender(pageContext: PageContext) {
 
   return {
     pageContext: {
-      title: "Seer | A Next Generation Prediction Marketplace",
-      description: "Efficient on-chain prediction markets.",
+      data: {
+        title: "Seer | A Next Generation Prediction Marketplace",
+        description: "Efficient on-chain prediction markets.",
+      },
     },
   };
 }
