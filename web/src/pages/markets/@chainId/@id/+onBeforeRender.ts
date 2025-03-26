@@ -4,6 +4,10 @@ import { isAddress } from "viem";
 import { PageContext } from "vike/types";
 
 export default async function onBeforeRender(pageContext: PageContext) {
+  const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+  if (isBrowser) {
+    return;
+  }
   try {
     const { id, chainId } = pageContext.routeParams;
 
