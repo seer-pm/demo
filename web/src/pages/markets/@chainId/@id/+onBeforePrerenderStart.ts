@@ -21,6 +21,7 @@ async function onBeforePrerenderStart() {
             data: {
               title: `Seer | ${unescapeJson(market.marketName)}`,
               description,
+              market,
             },
           },
         };
