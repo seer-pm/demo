@@ -83,7 +83,12 @@ function MarketPage() {
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const router = getRouterAddress(chainId);
 
-  const { data: market, isError: isMarketError, isPending: isMarketPending } = useMarket(idOrSlug, chainId);
+  const {
+    data: market,
+    isError: isMarketError,
+    isLoading: isMarketLoading,
+    isPlaceholderData,
+  } = useMarket(idOrSlug, chainId);
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
@@ -101,7 +106,7 @@ function MarketPage() {
     );
   }
 
-  if (isMarketPending || !router || !market) {
+  if ((isMarketLoading && !isPlaceholderData) || !market) {
     return (
       <div className="container-fluid py-10 space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
