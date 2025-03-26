@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
 import { useData } from "vike-react/useData";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
+import { usePreserveData } from "./usePreserveData";
 
 export interface Question {
   id: `0x${string}`;
@@ -209,10 +210,11 @@ export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: Sup
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   const { market } = useData<{ market: Market }>() || {};
+  const cachedData = usePreserveData(market);
   return useQuery<Market | undefined, Error>({
     queryKey: getUseGraphMarketKey(marketId),
     enabled: marketId !== zeroAddress,
-    ...(!isUndefined(market) && { placeholderData: market }),
+    ...(!isUndefined(cachedData) && { placeholderData: cachedData }),
     queryFn: async () => {
       return useGraphMarketQueryFn(marketId, chainId);
     },
