@@ -5,17 +5,16 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
+import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
+import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
+import { displayBalance, isUndefined } from "@/lib/utils";
+import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
-import { gnosis } from "viem/chains";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
@@ -35,7 +34,6 @@ interface SwapFormValues {
 interface SwapTokensProps {
   market: Market;
   account: Address | undefined;
-  chainId: SupportedChain;
   outcomeText: string;
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
@@ -44,22 +42,9 @@ interface SwapTokensProps {
   parentCollateral: Token | undefined;
 }
 
-function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
-  if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
-      return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
-    }
-
-    return COLLATERAL_TOKENS[chainId].secondary as Token;
-  }
-
-  return COLLATERAL_TOKENS[chainId].primary;
-}
-
 export function SwapTokens({
   market,
   account,
-  chainId,
   outcomeText,
   outcomeToken,
   hasEnoughLiquidity,
@@ -97,21 +82,15 @@ export function SwapTokens({
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
 
-  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(
-    account,
-    WXDAI[chainId]?.address as `0x${string}`,
-    chainId,
-  );
-  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
-  const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
-
-  const selectedCollateral = parentCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
+  const isUseWrappedToken = useWrappedToken(account, market.chainId);
+  const selectedCollateral =
+    parentCollateral || getSelectedCollateral(market.chainId, useAltCollateral, isUseWrappedToken);
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     sellToken.address,
-    chainId,
+    market.chainId,
   );
 
   useEffect(() => {
@@ -119,12 +98,13 @@ export function SwapTokens({
   }, [balance]);
 
   const debouncedAmount = useDebounce(amount, 500);
+
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
     fetchStatus: quoteFetchStatus,
     error: quoteError,
-  } = useQuoteTrade(chainId, account, debouncedAmount, outcomeToken, selectedCollateral, swapType);
+  } = useQuoteTrade(market.chainId, account, debouncedAmount, outcomeToken, selectedCollateral, swapType);
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
   const tradeTokens = useTrade(async () => {
@@ -138,52 +118,28 @@ export function SwapTokens({
       account: account!,
     });
   };
-  const sDAI = COLLATERAL_TOKENS[chainId].primary;
+  const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
 
   // convert sell result to xdai or wxdai if using multisteps swap
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
-  const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
 
-  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(chainId);
-
-  const cowSwapDaiAmount = isCowSwapDai
-    ? swapType === "buy"
-      ? parseUnits(amount, selectedCollateral.decimals)
-      : (quoteData?.value ?? 0n)
-    : 0n;
-  const cowSwapSDaiAmount = cowSwapDaiAmount
-    ? Number(formatUnits(cowSwapDaiAmount, selectedCollateral.decimals)) * daiToSDai
-    : 0;
+  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
 
   // calculate price per share
-  const inputAmount = quoteData
-    ? Number(
-        formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
-      )
-    : 0;
   const receivedAmount = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
-  const collateralPerShare = (() => {
-    if (!quoteData) return 0;
-    if (swapType === "buy") {
-      if (!isCowSwapDai) {
-        return Number(inputAmount) / receivedAmount;
-      }
-      return cowSwapSDaiAmount / receivedAmount;
-    }
-
-    if (!isCowSwapDai) {
-      return receivedAmount / Number(inputAmount);
-    }
-    return cowSwapSDaiAmount / Number(inputAmount);
-  })();
+  const { collateralPerShare, avgPrice } = getSharesInfo(
+    swapType,
+    selectedCollateral,
+    quoteData,
+    amount,
+    receivedAmount,
+    isCollateralDai,
+    daiToSDai,
+    sDaiToDai,
+  );
 
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
-
-  const avgPrice = (() => {
-    const price = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
-    return price.toFixed(3);
-  })();
 
   return (
     <>
@@ -214,7 +170,7 @@ export function SwapTokens({
             <Alert type="warning">
               This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
               <a
-                href={getLiquidityUrl(chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
+                href={getLiquidityUrl(market.chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary"
@@ -336,6 +292,7 @@ export function SwapTokens({
                   market,
                   quoteIsLoading,
                   isFetching,
+                  amount,
                   receivedAmount,
                   collateralPerShare,
                 }}
@@ -354,7 +311,7 @@ export function SwapTokens({
               {isUndefined(parentCollateral) && (
                 <AltCollateralSwitch
                   {...register("useAltCollateral")}
-                  chainId={chainId}
+                  chainId={market.chainId}
                   isUseWrappedToken={isUseWrappedToken}
                 />
               )}

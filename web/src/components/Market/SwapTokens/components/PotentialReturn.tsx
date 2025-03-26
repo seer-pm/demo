@@ -1,9 +1,8 @@
 import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
 import { MarketTypes, getMarketType } from "@/lib/market";
-import { Token } from "@/lib/tokens";
+import { Token, getPotentialReturn } from "@/lib/tokens";
 import clsx from "clsx";
-import { useState } from "react";
 import PotentialReturnConfig from "./PotentialReturnConfig";
 
 interface PotentialReturnProps {
@@ -16,6 +15,7 @@ interface PotentialReturnProps {
   market: Market;
   quoteIsLoading: boolean;
   isFetching: boolean;
+  amount: string;
   receivedAmount: number;
   collateralPerShare: number;
 }
@@ -30,11 +30,10 @@ export function PotentialReturn({
   market,
   quoteIsLoading,
   isFetching,
+  amount,
   receivedAmount,
   collateralPerShare,
 }: PotentialReturnProps) {
-  const [returnPerToken, setReturnPerToken] = useState(1);
-
   if (swapType !== "buy") {
     return null;
   }
@@ -47,14 +46,13 @@ export function PotentialReturn({
       <PotentialReturnConfig
         key={outcomeToken.address}
         market={market}
-        returnPerToken={returnPerToken}
-        setReturnPerToken={setReturnPerToken}
         selectedCollateral={selectedCollateral}
         outcomeToken={outcomeToken}
         outcomeText={outcomeText}
         isCollateralDai={isCollateralDai}
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}
+        amount={amount}
         receivedAmount={receivedAmount}
         collateralPerShare={collateralPerShare}
       />
@@ -81,7 +79,7 @@ export function PotentialReturn({
         selectedCollateral={selectedCollateral}
         receivedAmount={receivedAmount}
         sDaiToDai={sDaiToDai}
-        returnPerToken={returnPerToken}
+        returnPerToken={1}
         collateralPerShare={collateralPerShare}
         isOneOrNothingPotentialReturn={isOneOrNothingPotentialReturn}
       />
@@ -116,10 +114,14 @@ export function PotentialReturnResult({
     return <div className="shimmer-container ml-2 w-[100px]" />;
   }
 
-  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
-  const potentialReturn =
-    (isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) *
-    (isOneOrNothingPotentialReturn ? 1 : returnPerToken);
+  const { returnPercentage, potentialReturn } = getPotentialReturn(
+    collateralPerShare,
+    returnPerToken,
+    isCollateralDai,
+    receivedAmount,
+    sDaiToDai,
+    isOneOrNothingPotentialReturn,
+  );
 
   return (
     <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
