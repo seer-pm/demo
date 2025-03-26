@@ -95,7 +95,7 @@ function useGraphMarkets(params: UseGraphMarketsParams) {
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
     queryKey: [...getUseGraphMarketsKey(params), dataStatus],
-    ...(isFetchAll && dataStatus === "ok" && initialMarkets.length && { initialData: initialMarkets }),
+    ...(isFetchAll && dataStatus === "ok" && initialMarkets.length && { placeholderData: initialMarkets }),
     queryFn: async () => {
       if (isFetchAll) {
         try {
