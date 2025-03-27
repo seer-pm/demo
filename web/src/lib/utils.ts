@@ -183,6 +183,9 @@ export async function fetchAuth(
 }
 
 export function getAppUrl() {
+  if (typeof window !== "undefined") {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
   return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
 }
 
