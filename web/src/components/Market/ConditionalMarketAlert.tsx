@@ -2,7 +2,7 @@ import { Link } from "@/components/Link";
 import { useMarket } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { Alert } from "../Alert";
 
 export function ConditionalMarketAlert({
@@ -16,7 +16,7 @@ export function ConditionalMarketAlert({
 }) {
   const { data: parentMarket } = useMarket(parentMarketAddress, chainId);
 
-  if (!parentMarket) {
+  if (!parentMarket || parentMarketAddress === zeroAddress) {
     return null;
   }
   const parentOutcomeText = parentMarket.outcomes[Number(parentOutcome)];
