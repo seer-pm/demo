@@ -4,13 +4,11 @@ import { getOutcomes } from "@/lib/market";
 import { fetchMarket } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
 import { unescapeJson } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress } from "viem";
-import { useData } from "vike-react/useData";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
-import { usePreserveData } from "./usePreserveData";
 
 export interface Question {
   id: `0x${string}`;
@@ -209,12 +207,9 @@ export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: Sup
 };
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
-  const { market } = useData<{ market: Market }>() || {};
-  const cachedData = usePreserveData(market);
   return useQuery<Market | undefined, Error>({
     queryKey: getUseGraphMarketKey(marketId),
     enabled: marketId !== zeroAddress,
-    ...(!isUndefined(cachedData) && { placeholderData: cachedData }),
     queryFn: async () => {
       return useGraphMarketQueryFn(marketId, chainId);
     },

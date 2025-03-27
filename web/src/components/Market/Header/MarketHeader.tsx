@@ -83,7 +83,6 @@ function OutcomesInfo({
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
               to={`${paths.market(market)}?outcome=${encodeURIComponent(outcome)}`}
-              rel="external"
             >
               <div className="flex items-center space-x-[12px]">
                 <div className="w-[65px] flex-shrink-0">
@@ -258,7 +257,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
           )}
           {type !== "default" && (
-            <Link to={paths.market(market)} rel="external">
+            <Link to={paths.market(market)}>
               {images?.market ? (
                 <img
                   src={images.market}
@@ -275,7 +274,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market)} rel="external">
+              <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
               </Link>
             )}

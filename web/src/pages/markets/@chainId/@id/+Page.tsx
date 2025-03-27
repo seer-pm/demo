@@ -89,6 +89,7 @@ function MarketPage() {
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
+
   const outcomeIndexFromSearch =
     market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
   const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
