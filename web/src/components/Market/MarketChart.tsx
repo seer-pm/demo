@@ -59,6 +59,21 @@ function MarketChart({ market }: { market: Market }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
+  
+  const marketResolvedDate = useMemo(() => {
+    if (market.payoutReported && market.finalizeTs > 0) {
+      return new Date(market.finalizeTs * 1000);
+    }
+    
+    for (const question of market.questions) {
+      if (question.finalize_ts > 0) {
+        return new Date(question.finalize_ts * 1000);
+      }
+    }
+    
+    return undefined;
+  }, [market]);
+  
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
@@ -67,15 +82,19 @@ function MarketChart({ market }: { market: Market }) {
     setStartDate(start ?? undefined);
     setEndDate(end ?? undefined);
   };
+  
   const chartTimeConfig = (() => {
+    const effectiveEndDate = endDate || marketResolvedDate;
+    
     if (startDate) {
-      const dayCount = differenceInDays(new Date(), startDate);
+      const endDateForCalc = effectiveEndDate || new Date();
+      const dayCount = differenceInDays(endDateForCalc, startDate);
       return {
         dayCount,
         interval: 60 * 60 * 3,
       };
     }
-    if (endDate) {
+    if (effectiveEndDate) {
       return {
         dayCount: 365 * 10,
         interval: 60 * 60 * 3,
@@ -86,12 +105,14 @@ function MarketChart({ market }: { market: Market }) {
       interval: chartOptions[period].interval,
     };
   })();
+  
   const { data, isPending: isPendingChart } = useChartData(
     market,
     chartTimeConfig.dayCount,
     chartTimeConfig.interval,
-    endDate,
+    endDate || marketResolvedDate, 
   );
+  
   const { chartData = [], timestamps = [] } = data ?? {};
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
@@ -246,8 +267,15 @@ function MarketChart({ market }: { market: Market }) {
       showSymbol: false,
     })),
   };
+  
   const exportData = async () => {
-    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, undefined);
+    // Use resolved date for export if available
+    const { chartData, timestamps } = await getChartData(
+      market, 
+      365 * 10, 
+      60 * 60 * 24, 
+      marketResolvedDate
+    );
     const series = getSeries(market, chartData);
     const headers = [
       {
@@ -275,7 +303,9 @@ function MarketChart({ market }: { market: Market }) {
     });
     downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
   };
+  
   const mutateExport = useMutation({ mutationFn: exportData });
+  
   return (
     <>
       <div className="w-full bg-white p-5 text-[12px] drop-shadow">
