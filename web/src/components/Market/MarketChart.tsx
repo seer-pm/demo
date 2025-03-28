@@ -60,19 +60,14 @@ function MarketChart({ market }: { market: Market }) {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
   
-  const marketResolvedDate = useMemo(() => {
-    if (market.payoutReported && market.finalizeTs > 0) {
-      return new Date(market.finalizeTs * 1000);
-    }
-    
-    for (const question of market.questions) {
-      if (question.finalize_ts > 0) {
-        return new Date(question.finalize_ts * 1000);
-      }
-    }
-    
-    return undefined;
-  }, [market]);
+const marketResolvedDate = useMemo(() => {
+  if (market.payoutReported && market.finalizeTs > 0) {
+    return new Date(market.finalizeTs * 1000);
+  }
+  
+  return undefined;
+}, [market]);
+
   
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
