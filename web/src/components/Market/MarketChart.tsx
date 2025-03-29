@@ -59,16 +59,10 @@ function MarketChart({ market }: { market: Market }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
-  
-const marketResolvedDate = useMemo(() => {
-  if (market.payoutReported && market.finalizeTs > 0) {
-    return new Date(market.finalizeTs * 1000);
-  }
-  
-  return undefined;
-}, [market]);
 
-  
+  const marketResolvedDate = market.payoutReported && market.finalizeTs > 0 ?
+    new Date(market.finalizeTs * 1000) : undefined;
+
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
@@ -77,10 +71,10 @@ const marketResolvedDate = useMemo(() => {
     setStartDate(start ?? undefined);
     setEndDate(end ?? undefined);
   };
-  
+
   const chartTimeConfig = (() => {
     const effectiveEndDate = endDate || marketResolvedDate;
-    
+
     if (startDate) {
       const endDateForCalc = effectiveEndDate || new Date();
       const dayCount = differenceInDays(endDateForCalc, startDate);
@@ -100,14 +94,14 @@ const marketResolvedDate = useMemo(() => {
       interval: chartOptions[period].interval,
     };
   })();
-  
+
   const { data, isPending: isPendingChart } = useChartData(
     market,
     chartTimeConfig.dayCount,
     chartTimeConfig.interval,
-    endDate || marketResolvedDate, 
+    endDate || marketResolvedDate,
   );
-  
+
   const { chartData = [], timestamps = [] } = data ?? {};
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
@@ -262,13 +256,13 @@ const marketResolvedDate = useMemo(() => {
       showSymbol: false,
     })),
   };
-  
+
   const exportData = async () => {
     // Use resolved date for export if available
     const { chartData, timestamps } = await getChartData(
-      market, 
-      365 * 10, 
-      60 * 60 * 24, 
+      market,
+      365 * 10,
+      60 * 60 * 24,
       marketResolvedDate
     );
     const series = getSeries(market, chartData);
@@ -298,9 +292,9 @@ const marketResolvedDate = useMemo(() => {
     });
     downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
   };
-  
+
   const mutateExport = useMutation({ mutationFn: exportData });
-  
+
   return (
     <>
       <div className="w-full bg-white p-5 text-[12px] drop-shadow">
@@ -334,7 +328,7 @@ const marketResolvedDate = useMemo(() => {
                 ? "Custom"
                 : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
                     endDate ? format(endDate, "MMM d, yyyy") : "_"
-                  }`}
+                }`}
             </button>
             {isShowDateRangePicker && (
               <div className="absolute left-0 top-[60px] z-10">
