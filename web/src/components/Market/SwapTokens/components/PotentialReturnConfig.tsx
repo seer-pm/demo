@@ -311,6 +311,17 @@ function ScalarForecastChecker({
         type: "line",
       };
     });
+  const highestReturn = Math.max(chartData[0].data[0][1], chartData[1].data.slice(-1)[0][1]);
+  const maxYAxisTicks = 4;
+  const yAxisTicks = Array.from(
+    new Set(
+      Array(maxYAxisTicks)
+        .fill(null)
+        .map((_, index) => Math.floor(highestReturn / maxYAxisTicks) * (index + 1))
+        .concat([Number(amount), highestReturn])
+        .sort((a, b) => a - b),
+    ),
+  );
   const option = {
     color: ["#00C42B", "#F60C36"],
 
@@ -326,7 +337,7 @@ function ScalarForecastChecker({
 
     grid: {
       left: 50,
-      right: 50,
+      right: 80,
       top: "15%",
       bottom: "15%",
     },
@@ -357,7 +368,13 @@ function ScalarForecastChecker({
       max: "dataMax",
       axisLabel: {
         formatter: (value: number) => `${value.toLocaleString()}`,
+        customValues: yAxisTicks,
       },
+      axisTick: {
+        alignWithLabel: true,
+        customValues: yAxisTicks,
+      },
+      name: isCollateralDai ? "sDAI" : selectedCollateral.symbol,
     },
     series: [
       ...[...chartData].reverse().map((x, index) => ({
@@ -406,6 +423,44 @@ function ScalarForecastChecker({
                 yAxis: 0,
               },
               { name: "end", xAxis: forecast, yAxis: "max" },
+            ],
+          ],
+        },
+      },
+      {
+        name: "Mark Line",
+        type: "line",
+        data: [
+          [0, Number(amount)],
+          [Number(market.upperBound), Number(amount)],
+        ],
+        lineStyle: {
+          color: "#888",
+          type: "dotted",
+          width: 2,
+        },
+        // smooth: true,
+        // silent: true,
+        tooltip: { show: false },
+        symbol: "none",
+        markLine: {
+          symbol: ["none", "none"],
+          lineStyle: {
+            color: "rgba(0, 0, 0, 0)",
+          },
+          label: {
+            show: true,
+            position: "end",
+            color: "#888",
+          },
+          data: [
+            [
+              {
+                name: "Buy Amount",
+                xAxis: 0,
+                yAxis: Number(amount),
+              },
+              { name: "end", xAxis: Number(market.upperBound), yAxis: Number(amount) },
             ],
           ],
         },
