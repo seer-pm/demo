@@ -104,11 +104,13 @@ function OutcomesInfo({
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
-              <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">
-                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+              {market.id !== "0x000" && (
+                <div className="flex space-x-10 items-center">
+                  <div className="text-[24px] font-semibold">
+                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  </div>
                 </div>
-              </div>
+              )}
             </Link>
           );
         })}
