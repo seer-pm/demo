@@ -77,7 +77,7 @@ function DateRangePicker({
           {defaultRanges.map((range) => {
             return (
               <div
-                key="range"
+                key={range}
                 className={clsx(
                   "text-[14px] whitespace-nowrap cursor-pointer flex px-2 py-2 border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
                   getDefaultRangeFromDates() === range &&
