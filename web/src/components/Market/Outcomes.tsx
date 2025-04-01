@@ -517,7 +517,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               className={clsx(
-                "bg-white flex justify-between p-[24px] border rounded-[3px] drop-shadow-sm cursor-pointer",
+                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
                 activeOutcome === i ? "border-purple-primary" : "border-black-medium",
               )}
             >
