@@ -514,7 +514,7 @@ export function Outcomes({ market, images }: PositionsProps) {
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           return (
             <div
-              key={market.wrappedTokens[i]}
+              key={`${market.wrappedTokens[i]}-${activeOutcome}`}
               onClick={outcomeClick(i)}
               className={clsx(
                 "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
