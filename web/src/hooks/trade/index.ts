@@ -279,14 +279,14 @@ async function getTradeArgs(
   };
 }
 
-export function useSwaprQuote(
+function useSwaprQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-  enabled: boolean,
+  enabled = true,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
@@ -326,18 +326,19 @@ export function useCowQuote(
     retry: false,
     queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
     // If we used a fast quote, refetch immediately to obtain the verified quote
-    refetchInterval: (query) => (query.state.dataUpdateCount <= 1 ? 1 : QUOTE_REFETCH_INTERVAL),
+    refetchInterval: (query) =>
+      query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
   });
 }
 
-export function useUniswapQuote(
+function useUniswapQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-  enabled: boolean,
+  enabled = true,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
@@ -360,16 +361,8 @@ export function useQuoteTrade(
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
   const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
 
-  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, !isCowResultOk);
-  const uniswapResult = useUniswapQuote(
-    chainId,
-    account,
-    amount,
-    outcomeToken,
-    collateralToken,
-    swapType,
-    !isCowResultOk,
-  );
+  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
 
   if (isCowResultOk) {
     return cowResult;
