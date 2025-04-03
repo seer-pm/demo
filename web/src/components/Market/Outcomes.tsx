@@ -20,7 +20,7 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -474,6 +474,11 @@ function OutcomeDetails({
 
 export function Outcomes({ market, images }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: odds = [] } = useMarketOdds(market, true);
@@ -514,11 +519,11 @@ export function Outcomes({ market, images }: PositionsProps) {
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           return (
             <div
-              key={`${market.wrappedTokens[i]}-${activeOutcome}`}
+              key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               className={clsx(
                 "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
-                activeOutcome === i ? "border-purple-primary" : "border-black-medium",
+                isClient && activeOutcome === i ? "border-purple-primary" : "border-black-medium",
               )}
             >
               <OutcomeDetails
