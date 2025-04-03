@@ -20,7 +20,7 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { ReactElement, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
