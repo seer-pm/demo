@@ -1,6 +1,6 @@
 import { config } from "@/wagmi";
-import { useAppKit } from "@reown/appkit/react";
 import { getAccount } from "@wagmi/core";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
@@ -29,9 +29,9 @@ export function localTimeToUtc(utcTime: Date | string | number) {
   return new Date(utcTime.getTime() - tzOffset);
 }
 
-export function formatDate(timestamp: number) {
+export function formatDate(timestamp: number, formatString?: string) {
   const date = fromUnixTime(timestamp);
-  return formatInTimeZone(date, "UTC", "MMMM d yyyy, HH:mm");
+  return formatInTimeZone(date, "UTC", formatString ?? "MMMM d yyyy, HH:mm");
 }
 
 export function getTimeLeft(endDate: Date | string | number, withSeconds = false): string | false {
@@ -156,7 +156,7 @@ export function bigIntMax(...args: bigint[]): bigint {
 }
 
 export function isTwoStringsEqual(str1: string | undefined | null, str2: string | undefined | null) {
-  return str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
+  return !!str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
 }
 
 export function parseFraction(floatString: string) {
@@ -204,7 +204,7 @@ export function isAccessTokenExpired(accessToken: string) {
 export async function fetchAuth(
   accessToken: string,
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   body?: Record<string, string | string[] | number | undefined | null>,
 ) {
   const response = await fetch(url, {
@@ -213,7 +213,7 @@ export async function fetchAuth(
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: method === "POST" ? JSON.stringify(body) : undefined,
+    body: method === "POST" || method === "PATCH" ? JSON.stringify(body) : undefined,
   });
 
   const json = await response.json();
@@ -226,6 +226,9 @@ export async function fetchAuth(
 }
 
 export function getAppUrl() {
+  if (typeof window !== "undefined") {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
   return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
 }
 
@@ -249,7 +252,7 @@ export function checkWalletConnectCallback(
     callback(account.address, account.chainId as SupportedChain);
     return;
   }
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   open({ view: "Connect" });
   const interval = setInterval(() => {
     const account = getAccount(config);
@@ -258,4 +261,69 @@ export function checkWalletConnectCallback(
       clearInterval(interval);
     }
   }, timeout);
+}
+
+interface HeaderConfig {
+  key: string;
+  title: string;
+}
+
+interface CsvData {
+  [key: string]: string | number | boolean | null;
+}
+
+export function downloadCsv(headers: HeaderConfig[], data: CsvData[], filename = "download.csv"): void {
+  // Create CSV header row with display titles
+  const headerRow = headers
+    .map((header) => {
+      const stringValue = header.title;
+      // Escape quotes and wrap in quotes if the value contains comma or quotes
+      if (stringValue.includes(",") || stringValue.includes('"')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    })
+    .join(",");
+
+  // Create CSV data rows using header keys
+  const rows = data.map((row) => {
+    return headers
+      .map((header) => {
+        const value = row[header.key];
+
+        // Handle different types of values
+        if (value === null || value === undefined) {
+          return "";
+        }
+
+        // Escape quotes and wrap in quotes if the value contains comma or quotes
+        const stringValue = String(value);
+        if (stringValue.includes(",") || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+
+        return stringValue;
+      })
+      .join(",");
+  });
+
+  // Combine headers and rows
+  const csvContent = [headerRow, ...rows].join("\n");
+
+  // Create blob and download link
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+
+  // Create download URL
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+
+  // Append link to body, click it, and remove it
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Clean up URL
+  URL.revokeObjectURL(url);
 }

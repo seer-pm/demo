@@ -1,20 +1,26 @@
 import { getMarketOdds } from "@/hooks/useMarketOdds";
-import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
+import { searchMarkets } from "./markets-search.mts";
 import { chainIds } from "./utils/config";
 import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
 export default async () => {
-  if (!process.env.VITE_SUPABASE_PROJECT_URL || !process.env.VITE_SUPABASE_API_KEY) {
-    return;
-  }
   try {
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL, process.env.VITE_SUPABASE_API_KEY);
     console.log("fetching markets...");
-    const markets = await fetchMarkets({ chainsList: chainIds.map((c) => c.toString()) });
+
+    // ignore markets finalized more than two days ago
+    const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
+
+    const markets = (await searchMarkets(chainIds.map((c) => c))).filter((market) => {
+      return market.finalizeTs > twoDaysAgo;
+    });
+
+    console.log("markets length", markets.length);
 
     const pools = await getAllMarketPools(markets);
     if (!pools.length) throw "No pool found";
@@ -36,7 +42,7 @@ export default async () => {
 
     // update odds for each market
     console.log("fetching odds...");
-    const limit = pLimit(20);
+    const limit = pLimit(10);
     const results = await Promise.all(
       markets.map((market) =>
         limit(() => {

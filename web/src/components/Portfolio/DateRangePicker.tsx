@@ -71,13 +71,13 @@ function DateRangePicker({
     }
   };
   return (
-    <div className="bg-white w-fit border border-[rgb(224,224,224)] rounded-[1px] drop-shadow">
+    <div className="bg-white w-fit border border-[rgb(224,224,224)] rounded-[1px] shadow-md">
       <div className="flex border-b border-[rgb(224,224,224)]">
         <div className="border-r border-[rgb(224,224,224)]">
           {defaultRanges.map((range) => {
             return (
               <div
-                key="range"
+                key={range}
                 className={clsx(
                   "text-[14px] whitespace-nowrap cursor-pointer flex px-2 py-2 border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
                   getDefaultRangeFromDates() === range &&

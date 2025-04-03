@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { Market, useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
@@ -23,8 +22,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
-import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { useAccount } from "wagmi";
@@ -54,16 +52,14 @@ function OutcomesInfo({
   marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
-  const { isIntersecting, ref } = useIntersectionObserver({
-    threshold: 0.5,
-  });
-  const { data: odds = [] } = useMarketOdds(market, isIntersecting);
+
+  const { data: odds = [] } = useMarketOdds(market, false);
 
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   return (
-    <div ref={ref}>
+    <div>
       <div className={clsx("space-y-3")}>
         {(market.type === "Generic" ? market.outcomes : ["Yes", "No"]).map((futarchyOutcome, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
@@ -107,7 +103,7 @@ function OutcomesInfo({
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
-              {market.type === "Generic" && (
+              {market.type === "Generic" && market.id !== "0x000" && (
                 <div className="flex space-x-10 items-center">
                   <div className="text-[24px] font-semibold">
                     {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
@@ -128,8 +124,17 @@ type PoolTokensInfo = {
   token1: { symbol: string; balance: number };
 }[];
 
-function PoolTokensInfo({ market, marketStatus }: { market: Market; marketStatus: MarketStatus }) {
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+function PoolTokensInfo({
+  market,
+  marketStatus,
+  type,
+}: {
+  market: Market;
+  marketStatus: MarketStatus;
+  type: "default" | "preview" | "small";
+}) {
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   const poolsPairs = getMarketPoolsPairs(market);
   const poolTokensInfo: PoolTokensInfo = poolsPairs.reduce((tokensInfo, _, j) => {
@@ -188,12 +193,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [] } = useMarketOdds(market, true);
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
   const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
-  const blockExplorerUrl = SUPPORTED_CHAINS[market.chainId].blockExplorers?.default?.url;
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   return (
     <div
@@ -365,7 +370,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               {market.liquidityUSD > 0 && (
                 <div className="tooltip">
                   <div className="tooltiptext !text-left min-w-[300px]">
-                    <PoolTokensInfo market={market} marketStatus={marketStatus} />
+                    <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                   </div>
                   <QuestionIcon fill="#9747FF" />
                 </div>

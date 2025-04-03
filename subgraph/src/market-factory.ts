@@ -25,10 +25,17 @@ import {
 } from "../generated/schema";
 import { DEFAULT_FINALIZE_TS } from "./reality";
 
-const MARKET_VIEW_ADDRESS =
-  dataSource.network() == "mainnet"
-    ? "0xAb797C4C6022A401c31543E316D3cd04c67a87fC"
-    : "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+function getMarketViewAddress(network: string): string {
+  if (network == "sepolia") {
+    return "0x03d03464BF9Eb20059Ca6eF6391E9C5d79d5E012";
+  }
+
+  if (network == "mainnet") {
+    return "0xAb797C4C6022A401c31543E316D3cd04c67a87fC";
+  }
+
+  return "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+}
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");
@@ -75,7 +82,9 @@ class MarketData {
 }
 
 export function handleNewMarket(event: NewMarketEvent): void {
-  const marketView = MarketView.bind(Address.fromString(MARKET_VIEW_ADDRESS));
+  const marketView = MarketView.bind(
+    Address.fromString(getMarketViewAddress(dataSource.network()))
+  );
 
   const data = marketView.getMarket(
     event.address,

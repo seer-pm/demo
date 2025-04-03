@@ -115,6 +115,12 @@ export const DaiLogo = () => (
   </svg>
 );
 
+export const CheckIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="#00C42B">
+    <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
+  </svg>
+);
+
 export const CheckCircleIcon = ({ width = 14, height = 14, ...props }: SVGAttributes<SVGElement>) => (
   <svg width={width} height={height} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
     <path
@@ -455,7 +461,13 @@ export const ExclamationCircleIcon = ({ width = 24, height = 24 }: SVGAttributes
 );
 
 export const PlusIcon = () => (
-  <svg width={32} height={32} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="#000">
+    <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+  </svg>
+);
+
+export const PlusCircleIcon = ({ width = 32 }) => (
+  <svg width={width} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx={16} cy={16} r={16} fill="#9747FF" />
     <g clipPath="url(#clip0_21937_171929)">
       <path
@@ -777,8 +789,8 @@ export const PresentIcon = ({ width = "24px" }) => (
   </svg>
 );
 
-export const EditIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="inherit">
+export const EditIcon = ({ fill = "inherit", width = "20px" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width={width} fill={fill}>
     <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
   </svg>
 );
@@ -798,5 +810,35 @@ export const NotificationIcon = () => (
 export const Visibility = ({ fill = "#9747ff" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill={fill}>
     <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z" />
+  </svg>
+);
+
+export const MoreVert = ({ fill = "#9747ff" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill={fill}>
+    <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
+  </svg>
+);
+
+export const AccountCircleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="30px" fill="#fff">
+    <path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z" />
+  </svg>
+);
+
+export const ExportIcon = () => (
+  <svg width="20" viewBox="0 0 24 24" fill="#9747ff" xmlns="http://www.w3.org/2000/svg">
+    <path fillRule="evenodd" clipRule="evenodd" d="M17 15H7V13H17V15Z"></path>
+    <path fillRule="evenodd" clipRule="evenodd" d="M17 18H7V16H17V18Z"></path>
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M6 4C5.44772 4 5 4.44772 5 5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V11H14C12.8954 11 12 10.1046 12 9V4H6ZM14 5.41421L17.5858 9H14V5.41421ZM3 5C3 3.34315 4.34315 2 6 2H13C13.2652 2 13.5196 2.10536 13.7071 2.29289L20.7071 9.29289C20.8946 9.48043 21 9.73478 21 10V19C21 20.6569 19.6569 22 18 22H6C4.34315 22 3 20.6569 3 19V5Z"
+    ></path>
+  </svg>
+);
+
+export const SubDirArrowRight = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="#cccccc">
+    <path d="m560-120-57-57 144-143H200v-480h80v400h367L503-544l56-57 241 241-240 240Z" />
   </svg>
 );

@@ -1,7 +1,6 @@
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Market } from "./useMarket";
-import { useMarketOdds } from "./useMarketOdds";
 import { MarketStatus } from "./useMarketStatus";
 import { useWinningOutcomes } from "./useWinningOutcomes";
 
@@ -27,10 +26,8 @@ function sortOdds(
   return b.odd - a.odd;
 }
 
-export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
-  const { data: odds = [] } = useMarketOdds(market, true);
+export function useSortedOutcomes(odds: number[], market: Market, marketStatus?: MarketStatus) {
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
-
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
     enabled: odds.length > 0 && market.type === "Generic",

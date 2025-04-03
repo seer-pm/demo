@@ -1,22 +1,22 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
+import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
+import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS, getLiquidityUrlByMarket } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { FUTARCHY_LP_PAIRS_MAPPING, MarketTypes, getMarketType } from "@/lib/market";
-import { Token, hasAltCollateral } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, displayNumber, isUndefined } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, UniswapTrade, WXDAI } from "@swapr/sdk";
+import { FUTARCHY_LP_PAIRS_MAPPING } from "@/lib/market";
+import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
+import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
+import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
-import { gnosis } from "viem/chains";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
@@ -24,7 +24,7 @@ import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
-import PotentialReturnConfig from "./components/PotentialReturnConfig";
+import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
 interface SwapFormValues {
@@ -41,18 +41,6 @@ interface SwapTokensProps {
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
   fixedCollateral: Token | undefined;
-}
-
-function getSelectedCollateral(chainId: SupportedChain, useAltCollateral: boolean, isUseWrappedToken: boolean): Token {
-  if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
-      return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
-    }
-
-    return COLLATERAL_TOKENS[chainId].secondary as Token;
-  }
-
-  return COLLATERAL_TOKENS[chainId].primary;
 }
 
 function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
@@ -77,61 +65,37 @@ function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcome
   );
 }
 
-function PricePerShare({
+function FutarchyPricePerShare({
   swapType,
   collateralPerShare,
-  isCollateralDai,
-  sDaiToDai,
-  selectedCollateral,
   buyToken,
   sellToken,
   outcomeIndex,
-  isFutarchyMarket,
 }: {
   swapType: "buy" | "sell";
   collateralPerShare: number;
-  isCollateralDai: boolean;
-  sDaiToDai: number;
-  selectedCollateral: Token;
   buyToken: Token;
   sellToken: Token;
   outcomeIndex: number;
-  isFutarchyMarket: boolean;
 }) {
-  if (isFutarchyMarket) {
-    const tokenPair = outcomeIndex <= 1 ? [buyToken.symbol, sellToken.symbol] : [sellToken.symbol, buyToken.symbol];
-    const swapTerms = swapType === "sell" ? `${tokenPair[1]} / ${tokenPair[0]}` : `${tokenPair[0]} / ${tokenPair[1]}`;
-
-    return (
-      <div className="flex items-center gap-2">
-        {collateralPerShare > 0
-          ? displayNumber(
-              swapType === "sell"
-                ? outcomeIndex <= 1
-                  ? collateralPerShare
-                  : 1 / collateralPerShare
-                : outcomeIndex <= 1
-                  ? 1 / collateralPerShare
-                  : collateralPerShare,
-              3,
-            )
-          : 0}{" "}
-        {swapTerms}
-      </div>
-    );
-  }
-
-  const avgPrice = isCollateralDai ? collateralPerShare * sDaiToDai : collateralPerShare;
+  const tokenPair = outcomeIndex <= 1 ? [buyToken.symbol, sellToken.symbol] : [sellToken.symbol, buyToken.symbol];
+  const swapTerms = swapType === "sell" ? `${tokenPair[1]} / ${tokenPair[0]}` : `${tokenPair[0]} / ${tokenPair[1]}`;
 
   return (
     <div className="flex items-center gap-2">
-      {displayNumber(avgPrice, 3)} {selectedCollateral.symbol}
-      {isCollateralDai && (
-        <span className="tooltip">
-          <p className="tooltiptext">{collateralPerShare.toFixed(3)} sDAI</p>
-          <QuestionIcon fill="#9747FF" />
-        </span>
-      )}
+      {collateralPerShare > 0
+        ? displayNumber(
+            swapType === "sell"
+              ? outcomeIndex <= 1
+                ? collateralPerShare
+                : 1 / collateralPerShare
+              : outcomeIndex <= 1
+                ? 1 / collateralPerShare
+                : collateralPerShare,
+            3,
+          )
+        : 0}{" "}
+      {swapTerms}
     </div>
   );
 }
@@ -148,7 +112,6 @@ export function SwapTokens({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
-  const [returnPerToken, setReturnPerToken] = useState(1);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
@@ -169,8 +132,6 @@ export function SwapTokens({
     trigger,
   } = useFormReturn;
 
-  const chainId = market.chainId;
-
   const [amount, useAltCollateral] = watch(["amount", "useAltCollateral"]);
   const {
     Modal: ConfirmSwapModal,
@@ -178,36 +139,31 @@ export function SwapTokens({
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
 
-  const { data: wxDAIBalance = BigInt(0) } = useTokenBalance(
-    account,
-    WXDAI[chainId]?.address as `0x${string}`,
-    chainId,
-  );
-  const { data: xDAIBalance = BigInt(0) } = useTokenBalance(account, NATIVE_TOKEN, chainId);
-  const isUseWrappedToken = wxDAIBalance > xDAIBalance && chainId === gnosis.id;
-
-  const selectedCollateral = fixedCollateral || getSelectedCollateral(chainId, useAltCollateral, isUseWrappedToken);
+  const isUseWrappedToken = useWrappedToken(account, market.chainId);
+  const selectedCollateral =
+    fixedCollateral || getSelectedCollateral(market.chainId, useAltCollateral, isUseWrappedToken);
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     sellToken.address,
-    chainId,
+    market.chainId,
   );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
+  const debouncedAmount = useDebounce(amount, 500);
+
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
     fetchStatus: quoteFetchStatus,
-    isError: quoteIsError,
-  } = useQuoteTrade(chainId, account, amount, outcomeToken, selectedCollateral, swapType);
+    error: quoteError,
+  } = useQuoteTrade(market.chainId, account, debouncedAmount, outcomeToken, selectedCollateral, swapType);
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
-
   const tradeTokens = useTrade(async () => {
     reset();
     closeConfirmSwapModal();
@@ -219,57 +175,29 @@ export function SwapTokens({
       account: account!,
     });
   };
-  const sDAI = COLLATERAL_TOKENS[chainId].primary;
+  const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
 
   // convert sell result to xdai or wxdai if using multisteps swap
   const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(fixedCollateral);
-  const isCowSwapDai = isCollateralDai && quoteData?.trade instanceof CoWTrade;
 
-  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(chainId);
-
-  const cowSwapDaiAmount = isCowSwapDai
-    ? swapType === "buy"
-      ? parseUnits(amount, selectedCollateral.decimals)
-      : (quoteData?.value ?? 0n)
-    : 0n;
-  const cowSwapSDaiAmount = cowSwapDaiAmount
-    ? Number(formatUnits(cowSwapDaiAmount, selectedCollateral.decimals)) * daiToSDai
-    : 0;
+  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
 
   // calculate price per share
-  const inputAmount = quoteData
-    ? Number(
-        formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
-      )
-    : 0;
   const receivedAmount = quoteData ? Number(formatUnits(quoteData.value, quoteData.decimals)) : 0;
-  const collateralPerShare = (() => {
-    if (!quoteData) return 0;
-    if (swapType === "buy") {
-      if (!isCowSwapDai) {
-        return Number(inputAmount) / receivedAmount;
-      }
-      return cowSwapSDaiAmount / receivedAmount;
-    }
-
-    if (!isCowSwapDai) {
-      return receivedAmount / Number(inputAmount);
-    }
-    return cowSwapSDaiAmount / Number(inputAmount);
-  })();
-
+  const { collateralPerShare, avgPrice } = getSharesInfo(
+    swapType,
+    selectedCollateral,
+    quoteData,
+    amount,
+    receivedAmount,
+    isCollateralDai,
+    daiToSDai,
+    sDaiToDai,
+  );
+  const outcomeText = market.outcomes[outcomeIndex];
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
-  const outcomeText = market.outcomes[outcomeIndex];
-
-  // potential return if buy
-  const returnPercentage = collateralPerShare ? (returnPerToken / collateralPerShare - 1) * 100 : 0;
-  const isOneOrNothingPotentialReturn =
-    getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
-  const potentialReturn =
-    (isCollateralDai ? receivedAmount * sDaiToDai : receivedAmount) *
-    (isOneOrNothingPotentialReturn ? 1 : returnPerToken);
   return (
     <>
       <ConfirmSwapModal
@@ -392,18 +320,18 @@ export function SwapTokens({
                 Avg price
                 {quoteIsLoading || isFetching ? (
                   <div className="shimmer-container ml-2 w-[100px]" />
+                ) : market.type === "Futarchy" ? (
+                  <FutarchyPricePerShare {...{ swapType, collateralPerShare, buyToken, sellToken, outcomeIndex }} />
                 ) : (
-                  <PricePerShare
-                    swapType={swapType}
-                    collateralPerShare={collateralPerShare}
-                    isCollateralDai={isCollateralDai}
-                    sDaiToDai={sDaiToDai}
-                    selectedCollateral={selectedCollateral}
-                    buyToken={buyToken}
-                    sellToken={sellToken}
-                    outcomeIndex={outcomeIndex}
-                    isFutarchyMarket={market.type === "Futarchy"}
-                  />
+                  <div className="flex items-center gap-2">
+                    {avgPrice} {selectedCollateral.symbol}
+                    {isCollateralDai && (
+                      <span className="tooltip">
+                        <p className="tooltiptext">{collateralPerShare.toFixed(3)} sDAI</p>
+                        <QuestionIcon fill="#9747FF" />
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="flex justify-between text-[#828282] text-[14px]">
@@ -411,47 +339,27 @@ export function SwapTokens({
                 {quoteIsLoading || isFetching ? (
                   <div className="shimmer-container ml-2 w-[100px]" />
                 ) : (
-                  <div>
+                  <div className="text-right">
                     {receivedAmount.toFixed(3)} {buyToken.symbol}
                   </div>
                 )}
               </div>
-              {swapType === "buy" && (
-                <div className="flex justify-between text-[#828282] text-[14px]">
-                  <div className="flex items-center gap-2 relative">
-                    Potential return{" "}
-                    {isOneOrNothingPotentialReturn ? (
-                      <span className="tooltip">
-                        <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-                          Each token can be redeemed for 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                          {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
-                          market resolves to {outcomeText}.
-                        </p>
-                        <QuestionIcon fill="#9747FF" />
-                      </span>
-                    ) : (
-                      <PotentialReturnConfig
-                        key={outcomeToken.address}
-                        market={market}
-                        returnPerToken={returnPerToken}
-                        setReturnPerToken={setReturnPerToken}
-                        selectedCollateral={selectedCollateral}
-                        outcomeToken={outcomeToken}
-                        outcomeText={outcomeText}
-                        isCollateralDai={isCollateralDai}
-                      />
-                    )}
-                  </div>
-                  {quoteIsLoading || isFetching ? (
-                    <div className="shimmer-container ml-2 w-[100px]" />
-                  ) : (
-                    <div className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary")}>
-                      {displayNumber(potentialReturn, 3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} (
-                      {returnPercentage.toFixed(2)}%)
-                    </div>
-                  )}
-                </div>
-              )}
+              <PotentialReturn
+                {...{
+                  swapType,
+                  isCollateralDai,
+                  selectedCollateral,
+                  sDaiToDai,
+                  outcomeText,
+                  outcomeToken,
+                  market,
+                  quoteIsLoading,
+                  isFetching,
+                  amount,
+                  receivedAmount,
+                  collateralPerShare,
+                }}
+              />
             </div>
 
             {isPriceTooHigh && (
@@ -460,7 +368,7 @@ export function SwapTokens({
                 input amount.
               </Alert>
             )}
-            {quoteIsError && <Alert type="error">Not enough liquidity</Alert>}
+            {quoteError && <Alert type="error">{quoteError.message ?? "Error when quoting price"}</Alert>}
 
             <div className="flex justify-between flex-wrap gap-4">
               {market.type === "Generic" && isUndefined(fixedCollateral) && (

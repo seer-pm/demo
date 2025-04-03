@@ -131,8 +131,19 @@ export const getFarmingUrl = (chainId: number, farmId: string) => {
       return "#";
   }
 };
+export const getPositionUrl = (chainId: number, farmId: string) => {
+  switch (chainId) {
+    case gnosis.id:
+      return `https://v3.swapr.eth.limo/#/pool/${farmId}`;
+    case mainnet.id:
+      return "#";
+    default:
+      return "#";
+  }
+};
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
   [gnosis.id]: "/assets/images/gnosis.webp",
   [mainnet.id]: "/assets/images/ethereum.webp",
+  [sepolia.id]: "/assets/images/ethereum.webp",
 };

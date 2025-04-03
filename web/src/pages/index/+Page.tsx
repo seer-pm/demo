@@ -46,7 +46,6 @@ function Home() {
   const { pageId } = usePageContext();
   const isFutarchyPage = pageId === "/src/pages/futarchy";
   const params = useMarketsSearchParams();
-
   useEffect(() => {
     if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
       // redirect old client urls

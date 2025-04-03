@@ -1,6 +1,6 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
+import { Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useState } from "react";
@@ -80,7 +80,7 @@ export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
           <LinkButton
             to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
             text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
-            icon={<PlusIcon />}
+            icon={<PlusCircleIcon />}
             className="max-lg:w-full min-w-[256px]"
           />
         </div>

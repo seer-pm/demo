@@ -56,7 +56,7 @@ export async function getUniswapHistoryTokensPrices(
         token1Price: data.token1Price,
       };
     }),
-    chainId,
+    chainId as number,
   );
 }
 
@@ -81,5 +81,5 @@ export async function getUniswapCurrentTokensPrices(positions: PortfolioPosition
     },
   });
 
-  return getTokenPricesMapping(positions, pools, chainId);
+  return getTokenPricesMapping(positions, pools, chainId as number);
 }

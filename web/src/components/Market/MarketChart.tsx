@@ -1,14 +1,18 @@
-import { ChartData } from "@/hooks/chart/getChartData";
+import { ChartData, getChartData } from "@/hooks/chart/getChartData";
 import { useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
-import { QuestionIcon } from "@/lib/icons";
+import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv, formatDate } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import ReactECharts from "echarts-for-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import slug from "slug";
+import DateRangePicker from "../Portfolio/DateRangePicker";
+import { Spinner } from "../Spinner";
 
 const chartOptions = {
   "1D": {
@@ -51,18 +55,92 @@ function getSeries(market: Market, chartData: ChartData["chartData"]) {
 }
 
 function MarketChart({ market }: { market: Market }) {
-  const [period, setPeriod] = useState<ChartOptionPeriod>("1W");
+  const [period, setPeriod] = useState<ChartOptionPeriod>("All");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
+
+  const marketResolvedDate =
+    market.payoutReported && market.finalizeTs > 0 ? new Date(market.finalizeTs * 1000) : undefined;
+
+  const onChangeDate = (dates: (Date | null)[]) => {
+    const [start, end] = dates;
+    if (!start && !end) {
+      setPeriod("All");
+    }
+    setStartDate(start ?? undefined);
+    setEndDate(end ?? undefined);
+  };
+
+  const chartTimeConfig = (() => {
+    const effectiveEndDate = endDate || marketResolvedDate;
+
+    if (startDate) {
+      const endDateForCalc = effectiveEndDate || new Date();
+      const dayCount = differenceInDays(endDateForCalc, startDate);
+      return {
+        dayCount,
+        interval: 60 * 60 * 3,
+      };
+    }
+    if (effectiveEndDate) {
+      return {
+        dayCount: 365 * 10,
+        interval: 60 * 60 * 3,
+      };
+    }
+    return {
+      dayCount: chartOptions[period].dayCount,
+      interval: chartOptions[period].interval,
+    };
+  })();
+
   const { data, isPending: isPendingChart } = useChartData(
     market,
-    chartOptions[period].dayCount,
-    chartOptions[period].interval,
+    chartTimeConfig.dayCount,
+    chartTimeConfig.interval,
+    endDate || marketResolvedDate,
   );
 
   const { chartData = [], timestamps = [] } = data ?? {};
 
   const isScalarMarket = getMarketType(market) === MarketTypes.SCALAR;
   const isMultiCategoricalMarket = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL;
-  const series = getSeries(market, chartData);
+  const series = useMemo(() => {
+    const rawSeries = getSeries(market, chartData);
+    if (!rawSeries.length) return rawSeries;
+
+    let validStartIndex = 0;
+    const dataLength = rawSeries[0].data.length;
+
+    for (let i = 0; i < dataLength; i++) {
+      const hasExtreme = rawSeries.some((series) => {
+        const value = series.data[i][1];
+        return value > 99.9 || value < 0.1;
+      });
+
+      if (!hasExtreme && i > 0) {
+        validStartIndex = i;
+        break;
+      }
+    }
+    if (validStartIndex > 0) {
+      return rawSeries.map((series) => ({
+        ...series,
+        data: series.data.slice(validStartIndex),
+      }));
+    }
+
+    return rawSeries;
+  }, [market, chartData]);
+
+  const adjustedTimestamps = useMemo(() => {
+    if (!timestamps.length || !series.length || series[0].data.length === timestamps.length) {
+      return timestamps;
+    }
+    return timestamps.slice(timestamps.length - series[0].data.length);
+  }, [timestamps, series]);
+
   const isSmallScreen = useIsSmallScreen();
   const option = {
     color: [
@@ -126,7 +204,6 @@ function MarketChart({ market }: { market: Market }) {
       top: "15%",
       bottom: "15%",
     },
-
     xAxis: {
       min: "dataMin",
       max: "dataMax",
@@ -135,8 +212,8 @@ function MarketChart({ market }: { market: Market }) {
       },
       axisTick: {
         alignWithLabel: true,
-        customValues: timestamps.filter(
-          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        customValues: adjustedTimestamps.filter(
+          (_: number, index: number) => index % Math.floor(adjustedTimestamps.length / (isSmallScreen ? 2 : 5)) === 0,
         ),
       },
       axisPointer: {
@@ -148,12 +225,11 @@ function MarketChart({ market }: { market: Market }) {
       type: "value",
       axisLabel: {
         formatter: (value: number) => format(value * 1000, period === "1D" ? "hhaaa" : "MMM dd"),
-        customValues: timestamps.filter(
-          (_, index) => index % Math.floor(timestamps.length / (isSmallScreen ? 2 : 5)) === 0,
+        customValues: adjustedTimestamps.filter(
+          (_: number, index: number) => index % Math.floor(adjustedTimestamps.length / (isSmallScreen ? 2 : 5)) === 0,
         ),
       },
     },
-
     yAxis: {
       min: "dataMin",
       max: "dataMax",
@@ -181,6 +257,39 @@ function MarketChart({ market }: { market: Market }) {
     })),
   };
 
+  const exportData = async () => {
+    // Use resolved date for export if available
+    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, marketResolvedDate);
+    const series = getSeries(market, chartData);
+    const headers = [
+      {
+        key: "date",
+        title: "Date (UTC)",
+      },
+      {
+        key: "timestamp",
+        title: "Timestamp (UTC)",
+      },
+      ...series.map((x) => ({ key: x.name, title: x.name })),
+    ];
+    const rows = timestamps.map((timestamp, index) => {
+      return {
+        date: formatDate(timestamp, "MM-dd-yyyy HH:mm"),
+        timestamp,
+        ...series.reduce(
+          (acc, curr) => {
+            acc[curr.name] = curr.data[index][1];
+            return acc;
+          },
+          {} as { [key: string]: number },
+        ),
+      };
+    });
+    downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
+  };
+
+  const mutateExport = useMutation({ mutationFn: exportData });
+
   return (
     <>
       <div className="w-full bg-white p-5 text-[12px] drop-shadow">
@@ -190,15 +299,43 @@ function MarketChart({ market }: { market: Market }) {
               key={option}
               onClick={() => {
                 setPeriod(option as ChartOptionPeriod);
+                setStartDate(undefined);
+                setEndDate(undefined);
               }}
               className={clsx(
                 "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
-                period === option && "!border-purple-primary",
+                !startDate && !endDate && period === option && "!border-purple-primary",
               )}
             >
               {option}
             </div>
           ))}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDateRangePicker((state) => !state)}
+              className={clsx(
+                "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
+                (startDate || endDate) && "!border-purple-primary",
+              )}
+            >
+              {!startDate && !endDate
+                ? "Custom"
+                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                    endDate ? format(endDate, "MMM d, yyyy") : "_"
+                  }`}
+            </button>
+            {isShowDateRangePicker && (
+              <div className="absolute left-0 top-[60px] z-10">
+                <DateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={onChangeDate}
+                  onClose={() => setShowDateRangePicker(false)}
+                />
+              </div>
+            )}
+          </div>
           <div className="tooltip">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
               The chart represents the token distribution in the liquidity pool over time and may not fully align with
@@ -206,6 +343,15 @@ function MarketChart({ market }: { market: Market }) {
             </p>
             <QuestionIcon fill="#9747FF" />
           </div>
+          <button
+            type="button"
+            className="hover:opacity-80 ml-auto tooltip"
+            onClick={() => mutateExport.mutate()}
+            disabled={mutateExport.isPending}
+          >
+            {!mutateExport.isPending && <span className="tooltiptext">Export Data</span>}
+            {mutateExport.isPending ? <Spinner className="bg-black-secondary" /> : <ExportIcon />}
+          </button>
         </div>
         {isPendingChart ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />

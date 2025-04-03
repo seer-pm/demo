@@ -20,6 +20,7 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import pLimit from "p-limit";
 import { Address, TransactionReceipt, parseUnits, zeroAddress } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
@@ -54,6 +55,8 @@ function getUniswapTrade(
   });
 }
 
+const limit = pLimit(3);
+
 function getSwaprTrade(
   _currencyIn: Currency,
   currencyOut: Currency,
@@ -62,13 +65,15 @@ function getSwaprTrade(
   account: Address | undefined,
   _chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  return SwaprV3Trade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
+  return limit(() =>
+    SwaprV3Trade.getQuote({
+      amount: currencyAmountIn,
+      quoteCurrency: currencyOut,
+      maximumSlippage,
+      recipient: account || zeroAddress,
+      tradeType: TradeType.EXACT_INPUT,
+    }),
+  );
 }
 
 type QuoteTradeFn = (
@@ -281,10 +286,11 @@ export function useSwaprQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === gnosis.id,
+    enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -331,10 +337,11 @@ export function useUniswapQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === mainnet.id,
+    enabled: Number(amount) > 0 && chainId === mainnet.id && enabled,
     retry: false,
     queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -349,9 +356,31 @@ export function useQuoteTrade(
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) {
-  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  // try to get cow quote first, if not success we will get other sources
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const isFetchOtherSources =
+    cowResult.status === "error" || (cowResult.status === "success" && !cowResult.data?.value);
+  const swaprResult = useSwaprQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    isFetchOtherSources,
+  );
+  const uniswapResult = useUniswapQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    isFetchOtherSources,
+  );
+  if (!isFetchOtherSources) {
+    return cowResult;
+  }
   if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
     return cowResult;
   }

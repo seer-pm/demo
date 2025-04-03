@@ -51,10 +51,10 @@ const FormDatePicker = (props: InputProps) => {
                 hasError && "border-error-primary",
                 isValid && "border-success-primary",
               )}
-              dateFormat="YYYY-MM-dd HH:mm"
+              dateFormat="yyyy-MM-dd HH:mm"
               dateFormatCalendar="MMMM"
               timeFormat="HH:mm"
-              placeholderText="YYYY-MM-DD HH:mm"
+              placeholderText="yyyy-MM-dd HH:mm"
               calendarClassName="custom-date-picker"
               showYearDropdown
               dropdownMode="select"

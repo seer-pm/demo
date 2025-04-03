@@ -36,6 +36,7 @@ const useOnChainMarkets = (
   chainsList: Array<string | "all">,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
+  disabled?: boolean,
 ) => {
   const chainIds = (
     chainsList.length === 0
@@ -47,6 +48,7 @@ const useOnChainMarkets = (
 
   return useQuery<Market[] | undefined, Error>({
     queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
+    enabled: !disabled,
     queryFn: async () => {
       return (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
     },
@@ -62,6 +64,8 @@ export type UseGraphMarketsParams = {
   participant: Address | "";
   orderBy: Market_OrderBy | undefined;
   orderDirection: "asc" | "desc" | undefined;
+  marketIds: string[] | undefined;
+  disabled: boolean | undefined;
 };
 
 export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
@@ -77,6 +81,7 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
   return useQuery<Market[], Error>({
+    enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
       return useGraphMarketsQueryFn(params);
@@ -97,7 +102,10 @@ export interface UseMarketsProps {
   orderBy?: Market_OrderBy;
   isShowMyMarkets?: boolean;
   isShowConditionalMarkets?: boolean;
+  isShowMarketsWithRewards?: boolean;
   orderDirection?: "asc" | "desc";
+  marketIds?: string[];
+  disabled?: boolean;
 }
 
 export const useMarkets = ({
@@ -109,8 +117,10 @@ export const useMarkets = ({
   participant = "",
   orderBy,
   orderDirection,
+  marketIds,
+  disabled,
 }: UseMarketsProps) => {
-  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
+  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
   const graphMarkets = useGraphMarkets({
     chainsList,
     type,
@@ -120,6 +130,8 @@ export const useMarkets = ({
     participant,
     orderBy,
     orderDirection,
+    marketIds,
+    disabled,
   });
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph

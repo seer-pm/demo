@@ -94,7 +94,7 @@ export async function getSwapEvents(mappings: MarketDataMapping, account: string
     return acc;
   }, [] as TransactionData[]);
   // get cowswap trades
-  const orderBookApi = new OrderBookApi({ chainId });
+  const orderBookApi = new OrderBookApi({ chainId: chainId as number });
   const trades = await orderBookApi.getTrades({ owner: account });
   const isWXDAI = (tokenAddress: string) =>
     isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||

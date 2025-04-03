@@ -50,18 +50,20 @@ async function getTokenPrice(
   swapType?: "buy" | "sell",
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
-  const [uniswapQuote, swaprQuote, cowQuote] = await Promise.allSettled([
+  // call cowQuote first, if not possible then we call using rpc
+  try {
+    const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy");
+    if (cowQuote?.value && cowQuote.value > 0n) {
+      return cowQuote.value;
+    }
+  } catch (e) {}
+  const [uniswapQuote, swaprQuote] = await Promise.allSettled([
     getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
     getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
-    getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
   ]);
 
   if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
     return uniswapQuote.value.value;
-  }
-
-  if (cowQuote.status === "fulfilled" && cowQuote?.value?.value && cowQuote.value.value > 0n) {
-    return cowQuote.value.value;
   }
 
   if (swaprQuote.status === "fulfilled" && swaprQuote?.value?.value && swaprQuote.value.value > 0n) {

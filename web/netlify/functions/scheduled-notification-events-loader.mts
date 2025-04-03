@@ -4,13 +4,15 @@ import { parseAbiItem } from "viem";
 import { SupportedChain } from "../../src/lib/chains.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
+import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
 import { getSubgraphUrl } from "./utils/subgraph.ts";
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 interface NetworkContracts {
   realityETH: `0x${string}`;
   conditionalTokens: `0x${string}`;
 }
+
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 const NETWORK_CONTRACTS: Record<number, NetworkContracts> = {
   // Mainnet
@@ -275,48 +277,6 @@ function getLastProcessedBlockKey(networkId: SupportedChain): string {
   return `notifications-events-${networkId}-last-block`;
 }
 
-async function getLastProcessedBlock(networkId: SupportedChain): Promise<bigint> {
-  const key = getLastProcessedBlockKey(networkId);
-
-  const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();
-
-  if (error) {
-    if (error.code !== "PGRST116") {
-      // Only throw if it's not a "not found" error
-      throw error;
-    }
-
-    // default to current block - 100
-    const currentBlock = await getBlockNumber(wagmiConfig, {
-      chainId: networkId,
-    });
-    return currentBlock - 100n;
-  }
-
-  return BigInt(data.value.blockNumber);
-}
-
-async function updateLastProcessedBlock(networkId: SupportedChain, blockNumber: bigint) {
-  const key = getLastProcessedBlockKey(networkId);
-
-  try {
-    const { error } = await supabase.from("key_value").upsert(
-      {
-        key,
-        value: { blockNumber: blockNumber.toString() },
-      },
-      { onConflict: "key" },
-    );
-
-    if (error) {
-      throw error;
-    }
-  } catch (error) {
-    console.error(`Error updating last processed block for network ${networkId}:`, error);
-    throw error;
-  }
-}
-
 async function getMarketNamesByMarket(marketIds: string[], networkId: SupportedChain): Promise<Map<string, string>> {
   const query = `
     query GetMarketNames($marketIds: [ID!]!) {
@@ -338,13 +298,13 @@ async function getMarketNamesByMarket(marketIds: string[], networkId: SupportedC
 }
 
 async function processNetworkEvents(networkId: SupportedChain) {
-  const fromBlock = await getLastProcessedBlock(networkId);
+  const fromBlock = await getLastProcessedBlock(networkId, getLastProcessedBlockKey(networkId));
 
   const currentBlock = await getBlockNumber(wagmiConfig, {
     chainId: networkId,
   });
 
-  await updateLastProcessedBlock(networkId, currentBlock);
+  await updateLastProcessedBlock(networkId, currentBlock, getLastProcessedBlockKey(networkId));
 
   // Fetch all events
   const [answerLogs, resolutionLogs] = await Promise.all([

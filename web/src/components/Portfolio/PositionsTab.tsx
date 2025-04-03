@@ -1,6 +1,7 @@
 import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
+import { isTextInString } from "@/lib/utils";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -14,8 +15,13 @@ function PositionsTab() {
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);
   };
+
   const filteredPositions =
-    positions.filter((position) => position.marketName.toLowerCase().includes(filterMarketName.toLowerCase())) ?? [];
+    positions.filter((position) => {
+      const isMatchName = isTextInString(filterMarketName, position.marketName);
+      const isMatchOutcome = isTextInString(filterMarketName, position.outcome);
+      return isMatchName || isMatchOutcome;
+    }) ?? [];
   return (
     <>
       {isGettingPositions && <div className="shimmer-container w-full h-[200px]" />}
@@ -26,7 +32,7 @@ function PositionsTab() {
         <div>
           <div className="grow mb-6">
             <Input
-              placeholder="Search by Market Name"
+              placeholder="Search by market or outcome"
               className="w-full"
               icon={<SearchIcon />}
               onKeyUp={marketNameCallback}

@@ -86,6 +86,7 @@ interface MarketFilters {
   chainsList: string[];
   orderBy: Market_OrderBy | "default";
   isShowConditionalMarkets: boolean;
+  isShowMarketsWithRewards: boolean;
   orderDirection: "asc" | "desc";
 }
 
@@ -96,12 +97,14 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     chainsList: initialChainsList,
     orderBy: initialOrderBy,
     isShowConditionalMarkets: initialShowConditionalMarkets,
+    isShowMarketsWithRewards: initialShowMarketsWithRewards,
     orderDirection: initialOrderDirection,
     setMarketStatus,
     setVerificationStatus,
     setChains,
     setOrderBy,
     toggleShowConditionalMarkets,
+    toggleShowMarketsWithRewards,
     setOrderDirection,
   } = useMarketsSearchParams();
   const {
@@ -119,13 +122,21 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
       isShowConditionalMarkets: initialShowConditionalMarkets ?? false,
+      isShowMarketsWithRewards: initialShowMarketsWithRewards ?? false,
       orderDirection: initialOrderDirection ?? "desc",
     },
   });
 
   const apply: SubmitHandler<MarketFilters> = (data) => {
-    const { marketStatusList, verificationStatusList, chainsList, orderBy, isShowConditionalMarkets, orderDirection } =
-      data;
+    const {
+      marketStatusList,
+      verificationStatusList,
+      chainsList,
+      orderBy,
+      isShowConditionalMarkets,
+      isShowMarketsWithRewards,
+      orderDirection,
+    } = data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
@@ -134,6 +145,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setOrderBy(orderBy);
     setShowFilters(false);
     toggleShowConditionalMarkets(isShowConditionalMarkets);
+    toggleShowMarketsWithRewards(isShowMarketsWithRewards);
     if (orderBy !== "default") {
       setOrderDirection(orderDirection);
     }
@@ -412,6 +424,24 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             />
             <label className="cursor-pointer flex items-center gap-2" htmlFor="show-conditional-market">
               Show only conditional markets
+            </label>
+          </div>
+          <div className="font-semibold flex items-center gap-2 pb-3 mt-5">
+            Rewards{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-reward-market"
+              type="checkbox"
+              checked={watch("isShowMarketsWithRewards")}
+              onChange={(e) => setValue("isShowMarketsWithRewards", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-reward-market">
+              Show only markets with rewards
             </label>
           </div>
         </div>

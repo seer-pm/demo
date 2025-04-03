@@ -2,12 +2,11 @@ import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarket } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
-import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import {
   ColumnDef,
@@ -23,34 +22,11 @@ import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
+import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
+import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import TextOverflowTooltip from "../TextOverflowTooltip";
-
-export function MarketImage({
-  marketAddress,
-  marketName,
-  chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
-  const { data: images } = useMarketImages(marketAddress, chainId);
-  return (
-    <div>
-      {images?.market ? (
-        <img
-          src={images.market}
-          alt={marketName}
-          className="w-[40px] h-[40px] min-w-[40px] min-h-[40px] rounded-full"
-        />
-      ) : (
-        <div className="w-[40px] h-[40px] rounded-full bg-purple-primary"></div>
-      )}
-    </div>
-  );
-}
 
 function RedeemModalContent({
   account,
@@ -91,19 +67,29 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <a
-              className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MarketImage
-                marketAddress={position.marketAddress as Address}
-                marketName={position.marketName}
-                chainId={chainId as SupportedChain}
-              />
-              <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
-            </a>
+            <div className="space-y-2">
+              <a
+                className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer w-[350px]"
+                href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(
+                  position.outcome,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
+                <p>{info.getValue<string>()}</p>
+              </a>
+              <div className="py-4 flex items-center gap-2">
+                <SubDirArrowRight />
+                <OutcomeImage
+                  image={position.outcomeImage}
+                  title={position.outcome}
+                  isInvalidOutcome={position.isInvalidOutcome}
+                  className="w-[30px] h-[30px] rounded-full"
+                />
+                <p className="text-[13px]">{position.outcome}</p>
+              </div>
+            </div>
           );
         },
         header: "Market Name",
@@ -116,7 +102,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           if (!position.parentMarketId) return "-";
           return (
             <a
-              className="flex text-[14px] cursor-pointer hover:underline"
+              className="flex text-[13px] cursor-pointer hover:underline"
               href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(
                 position.parentOutcome!,
               )}`}
@@ -151,6 +137,17 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
+          if (position.redeemedPrice) {
+            return (
+              <div className="font-semibold text-[14px] flex items-center gap-2">
+                <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+                <span className="tooltip">
+                  <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
+                  <QuestionIcon fill="#9747FF" />
+                </span>
+              </div>
+            );
+          }
           if (position.parentMarketId) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2">

@@ -1,26 +1,35 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+
+function parseCollectionId(url: string) {
+  const idOrSlug = url.split("/")[url.split("/").indexOf("collections") + 1] || "";
+  return idOrSlug.split("-").slice(-1)[0] || idOrSlug || null;
+}
+
 export default async (req: Request) => {
   try {
     const userId = verifyToken(req.headers.get("Authorization") || "");
+    const collectionId = parseCollectionId(req.url);
+    // Handle GET request
+    if (req.method === "GET") {
+      if (!collectionId && !userId) {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+      let query = supabase
+        .from("collections_markets")
+        .select("market_id")
+        [collectionId === null ? "is" : "eq"]("collection_id", collectionId);
+      if (userId) {
+        query = query.eq("user_id", userId);
+      }
+      const { data: favorites } = await query;
+      return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
+    }
     if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
-
-    const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
-    // Handle GET request
-    if (req.method === "GET") {
-      const { data: favorites } = await supabase
-        .from("collections_markets")
-        .select("market_id")
-        .eq("user_id", userId)
-        .is("collection_id", null);
-
-      return new Response(JSON.stringify(favorites ? favorites.map((f) => f.market_id) : []), { status: 200 });
-    }
-
     // Handle POST request
     if (req.method === "POST") {
       const { marketIds, collectionId = null } = await req.json();

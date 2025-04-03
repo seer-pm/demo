@@ -6,6 +6,6 @@ export default async (req: Request) => {
 
   return new Response(pageContext.httpResponse.body, {
     status: pageContext.httpResponse.statusCode,
-    headers: { "Content-Type": pageContext.httpResponse.contentType },
+    headers: Object.fromEntries(pageContext.httpResponse.headers),
   });
 };

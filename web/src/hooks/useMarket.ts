@@ -42,10 +42,11 @@ type MarketOffChainFields = {
       balance: number;
     };
   } | null)[];
-  odds: (number | null)[];
+  odds: number[];
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
+  images?: { market: string; outcomes: string[] } | undefined;
   index?: number;
   url: string;
 };
@@ -74,6 +75,7 @@ export type Market = MarketOffChainFields & {
   templateId: bigint;
   questions: readonly Question[];
   openingTs: number;
+  finalizeTs: number;
   encodedQuestions: readonly string[];
   lowerBound: bigint;
   upperBound: bigint;
@@ -148,6 +150,12 @@ export function deserializeMarket(market: SerializedMarket): Market {
     lowerBound: BigInt(market.lowerBound),
     upperBound: BigInt(market.upperBound),
     payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+    images: market.images
+      ? {
+          market: `https://cdn.kleros.link${market.images.market}`,
+          outcomes: ((market.images.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
+        }
+      : undefined,
   };
 }
 
@@ -173,6 +181,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
         }) as Question,
     ),
     openingTs: onChainMarket.questions[0].opening_ts,
+    finalizeTs: 0,
     ...offChainFields,
   };
 

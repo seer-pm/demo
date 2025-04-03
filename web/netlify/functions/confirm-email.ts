@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-export default async (req: Request) => {
-  const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
+export default async (req: Request) => {
   const verificationToken = new URL(req.url).searchParams.get("token");
   if (verificationToken) {
     const { data: user, error } = await supabase

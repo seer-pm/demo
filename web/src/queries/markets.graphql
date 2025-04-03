@@ -45,6 +45,7 @@ fragment Market on Market {
     }
   }
   openingTs
+  finalizeTs
   encodedQuestions
   lowerBound
   upperBound

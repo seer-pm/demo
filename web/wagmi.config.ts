@@ -1,15 +1,15 @@
-import fs from "fs";
-import { join, parse } from "path";
+import fs from "node:fs";
+import { readFile, readdir } from "node:fs/promises";
+import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { readFile, readdir } from "fs/promises";
-import { Chain } from "wagmi/chains";
+import { Chain, sepolia } from "wagmi/chains";
 
-const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
+const readArtifacts = async (chains: Chain[]) => {
   const results: Record<string, ContractConfig> = {};
 
-  for (const chainId in SUPPORTED_CHAINS) {
-    const chainName = SUPPORTED_CHAINS[chainId].name.toLocaleLowerCase();
+  for (const chain of chains) {
+    const chainName = chain.name.toLocaleLowerCase();
     const directoryPath = `../contracts/deployments/${chainName}`;
 
     if (chainName === "hardhat" && !fs.existsSync(directoryPath)) {
@@ -26,7 +26,7 @@ const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
         const jsonContent = JSON.parse(fileContent);
 
         const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {};
-        addresses[chainId] = jsonContent.address as `0x{string}`;
+        addresses[chain.id] = jsonContent.address as `0x{string}`;
         results[name] = {
           name,
           address: addresses,
@@ -47,9 +47,14 @@ const getConfig = async (): Promise<Config> => {
 
   const { SUPPORTED_CHAINS } = await import("./src/lib/chains");
 
+  const chains = Object.values(SUPPORTED_CHAINS);
+  if (!chains.some((chain) => chain.id === sepolia.id)) {
+    chains.push(sepolia);
+  }
+
   return {
     out: "src/hooks/contracts/generated.ts",
-    contracts: Object.values(await readArtifacts(SUPPORTED_CHAINS)),
+    contracts: Object.values(await readArtifacts(chains)),
     plugins: [react(), actions()],
   };
 };

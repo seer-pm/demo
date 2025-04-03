@@ -22,23 +22,27 @@ function useCalculatePositionsValue() {
     yesterdayInSeconds,
   );
 
-  const currentPortfolioValue = (positions ?? []).reduce((acc, curr) => {
-    const tokenPrice = tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ?? 0;
+  const currentPortfolioValue = positions.reduce((acc, curr) => {
+    let tokenPrice = tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ?? 0;
+    tokenPrice = curr.redeemedPrice || tokenPrice;
     const tokenValue = tokenPrice * curr.tokenBalance;
     return acc + tokenValue;
   }, 0);
   const historyPortfolioValue = positions.reduce((acc, curr) => {
-    const tokenPrice =
+    let tokenPrice =
       tokenIdToTokenHistoryPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       tokenIdToTokenCurrentPrice?.[curr.tokenId.toLocaleLowerCase()] ??
       0;
+    if (curr.marketFinalizeTs < yesterdayInSeconds) {
+      tokenPrice = curr.redeemedPrice || tokenPrice;
+    }
     const tokenValue = tokenPrice * curr.tokenBalance;
     return acc + tokenValue;
   }, 0);
 
   const delta = currentPortfolioValue - historyPortfolioValue;
   const positionsWithTokenValue = positions.map((position) => {
-    const tokenPrice = tokenIdToTokenCurrentPrice?.[position.tokenId.toLocaleLowerCase()];
+    const tokenPrice = position.redeemedPrice || tokenIdToTokenCurrentPrice?.[position.tokenId.toLocaleLowerCase()];
     return {
       ...position,
       tokenPrice,

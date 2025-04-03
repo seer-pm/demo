@@ -1,3 +1,4 @@
+import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
 import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
 import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -6,7 +7,6 @@ import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
-import { updateCollectionItem } from "@/hooks/useUpdateCollectionItem";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
@@ -391,6 +391,7 @@ export function PreviewForm({
       }),
     ),
     openingTs: 0,
+    finalizeTs: 0,
     encodedQuestions: [
       ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
     ].map((_) => ""),

@@ -22,8 +22,8 @@ import {
 import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useAppKit } from "@reown/appkit/react";
 import { switchChain } from "@wagmi/core";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
 import { hexToNumber, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
@@ -86,7 +86,7 @@ function getOutcomesOptions(market: Market, question: Question) {
 
 export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute }: AnswerFormProps) {
   const { address, chainId: connectedChainId, chain } = useAccount();
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
   const currentBond = getCurrentBond(question.bond, question.min_bond, market.chainId);
   const hasEnoughBalance = balance.value > currentBond;
@@ -142,7 +142,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   if (market.chainId !== connectedChainId) {
     return (
       <>
-        <Alert type="info">Switch to {SUPPORTED_CHAINS[market.chainId].name} to report the answer.</Alert>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS?.[market.chainId]?.name} to report the answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button

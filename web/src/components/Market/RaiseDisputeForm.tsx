@@ -6,8 +6,8 @@ import { SupportedChain, mainnet } from "@/lib/chains";
 import { getCurrentBond } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useAppKit } from "@reown/appkit/react";
 import { switchChain } from "@wagmi/core";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 
@@ -19,7 +19,7 @@ interface RaiseDisputeFormProps {
 
 export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDisputeFormProps) {
   const { address, chainId: connectedChainId } = useAccount();
-  const { open } = useAppKit();
+  const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address, config: config, chainId: mainnet.id });
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
 

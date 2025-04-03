@@ -9,7 +9,7 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
-    [gnosis.id]: `https://api.studio.thegraph.com/query/74975/seer-pm/version/latest`,
+    [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
   },
   curate: {

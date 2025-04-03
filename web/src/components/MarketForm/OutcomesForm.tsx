@@ -2,7 +2,7 @@ import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
-import { PlusIcon, PolicyIcon } from "@/lib/icons";
+import { PlusCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, hasOutcomes } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
@@ -290,7 +290,7 @@ function OutcomesSection({
 
           <div className="text-left">
             <button type="button" onClick={addOutcome}>
-              <PlusIcon />
+              <PlusCircleIcon />
             </button>
           </div>
         </>
