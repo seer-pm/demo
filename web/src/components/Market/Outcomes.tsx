@@ -514,12 +514,12 @@ export function Outcomes({ market, images }: PositionsProps) {
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           return (
             <div
-              key={`${market.wrappedTokens[i]}-${activeOutcome}`}
+              key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
-              className={clsx(
-                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
-                activeOutcome === i ? "border-purple-primary" : "border-black-medium",
-              )}
+              style={{
+                border: activeOutcome === i ? "1px solid #9747FF" : "1px solid #e5e5e5",
+              }}
+              className={clsx("bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer")}
             >
               <OutcomeDetails
                 market={market}
