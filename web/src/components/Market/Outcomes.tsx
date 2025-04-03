@@ -20,7 +20,7 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -34,6 +34,7 @@ import PoolDetails from "./PoolDetails/PoolDetails";
 interface PositionsProps {
   market: Market;
   images?: string[];
+  activeOutcome: number;
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -472,15 +473,9 @@ function OutcomeDetails({
   );
 }
 
-export function Outcomes({ market, images }: PositionsProps) {
+export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
-  const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: odds = [] } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
@@ -523,7 +518,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               onClick={outcomeClick(i)}
               className={clsx(
                 "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
-                isClient && activeOutcome === i ? "border-purple-primary" : "border-black-medium",
+                activeOutcome === i ? "border-purple-primary" : "border-black-medium",
               )}
             >
               <OutcomeDetails

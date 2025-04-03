@@ -19,7 +19,7 @@ import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -78,6 +78,7 @@ function SwapWidget({
 function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
+  const [outcomeIndex, setOutcomeIndex] = useState(0);
   const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
@@ -90,13 +91,17 @@ function MarketPage() {
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
 
-  const outcomeIndexFromSearch =
-    market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
-  const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   useEffect(() => {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
+
+  useEffect(() => {
+    const outcomeIndexFromSearch =
+      market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
+    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
+  }, [searchParams]);
+
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -169,7 +174,7 @@ function MarketPage() {
         {market && <MarketChart market={market} />}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
-            {market && <Outcomes market={market} images={market?.images?.outcomes} />}
+            <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
             <SwapWidget
