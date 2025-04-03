@@ -20,7 +20,7 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import { Address, RpcError } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
@@ -474,6 +474,11 @@ function OutcomeDetails({
 
 export function Outcomes({ market, images }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
   const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
   const { data: odds = [] } = useMarketOdds(market, true);
@@ -517,7 +522,7 @@ export function Outcomes({ market, images }: PositionsProps) {
               key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               style={{
-                border: activeOutcome === i ? "1px solid #9747FF" : "1px solid #e5e5e5",
+                border: isClient && activeOutcome === i ? "1px solid #9747FF" : "1px solid #e5e5e5",
               }}
               className={clsx("bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer")}
             >
