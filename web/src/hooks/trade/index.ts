@@ -358,17 +358,9 @@ export function useQuoteTrade(
 ) {
   // try to get cow quote first, if not success we will get other sources
   const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  const isFetchOtherSources =
-    cowResult.status === "error" || (cowResult.status === "success" && !cowResult.data?.value);
-  const swaprResult = useSwaprQuote(
-    chainId,
-    account,
-    amount,
-    outcomeToken,
-    collateralToken,
-    swapType,
-    isFetchOtherSources,
-  );
+  const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
+
+  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, !isCowResultOk);
   const uniswapResult = useUniswapQuote(
     chainId,
     account,
@@ -376,12 +368,10 @@ export function useQuoteTrade(
     outcomeToken,
     collateralToken,
     swapType,
-    isFetchOtherSources,
+    !isCowResultOk,
   );
-  if (!isFetchOtherSources) {
-    return cowResult;
-  }
-  if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
+
+  if (isCowResultOk) {
     return cowResult;
   }
 
