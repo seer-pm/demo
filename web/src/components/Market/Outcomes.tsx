@@ -521,10 +521,10 @@ export function Outcomes({ market, images }: PositionsProps) {
             <div
               key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
-              style={{
-                border: isClient && activeOutcome === i ? "1px solid #9747FF" : "1px solid #e5e5e5",
-              }}
-              className={clsx("bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer")}
+              className={clsx(
+                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
+                isClient && activeOutcome === i ? "border-purple-primary" : "border-black-medium",
+              )}
             >
               <OutcomeDetails
                 market={market}
