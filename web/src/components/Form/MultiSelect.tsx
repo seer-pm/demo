@@ -13,10 +13,20 @@ type MultiSelectProps = {
   name?: string;
   className?: string;
   placeholder?: string;
+  currentOutcome?: string; // Add this prop to track the current outcome
 };
 
 const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, ref) => {
-  const { className, options, useFormReturn, value = [], onChange, name, placeholder = "Select options" } = props;
+  const { 
+    className, 
+    options, 
+    useFormReturn, 
+    value = [], 
+    onChange, 
+    name, 
+    placeholder = "Select options",
+    currentOutcome 
+  } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -30,14 +40,22 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, r
   const handleCheckboxChange = (optionValue: string) => {
     if (!onChange) return;
 
-    const newValues = value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue];
+    if (currentOutcome && optionValue === currentOutcome) {
+      const newValues = value.includes(optionValue) ? value : [...value, optionValue];
+      onChange(newValues);
+    } else {
+      const newValues = value.includes(optionValue) 
+        ? value.filter((v) => v !== optionValue) 
+        : [...value, optionValue];
+      onChange(newValues);
+    }
 
-    onChange(newValues);
     const trigger = useFormReturn?.trigger;
     if (name && trigger) {
       trigger(name);
     }
   };
+
   useEffect(() => {
     const updateDropdownPosition = () => {
       if (triggerRef.current) {
@@ -61,6 +79,7 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, r
       window.removeEventListener("resize", updateDropdownPosition);
     };
   }, [isOpen]);
+  
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -111,17 +130,26 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>((props, r
             className="multi-select-dropdown absolute z-[1000] w-full mt-1 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] max-h-[180px] overflow-auto"
           >
             {options.map((option) => (
-              <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer">
+              <label 
+                key={option.value} 
+                className={clsx(
+                  "flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer",
+                  currentOutcome && option.value === currentOutcome && "bg-purple-50"
+                )}
+              >
                 <input
                   type="checkbox"
                   checked={value.includes(option.value)}
                   onChange={() => handleCheckboxChange(option.value)}
                   className="checkbox checkbox-primary"
+                  disabled={Boolean(currentOutcome && option.value === currentOutcome)} // Disable checkbox for current outcome
                 />
-                <span>{option.text}</span>
+                <span>
+                  {option.text}
+                  {currentOutcome && option.value === currentOutcome && " (Current Outcome)"}
+                </span>
               </label>
-            ))}
-          </div>,
+            ))}          </div>,
           document.body,
         )}
       <FormError errors={errors} name={name} />

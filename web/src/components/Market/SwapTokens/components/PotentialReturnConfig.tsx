@@ -133,9 +133,9 @@ function RenderInputByMarketType({
           value={input.multiCategorical ?? []}
           onChange={(values) => setInput((state) => ({ ...state, multiCategorical: values }))}
           placeholder="Select winning outcomes"
+          currentOutcome={outcomeText}
         />
-      </div>
-    );
+      </div>    );
   }
 
   if (marketType === MarketTypes.SCALAR) {
@@ -186,7 +186,6 @@ function RenderInputByMarketType({
     </div>
   );
 }
-
 function ScalarForecastChecker({
   market,
   outcomeToken,
@@ -640,7 +639,7 @@ function PotentialReturnConfig({
             <p className="tooltiptext w-[300px] !whitespace-break-spaces">
               You need to buy more than 0 shares to calculate your potential return.
             </p>
-            Calculate your potential return
+        Calculate your potential return
           </div>
         ) : (
           "Calculate your potential return"
