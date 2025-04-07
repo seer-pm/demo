@@ -1,5 +1,5 @@
-import { ChartData, getChartData } from "@/hooks/chart/getChartData";
-import { useChartData } from "@/hooks/chart/useChartData";
+import { ChartData } from "@/hooks/chart/useChartData";
+import { fetchChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
@@ -60,8 +60,8 @@ function MarketChart({ market }: { market: Market }) {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
 
-  const marketResolvedDate = market.payoutReported && market.finalizeTs > 0 ?
-    new Date(market.finalizeTs * 1000) : undefined;
+  const marketResolvedDate =
+    market.payoutReported && market.finalizeTs > 0 ? new Date(market.finalizeTs * 1000) : undefined;
 
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
@@ -259,11 +259,11 @@ function MarketChart({ market }: { market: Market }) {
 
   const exportData = async () => {
     // Use resolved date for export if available
-    const { chartData, timestamps } = await getChartData(
+    const { chartData, timestamps }: ChartData = await fetchChartData(
       market,
       365 * 10,
       60 * 60 * 24,
-      marketResolvedDate
+      marketResolvedDate,
     );
     const series = getSeries(market, chartData);
     const headers = [
@@ -328,7 +328,7 @@ function MarketChart({ market }: { market: Market }) {
                 ? "Custom"
                 : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
                     endDate ? format(endDate, "MMM d, yyyy") : "_"
-                }`}
+                  }`}
             </button>
             {isShowDateRangePicker && (
               <div className="absolute left-0 top-[60px] z-10">

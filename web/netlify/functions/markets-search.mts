@@ -14,7 +14,7 @@ const crypto = require("node:crypto");
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
+export type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
 
 type PoolBalance = Array<{
   token0: { symbol: string; balance: number };
@@ -23,7 +23,7 @@ type PoolBalance = Array<{
 
 type VerificationImages = { market: string; outcomes: string[] };
 
-function mapGraphMarket(
+export function mapGraphMarket(
   market: SubgraphMarket,
   extra: {
     chainId: SupportedChain;
