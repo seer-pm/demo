@@ -4426,6 +4426,11 @@
   resolved "https://registry.yarnpkg.com/@multiformats/base-x/-/base-x-4.0.1.tgz#95ff0fa58711789d53aefb2590a8b7a4e715d121"
   integrity sha512-eMk0b9ReBbV23xXU693TAIrLyeO5iTgBZGSJfpqriG8UkYvr/hC9u9pyMlAakDNHWmbhMZCDs6KQO0jzKD8OTw==
 
+"@netlify/blobs@^8.1.2":
+  version "8.1.2"
+  resolved "https://registry.yarnpkg.com/@netlify/blobs/-/blobs-8.1.2.tgz#7b249d837e7944d8f04fb807c5fa1cb2c6f28a3d"
+  integrity sha512-coQlePCMpgyMxfeCvxa6qPHlahECin0lSRtg8UOn2rzXRWdvJk+yUhhUstW4HLa9ynvAXFAGTEZoVt4BTESNbw==
+
 "@netlify/functions@^2.8.2":
   version "2.8.2"
   resolved "https://registry.yarnpkg.com/@netlify/functions/-/functions-2.8.2.tgz#653395b901a74a6189e913a089f9cb90083ca6ce"
@@ -15186,10 +15191,9 @@ graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2, graceful-fs@^4.1.6
   resolved "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz"
   integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
 
-graphql-combine-query@^1.2.4:
+"graphql-combine-query@https://github.com/xyzseer/graphql-combine-query#ab552af27b3badb975f7dcad88b140bdb017a6fe":
   version "1.2.4"
-  resolved "https://registry.yarnpkg.com/graphql-combine-query/-/graphql-combine-query-1.2.4.tgz#73013fbef0671762569a70780778da8eb2157ef2"
-  integrity sha512-Os0d5cS8nH1cRnejGyACda0lraPzMJJjtd21KrfjKi1NWgEgzXzP8s29cpLlne+Y+51/2mS4j/3aTaIlCYMexg==
+  resolved "https://github.com/xyzseer/graphql-combine-query#ab552af27b3badb975f7dcad88b140bdb017a6fe"
 
 graphql-config@^5.0.2:
   version "5.0.3"

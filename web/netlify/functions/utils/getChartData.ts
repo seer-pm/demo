@@ -1,12 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { MarketTypes, Token0Token1, getMarketEstimate, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { TickMath } from "@uniswap/v3-sdk";
-import { subDays } from "date-fns";
-import combineQuery from "graphql-combine-query";
-import { formatUnits } from "viem";
-import { gnosis } from "viem/chains";
-import { tickToPrice } from "../liquidity/getLiquidityChartData";
+import { ChartData } from "@/hooks/chart/useChartData";
+import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import {
   GetPoolHourDatasQuery,
   GetSwapsQuery,
@@ -15,17 +8,46 @@ import {
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
-} from "../queries/gql-generated-swapr";
-import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
+} from "@/hooks/queries/gql-generated-swapr";
+import { getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr";
 import {
   Mint_OrderBy,
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
-} from "../queries/gql-generated-uniswap";
-import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
-import { Market } from "../useMarket";
-import { normalizeOdds } from "../useMarketOdds";
-import { findClosestLessThanOrEqualToTimestamp, getNearestRoundedDownTimestamp } from "./utils";
+} from "@/hooks/queries/gql-generated-uniswap";
+import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
+import { Market } from "@/hooks/useMarket";
+import { normalizeOdds } from "@/hooks/useMarketOdds";
+import { SupportedChain } from "@/lib/chains";
+import { MarketTypes, Token0Token1, getMarketEstimate, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { TickMath } from "@uniswap/v3-sdk";
+import { subDays } from "date-fns";
+import combineQuery from "graphql-combine-query";
+import { formatUnits } from "viem";
+import { gnosis } from "viem/chains";
+
+function getNearestRoundedDownTimestamp(timestamp: number, interval: number) {
+  return Math.floor(timestamp / interval) * interval;
+}
+
+function findClosestLessThanOrEqualToTimestamp(sortedTimestamps: number[], targetTimestamp: number) {
+  let left = 0;
+  let right = sortedTimestamps.length - 1;
+  let result = -1;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (sortedTimestamps[mid] <= targetTimestamp) {
+      result = mid;
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  return result;
+}
 
 function calculateTokenPricesFromSqrtPrice(sqrtPrice: string) {
   const sqrtPriceBigInt = BigInt(sqrtPrice);
@@ -47,27 +69,27 @@ async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: Sup
   const GetPoolHourDatasDocument =
     chainId === gnosis.id ? SwaprGetPoolHourDatasDocument : UniswapGetPoolHourDatasDocument;
 
-  const { document, variables } = (() =>
-    combineQuery("GetPoolHourDatas").addN(
-      GetPoolHourDatasDocument,
-      poolsPairs.map((poolPairs) => {
-        return {
-          first: 1,
-          orderBy: PoolHourData_OrderBy.PeriodStartUnix,
-          orderDirection: OrderDirection.Desc,
-          where: {
-            and: [
-              { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
-              {
-                pool_: poolPairs,
-                periodStartUnix_lte: startTime,
-                periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
-              },
-            ],
-          },
-        };
-      }),
-    ))();
+  const { document, variables } = combineQuery("GetPoolHourDatas").addN(
+    GetPoolHourDatasDocument,
+    poolsPairs.map((poolPairs) => {
+      return {
+        first: 1,
+        orderBy: PoolHourData_OrderBy.PeriodStartUnix,
+        orderDirection: OrderDirection.Desc,
+        where: {
+          and: [
+            { or: [{ liquidity_not: "0" }, { pool_: { liquidity_not: "0" } }] },
+            {
+              pool_: poolPairs,
+              periodStartUnix_lte: startTime,
+              periodStartUnix_gte: startTime - 60 * 60 * 24 * 30, // add this to improve query time
+            },
+          ],
+        },
+      };
+    }),
+  );
+
   if (chainId === gnosis.id) {
     const result = Object.values(
       await graphQLClient.request<Record<string, SwaprGetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
@@ -224,14 +246,9 @@ async function getPoolHourDatas(
   if (poolsPairs.length === 0) {
     return [];
   }
-  const lastNotEmptyStartTimes = await Promise.any([
-    getLastNotEmptyStartTime(poolsPairs, chainId, startTime),
-    new Promise<number[]>((resolve) => {
-      setTimeout(() => {
-        resolve([]);
-      }, 8000);
-    }),
-  ]);
+
+  const lastNotEmptyStartTimes = await getLastNotEmptyStartTime(poolsPairs, chainId, startTime);
+
   return await Promise.all(
     poolsPairs.map((poolPairs, index) => {
       return getChartHourDatas(poolPairs, lastNotEmptyStartTimes[index] ?? startTime, endTime, chainId);
@@ -414,7 +431,7 @@ async function getFutarchyMarketData(
   return { chartData, timestamps };
 }
 
-export async function getInitialLiquidityPrice(
+async function getInitialLiquidityPrice(
   chainId: SupportedChain,
   poolPair: Token0Token1,
   tokenIndex: number,
@@ -451,15 +468,6 @@ export async function getInitialLiquidityPrice(
   const price1Per0 = amount0 / amount1;
   return tokenIndex === 0 ? Number(price0Per1) : Number(price1Per0);
 }
-
-export type ChartData = {
-  chartData: {
-    name: string;
-    type: string;
-    data: number[][];
-  }[];
-  timestamps: number[];
-};
 
 export async function getChartData(
   market: Market,

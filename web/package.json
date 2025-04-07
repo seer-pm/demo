@@ -52,7 +52,7 @@
     "ethers": "^5.7.2",
     "express": "^4.21.1",
     "graphql": "^16.8.1",
-    "graphql-combine-query": "^1.2.4",
+    "graphql-combine-query": "https://github.com/xyzseer/graphql-combine-query#ab552af27b3badb975f7dcad88b140bdb017a6fe",
     "isomorphic-fetch": "^3.0.0",
     "jsonwebtoken": "^9.0.2",
     "lodash.debounce": "^4.0.8",

@@ -1,5 +1,5 @@
-import { ChartData, getChartData } from "@/hooks/chart/getChartData";
-import { useChartData } from "@/hooks/chart/useChartData";
+import { ChartData } from "@/hooks/chart/useChartData";
+import { fetchChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
@@ -265,7 +265,12 @@ function MarketChart({ market }: { market: Market }) {
 
   const exportData = async () => {
     // Use resolved date for export if available
-    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, marketResolvedDate);
+    const { chartData, timestamps }: ChartData = await fetchChartData(
+      market,
+      365 * 10,
+      60 * 60 * 24,
+      marketResolvedDate,
+    );
     const series = getSeries(market, chartData);
     const headers = [
       {
