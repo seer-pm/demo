@@ -34,7 +34,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
         {market.questions.length === 1 ? (
           <div>
             <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
-              Opening at {getOpeningTime(market)}
+              Resolution opening at {getOpeningTime(market)}
             </a>
           </div>
         ) : (
@@ -64,7 +64,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
               }
             />
             <button type="button" onClick={openQuestionsModal} className="text-left">
-              Opening at {getOpeningTime(market)}
+              Resolution opening at {getOpeningTime(market)}
             </button>
           </>
         )}
