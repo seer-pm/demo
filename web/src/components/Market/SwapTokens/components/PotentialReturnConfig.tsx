@@ -213,6 +213,23 @@ function ScalarForecastChecker({
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
 
   const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
+  const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (
+    <span
+      className={clsx(
+        returnPercentage !== 0 && (returnPercentage > 0 ? "text-success-primary" : "text-error-primary"),
+        "text-right",
+      )}
+    >
+      {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+      {isCollateralDai ? ` (${(returnPerToken * (sDaiToDai ?? 0)).toFixed(3)} ${selectedCollateral.symbol})` : ""}
+    </span>
+  );
+  const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
+    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
+      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}
+      %)
+    </span>
+  );
 
   const {
     data: quoteData,
@@ -220,8 +237,34 @@ function ScalarForecastChecker({
     // fetchStatus: quoteFetchStatus,
     // error: quoteError,
   } = useQuoteTrade(market.chainId, zeroAddress, amount, otherOutcomeToken, selectedCollateral, "buy");
-  if (getMarketType(market) !== MarketTypes.SCALAR || !quoteData) {
+  const otherTokenIndex = outcomeTokens.findIndex((token) =>
+    isTwoStringsEqual(token.address, otherOutcomeToken.address),
+  );
+  if (getMarketType(market) !== MarketTypes.SCALAR) {
     return null;
+  }
+  if (!quoteData) {
+    return (
+      <div className="text-[14px] space-y-6">
+        <div>
+          <div className="flex items-center py-3 border-b border-black-secondary">
+            <p className="w-[30%] font-semibold">Buying</p>
+            <p className={clsx("w-[35%] text-right")}>UP</p>
+            <p className={clsx("w-[35%] text-right")}>DOWN</p>
+          </div>
+          <div className="flex items-center py-3 border-b border-black-secondary">
+            <p className="w-[30%] font-semibold">Return per token:</p>
+            <p className="w-[35%] text-right">
+              {renderReturnPerToken(0, getScalarReturnPerToken(market, 1, forecast))}
+            </p>
+            <p className="w-[35%] text-right">
+              {renderReturnPerToken(0, getScalarReturnPerToken(market, 0, forecast))}
+            </p>
+          </div>
+        </div>
+        <p className="text-purple-primary">You need to buy more than 0 shares to calculate your potential return.</p>
+      </div>
+    );
   }
 
   const otherReceivedAmount = Number(formatUnits(quoteData.value, quoteData.decimals));
@@ -235,9 +278,6 @@ function ScalarForecastChecker({
     daiToSDai,
   );
 
-  const otherTokenIndex = outcomeTokens.findIndex((token) =>
-    isTwoStringsEqual(token.address, otherOutcomeToken.address),
-  );
   const inputData = [
     {
       collateralPerShare,
@@ -267,18 +307,6 @@ function ScalarForecastChecker({
       returnPercentage,
     };
   });
-  const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-      {isCollateralDai ? ` (${(returnPerToken * (sDaiToDai ?? 0)).toFixed(3)} ${selectedCollateral.symbol})` : ""}
-    </span>
-  );
-  const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}
-      %)
-    </span>
-  );
 
   const bestReturnIndex = data[1].potentialReturn > data[0].potentialReturn ? 1 : 0;
   const maxPoints = 200;
@@ -573,20 +601,27 @@ function PotentialReturnConfig({
           {isCollateralDai ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
         </span>
       </p>
-      <div>
-        Potential return:{" "}
-        <PotentialReturnResult
-          quoteIsLoading={quoteIsLoading}
-          isFetching={isFetching}
-          isCollateralDai={isCollateralDai}
-          selectedCollateral={selectedCollateral}
-          receivedAmount={receivedAmount}
-          sDaiToDai={sDaiToDai ?? 0}
-          returnPerToken={returnPerToken}
-          collateralPerShare={collateralPerShare}
-          isOneOrNothingPotentialReturn={false}
-        />
-      </div>
+      {Number(amount) === 0 && (
+        <p className="text-purple-primary text-[14px]">
+          You need to buy more than 0 shares to calculate your potential return.
+        </p>
+      )}
+      {Number(amount) > 0 && (
+        <div>
+          Potential return:{" "}
+          <PotentialReturnResult
+            quoteIsLoading={quoteIsLoading}
+            isFetching={isFetching}
+            isCollateralDai={isCollateralDai}
+            selectedCollateral={selectedCollateral}
+            receivedAmount={receivedAmount}
+            sDaiToDai={sDaiToDai ?? 0}
+            returnPerToken={returnPerToken}
+            collateralPerShare={collateralPerShare}
+            isOneOrNothingPotentialReturn={false}
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -632,19 +667,9 @@ function PotentialReturnConfig({
       <button
         type="button"
         className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[15px]"
-        disabled={receivedAmount === 0}
         onClick={openModal}
       >
-        {receivedAmount === 0 ? (
-          <div className="tooltip ml-auto">
-            <p className="tooltiptext w-[300px] !whitespace-break-spaces">
-              You need to buy more than 0 shares to calculate your potential return.
-            </p>
-            Calculate your potential return
-          </div>
-        ) : (
-          "Calculate your potential return"
-        )}
+        Calculate your potential return
       </button>
       <Modal title="Potential return calculator" content={modalContent} />
     </div>
