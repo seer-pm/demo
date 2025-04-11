@@ -31,6 +31,8 @@ fragment Market on Market {
   conditionId
   questionId
   templateId
+  hasAnswers
+  questionsInArbitration
   questions {
     question {
       id
@@ -42,6 +44,7 @@ fragment Market on Market {
       best_answer
       bond
       min_bond
+      index
     }
   }
   openingTs

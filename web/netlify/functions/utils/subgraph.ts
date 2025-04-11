@@ -3,7 +3,7 @@ import { SupportedChain } from "../../../src/lib/chains";
 import SEER_ENV from "../../../src/lib/env";
 import { gnosis, mainnet } from "./config";
 
-export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
 
 function getAppUrl() {
   return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
@@ -17,8 +17,8 @@ export function graphQLClient(chainId: SupportedChain) {
   return new GraphQLClient(getSubgraphUrl("seer", chainId));
 }
 
-export function curateGraphQLClient(chainId: SupportedChain, isUseFallbackUrls?: boolean) {
-  return new GraphQLClient(getSubgraphUrl(isUseFallbackUrls ? "curate-fallback" : "curate", chainId));
+export function curateGraphQLClient(chainId: SupportedChain) {
+  return new GraphQLClient(getSubgraphUrl("curate", chainId));
 }
 
 export function uniswapGraphQLClient(chainId: SupportedChain) {

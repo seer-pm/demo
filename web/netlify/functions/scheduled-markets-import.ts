@@ -1,34 +1,21 @@
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated.ts";
-import { VerificationResult } from "@/hooks/useMarket.ts";
+import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains.ts";
+import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import { getBlockNumber, readContracts } from "@wagmi/core";
-import { Address, parseAbiItem } from "viem";
-import { getPublicClientForNetwork } from "./utils/common.ts";
+import { getBlockNumber } from "@wagmi/core";
 import { chainIds, config as wagmiConfig } from "./utils/config.ts";
+import {
+  CurateItem,
+  ItemAndMetadata,
+  getNewItemEvents,
+  getVerification,
+  getVerificationStatusList,
+} from "./utils/curate.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
-import { readContractsInBatch } from "./utils/readContractsInBatch.ts";
-import { getSubgraphUrl } from "./utils/subgraph.ts";
-import { Database, Json } from "./utils/supabase.ts";
+import { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
-interface VerificationItem {
-  itemID: `0x${string}`;
-  metadata: Json;
-  status: number;
-  disputed: boolean;
-  marketId?: string;
-}
-
-interface CurateItem {
-  item_id: `0x${string}`;
-  metadata_path: string;
-  metadata: Json | null;
-}
-
-type ItemAndMetadata = { itemID: `0x${string}`; metadataPath: string };
 
 /**
  * Fetches and stores metadata for curate items in the database.
@@ -119,131 +106,6 @@ async function fetchAndStoreMetadata(chainId: SupportedChain, batchSize = 10): P
         `Successfully stored ${allItemsToStore.length} curate items (${processedItems.length} with metadata)`,
       );
     }
-  }
-}
-
-/**
- * Retrieves verification information for a list of curate items from the LightGeneralizedTCR contract.
- *
- * This function:
- * 1. Fetches the current status of each item from the blockchain using the 'items' function
- * 2. Gets the latest request information for each item using 'getRequestInfo'
- * 3. Combines the data to determine if items are registered, disputed, or in other states
- * 4. Maps the blockchain data to a structured format with verification status and metadata
- *
- * @param chainId - The blockchain network ID to query
- * @param curateItems - Array of items from the curate database table
- * @returns Array of verification items with status information
- */
-async function getVerification(chainId: SupportedChain, curateItems: CurateItem[]): Promise<VerificationItem[]> {
-  const readItemsCall = {
-    address: lightGeneralizedTcrAddress[chainId],
-    abi: lightGeneralizedTcrAbi,
-    functionName: "items",
-    chainId,
-  } as const;
-
-  const items: (readonly [number, bigint, bigint])[] = await readContractsInBatch(
-    curateItems.map(({ item_id: itemID }) => ({
-      ...readItemsCall,
-      args: [itemID],
-    })),
-    chainId,
-    50,
-    true,
-  );
-
-  const getRequestInfoCall = {
-    address: lightGeneralizedTcrAddress[chainId],
-    abi: lightGeneralizedTcrAbi,
-    functionName: "getRequestInfo",
-    chainId,
-  } as const;
-
-  const lastRequestInfo: (readonly [
-    boolean,
-    bigint,
-    bigint,
-    boolean,
-    readonly [`0x${string}`, `0x${string}`, `0x${string}`],
-    bigint,
-    number,
-    `0x${string}`,
-    `0x${string}`,
-    bigint,
-  ])[] = await readContractsInBatch(
-    curateItems.map(({ item_id: itemID }) => {
-      const requestCount = BigInt(items[0]?.[2] || 1);
-      return {
-        ...getRequestInfoCall,
-        args: [itemID, requestCount - 1n],
-      };
-    }),
-    chainId,
-    50,
-    true,
-  );
-
-  return curateItems.map((item, n) => {
-    const marketId =
-      typeof item.metadata === "object" && item.metadata !== null
-        ? // biome-ignore lint/suspicious/noExplicitAny:
-          (item.metadata as any)?.values?.Market?.toLowerCase()
-        : undefined;
-
-    return {
-      itemID: item.item_id,
-      metadata: item.metadata,
-      status: items[n]?.[0],
-      disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
-      marketId,
-    };
-  });
-}
-
-function getVerificationStatusList(verificationItems: VerificationItem[]): Record<Address, VerificationResult> {
-  return verificationItems.reduce(
-    (acc, item) => {
-      if (item.marketId) {
-        let status: VerificationResult["status"] = "not_verified";
-
-        // 0 Absent, 1 Registered, 2 RegistrationRequested, 3 ClearingRequested
-        if (item.status === 1) {
-          status = "verified";
-        } else if (item.status === 2) {
-          status = item.disputed ? "challenged" : "verifying";
-        }
-
-        acc[item.marketId as Address] = {
-          status,
-          itemID: item.itemID,
-        };
-      }
-      return acc;
-    },
-    {} as Record<Address, VerificationResult>,
-  );
-}
-
-const LIGHT_GENERALIZED_TCR_NEW_ITEM_EVENT = parseAbiItem(
-  "event NewItem(bytes32 indexed _itemID, string _data, bool _addedDirectly)",
-);
-
-async function getNewItemEvents(chainId: SupportedChain, fromBlock: bigint) {
-  try {
-    // Listen for LightGeneralizedTCR NewItem events
-    const newItemLogs = await getPublicClientForNetwork(chainId).getLogs({
-      address: lightGeneralizedTcrAddress[chainId],
-      event: LIGHT_GENERALIZED_TCR_NEW_ITEM_EVENT,
-      fromBlock,
-      toBlock: "latest",
-    });
-
-    console.log(`[Network ${chainId}] Found ${newItemLogs.length} new item events`);
-    return newItemLogs;
-  } catch (error) {
-    console.error(`[Network ${chainId}] Error fetching answer events:`, error);
-    throw error;
   }
 }
 
@@ -366,67 +228,8 @@ function sortQuestions(market: any) {
 }
 
 async function processChain(chainId: SupportedChain) {
-  const response = await fetch(getSubgraphUrl("seer", chainId), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `{
-        markets(first: 1000) {
-          id
-          type
-          marketName
-          outcomes
-          wrappedTokens
-          collateralToken
-          collateralToken1
-          collateralToken2
-          parentMarket {
-            id
-            payoutReported
-            conditionId
-            payoutNumerators
-          }
-          parentOutcome
-          parentCollectionId
-          conditionId
-          questionId
-          templateId
-          hasAnswers
-          questionsInArbitration
-          questions {
-            question {
-              id
-              arbitrator
-              opening_ts
-              timeout
-              finalize_ts
-              is_pending_arbitration
-              best_answer
-              bond
-              min_bond
-              index
-            }
-          }
-          openingTs
-          finalizeTs
-          encodedQuestions
-          lowerBound
-          upperBound
-          payoutReported
-          payoutNumerators
-          factory
-          creator
-          outcomesSupply
-          blockTimestamp
-        }
-      }`,
-    }),
-  });
-  const {
-    data: { markets },
-  } = await response.json();
+  const client = graphQLClient(chainId);
+  const { markets } = await getSeerSdk(client).GetMarkets({ first: 1000 });
 
   if (markets.length === 0) {
     return;
@@ -444,12 +247,11 @@ async function processChain(chainId: SupportedChain) {
   const verificationStatusList = getVerificationStatusList(verificationItems);
 
   await supabase.from("markets").upsert(
-    // biome-ignore lint/suspicious/noExplicitAny:
-    markets.map((market: any) => ({
+    markets.map((market) => ({
       id: market.id,
       chain_id: chainId,
       subgraph_data: sortQuestions(market),
-      verification: verificationStatusList[market.id] ?? {
+      verification: verificationStatusList[market.id as `0x${string}`] ?? {
         status: "not_verified",
       },
     })),

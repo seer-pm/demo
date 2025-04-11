@@ -7,7 +7,7 @@ import { Address, isAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { getAppUrl } from "./utils";
 
-export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; url?: string; parentMarket?: Address };
+export type FetchMarketParams = Partial<UseGraphMarketsParams> & { parentMarket?: Address };
 
 export async function fetchMarkets(params: FetchMarketParams = {}): Promise<Market[]> {
   const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-search`, {
@@ -20,27 +20,22 @@ export async function fetchMarkets(params: FetchMarketParams = {}): Promise<Mark
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 }
 
-export async function fetchAllMarkets(): Promise<Market[]> {
-  const response = await fetch(`${getAppUrl()}/all-markets-search`);
-  return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
-}
-
 export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market> {
-  const params: FetchMarketParams = { chainsList: [chainId.toString()] };
+  const params: { chainId: SupportedChain; id: Address } | { chainId: SupportedChain; url: string } = !isAddress(
+    idOrSlug,
+    { strict: false },
+  )
+    ? { chainId, url: idOrSlug }
+    : { chainId, id: idOrSlug };
 
-  if (!isAddress(idOrSlug, { strict: false })) {
-    params.url = idOrSlug;
-  } else {
-    params.id = idOrSlug;
-  }
-
-  const markets = await fetchMarkets(params);
-
-  if (markets.length === 0) {
-    throw new Error("Market not found");
-  }
-
-  return markets[0];
+  const response = await fetch(`${getAppUrl()}/.netlify/functions/get-market`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+  return deserializeMarket(await response.json());
 }
 
 export function sortMarkets(
