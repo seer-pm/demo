@@ -1,4 +1,3 @@
-import { FetchMarketParams } from "@/lib/markets-search";
 import { getAppUrl } from "@/lib/utils";
 import { isAddress } from "viem";
 import { PageContext } from "vike/types";
@@ -9,15 +8,10 @@ export default async function onBeforeRender(pageContext: PageContext) {
     return;
   }
   try {
-    const { id, chainId } = pageContext.routeParams;
+    const { id } = pageContext.routeParams;
 
-    const params: FetchMarketParams = { chainsList: [chainId] };
+    const params: { url: string } | { id: string } = !isAddress(id, { strict: false }) ? { url: id } : { id };
 
-    if (!isAddress(id, { strict: false })) {
-      params.url = id;
-    } else {
-      params.id = id;
-    }
     const metadata = await fetch(`${getAppUrl()}/.netlify/functions/market-metadata`, {
       method: "POST",
       headers: {
@@ -26,6 +20,7 @@ export default async function onBeforeRender(pageContext: PageContext) {
       body: JSON.stringify(params),
       signal: AbortSignal.timeout(2000),
     }).then((response) => response.json());
+
     if (metadata) {
       return {
         pageContext: {

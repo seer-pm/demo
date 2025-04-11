@@ -14,7 +14,7 @@ async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address
   } else {
     params.id = id;
   }
-  const response = await fetch(`${baseUrl}/.netlify/functions/markets-search`, {
+  const response = await fetch(`${baseUrl}/.netlify/functions/get-market`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

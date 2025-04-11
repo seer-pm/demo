@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
-import { GetMarketQuery, Market_OrderBy } from "../../src/hooks/queries/gql-generated-seer";
+import { GetMarketQuery } from "../../src/hooks/queries/gql-generated-seer";
 import { Market, SerializedMarket, VerificationResult, serializeMarket } from "../../src/hooks/useMarket";
 import { MarketStatus } from "../../src/hooks/useMarketStatus";
 import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "../../src/lib/chains";
@@ -10,11 +10,13 @@ import { unescapeJson } from "../../src/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "../../src/lib/utils";
 import { config } from "./utils/config";
 import { Database, Json } from "./utils/supabase";
-const crypto = require("node:crypto");
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
+export const MARKET_DB_FIELDS =
+  "id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images";
+
+export type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
 
 type PoolBalance = Array<{
   token0: { symbol: string; balance: number };
@@ -78,6 +80,36 @@ function mapGraphMarket(
   };
 }
 
+export function mapGraphMarketFromDbResult(
+  market: SubgraphMarket,
+  result: {
+    id: string;
+    chain_id: number | null;
+    url: string | null;
+    subgraph_data: Json;
+    categories: string[] | null;
+    liquidity: number | null;
+    incentive: number | null;
+    odds: number[] | null;
+    pool_balance: Json;
+    verification: Json;
+    images: Json;
+  },
+) {
+  return mapGraphMarket(market, {
+    chainId: result.chain_id as SupportedChain,
+    verification: result.verification as VerificationResult,
+    liquidityUSD: result?.liquidity ?? 0,
+    incentive: result?.incentive ?? 0,
+    hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+    odds: result?.odds?.map((x) => x ?? Number.NaN) ?? [],
+    categories: result?.categories ?? ["misc"],
+    poolBalance: (result?.pool_balance || []) as PoolBalance,
+    url: result?.url || "",
+    images: (result?.images as VerificationImages) || undefined,
+  });
+}
+
 export async function searchMarkets(
   chainsIds: SupportedChain[],
   id?: Address | "",
@@ -90,10 +122,7 @@ export async function searchMarkets(
 ): Promise<Market[]> {
   const now = Math.round(new Date().getTime() / 1000);
 
-  let query = supabase
-    .from("markets")
-    .select("id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images")
-    .not("subgraph_data", "is", null);
+  let query = supabase.from("markets").select(MARKET_DB_FIELDS).not("subgraph_data", "is", null);
 
   if (id) {
     query = query.eq("id", id.toLowerCase());
@@ -161,18 +190,7 @@ export async function searchMarkets(
   }
 
   return data.map((result) => {
-    return mapGraphMarket(result.subgraph_data as SubgraphMarket, {
-      chainId: result.chain_id as SupportedChain,
-      verification: result.verification as VerificationResult,
-      liquidityUSD: result?.liquidity ?? 0,
-      incentive: result?.incentive ?? 0,
-      hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-      odds: result?.odds?.map((x) => x ?? Number.NaN) ?? [],
-      categories: result?.categories ?? ["misc"],
-      poolBalance: (result?.pool_balance || []) as PoolBalance,
-      url: result?.url || "",
-      images: (result?.images as VerificationImages) || undefined,
-    });
+    return mapGraphMarketFromDbResult(result.subgraph_data as SubgraphMarket, result);
   });
 }
 
@@ -225,20 +243,6 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
   return [...marketsWithTokens];
 };
 
-async function getMarketId(id: string | undefined, url: string | undefined): Promise<"" | Address> {
-  if (!id && !url) {
-    return "";
-  }
-
-  if (url) {
-    const { data: market } = await supabase.from("markets").select("id").eq("url", url).single();
-
-    return (market?.id as Address) || "";
-  }
-
-  return (id as Address) || "";
-}
-
 export async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
@@ -275,40 +279,6 @@ export async function multiChainSearch(body: FetchMarketParams, id: Address | ""
   return markets.map((market) => serializeMarket(market));
 }
 
-async function keyValueFetch<T extends Json>(key: string, callback: () => Promise<T>) {
-  const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();
-
-  if (error && error.code !== "PGRST116") {
-    // Handle error if it's not a "not found" error
-    throw error;
-  }
-
-  const currentTime = new Date();
-  const fiveMinutesAgo = new Date(currentTime.getTime() - 5 * 60 * 1000);
-
-  // @ts-ignore
-  if (!data || new Date(data.value.date) < fiveMinutesAgo) {
-    const result = await callback();
-
-    const { error: saveError } = await supabase.from("key_value").upsert(
-      {
-        key,
-        value: { date: currentTime.toISOString(), value: result },
-      },
-      { onConflict: "key" },
-    );
-
-    if (saveError) {
-      throw saveError;
-    }
-
-    return result;
-  }
-
-  // @ts-ignore
-  return data.value.value;
-}
-
 export default async (req: Request) => {
   const body = await req.json();
 
@@ -322,23 +292,7 @@ export default async (req: Request) => {
   }
 
   try {
-    let markets: SerializedMarket[];
-    // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
-    // we first look up the corresponding market ID in Supabase before querying the subgraph.
-    const id = await getMarketId(body.id, body.url);
-
-    const cachingEnabled = false;
-
-    if (id === "" && cachingEnabled) {
-      const hashKey = `markets_search_${crypto.createHash("md5").update(JSON.stringify(body)).digest("hex")}`;
-      markets = await keyValueFetch(
-        hashKey,
-        () => multiChainSearch(body as FetchMarketParams, id) as unknown as Promise<Json>,
-      );
-    } else {
-      // Skip caching when querying by ID to ensure fresh data, particularly after user updates like category changes
-      markets = await multiChainSearch(body as FetchMarketParams, id);
-    }
+    const markets: SerializedMarket[] = await multiChainSearch(body as FetchMarketParams, "");
 
     return new Response(JSON.stringify(markets), {
       status: 200,
