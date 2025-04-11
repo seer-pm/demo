@@ -133,20 +133,15 @@ export function isOdd(odd: number | undefined | null) {
 }
 
 export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
-  const { lowerBound, upperBound, marketName } = market;
+  const { lowerBound, upperBound } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  const estimate = ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(0);
+  const estimate = ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(1);
   if (!convertToString) {
     return estimate;
   }
-  if (marketName.lastIndexOf("[") > -1) {
-    return `${Number(estimate).toLocaleString()} ${marketName.slice(
-      marketName.lastIndexOf("[") + 1,
-      marketName.lastIndexOf("]"),
-    )}`;
-  }
+
   return Number(estimate).toLocaleString();
 }
 
