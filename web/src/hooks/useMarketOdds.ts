@@ -41,25 +41,31 @@ export function normalizeOdds(prices: number[]): number[] {
 
   return odds;
 }
-
+const CEIL_PRICE = 1.1;
 async function getTokenPrice(
   wrappedAddress: Address,
   collateralToken: Token,
   chainId: SupportedChain,
   amount: string,
-  swapType?: "buy" | "sell",
+  swapType: "buy" | "sell" = "buy",
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
   // call cowQuote first, if not possible then we call using rpc
   try {
-    const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy");
+    const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
     if (cowQuote?.value && cowQuote.value > 0n) {
-      return cowQuote.value;
+      const pricePerShare =
+        swapType === "buy"
+          ? Number(amount) / Number(formatUnits(cowQuote.value, 18))
+          : Number(formatUnits(cowQuote.value, 18)) / Number(amount);
+      if (pricePerShare <= CEIL_PRICE) {
+        return cowQuote.value;
+      }
     }
   } catch (e) {}
   const [uniswapQuote, swaprQuote] = await Promise.allSettled([
-    getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
-    getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType ?? "buy"),
+    getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType),
+    getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType),
   ]);
 
   if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
@@ -93,7 +99,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
       try {
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
         const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
-        if (price === 0n || pricePerShare > 1.1) {
+        if (price === 0n || pricePerShare > CEIL_PRICE) {
           // try to get sell price instead
           const sellPrice = await getTokenPrice(
             wrappedAddress,
@@ -105,7 +111,8 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
           if (sellPrice === 0n) {
             return 0;
           }
-          return Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
+          const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
+          return Math.min(pricePerShare, sellPricePerShare);
         }
 
         return pricePerShare;
