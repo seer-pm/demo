@@ -6,6 +6,16 @@ import { getChartData } from "./utils/getChartData";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
+export function getMarketChartKeyValueHash(
+  marketId: Address | "%",
+  chainId: SupportedChain,
+  dayCount: number,
+  intervalSeconds: number,
+  endDateParam: number | undefined,
+) {
+  return `market_chart_${marketId}_${chainId}_${dayCount}_${intervalSeconds}_${endDateParam || "latest"}`;
+}
+
 export default async (req: Request) => {
   if (req.method !== "GET") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -51,7 +61,7 @@ export default async (req: Request) => {
     }
 
     // check if we have data on cache
-    const hashKey = `markets_search_${marketId}_${chainId}`;
+    const hashKey = getMarketChartKeyValueHash(marketId, chainId, dayCount, intervalSeconds, endDateParam);
 
     const { data: cachedData, error: cacheError } = await supabase
       .from("key_value")
@@ -65,7 +75,7 @@ export default async (req: Request) => {
     ) {
       // data not found or older than 5 minutes
       const chartData = await getChartData(market, dayCount, intervalSeconds, endDate);
-      const cacheData = { chartData, timestamp: Date.now() };
+      const cacheData = { chartData, timestamp: Date.now(), marketId: market.id };
 
       // store and return
       const { error: upsertError } = await supabase.from("key_value").upsert(

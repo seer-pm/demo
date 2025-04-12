@@ -1,4 +1,6 @@
+import { SupportedChain } from "@/lib/chains";
 import { useQuery } from "@tanstack/react-query";
+import { Address } from "viem";
 import { Market } from "../useMarket";
 
 export type ChartData = {
@@ -29,6 +31,14 @@ export async function fetchChartData(
   return fetch(`/.netlify/functions/market-chart?${params.toString()}`).then((res) => res.json());
 }
 
+export const getUseChartDataKey = (
+  chainId: SupportedChain,
+  marketId: Address,
+  dayCount: number,
+  intervalSeconds: number,
+  endDate: Date | undefined,
+) => ["useChartData", chainId, marketId, dayCount, intervalSeconds, endDate || "latest"];
+
 export const useChartData = (market: Market, dayCount: number, intervalSeconds: number, endDate: Date | undefined) => {
   return useQuery<
     | {
@@ -43,7 +53,7 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
     Error
   >({
     enabled: !!market,
-    queryKey: ["useChartData", market.chainId, market.id, dayCount, intervalSeconds, endDate],
+    queryKey: getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
     retry: false,
     queryFn: async () => fetchChartData(market, dayCount, intervalSeconds, endDate),
   });

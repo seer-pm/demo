@@ -263,7 +263,15 @@ function getFirstAndLastTimestamps(
   initialEndDate: Date | undefined,
 ) {
   const now = new Date();
-  const endDate = initialEndDate ? (initialEndDate > now ? now : initialEndDate) : now;
+  const marketResolvedDate =
+    market.payoutReported && market.finalizeTs > 0 ? new Date(market.finalizeTs * 1000) : undefined;
+
+  let endDate = initialEndDate ? (initialEndDate > now ? now : initialEndDate) : now;
+
+  if (marketResolvedDate && marketResolvedDate < endDate) {
+    endDate = marketResolvedDate;
+  }
+
   const lastTimestamp = getNearestRoundedDownTimestamp(Math.floor(endDate.getTime() / 1000), interval);
   let firstTimestamp = getNearestRoundedDownTimestamp(
     Math.floor(subDays(new Date(), dayCount).getTime() / 1000),
