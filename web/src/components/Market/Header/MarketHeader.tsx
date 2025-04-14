@@ -327,7 +327,19 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
           <div className="flex items-center gap-2">
-            Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
+            Market Estimate: {odds.length === 0 ? (
+              <Spinner /> 
+            ) : (
+              marketEstimate === "NA" ? 
+              "NA" : 
+              Math.round(Number(getMarketEstimate(odds, market, false))).toLocaleString() + 
+              (market.marketName.lastIndexOf("[") > -1 ? 
+                ` ${market.marketName.slice(
+                  market.marketName.lastIndexOf("[") + 1,
+                  market.marketName.lastIndexOf("]")
+                )}` : 
+                '')
+            )}
           </div>
           {odds.length > 0 && (
             <span className="tooltip">
