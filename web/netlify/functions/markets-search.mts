@@ -25,7 +25,7 @@ type PoolBalance = Array<{
 
 type VerificationImages = { market: string; outcomes: string[] };
 
-function mapGraphMarket(
+export function mapGraphMarket(
   market: SubgraphMarket,
   extra: {
     chainId: SupportedChain;

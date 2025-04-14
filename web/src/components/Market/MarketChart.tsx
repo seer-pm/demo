@@ -1,5 +1,5 @@
-import { ChartData, getChartData } from "@/hooks/chart/getChartData";
-import { useChartData } from "@/hooks/chart/useChartData";
+import { ChartData } from "@/hooks/chart/useChartData";
+import { fetchChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
@@ -60,9 +60,6 @@ function MarketChart({ market }: { market: Market }) {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
 
-  const marketResolvedDate =
-    market.payoutReported && market.finalizeTs > 0 ? new Date(market.finalizeTs * 1000) : undefined;
-
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
@@ -73,17 +70,15 @@ function MarketChart({ market }: { market: Market }) {
   };
 
   const chartTimeConfig = (() => {
-    const effectiveEndDate = endDate || marketResolvedDate;
-
     if (startDate) {
-      const endDateForCalc = effectiveEndDate || new Date();
+      const endDateForCalc = endDate || new Date();
       const dayCount = differenceInDays(endDateForCalc, startDate);
       return {
         dayCount,
         interval: 60 * 60 * 3,
       };
     }
-    if (effectiveEndDate) {
+    if (endDate) {
       return {
         dayCount: 365 * 10,
         interval: 60 * 60 * 3,
@@ -99,7 +94,7 @@ function MarketChart({ market }: { market: Market }) {
     market,
     chartTimeConfig.dayCount,
     chartTimeConfig.interval,
-    endDate || marketResolvedDate,
+    endDate,
   );
 
   const { chartData = [], timestamps = [] } = data ?? {};
@@ -265,7 +260,7 @@ function MarketChart({ market }: { market: Market }) {
 
   const exportData = async () => {
     // Use resolved date for export if available
-    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, marketResolvedDate);
+    const { chartData, timestamps }: ChartData = await fetchChartData(market, 365 * 10, 60 * 60 * 24, undefined);
     const series = getSeries(market, chartData);
     const headers = [
       {
