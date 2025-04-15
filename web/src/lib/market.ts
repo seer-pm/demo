@@ -137,7 +137,7 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  const estimate = ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(0);
+  const estimate = (odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100;
   if (!convertToString) {
     return estimate;
   }
