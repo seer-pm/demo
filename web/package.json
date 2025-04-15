@@ -29,7 +29,7 @@
     "@hookform/resolvers": "^3.4.2",
     "@netlify/blobs": "^8.1.2",
     "@netlify/functions": "^2.8.2",
-    "@orbisclub/components": "https://github.com/nvm1410/social-components#custom-comments",
+    "@orbisclub/components": "https://github.com/nvm1410/social-components#d1d5249080de9459c12f98c2be9fbc7984127885",
     "@orbisclub/orbis-sdk": "^0.4.89",
     "@supabase/supabase-js": "^2.46.2",
     "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#96f4160592da759705f6b65b980a7202c4cefa0b",
