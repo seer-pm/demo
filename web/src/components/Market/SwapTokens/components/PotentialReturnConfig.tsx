@@ -309,18 +309,38 @@ function ScalarForecastChecker({
   });
 
   const bestReturnIndex = data[1].potentialReturn > data[0].potentialReturn ? 1 : 0;
-  const maxPoints = 200;
-  const interval = Math.floor(Number(market.upperBound - market.lowerBound) / maxPoints);
-  const forecasts = Array(maxPoints)
-    .fill(null)
-    .map((_, index) => interval * index);
-  if (forecasts[forecasts.length - 1] !== Number(market.upperBound)) {
-    forecasts.push(Number(market.upperBound));
+  const lowerBound = Number(market.lowerBound);
+  const upperBound = Number(market.upperBound);
+  const range = upperBound - lowerBound;
+
+  const idealTickCount = 5;
+  let interval = Math.ceil(range / idealTickCount);
+
+  const magnitude = 10 ** Math.floor(Math.log10(interval));
+  const normalized = interval / magnitude;
+  if (normalized < 1.5) interval = magnitude;
+  else if (normalized < 3) interval = 2 * magnitude;
+  else if (normalized < 7.5) interval = 5 * magnitude;
+  else interval = 10 * magnitude;
+
+  const forecasts = [];
+  const startTick = Math.floor(lowerBound / interval) * interval;
+  for (let tick = startTick; tick <= upperBound + interval / 2; tick += interval) {
+    if (tick >= lowerBound - interval / 2) {
+      forecasts.push(tick);
+    }
   }
+
+  const chartPoints = 200;
+  const chartInterval = range / chartPoints;
+  const chartForecasts = Array(chartPoints + 1)
+    .fill(null)
+    .map((_, index) => lowerBound + chartInterval * index);
+
   const chartData = Array(2)
     .fill(null)
     .map((_, outcomeIndex) => {
-      const points = forecasts.map((forecast) => {
+      const points = chartForecasts.map((forecast) => {
         const returnPerToken = getScalarReturnPerToken(market, outcomeIndex, forecast);
         const { potentialReturn } = getPotentialReturn(
           inputData[outcomeIndex].collateralPerShare,
@@ -370,26 +390,31 @@ function ScalarForecastChecker({
       bottom: "15%",
     },
     xAxis: {
-      min: "dataMin",
-      max: "dataMax",
+      min: lowerBound,
+      max: upperBound,
       splitLine: {
         show: false,
       },
-      axisTick: {
-        alignWithLabel: true,
-        customValues: forecasts.filter((_: number, index: number) => index % Math.floor(forecasts.length / 5) === 0),
-      },
       axisPointer: {
         label: {
-          formatter: ({ value }: { value: number }) => `${value.toLocaleString()}`,
+          formatter: ({ value }: { value: number }) => {
+            return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+          },
         },
       },
-
       type: "value",
       axisLabel: {
-        formatter: (value: number) => `${value.toLocaleString()}`,
-        customValues: forecasts.filter((_: number, index: number) => index % Math.floor(forecasts.length / 5) === 0),
+        formatter: (value: number) => {
+          return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+        },
       },
+      axisLine: { onZero: false },
+      axisTick: {
+        show: true,
+        interval: "auto",
+        alignWithLabel: true,
+      },
+      data: forecasts,
     },
     yAxis: {
       min: "dataMin",
