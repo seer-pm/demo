@@ -86,7 +86,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
 
   return (
     <div>
-      <div ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>
+      <div className="flex" ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>
         {children}
       </div>
 

@@ -123,28 +123,34 @@ export default function Header() {
 
         <ul className="ml-10 hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center">
           <li>
-            <Link to={"/"} className="hover:opacity-85">
+            <Link to={"/"} className="hover:opacity-85 py-3">
               Markets
             </Link>
           </li>
           <li>
-            <Link to={"/create-market"} className="whitespace-nowrap hover:opacity-85">
+            <Link to={"/create-market"} className="whitespace-nowrap hover:opacity-85 py-3">
               Create Market
             </Link>
           </li>
           <li>
             <div className="dropdown dropdown-end">
-              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
                 <span>Policies</span> <DownArrow />
               </button>
               <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
-                <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <Link to={"/policy/verified"} className="flex items-center space-x-2">
+                <li>
+                  <Link
+                    to={"/policy/verified"}
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
                     <PolicyIcon /> <span> Verified Market Policy </span>
                   </Link>
                 </li>
-                <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <Link to={"/policy/rules"} className="flex items-center space-x-2">
+                <li>
+                  <Link
+                    to={"/policy/rules"}
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
                     <PolicyIcon /> <span>Market Rules Policy</span>
                   </Link>
                 </li>
@@ -155,7 +161,7 @@ export default function Header() {
             {/* <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
               Airdrop
             </Link> */}
-            <Link to={"/airdrop"} className="hover:opacity-85">
+            <Link to={"/airdrop"} className="hover:opacity-85 py-3">
               Airdrop
             </Link>
           </li>
