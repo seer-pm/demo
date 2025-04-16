@@ -36,7 +36,7 @@ export function DateForm({
         </Alert>
 
         <div className="max-w-[450px] mx-auto">
-          <div className="text-[14px] mb-[10px]">Opening Date (UTC Time)</div>
+          <div className="text-[14px] mb-[10px]">Resolution Opening Date (UTC Time)</div>
 
           <FormDatePicker name={"openingTime"} className="w-full" useFormReturn={useFormReturn} />
         </div>
