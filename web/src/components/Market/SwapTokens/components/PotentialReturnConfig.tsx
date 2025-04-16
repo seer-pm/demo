@@ -397,16 +397,12 @@ function ScalarForecastChecker({
       },
       axisPointer: {
         label: {
-          formatter: ({ value }: { value: number }) => {
-            return Number.isInteger(value) ? value.toString() : value.toFixed(1);
-          },
+          formatter: ({ value }: { value: number }) => `${value.toLocaleString()}`,
         },
       },
       type: "value",
       axisLabel: {
-        formatter: (value: number) => {
-          return Number.isInteger(value) ? value.toString() : value.toFixed(1);
-        },
+        formatter: (value: number) => `${value.toLocaleString()}`,
       },
       axisLine: { onZero: false },
       axisTick: {
