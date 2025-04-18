@@ -1,0 +1,121 @@
+{
+  "address": "0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "_conditionalTokens",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IRealityETH_v3_0",
+          "name": "_realitio",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "conditionalTokens",
+      "outputs": [
+        {
+          "internalType": "contract IConditionalTokens",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "realitio",
+      "outputs": [
+        {
+          "internalType": "contract IRealityETH_v3_0",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract FutarchyProposal",
+          "name": "proposal",
+          "type": "address"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xe91f5e3821e2e2756a943bbfa645bdd321e56436fc2f3b4c484316f15003b307",
+  "receipt": {
+    "to": null,
+    "from": "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
+    "contractAddress": "0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc",
+    "transactionIndex": 3,
+    "gasUsed": "253933",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x35771f3fbb55e5ca41253171016dfd94d2713ac3685b79d5ad337c4e4458abd3",
+    "transactionHash": "0xe91f5e3821e2e2756a943bbfa645bdd321e56436fc2f3b4c484316f15003b307",
+    "logs": [],
+    "blockNumber": 38042684,
+    "cumulativeGasUsed": "423743",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
+    "0xE78996A233895bE74a66F451f1019cA9734205cc"
+  ],
+  "numDeployments": 3,
+  "solcInputHash": "9bd5789cbaac467d0976302f58b5fb68",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IConditionalTokens\",\"name\":\"_conditionalTokens\",\"type\":\"address\"},{\"internalType\":\"contract IRealityETH_v3_0\",\"name\":\"_realitio\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"conditionalTokens\",\"outputs\":[{\"internalType\":\"contract IConditionalTokens\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"realitio\",\"outputs\":[{\"internalType\":\"contract IRealityETH_v3_0\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract FutarchyProposal\",\"name\":\"proposal\",\"type\":\"address\"}],\"name\":\"resolve\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"constructor\":{\"details\":\"Constructor.\",\"params\":{\"_conditionalTokens\":\"Conditional Tokens contract address.\",\"_realitio\":\"Reality.eth contract address.\"}},\"resolve(address)\":{\"details\":\"Resolves the specified proposal.\",\"params\":{\"proposal\":\"Proposal to resolve. UNTRUSTED.\"}}},\"stateVariables\":{\"conditionalTokens\":{\"details\":\"Conditional Tokens contract.\"},\"realitio\":{\"details\":\"Reality.eth contract.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/FutarchyRealityProxy.sol\":\"FutarchyRealityProxy\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"src/FutarchyProposal.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: []\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./FutarchyRealityProxy.sol\\\";\\nimport {IERC20} from \\\"./Interfaces.sol\\\";\\n\\ncontract FutarchyProposal {\\n    /// @dev Flag to initialize the proposal only once.\\n    bool public initialized;\\n\\n    /// @dev Contains the information associated to the proposal.\\n    /// @param conditionId Conditional Tokens conditionId.\\n    /// @param collateralToken1 First collateral token.\\n    /// @param collateralToken2 Second collateral token.\\n    /// @param parentCollectionId Conditional Tokens parentCollectionId.\\n    /// @param parentOutcome Conditional outcome to use (optional).\\n    /// @param parentMarket Conditional proposal to use (optional).\\n    /// @param questionId Conditional Tokens questionId.\\n    /// @param encodedQuestion Encoded question, needed to create and reopen a question.\\n    /// @param wrapped1155 Outcome tokens Wrapped1155 address.\\n    /// @param data Wrapped1155 token data.\\n    struct FutarchyProposalParams {\\n        bytes32 conditionId;\\n        IERC20 collateralToken1;\\n        IERC20 collateralToken2;\\n        bytes32 parentCollectionId;\\n        uint256 parentOutcome;\\n        address parentMarket;\\n        bytes32 questionId;\\n        string encodedQuestion;\\n        IERC20[] wrapped1155;\\n        bytes[] tokenData;\\n    }\\n\\n    /// @dev The name of the proposal.\\n    string public marketName;\\n    /// @dev The proposal outcomes.\\n    string[] public outcomes;\\n    /// @dev Proposal parameters.\\n    FutarchyProposalParams public futarchyProposalParams;\\n    /// @dev Oracle contract.\\n    FutarchyRealityProxy public realityProxy;\\n\\n    /// @dev Initializer.\\n    /// @param _marketName The name of the proposal.\\n    /// @param _outcomes The proposal outcomes.\\n    /// @param _futarchyProposalParams Futarchy Proposal params.\\n    /// @param _realityProxy Oracle contract.\\n    function initialize(\\n        string memory _marketName,\\n        string[] memory _outcomes,\\n        FutarchyProposalParams memory _futarchyProposalParams,\\n        FutarchyRealityProxy _realityProxy\\n    ) external {\\n        require(!initialized, \\\"Already initialized.\\\");\\n\\n        marketName = _marketName;\\n        outcomes = _outcomes;\\n        futarchyProposalParams = _futarchyProposalParams;\\n        realityProxy = _realityProxy;\\n\\n        initialized = true;\\n    }\\n\\n    /// @dev Encoded question parameters, needed to create and reopen a question.\\n    /// @return The encoded question.\\n    function encodedQuestion() external view returns (string memory) {\\n        return futarchyProposalParams.encodedQuestion;\\n    }\\n\\n    /// @dev Conditional Tokens questionId.\\n    /// @return the question ID.\\n    function questionId() external view returns (bytes32) {\\n        return futarchyProposalParams.questionId;\\n    }\\n\\n    /// @dev Conditional Tokens conditionId.\\n    /// @return The condition ID.\\n    function conditionId() external view returns (bytes32) {\\n        return futarchyProposalParams.conditionId;\\n    }\\n\\n    /// @dev First collateral token.\\n    /// @return The collateral token.\\n    function collateralToken1() external view returns (IERC20) {\\n        return futarchyProposalParams.collateralToken1;\\n    }\\n\\n    /// @dev Second collateral token.\\n    /// @return The collateral token.\\n    function collateralToken2() external view returns (IERC20) {\\n        return futarchyProposalParams.collateralToken2;\\n    }\\n\\n    /// @dev Conditional Tokens parentCollectionId.\\n    /// @return The parent collection ID.\\n    function parentCollectionId() external view returns (bytes32) {\\n        return futarchyProposalParams.parentCollectionId;\\n    }\\n\\n    /// @dev The parent proposal (optional). This proposal redeems to an outcome token of the parent proposal.\\n    /// @return The parent proposal address.\\n    function parentMarket() external view returns (address) {\\n        return futarchyProposalParams.parentMarket;\\n    }\\n\\n    /// @dev The parent outcome (optional). The parent proposal's outcome token this proposal redeems for.\\n    /// @return The parent outcome index.\\n    function parentOutcome() external view returns (uint256) {\\n        return futarchyProposalParams.parentOutcome;\\n    }\\n\\n    /// @dev Returns the wrapped1155 and the data corresponding to an outcome token.\\n    /// @param index The outcome index.\\n    /// @return wrapped1155 The wrapped token.\\n    /// @return data The token data.\\n    function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data) {\\n        return (futarchyProposalParams.wrapped1155[index], futarchyProposalParams.tokenData[index]);\\n    }\\n\\n    /// @dev Returns the wrapped1155 and the data corresponding to the parent proposal.\\n    /// @return wrapped1155 The wrapped token.\\n    /// @return data The token data.\\n    function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data) {\\n        if (futarchyProposalParams.parentMarket != address(0)) {\\n            (wrapped1155, data) = FutarchyProposal(futarchyProposalParams.parentMarket).wrappedOutcome(\\n                futarchyProposalParams.parentOutcome\\n            );\\n        }\\n    }\\n\\n    /// @dev Returns the number of outcomes.\\n    /// @return numOutcomes The number of outcomes.\\n    function numOutcomes() external view returns (uint256) {\\n        return outcomes.length;\\n    }\\n\\n    /// @dev Helper function to resolve the proposal.\\n    function resolve() external {\\n        realityProxy.resolve(this);\\n    }\\n}\\n\",\"keccak256\":\"0x9e364091f59bc20c41d6d93aa16ff54a7d29eaa1d7b23b56c330efa3e0cf322b\",\"license\":\"MIT\"},\"src/FutarchyRealityProxy.sol\":{\"content\":\"/**\\n *  @authors: [@xyzseer]\\n *  @reviewers: []\\n *  @auditors: []\\n *  @bounties: []\\n *  @deployments: []\\n */\\n\\n// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\nimport \\\"./FutarchyProposal.sol\\\";\\nimport {IConditionalTokens, IRealityETH_v3_0} from \\\"./Interfaces.sol\\\";\\n\\ncontract FutarchyRealityProxy {\\n    /// @dev Conditional Tokens contract.\\n    IConditionalTokens public immutable conditionalTokens;\\n    /// @dev Reality.eth contract.\\n    IRealityETH_v3_0 public immutable realitio;\\n\\n    /// @dev Constructor.\\n    /// @param _conditionalTokens Conditional Tokens contract address.\\n    /// @param _realitio Reality.eth contract address.\\n    constructor(IConditionalTokens _conditionalTokens, IRealityETH_v3_0 _realitio) {\\n        conditionalTokens = _conditionalTokens;\\n        realitio = _realitio;\\n    }\\n\\n    /// @dev Resolves the specified proposal.\\n    /// @param proposal Proposal to resolve. UNTRUSTED.\\n    function resolve(FutarchyProposal proposal) external {\\n        bytes32 questionId = proposal.questionId();\\n\\n        uint256 answer = uint256(realitio.resultForOnceSettled(questionId));\\n        uint256[] memory payouts = new uint256[](2);\\n\\n        // FutarchyFactory prepares the condition with two outcomes (YES / NO)\\n        if (answer == 0) {\\n            // accept proposal if result is YES\\n            payouts[0] = 1;\\n        } else {\\n            // reject proposal if result is NO or INVALID\\n            payouts[1] = 1;\\n        }\\n\\n        conditionalTokens.reportPayouts(questionId, payouts);\\n    }\\n}\\n\",\"keccak256\":\"0x7b1ab8a8c07d4f0f24f8a39bb364f59853bf9fca5e4c50e67177a9c8b4ad7eb3\",\"license\":\"MIT\"},\"src/Interfaces.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.20;\\n\\ninterface IERC20 {\\n    function symbol() external view returns (string memory);\\n\\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\\n\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    function balanceOf(address owner) external returns (uint256);\\n\\n    function totalSupply() external view returns (uint256);\\n}\\n\\n// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol\\ninterface IRealityETH_v3_0 {\\n    function askQuestionWithMinBond(\\n        uint256 template_id,\\n        string memory question,\\n        address arbitrator,\\n        uint32 timeout,\\n        uint32 opening_ts,\\n        uint256 nonce,\\n        uint256 min_bond\\n    ) external payable returns (bytes32);\\n\\n    function resultForOnceSettled(bytes32 question_id) external view returns (bytes32);\\n\\n    function getContentHash(bytes32 question_id) external view returns (bytes32);\\n\\n    function getTimeout(bytes32 question_id) external view returns (uint32);\\n\\n    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;\\n}\\n\\ninterface IConditionalTokens {\\n    function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256);\\n\\n    function payoutDenominator(bytes32 conditionId) external view returns (uint256);\\n\\n    function prepareCondition(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external;\\n\\n    function reportPayouts(bytes32 questionId, uint256[] calldata payouts) external;\\n\\n    function splitPosition(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata partition,\\n        uint256 amount\\n    ) external;\\n\\n    function mergePositions(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata partition,\\n        uint256 amount\\n    ) external;\\n\\n    function redeemPositions(\\n        /*IERC20*/\\n        address collateralToken,\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256[] calldata indexSets\\n    ) external;\\n\\n    function getConditionId(\\n        address oracle,\\n        bytes32 questionId,\\n        uint256 outcomeSlotCount\\n    ) external pure returns (bytes32);\\n\\n    function getCollectionId(\\n        bytes32 parentCollectionId,\\n        bytes32 conditionId,\\n        uint256 indexSet\\n    ) external view returns (bytes32);\\n\\n    function getPositionId(address collateralToken, bytes32 collectionId) external pure returns (uint256);\\n\\n    function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256);\\n\\n    function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;\\n\\n    function balanceOf(address owner, uint256 id) external view returns (uint256);\\n}\\n\\ninterface IWrapped1155Factory {\\n    function requireWrapped1155(\\n        /*IERC1155*/\\n        address multiToken,\\n        uint256 tokenId,\\n        bytes calldata data\\n    ) external /*Wrapped1155*/ returns (IERC20);\\n\\n    function unwrap(\\n        /*IERC1155*/\\n        address multiToken,\\n        uint256 tokenId,\\n        uint256 amount,\\n        address recipient,\\n        bytes calldata data\\n    ) external;\\n}\\n\",\"keccak256\":\"0x8892a345d504bf2d565948b1ec7a5302cf45024e6a0ea3ac810d5eb0b2827d77\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60c060405234801561001057600080fd5b5060405161046038038061046083398101604081905261002f9161005e565b6001600160a01b039182166080521660a052610098565b6001600160a01b038116811461005b57600080fd5b50565b6000806040838503121561007157600080fd5b825161007c81610046565b602084015190925061008d81610046565b809150509250929050565b60805160a0516103976100c96000396000818160a3015261014d0152600081816060015261024501526103976000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c806355ea6c47146100465780635bd9e2991461005b578063bc8802a21461009e575b600080fd5b6100596100543660046102b4565b6100c5565b005b6100827f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200160405180910390f35b6100827f000000000000000000000000000000000000000000000000000000000000000081565b6000816001600160a01b031663b06a5c526040518163ffffffff1660e01b8152600401602060405180830381865afa158015610105573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061012991906102e4565b60405163ab5a4e3560e01b8152600481018290529091506000906001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063ab5a4e3590602401602060405180830381865afa158015610194573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906101b891906102e4565b60408051600280825260608201835292935060009290916020830190803683370190505090508160000361020c576001816000815181106101fb576101fb6102fd565b60200260200101818152505061022e565b600181600181518110610221576102216102fd565b6020026020010181815250505b604051633124a62b60e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063c49298ac9061027c9086908590600401610313565b600060405180830381600087803b15801561029657600080fd5b505af11580156102aa573d6000803e3d6000fd5b5050505050505050565b6000602082840312156102c657600080fd5b81356001600160a01b03811681146102dd57600080fd5b9392505050565b6000602082840312156102f657600080fd5b5051919050565b634e487b7160e01b600052603260045260246000fd5b6000604082018483526020604081850152818551808452606086019150828701935060005b8181101561035457845183529383019391830191600101610338565b509097965050505050505056fea264697066735822122005914b0c18f2bbee8387904e9b8e103d838dcbf1d0e974ffc657762400d26a9464736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100415760003560e01c806355ea6c47146100465780635bd9e2991461005b578063bc8802a21461009e575b600080fd5b6100596100543660046102b4565b6100c5565b005b6100827f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200160405180910390f35b6100827f000000000000000000000000000000000000000000000000000000000000000081565b6000816001600160a01b031663b06a5c526040518163ffffffff1660e01b8152600401602060405180830381865afa158015610105573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061012991906102e4565b60405163ab5a4e3560e01b8152600481018290529091506000906001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063ab5a4e3590602401602060405180830381865afa158015610194573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906101b891906102e4565b60408051600280825260608201835292935060009290916020830190803683370190505090508160000361020c576001816000815181106101fb576101fb6102fd565b60200260200101818152505061022e565b600181600181518110610221576102216102fd565b6020026020010181815250505b604051633124a62b60e21b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063c49298ac9061027c9086908590600401610313565b600060405180830381600087803b15801561029657600080fd5b505af11580156102aa573d6000803e3d6000fd5b5050505050505050565b6000602082840312156102c657600080fd5b81356001600160a01b03811681146102dd57600080fd5b9392505050565b6000602082840312156102f657600080fd5b5051919050565b634e487b7160e01b600052603260045260246000fd5b6000604082018483526020604081850152818551808452606086019150828701935060005b8181101561035457845183529383019391830191600101610338565b509097965050505050505056fea264697066735822122005914b0c18f2bbee8387904e9b8e103d838dcbf1d0e974ffc657762400d26a9464736f6c63430008140033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "details": "Constructor.",
+        "params": {
+          "_conditionalTokens": "Conditional Tokens contract address.",
+          "_realitio": "Reality.eth contract address."
+        }
+      },
+      "resolve(address)": {
+        "details": "Resolves the specified proposal.",
+        "params": {
+          "proposal": "Proposal to resolve. UNTRUSTED."
+        }
+      }
+    },
+    "stateVariables": {
+      "conditionalTokens": {
+        "details": "Conditional Tokens contract."
+      },
+      "realitio": {
+        "details": "Reality.eth contract."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}

@@ -172,13 +172,22 @@ contract MarketView {
 
     function getCollateralToken(Market market, IMarketFactory marketFactory) internal view returns (address) {
         address parentMarket = market.parentMarket();
+
         if (parentMarket == address(0)) {
-            return marketFactory.collateralToken();
+            try marketFactory.collateralToken() returns (address collateralToken) {
+                // generic market
+                return collateralToken;
+            } catch {
+                // futarchy market
+                return address(0);
+            }
         }
 
         try Market(parentMarket).wrappedOutcome(market.parentOutcome()) returns (IERC20 wrapped1155, bytes memory) {
+            // generic market
             return address(wrapped1155);
         } catch {
+            // futarchy market
             return address(0);
         }
     }
