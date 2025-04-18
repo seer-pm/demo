@@ -1,10 +1,9 @@
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import { DownArrow } from "@/lib/icons";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useAccount } from "wagmi";
 
-const ChainDropdown = ({ isMobile = false }: { isMobile?: boolean }) => {
+const ChainDropdown = () => {
   const { isConnected, chainId = DEFAULT_CHAIN } = useAccount();
   const { open } = useWeb3Modal();
 
@@ -17,8 +16,7 @@ const ChainDropdown = ({ isMobile = false }: { isMobile?: boolean }) => {
       <div className="flex items-center gap-4">
         {NETWORK_ICON_MAPPING[chainId] && (
           <div className="flex items-center gap-2 cursor-pointer hover:opacity-85" onClick={handleSwitch}>
-            <img alt="network-icon" className="w-7 h-7 rounded-full" src={NETWORK_ICON_MAPPING[chainId]}></img>
-            <DownArrow width={12} height={12} fill={isMobile ? "#9747FF" : "white"} />
+            <img alt="network-icon" className="w-6 h-6 rounded-full" src={NETWORK_ICON_MAPPING[chainId]}></img>
           </div>
         )}
       </div>

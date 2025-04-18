@@ -90,7 +90,11 @@ export function MarketInfo({
   market,
   marketStatus,
   isPreview,
-}: { market: Market; marketStatus?: MarketStatus; isPreview: boolean }) {
+}: {
+  market: Market;
+  marketStatus?: MarketStatus;
+  isPreview: boolean;
+}) {
   const { Modal: AnswerModal, openModal: openAnswerModal, closeModal: closeAnswerModal } = useModal("answer-modal");
   const {
     Modal: RaiseDisputeModal,
@@ -109,7 +113,7 @@ export function MarketInfo({
   }
 
   return (
-    <div className="text-[14px]">
+    <div className={clsx(isPreview ? "text-[12px]" : "text-[14px]")}>
       <MarketQuestionsStatus
         market={market}
         marketStatus={marketStatus}

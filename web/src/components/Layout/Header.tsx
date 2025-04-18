@@ -9,6 +9,7 @@ import {
   AccountCircleIcon,
   BookIcon,
   BugIcon,
+  CloseCircleOutlineIcon,
   CloseIcon,
   DownArrow,
   EthIcon,
@@ -112,8 +113,10 @@ export default function Header() {
 
   return (
     <header>
-      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4">
-        <div>
+      <BetaWarning />
+
+      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative">
+        <div className="absolute left-[24px] lg:left-[64px]">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
@@ -121,7 +124,7 @@ export default function Header() {
 
         {mobileMenuOpen && <MobileMenu />}
 
-        <ul className="ml-10 hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center">
+        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] space-x-[32px] justify-center">
           <li>
             <Link to={"/"} className="hover:opacity-85 py-3">
               Markets
@@ -137,7 +140,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
                 <span>Policies</span> <DownArrow />
               </button>
-              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
+              <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal ">
                 <li>
                   <Link
                     to={"/policy/verified"}
@@ -157,17 +160,14 @@ export default function Header() {
               </ul>
             </div>
           </li>
-          <li>
-            {/* <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
-              Airdrop
-            </Link> */}
+          {/* <li>
             <Link to={"/airdrop"} className="hover:opacity-85 py-3">
               Airdrop
             </Link>
-          </li>
+          </li> */}
         </ul>
 
-        <ul className="hidden lg:menu-horizontal gap-[16px] justify-end w-1/3 ml-auto">
+        <ul className="hidden lg:menu-horizontal gap-2 absolute right-[64px]">
           <li>
             <ConnectWallet />
           </li>
@@ -176,7 +176,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <AccountCircleIcon />
               </button>
-              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] [&_svg]:text-purple-primary">
                 <li>
                   <Link
                     to={"/portfolio"}
@@ -201,7 +201,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <NotificationIcon />
               </button>
-              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] [&_svg]:text-purple-primary">
                 <li>
                   <AccountSettings />
                 </li>
@@ -211,7 +211,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
               </button>
-              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] w-[248px] [&_svg]:text-purple-primary">
                 <li>
                   <Link
                     to={paths.getHelp()}
@@ -277,7 +277,6 @@ export default function Header() {
           </button>
         </div>
       </nav>
-      <BetaWarning />
     </header>
   );
 }
@@ -301,13 +300,11 @@ function BetaWarning() {
   };
 
   return (
-    <div className="bg-warning-light text-warning-primary text-[14px] text-center py-[10px] px-[30px] font-medium border-b-[2px] border-t-[2px] border-warning-primary relative">
+    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>Note that this is a Beta version and can still be unstable</div>
-      <div className="font-bold text-[14px] absolute top-0 right-[20px] w-[10px] h-full flex items-center">
-        <span className="cursor-pointer" onClick={closeWarning}>
-          x
-        </span>
-      </div>
+      <button type="button" className="hover:opacity-80" onClick={closeWarning}>
+        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+      </button>
     </div>
   );
 }
@@ -318,7 +315,7 @@ function MobileMenu() {
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
 
   return (
-    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
+    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[100px] w-full block z-[100] overflow-y-auto">
       <div className="px-[24px] py-[48px]">
         <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
         <ul className="space-y-[24px]">

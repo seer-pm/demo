@@ -153,7 +153,7 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
             <p className="tooltiptext">
               {isAccountConnectedAndSignedIn ? "Add to collection" : "Sign in to add to collection"}
             </p>
-            <StarOutlined fill="currentColor" />
+            <StarOutlined />
           </div>
         )}
       </DropdownWrapper>
