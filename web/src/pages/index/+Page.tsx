@@ -19,7 +19,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   return (
     <div>
       <div
-        className="px-[64px] py-[16px] sticky top-0 z-[10]"
+        className="px-[64px] py-[16px] sticky lg:top-0 z-[10]"
         style={{ background: "linear-gradient(90deg, #FFFFFF 0%, #F9F7FE 100%)" }}
       >
         <MarketsFilter />
