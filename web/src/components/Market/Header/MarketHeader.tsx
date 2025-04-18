@@ -100,6 +100,9 @@ function OutcomesInfo({
   }
   if (marketType === MarketTypes.SCALAR) {
     const marketEstimate = Number(getMarketEstimate(odds, market));
+    if (Number.isNaN(marketEstimate)) {
+      return null;
+    }
     const percentage =
       ((marketEstimate - Number(market.lowerBound)) / (Number(market.upperBound) - Number(market.lowerBound))) * 100;
     return (
