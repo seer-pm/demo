@@ -9,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
 import ReactECharts from "echarts-for-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import slug from "slug";
 import DateRangePicker from "../Portfolio/DateRangePicker";
 import { Spinner } from "../Spinner";
@@ -59,7 +59,7 @@ function MarketChart({ market }: { market: Market }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
-
+  const [isClient, setClient] = useState(false);
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
@@ -68,7 +68,9 @@ function MarketChart({ market }: { market: Market }) {
     setStartDate(start ?? undefined);
     setEndDate(end ?? undefined);
   };
-
+  useEffect(() => {
+    setClient(true);
+  }, []);
   const chartTimeConfig = (() => {
     if (startDate) {
       const endDateForCalc = endDate || new Date();
@@ -326,7 +328,7 @@ function MarketChart({ market }: { market: Market }) {
                     endDate ? format(endDate, "MMM d, yyyy") : "_"
                   }`}
             </button>
-            {isShowDateRangePicker && (
+            {isShowDateRangePicker && isClient && (
               <div className="absolute left-0 top-[60px] z-10">
                 <DateRangePicker
                   startDate={startDate}
