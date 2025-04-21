@@ -324,16 +324,14 @@ function MarketChart({ market }: { market: Market }) {
                     endDate ? format(endDate, "MMM d, yyyy") : "_"
                   }`}
             </button>
-            {isShowDateRangePicker && (
-              <div className="absolute left-0 top-[60px] z-10">
-                <DateRangePicker
-                  startDate={startDate}
-                  endDate={endDate}
-                  onChange={onChangeDate}
-                  onClose={() => setShowDateRangePicker(false)}
-                />
-              </div>
-            )}
+            <div className={clsx("absolute left-0 top-[60px] z-10", isShowDateRangePicker ? "block" : "hidden")}>
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={onChangeDate}
+                onClose={() => setShowDateRangePicker(false)}
+              />
+            </div>
           </div>
           <div className="tooltip">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
