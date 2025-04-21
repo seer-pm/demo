@@ -192,7 +192,7 @@ export function PreviewCard({ market }: { market: Market }) {
       )}
     >
       <div className="h-[100px] overflow-y-auto custom-scrollbar">
-        <div className={clsx("flex space-x-3 p-[16px]")}>
+        <div className={clsx("flex space-x-3 px-4 pt-3")}>
           <Link to={paths.market(market)}>
             {market.images?.market ? (
               <img

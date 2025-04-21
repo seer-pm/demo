@@ -2,8 +2,6 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
-import { SlideCard } from "@/components/Market/SlideCard";
-import { Slideshow } from "@/components/SlideShow";
 import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
@@ -20,20 +18,6 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
   return (
     <div>
-      {isPending && (
-        <div className="px-[64px] py-[24px]">
-          <div className="shimmer-container h-[200px]"></div>
-        </div>
-      )}
-      {markets.length > 0 && (
-        <div className="px-[64px] pt-[32px] pb-[24px] max-h-[360px] h-[28vw] min-h-[320px]">
-          <Slideshow>
-            {markets.slice(0, 3).map((market) => (
-              <SlideCard key={market.id} market={market} />
-            ))}
-          </Slideshow>
-        </div>
-      )}
       <div className="px-[64px] py-[16px]">
         <MarketsFilter />
       </div>
