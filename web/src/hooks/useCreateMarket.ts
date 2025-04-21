@@ -1,5 +1,5 @@
 import { getConfigNumber } from "@/lib/config";
-import { MarketTypes, getOutcomes } from "@/lib/market";
+import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -10,9 +10,6 @@ import { writeMarketFactory } from "./contracts/generated";
 interface CreateMarketProps {
   marketType: MarketTypes;
   marketName: string;
-  questionStart: string;
-  questionEnd: string;
-  outcomeType: string;
   parentMarket: Address;
   parentOutcome: bigint;
   outcomes: string[];
@@ -56,6 +53,8 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const outcomes = getOutcomes(props.outcomes, props.marketType);
+  const marketName = getMarketName(props.marketType, props.marketName, props.unit);
+  const questionParts = getQuestionParts(marketName, props.marketType);
 
   const result = await toastifyTx(
     () =>
@@ -63,13 +62,10 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         functionName: MarketTypeFunction[props.marketType],
         args: [
           {
-            marketName:
-              props.marketType === MarketTypes.SCALAR && props.unit.trim()
-                ? `${escapeJson(props.marketName)} [${escapeJson(props.unit)}]`
-                : escapeJson(props.marketName),
-            questionStart: escapeJson(props.questionStart),
-            questionEnd: escapeJson(props.questionEnd),
-            outcomeType: escapeJson(props.outcomeType),
+            marketName,
+            questionStart: escapeJson(questionParts?.questionStart || ""),
+            questionEnd: escapeJson(questionParts?.questionEnd || ""),
+            outcomeType: escapeJson(questionParts?.outcomeType || ""),
             parentMarket: props.parentMarket,
             parentOutcome: props.parentOutcome,
             lang: "en_US",

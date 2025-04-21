@@ -13,7 +13,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketType, getMarketUnit } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
@@ -473,6 +473,29 @@ function OutcomeDetails({
   );
 }
 
+function MultiScalarEstimate({ market, odds }: { market: Market; odds: number }) {
+  if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || Number.isNaN(odds)) {
+    return null;
+  }
+
+  const UPPER_BOUNDS: Record<Address, [number, string]> = {
+    "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
+    "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
+  };
+
+  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [Number(market.upperBound), getMarketUnit(market)];
+
+  if (upperBound <= 0 || unit === "") {
+    return null;
+  }
+
+  return (
+    <div className="text-[13px] font-normal">
+      ~ {Math.round((upperBound * odds) / 100)} {unit}
+    </div>
+  );
+}
+
 export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -533,8 +556,16 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
                 images={images}
               />
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
-                <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
-                  {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
+                  {odds.length === 0 ? (
+                    <Spinner />
+                  ) : (
+                    <>
+                      <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+
+                      <MultiScalarEstimate market={market} odds={odds[i]} />
+                    </>
+                  )}
                 </div>
 
                 <input
