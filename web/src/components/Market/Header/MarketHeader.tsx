@@ -11,7 +11,6 @@ import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
-  ConditionalMarketIcon,
   ExclamationCircleIcon,
   EyeIcon,
   LawBalanceIcon,
@@ -21,14 +20,7 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import {
-  MarketTypes,
-  getCollateralByIndex,
-  getMarketEstimate,
-  getMarketPoolsPairs,
-  getMarketType,
-  isOdd,
-} from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
@@ -36,6 +28,7 @@ import { useState } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
+import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
@@ -48,16 +41,10 @@ interface MarketHeaderProps {
   outcomesCount?: number;
 }
 
-const BAR_COLOR = {
-  [MarketTypes.CATEGORICAL]: ["#13C0CB", "#FF458C"],
-  [MarketTypes.MULTI_CATEGORICAL]: ["#9747FF", "#24CDFE", "#13C0CB"],
-  [MarketTypes.SCALAR]: ["#FF458C", "#13C0CB"],
-  [MarketTypes.MULTI_SCALAR]: ["#9747FF", "#24CDFE", "#13C0CB"],
-};
-
 function OutcomesInfo({
   market,
   outcomesCount = 0,
+  images = [],
   marketStatus,
 }: {
   market: Market;
@@ -71,130 +58,60 @@ function OutcomesInfo({
 
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
-  const visibleIndexes = market.outcomes.reduce((acc, _, j) => {
-    const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
-    const outcome = market.outcomes[i];
 
-    if (j >= visibleOutcomesLimit) {
-      return acc;
-    }
-
-    if (
-      outcome === INVALID_RESULT_OUTCOME_TEXT &&
-      (marketStatus !== MarketStatus.CLOSED || (marketStatus === MarketStatus.CLOSED && winningOutcomes?.[i] !== true))
-    ) {
-      return acc;
-    }
-    acc.push(i);
-    return acc;
-  }, [] as number[]);
-  const visibleOutcomesCount = visibleIndexes.length;
-  const sumVisibleOdds = visibleIndexes
-    .map((index) => (isOdd(odds[index]) ? odds[index] : 0))
-    .reduce((acc, curr) => acc + curr, 0);
-
-  const marketType = getMarketType(market);
-
-  if (odds.length === 0) {
-    return <div className="shimmer-container w-full h-[6px] rounded-[8px]"></div>;
-  }
-  if (marketType === MarketTypes.SCALAR) {
-    const marketEstimate = Number(getMarketEstimate(odds, market));
-    if (Number.isNaN(marketEstimate)) {
-      return null;
-    }
-    const percentage =
-      ((marketEstimate - Number(market.lowerBound)) / (Number(market.upperBound) - Number(market.lowerBound))) * 100;
-    return (
-      <div className="text-[12px] text-purple-primary">
-        <p className="italic text-black-secondary mb-3">Estimate</p>
-        <div className="relative">
-          <input
-            type="range"
-            min={Number(market.lowerBound)}
-            max={Number(market.upperBound)}
-            step={0.001}
-            value={marketEstimate}
-            className="
-              w-full
-              h-[6px]
-              appearance-none
-              bg-gray-200
-              rounded-lg
-              outlined-thumb
-            "
-            style={{
-              background: `linear-gradient(to right, #B38FFF ${percentage}%, #EEEEEE ${percentage}%)`,
-            }}
-          />
-          <p
-            className="absolute top-[-16px]"
-            style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${
-                6 * marketEstimate.toLocaleString().length
-              }px)))`,
-            }}
-          >
-            {marketEstimate.toLocaleString()}
-          </p>
-        </div>
-        <div className="flex items-center justify-between">
-          <p>{Number(market.lowerBound).toLocaleString()}</p>
-          <p>{Number(market.upperBound).toLocaleString()}</p>
-        </div>
-      </div>
-    );
-  }
   return (
     <div>
-      <div className="flex items-start gap-[3px] w-full rounded-[8px] overflow-hidden">
-        {visibleIndexes.map((i, order) => {
+      <div className={clsx("space-y-3")}>
+        {market.outcomes.map((_, j) => {
+          const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const outcome = market.outcomes[i];
-          const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
-          const background = (() => {
-            switch (marketType) {
-              case MarketTypes.CATEGORICAL: {
-                return BAR_COLOR[marketType][originalIndex] ?? "gray";
-              }
-              default: {
-                return BAR_COLOR[marketType][order] ?? "gray";
-              }
-            }
-          })();
-          if (!isOdd(odds[i])) {
+
+          if (j >= visibleOutcomesLimit) {
+            // render the first `visibleOutcomesLimit` outcomes
             return null;
           }
-          const adjustedWidth = (odds[i] / sumVisibleOdds) * 100;
+
+          if (
+            outcome === INVALID_RESULT_OUTCOME_TEXT &&
+            (marketStatus !== MarketStatus.CLOSED ||
+              (marketStatus === MarketStatus.CLOSED && winningOutcomes?.[i] !== true))
+          ) {
+            return null;
+          }
           return (
-            <div
+            <Link
               key={`${outcome}_${i}`}
-              className="h-[6px] flex-shrink-0"
-              style={{ width: `${adjustedWidth}%`, background }}
-            ></div>
-          );
-        })}
-      </div>
-      <div className={clsx("flex items-center gap-x-3 flex-wrap", visibleOutcomesCount === 2 ? "justify-between" : "")}>
-        {visibleIndexes.map((i, order) => {
-          const outcome = market.outcomes[i];
-          const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
-          const color = (() => {
-            switch (marketType) {
-              case MarketTypes.CATEGORICAL: {
-                return BAR_COLOR[marketType][originalIndex] ?? "gray";
-              }
-              default: {
-                return BAR_COLOR[marketType][order] ?? "gray";
-              }
-            }
-          })();
-          if (!isOdd(odds[i])) {
-            return null;
-          }
-          return (
-            <p className={clsx("text-[12px]")} key={`${outcome}_${i}`} style={{ color }}>
-              {outcome} <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-            </p>
+              className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
+              to={`${paths.market(market)}?outcome=${encodeURIComponent(outcome)}`}
+            >
+              <div className="flex items-center space-x-[12px]">
+                <div className="w-[65px] flex-shrink-0">
+                  <OutcomeImage
+                    image={images?.[i]}
+                    isInvalidOutcome={i === market.outcomes.length - 1}
+                    title={outcome}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="group-hover:underline flex items-center gap-2">
+                    #{j + 1} {market.outcomes[i]}{" "}
+                    {i <= 1 &&
+                      getMarketType(market) === MarketTypes.SCALAR &&
+                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                    {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
+                  </div>
+
+                  {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
+                </div>
+              </div>
+              {market.id !== "0x000" && (
+                <div className="flex space-x-10 items-center">
+                  <div className="text-[24px] font-semibold">
+                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  </div>
+                </div>
+              )}
+            </Link>
           );
         })}
       </div>
@@ -208,7 +125,7 @@ type PoolTokensInfo = {
   token1: { symbol: string; balance: number };
 }[];
 
-function PoolTokensInfo({
+export function PoolTokensInfo({
   market,
   marketStatus,
   type,
@@ -266,185 +183,6 @@ function PoolTokensInfo({
   );
 }
 
-function MarketHeaderPreview({ market, images, outcomesCount = 0 }: MarketHeaderProps) {
-  const marketStatus = getMarketStatus(market);
-  const liquidityUSD = formatBigNumbers(market.liquidityUSD);
-  const incentive = formatBigNumbers(market.incentive);
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const [showMarketInfo, setShowMarketInfo] = useState(false);
-  const marketType = getMarketType(market);
-  const colors = marketStatus && COLORS[marketStatus];
-
-  const firstQuestion = market.questions[0];
-
-  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
-
-  return (
-    <div
-      className={clsx(
-        "bg-white rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
-        market.id === "0x000" ? "pointer-events-none" : "",
-      )}
-    >
-      <div className="h-[100px] overflow-y-auto custom-scrollbar">
-        <div className={clsx("flex space-x-3 p-[16px]", market.questions.length > 1 && "pb-[16px]")}>
-          <Link to={paths.market(market)}>
-            {images?.market ? (
-              <img
-                src={images.market}
-                alt={market.marketName}
-                className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full"
-              />
-            ) : (
-              <div className="w-[38px] h-[38px] rounded-full bg-purple-primary"></div>
-            )}
-          </Link>
-          <div className="grow min-w-0">
-            <div className={clsx("font-semibold mb-1 text-[14px] break-words")}>
-              <Link className="hover:underline" to={paths.market(market)}>
-                {market.marketName}
-              </Link>
-            </div>
-            {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
-              <MarketInfo market={market} marketStatus={marketStatus} isPreview />
-            ) : (
-              <>
-                <div className={clsx("flex space-x-2 items-center text-[12px]")}>
-                  {marketType === MarketTypes.MULTI_SCALAR && firstQuestion.finalize_ts > 0 && (
-                    <div className="text-black-secondary">Deadline: {getTimeLeft(firstQuestion.finalize_ts)}</div>
-                  )}
-                </div>
-                <div className={clsx("flex space-x-2 items-center text-[12px]")}>
-                  <EyeIcon />{" "}
-                  <span
-                    className="text-purple-primary cursor-pointer"
-                    onClick={() => setShowMarketInfo(!showMarketInfo)}
-                  >
-                    {showMarketInfo ? "Hide questions" : "Show questions"}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
-          <div className="px-[24px] pb-[16px]">
-            <MarketInfo market={market} marketStatus={marketStatus} isPreview />
-          </div>
-        )}
-      </div>
-
-      <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">
-        <OutcomesInfo
-          market={market}
-          outcomesCount={outcomesCount}
-          images={images?.outcomes}
-          marketStatus={marketStatus}
-        />
-      </div>
-      <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="#511778" width="50px" />
-        <div className="flex items-center gap-2">
-          <div className="tooltip">
-            {market.liquidityUSD > 0 && (
-              <div className="tooltiptext !text-left min-w-[300px]">
-                <p className="text-purple-primary">Liquidity:</p>
-                <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
-              </div>
-            )}
-            <p className="text-[12px]">${liquidityUSD}</p>
-          </div>
-          <div className="tooltip">
-            <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
-            {MARKET_TYPES_ICONS[marketType]}
-          </div>
-          {parentMarket && (
-            <div className="tooltip">
-              <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
-                <p className="text-purple-primary">Conditional Market:</p>
-                <p className="text-black-secondary">
-                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
-                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
-                </p>
-              </div>
-              <ConditionalMarketIcon />
-            </div>
-          )}
-          {market.incentive > 0 && (
-            <div className="tooltip">
-              <p className="tooltiptext">
-                Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
-              </p>
-              <PresentIcon width="16px" />
-            </div>
-          )}
-          <div className="tooltip !flex">
-            <p className="tooltiptext">View contract on explorer</p>
-            <a
-              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0"
-            >
-              <img
-                alt="network-icon"
-                className="w-[14px] h-[14px] rounded-full"
-                src={NETWORK_ICON_MAPPING[market.chainId]}
-              />
-            </a>
-          </div>
-          {!isUndefined(market.verification) && (
-            <Link
-              className={clsx(
-                "tooltip",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
-              )}
-              to={
-                market.verification.status === "not_verified"
-                  ? paths.verifyMarket(market.id, market.chainId)
-                  : paths.curateVerifiedList(market.chainId, market.verification.itemID)
-              }
-              {...(market.verification.status === "not_verified"
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-            >
-              {market.verification.status === "verified" && (
-                <>
-                  <CheckCircleIcon />
-                  <div className="tooltiptext">Verified</div>
-                </>
-              )}
-              {market.verification.status === "verifying" && (
-                <>
-                  <ClockIcon />
-                  <div className="tooltiptext">Verifying</div>
-                </>
-              )}
-              {market.verification.status === "challenged" && (
-                <>
-                  <LawBalanceIcon />
-                  <div className="tooltiptext">Challenged</div>
-                </>
-              )}
-              {market.verification.status === "not_verified" && (
-                <>
-                  <ExclamationCircleIcon width="14" height="14" />
-                  <div className="tooltiptext">Verify it</div>
-                </>
-              )}
-            </Link>
-          )}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
@@ -462,9 +200,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const firstQuestion = market.questions[0];
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
-  if (type === "preview") {
-    return <MarketHeaderPreview market={market} images={images} outcomesCount={outcomesCount} />;
-  }
+
   return (
     <div
       className={clsx(
@@ -601,6 +337,17 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <QuestionIcon fill="#9747FF" />
             </span>
           )}
+        </div>
+      )}
+
+      {type === "preview" && (
+        <div className="border-t border-black-medium py-[16px]">
+          <OutcomesInfo
+            market={market}
+            outcomesCount={outcomesCount}
+            images={images?.outcomes}
+            marketStatus={marketStatus}
+          />
         </div>
       )}
 
