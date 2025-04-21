@@ -10,16 +10,14 @@ import {
   ClockIcon,
   ConditionalMarketIcon,
   ExclamationCircleIcon,
-  EyeIcon,
   LawBalanceIcon,
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { useState } from "react";
 import { Address } from "viem";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
@@ -27,7 +25,6 @@ import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
-import { MarketInfo } from "./Header/MarketInfo";
 
 export function OutcomesInfo({
   market,
@@ -182,11 +179,8 @@ export function PreviewCard({ market }: { market: Market }) {
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const [showMarketInfo, setShowMarketInfo] = useState(false);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
-
-  const firstQuestion = market.questions[0];
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -198,7 +192,7 @@ export function PreviewCard({ market }: { market: Market }) {
       )}
     >
       <div className="h-[100px] overflow-y-auto custom-scrollbar">
-        <div className={clsx("flex space-x-3 p-[16px]", market.questions.length > 1 && "pb-[16px]")}>
+        <div className={clsx("flex space-x-3 p-[16px]")}>
           <Link to={paths.market(market)}>
             {market.images?.market ? (
               <img
@@ -216,34 +210,8 @@ export function PreviewCard({ market }: { market: Market }) {
                 {market.marketName}
               </Link>
             </div>
-            {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
-              <MarketInfo market={market} marketStatus={marketStatus} isPreview />
-            ) : (
-              <>
-                <div className={clsx("flex space-x-2 items-center text-[12px]")}>
-                  {marketType === MarketTypes.MULTI_SCALAR && firstQuestion.finalize_ts > 0 && (
-                    <div className="text-black-secondary">Deadline: {getTimeLeft(firstQuestion.finalize_ts)}</div>
-                  )}
-                </div>
-                <div className={clsx("flex space-x-2 items-center text-[12px]")}>
-                  <EyeIcon />{" "}
-                  <span
-                    className="text-purple-primary cursor-pointer"
-                    onClick={() => setShowMarketInfo(!showMarketInfo)}
-                  >
-                    {showMarketInfo ? "Hide questions" : "Show questions"}
-                  </span>
-                </div>
-              </>
-            )}
           </div>
         </div>
-
-        {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
-          <div className="px-[24px] pb-[16px]">
-            <MarketInfo market={market} marketStatus={marketStatus} isPreview />
-          </div>
-        )}
       </div>
 
       <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">

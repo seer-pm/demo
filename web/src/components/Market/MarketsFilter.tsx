@@ -92,7 +92,7 @@ export function MarketsFilter() {
             return (
               <button
                 className={clsx(
-                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                  "border-2 border-white rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
                   !categoryList && "!bg-purple-primary !text-white",
                 )}
                 key={category.value}
