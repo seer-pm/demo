@@ -1,6 +1,6 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
 import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { getMarketName, useCreateMarket } from "@/hooks/useCreateMarket";
+import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
@@ -341,7 +341,10 @@ export function PreviewForm({
     collateralToken1: zeroAddress,
     collateralToken2: zeroAddress,
     chainId,
-    marketName: getMarketName(marketTypeValues.marketType, outcomesValues.market, outcomesValues.unit),
+    marketName:
+      marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
+        ? `${outcomesValues.market} [${outcomesValues.unit}]`
+        : outcomesValues.market,
     outcomes: dummyOutcomes,
     parentMarket: {
       id: parentMarketAddress as Address,

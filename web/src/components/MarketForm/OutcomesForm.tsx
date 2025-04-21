@@ -377,52 +377,6 @@ export function OutcomesForm({
               </div>
             </div>
           )}
-
-          {marketType === MarketTypes.MULTI_SCALAR && (
-            <>
-              <div className="text-[24px] font-semibold mb-[32px]">Bounds</div>
-              <div className="grid grid-cols-5 gap-4 w-full text-left">
-                <div className="col-span-2">
-                  <div className="space-y-2">
-                    <div className="text-[14px] mb-[10px]">Total Bound</div>
-                    <Input
-                      autoComplete="off"
-                      type="number"
-                      min="0"
-                      step="any"
-                      {...register("upperBound.value", {
-                        required: "This field is required.",
-                        valueAsNumber: true,
-                        validate: (v) => {
-                          if (Number(v) < 0) {
-                            return "Value must be greater than 0.";
-                          }
-                          if (!Number.isInteger(Number(v))) {
-                            return "Value must be integer.";
-                          }
-                          return true;
-                        },
-                      })}
-                      className="w-full"
-                      useFormReturn={useFormReturn}
-                    />
-                  </div>
-                </div>
-                <div className="col-span-1">
-                  <div className="space-y-2">
-                    <div className="text-[14px] mb-[10px]">Unit</div>
-                    <Input
-                      autoComplete="off"
-                      type="text"
-                      {...register("unit")}
-                      className="w-full"
-                      useFormReturn={useFormReturn}
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
         <ButtonsWrapper

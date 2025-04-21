@@ -133,7 +133,7 @@ export function isOdd(odd: number | undefined | null) {
 }
 
 export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
-  const { lowerBound, upperBound } = market;
+  const { lowerBound, upperBound, marketName } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
@@ -141,20 +141,13 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   if (!convertToString) {
     return estimate;
   }
-  const marketUnit = getMarketUnit(market);
-  if (marketUnit) {
-    return `${Number(estimate).toLocaleString()} ${marketUnit}`;
+  if (marketName.lastIndexOf("[") > -1) {
+    return `${Number(estimate).toLocaleString()} ${marketName.slice(
+      marketName.lastIndexOf("[") + 1,
+      marketName.lastIndexOf("]"),
+    )}`;
   }
   return Number(estimate).toLocaleString();
-}
-
-export function getMarketUnit(market: Market) {
-  const marketName = market.marketName;
-  if (marketName.lastIndexOf("[") > -1) {
-    return `${marketName.slice(marketName.lastIndexOf("[") + 1, marketName.lastIndexOf("]"))}`;
-  }
-
-  return "";
 }
 
 export function getCollateralByIndex(market: Market, index: number) {
