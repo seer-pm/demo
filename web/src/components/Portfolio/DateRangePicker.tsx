@@ -110,7 +110,6 @@ function DateRangePicker({
           endDate={endDate}
           selectsRange
           inline
-          calendarClassName="custom-date-picker border-none"
         />
       </div>
       <div className="flex justify-end text-center p-3 gap-2">
