@@ -22,7 +22,7 @@ export async function fetchPoolHourDataSets(market: Market) {
   return fetch(`/.netlify/functions/market-chart?${params.toString()}`).then((res) => res.json());
 }
 
-export const getUseChartDataKey = (
+const getUseChartDataKey = (
   chainId: SupportedChain,
   marketId: Address,
   dayCount: number,
@@ -30,10 +30,16 @@ export const getUseChartDataKey = (
   endDate: Date | undefined,
 ) => ["useChartData", chainId, marketId, dayCount, intervalSeconds, endDate || "latest"];
 
+export const getUsePoolHourDataSetsKey = (chainId: SupportedChain, marketId: Address) => [
+  "usePoolHourDataSets",
+  chainId,
+  marketId,
+];
+
 export const usePoolHourDataSets = (market: Market) => {
   return useQuery<PoolHourDatasSets | undefined, Error>({
     enabled: !!market,
-    queryKey: ["usePoolHourDataSets", market.chainId, market.id],
+    queryKey: getUsePoolHourDataSetsKey(market.chainId, market.id),
     retry: false,
     queryFn: async () => fetchPoolHourDataSets(market),
   });

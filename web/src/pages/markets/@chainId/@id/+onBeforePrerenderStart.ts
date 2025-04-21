@@ -1,4 +1,4 @@
-import { ChartData, getUseChartDataKey } from "@/hooks/chart/useChartData";
+import { ChartData, getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
 import { fetchMarkets } from "@/lib/markets-search";
@@ -62,7 +62,7 @@ export default async function onBeforePrerenderStart() {
                   data: market,
                 },
                 {
-                  queryKeyFn: () => getUseChartDataKey(market.chainId, market.id, 365 * 10, 60 * 60 * 12, undefined),
+                  queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
                   data: charts?.[market.id] || { chartData: [], timestamps: [] },
                 },
               ]),
@@ -83,7 +83,7 @@ export default async function onBeforePrerenderStart() {
           data: market,
         },
         {
-          queryKeyFn: () => getUseChartDataKey(market.chainId, market.id, 365 * 10, 60 * 60 * 12, undefined),
+          queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
           data: charts?.[market.id] || { chartData: [], timestamps: [] },
         },
       ]);

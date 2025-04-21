@@ -54,6 +54,12 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
   );
 }
 
+export function getMarketName(marketType: MarketTypes, marketName: string, unit: string) {
+  return [MarketTypes.SCALAR, MarketTypes.MULTI_SCALAR].includes(marketType) && unit.trim()
+    ? `${escapeJson(marketName)} [${escapeJson(unit)}]`
+    : escapeJson(marketName);
+}
+
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const outcomes = getOutcomes(props.outcomes, props.marketType);
 
@@ -63,10 +69,7 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         functionName: MarketTypeFunction[props.marketType],
         args: [
           {
-            marketName:
-              props.marketType === MarketTypes.SCALAR && props.unit.trim()
-                ? `${escapeJson(props.marketName)} [${escapeJson(props.unit)}]`
-                : escapeJson(props.marketName),
+            marketName: getMarketName(props.marketType, props.marketName, props.unit),
             questionStart: escapeJson(props.questionStart),
             questionEnd: escapeJson(props.questionEnd),
             outcomeType: escapeJson(props.outcomeType),
