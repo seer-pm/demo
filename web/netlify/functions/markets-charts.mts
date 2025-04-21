@@ -8,7 +8,7 @@ export default async (req: Request) => {
     const { data, error } = await supabase
       .from("key_value")
       .select("*")
-      .like("key", getMarketChartKeyValueHash("%", 100, 3650, 43200, undefined));
+      .like("key", getMarketChartKeyValueHash("%", "%"));
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

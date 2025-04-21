@@ -1,7 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
+import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { Market } from "../useMarket";
+import { PoolHourDatasSets, filterChartData } from "./utils";
 
 export type ChartData = {
   chartData: {
@@ -12,21 +14,10 @@ export type ChartData = {
   timestamps: number[];
 };
 
-export async function fetchChartData(
-  market: Market,
-  dayCount: number,
-  intervalSeconds: number,
-  endDate: Date | undefined,
-) {
+export async function fetchPoolHourDataSets(market: Market) {
   const params = new URLSearchParams();
   params.append("marketId", market.id);
   params.append("chainId", market.chainId.toString());
-  params.append("dayCount", dayCount.toString());
-  params.append("intervalSeconds", intervalSeconds.toString());
-
-  if (endDate) {
-    params.append("endDate", Math.floor(endDate.getTime() / 1000).toString());
-  }
 
   return fetch(`/.netlify/functions/market-chart?${params.toString()}`).then((res) => res.json());
 }
@@ -39,22 +30,26 @@ export const getUseChartDataKey = (
   endDate: Date | undefined,
 ) => ["useChartData", chainId, marketId, dayCount, intervalSeconds, endDate || "latest"];
 
-export const useChartData = (market: Market, dayCount: number, intervalSeconds: number, endDate: Date | undefined) => {
-  return useQuery<
-    | {
-        chartData: {
-          name: string;
-          type: string;
-          data: number[][];
-        }[];
-        timestamps: number[];
-      }
-    | undefined,
-    Error
-  >({
+export const usePoolHourDataSets = (market: Market) => {
+  return useQuery<PoolHourDatasSets | undefined, Error>({
     enabled: !!market,
-    queryKey: getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
+    queryKey: ["usePoolHourDataSets", market.chainId, market.id],
     retry: false,
-    queryFn: async () => fetchChartData(market, dayCount, intervalSeconds, endDate),
+    queryFn: async () => fetchPoolHourDataSets(market),
   });
 };
+
+export const useChartData = (market: Market, dayCount: number, intervalSeconds: number, endDate: Date | undefined) => {
+  const { data: poolHourDataSets } = usePoolHourDataSets(market);
+  return useQuery<ChartData | undefined, Error>({
+    enabled: !isUndefined(poolHourDataSets),
+    queryKey: getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
+    retry: false,
+    queryFn: async () => await filterChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
+  });
+};
+
+export async function fetchFullChartData(market: Market) {
+  const poolHourDataSets = await fetchPoolHourDataSets(market);
+  return await filterChartData(market, poolHourDataSets!, 365 * 10, 60 * 60 * 24, undefined);
+}
