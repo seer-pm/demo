@@ -19,6 +19,11 @@ function DateRangePicker({
 }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isClient, setClient] = useState(false);
+
+  useEffect(() => {
+    setClient(true);
+  }, []);
 
   useEffect(() => {
     setStartDate(initialStartDate);
@@ -99,19 +104,21 @@ function DateRangePicker({
             );
           })}
         </div>
-        <DatePicker
-          selected={startDate}
-          onChange={(dates: (Date | null)[]) => {
-            const [start, end] = dates;
-            setStartDate(start ?? undefined);
-            setEndDate(end ?? undefined);
-          }}
-          startDate={startDate}
-          endDate={endDate}
-          selectsRange
-          inline
-          calendarClassName="custom-date-picker border-none"
-        />
+        {isClient && (
+          <DatePicker
+            selected={startDate}
+            onChange={(dates: (Date | null)[]) => {
+              const [start, end] = dates;
+              setStartDate(start ?? undefined);
+              setEndDate(end ?? undefined);
+            }}
+            startDate={startDate}
+            endDate={endDate}
+            selectsRange
+            inline
+            calendarClassName="custom-date-picker border-none"
+          />
+        )}
       </div>
       <div className="flex justify-end text-center p-3 gap-2">
         <Button

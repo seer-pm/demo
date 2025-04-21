@@ -1,5 +1,4 @@
-import { ChartData } from "@/hooks/chart/useChartData";
-import { fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
+import { ChartData, fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { Market } from "@/hooks/useMarket";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
@@ -59,7 +58,6 @@ function MarketChart({ market }: { market: Market }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
-
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
