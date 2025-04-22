@@ -129,6 +129,29 @@ export function hasOutcomes(marketType: MarketTypes) {
   );
 }
 
+export function isInvalidOutcome(market: Market, outcomeIndex: number) {
+  const hasInvalidOutcome = market.type === "Generic";
+  return hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
+}
+
+export function getMultiScalarEstimate(market: Market, odds: number): { value: number; unit: string } | null {
+  const UPPER_BOUNDS: Record<Address, [number, string]> = {
+    "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
+    "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
+  };
+
+  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [Number(market.upperBound), getMarketUnit(market)];
+
+  if (upperBound <= 0 || unit === "") {
+    return null;
+  }
+
+  return {
+    value: Math.round((upperBound * odds) / 100),
+    unit,
+  };
+}
+
 export function isMarketReliable(market: Market) {
   if (getMarketType(market) === MarketTypes.SCALAR) {
     // nothing to check
@@ -137,7 +160,7 @@ export function isMarketReliable(market: Market) {
 
   if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
     // check that the outcomeType wasn't manipulated
-    const result = /(?<questionStart>.*)\[(?<outcomeType>.*)\](?<questionEnd>.*)/.exec(market.marketName);
+    const result = /(?<questionStart>.*?)\[(?<outcomeType>.*?)\](?<questionEnd>.*)/.exec(market.marketName);
 
     if (result === null) {
       // the regex fails if market name doesn't include the [outcomeType]

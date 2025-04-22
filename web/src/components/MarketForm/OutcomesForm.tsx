@@ -380,11 +380,22 @@ export function OutcomesForm({
 
           {marketType === MarketTypes.MULTI_SCALAR && (
             <>
-              <div className="text-[24px] font-semibold mb-[32px]">Bounds</div>
+              <div className="text-[24px] font-semibold mb-[32px]">Amounts</div>
+
+              <Alert type="info">
+                <div className="space-y-[10px]">
+                  <p>You can set the expected total amount and units if they are known.</p>
+                  <p>
+                    For example on the market "How many seats in Canada's House of Commons will the [party name] win in
+                    the 45th Canadian federal election?", total amount is "343" and unit is "seats".
+                  </p>
+                </div>
+              </Alert>
+
               <div className="grid grid-cols-5 gap-4 w-full text-left">
                 <div className="col-span-2">
                   <div className="space-y-2">
-                    <div className="text-[14px] mb-[10px]">Total Bound</div>
+                    <div className="text-[14px] mb-[10px]">Total Amount</div>
                     <Input
                       autoComplete="off"
                       type="number"

@@ -13,7 +13,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, getMarketType, getMarketUnit } from "@/lib/market";
+import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
@@ -373,15 +373,14 @@ function OutcomeDetails({
     return "";
   };
 
-  const hasInvalidOutcome = market.type === "Generic";
-  const isInvalidOutcome = hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
+  const _isInvalidOutcome = isInvalidOutcome(market, outcomeIndex);
 
   return (
     <div className="flex items-center space-x-[12px]">
       <div className="flex-shrink-0">
         <OutcomeImage
           image={images?.[outcomeIndex]}
-          isInvalidOutcome={isInvalidOutcome}
+          isInvalidOutcome={_isInvalidOutcome}
           title={market.outcomes[outcomeIndex]}
         />
       </div>
@@ -401,7 +400,7 @@ function OutcomeDetails({
               <QuestionIcon fill="#9747FF" />
             </span>
           )}
-          {isInvalidOutcome && (
+          {_isInvalidOutcome && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
@@ -478,20 +477,15 @@ function MultiScalarEstimate({ market, odds }: { market: Market; odds: number })
     return null;
   }
 
-  const UPPER_BOUNDS: Record<Address, [number, string]> = {
-    "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
-    "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
-  };
+  const estimate = getMultiScalarEstimate(market, odds);
 
-  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [Number(market.upperBound), getMarketUnit(market)];
-
-  if (upperBound <= 0 || unit === "") {
+  if (estimate === null) {
     return null;
   }
 
   return (
     <div className="text-[13px] font-normal">
-      ~ {Math.round((upperBound * odds) / 100)} {unit}
+      ~ {estimate.value} {estimate.unit}
     </div>
   );
 }
@@ -563,7 +557,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
                     <>
                       <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
 
-                      <MultiScalarEstimate market={market} odds={odds[i]} />
+                      {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
                     </>
                   )}
                 </div>
