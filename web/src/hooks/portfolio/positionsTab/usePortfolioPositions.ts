@@ -1,13 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits, zeroAddress } from "viem";
-
-import { getQuestionParts } from "@/components/MarketForm";
 import { Market } from "@/hooks/useMarket";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketType, getQuestionParts } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { Address, formatUnits, zeroAddress } from "viem";
 import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {

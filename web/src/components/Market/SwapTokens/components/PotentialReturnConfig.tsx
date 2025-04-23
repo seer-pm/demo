@@ -4,14 +4,15 @@ import MultiSelect from "@/components/Form/MultiSelect";
 import { useQuoteTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import { Market } from "@/hooks/useMarket";
+import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
-import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, ReactNode, SetStateAction, useRef, useState } from "react";
 import { formatUnits, zeroAddress } from "viem";
 import { PotentialReturnResult } from "./PotentialReturn";
 
@@ -50,76 +51,44 @@ function getMultiScalarReturnPerToken(outcomeTokenIndex: number, forecast: numbe
   return sum ? (forecast[outcomeTokenIndex] ?? 0) / sum : 0;
 }
 
+function getReturnPerToken(market: Market, outcomeToken: Token, outcomeText: string, input: PotentialReturnInput) {
+  const marketType = getMarketType(market);
+  const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
+
+  if (marketType === MarketTypes.SCALAR) {
+    if (!isUndefined(input.scalar)) {
+      return getScalarReturnPerToken(market, outcomeTokenIndex, input.scalar);
+    }
+  }
+
+  if (marketType === MarketTypes.MULTI_CATEGORICAL) {
+    if (input.multiCategorical.length > 0) {
+      return getMultiCategoricalReturnPerToken(outcomeText, input.multiCategorical);
+    }
+  }
+
+  if (marketType === MarketTypes.MULTI_SCALAR) {
+    if (input.multiScalar[outcomeTokenIndex]) {
+      return getMultiScalarReturnPerToken(outcomeTokenIndex, input.multiScalar);
+    }
+  }
+
+  return 1;
+}
+
 function RenderInputByMarketType({
   market,
-  outcomeToken,
-  outcomeText,
   input,
   setInput,
-  setReturnPerToken,
 }: {
   market: Market;
-  outcomeToken: Token;
-  outcomeText: string;
   input: PotentialReturnInput;
   setInput: Dispatch<SetStateAction<PotentialReturnInput>>;
-  setReturnPerToken: (returnPerToken: number) => void;
 }): ReactNode {
   const marketType = getMarketType(market);
 
   const multiSelectRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const marketType = getMarketType(market);
-    const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
-    switch (marketType) {
-      case MarketTypes.SCALAR: {
-        if (isUndefined(input.scalar)) {
-          if (outcomeTokenIndex === 0) {
-            setInput((state) => ({ ...state, scalar: Number(market.lowerBound) }));
-            break;
-          }
-          if (outcomeTokenIndex === 1) {
-            setInput((state) => ({ ...state, scalar: Number(market.upperBound) }));
-            break;
-          }
-          break;
-        }
-        setReturnPerToken(getScalarReturnPerToken(market, outcomeTokenIndex, input.scalar));
-        break;
-      }
-      case MarketTypes.MULTI_CATEGORICAL: {
-        if (!input.multiCategorical.length) {
-          setInput((state) => ({ ...state, multiCategorical: [outcomeText] }));
-          break;
-        }
-        setReturnPerToken(getMultiCategoricalReturnPerToken(outcomeText, input.multiCategorical));
-        break;
-      }
-      case MarketTypes.MULTI_SCALAR: {
-        if (!input.multiScalar[outcomeTokenIndex]) {
-          setInput((state) => {
-            const defaultPoints = [...state.multiScalar];
-            defaultPoints[outcomeTokenIndex] = 1;
-            return { ...state, multiScalar: defaultPoints };
-          });
-          break;
-        }
-        setReturnPerToken(getMultiScalarReturnPerToken(outcomeTokenIndex, input.multiScalar));
-      }
-    }
-  }, [input, market, outcomeToken, outcomeText, setReturnPerToken, setInput]);
-
-  useEffect(() => {
-    if (marketType === MarketTypes.MULTI_SCALAR) {
-      return;
-    }
-    setInput({
-      multiCategorical: [],
-      scalar: undefined,
-      multiScalar: [],
-    });
-  }, [outcomeText, market, setInput]);
   if (marketType === MarketTypes.MULTI_CATEGORICAL) {
     return (
       <div className="space-y-1">
@@ -573,6 +542,49 @@ function ScalarForecastChecker({
   );
 }
 
+function getDefaultInput(market: Market, outcomeToken: Token, outcomeText: string, odds: number[]) {
+  const defaultValue = {
+    multiCategorical: [],
+    scalar: undefined,
+    multiScalar: [],
+  };
+
+  const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
+
+  const marketType = getMarketType(market);
+
+  if (marketType === MarketTypes.SCALAR) {
+    if (outcomeTokenIndex === 0 || outcomeTokenIndex === 1) {
+      return {
+        ...defaultValue,
+        scalar: Number(outcomeTokenIndex === 0 ? market.lowerBound : market.upperBound),
+      };
+    }
+  }
+
+  if (marketType === MarketTypes.MULTI_CATEGORICAL) {
+    return {
+      ...defaultValue,
+      multiCategorical: [outcomeText],
+    };
+  }
+
+  if (marketType === MarketTypes.MULTI_SCALAR) {
+    const multiScalar = odds.map((odd) => {
+      const estimate = getMultiScalarEstimate(market, odd);
+
+      return estimate?.value || 0;
+    });
+
+    return {
+      ...defaultValue,
+      multiScalar,
+    };
+  }
+
+  return defaultValue;
+}
+
 type PotentialReturnInput = {
   multiCategorical: string[];
   scalar: number | undefined;
@@ -602,13 +614,11 @@ function PotentialReturnConfig({
   receivedAmount: number;
   collateralPerShare: number;
 }) {
-  const [input, setInput] = useState<PotentialReturnInput>({
-    multiCategorical: [],
-    scalar: undefined,
-    multiScalar: [],
-  });
-  const [returnPerToken, setReturnPerToken] = useState(1);
+  const { data: odds = [] } = useMarketOdds(market, true);
+  const [input, setInput] = useState<PotentialReturnInput>(getDefaultInput(market, outcomeToken, outcomeText, odds));
   const { Modal, openModal, closeModal } = useModal("potential-return-config", false);
+
+  const returnPerToken = getReturnPerToken(market, outcomeToken, outcomeText, input);
 
   const { sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
   const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
@@ -666,14 +676,7 @@ function PotentialReturnConfig({
       <p>Enter a possible market resolution to see your potential return.</p>
       <p className="font-semibold text-purple-primary py-4">Current Outcome: {outcomeText}</p>
       <div className="max-h-[200px] overflow-auto">
-        <RenderInputByMarketType
-          market={market}
-          outcomeToken={outcomeToken}
-          outcomeText={outcomeText}
-          input={input}
-          setInput={setInput}
-          setReturnPerToken={setReturnPerToken}
-        />
+        <RenderInputByMarketType market={market} input={input} setInput={setInput} />
       </div>
 
       {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}

@@ -5,6 +5,7 @@ import {
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   decodeQuestion,
+  escapeJson,
   isQuestionInDispute,
   isQuestionOpen,
   isQuestionPending,
@@ -69,12 +70,86 @@ export function getMarketType(market: Market): MarketTypes {
   return MarketTypes.SCALAR;
 }
 
+export function getMarketName(marketType: MarketTypes, marketName: string, unit: string) {
+  return [MarketTypes.SCALAR, MarketTypes.MULTI_SCALAR].includes(marketType) && unit.trim()
+    ? `${escapeJson(marketName)} [${escapeJson(unit)}]`
+    : escapeJson(marketName);
+}
+
+export function getQuestionParts(
+  marketName: string,
+  marketType: MarketTypes,
+): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
+  if (marketType !== MarketTypes.MULTI_SCALAR) {
+    return { questionStart: "", questionEnd: "", outcomeType: "" };
+  }
+
+  // splits the question, for example
+  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
+  // // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election? [votes]
+  const parts = marketName.split(/\[|\]/);
+
+  if (parts.length !== 3 && parts.length !== 5) {
+    // length = 3: question without unit
+    // length = 5: question with unit
+    return;
+  }
+
+  if (parts.length === 5) {
+    // Check if the market name ends with "? [unit]" pattern using regex
+    const unitRegex = /\?\s*\[[^\]]+\]$/;
+    if (!unitRegex.test(marketName)) {
+      return;
+    }
+  }
+
+  // prevent this case ]outcome type[
+  if (marketName.indexOf("[") > marketName.indexOf("]")) {
+    return;
+  }
+
+  let [questionStart, outcomeType, questionEnd] = parts;
+  if (!questionEnd?.trim() || !outcomeType.trim()) {
+    return;
+  }
+
+  // add the unit
+  if (parts.length === 5) {
+    questionEnd += `[${parts[3]}]`;
+  }
+
+  return { questionStart, questionEnd, outcomeType };
+}
+
 export function hasOutcomes(marketType: MarketTypes) {
   return (
     marketType === MarketTypes.CATEGORICAL ||
     marketType === MarketTypes.MULTI_CATEGORICAL ||
     marketType === MarketTypes.MULTI_SCALAR
   );
+}
+
+export function isInvalidOutcome(market: Market, outcomeIndex: number) {
+  const hasInvalidOutcome = market.type === "Generic";
+  return hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
+}
+
+export function getMultiScalarEstimate(market: Market, odds: number): { value: number; unit: string } | null {
+  const UPPER_BOUNDS: Record<Address, [number, string]> = {
+    "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
+    "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
+  };
+
+  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [Number(market.upperBound), getMarketUnit(market)];
+
+  if (upperBound <= 0 || unit === "") {
+    return null;
+  }
+
+  return {
+    value: Math.round((upperBound * odds) / 100),
+    unit,
+  };
 }
 
 export function isMarketReliable(market: Market) {
@@ -85,7 +160,7 @@ export function isMarketReliable(market: Market) {
 
   if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
     // check that the outcomeType wasn't manipulated
-    const result = /(?<questionStart>.*)\[(?<outcomeType>.*)\](?<questionEnd>.*)/.exec(market.marketName);
+    const result = /(?<questionStart>.*?)\[(?<outcomeType>.*?)\](?<questionEnd>.*)/.exec(market.marketName);
 
     if (result === null) {
       // the regex fails if market name doesn't include the [outcomeType]
@@ -133,7 +208,7 @@ export function isOdd(odd: number | undefined | null) {
 }
 
 export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
-  const { lowerBound, upperBound, marketName } = market;
+  const { lowerBound, upperBound } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
@@ -141,13 +216,20 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   if (!convertToString) {
     return estimate;
   }
-  if (marketName.lastIndexOf("[") > -1) {
-    return `${Number(estimate).toLocaleString()} ${marketName.slice(
-      marketName.lastIndexOf("[") + 1,
-      marketName.lastIndexOf("]"),
-    )}`;
+  const marketUnit = getMarketUnit(market);
+  if (marketUnit) {
+    return `${Number(estimate).toLocaleString()} ${marketUnit}`;
   }
   return Number(estimate).toLocaleString();
+}
+
+export function getMarketUnit(market: Market) {
+  const marketName = market.marketName;
+  if (marketName.lastIndexOf("[") > -1) {
+    return `${marketName.slice(marketName.lastIndexOf("[") + 1, marketName.lastIndexOf("]"))}`;
+  }
+
+  return "";
 }
 
 export function getCollateralByIndex(market: Market, index: number) {

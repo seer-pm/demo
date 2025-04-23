@@ -171,6 +171,27 @@ export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;
 }
 
+export function encodeOutcomes(outcomes: string[]) {
+  return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
+}
+
+export function encodeQuestionText(
+  qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
+  txt: string,
+  outcomes: string[],
+  category: string,
+  lang?: string,
+) {
+  let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
+  const delim = "\u241f";
+  //console.log('using template_id', template_id);
+  if (qtype === "single-select" || qtype === "multiple-select") {
+    qText = qText + delim + encodeOutcomes(outcomes);
+  }
+  qText = qText + delim + category + delim + (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
+  return qText;
+}
+
 export function decodeQuestion(encodedQuestion: string): {
   question: string;
   outcomes: string[] | undefined;

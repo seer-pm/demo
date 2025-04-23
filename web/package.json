@@ -15,7 +15,8 @@
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
     "cosmos-export": "cosmos-export",
-    "typecheck-netlify-functions": "npx tsc --noEmit --project netlify/tsconfig.json"
+    "typecheck-netlify-functions": "npx tsc --noEmit --project netlify/tsconfig.json",
+    "test": "vitest"
   },
   "dependencies": {
     "@biomejs/biome": "1.9.3",
@@ -100,7 +101,9 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
     "vite": "^5.4.9",
-    "vite-plugin-cjs-interop": "^2.1.4"
+    "vite-plugin-cjs-interop": "^2.1.4",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.1.1"
   },
   "workspaces": {
     "nohoist": [

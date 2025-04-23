@@ -15,35 +15,6 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
   { value: "misc", text: "Miscellaneous" },
 ];
 
-export function getQuestionParts(
-  marketName: string,
-  marketType: MarketTypes,
-): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
-  if (marketType !== MarketTypes.MULTI_SCALAR) {
-    return { questionStart: "", questionEnd: "", outcomeType: "" };
-  }
-
-  // splits the question, for example
-  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
-  const parts = marketName.split(/\[|\]/);
-
-  if (parts.length !== 3) {
-    return;
-  }
-
-  // prevent this case ]outcome type[
-  if (marketName.indexOf("[") > marketName.indexOf("]")) {
-    return;
-  }
-
-  const [questionStart, outcomeType, questionEnd] = parts;
-  if (!questionEnd?.trim() || !outcomeType.trim()) {
-    return;
-  }
-
-  return { questionStart, questionEnd, outcomeType };
-}
-
 interface GetImagesReturn {
   url: {
     market: string;

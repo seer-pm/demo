@@ -11,7 +11,7 @@ import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
-import { getOutcomes } from "@/lib/market";
+import { getMarketName, getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
@@ -29,7 +29,6 @@ import {
   MarketTypeFormValues,
   OutcomesFormValues,
   getImagesForVerification,
-  getQuestionParts,
 } from ".";
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
@@ -293,7 +292,6 @@ export function PreviewForm({
   const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
 
   const createMarketHandler = async () => {
-    const questionParts = getQuestionParts(outcomesValues.market, marketTypeValues.marketType);
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
@@ -302,9 +300,6 @@ export function PreviewForm({
         marketTypeValues.marketType === MarketTypes.SCALAR
           ? [outcomesValues.lowerBound.token, outcomesValues.upperBound.token]
           : outcomesValues.outcomes.map((o) => o.token),
-      questionStart: questionParts?.questionStart || "",
-      questionEnd: questionParts?.questionEnd || "",
-      outcomeType: questionParts?.outcomeType || "",
       parentMarket: parentMarketAddress as Address,
       parentOutcome: BigInt(parentOutcomeIndex),
       lowerBound: outcomesValues.lowerBound.value,
@@ -341,10 +336,7 @@ export function PreviewForm({
     collateralToken1: zeroAddress,
     collateralToken2: zeroAddress,
     chainId,
-    marketName:
-      marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
-        ? `${outcomesValues.market} [${outcomesValues.unit}]`
-        : outcomesValues.market,
+    marketName: getMarketName(marketTypeValues.marketType, outcomesValues.market, outcomesValues.unit),
     outcomes: dummyOutcomes,
     parentMarket: {
       id: parentMarketAddress as Address,
