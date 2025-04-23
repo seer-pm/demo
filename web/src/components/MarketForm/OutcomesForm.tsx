@@ -392,8 +392,20 @@ export function OutcomesForm({
                 </div>
               </Alert>
 
-              <div className="grid grid-cols-5 gap-4 w-full text-left">
-                <div className="col-span-2">
+              <div className="grid grid-cols-2 gap-4 w-full text-left">
+                <div className="col-span-1">
+                  <div className="space-y-2">
+                    <div className="text-[14px] mb-[10px]">Unit</div>
+                    <Input
+                      autoComplete="off"
+                      type="text"
+                      {...register("unit")}
+                      className="w-full"
+                      useFormReturn={useFormReturn}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-1">
                   <div className="space-y-2">
                     <div className="text-[14px] mb-[10px]">Total Amount</div>
                     <Input
@@ -414,18 +426,6 @@ export function OutcomesForm({
                           return true;
                         },
                       })}
-                      className="w-full"
-                      useFormReturn={useFormReturn}
-                    />
-                  </div>
-                </div>
-                <div className="col-span-1">
-                  <div className="space-y-2">
-                    <div className="text-[14px] mb-[10px]">Unit</div>
-                    <Input
-                      autoComplete="off"
-                      type="text"
-                      {...register("unit")}
                       className="w-full"
                       useFormReturn={useFormReturn}
                     />
