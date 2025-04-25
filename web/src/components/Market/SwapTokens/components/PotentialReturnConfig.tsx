@@ -10,6 +10,7 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { CloseIcon } from "@/lib/icons";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
 import { Dispatch, ReactNode, SetStateAction, useRef, useState } from "react";
@@ -616,7 +617,7 @@ function PotentialReturnConfig({
 }) {
   const { data: odds = [] } = useMarketOdds(market, true);
   const [input, setInput] = useState<PotentialReturnInput>(getDefaultInput(market, outcomeToken, outcomeText, odds));
-  const { Modal, openModal, closeModal } = useModal("potential-return-config", false);
+  const { Modal, openModal, closeModal } = useModal("potential-return-config", true);
 
   const returnPerToken = getReturnPerToken(market, outcomeToken, outcomeText, input);
 
@@ -673,18 +674,29 @@ function PotentialReturnConfig({
 
   const modalContent = (
     <div className="space-y-2 w-full">
-      <p>Enter a possible market resolution to see your potential return.</p>
-      <p className="font-semibold text-purple-primary py-4">Current Outcome: {outcomeText}</p>
+      <div>
+        <button
+          type="button"
+          className="absolute right-[20px] top-[20px] hover:text-purple-primary"
+          onClick={closeModal}
+        >
+          <CloseIcon fill="black" />
+        </button>
+        <p>Enter a possible market resolution to see your potential return.</p>
+        <p className="font-semibold text-purple-primary py-4">Current Outcome: {outcomeText}</p>
       <div className="max-h-[200px] overflow-auto">
-        <RenderInputByMarketType market={market} input={input} setInput={setInput} />
-      </div>
-
-      {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
-      <div className="text-center pt-4">
-        <Button type="button" variant="primary" size="small" text="Close" onClick={closeModal} />
+          <RenderInputByMarketType market={market} input={input} setInput={setInput} />
+        </div>
+    
+        {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
+      <div className="text-center pt-2">
+          <Button type="button" variant="primary" size="small" text="Close" onClick={closeModal} />
+        </div>
       </div>
     </div>
   );
+  
+  
 
   return (
     <div>
