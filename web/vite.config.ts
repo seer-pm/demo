@@ -35,6 +35,14 @@ export default defineConfig({
       jsbi: path.resolve(__dirname, "./../node_modules/jsbi/dist/jsbi-cjs.js"),
     },
   },
+  optimizeDeps: {
+    include: ['jsbi'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/jsbi/, /node_modules/],
+    },
+  },
   css: {
     postcss: {
       plugins: [tailwindcss()],

@@ -22,6 +22,37 @@
   resolved "https://registry.yarnpkg.com/@adraffy/ens-normalize/-/ens-normalize-1.11.0.tgz#42cc67c5baa407ac25059fcd7d405cc5ecdb0c33"
   integrity sha512-/3DDPKHqqIqxUULp8yP4zODUY1i+2xvVWsv8A79xGWdCAG+8sb0hRh0Rk2QyOJUnnbyPUAZYcpBuRe3nS2OIUg==
 
+"@algebra/sdk@file:../algebra-sdk":
+  version "1.12.0"
+  dependencies:
+    "@cowprotocol/cow-sdk" "^2.0.0-alpha.1"
+    "@ethersproject/abi" "^5.6.4"
+    "@ethersproject/address" "^5.4.0"
+    "@ethersproject/bignumber" "^5.4.0"
+    "@ethersproject/constants" "^5.4.0"
+    "@ethersproject/contracts" "^5.4.0"
+    "@ethersproject/networks" "^5.6.4"
+    "@ethersproject/providers" "^5.4.0"
+    "@ethersproject/solidity" "^5.4.0"
+    "@ethersproject/transactions" "^5.4.0"
+    "@ethersproject/units" "^5.4.0"
+    "@swapr/core" "^0.3.20"
+    "@swapr/periphery" "^0.3.23"
+    "@uniswap/smart-order-router" "^2.9.3"
+    big.js "^5.2.2"
+    dayjs "^1.11.0"
+    debug "^4.3.4"
+    decimal.js-light "^2.5.1"
+    graphql-request "^5.1.0"
+    jsbi "^3.1.1"
+    lodash.flatmap "^4.5.0"
+    memoizee "^0.4.15"
+    node-fetch "2"
+    tiny-invariant "^1.2.0"
+    tiny-warning "^1.0.3"
+    toformat "^2.0.0"
+    tslib "^2.3.1"
+
 "@alloc/quick-lru@^5.2.0":
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/@alloc/quick-lru/-/quick-lru-5.2.0.tgz#7bf68b20c0a350f936915fcae06f58e32007ce30"
