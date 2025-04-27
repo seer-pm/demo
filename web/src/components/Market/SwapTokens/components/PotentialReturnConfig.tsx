@@ -10,7 +10,6 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { CloseIcon } from "@/lib/icons";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
 import { Dispatch, ReactNode, SetStateAction, useRef, useState } from "react";
@@ -114,7 +113,7 @@ function RenderInputByMarketType({
         <p className="whitespace-nowrap">Market resolution:</p>
         <Input
           type="number"
-          className="w-full"
+          className="w-full "
           value={input.scalar ?? ""}
           onChange={(e) => setInput((state) => ({ ...state, scalar: Number(e.target.value) }))}
         />
@@ -493,7 +492,7 @@ function ScalarForecastChecker({
 
   // find the return for each outcome token
   return (
-    <div className="text-[14px] space-y-6">
+    <div className="text-[14px] space-y-2">
       <div>
         <div className="flex items-center py-3 border-b border-black-secondary">
           <p className="w-[30%] font-semibold">Buying</p>
@@ -514,12 +513,12 @@ function ScalarForecastChecker({
             DOWN
           </p>
         </div>
-        <div className="flex items-center py-3 border-b border-black-secondary">
+        <div className="flex items-center py-1 border-b border-black-secondary">
           <p className="w-[30%] font-semibold">Return per token:</p>
           <p className="w-[35%] text-right">{renderReturnPerToken(data[1].returnPercentage, data[1].returnPerToken)}</p>
           <p className="w-[35%] text-right">{renderReturnPerToken(data[0].returnPercentage, data[0].returnPerToken)}</p>
         </div>
-        <div className="flex items-center py-3 border-b border-black-secondary">
+        <div className="flex items-center py-1 border-b border-black-secondary">
           <p className="w-[30%] font-semibold">Potential return:</p>
           <p className="w-[35%] text-right">
             {renderPotentialReturn(data[1].returnPercentage, data[1].potentialReturn)}
@@ -529,9 +528,7 @@ function ScalarForecastChecker({
           </p>
         </div>
       </div>
-      <div>
-        <ReactECharts option={option} key={bestReturnIndex} />
-      </div>
+      <ReactECharts option={option} key={bestReturnIndex} style={{ height: "250px" }} />
       <div className="flex items-center flex-col">
         <p className="font-semibold mb-2">Best return for your forecast</p>
         <p className="text-success-primary">
@@ -673,30 +670,23 @@ function PotentialReturnConfig({
   );
 
   const modalContent = (
-    <div className="space-y-2 w-full">
+    <div className=" space-y-2 w-full -mt-[20px] ">
       <div>
-        <button
-          type="button"
-          className="absolute right-[20px] top-[20px] hover:text-purple-primary"
-          onClick={closeModal}
-        >
-          <CloseIcon fill="black" />
-        </button>
         <p>Enter a possible market resolution to see your potential return.</p>
-        <p className="font-semibold text-purple-primary py-4">Current Outcome: {outcomeText}</p>
-      <div className="max-h-[200px] overflow-auto">
+        <p className="font-semibold text-purple-primary py-1.5">Current Outcome: {outcomeText}</p>
+        <div className="max-h-[200px] overflow-auto">
           <RenderInputByMarketType market={market} input={input} setInput={setInput} />
         </div>
-    
-        {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
-      <div className="text-center pt-2">
+
+        <div>
+          {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
+        </div>
+        <div className="text-center pt-2">
           <Button type="button" variant="primary" size="small" text="Close" onClick={closeModal} />
         </div>
       </div>
     </div>
   );
-  
-  
 
   return (
     <div>
