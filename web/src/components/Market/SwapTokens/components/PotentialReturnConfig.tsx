@@ -1,4 +1,3 @@
-import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import MultiSelect from "@/components/Form/MultiSelect";
 import { useQuoteTrade } from "@/hooks/trade";
@@ -7,6 +6,7 @@ import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { CloseIcon } from "@/lib/icons";
 import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -672,6 +672,14 @@ function PotentialReturnConfig({
   const modalContent = (
     <div className=" space-y-2 w-full -mt-[20px] ">
       <div>
+        <button
+          type="button"
+          className="absolute right-[20px] top-[20px] hover:text-purple-primary"
+          onClick={closeModal}
+          aria-label="Close modal"
+        >
+          <CloseIcon fill="black" />
+        </button>
         <p>Enter a possible market resolution to see your potential return.</p>
         <p className="font-semibold text-purple-primary py-1.5">Current Outcome: {outcomeText}</p>
         <div className="max-h-[200px] overflow-auto">
@@ -680,9 +688,6 @@ function PotentialReturnConfig({
 
         <div>
           {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
-        </div>
-        <div className="text-center pt-2">
-          <Button type="button" variant="primary" size="small" text="Close" onClick={closeModal} />
         </div>
       </div>
     </div>
