@@ -189,6 +189,12 @@ function MarketChart({ market }: { market: Market }) {
         }
         return name;
       },
+      ...(series.length > 10 && {
+        type: "scroll",
+        left: isSmallScreen ? 20 : 80,
+        right: isSmallScreen ? 20 : 80,
+        padding: [20, 10, 10, 10],
+      }),
     },
 
     grid: {

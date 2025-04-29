@@ -125,7 +125,10 @@ export function OutcomesInfo({
           const background = (() => {
             switch (marketType) {
               case MarketTypes.CATEGORICAL: {
-                return BAR_COLOR[marketType][originalIndex] ?? "gray";
+                if (visibleOutcomesCount === 2) {
+                  return BAR_COLOR[marketType][originalIndex] ?? "gray";
+                }
+                return BAR_COLOR[MarketTypes.MULTI_CATEGORICAL][order] ?? "gray";
               }
               default: {
                 return BAR_COLOR[marketType][order] ?? "gray";
@@ -152,7 +155,10 @@ export function OutcomesInfo({
           const color = (() => {
             switch (marketType) {
               case MarketTypes.CATEGORICAL: {
-                return BAR_COLOR[marketType][originalIndex] ?? "gray";
+                if (visibleOutcomesCount === 2) {
+                  return BAR_COLOR[marketType][originalIndex] ?? "gray";
+                }
+                return BAR_COLOR[MarketTypes.MULTI_CATEGORICAL][order] ?? "gray";
               }
               default: {
                 return BAR_COLOR[marketType][order] ?? "gray";
