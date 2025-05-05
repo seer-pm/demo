@@ -614,7 +614,7 @@ function PotentialReturnConfig({
 }) {
   const { data: odds = [] } = useMarketOdds(market, true);
   const [input, setInput] = useState<PotentialReturnInput>(getDefaultInput(market, outcomeToken, outcomeText, odds));
-  const { Modal, openModal, closeModal } = useModal("potential-return-config", true);
+  const { Modal, openModal, closeModal } = useModal("potential-return-config", false);
 
   const returnPerToken = getReturnPerToken(market, outcomeToken, outcomeText, input);
 

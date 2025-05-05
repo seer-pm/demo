@@ -98,7 +98,7 @@ export default async (req: Request) => {
     });
   } catch (e) {
     console.log(e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: e.message || "Internal server error" }), {
       status: 500,
       headers: {
         "Content-Type": "application/json",

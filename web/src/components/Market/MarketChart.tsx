@@ -154,6 +154,7 @@ function MarketChart({ market }: { market: Market }) {
       axisPointer: {
         type: "none",
       },
+      confine: true,
       valueFormatter: (value: number) => {
         if (market.type === "Futarchy") {
           return `${value}`;
@@ -189,18 +190,16 @@ function MarketChart({ market }: { market: Market }) {
         }
         return name;
       },
-      ...(series.length > 10 && {
-        type: "scroll",
-        left: isSmallScreen ? 20 : 80,
-        right: isSmallScreen ? 20 : 80,
-        padding: [20, 10, 10, 10],
-      }),
+      type: "scroll",
+      left: "center",
+      right: isSmallScreen ? 20 : 80,
+      padding: [20, 50, 10, 10],
     },
 
     grid: {
       left: isSmallScreen ? "20%" : 80,
       right: isSmallScreen ? 20 : 80,
-      top: "15%",
+      top: "20%",
       bottom: "15%",
     },
     xAxis: {
