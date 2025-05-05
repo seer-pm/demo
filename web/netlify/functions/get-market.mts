@@ -75,19 +75,33 @@ export default async (req: Request) => {
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    const [result, subgraphMarket, verificationStatusList] = await Promise.all([
+    const [dbResult, subgraphMarket, verificationStatusList] = await Promise.allSettled([
       getDatabaseMarket(id),
       getSubgraphMarket(Number(body.chainId) as SupportedChain, id),
       getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain),
     ]);
 
-    const verification = verificationStatusList?.[id as `0x${string}`];
+    if (dbResult.status === "rejected") {
+      throw new Error("Market fetch failed");
+    }
+
+    if (subgraphMarket.status === "rejected") {
+      console.log("Subgraph query failed");
+    }
+
+    const result = dbResult.value;
+
+    const verification =
+      verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
     if (verification !== undefined) {
       result.verification = verification;
     }
 
     const market = serializeMarket(
-      mapGraphMarketFromDbResult(subgraphMarket || (result.subgraph_data as SubgraphMarket), result),
+      mapGraphMarketFromDbResult(
+        subgraphMarket.status === "fulfilled" ? subgraphMarket.value! : (result.subgraph_data as SubgraphMarket),
+        result,
+      ),
     );
 
     return new Response(JSON.stringify(market), {
