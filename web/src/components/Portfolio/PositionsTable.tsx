@@ -194,6 +194,16 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return <p className="text-[14px] text-black-secondary">Not yet</p>;
         },
         header: "Redeem",
+        sortingFn: (rowA, rowB) => {
+          const statusA = rowA.original.marketStatus;
+          const statusB = rowB.original.marketStatus;
+          if (statusA === MarketStatus.CLOSED && statusB !== MarketStatus.CLOSED) {
+            return -1;
+          } else if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
+            return 1;
+          }
+          return 0;
+        },
       },
     ],
     [],
@@ -233,6 +243,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 type="button"
                 className="absolute right-[20px] top-[20px] hover:opacity-60"
                 onClick={() => closeModal()}
+                aria-label="Close modal"
               >
                 <CloseIcon fill="black" />
               </button>
