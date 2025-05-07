@@ -331,7 +331,15 @@ export function SwapTokens({
                 input amount.
               </Alert>
             )}
-            {quoteError && <Alert type="error">{quoteError.message ?? "Error when quoting price"}</Alert>}
+            {quoteError && (
+              <Alert type="error">
+                {quoteError.message
+                  ? quoteError.message === "No route found"
+                    ? "Not enough liquidity. Try to reduce the input amount."
+                    : quoteError.message
+                  : "Error when quoting price"}
+              </Alert>
+            )}
 
             <div className="flex justify-between flex-wrap gap-4">
               {isUndefined(parentCollateral) && (
