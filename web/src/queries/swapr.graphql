@@ -300,3 +300,36 @@ query GetTicks(
     liquidityNet
   }
 }
+
+query GetPositions(
+  $skip: Int = 0
+  $first: Int
+  $where: Position_filter
+  $orderBy: Position_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  positions(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    id
+    liquidity
+    tickLower {
+      tickIdx
+    }
+    tickUpper {
+      tickIdx
+    }
+    pool {
+      liquidity
+      tick
+    }
+  }
+}

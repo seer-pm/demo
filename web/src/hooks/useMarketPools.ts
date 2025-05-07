@@ -10,6 +10,7 @@ import { Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
+  GetPositionsQuery,
   OrderDirection,
   Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
@@ -277,6 +278,35 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
 
         return acum;
       }, {} as PoolsDeposits);
+    },
+  });
+};
+
+export type NftPosition = GetPositionsQuery["positions"][0];
+
+export const useNftPositions = (chainId: SupportedChain, ids: string[]) => {
+  return useQuery<Record<string, NftPosition> | undefined, Error>({
+    queryKey: ["useNftPositions", chainId, ids],
+    enabled: ids.length > 0,
+    refetchOnWindowFocus: "always",
+    queryFn: async () => {
+      const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+      if (!algebraClient) {
+        throw new Error("Subgraph not available");
+      }
+
+      const { positions } = await getSwaprSdk(algebraClient).GetPositions({
+        where: { id_in: ids },
+      });
+
+      return positions.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr;
+          return acc;
+        },
+        {} as Record<string, NftPosition>,
+      );
     },
   });
 };

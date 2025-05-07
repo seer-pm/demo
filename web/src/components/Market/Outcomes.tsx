@@ -2,7 +2,14 @@ import { Link } from "@/components/Link";
 import { useDepositNft, useEnterFarming, useExitFarming, useWithdrawNft } from "@/hooks/useFarmingCenter";
 import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
+import {
+  NftPosition,
+  PoolIncentive,
+  PoolInfo,
+  useMarketPools,
+  useNftPositions,
+  usePoolsDeposits,
+} from "@/hooks/useMarketPools";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -20,8 +27,9 @@ import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect } from "react";
-import { Address, RpcError } from "viem";
+import { differenceInSeconds, startOfDay } from "date-fns";
+import { useEffect, useState } from "react";
+import { Address, RpcError, formatUnits } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -82,6 +90,13 @@ function AddLiquidityInfo({
     chainId,
     pools.map((p) => p.id),
     address,
+  );
+
+  const { data: nftPositionMapping } = useNftPositions(
+    chainId,
+    Object.values(deposits ?? {})
+      .flat()
+      .map((x) => x.id),
   );
 
   const enterFarming = useEnterFarming();
@@ -150,7 +165,7 @@ function AddLiquidityInfo({
       <div className="space-y-[12px]">
         {pools.map((pool) => {
           const isRewardEnded =
-            pool.incentives.length > 0 ? Number(pool.incentives[0].endTime) * 1000 < new Date().getTime() : true;
+            pool.incentives.length > 0 ? Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime() : true;
           return (
             <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
               <div className="flex justify-between items-center">
@@ -169,78 +184,90 @@ function AddLiquidityInfo({
 
               {deposits?.[pool.id] && (
                 <div className="space-y-[16px] mt-[16px]">
-                  {deposits[pool.id].map((deposit) => (
-                    <div className="flex items-center justify-between items-center" key={deposit.id}>
-                      <div>
-                        <a
-                          href={getPositionUrl(chainId, deposit.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-primary hover:underline block"
-                        >
-                          Position #{deposit.id}
-                        </a>
-                        {deposit.onFarmingCenter && (
-                          <>
-                            {" "}
+                  {deposits[pool.id].map((deposit) => {
+                    const isFarming =
+                      deposit.onFarmingCenter && (deposit.limitFarming !== null || deposit.eternalFarming !== null);
+                    return (
+                      <div key={deposit.id}>
+                        <div className="flex items-center justify-between items-center">
+                          <div>
                             <a
-                              href={getFarmingUrl(chainId, deposit.id)}
+                              href={getPositionUrl(chainId, deposit.id)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-purple-primary hover:underline text-[13px]"
+                              className="text-purple-primary hover:underline block"
                             >
-                              {deposit.limitFarming === null && deposit.eternalFarming === null
-                                ? "(On Farming Center)"
-                                : "(In Farming)"}
+                              Position #{deposit.id}
                             </a>
-                          </>
-                        )}
-                      </div>
-                      <div>
-                        {!deposit.onFarmingCenter && (
-                          <Button
-                            text="Deposit NFT"
-                            size="small"
-                            variant="secondary"
-                            onClick={depositHandler(deposit.id)}
-                            disabled={isLoading}
-                          />
-                        )}
-                        {deposit.onFarmingCenter &&
-                          (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {deposit.onFarmingCenter && (
+                              <>
+                                {" "}
+                                <a
+                                  href={getFarmingUrl(chainId, deposit.id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-purple-primary hover:underline text-[13px]"
+                                >
+                                  {deposit.limitFarming === null && deposit.eternalFarming === null
+                                    ? "(On Farming Center)"
+                                    : "(In Farming)"}
+                                </a>
+                              </>
+                            )}
+                          </div>
+                          <div>
+                            {!deposit.onFarmingCenter && (
                               <Button
-                                text="Withdraw NFT"
+                                text="Deposit NFT"
                                 size="small"
                                 variant="secondary"
-                                onClick={withdrawHandler(deposit.id)}
+                                onClick={depositHandler(deposit.id)}
                                 disabled={isLoading}
                               />
-                              <div className="tooltip">
+                            )}
+                            {deposit.onFarmingCenter &&
+                              (deposit.limitFarming === null && deposit.eternalFarming === null ? (
+                                <div className="flex items-center gap-2 flex-wrap justify-end">
+                                  <Button
+                                    text="Withdraw NFT"
+                                    size="small"
+                                    variant="secondary"
+                                    onClick={withdrawHandler(deposit.id)}
+                                    disabled={isLoading}
+                                  />
+                                  <div className="tooltip">
+                                    <Button
+                                      text="Enter Farming"
+                                      size="small"
+                                      variant="secondary"
+                                      onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                      disabled={isLoading || isRewardEnded}
+                                    />
+                                    {isRewardEnded && (
+                                      <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
                                 <Button
-                                  text="Enter Farming"
+                                  text="Exit Farming"
                                   size="small"
                                   variant="secondary"
-                                  onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                                  disabled={isLoading || isRewardEnded}
+                                  onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                  disabled={isLoading}
                                 />
-                                {isRewardEnded && (
-                                  <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              text="Exit Farming"
-                              size="small"
-                              variant="secondary"
-                              onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                              disabled={isLoading}
-                            />
-                          ))}
+                              ))}
+                          </div>
+                        </div>
+                        {nftPositionMapping?.[deposit.id] && !isRewardEnded && isFarming && (
+                          <RewardsDisplay
+                            position={nftPositionMapping[deposit.id]}
+                            totalRewardPerDay={Number(formatUnits(pool.incentives[0].rewardRate * 86400n, 18))}
+                          />
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -309,6 +336,37 @@ function AddLiquidityLinks({
         </button>
       )}
     </>
+  );
+}
+
+function RewardsDisplay({ position, totalRewardPerDay }: { position: NftPosition; totalRewardPerDay: number }) {
+  const {
+    pool: { tick },
+    tickLower: { tickIdx: tickLowerIdx },
+    tickUpper: { tickIdx: tickUpperIdx },
+  } = position;
+  const [currentReward, setCurrentReward] = useState(0);
+  const rewardPerDay = (Number(position.liquidity) / Number(position.pool.liquidity)) * totalRewardPerDay;
+  const rewardPerSecond = rewardPerDay / (24 * 60 * 60);
+  useEffect(() => {
+    const now = new Date();
+    const currentReward = differenceInSeconds(now, startOfDay(now)) * rewardPerSecond;
+    setCurrentReward(currentReward);
+    const interval = setInterval(() => {
+      setCurrentReward((curr) => curr + rewardPerSecond);
+    }, 1000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+  if (Number(tick) <= Number(tickLowerIdx) || Number(tick) >= Number(tickUpperIdx)) {
+    return <p className="text-[12px] text-warning-primary">Position out of range.</p>;
+  }
+  return (
+    <p className="text-[12px]">
+      Today's reward: <span className="text-purple-primary font-semibold">{currentReward.toFixed(4)}</span> /{" "}
+      <span className="text-purple-primary font-semibold">{rewardPerDay.toFixed(4)}</span> SEER
+    </p>
   );
 }
 
