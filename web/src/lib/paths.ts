@@ -43,4 +43,6 @@ export const paths = {
   twitter: () => "https://x.com/seer_pm",
   telegram: () => "https://t.me/seer_pm",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
+  xDAIBridge: () =>
+    "https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=100&toToken=0x0000000000000000000000000000000000000000",
 };

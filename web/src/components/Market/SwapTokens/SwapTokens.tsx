@@ -8,13 +8,16 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
-import { displayBalance, isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
+import { gnosis } from "viem/chains";
+import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
@@ -52,6 +55,7 @@ export function SwapTokens({
   isInvalidResult,
   parentCollateral,
 }: SwapTokensProps) {
+  const { address } = useAccount();
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
@@ -68,7 +72,7 @@ export function SwapTokens({
   const {
     register,
     reset,
-    formState: { isValid, dirtyFields },
+    formState: { isValid, dirtyFields, errors },
     handleSubmit,
     watch,
     setValue,
@@ -92,6 +96,18 @@ export function SwapTokens({
     sellToken.address,
     market.chainId,
   );
+  const { data: nativeBalance = BigInt(0), isFetching: isFetchingNativeBalance } = useTokenBalance(
+    account,
+    NATIVE_TOKEN,
+    market.chainId,
+  );
+
+  const isShowXDAIBridgeLink =
+    address &&
+    market.chainId === gnosis.id &&
+    !isFetchingBalance &&
+    !isFetchingNativeBalance &&
+    ((nativeBalance === 0n && balance === 0n) || errors.amount?.message === "Not enough balance.");
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
@@ -254,6 +270,16 @@ export function SwapTokens({
                 useFormReturn={useFormReturn}
               />
             </div>
+            {isShowXDAIBridgeLink && (
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href={paths.xDAIBridge()}
+                className="text-purple-primary hover:underline text-[14px]"
+              >
+                Bridge xDAI
+              </a>
+            )}
             <div className="space-y-1">
               <div className="flex justify-between text-[#828282] text-[14px]">
                 Avg price
