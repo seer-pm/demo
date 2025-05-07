@@ -170,7 +170,7 @@ export const getCowQuote: QuoteTradeFn = async (
     maximumSlippage: args.maximumSlippage,
     user: account || zeroAddress,
     receiver: account || zeroAddress,
-    priceQuality: isFastQuery ? PriceQuality.FAST : undefined,
+    priceQuality: isFastQuery ? PriceQuality.FAST : PriceQuality.OPTIMAL,
   });
 
   if (!trade) {
