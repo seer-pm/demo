@@ -101,6 +101,7 @@ export interface UseMarketsProps {
   isShowMyMarkets?: boolean;
   isShowConditionalMarkets?: boolean;
   isShowMarketsWithRewards?: boolean;
+  minLiquidity?: number;
   orderDirection?: "asc" | "desc";
   marketIds?: string[];
   disabled?: boolean;

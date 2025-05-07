@@ -63,6 +63,13 @@ export const useSortAndFilterResults = (
     });
   }
 
+  // filter by minimum liquidity
+  if (params.minLiquidity) {
+    data = data.filter((market: Market) => {
+      return market.liquidityUSD > params.minLiquidity!;
+    });
+  }
+
   // favorite markets on top, we use reduce to keep the current sort order
   const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
     (total, market) => {
