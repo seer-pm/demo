@@ -32,7 +32,7 @@ import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
+import { COLORS, MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
@@ -355,12 +355,14 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
             <SeerLogo fill="#511778" width="50px" height="100%" />
-            <div className="flex items-center gap-2">
-              <div className="tooltip">
-                <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
-                {MARKET_TYPES_ICONS[marketType]}
+            <div className="tooltip">
+              <p className="tooltiptext !text-left min-w-[250px] !whitespace-pre-wrap">
+                {MARKET_TYPES_DESCRIPTION[marketType]}
+              </p>
+              <div className="flex items-center gap-2">
+                <div>{MARKET_TYPES_ICONS[marketType]}</div>
+                <div>{MARKET_TYPES_TEXTS[marketType]}</div>
               </div>
-              <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
             </div>
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>

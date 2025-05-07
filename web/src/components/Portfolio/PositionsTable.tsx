@@ -199,7 +199,8 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           const statusB = rowB.original.marketStatus;
           if (statusA === MarketStatus.CLOSED && statusB !== MarketStatus.CLOSED) {
             return -1;
-          } else if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
+          }
+          if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
             return 1;
           }
           return 0;
