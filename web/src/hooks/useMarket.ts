@@ -249,3 +249,30 @@ export const useMarket = (marketId: Address, chainId: SupportedChain) => {
   const graphMarket = useGraphMarket(marketId, chainId);
   return graphMarket.isError ? onChainMarket : graphMarket;
 };
+
+/**
+ * This function overrides the question object by reading the data directly from the blockchain.
+ *
+ * While the graph is the primary data source for markets, this function ensures we have the
+ * most accurate question data, particularly for:
+ * - The correct answer for each question (best_answer)
+ * - Proper status for reopened questions
+ *
+ * This is critical because the graph may not update immediately when questions are reopened
+ * or when new answers are submitted, leading to stale or incorrect data being displayed.
+ *
+ * @param market The market object that may contain stale question data from the graph
+ * @param chainId The chain ID to fetch the on-chain data from
+ * @returns The market object with updated question data from the blockchain
+ */
+export const useMarketQuestions = (market: Market | undefined, chainId: SupportedChain) => {
+  const { data: onChainMarket } = useOnChainMarket(market?.id || zeroAddress, chainId);
+
+  if (market === undefined || onChainMarket === undefined) {
+    return market;
+  }
+
+  return Object.assign(market, {
+    questions: onChainMarket.questions,
+  });
+};

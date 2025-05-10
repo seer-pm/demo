@@ -8,7 +8,7 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
-import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import { Market, getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -84,12 +84,14 @@ function MarketPage() {
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const router = getRouterAddress(chainId);
 
-  const {
+  let {
     data: market,
     isError: isMarketError,
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
+
+  market = useMarketQuestions(market, chainId);
 
   useEffect(() => {
     //update latest data since onBeforeRender cached
