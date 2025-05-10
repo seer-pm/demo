@@ -3,6 +3,7 @@ import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
+import { useGetCollections } from "./collections/useGetCollections";
 import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
@@ -15,16 +16,38 @@ export const useSortAndFilterResults = (
 ) => {
   const { address = "" } = useAccount();
   const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
+  const { data: collections = [] } = useGetCollections();
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
 
-  // filter by market name or market outcomes
+  // filter by market name, market outcomes, or collection name
   if (params.marketName) {
+    const matchingCollections = collections.filter((collection) => 
+      isTextInString(params.marketName!, collection.name)
+    );
+    
+    const matchingCollectionMarketIds = matchingCollections.length > 0 
+      ? collectionsMarkets
+          .filter(item => matchingCollections.some(col => col.id === item.collectionId))
+          .map(item => item.marketId)
+      : [];
+    
+    const isDefaultCollectionSearch = isTextInString(params.marketName!, "default");
+    const defaultCollectionMarketIds = isDefaultCollectionSearch
+      ? collectionsMarkets
+          .filter(item => item.collectionId === "default")
+          .map(item => item.marketId)
+      : [];
+    
+    const collectionMarketIds = [...matchingCollectionMarketIds, ...defaultCollectionMarketIds];
+    
     data = data.filter((market) => {
       const isMatchName = isTextInString(params.marketName!, market.marketName);
       const isMatchOutcomes = market.outcomes.some((outcome) => isTextInString(params.marketName!, outcome));
-      return isMatchName || isMatchOutcomes;
+      const isInMatchingCollection = collectionMarketIds.includes(market.id);
+      
+      return isMatchName || isMatchOutcomes || isInMatchingCollection;
     });
   }
 

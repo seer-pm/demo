@@ -27,23 +27,27 @@ export const useUpdateCollectionItem = (onSuccess?: () => void) => {
       const previousCollectionMarkets = queryClient.getQueryData(["useAllCollectionsMarkets"]);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(["useAllCollectionsMarkets"], (old: { collectionId: string; marketId: string }[]) => {
+      queryClient.setQueryData(["useAllCollectionsMarkets"], (old: { collectionId: string; marketId: string }[] | undefined) => {
+        // Ensure old is an array, even if it's undefined
+        const safeOld = old || [];
         const marketId = newProps.marketIds[0];
+        
         if (
-          old
+          safeOld
             .filter((x) => (!x.collectionId ? !newProps.collectionId : x.collectionId === newProps.collectionId))
             .map((x) => x.marketId)
             .includes(marketId)
         ) {
-          return old.filter((x) => {
+          return safeOld.filter((x) => {
             const isCurrentCollection = !x.collectionId
               ? !newProps.collectionId
               : x.collectionId === newProps.collectionId;
             return (isCurrentCollection && x.marketId !== marketId) || !isCurrentCollection;
           });
         }
-        return [...old, { marketId, collectionId: newProps.collectionId }];
+        return [...safeOld, { marketId, collectionId: newProps.collectionId }];
       });
+      
       // Return a context object with the snapshotted value
       return { previousCollectionMarkets };
     },
