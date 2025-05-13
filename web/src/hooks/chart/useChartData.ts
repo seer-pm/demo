@@ -52,7 +52,7 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
     enabled: !isUndefined(poolHourDataSets),
     queryKey: [
       ...getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
-      JSON.stringify((poolHourDataSets as [][])?.map((x) => x.length) ?? []),
+      JSON.stringify(Array.isArray(poolHourDataSets) ? poolHourDataSets.map((x) => x.length) : poolHourDataSets),
     ],
     retry: false,
     queryFn: async () => await filterChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
