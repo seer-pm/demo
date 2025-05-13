@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { SupportedChain } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -49,10 +48,12 @@ export const usePoolHourDataSets = (market: Market) => {
 
 export const useChartData = (market: Market, dayCount: number, intervalSeconds: number, endDate: Date | undefined) => {
   const { data: poolHourDataSets } = usePoolHourDataSets(market);
-  const hashData = createHash("md5").update(JSON.stringify(poolHourDataSets)).digest("hex");
   return useQuery<ChartData | undefined, Error>({
     enabled: !isUndefined(poolHourDataSets),
-    queryKey: [...getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate), hashData],
+    queryKey: [
+      ...getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
+      JSON.stringify(poolHourDataSets?.map((x) => x.length) ?? []),
+    ],
     retry: false,
     queryFn: async () => await filterChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
   });
