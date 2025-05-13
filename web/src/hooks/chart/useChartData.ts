@@ -42,7 +42,7 @@ export const usePoolHourDataSets = (market: Market) => {
     queryKey: getUsePoolHourDataSetsKey(market.chainId, market.id),
     retry: false,
     queryFn: async () => fetchPoolHourDataSets(market),
-    refetchOnMount: true,
+    refetchOnMount: "always",
   });
 };
 
