@@ -42,6 +42,7 @@ export const usePoolHourDataSets = (market: Market) => {
     queryKey: getUsePoolHourDataSetsKey(market.chainId, market.id),
     retry: false,
     queryFn: async () => fetchPoolHourDataSets(market),
+    refetchOnMount: "always",
   });
 };
 
@@ -49,7 +50,10 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
   const { data: poolHourDataSets } = usePoolHourDataSets(market);
   return useQuery<ChartData | undefined, Error>({
     enabled: !isUndefined(poolHourDataSets),
-    queryKey: getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
+    queryKey: [
+      ...getUseChartDataKey(market.chainId, market.id, dayCount, intervalSeconds, endDate),
+      JSON.stringify(Array.isArray(poolHourDataSets) ? poolHourDataSets.map((x) => x.length) : poolHourDataSets),
+    ],
     retry: false,
     queryFn: async () => await filterChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
   });
