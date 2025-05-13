@@ -3,6 +3,7 @@ import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
+import { useCollectionsSearch } from "./collections/useCollectionsSearch";
 import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
@@ -15,16 +16,18 @@ export const useSortAndFilterResults = (
 ) => {
   const { address = "" } = useAccount();
   const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
+  const { data: marketsInCollections = [] } = useCollectionsSearch(params.marketName);
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
 
-  // filter by market name or market outcomes
+  // filter by market name or market outcomes or markets in collections which name contains search string
   if (params.marketName) {
     data = data.filter((market) => {
       const isMatchName = isTextInString(params.marketName!, market.marketName);
       const isMatchOutcomes = market.outcomes.some((outcome) => isTextInString(params.marketName!, outcome));
-      return isMatchName || isMatchOutcomes;
+      const isInCollection = marketsInCollections.includes(market.id);
+      return isMatchName || isMatchOutcomes || isInCollection;
     });
   }
 
