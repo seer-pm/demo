@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-require("dotenv").config();
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
 export default async (req: Request) => {
