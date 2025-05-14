@@ -58,6 +58,7 @@ fragment Market on Market {
   creator
   outcomesSupply
   blockTimestamp
+  transactionHash
 }
 
 query GetMarkets(
