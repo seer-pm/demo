@@ -1,4 +1,5 @@
 import { ChartData, getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
+import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
 import { fetchMarkets } from "@/lib/markets-search";
@@ -19,7 +20,7 @@ function getQueryClient(config: QuerClientConfig[]) {
   return queryClient;
 }
 
-async function fetchCharts(): Promise<Record<Address, ChartData>> {
+async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
   const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-charts`, {
     method: "GET",
     headers: {
@@ -63,7 +64,7 @@ export default async function onBeforePrerenderStart() {
                 },
                 {
                   queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
-                  data: charts?.[market.id] || { chartData: [], timestamps: [] },
+                  data: charts?.[market.id] || Array(market.wrappedTokens.length).fill([]),
                 },
               ]),
             ),
