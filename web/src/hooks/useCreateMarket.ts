@@ -51,33 +51,35 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
   );
 }
 
-async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
+export function getCreateMarketParams(props: CreateMarketProps) {
   const outcomes = getOutcomes(props.outcomes, props.marketType);
   const marketName = getMarketName(props.marketType, props.marketName, props.unit);
   const questionParts = getQuestionParts(marketName, props.marketType);
 
+  return {
+    marketName,
+    questionStart: escapeJson(questionParts?.questionStart || ""),
+    questionEnd: escapeJson(questionParts?.questionEnd || ""),
+    outcomeType: escapeJson(questionParts?.outcomeType || ""),
+    parentMarket: props.parentMarket,
+    parentOutcome: props.parentOutcome,
+    lang: "en_US",
+    category: props.category || "misc",
+    outcomes: outcomes.map(escapeJson),
+    tokenNames: getTokenNames(props.tokenNames, outcomes),
+    lowerBound: props.lowerBound,
+    upperBound: props.upperBound,
+    minBond: getConfigNumber("MIN_BOND", props.chainId),
+    openingTime: props.openingTime,
+  };
+}
+
+async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () =>
       writeMarketFactory(config, {
         functionName: MarketTypeFunction[props.marketType],
-        args: [
-          {
-            marketName,
-            questionStart: escapeJson(questionParts?.questionStart || ""),
-            questionEnd: escapeJson(questionParts?.questionEnd || ""),
-            outcomeType: escapeJson(questionParts?.outcomeType || ""),
-            parentMarket: props.parentMarket,
-            parentOutcome: props.parentOutcome,
-            lang: "en_US",
-            category: "misc",
-            outcomes: outcomes.map(escapeJson),
-            tokenNames: getTokenNames(props.tokenNames, outcomes),
-            lowerBound: props.lowerBound,
-            upperBound: props.upperBound,
-            minBond: getConfigNumber("MIN_BOND", props.chainId),
-            openingTime: props.openingTime,
-          },
-        ],
+        args: [getCreateMarketParams(props)],
       }),
     {
       txSent: { title: "Creating market..." },
