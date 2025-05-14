@@ -1,4 +1,4 @@
-import { ChartData, getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
+import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
