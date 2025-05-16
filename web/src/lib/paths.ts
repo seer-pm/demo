@@ -43,6 +43,12 @@ export const paths = {
   twitter: () => "https://x.com/seer_pm",
   telegram: () => "https://t.me/seer_pm",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
+  depositGuideEth: () =>
+    "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-ethereum/deposit-dai",
+  depositGuideGnosis: () =>
+    "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-gnosis/deposit-xdai",
+  swapETHToDai: () =>
+    "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x6B175474E89094C44Da98b954EedeAC495271d0F",
   xDAIBridge: () =>
     "https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=100&toToken=0x0000000000000000000000000000000000000000",
 };
