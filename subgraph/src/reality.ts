@@ -111,26 +111,34 @@ export function handleFinalize(evt: LogFinalize): void {
   }
 }
 
-export function processReopenedQuestion(
-  oldQuestion: Question,
+function processReopenedQuestion(
+  baseQuestion: Question,
   newQuestionId: string
-): Question {
+): void {
+  const baseMarketQuestions = baseQuestion.baseQuestions.load();
+
+  if (baseMarketQuestions.length === 0) {
+    // This question is not associated with any market as a base question, so there's nothing to update
+    return;
+  }
+
   let newQuestion = new Question(newQuestionId);
-  newQuestion.index = oldQuestion.index;
-  newQuestion.arbitrator = oldQuestion.arbitrator;
-  newQuestion.opening_ts = oldQuestion.opening_ts;
-  newQuestion.timeout = oldQuestion.timeout;
+  newQuestion.index = baseQuestion.index;
+  newQuestion.arbitrator = baseQuestion.arbitrator;
+  newQuestion.opening_ts = baseQuestion.opening_ts;
+  newQuestion.timeout = baseQuestion.timeout;
   newQuestion.finalize_ts = BigInt.zero();
   newQuestion.is_pending_arbitration = false;
   newQuestion.best_answer = Bytes.empty();
   newQuestion.bond = BigInt.zero();
-  newQuestion.min_bond = oldQuestion.min_bond;
+  newQuestion.min_bond = baseQuestion.min_bond;
   newQuestion.arbitration_occurred = false;
 
   // save new question
   newQuestion.save();
 
-  const marketQuestions = oldQuestion.marketQuestions.load();
+  // we need to find all the MarketQuestion with this baseQuestion to update the question
+  const marketQuestions = baseQuestion.marketQuestions.load();
   for (let i = 0; i < marketQuestions.length; i++) {
     // replace with new question
     marketQuestions[i].question = newQuestion.id;
@@ -140,22 +148,17 @@ export function processReopenedQuestion(
     market.finalizeTs = getFinalizeTs(market);
     market.save();
   }
-
-  // remove old question
-  store.remove("Question", oldQuestion.id);
-
-  return newQuestion;
 }
 
 export function handleReopenQuestion(event: LogReopenQuestion): void {
-  let oldQuestion = Question.load(
+  let baseQuestion = Question.load(
     event.params.reopened_question_id.toHexString()
   );
-  if (oldQuestion === null) {
+  if (baseQuestion === null) {
     return;
   }
 
-  processReopenedQuestion(oldQuestion, event.params.question_id.toHexString());
+  processReopenedQuestion(baseQuestion, event.params.question_id.toHexString());
 
   // TODO: recalculate market.hasAnswers
 }
