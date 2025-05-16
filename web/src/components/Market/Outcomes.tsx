@@ -364,8 +364,8 @@ function RewardsDisplay({ position, totalRewardPerDay }: { position: NftPosition
   }
   return (
     <p className="text-[12px]">
-      Today's reward: <span className="text-purple-primary font-semibold">{currentReward.toFixed(4)}</span> /{" "}
-      <span className="text-purple-primary font-semibold">{rewardPerDay.toFixed(4)}</span> SEER
+      Today's reward: <span className="text-purple-primary font-semibold">{currentReward.toFixed(0)}</span> /{" "}
+      <span className="text-purple-primary font-semibold">{rewardPerDay.toFixed(0)}</span> SEER
     </p>
   );
 }
