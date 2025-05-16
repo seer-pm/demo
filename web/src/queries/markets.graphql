@@ -46,6 +46,9 @@ fragment Market on Market {
       min_bond
       index
     }
+    baseQuestion {
+      id
+    }
   }
   openingTs
   finalizeTs
@@ -58,6 +61,7 @@ fragment Market on Market {
   creator
   outcomesSupply
   blockTimestamp
+  transactionHash
 }
 
 query GetMarkets(
