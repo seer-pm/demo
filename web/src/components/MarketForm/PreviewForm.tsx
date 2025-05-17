@@ -18,7 +18,7 @@ import { queryClient } from "@/lib/query-client";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
+import { Address, TransactionReceipt, isAddress, zeroAddress, zeroHash } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
 import {
@@ -369,6 +369,7 @@ export function PreviewForm({
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
         bond: 0n,
         min_bond: 100000000000000000n,
+        base_question: zeroHash,
       }),
     ),
     openingTs: 0,

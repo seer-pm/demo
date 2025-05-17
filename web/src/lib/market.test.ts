@@ -1,5 +1,5 @@
 import { Market, Question } from "@/hooks/useMarket";
-import { zeroAddress } from "viem";
+import { zeroAddress, zeroHash } from "viem";
 import { describe, expect, it } from "vitest";
 import { MarketTypes, getMarketType, getQuestionParts, isMarketReliable } from "./market";
 import {
@@ -63,6 +63,7 @@ const createDefaultQuestion = (overrides: Partial<Question> = {}): Question => {
     best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
     bond: 0n,
     min_bond: 100000000000000000n,
+    base_question: zeroHash,
     ...overrides,
   };
 };

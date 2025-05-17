@@ -1,4 +1,4 @@
-import { BigInt, store, Bytes, log } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   LogCancelArbitration,
   LogFinalize,
@@ -137,14 +137,13 @@ function processReopenedQuestion(
   // save new question
   newQuestion.save();
 
-  // we need to find all the MarketQuestion with this baseQuestion to update the question
-  const marketQuestions = baseQuestion.marketQuestions.load();
-  for (let i = 0; i < marketQuestions.length; i++) {
+  // update the question to point to newQuestion
+  for (let i = 0; i < baseMarketQuestions.length; i++) {
     // replace with new question
-    marketQuestions[i].question = newQuestion.id;
-    marketQuestions[i].save();
+    baseMarketQuestions[i].question = newQuestion.id;
+    baseMarketQuestions[i].save();
 
-    const market = Market.load(marketQuestions[i].market)!;
+    const market = Market.load(baseMarketQuestions[i].market)!;
     market.finalizeTs = getFinalizeTs(market);
     market.save();
   }
@@ -154,6 +153,7 @@ export function handleReopenQuestion(event: LogReopenQuestion): void {
   let baseQuestion = Question.load(
     event.params.reopened_question_id.toHexString()
   );
+
   if (baseQuestion === null) {
     return;
   }

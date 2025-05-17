@@ -6,8 +6,8 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
-    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmTY9GY5ZWYSufoTdvu1fq6T3qdjyQVDPNP8mXcAcAeNr4`,
-    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmQjgttuZ6diWCPJFjMuatshbdxNRatUbzLiYpFnVQmQhH`,
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmY8H9jhz4K4gXuNsvnerSKKzHUBdTekCkHEvxkA7A8wzh`,
+    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
     [sepolia.id]: "https://api.studio.thegraph.com/query/74975/seer-pm-sepolia/version/latest",
   },
   curate: {

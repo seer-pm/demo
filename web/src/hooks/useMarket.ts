@@ -7,7 +7,7 @@ import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { Address, zeroAddress } from "viem";
+import { Address, zeroAddress, zeroHash } from "viem";
 import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
 
 export interface Question {
@@ -20,6 +20,7 @@ export interface Question {
   best_answer: `0x${string}`;
   bond: bigint;
   min_bond: bigint;
+  base_question: `0x${string}`;
 }
 
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
@@ -177,6 +178,7 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
       (question, i) =>
         ({
           id: onChainMarket.questionsIds[i],
+          base_question: zeroHash,
           ...question,
         }) as Question,
     ),
