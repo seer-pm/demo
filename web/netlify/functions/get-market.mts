@@ -18,10 +18,10 @@ async function getMarketId(id: string | undefined, url: string | undefined): Pro
   if (url) {
     const { data: market } = await supabase.from("markets").select("id").eq("url", url).single();
 
-    return (market?.id as Address) || "";
+    return (market?.id?.toLowerCase() as Address) || "";
   }
 
-  return (id as Address) || "";
+  return (id?.toLowerCase() as Address) || "";
 }
 
 async function getDatabaseMarket(id: "" | Address) {
@@ -82,7 +82,7 @@ export default async (req: Request) => {
     ]);
 
     if (dbResult.status === "rejected") {
-      throw new Error("Market fetch failed");
+      throw new Error(`Market fetch failed: ${id}`);
     }
 
     if (subgraphMarket.status === "rejected") {
