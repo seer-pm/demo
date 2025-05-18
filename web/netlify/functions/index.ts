@@ -1,4 +1,7 @@
 import * as fs from "node:fs";
+import { SupportedChain } from "@/lib/chains";
+import { fetchMarket } from "@/lib/markets-search";
+import { isAddress } from "viem";
 import { renderPage } from "vike/server";
 
 async function getOpenFileDescriptors(): Promise<number> {
@@ -39,12 +42,42 @@ async function withFdMonitoring<T>(fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
+async function getRedirectUrl(req: Request): Promise<string | undefined> {
+  // Extract chainId and marketId from URL if it matches the pattern
+  const marketUrlPattern = /^\/markets\/(\d+)\/(0x[a-fA-F0-9]+)$/;
+  const url = new URL(req.url);
+  const match = url.pathname.match(marketUrlPattern);
+
+  if (match) {
+    const [, chainId, marketId] = match;
+    const validChainId = Number.parseInt(chainId);
+    if (validChainId > 0 && isAddress(marketId)) {
+      const market = await fetchMarket(validChainId as SupportedChain, marketId);
+
+      if (market?.url) {
+        return market.url;
+      }
+    }
+  }
+}
+
 export default async (req: Request) => {
   return withFdMonitoring(async () => {
     const pageContext = await renderPage({ urlOriginal: req.url });
     if (!pageContext.httpResponse) return new Response("", { status: 200 });
 
     console.log("render url", req.url);
+
+    const redirectUrl = await getRedirectUrl(req);
+    if (redirectUrl) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: redirectUrl,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
 
     const headers = {
       ...Object.fromEntries(pageContext.httpResponse.headers),
