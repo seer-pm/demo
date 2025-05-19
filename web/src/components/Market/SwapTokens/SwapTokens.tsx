@@ -60,6 +60,7 @@ export function SwapTokens({
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -349,13 +350,16 @@ export function SwapTokens({
                   isUseWrappedToken={isUseWrappedToken}
                 />
               )}
-              <div className="text-[12px] text-black-secondary flex items-center gap-2">
-                Max slippage:{" "}
+              <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
+                Parameters:{" "}
                 <div
                   className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
                   onClick={() => setShowMaxSlippage(true)}
                 >
-                  <p>{maxSlippage}%</p>
+                  <p>
+                    Max slippage {maxSlippage}%{isInstantSwap && " - Instant"}
+                  </p>
+
                   <Parameter width="16px" height="16px" />
                 </div>
               </div>

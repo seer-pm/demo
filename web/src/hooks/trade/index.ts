@@ -313,6 +313,7 @@ export function useCowQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled = true,
 ) {
   const queryKey = getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType);
   // Check if we have data for this quote
@@ -322,7 +323,7 @@ export function useCowQuote(
   const isFastQuery = previousData === undefined;
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: queryKey,
-    enabled: Number(amount) > 0,
+    enabled: Number(amount) > 0 && enabled,
     retry: false,
     queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
     // If we used a fast quote, refetch immediately to obtain the verified quote
@@ -357,13 +358,12 @@ export function useQuoteTrade(
   collateralToken: Token,
   swapType: "buy" | "sell",
 ) {
-  // try to get cow quote first, if not success we will get other sources
-  const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, !isInstantSwap);
   const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
 
   const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
   const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-
   if (isCowResultOk) {
     return cowResult;
   }
