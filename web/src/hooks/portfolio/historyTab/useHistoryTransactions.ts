@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { Market } from "../../useMarket";
@@ -54,7 +54,7 @@ async function getTransactions(initialMarkets: Market[] | undefined, account?: s
 export const useHistoryTransactions = (address: Address, chainId: SupportedChain) => {
   const { data: markets } = useMarkets({});
   return useQuery<TransactionData[] | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && !isUndefined(markets),
     queryKey: ["useHistoryTransactions", address, chainId, !!markets],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,

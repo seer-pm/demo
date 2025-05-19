@@ -12,13 +12,11 @@ import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
 
 export async function getSwaprHistoryTokensPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[],
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
   chainId: SupportedChain,
   startTime: number,
 ) {
-  if (tokens.length === 0) {
-    return {};
-  }
+  if (!tokens?.length) return {};
   const subgraphClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!subgraphClient) {

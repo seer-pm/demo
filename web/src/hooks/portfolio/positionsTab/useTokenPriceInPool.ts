@@ -5,12 +5,12 @@ import { getSwaprCurrentTokensPrices, getSwaprHistoryTokensPrices } from "./getS
 import { getUniswapCurrentTokensPrices, getUniswapHistoryTokensPrices } from "./getUniswapPrices";
 
 export const useHistoryTokensPrices = (
-  tokens: { tokenId: string; parentTokenId?: string }[],
+  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
   chainId: SupportedChain,
   startTime: number,
 ) => {
   return useQuery<{ [key: string]: number | undefined } | undefined, Error>({
-    enabled: tokens.length > 0,
+    enabled: !!tokens?.length,
     queryKey: ["useHistoryTokensPrice", tokens, chainId, startTime],
     retry: false,
     queryFn: async () => {

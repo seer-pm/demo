@@ -3,7 +3,7 @@ import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
 import { MarketTypes, getMarketType, getQuestionParts } from "@/lib/market";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits, zeroAddress } from "viem";
 import { getTokensInfo } from "../utils";
@@ -134,7 +134,7 @@ export const fetchPositions = async (
 export const usePositions = (address: Address, chainId: SupportedChain) => {
   const { data: markets } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && !isUndefined(markets),
     queryKey: ["usePositions", address, !!markets, chainId],
     queryFn: async () => fetchPositions(markets, address, chainId),
   });

@@ -2,7 +2,7 @@ import { Market } from "@/hooks/useMarket";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { DAI, WXDAI } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
@@ -77,7 +77,7 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
 export const useCowOrders = (address: Address, chainId: SupportedChain) => {
   const { data: markets } = useMarkets({});
   return useQuery<CowOrderData[] | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && !isUndefined(markets),
     queryKey: ["useCowOrders", address, chainId, !!markets],
     retry: false,
     queryFn: async () => getCowOrders(markets, address, chainId),

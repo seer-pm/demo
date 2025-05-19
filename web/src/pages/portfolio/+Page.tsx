@@ -11,7 +11,6 @@ import { useAccount } from "wagmi";
 
 function PortfolioPage() {
   const { address } = useAccount();
-
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "positions";
@@ -21,7 +20,8 @@ function PortfolioPage() {
 
   if (!address) {
     return (
-      <div className="container-fluid py-[24px] lg:py-[65px]">
+      <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
+        <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
           Connect your wallet to see your portfolio.
         </Alert>

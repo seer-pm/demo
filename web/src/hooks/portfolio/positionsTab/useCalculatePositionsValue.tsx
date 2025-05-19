@@ -9,7 +9,7 @@ import { usePositions } from "./usePortfolioPositions";
 
 function useCalculatePositionsValue() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: positions = [], isPending } = usePositions(address as Address, chainId as SupportedChain);
+  const { data: positions, isPending, error } = usePositions(address as Address, chainId as SupportedChain);
   const { data: tokenIdToTokenCurrentPrice, isLoading: isLoadingCurrentPrices } = useCurrentTokensPrices(
     positions?.map((position) => {
       return {
@@ -69,6 +69,7 @@ function useCalculatePositionsValue() {
     positions: positionsWithTokenValue,
     currentPortfolioValue,
     deltaPercent: Number.isNaN(delta / historyPortfolioValue) ? 0 : (delta / historyPortfolioValue) * 100,
+    error,
   };
 }
 
