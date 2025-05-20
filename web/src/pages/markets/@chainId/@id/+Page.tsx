@@ -26,13 +26,11 @@ import { useAccount } from "wagmi";
 
 function SwapWidget({
   market,
-  account,
   outcomeIndex,
   images,
 }: {
   router: Address;
   market: Market;
-  account?: Address;
   outcomeIndex: number;
   images?: string[];
 }) {
@@ -63,7 +61,6 @@ function SwapWidget({
 
   return (
     <SwapTokens
-      account={account}
       market={market}
       outcomeText={market.outcomes[outcomeIndex]}
       outcomeToken={outcomeToken}
@@ -179,13 +176,7 @@ function MarketPage() {
             <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            <SwapWidget
-              router={router}
-              market={market}
-              account={account}
-              outcomeIndex={outcomeIndex}
-              images={market?.images?.outcomes}
-            />
+            <SwapWidget router={router} market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
             <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">

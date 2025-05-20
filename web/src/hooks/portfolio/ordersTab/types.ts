@@ -6,4 +6,7 @@ export interface CowOrderData extends EnrichedOrder {
   buyTokenSymbol: string;
   sellTokenSymbol: string;
   limitPrice: string;
+  executionPrice: string | null;
+  formattedExecutedBuyAmount: string | null;
+  formattedExecutedSellAmount: string | null;
 }

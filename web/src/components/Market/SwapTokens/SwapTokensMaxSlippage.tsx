@@ -44,7 +44,7 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
   const maxSlippage = watch("maxSlippage");
   const isInstantSwap = watch("isInstantSwap");
   return (
-    <div className="space-y-5 bg-white p-[24px] drop-shadow">
+    <div className="space-y-5">
       <div className="flex items-center gap-2">
         <p className="font-semibold text-[18px]">Parameters</p>
         <Parameter />

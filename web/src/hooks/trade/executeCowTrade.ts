@@ -1,7 +1,9 @@
+import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastify } from "@/lib/toastify";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { OrderBookApi, OrderSigningUtils, UnsignedOrder } from "@cowprotocol/cow-sdk";
 import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
 import { Contract, providers } from "ethers";
@@ -58,5 +60,62 @@ export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
   queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
   const orderId = result.data;
 
+  return orderId;
+}
+
+export async function createCowOrder({
+  order,
+  chainId,
+}: {
+  order: UnsignedOrder;
+  chainId: SupportedChain;
+}): Promise<string> {
+  const client = await getConnectorClient(config);
+  const signer = clientToSigner(client);
+  const orderBookApi = new OrderBookApi({ chainId });
+  // biome-ignore lint/suspicious/noExplicitAny:
+  const orderSigningResult: any = await OrderSigningUtils.signOrder(order, chainId, signer);
+
+  const result = await toastify(() => orderBookApi.sendOrder({ ...order, ...orderSigningResult }), {
+    txSent: { title: "Confirm order..." },
+    txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
+  });
+
+  if (!result.status) {
+    throw result.error;
+  }
+  queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
+  const orderId = result.data;
+  return orderId;
+}
+
+export async function cancelCowOrder({
+  orderId,
+  chainId,
+}: {
+  orderId: string;
+  chainId: SupportedChain;
+}): Promise<string> {
+  const client = await getConnectorClient(config);
+  const signer = clientToSigner(client);
+  const orderBookApi = new OrderBookApi({ chainId });
+
+  const orderCancellationSigningResult = await OrderSigningUtils.signOrderCancellations([orderId], chainId, signer);
+
+  const result = await toastify(
+    () =>
+      orderBookApi.sendSignedOrderCancellations({
+        ...orderCancellationSigningResult,
+        orderUids: [orderId],
+      }),
+    {
+      txSent: { title: "Sending cancel request..." },
+      txSuccess: { title: "Cancel request sent! Check its status in your Portfolio." },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
   return orderId;
 }

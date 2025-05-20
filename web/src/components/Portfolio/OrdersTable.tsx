@@ -1,6 +1,7 @@
 import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
+import { cancelCowOrder } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -71,6 +72,14 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedSellAmount ?? "0"} ${order.sellTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Sell Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.buyAmount} ${order.buyTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
@@ -79,11 +88,27 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedBuyAmount ?? "0"} ${order.buyTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Buy Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.limitPrice} ${order.sellTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
         },
         header: "Limit Price",
+        enableSorting: false,
+      },
+      {
+        accessorFn: (order) => (order.executionPrice ? `${order.executionPrice} ${order.sellTokenSymbol}` : "-"),
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Execution Price",
         enableSorting: false,
       },
       {
@@ -118,6 +143,25 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
           );
         },
         header: "Status",
+      },
+      {
+        accessorKey: "status",
+        cell: (info) => {
+          const data = info.row.original;
+          if (info.getValue<string>() === "open") {
+            return (
+              <button
+                type="button"
+                className="text-error-primary text-[14px] whitespace-nowrap hover:underline"
+                onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+              >
+                Cancel Order
+              </button>
+            );
+          }
+          return "-";
+        },
+        header: "Action",
       },
     ],
     [],
