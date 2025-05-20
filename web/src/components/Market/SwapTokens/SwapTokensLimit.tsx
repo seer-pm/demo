@@ -170,21 +170,23 @@ export function SwapTokensLimit({
   }
   return (
     <>
-      <Modal
-        title="Confirm Limit Order"
-        content={
-          <LimitOrderConfirmation
-            closeModal={closeModal}
-            reset={() => reset()}
-            onSubmit={onSubmit}
-            order={order!}
-            buyTokenSymbol={swapType === "buy" ? outcomeToken.symbol : selectedCollateral.symbol}
-            sellTokenSymbol={swapType === "sell" ? outcomeToken.symbol : selectedCollateral.symbol}
-            limitPrice={Number(limitPrice)}
-            isLoading={createLimitOrder.isPending}
-          />
-        }
-      />
+      {order && (
+        <Modal
+          title="Confirm Limit Order"
+          content={
+            <LimitOrderConfirmation
+              closeModal={closeModal}
+              reset={() => reset()}
+              onSubmit={onSubmit}
+              order={order!}
+              buyTokenSymbol={swapType === "buy" ? outcomeToken.symbol : selectedCollateral.symbol}
+              sellTokenSymbol={swapType === "sell" ? outcomeToken.symbol : selectedCollateral.symbol}
+              limitPrice={Number(limitPrice)}
+              isLoading={createLimitOrder.isPending}
+            />
+          }
+        />
+      )}
       <DatePickerModal
         title="Valid To"
         className="w-[410px]"
@@ -289,17 +291,19 @@ export function SwapTokensLimit({
           <div className="flex items-center gap-1 text-[14px]">
             Order expires in
             <span className="tooltip">
-              <p className="tooltiptext">If your order has not been filled by this date & time, it will expire</p>
+              <p className="tooltiptext min-w-[200px]">
+                If your order has not been filled by this date & time, it will expire
+              </p>
               <QuestionIcon fill="#9747FF" />
             </span>
-            <button type="button" onClick={openDatePickerModal} className="hover:underline ml-auto">
+            <button type="button" onClick={openDatePickerModal} className="hover:underline ml-auto whitespace-nowrap">
               {formatDate(validTo, "yyyy-MM-dd HH:mm")}
             </button>
           </div>
           <div className="flex items-center gap-1 text-[14px]">
             Order type
             <span className="tooltip">
-              <p className="tooltiptext !text-left">
+              <p className="tooltiptext !text-left min-w-[200px]">
                 <p>Partially fillable: This order can be partially filled</p>
                 <p>Fill or kill: This order will either be filled completely or not filled.</p>
               </p>
@@ -354,7 +358,7 @@ export function SwapTokensLimit({
           )}
           {swapType === "buy" && market.chainId === gnosis.id && (
             <span className="tooltip">
-              <p className="tooltiptext !text-left">
+              <p className="tooltiptext !text-left min-w-[200px]">
                 <p>The chain's native token cannot be used as sell token in limit order.</p>
               </p>
               <QuestionIcon fill="#9747FF" />

@@ -40,7 +40,7 @@ export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProp
         </div>
       }
     >
-      <div className="text-[14px] font-semibold cursor-pointer flex items-center">
+      <div className="text-[14px] font-semibold cursor-pointer flex items-center whitespace-nowrap">
         {selectedOption?.icon}
         {selectedOption?.text ?? defaultLabel}
         <ArrowDropDown />
