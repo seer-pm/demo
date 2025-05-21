@@ -43,35 +43,39 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
 
   const winningOutcomeIndexes = generateWinningOutcomeIndexes(winningPositions);
 
-  const redeemPositions = useRedeemPositions(successCallback);
-  const redeemConditionalPositions = useRedeemConditionalPositions(successCallback);
-
   const filteredWinningPositions = winningPositions.filter((wp) => wp.balance > 0n);
 
   const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
 
-  let { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
-    filteredWinningPositions.map((wp) => wp.tokenId),
-    account,
-    router,
-    redeemAmounts,
-    market.chainId,
+  const {
+    redeemPositions,
+    approvals: { data: missingApprovalsBase = [], isLoading: isLoadingApprovalsBase },
+  } = useRedeemPositions(
+    {
+      tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
+      account,
+      spender: router,
+      amounts: redeemAmounts,
+      chainId: market.chainId,
+    },
+    successCallback,
   );
+  const redeemConditionalPositions = useRedeemConditionalPositions(successCallback);
 
-  const { data: missingConditionalApprovals, isLoading: isLoadingConditionalApprovals } = useMissingApprovals(
-    filteredWinningPositions.map((wp) => wp.tokenId),
+  const { data: missingConditionalApprovals, isLoading: isLoadingConditionalApprovals } = useMissingApprovals({
+    tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
     account,
-    conditionalRouterAddress[chainId as SupportedChain],
-    redeemAmounts,
-    market.chainId,
-  );
+    spender: conditionalRouterAddress[chainId as SupportedChain],
+    amounts: redeemAmounts,
+    chainId: market.chainId,
+  });
 
   const isParentPayout =
     market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
   const isConditionalRedeemToCollateral =
     market.parentMarket.id !== zeroAddress && isParentPayout && !isRedeemToCollateral;
-  isLoadingApprovals = isLoadingApprovals || isLoadingConditionalApprovals;
-  missingApprovals = isConditionalRedeemToCollateral ? missingConditionalApprovals : missingApprovals;
+  const isLoadingApprovals = isLoadingApprovalsBase || isLoadingConditionalApprovals;
+  const missingApprovals = isConditionalRedeemToCollateral ? missingConditionalApprovals : missingApprovalsBase;
 
   const onSubmit = async (values: RedeemFormValues) => {
     if (market.parentMarket.id !== zeroAddress && isParentPayout && !values.isRedeemToCollateral) {

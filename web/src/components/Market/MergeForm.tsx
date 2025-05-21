@@ -4,7 +4,6 @@ import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
@@ -54,21 +53,26 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
-    market.wrappedTokens,
-    account,
-    router,
-    parsedAmount,
-    market.chainId,
-  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
-  const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const {
+    mergePositions,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useMergePositions(
+    {
+      tokensAddresses: market.wrappedTokens,
+      account,
+      spender: router,
+      amounts: parsedAmount,
+      chainId: market.chainId,
+    },
+    (/*receipt: TransactionReceipt*/) => {
+      reset();
+    },
+  );
 
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({

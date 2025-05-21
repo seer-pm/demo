@@ -375,13 +375,13 @@ export function useQuoteTrade(
 }
 
 export function useMissingTradeApproval(account: Address, trade: Trade) {
-  const { data: missingApprovals, isLoading } = useMissingApprovals(
-    [trade.executionPrice.baseCurrency.address as `0x${string}`],
+  const { data: missingApprovals, isLoading } = useMissingApprovals({
+    tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
-    trade.approveAddress as `0x${string}`,
-    BigInt(trade.inputAmount.raw.toString()),
-    trade.chainId as SupportedChain,
-  );
+    spender: trade.approveAddress as `0x${string}`,
+    amounts: BigInt(trade.inputAmount.raw.toString()),
+    chainId: trade.chainId as SupportedChain,
+  });
 
   return { missingApprovals, isLoading };
 }
