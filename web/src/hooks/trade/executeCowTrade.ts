@@ -120,13 +120,7 @@ export async function cancelCowOrder({
   return orderId;
 }
 
-export async function cancelCowOrderOnChain({
-  order,
-  isEthFlow: _,
-}: {
-  order: EnrichedOrder;
-  isEthFlow: boolean;
-}): Promise<string> {
+export async function cancelEthFlowOrder({ order }: { order: EnrichedOrder }): Promise<string> {
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);
   const ethFlowContract = new Contract(ethFlowAddress, ethFlowAbi, signer);

@@ -1,7 +1,7 @@
 import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
-import { cancelCowOrder, cancelCowOrderOnChain } from "@/hooks/trade/executeCowTrade";
+import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -23,6 +23,31 @@ import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
 export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChain }) {
+  const renderCancelButton = (data: CowOrderData) => {
+    if (data.isOnChainOrder) {
+      if (data.isEthFlow) {
+        return (
+          <button
+            type="button"
+            className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+            onClick={() => cancelEthFlowOrder({ order: data })}
+          >
+            (Cancel Order)
+          </button>
+        );
+      }
+      return;
+    }
+    return (
+      <button
+        type="button"
+        className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+        onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+      >
+        (Cancel Order)
+      </button>
+    );
+  };
   const columns = React.useMemo<ColumnDef<CowOrderData>[]>(
     () => [
       {
@@ -43,19 +68,7 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
               )}
             >
               {info.getValue<string>().toUpperCase()}
-              {info.getValue<string>() === "open" && (
-                <button
-                  type="button"
-                  className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
-                  onClick={() =>
-                    data.isOnChainOrder
-                      ? cancelCowOrderOnChain({ order: data, isEthFlow: data.isEthFlow })
-                      : cancelCowOrder({ orderId: data.uid, chainId })
-                  }
-                >
-                  (Cancel Order)
-                </button>
-              )}
+              {info.getValue<string>() === "open" && <>{renderCancelButton(data)}</>}
             </div>
           );
         },
