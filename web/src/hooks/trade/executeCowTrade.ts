@@ -8,7 +8,7 @@ import { Contract, providers } from "ethers";
 import { Account, Chain, Client, Transport } from "viem";
 import { ethFlowAbi } from "./abis";
 
-export const ethFlowAddress = "0x40A50cf069e992AA4536211B23F286eF88752187";
+export const ethFlowAddress = "0xba3cb449bd2b4adddbc894d8697f5170800eadec";
 
 function clientToSigner(client: Client<Transport, Chain, Account>) {
   const { account, chain, transport } = client;
