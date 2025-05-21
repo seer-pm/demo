@@ -26,6 +26,38 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
   const columns = React.useMemo<ColumnDef<CowOrderData>[]>(
     () => [
       {
+        accessorKey: "status",
+        cell: (info) => {
+          const data = info.row.original;
+          return (
+            <div
+              className={clsx(
+                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
+                {
+                  fulfilled: "text-success-primary",
+                  open: "text-purple-primary",
+                  presignaturePending: "text-tint-blue-primary",
+                  cancelled: "text-black-secondary",
+                  expired: "text-warning-primary",
+                }[info.getValue<string>()],
+              )}
+            >
+              {info.getValue<string>().toUpperCase()}
+              {info.getValue<string>() === "open" && (
+                <button
+                  type="button"
+                  className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+                  onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+                >
+                  (Cancel Order)
+                </button>
+              )}
+            </div>
+          );
+        },
+        header: "Status",
+      },
+      {
         accessorKey: "uid",
         cell: (info) => {
           return (
@@ -121,47 +153,6 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
           );
         },
         header: "Creation Date",
-      },
-      {
-        accessorKey: "status",
-        cell: (info) => {
-          return (
-            <div
-              className={clsx(
-                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
-                {
-                  fulfilled: "text-success-primary",
-                  open: "text-purple-primary",
-                  presignaturePending: "text-tint-blue-primary",
-                  cancelled: "text-black-secondary",
-                  expired: "text-warning-primary",
-                }[info.getValue<string>()],
-              )}
-            >
-              {info.getValue<string>().toUpperCase()}
-            </div>
-          );
-        },
-        header: "Status",
-      },
-      {
-        accessorKey: "status",
-        cell: (info) => {
-          const data = info.row.original;
-          if (info.getValue<string>() === "open") {
-            return (
-              <button
-                type="button"
-                className="text-error-primary text-[14px] whitespace-nowrap hover:underline"
-                onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
-              >
-                Cancel Order
-              </button>
-            );
-          }
-          return "-";
-        },
-        header: "Action",
       },
     ],
     [],
