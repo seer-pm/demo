@@ -80,6 +80,8 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
               Number(formatUnits(BigInt(curr.executedBuyAmount), 18))
             ).toFixed(4)
           : null,
+        isOnChainOrder: !!curr.onchainUser,
+        isEthFlow: !!curr.ethflowData,
       });
     }
     return acc;

@@ -9,4 +9,6 @@ export interface CowOrderData extends EnrichedOrder {
   executionPrice: string | null;
   formattedExecutedBuyAmount: string | null;
   formattedExecutedSellAmount: string | null;
+  isOnChainOrder: boolean;
+  isEthFlow: boolean;
 }

@@ -1,7 +1,7 @@
 import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
-import { cancelCowOrder } from "@/hooks/trade/executeCowTrade";
+import { cancelCowOrder, cancelCowOrderOnChain } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -47,7 +47,11 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
                 <button
                   type="button"
                   className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
-                  onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+                  onClick={() =>
+                    data.isOnChainOrder
+                      ? cancelCowOrderOnChain({ order: data, isEthFlow: data.isEthFlow })
+                      : cancelCowOrder({ orderId: data.uid, chainId })
+                  }
                 >
                   (Cancel Order)
                 </button>
