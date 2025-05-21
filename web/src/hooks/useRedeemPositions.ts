@@ -107,7 +107,7 @@ async function redeemConditionalPositions(props: RedeemConditionalPositionProps)
   return result.receipt;
 }
 
-export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsProps, successCallback?: () => void) => {
+export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => void) => {
   const approvals = useMissingApprovals(approvalsConfig);
 
   return {
@@ -121,7 +121,7 @@ export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsPro
         await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
         queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-        successCallback?.();
+        onSuccess?.();
       },
     }),
   };
@@ -207,10 +207,7 @@ async function redeemPositions7702(
   return result.receipt;
 }
 
-const useRedeemPositions7702 = (
-  approvalsConfig: UseMissingApprovalsProps,
-  onSuccess?: (data: TransactionReceipt) => unknown,
-) => {
+const useRedeemPositions7702 = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => unknown) => {
   const approvals = {
     data: [],
     isLoading: false,
@@ -220,11 +217,14 @@ const useRedeemPositions7702 = (
     approvals,
     redeemPositions: useMutation({
       mutationFn: (props: RedeemPositionProps) => redeemPositions7702(approvalsConfig, props),
-      onSuccess: async (data: TransactionReceipt) => {
+      onSuccess: async () => {
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        // have to wait for market positions to finish invalidate
         await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
         queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-        onSuccess?.(data);
+        onSuccess?.();
       },
     }),
   };
@@ -238,7 +238,7 @@ export const useRedeemPositions = (approvalsConfig: UseMissingApprovalsProps, on
   return supports7702 ? redeem7702 : redeemLegacy;
 };
 
-export const useRedeemConditionalPositions = (successCallback?: () => unknown) => {
+export const useRedeemConditionalPositions = (onSuccess?: () => unknown) => {
   return useMutation({
     mutationFn: redeemConditionalPositions,
     onSuccess: async (/*data: TransactionReceipt*/) => {
@@ -248,7 +248,7 @@ export const useRedeemConditionalPositions = (successCallback?: () => unknown) =
       await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
       queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-      successCallback?.();
+      onSuccess?.();
     },
   });
 };

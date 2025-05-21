@@ -99,7 +99,19 @@ export const useMissingApprovals = ({
 export function getApprovals7702({ tokensAddresses, spender, amounts }: UseMissingApprovalsProps) {
   const calls: Execution[] = [];
 
+  if (!tokensAddresses.length) {
+    return calls;
+  }
+
+  if (Array.isArray(amounts) && tokensAddresses.length !== amounts.length) {
+    throw new Error("Invalid tokens and amounts lengths");
+  }
+
   for (let i = 0; i < tokensAddresses.length; i++) {
+    if (isTwoStringsEqual(tokensAddresses[i], NATIVE_TOKEN)) {
+      continue;
+    }
+
     const amount = typeof amounts === "bigint" ? amounts : amounts[i];
     calls.push({
       to: tokensAddresses[i],

@@ -139,11 +139,15 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
         timeout: 20000, //20 seconds timeout, then we poll manually
       });
     } else {
-      const { receipts } = await waitForCallsStatus(wagmiConfig, {
+      const { receipts = [] } = await waitForCallsStatus(wagmiConfig, {
         id: result.id,
       });
 
-      hash = receipts?.[0].transactionHash!;
+      if (!receipts.length || !receipts[0].transactionHash) {
+        throw new Error("No transaction hash found in call results");
+      }
+
+      hash = receipts[0].transactionHash;
 
       receipt = await waitForTransactionReceipt(wagmiConfig, {
         hash,

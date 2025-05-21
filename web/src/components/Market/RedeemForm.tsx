@@ -62,13 +62,14 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
   );
   const redeemConditionalPositions = useRedeemConditionalPositions(successCallback);
 
-  const { data: missingConditionalApprovals, isLoading: isLoadingConditionalApprovals } = useMissingApprovals({
-    tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
-    account,
-    spender: conditionalRouterAddress[chainId as SupportedChain],
-    amounts: redeemAmounts,
-    chainId: market.chainId,
-  });
+  const { data: missingConditionalApprovals = [], isLoading: isLoadingConditionalApprovals = false } =
+    useMissingApprovals({
+      tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
+      account,
+      spender: conditionalRouterAddress[chainId as SupportedChain],
+      amounts: redeemAmounts,
+      chainId: market.chainId,
+    });
 
   const isParentPayout =
     market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
