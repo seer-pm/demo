@@ -130,25 +130,22 @@ export async function cancelCowOrderOnChain({
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);
   const ethFlowContract = new Contract(ethFlowAddress, ethFlowAbi, signer);
-  const result = await toastify(
-    () =>
-      ethFlowContract.invalidateOrder({
-        buyToken: order.buyToken,
-        receiver: order.receiver,
-        sellAmount: parseUnits(order.sellAmount, 18),
-        buyAmount: parseUnits(order.buyAmount, 18),
-        appData: order.appData,
-        feeAmount: Number(order.feeAmount),
-        validTo: order.validTo,
-        partiallyFillable: order.partiallyFillable,
-        quoteId: 0,
-      }),
-    {
-      txSent: { title: "Sending cancel request..." },
-      txSuccess: { title: "Cancel request sent! Check its status in your Portfolio." },
-    },
-  );
+  const params = {
+    buyToken: order.buyToken,
+    receiver: order.receiver,
+    sellAmount: parseUnits(order.sellAmount, 18),
+    buyAmount: parseUnits(order.buyAmount, 18),
+    appData: order.appData,
+    feeAmount: order.feeAmount,
+    validTo: order.validTo,
+    partiallyFillable: order.partiallyFillable,
+    quoteId: order.quoteId ?? 0,
+  };
 
+  const result = await toastify(() => ethFlowContract.invalidateOrder(params, { gasLimit: 200000 }), {
+    txSent: { title: "Sending cancel request..." },
+    txSuccess: { title: "Cancel request sent! Check its status on-chain." },
+  });
   if (!result.status) {
     throw result.error;
   }
