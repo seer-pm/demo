@@ -288,8 +288,20 @@ function useSwaprQuote(
   swapType: "buy" | "sell",
   enabled = true,
 ) {
+  const maxSlippage = useGlobalState((state) => state.maxSlippage);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: [
+      "useSwaprQuote",
+      chainId,
+      account,
+      amount.toString(),
+      outcomeToken,
+      collateralToken,
+      swapType,
+      maxSlippage,
+      isInstantSwap,
+    ],
     enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
     retry: false,
     queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
@@ -315,7 +327,13 @@ export function useCowQuote(
   swapType: "buy" | "sell",
   enabled = true,
 ) {
-  const queryKey = getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType);
+  const maxSlippage = useGlobalState((state) => state.maxSlippage);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const queryKey = [
+    ...getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    maxSlippage,
+    isInstantSwap,
+  ];
   // Check if we have data for this quote
   // If we don't, perform an initial fetch to give the user a fast quote
   // it will fill the query cache, and subsequent fetches will return the verified quote
@@ -341,8 +359,20 @@ function useUniswapQuote(
   swapType: "buy" | "sell",
   enabled = true,
 ) {
+  const maxSlippage = useGlobalState((state) => state.maxSlippage);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
+    queryKey: [
+      "useUniswapQuote",
+      chainId,
+      account,
+      amount.toString(),
+      outcomeToken,
+      collateralToken,
+      swapType,
+      maxSlippage,
+      isInstantSwap,
+    ],
     enabled: Number(amount) > 0 && chainId === mainnet.id && enabled,
     retry: false,
     queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
