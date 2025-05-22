@@ -3,7 +3,8 @@ import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
-import { Address, erc20Abi } from "viem";
+import { Address, encodeFunctionData, erc20Abi } from "viem";
+import { Execution } from "./useCheck7702Support";
 import { getTokenInfo } from "./useTokenInfo";
 
 interface ApprovalInfo {
@@ -46,6 +47,14 @@ export async function fetchNeededApprovals(
   }, [] as ApprovalInfo[]);
 }
 
+export type UseMissingApprovalsProps = {
+  tokensAddresses: Address[];
+  account: Address | undefined;
+  spender: Address;
+  amounts: bigint | bigint[];
+  chainId: SupportedChain;
+};
+
 interface UseMissingApprovalsReturn {
   address: Address;
   name: string;
@@ -53,13 +62,13 @@ interface UseMissingApprovalsReturn {
   amount: bigint;
 }
 
-export const useMissingApprovals = (
-  tokensAddresses: Address[],
-  account: Address | undefined,
-  spender: Address,
-  amounts: bigint | bigint[],
-  chainId: SupportedChain,
-) => {
+export const useMissingApprovals = ({
+  tokensAddresses,
+  account,
+  spender,
+  amounts,
+  chainId,
+}: UseMissingApprovalsProps) => {
   let approvalAmounts: bigint[];
   if (typeof amounts === "bigint") {
     // approve the same amount for every token
@@ -86,3 +95,34 @@ export const useMissingApprovals = (
     },
   });
 };
+
+export function getApprovals7702({ tokensAddresses, spender, amounts }: UseMissingApprovalsProps) {
+  const calls: Execution[] = [];
+
+  if (!tokensAddresses.length) {
+    return calls;
+  }
+
+  if (Array.isArray(amounts) && tokensAddresses.length !== amounts.length) {
+    throw new Error("Invalid tokens and amounts lengths");
+  }
+
+  for (let i = 0; i < tokensAddresses.length; i++) {
+    if (isTwoStringsEqual(tokensAddresses[i], NATIVE_TOKEN)) {
+      continue;
+    }
+
+    const amount = typeof amounts === "bigint" ? amounts : amounts[i];
+    calls.push({
+      to: tokensAddresses[i],
+      value: 0n,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender, amount],
+      }),
+    });
+  }
+
+  return calls;
+}

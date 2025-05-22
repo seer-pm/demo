@@ -2,11 +2,10 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { Market } from "@/hooks/useMarket";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
 import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -21,11 +20,12 @@ export interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
-  router: Address;
   market: Market;
 }
 
-export function SplitForm({ account, router, market }: SplitFormProps) {
+export function SplitForm({ account, market }: SplitFormProps) {
+  const router = getRouterAddress(market.chainId);
+
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
@@ -54,21 +54,26 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
   );
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals = [], isLoading: isLoadingApprovals } = useMissingApprovals(
-    selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
-    account,
-    router,
-    parsedAmount,
-    market.chainId,
-  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance, useAltCollateral]);
 
-  const splitPosition = useSplitPosition((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const {
+    splitPosition,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useSplitPosition(
+    {
+      tokensAddresses: selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
+      account,
+      spender: router,
+      amounts: parsedAmount,
+      chainId: market.chainId,
+    },
+    (/*receipt: TransactionReceipt*/) => {
+      reset();
+    },
+  );
 
   const onSubmit = async (/*values: SplitFormValues*/) => {
     await splitPosition.mutateAsync({
