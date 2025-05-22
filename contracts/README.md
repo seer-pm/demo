@@ -47,14 +47,14 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 ## Installation
 
 ### Prerequisites
-Install Node.js and Yarn
+Install Node.js and pnpm
 ```bash
 # installs nvm (Node Version Manager)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 # download and install Node.js (you may need to restart the terminal)
 nvm install 20
-# install yarn
-npm install --global yarn
+# install pnpm
+curl -fsSL https://get.pnpm.io/install.sh | sh -
 ```
 
 Clone the repo, then cd to contracts folder:
@@ -64,7 +64,7 @@ cd .\contracts\
 
 ### Install packages
 ```
-yarn
+pnpm install
 ```
 
 ### Foundry
@@ -79,7 +79,7 @@ forge install foundry-rs/forge-std
 
 ## Compile
 ```
-yarn hardhat compile
+pnpm dlx hardhat compile
 ```
 >Please ignore the warnings. They are coming from third-party/mock contracts.
 
@@ -97,28 +97,28 @@ forge coverage
 **Hardhat**
 ```bash
 # run test
-yarn hardhat test
+pnpm dlx hardhat test
 # run coverage
-yarn hardhat coverage
+pnpm dlx hardhat coverage
 ```
 
 ## Deploy
 **Local**
 ```
-yarn hh-local-deploy
+pnpm dlx hh-local-deploy
 ```
 
 **Gnosis**
 ```
-yarn hardhat deploy --network gnosis
+pnpm exec hardhat deploy --network gnosis
 ```
 
 **Verify contracts on Gnosis**
 1. Get an api key from [Gnosis Scan](https://docs.gnosisscan.io/getting-started/viewing-api-usage-statistics)
 2. Add `GNOSISSCAN_API_KEY` to `.env` file
 3. Run
-    ```
-    yarn verify:gnosis
-    ```
+```
+pnpm run verify:gnosis
+```
 
 

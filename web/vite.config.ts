@@ -32,7 +32,6 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "node-fetch": "isomorphic-fetch",
-      jsbi: path.resolve(__dirname, "./../node_modules/jsbi/dist/jsbi-cjs.js"),
     },
   },
   css: {

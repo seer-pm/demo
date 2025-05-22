@@ -4,18 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "yarn server:dev",
-    "prod": "yarn build && yarn server:prod",
-    "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "dev": "npm run server:dev",
+    "prod": "npm run build && npm run server:prod",
+    "build": "npm run generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
     "lint": "biome check --write ./src ./netlify",
-    "generate": "yarn generate:hooks && yarn generate:gql",
+    "generate": "npm run generate:hooks && npm run generate:gql",
     "generate:hooks": "wagmi generate",
     "generate:gql": "graphql-codegen",
     "server:dev": "node ./server",
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
     "cosmos-export": "cosmos-export",
-    "typecheck-netlify-functions": "npx tsc --noEmit --project netlify/tsconfig.json",
+    "typecheck-netlify-functions": "pnpm exec tsc --noEmit --project netlify/tsconfig.json",
     "test": "vitest"
   },
   "dependencies": {
@@ -33,7 +33,7 @@
     "@orbisclub/components": "https://github.com/nvm1410/social-components#d1d5249080de9459c12f98c2be9fbc7984127885",
     "@orbisclub/orbis-sdk": "^0.4.89",
     "@supabase/supabase-js": "^2.46.2",
-    "@swapr/sdk": "https://github.com/rodsouto/swapr-sdk#b9c226e3ad3c402ac0b1d75a0c2f895e52786b78",
+    "@swapr/sdk": "github:rodsouto/swapr-sdk#b9c226e3ad3c402ac0b1d75a0c2f895e52786b7",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
     "@tanstack/react-query-persist-client": "^5.59.9",
@@ -41,6 +41,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/slug": "^5.0.9",
     "@uniswap/v3-sdk": "^3.19.0",
+    "@wagmi/core": "2.17.2",
     "@web3modal/wagmi": "5.0.7",
     "@yornaath/batshit": "^0.10.1",
     "clsx": "^2.1.0",
@@ -54,6 +55,8 @@
     "express": "^4.21.1",
     "graphql": "^16.8.1",
     "graphql-combine-query": "https://github.com/xyzseer/graphql-combine-query#ab552af27b3badb975f7dcad88b140bdb017a6fe",
+    "graphql-request": "6.1.0",
+    "graphql-tag": "2.12.6",
     "isomorphic-fetch": "^3.0.0",
     "jsonwebtoken": "^9.0.2",
     "lodash.debounce": "^4.0.8",
@@ -112,7 +115,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "yarn lint"
+      "npm run lint"
     ]
   }
 }

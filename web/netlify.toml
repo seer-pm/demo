@@ -2,7 +2,7 @@
   base = "/"
   package = "/web"
   publish = "/web/dist/client/"
-  command = "NODE_ENV=production yarn workspace @seer-pm/web build"
+  command = "NODE_ENV=production pnpm run --filter @seer-pm/web build"
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]
