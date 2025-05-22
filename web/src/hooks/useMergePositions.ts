@@ -4,14 +4,9 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, writeContract } from "@wagmi/core";
+import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import {
-  gnosisRouterAbi,
-  mainnetRouterAbi,
-  writeGnosisRouterMergeToBase,
-  writeMainnetRouterMergeToDai,
-} from "./contracts/generated";
+import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
@@ -25,76 +20,7 @@ interface MergePositionProps {
   routerType: RouterTypes;
 }
 
-async function mergeFromRouter(
-  isMainCollateral: boolean,
-  routerType: RouterTypes,
-  router: Address,
-  collateralToken: Address,
-  market: Address,
-  amount: bigint,
-) {
-  if (isMainCollateral) {
-    return await writeContract(config, {
-      address: router,
-      abi: RouterAbi,
-      functionName: "mergePositions",
-      args: [collateralToken, market, amount],
-    });
-  }
-
-  if (routerType === "mainnet") {
-    return await writeMainnetRouterMergeToDai(config, {
-      args: [market, amount],
-    });
-  }
-
-  return await writeGnosisRouterMergeToBase(config, {
-    args: [market, amount],
-  });
-}
-
-async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      mergeFromRouter(
-        props.isMainCollateral,
-        props.routerType,
-        props.router,
-        props.collateralToken,
-        props.market,
-        props.amount,
-      ),
-    { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
-  );
-
-  if (!result.status) {
-    throw result.status;
-  }
-
-  return result.receipt;
-}
-
-const useMergePositionsLegacy = (
-  approvalsConfig: UseMissingApprovalsProps,
-  onSuccess: (data: TransactionReceipt) => unknown,
-) => {
-  const approvals = useMissingApprovals(approvalsConfig);
-
-  return {
-    approvals,
-    mergePositions: useMutation({
-      mutationFn: mergePositions,
-      onSuccess: (data: TransactionReceipt) => {
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        onSuccess(data);
-      },
-    }),
-  };
-};
-
-function mergeFromRouter7702(
+function mergeFromRouter(
   isMainCollateral: boolean,
   routerType: RouterTypes,
   router: Address,
@@ -137,6 +63,50 @@ function mergeFromRouter7702(
   };
 }
 
+async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      sendTransaction(
+        config,
+        mergeFromRouter(
+          props.isMainCollateral,
+          props.routerType,
+          props.router,
+          props.collateralToken,
+          props.market,
+          props.amount,
+        ),
+      ),
+    { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
+  );
+
+  if (!result.status) {
+    throw result.status;
+  }
+
+  return result.receipt;
+}
+
+const useMergePositionsLegacy = (
+  approvalsConfig: UseMissingApprovalsProps,
+  onSuccess: (data: TransactionReceipt) => unknown,
+) => {
+  const approvals = useMissingApprovals(approvalsConfig);
+
+  return {
+    approvals,
+    mergePositions: useMutation({
+      mutationFn: mergePositions,
+      onSuccess: (data: TransactionReceipt) => {
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        onSuccess(data);
+      },
+    }),
+  };
+};
+
 async function mergePositions7702(
   approvalsConfig: UseMissingApprovalsProps,
   props: MergePositionProps,
@@ -144,7 +114,7 @@ async function mergePositions7702(
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
   calls.push(
-    mergeFromRouter7702(
+    mergeFromRouter(
       props.isMainCollateral,
       props.routerType,
       props.router,

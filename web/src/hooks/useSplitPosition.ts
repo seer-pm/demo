@@ -5,14 +5,9 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, writeContract } from "@wagmi/core";
+import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import {
-  gnosisRouterAbi,
-  mainnetRouterAbi,
-  writeGnosisRouterSplitFromBase,
-  writeMainnetRouterSplitFromDai,
-} from "./contracts/generated";
+import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface SplitPositionProps {
@@ -26,77 +21,7 @@ interface SplitPositionProps {
   routerType: RouterTypes;
 }
 
-async function splitFromRouter(
-  isMainCollateral: boolean,
-  routerType: RouterTypes,
-  router: Address,
-  collateralToken: Address,
-  market: Address,
-  amount: bigint,
-) {
-  if (isMainCollateral) {
-    return await writeContract(config, {
-      address: router,
-      abi: RouterAbi,
-      functionName: "splitPosition",
-      args: [collateralToken, market, amount],
-    });
-  }
-
-  if (routerType === "mainnet") {
-    return await writeMainnetRouterSplitFromDai(config, {
-      args: [market, amount],
-    });
-  }
-
-  return await writeGnosisRouterSplitFromBase(config, {
-    args: [market],
-    value: amount,
-  });
-}
-
-async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      splitFromRouter(
-        props.isMainCollateral,
-        props.routerType,
-        props.router,
-        props.collateralToken,
-        props.market,
-        props.amount,
-      ),
-    { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
-  );
-
-  if (!result.status) {
-    throw result.error;
-  }
-
-  return result.receipt;
-}
-
-const useSplitPositionLegacy = (
-  approvalsConfig: UseMissingApprovalsProps,
-  onSuccess: (data: TransactionReceipt) => unknown,
-) => {
-  const approvals = useMissingApprovals(approvalsConfig);
-
-  return {
-    approvals,
-    splitPosition: useMutation({
-      mutationFn: splitPosition,
-      onSuccess: (data: TransactionReceipt) => {
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        onSuccess(data);
-      },
-    }),
-  };
-};
-
-function splitFromRouter7702(
+function splitFromRouter(
   isMainCollateral: boolean,
   routerType: RouterTypes,
   router: Address,
@@ -139,6 +64,50 @@ function splitFromRouter7702(
   };
 }
 
+async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      sendTransaction(
+        config,
+        splitFromRouter(
+          props.isMainCollateral,
+          props.routerType,
+          props.router,
+          props.collateralToken,
+          props.market,
+          props.amount,
+        ),
+      ),
+    { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+const useSplitPositionLegacy = (
+  approvalsConfig: UseMissingApprovalsProps,
+  onSuccess: (data: TransactionReceipt) => unknown,
+) => {
+  const approvals = useMissingApprovals(approvalsConfig);
+
+  return {
+    approvals,
+    splitPosition: useMutation({
+      mutationFn: splitPosition,
+      onSuccess: (data: TransactionReceipt) => {
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        onSuccess(data);
+      },
+    }),
+  };
+};
+
 async function splitPosition7702(
   approvalsConfig: UseMissingApprovalsProps,
   props: SplitPositionProps,
@@ -146,7 +115,7 @@ async function splitPosition7702(
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
   calls.push(
-    splitFromRouter7702(
+    splitFromRouter(
       props.isMainCollateral,
       props.routerType,
       props.router,

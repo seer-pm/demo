@@ -5,16 +5,13 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, writeContract } from "@wagmi/core";
+import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import {
   conditionalRouterAbi,
   conditionalRouterAddress,
   gnosisRouterAbi,
   mainnetRouterAbi,
-  writeConditionalRouterRedeemConditionalToCollateral,
-  writeGnosisRouterRedeemToBase,
-  writeMainnetRouterRedeemToDai,
 } from "./contracts/generated";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
@@ -34,93 +31,7 @@ export function getRedeemRouter(isRedeemToParentCollateral: boolean, chainId: Su
   return isRedeemToParentCollateral ? conditionalRouterAddress[chainId as SupportedChain] : getRouterAddress(chainId);
 }
 
-async function redeemFromRouter(
-  isMainCollateral: boolean,
-  isRedeemToParentCollateral: boolean,
-  chainId: SupportedChain,
-  collateralToken: Address,
-  market: Address,
-  parentOutcome: bigint,
-  outcomeIndexes: bigint[],
-  amounts: bigint[],
-) {
-  if (isRedeemToParentCollateral) {
-    return await writeConditionalRouterRedeemConditionalToCollateral(config, {
-      args: [collateralToken, market, outcomeIndexes, [parentOutcome], amounts],
-    });
-  }
-
-  const router = getRouterAddress(chainId);
-
-  if (isMainCollateral) {
-    return await writeContract(config, {
-      address: router,
-      abi: RouterAbi,
-      functionName: "redeemPositions",
-      args: [collateralToken, market, outcomeIndexes, amounts],
-    });
-  }
-
-  const routerType = CHAIN_ROUTERS[chainId];
-
-  if (routerType === "mainnet") {
-    return await writeMainnetRouterRedeemToDai(config, {
-      args: [market, outcomeIndexes, amounts],
-    });
-  }
-
-  return await writeGnosisRouterRedeemToBase(config, {
-    args: [market, outcomeIndexes, amounts],
-  });
-}
-
-async function redeemPositions(props: RedeemPositionProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      redeemFromRouter(
-        props.isMainCollateral,
-        props.isRedeemToParentCollateral,
-        props.chainId,
-        props.collateralToken,
-        props.market,
-        props.parentOutcome,
-        props.outcomeIndexes,
-        props.amounts,
-      ),
-    {
-      txSent: { title: "Redeeming tokens..." },
-      txSuccess: { title: "Tokens redeemed!" },
-    },
-  );
-
-  if (!result.status) {
-    throw result.error;
-  }
-
-  return result.receipt;
-}
-
-export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => void) => {
-  const approvals = useMissingApprovals(approvalsConfig);
-
-  return {
-    approvals,
-    redeemPositions: useMutation({
-      mutationFn: redeemPositions,
-      onSuccess: async (/*data: TransactionReceipt*/) => {
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        // have to wait for market positions to finish invalidate
-        await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-        onSuccess?.();
-      },
-    }),
-  };
-};
-
-function redeemFromRouter7702(
+function redeemFromRouter(
   isMainCollateral: boolean,
   isRedeemToParentCollateral: boolean,
   chainId: SupportedChain,
@@ -181,6 +92,55 @@ function redeemFromRouter7702(
   };
 }
 
+async function redeemPositions(props: RedeemPositionProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(
+    () =>
+      sendTransaction(
+        config,
+        redeemFromRouter(
+          props.isMainCollateral,
+          props.isRedeemToParentCollateral,
+          props.chainId,
+          props.collateralToken,
+          props.market,
+          props.parentOutcome,
+          props.outcomeIndexes,
+          props.amounts,
+        ),
+      ),
+    {
+      txSent: { title: "Redeeming tokens..." },
+      txSuccess: { title: "Tokens redeemed!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => void) => {
+  const approvals = useMissingApprovals(approvalsConfig);
+
+  return {
+    approvals,
+    redeemPositions: useMutation({
+      mutationFn: redeemPositions,
+      onSuccess: async (/*data: TransactionReceipt*/) => {
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        // have to wait for market positions to finish invalidate
+        await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        onSuccess?.();
+      },
+    }),
+  };
+};
+
 async function redeemPositions7702(
   approvalsConfig: UseMissingApprovalsProps,
   props: RedeemPositionProps,
@@ -188,7 +148,7 @@ async function redeemPositions7702(
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
   calls.push(
-    redeemFromRouter7702(
+    redeemFromRouter(
       props.isMainCollateral,
       props.isRedeemToParentCollateral,
       props.chainId,
