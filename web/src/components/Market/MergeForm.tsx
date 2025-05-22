@@ -6,7 +6,7 @@ import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect } from "react";
@@ -24,10 +24,11 @@ export interface MergeFormValues {
 interface MergeFormProps {
   account?: Address;
   market: Market;
-  router: Address;
 }
 
-export function MergeForm({ account, market, router }: MergeFormProps) {
+export function MergeForm({ account, market }: MergeFormProps) {
+  const router = getRouterAddress(market.chainId);
+
   const { data: positions = [], isFetching: isFetchingPositions } = useMarketPositions(account, market);
 
   const useFormReturn = useForm<MergeFormValues>({

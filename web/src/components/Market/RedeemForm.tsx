@@ -1,12 +1,10 @@
 import Button from "@/components/Form/Button";
-import { conditionalRouterAddress } from "@/hooks/contracts/generated";
 import { Market } from "@/hooks/useMarket";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
-import { useRedeemConditionalPositions, useRedeemPositions } from "@/hooks/useRedeemPositions";
+import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -18,27 +16,30 @@ import AltCollateralSwitch from "./AltCollateralSwitch";
 
 export interface RedeemFormValues {
   useAltCollateral: boolean;
-  isRedeemToCollateral: boolean;
+  isRedeemToParentCollateral: boolean;
 }
 
 interface RedeemFormProps {
   account?: Address;
   market: Market;
-  router: Address;
   successCallback?: () => void;
 }
 
-export function RedeemForm({ account, market, router, successCallback }: RedeemFormProps) {
+export function RedeemForm({ account, market, successCallback }: RedeemFormProps) {
   const { chainId = DEFAULT_CHAIN } = useAccount();
   const { register, handleSubmit, watch } = useForm<RedeemFormValues>({
     mode: "all",
     defaultValues: {
       useAltCollateral: false,
-      isRedeemToCollateral: false,
+      isRedeemToParentCollateral: true,
     },
   });
+  const isRedeemToParentCollateral = watch("isRedeemToParentCollateral");
+  const isParentPayoutReported =
+    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
 
-  const isRedeemToCollateral = watch("isRedeemToCollateral");
+  const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market.chainId);
+
   const { data: winningPositions = [], isPending } = useWinningPositions(account, market, router);
 
   const winningOutcomeIndexes = generateWinningOutcomeIndexes(winningPositions);
@@ -49,7 +50,7 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
 
   const {
     redeemPositions,
-    approvals: { data: missingApprovalsBase = [], isLoading: isLoadingApprovalsBase },
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
   } = useRedeemPositions(
     {
       tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
@@ -60,42 +61,17 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
     },
     successCallback,
   );
-  const redeemConditionalPositions = useRedeemConditionalPositions(successCallback);
-
-  const { data: missingConditionalApprovals = [], isLoading: isLoadingConditionalApprovals = false } =
-    useMissingApprovals({
-      tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
-      account,
-      spender: conditionalRouterAddress[chainId as SupportedChain],
-      amounts: redeemAmounts,
-      chainId: market.chainId,
-    });
-
-  const isParentPayout =
-    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
-  const isConditionalRedeemToCollateral =
-    market.parentMarket.id !== zeroAddress && isParentPayout && !isRedeemToCollateral;
-  const isLoadingApprovals = isLoadingApprovalsBase || isLoadingConditionalApprovals;
-  const missingApprovals = isConditionalRedeemToCollateral ? missingConditionalApprovals : missingApprovalsBase;
 
   const onSubmit = async (values: RedeemFormValues) => {
-    if (market.parentMarket.id !== zeroAddress && isParentPayout && !values.isRedeemToCollateral) {
-      return await redeemConditionalPositions.mutateAsync({
-        market: market.id,
-        collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
-        outcomeIndexes: winningOutcomeIndexes,
-        parentOutcomeIndexes: [market.parentOutcome],
-        amounts: redeemAmounts,
-      });
-    }
     await redeemPositions.mutateAsync({
-      router,
       market: market.id,
+      chainId: market.chainId,
+      parentOutcome: market.parentOutcome,
       collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
       isMainCollateral: !values.useAltCollateral,
-      routerType: CHAIN_ROUTERS[market.chainId],
+      isRedeemToParentCollateral: isParentPayoutReported && values.isRedeemToParentCollateral,
     });
   };
   if (isPending) {
@@ -117,11 +93,11 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
       {market.parentMarket.id === zeroAddress && (
         <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
       )}
-      {market.parentMarket.id !== zeroAddress && isParentPayout && (
+      {market.parentMarket.id !== zeroAddress && isParentPayoutReported && (
         <div className="flex space-x-2">
-          <div>sDAI</div>
-          <Toggle {...register("isRedeemToCollateral")} />
           <div>Parent Token</div>
+          <Toggle {...register("isRedeemToParentCollateral")} />
+          <div>sDAI</div>
         </div>
       )}
 
@@ -131,8 +107,8 @@ export function RedeemForm({ account, market, router, successCallback }: RedeemF
             <Button
               variant="primary"
               type="submit"
-              disabled={redeemPositions.isPending || redeemConditionalPositions.isPending || !account}
-              isLoading={redeemPositions.isPending || redeemConditionalPositions.isPending || isLoadingApprovals}
+              disabled={redeemPositions.isPending || !account}
+              isLoading={redeemPositions.isPending || isLoadingApprovals}
               text="Submit"
             />
           )}
