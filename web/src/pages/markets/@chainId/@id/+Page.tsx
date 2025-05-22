@@ -97,12 +97,11 @@ function MarketPage() {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
-
   useEffect(() => {
     const outcomeIndexFromSearch =
       market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
     setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
-  }, [searchParams]);
+  }, [searchParams, market?.id]);
 
   if (isMarketError) {
     return (
