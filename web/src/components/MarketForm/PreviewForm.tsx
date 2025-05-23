@@ -18,7 +18,7 @@ import { queryClient } from "@/lib/query-client";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Address, TransactionReceipt, isAddress, zeroAddress, zeroHash } from "viem";
+import { Address, TransactionReceipt, isAddress, parseEther, zeroAddress, zeroHash } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
 import {
@@ -302,8 +302,8 @@ export function PreviewForm({
           : outcomesValues.outcomes.map((o) => o.token),
       parentMarket: parentMarketAddress as Address,
       parentOutcome: BigInt(parentOutcomeIndex),
-      lowerBound: outcomesValues.lowerBound.value,
-      upperBound: outcomesValues.upperBound.value,
+      lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+      upperBound: parseEther(String(outcomesValues.upperBound.value)),
       unit: outcomesValues.unit,
       category: MISC_CATEGORY,
       openingTime,
@@ -354,8 +354,8 @@ export function PreviewForm({
     conditionId: "0x000",
     questionId: "0x000",
     templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
-    lowerBound: BigInt(outcomesValues.lowerBound.value),
-    upperBound: BigInt(outcomesValues.upperBound.value),
+    lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+    upperBound: parseEther(String(outcomesValues.upperBound.value)),
     payoutReported: true,
     payoutNumerators: [0n, 0n],
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
