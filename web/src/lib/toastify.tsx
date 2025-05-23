@@ -1,5 +1,11 @@
 import { config as wagmiConfig } from "@/wagmi";
-import { ConnectorNotConnectedError, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
+import {
+  ConnectorNotConnectedError,
+  SendCallsReturnType,
+  getTransactionReceipt,
+  waitForCallsStatus,
+  waitForTransactionReceipt,
+} from "@wagmi/core";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
 import {
   TransactionNotFoundError,
@@ -60,7 +66,7 @@ type ToastifyConfig = {
 type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Promise<ToastifyReturn<T>>;
 
 type ToastifyTxFn = (
-  contractWrite: () => Promise<`0x${string}` /*| SendCallsReturnType*/>,
+  contractWrite: () => Promise<`0x${string}` | SendCallsReturnType>,
   config?: ToastifyConfig,
 ) => Promise<ToastifyTxReturn>;
 
@@ -122,31 +128,33 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
 
     toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
 
-    // if (typeof result === "string") {
-    hash = result;
+    let receipt: TransactionReceipt;
 
-    const receipt = await waitForTransactionReceipt(wagmiConfig, {
-      hash,
-      confirmations: Number(SEER_ENV.VITE_TX_CONFIRMATIONS) || 0,
-      timeout: 20000, //20 seconds timeout, then we poll manually
-    });
-    // } else {
-    //   const { receipts = [] } = await waitForCallsStatus(wagmiConfig, {
-    //     id: result.id,
-    //   });
+    if (typeof result === "string") {
+      hash = result;
 
-    //   if (!receipts.length || !receipts[0].transactionHash) {
-    //     throw new Error("No transaction hash found in call results");
-    //   }
+      receipt = await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+        confirmations: Number(SEER_ENV.VITE_TX_CONFIRMATIONS) || 0,
+        timeout: 20000, //20 seconds timeout, then we poll manually
+      });
+    } else {
+      const { receipts = [] } = await waitForCallsStatus(wagmiConfig, {
+        id: result.id,
+      });
 
-    //   hash = receipts[0].transactionHash;
+      if (!receipts.length || !receipts[0].transactionHash) {
+        throw new Error("No transaction hash found in call results");
+      }
 
-    //   receipt = await waitForTransactionReceipt(wagmiConfig, {
-    //     hash,
-    //     confirmations: Number(SEER_ENV.VITE_TX_CONFIRMATIONS) || 0,
-    //     timeout: 20000, //20 seconds timeout, then we poll manually
-    //   });
-    // }
+      hash = receipts[0].transactionHash;
+
+      receipt = await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+        confirmations: Number(SEER_ENV.VITE_TX_CONFIRMATIONS) || 0,
+        timeout: 20000, //20 seconds timeout, then we poll manually
+      });
+    }
 
     toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
 
