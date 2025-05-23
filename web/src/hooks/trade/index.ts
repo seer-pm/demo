@@ -1,4 +1,4 @@
-import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
+import { createCowOrder, executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
 import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
 import { SupportedChain } from "@/lib/chains";
@@ -443,6 +443,20 @@ export function useTrade(onSuccess: () => unknown) {
         // cowswap order id
         addPendingOrder(result);
       }
+      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+      onSuccess();
+    },
+  });
+}
+
+export function useCowLimitOrder(onSuccess: () => unknown) {
+  const { addPendingOrder } = useGlobalState();
+  return useMutation({
+    mutationFn: createCowOrder,
+    onSuccess: (result: string) => {
+      addPendingOrder(result);
       queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });

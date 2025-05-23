@@ -17,6 +17,7 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
   const orderBookApi = new OrderBookApi({ chainId });
   const orders = await orderBookApi.getOrders({ owner: account });
+  console.log(orders);
   const isWXDAI = (tokenAddress: string) =>
     isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||
     isTwoStringsEqual(tokenAddress, DAI[chainId]?.address) ||
@@ -63,10 +64,24 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
         buyTokenSymbol,
         sellTokenSymbol,
         sellAmount: Number(formatUnits(BigInt(curr.sellAmount), 18)).toFixed(4),
+        formattedExecutedSellAmount: Number(curr.executedSellAmount)
+          ? Number(formatUnits(BigInt(curr.executedSellAmount), 18)).toFixed(4)
+          : null,
         buyAmount: Number(formatUnits(BigInt(curr.buyAmount), 18)).toFixed(4),
+        formattedExecutedBuyAmount: Number(curr.executedBuyAmount)
+          ? Number(formatUnits(BigInt(curr.executedBuyAmount), 18)).toFixed(4)
+          : null,
         limitPrice: (
           Number(formatUnits(BigInt(curr.sellAmount), 18)) / Number(formatUnits(BigInt(curr.buyAmount), 18))
         ).toFixed(4),
+        executionPrice: Number(curr.executedSellAmount)
+          ? (
+              Number(formatUnits(BigInt(curr.executedSellAmount), 18)) /
+              Number(formatUnits(BigInt(curr.executedBuyAmount), 18))
+            ).toFixed(4)
+          : null,
+        isOnChainOrder: !!curr.onchainUser,
+        isEthFlow: !!curr.ethflowData,
       });
     }
     return acc;

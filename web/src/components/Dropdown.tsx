@@ -1,47 +1,50 @@
+import { ArrowDropDown } from "@/lib/icons";
 import clsx from "clsx";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
+import DropdownWrapper from "./Form/DropdownWrapper";
 
 interface DropdownProps {
-  options: { value: number | string; text: string; icon?: ReactNode }[];
-  value: number | string | undefined;
+  options: { value: number | string | boolean; text: string; icon?: ReactNode }[];
+  value: number | string | boolean | undefined;
   // biome-ignore lint/suspicious/noExplicitAny:
   onClick: (value: any) => void;
   defaultLabel: string;
-  containerClassName?: string;
-  btnClassName?: string;
 }
 
-export function Dropdown({
-  options,
-  value,
-  onClick,
-  defaultLabel,
-  btnClassName: btnClassNameFromProps,
-  containerClassName,
-}: DropdownProps) {
-  const btnClassName = btnClassNameFromProps ?? "m-1 text-[14px] text-purple-primary dropdown-arrow";
+export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((option) => option.value === value);
   return (
-    <div className={clsx("dropdown simple-dropdown", containerClassName)}>
-      <button type="button" tabIndex={0} className={clsx(btnClassName, "flex items-center gap-2 whitespace-nowrap")}>
+    <DropdownWrapper
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      className="w-[200px]"
+      content={
+        <div className="p-2">
+          {options.map((option) => (
+            <li
+              key={option.value.toString()}
+              onClick={() => {
+                onClick(option.value);
+                setIsOpen(false);
+              }}
+              className={clsx(
+                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
+                option.value === value && "active border-l-[3px] border-l-purple-primary bg-purple-medium",
+              )}
+            >
+              {option.icon}
+              <span>{option.text}</span>
+            </li>
+          ))}
+        </div>
+      }
+    >
+      <div className="text-[14px] font-semibold cursor-pointer flex items-center whitespace-nowrap">
         {selectedOption?.icon}
         {selectedOption?.text ?? defaultLabel}
-      </button>
-      <ul tabIndex={0} className="shadow p-0 dropdown-content z-[1] rounded-box text-left w-52">
-        {options.map((option) => (
-          <li
-            key={option.value}
-            onClick={() => onClick(option.value)}
-            className={clsx(
-              "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
-              option.value === value && "active border-l-[3px] border-l-purple-primary bg-purple-medium",
-            )}
-          >
-            {option.icon}
-            <span>{option.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <ArrowDropDown />
+      </div>
+    </DropdownWrapper>
   );
 }
