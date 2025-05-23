@@ -14,7 +14,6 @@ import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -29,7 +28,6 @@ function SwapWidget({
   outcomeIndex,
   images,
 }: {
-  router: Address;
   market: Market;
   outcomeIndex: number;
   images?: string[];
@@ -79,7 +77,6 @@ function MarketPage() {
   const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
-  const router = getRouterAddress(chainId);
 
   let {
     data: market,
@@ -94,12 +91,11 @@ function MarketPage() {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
-
   useEffect(() => {
     const outcomeIndexFromSearch =
       market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
     setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
-  }, [searchParams]);
+  }, [searchParams, market?.id]);
 
   if (isMarketError) {
     return (
@@ -176,8 +172,8 @@ function MarketPage() {
             <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            <SwapWidget router={router} market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
-            <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
+            <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+            <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />
