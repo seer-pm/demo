@@ -324,9 +324,6 @@ export function OutcomesForm({
                         if (Number.isNaN(Number(v)) || Number(v) < 0) {
                           return "Value cannot be negative.";
                         }
-                        if (!Number.isInteger(Number(v))) {
-                          return "Value must be integer.";
-                        }
                         return true;
                       },
                     })}
@@ -350,9 +347,6 @@ export function OutcomesForm({
                       validate: (v) => {
                         if (v <= lowerBound.value) {
                           return `Value must be greater than ${lowerBound.value}.`;
-                        }
-                        if (!Number.isInteger(Number(v))) {
-                          return "Value must be integer.";
                         }
                         return true;
                       },

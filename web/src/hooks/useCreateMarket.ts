@@ -14,8 +14,8 @@ interface CreateMarketProps {
   parentOutcome: bigint;
   outcomes: string[];
   tokenNames: string[];
-  lowerBound: number;
-  upperBound: number;
+  lowerBound: bigint;
+  upperBound: bigint;
   unit: string;
   category: string;
   openingTime: number;
@@ -72,8 +72,8 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
             category: "misc",
             outcomes: outcomes.map(escapeJson),
             tokenNames: getTokenNames(props.tokenNames, outcomes),
-            lowerBound: BigInt(props.lowerBound),
-            upperBound: BigInt(props.upperBound),
+            lowerBound: props.lowerBound,
+            upperBound: props.upperBound,
             minBond: getConfigNumber("MIN_BOND", props.chainId),
             openingTime: props.openingTime,
           },
