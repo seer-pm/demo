@@ -3,7 +3,7 @@ import { SupportedChain, gnosis, mainnet, sepolia } from "./utils/types.ts";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmY8H9jhz4K4gXuNsvnerSKKzHUBdTekCkHEvxkA7A8wzh`,
@@ -24,6 +24,18 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
   },
   uniswap: {
     [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  },
+  tokens: {
+    [gnosis.id]:
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
+    [mainnet.id]:
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/D1bjzs39GBk5HDrNm5ui27TDpX6pMqp8omUCRr79CjSQ",
+  },
+  poh: {
+    [gnosis.id]:
+      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/FFx16fGNSpdq2TpQer3KqpadP8UaLELS4Jocd1LtwAmG",
+    [mainnet.id]:
+      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/8oHw9qNXdeCT2Dt4QPZK9qHZNAhPWNVrCKnFDarYEJF5",
   },
 };
 
