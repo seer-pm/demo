@@ -1,8 +1,8 @@
-import { GetMarketQuery } from "@/hooks/queries/gql-generated-seer";
+import { GetMarketQuery, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains";
-import { Market, VerificationResult } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
+import { Market, MarketStatus, VerificationResult } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
+import { graphQLClient } from "@/lib/subgraph";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";
@@ -242,3 +242,37 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
   // [marketWithBalance, ..., ...]
   return [...marketsWithTokens];
 };
+
+export async function getMarketId(id: string | undefined, url: string | undefined): Promise<"" | Address> {
+  if (!id && !url) {
+    return "";
+  }
+
+  if (url) {
+    const { data: market } = await supabase.from("markets").select("id").eq("url", url).single();
+
+    return (market?.id?.toLowerCase() as Address) || "";
+  }
+
+  return (id?.toLowerCase() as Address) || "";
+}
+
+export async function getDatabaseMarket(id: "" | Address) {
+  const { data: result, error } = await supabase.from("markets").select(MARKET_DB_FIELDS).eq("id", id).single();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!result) {
+    throw new Error("Market not found");
+  }
+
+  return result;
+}
+
+export async function getSubgraphMarket(chainId: SupportedChain, id: "" | Address) {
+  const client = graphQLClient(chainId);
+  const { market } = await getSeerSdk(client).GetMarket({ id });
+  return market;
+}
