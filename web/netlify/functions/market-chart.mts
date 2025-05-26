@@ -1,9 +1,9 @@
-import { Market } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
-import { searchMarkets } from "./markets-search.mts";
 import { getChartData } from "./utils/getChartData";
+import { searchMarkets } from "./utils/markets";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 

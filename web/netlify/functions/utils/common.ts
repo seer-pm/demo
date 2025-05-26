@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { getPublicClient, getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import * as postmark from "postmark";
 import {
@@ -6,7 +7,6 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import { SupportedChain } from "../../../src/lib/chains";
 import { config } from "./config";
 
 export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
@@ -69,6 +69,7 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
   const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
     pairs: { chainId: string; priceUsd: string }[];
   };
+  // @ts-ignore
   const priceString = data.pairs.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
   return Number(priceString);
 }

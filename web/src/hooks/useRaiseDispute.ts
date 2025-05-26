@@ -7,7 +7,7 @@ import { TransactionReceipt } from "viem";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
   writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
-} from "./contracts/generated";
+} from "./contracts/generated-arbitrators";
 
 interface RaiseDisputeProps {
   questionId: `0x${string}`;

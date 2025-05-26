@@ -1,6 +1,6 @@
-import { Market, Question } from "@/hooks/useMarket";
 import { zeroAddress, zeroHash } from "viem";
 import { describe, expect, it } from "vitest";
+import { Market, Question } from "./market";
 import { MarketTypes, getMarketType, getQuestionParts, isMarketReliable } from "./market";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,

@@ -1,6 +1,7 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { Token, hasAltCollateral } from "@/lib/tokens";
-import { Market, useMarket } from "./useMarket";
+import { useMarket } from "./useMarket";
 import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {

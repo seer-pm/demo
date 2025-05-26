@@ -1,6 +1,4 @@
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { VerificationStatus } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
@@ -13,6 +11,8 @@ import {
   LawBalanceIcon,
   QuestionIcon,
 } from "@/lib/icons";
+import { MarketStatus } from "@/lib/market";
+import { VerificationStatus } from "@/lib/market";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";

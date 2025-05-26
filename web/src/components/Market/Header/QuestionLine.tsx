@@ -1,11 +1,11 @@
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain, mainnet } from "@/lib/chains";
 import { CheckCircleIcon, HourGlassIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes } from "@/lib/market";
+import { MarketStatus } from "@/lib/market.ts";
+import { Market, Question } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { ANSWERED_TOO_SOON, getAnswerText, getQuestionStatus, getRealityLink, isFinalized } from "@/lib/reality";
 import { getTimeLeft } from "@/lib/utils";

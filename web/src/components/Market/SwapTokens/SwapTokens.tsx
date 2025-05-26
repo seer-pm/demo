@@ -1,6 +1,6 @@
 import { Dropdown } from "@/components/Dropdown";
-import { Market } from "@/hooks/useMarket";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import clsx from "clsx";
 import { useState } from "react";

@@ -6,7 +6,7 @@ import { mainnet } from "viem/chains";
 import {
   realitioForeignArbitrationProxyWithAppealsAddress,
   realitioV2_1ArbitratorWithAppealsAddress,
-} from "./contracts/generated";
+} from "./contracts/generated-arbitrators";
 
 export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
   return useQuery<string, Error>({

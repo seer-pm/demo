@@ -1,4 +1,4 @@
-import { Market } from "@/hooks/useMarket";
+import { Market } from "@/lib/market";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import { RelatedMarkets } from "./RelatedMarkets";

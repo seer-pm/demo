@@ -1,8 +1,8 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
-import { marketFactoryAbi } from "@/hooks/contracts/generated";
+import { marketFactoryAbi } from "@/hooks/contracts/generated-market-factory";
 import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import { getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -11,6 +11,7 @@ import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { getMarketName, getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";

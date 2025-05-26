@@ -23,13 +23,13 @@ export default function SwapButtonsLimitOrder({
   isLoading: boolean;
   chainId: SupportedChain;
 }) {
-  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
-    [sellToken as `0x${string}`],
+  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals({
+    tokensAddresses: [sellToken as `0x${string}`],
     account,
-    CoWTrade.getVaultRelayerAddress(chainId),
-    parseUnits(amount, 18),
+    spender: CoWTrade.getVaultRelayerAddress(chainId),
+    amounts: parseUnits(amount, 18),
     chainId,
-  );
+  });
   console.log(account);
   const isShowApproval = missingApprovals && missingApprovals.length > 0;
 

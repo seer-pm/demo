@@ -1,9 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { config } from "@/wagmi";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { Market } from "../useMarket";
 
 export interface MarketDataMapping {
   outcomeTokenToCollateral: {

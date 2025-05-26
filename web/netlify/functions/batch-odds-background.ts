@@ -1,11 +1,11 @@
-import { getMarketOdds } from "@/hooks/useMarketOdds";
+import { getMarketOdds } from "@/lib/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
-import { searchMarkets } from "./markets-search.mts";
 import { chainIds } from "./utils/config";
 import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
+import { searchMarkets } from "./utils/markets";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 

@@ -1,7 +1,7 @@
-import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated";
-import { Market } from "@/hooks/useMarket";
+import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { Address } from "viem";
 import { SupportedChain } from "./chains";
+import { Market } from "./market";
 
 function marketPath(market: Market): string;
 function marketPath(id: Address | string, chainId: number): string;

@@ -1,7 +1,7 @@
+import { SupportedChain } from "@/lib/chains.ts";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
-import { SupportedChain } from "../../src/lib/chains.ts";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";

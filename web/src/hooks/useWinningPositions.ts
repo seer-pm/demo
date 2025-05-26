@@ -1,9 +1,9 @@
 import { RouterAbi } from "@/abi/RouterAbi";
+import { Market } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
-import { Market } from "./useMarket";
 import { Position, useMarketPositions } from "./useMarketPositions";
 
 export const useWinningPositions = (account: Address | undefined, market: Market, router: Address) => {

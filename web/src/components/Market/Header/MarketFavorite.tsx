@@ -7,11 +7,12 @@ import { useGetCollections } from "@/hooks/collections/useGetCollections";
 import { useUpdateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
-import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
 import { CheckIcon, PlusCircleIcon, PlusIcon, StarFilled, StarOutlined } from "@/lib/icons";
-import { checkWalletConnectCallback, isAccessTokenExpired } from "@/lib/utils";
+import { Market } from "@/lib/market";
+import { isAccessTokenExpired } from "@/lib/utils";
+import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
 import { useState } from "react";
 

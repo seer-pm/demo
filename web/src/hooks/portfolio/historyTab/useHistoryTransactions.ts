@@ -1,9 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { Market } from "../../useMarket";
 import { useMarkets } from "../../useMarkets";
 import { getMappings } from "../getMappings";
 import { getBlockTimestamp } from "../utils";

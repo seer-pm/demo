@@ -7,7 +7,7 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated";
+import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
 import { UseMissingApprovalsProps, useMissingApprovals } from "./useMissingApprovals";
 
 interface SplitPositionProps {

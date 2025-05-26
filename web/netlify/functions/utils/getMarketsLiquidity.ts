@@ -1,8 +1,7 @@
+import { SupportedChain } from "@/lib/chains.ts";
 import { COLLATERAL_TOKENS } from "@/lib/config.ts";
+import { Market, getCollateralByIndex, getMarketPoolsPairs } from "@/lib/market.ts";
 import { Address, zeroAddress } from "viem";
-import { Market } from "../../../src/hooks/useMarket.ts";
-import { SupportedChain } from "../../../src/lib/chains.ts";
-import { getCollateralByIndex, getMarketPoolsPairs } from "../../../src/lib/market.ts";
 import { getDexScreenerPriceUSD } from "./common.ts";
 import { chainIds } from "./config.ts";
 import { Pool } from "./fetchPools.ts";

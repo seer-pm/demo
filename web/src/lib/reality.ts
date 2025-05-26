@@ -1,11 +1,11 @@
-import { realityAddress } from "@/hooks/contracts/generated";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
+import { MarketStatus } from "./market";
+import { Market, Question } from "./market";
 
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
@@ -241,10 +241,10 @@ export function isScalarBoundInWei(bound: bigint) {
   return bound > BigInt(1e10);
 }
 
-export function displayScalarBound(bound: bigint): string {
+export function displayScalarBound(bound: bigint): number {
   if (isScalarBoundInWei(bound)) {
-    return formatEther(bound);
+    return Number(formatEther(bound));
   }
 
-  return bound.toString();
+  return Number(bound);
 }

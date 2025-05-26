@@ -2,10 +2,10 @@ import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarket } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
+import { MarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import {
   ColumnDef,

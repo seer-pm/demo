@@ -12,7 +12,7 @@ import {
   conditionalRouterAddress,
   gnosisRouterAbi,
   mainnetRouterAbi,
-} from "./contracts/generated";
+} from "./contracts/generated-router";
 import { UseMissingApprovalsProps, useMissingApprovals } from "./useMissingApprovals";
 
 interface RedeemPositionProps {

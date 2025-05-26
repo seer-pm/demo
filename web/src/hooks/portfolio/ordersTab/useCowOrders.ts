@@ -1,7 +1,7 @@
-import { Market } from "@/hooks/useMarket";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { DAI, WXDAI } from "@swapr/sdk";

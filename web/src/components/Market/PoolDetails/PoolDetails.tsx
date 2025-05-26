@@ -1,6 +1,6 @@
-import { Market } from "@/hooks/useMarket";
 import { PoolInfo, useMarketPools } from "@/hooks/useMarketPools";
 import { fetchTokenBalance } from "@/hooks/useTokenBalance";
+import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";

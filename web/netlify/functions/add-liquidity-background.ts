@@ -1,11 +1,11 @@
 import { convertFromSDAI } from "@/hooks/trade/handleSDAI";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { fetchMarket } from "@/lib/markets-search";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { readContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
-import { SupportedChain } from "../../src/lib/chains";
-import { isTwoStringsEqual } from "../../src/lib/utils";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
 import { waitForContractWrite } from "./utils/common";

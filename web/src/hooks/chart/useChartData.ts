@@ -1,8 +1,8 @@
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { Market } from "../useMarket";
 import { PoolHourDatasSets, filterChartData } from "./utils";
 
 export type ChartData = {

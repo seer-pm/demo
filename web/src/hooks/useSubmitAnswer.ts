@@ -4,7 +4,7 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
-import { writeRealitySubmitAnswer } from "./contracts/generated";
+import { writeRealitySubmitAnswer } from "./contracts/generated-reality";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;
