@@ -1,6 +1,7 @@
 import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
+import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -22,8 +23,57 @@ import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
 export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChain }) {
+  const renderCancelButton = (data: CowOrderData) => {
+    if (data.isOnChainOrder) {
+      if (data.isEthFlow) {
+        return (
+          <button
+            type="button"
+            className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+            onClick={() => cancelEthFlowOrder({ order: data })}
+          >
+            (Cancel Order)
+          </button>
+        );
+      }
+      return;
+    }
+    return (
+      <button
+        type="button"
+        className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+        onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+      >
+        (Cancel Order)
+      </button>
+    );
+  };
   const columns = React.useMemo<ColumnDef<CowOrderData>[]>(
     () => [
+      {
+        accessorKey: "status",
+        cell: (info) => {
+          const data = info.row.original;
+          return (
+            <div
+              className={clsx(
+                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
+                {
+                  fulfilled: "text-success-primary",
+                  open: "text-purple-primary",
+                  presignaturePending: "text-tint-blue-primary",
+                  cancelled: "text-black-secondary",
+                  expired: "text-warning-primary",
+                }[info.getValue<string>()],
+              )}
+            >
+              {info.getValue<string>().toUpperCase()}
+              {info.getValue<string>() === "open" && <>{renderCancelButton(data)}</>}
+            </div>
+          );
+        },
+        header: "Status",
+      },
       {
         accessorKey: "uid",
         cell: (info) => {
@@ -71,6 +121,14 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedSellAmount ?? "0"} ${order.sellTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Sell Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.buyAmount} ${order.buyTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
@@ -79,11 +137,27 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedBuyAmount ?? "0"} ${order.buyTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Buy Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.limitPrice} ${order.sellTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
         },
         header: "Limit Price",
+        enableSorting: false,
+      },
+      {
+        accessorFn: (order) => (order.executionPrice ? `${order.executionPrice} ${order.sellTokenSymbol}` : "-"),
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Execution Price",
         enableSorting: false,
       },
       {
@@ -96,28 +170,6 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
           );
         },
         header: "Creation Date",
-      },
-      {
-        accessorKey: "status",
-        cell: (info) => {
-          return (
-            <div
-              className={clsx(
-                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
-                {
-                  fulfilled: "text-success-primary",
-                  open: "text-purple-primary",
-                  presignaturePending: "text-tint-blue-primary",
-                  cancelled: "text-black-secondary",
-                  expired: "text-warning-primary",
-                }[info.getValue<string>()],
-              )}
-            >
-              {info.getValue<string>().toUpperCase()}
-            </div>
-          );
-        },
-        header: "Status",
       },
     ],
     [],
