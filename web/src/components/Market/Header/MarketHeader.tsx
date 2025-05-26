@@ -22,6 +22,7 @@ import {
 } from "@/lib/icons";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { displayScalarBound } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
@@ -97,7 +98,7 @@ function OutcomesInfo({
                     #{j + 1} {market.outcomes[i]}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
-                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                      `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}
                     {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
 

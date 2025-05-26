@@ -4,11 +4,11 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, sendTransaction } from "@wagmi/core";
+import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated";
-import { Execution, useCheck7702Support } from "./useCheck7702Support";
-import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
+import { Execution } from "./useCheck7702Support";
+import { UseMissingApprovalsProps, useMissingApprovals } from "./useMissingApprovals";
 
 interface MergePositionProps {
   router: Address;
@@ -107,68 +107,68 @@ const useMergePositionsLegacy = (
   };
 };
 
-async function mergePositions7702(
-  approvalsConfig: UseMissingApprovalsProps,
-  props: MergePositionProps,
-): Promise<TransactionReceipt> {
-  const calls: Execution[] = getApprovals7702(approvalsConfig);
+// async function mergePositions7702(
+//   approvalsConfig: UseMissingApprovalsProps,
+//   props: MergePositionProps,
+// ): Promise<TransactionReceipt> {
+//   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
-  calls.push(
-    mergeFromRouter(
-      props.isMainCollateral,
-      props.routerType,
-      props.router,
-      props.collateralToken,
-      props.market,
-      props.amount,
-    ),
-  );
+//   calls.push(
+//     mergeFromRouter(
+//       props.isMainCollateral,
+//       props.routerType,
+//       props.router,
+//       props.collateralToken,
+//       props.market,
+//       props.amount,
+//     ),
+//   );
 
-  const result = await toastifyTx(
-    () =>
-      sendCalls(config, {
-        calls,
-      }),
-    { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
-  );
+//   const result = await toastifyTx(
+//     () =>
+//       sendCalls(config, {
+//         calls,
+//       }),
+//     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
+//   );
 
-  if (!result.status) {
-    throw result.error;
-  }
+//   if (!result.status) {
+//     throw result.error;
+//   }
 
-  return result.receipt;
-}
+//   return result.receipt;
+// }
 
-const useMergePositions7702 = (
-  approvalsConfig: UseMissingApprovalsProps,
-  onSuccess: (data: TransactionReceipt) => unknown,
-) => {
-  const approvals = {
-    data: [],
-    isLoading: false,
-  };
+// const useMergePositions7702 = (
+//   approvalsConfig: UseMissingApprovalsProps,
+//   onSuccess: (data: TransactionReceipt) => unknown,
+// ) => {
+//   const approvals = {
+//     data: [],
+//     isLoading: false,
+//   };
 
-  return {
-    approvals,
-    mergePositions: useMutation({
-      mutationFn: (props: MergePositionProps) => mergePositions7702(approvalsConfig, props),
-      onSuccess: (data: TransactionReceipt) => {
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        onSuccess(data);
-      },
-    }),
-  };
-};
+//   return {
+//     approvals,
+//     mergePositions: useMutation({
+//       mutationFn: (props: MergePositionProps) => mergePositions7702(approvalsConfig, props),
+//       onSuccess: (data: TransactionReceipt) => {
+//         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+//         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+//         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+//         onSuccess(data);
+//       },
+//     }),
+//   };
+// };
 
 export const useMergePositions = (
   approvalsConfig: UseMissingApprovalsProps,
   onSuccess: (data: TransactionReceipt) => unknown,
 ) => {
-  const supports7702 = useCheck7702Support();
-  const merge7702 = useMergePositions7702(approvalsConfig, onSuccess);
+  // const supports7702 = useCheck7702Support();
+  // const merge7702 = useMergePositions7702(approvalsConfig, onSuccess);
   const mergeLegacy = useMergePositionsLegacy(approvalsConfig, onSuccess);
 
-  return supports7702 ? merge7702 : mergeLegacy;
+  return /*supports7702 ? merge7702 :*/ mergeLegacy;
 };
