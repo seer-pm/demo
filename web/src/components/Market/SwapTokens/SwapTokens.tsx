@@ -58,7 +58,12 @@ export function SwapTokens({
         </Alert>
       )}
       {!isShowMaxSlippage && (
-        <div className={clsx("space-y-5", hasEnoughLiquidity === false && "grayscale opacity-40 pointer-events-none")}>
+        <div
+          className={clsx(
+            "space-y-5",
+            hasEnoughLiquidity === false && orderType === "market" && "grayscale opacity-40 pointer-events-none",
+          )}
+        >
           <div className="flex items-center justify-between">
             <div role="tablist" className="tabs tabs-bordered">
               <button
