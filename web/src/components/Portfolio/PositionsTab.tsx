@@ -28,7 +28,7 @@ function PositionsTab() {
   if (isUndefined(positions)) {
     return <div className="shimmer-container w-full h-[200px]" />;
   }
-  if (!positions.length) {
+  if (!filteredPositions.length) {
     return <Alert type="warning">No positions found.</Alert>;
   }
   return (
