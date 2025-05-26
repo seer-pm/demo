@@ -105,7 +105,9 @@ export function getAnswerText(
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return formatEther(BigInt(question.best_answer));
+    return isScalarBoundInWei(BigInt(question.best_answer))
+      ? formatEther(BigInt(question.best_answer))
+      : BigInt(question.best_answer).toString();
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
@@ -224,4 +226,25 @@ export function decodeQuestion(encodedQuestion: string): {
     category,
     lang,
   };
+}
+
+export function isScalarBoundInWei(bound: bigint) {
+  // NOTE: This is a backwards compatibility check.
+  // Going forward, all scalar bounds will be in wei (1e18) format.
+  // However, some older markets used basic units (regular integers).
+  // We detect the format based on the size of the number.
+
+  // We use 1e10 as a threshold to distinguish between regular numbers and numbers in wei (1e18) format
+  // Numbers below 1e10 are assumed to be in their basic units (like regular integers)
+  // Numbers above 1e10 are assumed to be in wei format (1e18 decimals) and need to be formatted with formatEther
+
+  return bound > BigInt(1e10);
+}
+
+export function displayScalarBound(bound: bigint): string {
+  if (isScalarBoundInWei(bound)) {
+    return formatEther(bound);
+  }
+
+  return bound.toString();
 }

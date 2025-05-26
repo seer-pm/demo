@@ -22,6 +22,7 @@ import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, 
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { displayScalarBound } from "@/lib/reality";
 import { toastError } from "@/lib/toastify";
 import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -448,7 +449,7 @@ function OutcomeDetails({
             {market.type === "Generic" && <>#{loopIndex + 1}</>} {market.outcomes[outcomeIndex]}{" "}
             {outcomeIndex <= 1 &&
               getMarketType(market) === MarketTypes.SCALAR &&
-              `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
+              `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}{" "}
           </p>
           {getMarketType(market) === MarketTypes.SCALAR && outcomeIndex !== market.wrappedTokens.length - 1 && (
             <span className="tooltip">
