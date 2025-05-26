@@ -1,11 +1,7 @@
-import { getSwaprHistoryTokensPrices } from "@/hooks/portfolio/positionsTab/getSwaprPrices";
-import { getUniswapHistoryTokensPrices } from "@/hooks/portfolio/positionsTab/getUniswapPrices";
 import { Market } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
 import { fetchMarkets } from "@/lib/markets-search";
-import { isTwoStringsEqual } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
-import pLimit from "p-limit";
 import { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
@@ -18,14 +14,6 @@ import { getPrices } from "./utils/airdropCalculation/getPrices";
 import { getRandomNextDayTimestamp, getTokensByTimestamp } from "./utils/airdropCalculation/utils";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
-const SER_LPP = {
-  [gnosis.id]: "0xa7a7f8d1770c08e2e1f55d8c6427c1f8213a34da",
-};
-
-const SER_LPP_IGNORE_ADDRESSES = {
-  [gnosis.id]: ["0xcAD3f887275c3b8409140ea61Ebb0b9751eDa287", "0x607bbfd4cebd869aad04331f8a2ad0c3c396674b"],
-};
 
 const START_TIME = 1728579600; //October 11, 2024
 
@@ -122,32 +110,21 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
   });
   let total = 0;
   let pohTotal = 0;
-  let serLppTotal = 0;
   for (const [holderAddress, holderData] of Object.entries(users)) {
     const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
-    const serLppHoldingPerUser =
-      chainId === gnosis.id && SER_LPP_IGNORE_ADDRESSES[chainId].every((x) => !isTwoStringsEqual(x, holderAddress))
-        ? (holdersAtTimestamp[holderAddress]?.[SER_LPP[chainId]] ?? 0)
-        : 0;
     const isPOHUser = isPOHVerifiedUserAtTime(requests, holderAddress, timestamp);
     total += totalHoldingPerUser;
-    serLppTotal += serLppHoldingPerUser;
     if (isPOHUser) {
       pohTotal += Math.sqrt(totalHoldingPerUser);
     }
   }
   for (const [holderAddress, holderData] of Object.entries(users)) {
     const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
-    const serLppHoldingPerUser =
-      chainId === gnosis.id && SER_LPP_IGNORE_ADDRESSES[chainId].every((x) => !isTwoStringsEqual(x, holderAddress))
-        ? (holdersAtTimestamp[holderAddress]?.[SER_LPP[chainId]] ?? 0)
-        : 0;
-    if (totalHoldingPerUser.toLocaleString() !== "0" || serLppHoldingPerUser > 0) {
+    if (totalHoldingPerUser.toLocaleString() !== "0") {
       const isPOHUser = isPOHVerifiedUserAtTime(requests, holderAddress, timestamp);
       const shareOfHolding = total ? totalHoldingPerUser / total : 0;
       const shareOfHoldingPoh = isPOHUser && pohTotal > 0 ? Math.sqrt(totalHoldingPerUser) / pohTotal : 0;
-      const shareOfHoldingSerLpp = serLppTotal ? serLppHoldingPerUser / serLppTotal : 0;
-      const seerTokens = SEER_PER_DAY * (shareOfHolding * 0.25 + shareOfHoldingPoh * 0.25 + shareOfHoldingSerLpp * 0.5);
+      const seerTokens = SEER_PER_DAY * (shareOfHolding * 0.25 + shareOfHoldingPoh * 0.25);
       finalData.push({
         address: holderAddress,
         isPOHUser,
@@ -155,10 +132,8 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
         totalHolding: totalHoldingPerUser,
         directHolding: holderData.directHolding ?? 0,
         indirectHolding: holderData.indirectHolding ?? 0,
-        serLppHolding: serLppHoldingPerUser,
         shareOfHolding,
         shareOfHoldingPoh,
-        shareOfHoldingSerLpp,
         seerTokens,
       });
     }
@@ -166,20 +141,28 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
   return finalData;
 }
 
-export default async () => {
+async function getLatestSnapshotTimestamp() {
+  // from
+  const { data, error } = await supabase
+    .from("airdrops")
+    .select("timestamp")
+    .order("timestamp", { ascending: false })
+    .limit(1)
+    .single();
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+  return data?.timestamp ?? START_TIME;
+}
+
+async function updateSnapshot() {
   try {
-    const { data, error } = await supabase
-      .from("key_value")
-      .select("value")
-      .eq("key", "next_snapshot_timestamp")
-      .single();
-    if (error && error.code !== "PGRST116") {
-      throw error;
-    }
-    const nextTimestamp = getRandomNextDayTimestamp(data?.value?.timestamp ? Number(data.value.timestamp) : START_TIME);
-    console.log(nextTimestamp);
-    const now = new Date().getTime();
-    if (nextTimestamp * 1000 > now) {
+    const latestSnapshotTimestamp = await getLatestSnapshotTimestamp();
+    const now = Math.floor(new Date().getTime() / 1000);
+    const latestSnapshotTimestampInSeconds = Math.floor(new Date(latestSnapshotTimestamp).getTime() / 1000);
+    const nextTimestamp = getRandomNextDayTimestamp(latestSnapshotTimestampInSeconds, now);
+
+    if (nextTimestamp >= now) {
       return;
     }
     const markets = await fetchMarkets();
@@ -210,29 +193,21 @@ export default async () => {
         total_holding: data.totalHolding ?? 0,
         direct_holding: data.directHolding ?? 0,
         indirect_holding: data.indirectHolding ?? 0,
-        ser_lpp_holding: data.serLppHolding ?? 0,
         share_of_holding: data.shareOfHolding ?? 0,
         share_of_holding_poh: data.shareOfHoldingPoh ?? 0,
-        share_of_holding_ser_lpp: data.shareOfHoldingSerLpp ?? 0,
         seer_tokens_count: data.seerTokens ?? 0,
       })),
     );
 
     if (writeError) {
+      console.log(writeError);
       throw writeError;
-    }
-    const { error: upsertError } = await supabase.from("key_value").upsert(
-      {
-        key: "next_snapshot_timestamp",
-        value: { timestamp: nextTimestamp },
-      },
-      { onConflict: "key" },
-    );
-
-    if (upsertError) {
-      console.error("Save new timestamp failed:", upsertError);
     }
   } catch (e) {
     console.log(e);
   }
+}
+
+export default async () => {
+  await updateSnapshot();
 };

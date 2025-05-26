@@ -16,7 +16,7 @@ export function getTokensByTimestamp(markets: Market[], timestamp: number) {
   );
 }
 
-export function getRandomNextDayTimestamp(timestampInSeconds: number) {
+export function getRandomNextDayTimestamp(timestampInSeconds: number, lastDayInSeconds: number) {
   // Convert seconds to milliseconds
   const date = new Date(timestampInSeconds * 1000);
 
@@ -24,14 +24,14 @@ export function getRandomNextDayTimestamp(timestampInSeconds: number) {
   date.setDate(date.getDate() + 1);
   date.setHours(0, 0, 0, 0);
 
-  // Get milliseconds for start of next day
-  const nextDayStartMs = date.getTime();
-  const now = new Date().getTime();
-  let randomTimestampMs: number;
-  do {
-    randomTimestampMs = nextDayStartMs + Math.random() * 86400000;
-  } while (randomTimestampMs > now);
-
-  // Add random milliseconds and convert back to seconds
-  return Math.floor(randomTimestampMs / 1000);
+  // Get seconds for start of next day
+  const nextDayStartSeconds = Math.floor(date.getTime() / 1000);
+  console.log({ nextDayStartSeconds, lastDayInSeconds });
+  if (nextDayStartSeconds >= lastDayInSeconds) {
+    return nextDayStartSeconds;
+  }
+  // Add random seconds
+  const randomSeconds =
+    Math.floor(Math.random() * (Math.min(lastDayInSeconds - nextDayStartSeconds, 86399) - 1 + 1)) + 1;
+  return nextDayStartSeconds + randomSeconds;
 }

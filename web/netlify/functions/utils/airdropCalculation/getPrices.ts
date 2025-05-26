@@ -21,7 +21,7 @@ export async function getPrices(
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
   }
-  const BATCH_SIZE = 10;
+  const BATCH_SIZE = chainId === gnosis.id ? 10 : 1;
   const batches = [];
   for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
     batches.push(tokens.slice(i, i + BATCH_SIZE));
