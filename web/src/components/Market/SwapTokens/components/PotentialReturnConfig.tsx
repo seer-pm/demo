@@ -8,6 +8,7 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { CloseIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
+import { displayScalarBound } from "@/lib/reality";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
@@ -17,26 +18,28 @@ import { formatUnits, zeroAddress } from "viem";
 import { PotentialReturnResult } from "./PotentialReturn";
 
 function getScalarReturnPerToken(market: Market, outcomeTokenIndex: number, forecast: number) {
+  const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
+
   if (outcomeTokenIndex === 0) {
     // DOWN Token
-    if (forecast <= Number(market.lowerBound)) {
+    if (forecast <= lowerBound) {
       return 1;
     }
 
-    if (forecast >= Number(market.upperBound)) {
+    if (forecast >= upperBound) {
       return 0;
     }
-    return (Number(market.upperBound) - forecast) / (Number(market.upperBound) - Number(market.lowerBound));
+    return (upperBound - forecast) / (upperBound - lowerBound);
   }
 
   // UP Token
-  if (forecast <= Number(market.lowerBound)) {
+  if (forecast <= lowerBound) {
     return 0;
   }
-  if (forecast >= Number(market.upperBound)) {
+  if (forecast >= upperBound) {
     return 1;
   }
-  return (forecast - Number(market.lowerBound)) / (Number(market.upperBound) - Number(market.lowerBound));
+  return (forecast - lowerBound) / (upperBound - lowerBound);
 }
 
 function getMultiCategoricalReturnPerToken(outcomeText: string, forecast: string[]) {
@@ -278,8 +281,7 @@ function ScalarForecastChecker({
   });
 
   const bestReturnIndex = data[1].potentialReturn > data[0].potentialReturn ? 1 : 0;
-  const lowerBound = Number(market.lowerBound);
-  const upperBound = Number(market.upperBound);
+  const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
   const range = upperBound - lowerBound;
 
   const idealTickCount = 5;

@@ -18,6 +18,7 @@ import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { Address } from "viem";
@@ -71,21 +72,23 @@ export function OutcomesInfo({
   if (odds.length === 0) {
     return <div className="shimmer-container w-full h-[6px] rounded-[8px]"></div>;
   }
+
+  const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
+
   if (marketType === MarketTypes.SCALAR) {
     const marketEstimate = Number(getMarketEstimate(odds, market));
     if (Number.isNaN(marketEstimate)) {
       return null;
     }
-    const percentage =
-      ((marketEstimate - Number(market.lowerBound)) / (Number(market.upperBound) - Number(market.lowerBound))) * 100;
+    const percentage = ((marketEstimate - lowerBound) / (upperBound - lowerBound)) * 100;
     return (
       <div className="text-[12px] text-purple-primary">
         <p className="italic text-black-secondary mb-3">Estimate</p>
         <div className="relative">
           <input
             type="range"
-            min={Number(market.lowerBound)}
-            max={Number(market.upperBound)}
+            min={lowerBound}
+            max={upperBound}
             step={0.001}
             value={marketEstimate}
             className="
@@ -112,8 +115,8 @@ export function OutcomesInfo({
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <p>{Number(market.lowerBound).toLocaleString()}</p>
-          <p>{Number(market.upperBound).toLocaleString()}</p>
+          <p>{lowerBound.toLocaleString()}</p>
+          <p>{upperBound.toLocaleString()}</p>
         </div>
       </div>
     );

@@ -241,10 +241,10 @@ export function isScalarBoundInWei(bound: bigint) {
   return bound > BigInt(1e10);
 }
 
-export function displayScalarBound(bound: bigint): string {
+export function displayScalarBound(bound: bigint): number {
   if (isScalarBoundInWei(bound)) {
-    return formatEther(bound);
+    return Number(formatEther(bound));
   }
 
-  return bound.toString();
+  return Number(bound);
 }

@@ -423,7 +423,7 @@ function OutcomeDetails({
   };
 
   const getTooltipContent = (market: Market, outcomeIndex: number) => {
-    const [lowerBound, upperBound] = [market.lowerBound, market.upperBound];
+    const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
     if (outcomeIndex === 1) {
       return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
     }

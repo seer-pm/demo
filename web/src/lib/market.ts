@@ -5,6 +5,7 @@ import {
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   decodeQuestion,
+  displayScalarBound,
   escapeJson,
   isQuestionInDispute,
   isQuestionOpen,
@@ -346,7 +347,7 @@ export function getMarketEstimate(odds: number[], market: Market, convertToStrin
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  const estimate = (odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100;
+  const estimate = (odds[0] * displayScalarBound(lowerBound) + odds[1] * displayScalarBound(upperBound)) / 100;
   if (!convertToString) {
     return estimate;
   }
