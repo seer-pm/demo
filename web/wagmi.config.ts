@@ -1,8 +1,8 @@
-import fs from "fs";
-import { join, parse } from "path";
+import fs from "node:fs";
+import { readFile, readdir } from "node:fs/promises";
+import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { readFile, readdir } from "fs/promises";
 import { Chain, sepolia } from "wagmi/chains";
 
 const readArtifacts = async (chains: Chain[]) => {
@@ -39,7 +39,7 @@ const readArtifacts = async (chains: Chain[]) => {
   return results;
 };
 
-const getConfig = async (): Promise<Config> => {
+const getConfig = async (): Promise<Config[]> => {
   import.meta.env = loadEnv({
     mode: process.env.NODE_ENV,
     envDir: process.cwd(),
@@ -47,16 +47,28 @@ const getConfig = async (): Promise<Config> => {
 
   const { SUPPORTED_CHAINS } = await import("./src/lib/chains");
 
-  const chains = Object.values(SUPPORTED_CHAINS)
-  if (!chains.some(chain => chain.id === sepolia.id)) {
+  const chains = Object.values(SUPPORTED_CHAINS);
+  if (!chains.some((chain) => chain.id === sepolia.id)) {
     chains.push(sepolia);
   }
 
-  return {
-    out: "src/hooks/contracts/generated.ts",
-    contracts: Object.values(await readArtifacts(chains)),
-    plugins: [react(), actions()],
+  const allContracts = Object.values(await readArtifacts(chains));
+
+  const contractsMapping = {
+    curate: ["LightGeneralizedTCR"],
+    reality: ["Reality"],
+    arbitrators: ["RealitioForeignArbitrationProxyWithAppeals", "Realitio_v2_1_ArbitratorWithAppeals"],
+    "market-factory": ["MarketFactory", "Market"],
+    "market-view": ["MarketView"],
+    router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter"],
+    "multi-drop": ["MultiDrop", "GovernedRecipient"],
   };
+
+  return Object.entries(contractsMapping).map(([key, contractNames]) => ({
+    out: `src/hooks/contracts/generated-${key}.ts`,
+    contracts: allContracts.filter((contract) => contractNames.includes(contract.name)),
+    plugins: [react(), actions()],
+  }));
 };
 
 export default defineConfig(getConfig);

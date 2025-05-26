@@ -6,7 +6,7 @@ import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester,
   readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests,
   readRealitioV2_1ArbitratorWithAppealsArbitrationRequests,
-} from "./contracts/generated";
+} from "./contracts/generated-arbitrators";
 
 interface ArbitrationRequest {
   status: number;

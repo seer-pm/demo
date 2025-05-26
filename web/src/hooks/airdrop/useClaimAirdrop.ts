@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { getAccount, simulateContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
 import { gnosis } from "viem/chains";
-import { multiDropAbi, multiDropAddress, writeMultiDropClaim } from "../contracts/generated";
+import { multiDropAbi, multiDropAddress, writeMultiDropClaim } from "../contracts/generated-multi-drop";
 
 async function claimAirdrop(chainId: SupportedChain): Promise<TransactionReceipt | undefined> {
   if (chainId !== gnosis.id) {

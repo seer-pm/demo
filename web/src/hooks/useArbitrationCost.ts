@@ -8,7 +8,7 @@ import {
   readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData,
   readRealitioV2_1ArbitratorWithAppealsArbitrator,
   readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData,
-} from "./contracts/generated";
+} from "./contracts/generated-arbitrators";
 
 async function getArbitrationCost(chainId: SupportedChain): Promise<bigint> {
   const [arbitrator, arbitratorExtraData] = await Promise.all(

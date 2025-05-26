@@ -1,5 +1,5 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
-import { marketFactoryAbi } from "@/hooks/contracts/generated";
+import { marketFactoryAbi } from "@/hooks/contracts/generated-market-factory";
 import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";

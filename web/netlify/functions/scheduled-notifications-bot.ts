@@ -1,4 +1,4 @@
-import { realityAddress } from "@/hooks/contracts/generated.ts";
+import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { Question } from "@/hooks/useMarket.ts";
 import { SupportedChain, sepolia } from "@/lib/chains.ts";
 import { decodeQuestion, getAnswerText, getRealityLink } from "@/lib/reality.ts";

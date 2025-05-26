@@ -1,4 +1,4 @@
-import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated";
+import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { Market } from "@/hooks/useMarket";
 import { Address } from "viem";
 import { SupportedChain } from "./chains";

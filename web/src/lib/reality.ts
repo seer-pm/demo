@@ -1,4 +1,4 @@
-import { realityAddress } from "@/hooks/contracts/generated";
+import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { Market, Question } from "@/hooks/useMarket";
 import { MarketStatus } from "@/hooks/useMarketStatus";
 import { compareAsc } from "date-fns/compareAsc";

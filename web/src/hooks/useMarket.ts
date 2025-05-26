@@ -8,7 +8,8 @@ import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress, zeroHash } from "viem";
-import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
+import { marketFactoryAddress } from "./contracts/generated-market-factory";
+import { readMarketViewGetMarket } from "./contracts/generated-market-view";
 
 export interface Question {
   id: `0x${string}`;

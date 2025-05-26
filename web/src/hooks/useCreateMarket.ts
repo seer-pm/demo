@@ -5,7 +5,7 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { Address, TransactionReceipt } from "viem";
-import { writeMarketFactory } from "./contracts/generated";
+import { writeMarketFactory } from "./contracts/generated-market-factory";
 
 interface CreateMarketProps {
   marketType: MarketTypes;

@@ -1,4 +1,4 @@
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated.ts";
+import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
 import { VerificationResult } from "@/hooks/useMarket.ts";
 import { SupportedChain } from "@/lib/chains.ts";
