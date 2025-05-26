@@ -1,10 +1,12 @@
 import { STATUS_TEXTS } from "@/components/Market/Header";
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { Market, SerializedMarket, deserializeMarket } from "@/hooks/useMarket";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { UseGraphMarketsParams } from "@/hooks/useMarkets";
+import { getMarketStatus } from "@/lib/market";
 import { Address, isAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
+import { MarketStatus } from "./market";
+import { deserializeMarket } from "./market";
+import { Market, SerializedMarket } from "./market";
 import { getAppUrl } from "./utils";
 
 export type FetchMarketParams = Partial<UseGraphMarketsParams> & { parentMarket?: Address };

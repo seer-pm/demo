@@ -1,10 +1,10 @@
+import { Market } from "@/lib/market";
 import { isTextInString } from "@/lib/utils";
 import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
 import { useCollectionsSearch } from "./collections/useCollectionsSearch";
-import { Market } from "./useMarket";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
 

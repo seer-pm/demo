@@ -1,6 +1,6 @@
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain, gnosis } from "@/lib/chains";
+import { MarketStatus } from "@/lib/market";
+import { Market, Question } from "@/lib/market";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
 import { zeroAddress, zeroHash } from "viem";
 import { MarketHeader } from "./MarketHeader";

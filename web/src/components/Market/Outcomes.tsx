@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { useDepositNft, useEnterFarming, useExitFarming, useWithdrawNft } from "@/hooks/useFarmingCenter";
-import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import {
   NftPosition,
@@ -10,7 +9,6 @@ import {
   useNftPositions,
   usePoolsDeposits,
 } from "@/hooks/useMarketPools";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
@@ -20,6 +18,9 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { getMarketStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";

@@ -1,4 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +8,6 @@ import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "../contracts/generated-multi-drop";
 import { getTokensInfo } from "../portfolio/utils";
-import { Market } from "../useMarket";
 import { useMarkets } from "../useMarkets";
 
 export interface AirdropTokenInfo {

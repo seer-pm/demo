@@ -1,6 +1,15 @@
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain } from "@/lib/chains";
-import { MarketTypes, Token0Token1, getMarketEstimate, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
+import {
+  Market,
+  MarketTypes,
+  Token0Token1,
+  getMarketEstimate,
+  getMarketPoolsPairs,
+  getMarketType,
+  isOdd,
+} from "@/lib/market";
+import { normalizeOdds } from "@/lib/market-odds";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { subDays } from "date-fns";
 import { formatUnits } from "viem";
@@ -11,8 +20,6 @@ import {
   OrderDirection,
   getSdk as getSwaprSdk,
 } from "../queries/gql-generated-swapr";
-import { Market } from "../useMarket";
-import { normalizeOdds } from "../useMarketOdds";
 import { ChartData } from "./useChartData";
 
 export type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];

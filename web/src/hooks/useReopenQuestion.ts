@@ -1,10 +1,10 @@
+import { Question } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt, zeroHash } from "viem";
 import { writeRealityReopenQuestion } from "./contracts/generated-reality";
-import { Question } from "./useMarket";
 
 interface ResolveMarketProps {
   question: Question;

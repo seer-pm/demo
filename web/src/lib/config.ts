@@ -1,8 +1,8 @@
 import { gnosisRouterAddress, mainnetRouterAddress, routerAddress } from "@/hooks/contracts/generated-router";
-import { Market } from "@/hooks/useMarket";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
+import { Market } from "./market";
 import { getLiquidityPair } from "./market";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";

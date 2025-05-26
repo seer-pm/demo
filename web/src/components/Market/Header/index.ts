@@ -1,4 +1,4 @@
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { MarketStatus } from "@/lib/market";
 import { MarketTypes } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 

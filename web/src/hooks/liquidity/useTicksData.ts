@@ -1,6 +1,6 @@
 import { getLiquidityPair } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
-import { Market } from "../useMarket";
 import { getTicksData } from "./getTicksData";
 
 export const useTicksData = (market: Market, outcomeTokenIndex: number) => {

@@ -1,11 +1,11 @@
 import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
+import { SupportedChain } from "@/lib/chains";
+import { serializeMarket } from "@/lib/market";
 import { graphQLClient } from "@/lib/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
-import { serializeMarket } from "../../src/hooks/useMarket";
-import { SupportedChain } from "../../src/lib/chains";
-import { MARKET_DB_FIELDS, SubgraphMarket, mapGraphMarketFromDbResult } from "./markets-search.mts";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
+import { MARKET_DB_FIELDS, SubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets";
 import { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);

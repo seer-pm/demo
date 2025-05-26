@@ -1,12 +1,12 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { Market } from "@/hooks/useMarket";
 import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect } from "react";

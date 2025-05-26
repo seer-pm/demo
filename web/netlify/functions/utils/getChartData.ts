@@ -15,8 +15,8 @@ import {
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
 } from "@/hooks/queries/gql-generated-uniswap";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { Market } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { Token0Token1, getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { TickMath } from "@uniswap/v3-sdk";

@@ -1,8 +1,8 @@
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { Market } from "./useMarket";
 
 export const useRelatedMarkets = (chainId: SupportedChain, marketId: Address) => {
   return useQuery<Market[], Error>({

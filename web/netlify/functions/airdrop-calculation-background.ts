@@ -1,5 +1,5 @@
-import { Market } from "@/hooks/useMarket";
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";

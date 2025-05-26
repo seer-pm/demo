@@ -1,4 +1,4 @@
-import { Market } from "@/hooks/useMarket";
+import { Market } from "@/lib/market";
 import { Address } from "viem";
 
 export function getTokensByTimestamp(markets: Market[], timestamp: number) {

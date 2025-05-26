@@ -1,10 +1,10 @@
 import Button from "@/components/Form/Button";
-import { Market } from "@/hooks/useMarket";
 import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";

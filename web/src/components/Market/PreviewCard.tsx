@@ -1,6 +1,5 @@
-import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -14,6 +13,9 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
+import { getMarketStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";

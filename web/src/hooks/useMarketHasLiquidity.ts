@@ -1,5 +1,5 @@
+import { Market } from "@/lib/market";
 import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { Market } from "./useMarket";
 import { useAllOutcomePools } from "./useMarketPools";
 
 function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {

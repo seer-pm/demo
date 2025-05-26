@@ -1,7 +1,8 @@
-import { Market } from "@/hooks/useMarket";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
+import { getMarketStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";

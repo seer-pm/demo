@@ -1,9 +1,8 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
@@ -20,7 +19,10 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
+import { getMarketStatus } from "@/lib/market";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
+import { MarketStatus } from "@/lib/market.ts";
+import { Market } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";

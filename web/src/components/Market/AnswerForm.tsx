@@ -1,11 +1,11 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
+import { MarketStatus } from "@/lib/market";
+import { Market, Question } from "@/lib/market";
 import {
   ANSWERED_TOO_SOON,
   FormEventOutcomeValue,

@@ -1,5 +1,5 @@
-import { Market } from "@/hooks/useMarket";
 import { Address } from "viem";
+import { SupportedChain } from "./chains";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
@@ -12,6 +12,140 @@ import {
   isQuestionUnanswered,
 } from "./reality";
 import { formatDate, isUndefined } from "./utils";
+
+export interface Question {
+  id: `0x${string}`;
+  arbitrator: Address;
+  opening_ts: number;
+  timeout: number;
+  finalize_ts: number;
+  is_pending_arbitration: boolean;
+  best_answer: `0x${string}`;
+  bond: bigint;
+  min_bond: bigint;
+  base_question: `0x${string}`;
+}
+
+export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
+export type VerificationResult = { status: VerificationStatus; itemID?: string };
+export type MarketOffChainFields = {
+  chainId: SupportedChain;
+  outcomesSupply: bigint;
+  liquidityUSD: number;
+  incentive: number;
+  hasLiquidity: boolean;
+  categories: string[];
+  poolBalance: ({
+    token0: {
+      symbol: string;
+      balance: number;
+    };
+    token1: {
+      symbol: string;
+      balance: number;
+    };
+  } | null)[];
+  odds: number[];
+  creator?: string | null;
+  blockTimestamp?: number;
+  verification?: VerificationResult;
+  images?: { market: string; outcomes: string[] } | undefined;
+  index?: number;
+  url: string;
+};
+
+export enum MarketStatus {
+  NOT_OPEN = "not_open",
+  OPEN = "open",
+  ANSWER_NOT_FINAL = "answer_not_final",
+  IN_DISPUTE = "in_dispute",
+  PENDING_EXECUTION = "pending_execution",
+  CLOSED = "closed",
+}
+
+export type Market = MarketOffChainFields & {
+  id: Address;
+  type: "Generic" | "Futarchy";
+  marketName: string;
+  outcomes: readonly string[];
+  collateralToken: Address;
+  collateralToken1: Address;
+  collateralToken2: Address;
+  wrappedTokens: Address[];
+  parentMarket: {
+    id: Address;
+    conditionId: `0x${string}`;
+    payoutReported: boolean;
+    payoutNumerators: readonly bigint[];
+  };
+  parentOutcome: bigint;
+  //MarketView's outcomesSupply is buggy
+  //outcomesSupply: bigint;
+  parentCollectionId: `0x${string}`;
+  conditionId: `0x${string}`;
+  questionId: `0x${string}`;
+  templateId: bigint;
+  questions: readonly Question[];
+  openingTs: number;
+  finalizeTs: number;
+  encodedQuestions: readonly string[];
+  lowerBound: bigint;
+  upperBound: bigint;
+  payoutReported: boolean;
+  payoutNumerators: readonly bigint[];
+};
+
+export type SerializedMarket = Omit<
+  Market,
+  | "outcomesSupply"
+  | "parentOutcome"
+  | "templateId"
+  | "questions"
+  | "lowerBound"
+  | "upperBound"
+  | "payoutNumerators"
+  | "parentMarket"
+> & {
+  outcomesSupply: string;
+  parentMarket: Omit<Market["parentMarket"], "payoutNumerators"> & {
+    payoutNumerators: readonly string[];
+  };
+  parentOutcome: string;
+  templateId: string;
+  questions: Array<
+    Omit<Question, "bond" | "min_bond"> & {
+      bond: string;
+      min_bond: string;
+    }
+  >;
+  lowerBound: string;
+  upperBound: string;
+  payoutNumerators: readonly string[];
+};
+
+export const getMarketStatus = (market: Market) => {
+  if (!hasOpenQuestions(market!)) {
+    return MarketStatus.NOT_OPEN;
+  }
+
+  if (hasAllUnansweredQuestions(market!)) {
+    return MarketStatus.OPEN;
+  }
+
+  if (isInDispute(market!)) {
+    return MarketStatus.IN_DISPUTE;
+  }
+
+  if (isWaitingResults(market!)) {
+    return MarketStatus.ANSWER_NOT_FINAL;
+  }
+
+  if (!market!.payoutReported) {
+    return MarketStatus.PENDING_EXECUTION;
+  }
+
+  return MarketStatus.CLOSED;
+};
 
 export function hasOpenQuestions(market: Market) {
   // all the questions have the same opening_ts so we can use the first one to check it
@@ -302,4 +436,52 @@ export function getOutcomes(outcomes: string[], marketType: MarketTypes) {
   }
 
   return outcomes;
+}
+
+export function serializeMarket(market: Market): SerializedMarket {
+  return {
+    ...market,
+    outcomesSupply: market.outcomesSupply.toString(),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => pn.toString()),
+    },
+    parentOutcome: market.parentOutcome.toString(),
+    templateId: market.templateId.toString(),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: question.bond.toString(),
+      min_bond: question.min_bond.toString(),
+    })),
+    lowerBound: market.lowerBound.toString(),
+    upperBound: market.upperBound.toString(),
+    payoutNumerators: market.payoutNumerators.map((pn) => pn.toString()),
+  };
+}
+
+export function deserializeMarket(market: SerializedMarket): Market {
+  return {
+    ...market,
+    outcomesSupply: BigInt(market.outcomesSupply),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => BigInt(pn)),
+    },
+    parentOutcome: BigInt(market.parentOutcome),
+    templateId: BigInt(market.templateId),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: BigInt(question.bond),
+      min_bond: BigInt(question.min_bond),
+    })),
+    lowerBound: BigInt(market.lowerBound),
+    upperBound: BigInt(market.upperBound),
+    payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+    images: market.images
+      ? {
+          market: `https://cdn.kleros.link${market.images.market}`,
+          outcomes: ((market.images.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
+        }
+      : undefined,
+  };
 }

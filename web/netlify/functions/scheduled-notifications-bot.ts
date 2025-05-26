@@ -1,6 +1,6 @@
 import { realityAddress } from "@/hooks/contracts/generated-reality";
-import { Question } from "@/hooks/useMarket.ts";
 import { SupportedChain, sepolia } from "@/lib/chains.ts";
+import { Question } from "@/lib/market";
 import { decodeQuestion, getAnswerText, getRealityLink } from "@/lib/reality.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";

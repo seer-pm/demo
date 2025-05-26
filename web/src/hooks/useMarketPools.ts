@@ -1,5 +1,6 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +17,7 @@ import {
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { Market, useMarket } from "./useMarket";
+import { useMarket } from "./useMarket";
 import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {

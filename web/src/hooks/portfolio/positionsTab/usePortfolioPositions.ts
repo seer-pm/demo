@@ -1,7 +1,8 @@
-import { Market } from "@/hooks/useMarket";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
+import { getMarketStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, getQuestionParts } from "@/lib/market";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";

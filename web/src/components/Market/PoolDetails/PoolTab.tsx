@@ -1,8 +1,8 @@
 import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
-import { Market } from "@/hooks/useMarket";
 import { PoolInfo } from "@/hooks/useMarketPools";
 import { getPoolUrl } from "@/lib/config";
+import { Market } from "@/lib/market";
 import LiquidityBarChart from "./LiquidityBarChart";
 
 function PoolTab({

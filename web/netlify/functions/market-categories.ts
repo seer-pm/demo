@@ -1,6 +1,6 @@
 import { fetchMarket } from "@/lib/markets-search";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
-import { isTwoStringsEqual } from "../../src/lib/utils";
 import { verifyToken } from "./utils/auth";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);

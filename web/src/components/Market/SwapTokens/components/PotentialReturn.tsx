@@ -1,5 +1,5 @@
-import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token, getPotentialReturn } from "@/lib/tokens";
 import clsx from "clsx";

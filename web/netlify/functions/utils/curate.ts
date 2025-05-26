@@ -1,7 +1,7 @@
 import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
-import { VerificationResult } from "@/hooks/useMarket.ts";
 import { SupportedChain } from "@/lib/chains.ts";
+import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
 import { Address, parseAbiItem } from "viem";
 import { getPublicClientForNetwork } from "./common.ts";

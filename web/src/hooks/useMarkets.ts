@@ -1,4 +1,6 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { Market, VerificationStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -7,8 +9,7 @@ import { Address } from "viem";
 import { marketFactoryAddress } from "./contracts/generated-market-factory";
 import { readMarketViewGetMarkets } from "./contracts/generated-market-view";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { Market, VerificationStatus, getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
-import { MarketStatus } from "./useMarketStatus";
+import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
 
 export async function searchOnChainMarkets(chainId: SupportedChain) {
   return (
