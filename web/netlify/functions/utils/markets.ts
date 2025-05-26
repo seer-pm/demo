@@ -68,7 +68,8 @@ export function mapGraphMarket(
         finalize_ts: Number(question.question.finalize_ts),
         bond: BigInt(question.question.bond),
         min_bond: BigInt(question.question.min_bond),
-        base_question: question.baseQuestion.id as `0x${string}`,
+        // Base question is not yet available for futarchy markets yet
+        base_question: (question?.baseQuestion?.id || zeroAddress) as `0x${string}`,
       };
     }),
     outcomesSupply: BigInt(market.outcomesSupply),
