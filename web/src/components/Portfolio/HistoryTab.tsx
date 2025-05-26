@@ -41,7 +41,7 @@ function HistoryTab() {
   if (isUndefined(historyTransactions)) {
     return <div className="shimmer-container w-full h-[200px]" />;
   }
-  if (!historyTransactions.length) {
+  if (!filteredTransactions.length) {
     return <Alert type="warning">No transactions found.</Alert>;
   }
   return (

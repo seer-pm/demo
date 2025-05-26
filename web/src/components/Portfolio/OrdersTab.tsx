@@ -43,7 +43,7 @@ function OrdersTab() {
   if (isUndefined(orders)) {
     return <div className="shimmer-container w-full h-[200px]" />;
   }
-  if (!orders.length) {
+  if (!filteredOrders.length) {
     return <Alert type="warning">No orders found.</Alert>;
   }
   return (
