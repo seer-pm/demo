@@ -3,7 +3,7 @@ import { SupportedChain } from "../../../src/lib/chains";
 import SEER_ENV from "../../../src/lib/env";
 import { gnosis, mainnet } from "./config";
 
-export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh";
 
 function getAppUrl() {
   return SEER_ENV.VITE_WEBSITE_URL || "https://app.seer.pm";
