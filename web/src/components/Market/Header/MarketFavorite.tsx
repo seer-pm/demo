@@ -11,7 +11,8 @@ import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
 import { CheckIcon, PlusCircleIcon, PlusIcon, StarFilled, StarOutlined } from "@/lib/icons";
 import { Market } from "@/lib/market";
-import { checkWalletConnectCallback, isAccessTokenExpired } from "@/lib/utils";
+import { isAccessTokenExpired } from "@/lib/utils";
+import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
 import { useState } from "react";
 

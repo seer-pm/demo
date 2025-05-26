@@ -1,5 +1,5 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { checkWalletConnectCallback } from "@/lib/utils";
+import { checkWalletConnectCallback } from "@/lib/wallet";
 import { useEffect, useRef } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import Button from "./Button";

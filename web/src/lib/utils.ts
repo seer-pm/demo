@@ -1,13 +1,9 @@
-import { config } from "@/wagmi";
-import { getAccount } from "@wagmi/core";
-import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
 import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
-import { Address, formatUnits, getAddress } from "viem";
-import { SupportedChain } from "./chains";
+import { formatUnits, getAddress } from "viem";
 import SEER_ENV from "./env";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -198,26 +194,6 @@ export function stripDiacritics(str: string) {
 
 export function isTextInString(text: string, string: string) {
   return stripDiacritics(string).toLowerCase().includes(stripDiacritics(text).toLowerCase());
-}
-
-export function checkWalletConnectCallback(
-  callback: (address: Address, chainId: SupportedChain) => void,
-  timeout = 1000,
-) {
-  const account = getAccount(config);
-  if (account.address && account.chainId && account.isConnected) {
-    callback(account.address, account.chainId as SupportedChain);
-    return;
-  }
-  const { open } = useWeb3Modal();
-  open({ view: "Connect" });
-  const interval = setInterval(() => {
-    const account = getAccount(config);
-    if (account.address && account.chainId && account.isConnected) {
-      callback(account.address, account.chainId as SupportedChain);
-      clearInterval(interval);
-    }
-  }, timeout);
 }
 
 interface HeaderConfig {
