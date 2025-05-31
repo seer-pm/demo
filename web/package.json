@@ -75,8 +75,8 @@
     "slug": "^10.0.0",
     "valibot": "^0.31.1",
     "viem": "2.30.1",
-    "vike": "^0.4.223",
-    "vike-react": "^0.5.13",
+    "vike": "^0.4.230",
+    "vike-react": "^0.6.3",
     "vite-plugin-checker": "^0.6.4",
     "wagmi": "2.15.4",
     "zustand": "^4.5.2"
@@ -100,7 +100,7 @@
     "sass": "^1.71.1",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
-    "vite": "^5.4.9",
+    "vite": "^6.0.0",
     "vite-plugin-cjs-interop": "^2.1.4",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.1.1"
