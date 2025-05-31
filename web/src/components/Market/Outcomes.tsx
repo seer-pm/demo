@@ -66,13 +66,15 @@ function poolRewardsInfo(pool: PoolInfo) {
           <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
         </div>
       )}
-      {pool.incentives.length > 0 && (
+      {pool.incentives.length > 0 ? (
         <div className="flex items-center gap-2">
           <p>
             {isRewardEnded ? "Rewards ended on" : "Rewards end"}:{" "}
             <span className={isRewardEnded ? "text-[#6E6E6E]" : "text-purple-primary"}>{realEndTime}</span>
           </p>
         </div>
+      ) : (
+        "This pool currently has no active incentives or rewards"
       )}
     </div>
   );
@@ -179,7 +181,7 @@ function AddLiquidityInfo({
                     rel="noopener noreferrer"
                     className="text-purple-primary flex items-center space-x-2"
                   >
-                    <span>Open</span> <RightArrow />
+                    <span>Add liquidity</span> <RightArrow />
                   </a>
                 </div>
               </div>
@@ -310,9 +312,7 @@ function AddLiquidityLinks({
 }) {
   return (
     <>
-      {openLiquidityModal &&
-      !isUndefined(pools[outcomeIndex]) &&
-      pools[outcomeIndex].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+      {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
         <button
           type="button"
           onClick={() => {
