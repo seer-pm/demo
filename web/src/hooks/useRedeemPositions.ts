@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendTransaction } from "@wagmi/core";
+import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import {
   conditionalRouterAbi,
@@ -13,7 +13,8 @@ import {
   gnosisRouterAbi,
   mainnetRouterAbi,
 } from "./contracts/generated-router";
-import { UseMissingApprovalsProps, useMissingApprovals } from "./useMissingApprovals";
+import { Execution, useCheck7702Support } from "./useCheck7702Support";
+import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface RedeemPositionProps {
   market: Address;
@@ -140,70 +141,70 @@ export const useRedeemPositionsLegacy = (approvalsConfig: UseMissingApprovalsPro
   };
 };
 
-// async function redeemPositions7702(
-//   approvalsConfig: UseMissingApprovalsProps,
-//   props: RedeemPositionProps,
-// ): Promise<TransactionReceipt> {
-//   const calls: Execution[] = getApprovals7702(approvalsConfig);
+async function redeemPositions7702(
+  approvalsConfig: UseMissingApprovalsProps,
+  props: RedeemPositionProps,
+): Promise<TransactionReceipt> {
+  const calls: Execution[] = getApprovals7702(approvalsConfig);
 
-//   calls.push(
-//     redeemFromRouter(
-//       props.isMainCollateral,
-//       props.isRedeemToParentCollateral,
-//       props.chainId,
-//       props.collateralToken,
-//       props.market,
-//       props.parentOutcome,
-//       props.outcomeIndexes,
-//       props.amounts,
-//     ),
-//   );
+  calls.push(
+    redeemFromRouter(
+      props.isMainCollateral,
+      props.isRedeemToParentCollateral,
+      props.chainId,
+      props.collateralToken,
+      props.market,
+      props.parentOutcome,
+      props.outcomeIndexes,
+      props.amounts,
+    ),
+  );
 
-//   const result = await toastifyTx(
-//     () =>
-//       sendCalls(config, {
-//         calls,
-//       }),
-//     {
-//       txSent: { title: "Redeeming tokens..." },
-//       txSuccess: { title: "Tokens redeemed!" },
-//     },
-//   );
+  const result = await toastifyTx(
+    () =>
+      sendCalls(config, {
+        calls,
+      }),
+    {
+      txSent: { title: "Redeeming tokens..." },
+      txSuccess: { title: "Tokens redeemed!" },
+    },
+  );
 
-//   if (!result.status) {
-//     throw result.error;
-//   }
+  if (!result.status) {
+    throw result.error;
+  }
 
-//   return result.receipt;
-// }
+  return result.receipt;
+}
 
-// const useRedeemPositions7702 = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => unknown) => {
-//   const approvals = {
-//     data: [],
-//     isLoading: false,
-//   };
+const useRedeemPositions7702 = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => unknown) => {
+  const approvals = {
+    data: [],
+    isLoading: false,
+  };
 
-//   return {
-//     approvals,
-//     redeemPositions: useMutation({
-//       mutationFn: (props: RedeemPositionProps) => redeemPositions7702(approvalsConfig, props),
-//       onSuccess: async () => {
-//         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-//         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-//         // have to wait for market positions to finish invalidate
-//         await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-//         queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
-//         queryClient.invalidateQueries({ queryKey: ["usePositions"] });
-//         onSuccess?.();
-//       },
-//     }),
-//   };
-// };
+  return {
+    approvals,
+    redeemPositions: useMutation({
+      mutationFn: (props: RedeemPositionProps) => redeemPositions7702(approvalsConfig, props),
+      onSuccess: async () => {
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        // have to wait for market positions to finish invalidate
+        await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        onSuccess?.();
+      },
+    }),
+  };
+};
 
 export const useRedeemPositions = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => void) => {
-  // const supports7702 = useCheck7702Support();
-  // const redeem7702 = useRedeemPositions7702(approvalsConfig, onSuccess);
+  const supports7702 = useCheck7702Support();
+  const redeem7702 = useRedeemPositions7702(approvalsConfig, onSuccess);
   const redeemLegacy = useRedeemPositionsLegacy(approvalsConfig, onSuccess);
 
-  return /*supports7702 ? redeem7702 :*/ redeemLegacy;
+  return supports7702 ? redeem7702 : redeemLegacy;
 };
