@@ -3,7 +3,6 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { ChainId } from "@swapr/sdk";
 import { readContracts } from "@wagmi/core";
 import { ethers } from "ethers";
 import { Address, erc20Abi } from "viem";
@@ -13,7 +12,7 @@ import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 export function getTokenPricesMapping(
   tokens: { tokenId: string; parentTokenId?: string }[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
-  chainId: ChainId,
+  chainId: SupportedChain,
 ) {
   const [simpleTokens, conditionalTokens] = tokens.reduce(
     (acc, curr) => {

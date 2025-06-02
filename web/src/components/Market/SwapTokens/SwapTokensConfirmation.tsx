@@ -1,4 +1,5 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
 import { Token } from "@/lib/tokens";
@@ -44,7 +45,7 @@ export function SwapTokensConfirmation({
   }
   let { inputToken, outputToken, inputAmount, outputAmount, price, minimumReceive, maximumSlippage, invertedPrice } =
     tradeInfo;
-  const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
+  const sDAI = trade ? COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address : undefined;
 
   outputToken = outputToken?.slice(0, 31);
 

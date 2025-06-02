@@ -13,7 +13,7 @@ type BigIntConfigValues = {
   MIN_BOND: BigInt;
 };
 
-type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | undefined }>;
+type CollateralTokensMap = Record<SupportedChain, { primary: Token; secondary: Token | undefined }>;
 
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
@@ -33,10 +33,10 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
     secondary: undefined,
   },
-  [hardhat.id]: {
-    primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
-    secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
-  },
+  // [hardhat.id]: {
+  //   primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
+  //   secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
+  // },
 } as const;
 
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {

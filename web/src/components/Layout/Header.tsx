@@ -6,7 +6,7 @@ import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { SupportedChain, filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import {
   BookIcon,
@@ -87,11 +87,12 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
 
 export default function Header() {
   const pageContext = usePageContext();
-  const { isConnected, chainId = DEFAULT_CHAIN, address } = useAccount();
+  const { isConnected, chainId: _chainId, address } = useAccount();
+  const chainId = filterChain(_chainId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
-    COLLATERAL_TOKENS[chainId].secondary?.address,
+    COLLATERAL_TOKENS?.[chainId].secondary?.address,
     chainId as SupportedChain,
   );
   const toggleMenu = () => {
@@ -338,7 +339,8 @@ function BetaWarning() {
 }
 
 function MobileMenu() {
-  const { chainId = DEFAULT_CHAIN, address, isConnected } = useAccount();
+  const { chainId: _chainId, address, isConnected } = useAccount();
+  const chainId = filterChain(_chainId);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
     COLLATERAL_TOKENS[chainId].secondary?.address,

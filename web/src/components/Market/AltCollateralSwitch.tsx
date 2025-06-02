@@ -1,10 +1,11 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { isUndefined } from "@/lib/utils";
 import React from "react";
 import Toggle from "../Form/Toggle";
 
 type AltCollateralSwitchProps = {
-  chainId: number;
+  chainId: SupportedChain;
   isUseWrappedToken?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 

@@ -1,7 +1,7 @@
 import Button from "@/components/Form/Button";
 import { depositFromNativeToSDAI, depositToSDAI } from "@/hooks/trade/handleSDAI";
 import { approveIfNeeded, getConvertedShares, setSwaprTradeLimit, setUniswapTradeLimit } from "@/hooks/trade/utils";
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastError } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
@@ -25,10 +25,11 @@ export default function BuyInStepsButton({
   isLoading: boolean;
   onSubmit: (trade: SwaprV3Trade | UniswapTrade) => Promise<void>;
 }) {
+  const chainId = filterChain(trade.chainId);
   const { address: account } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoadingStep, setLoadingStep] = useState(false);
-  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
   const wxDAIAddress = WXDAI[trade.chainId]?.address as Address;
   const DAIAddress = DAI[trade.chainId]?.address as Address;
   const amount = parseUnits(originalAmount, collateral.decimals);
@@ -51,7 +52,7 @@ export default function BuyInStepsButton({
   const convertToSDAI = async () => {
     if (!account) throw "Account not found!";
     const convertFn = isTwoStringsEqual(collateral.address, NATIVE_TOKEN) ? depositFromNativeToSDAI : depositToSDAI;
-    const receipt = await convertFn({ amount, chainId: trade.chainId, owner: account });
+    const receipt = await convertFn({ amount, chainId, owner: account });
     const shares = getConvertedShares(receipt);
     setShares(shares);
     setCurrentStep(2);
