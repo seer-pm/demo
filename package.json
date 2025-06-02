@@ -17,5 +17,5 @@
   "engines": {
     "node": ">=18.13.0"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@3.8.7"
 }
