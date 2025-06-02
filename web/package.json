@@ -23,7 +23,7 @@
     "@cowprotocol/cow-sdk": "^5.3.2",
     "@cyntler/react-doc-viewer": "^1.17.0",
     "@graphql-codegen/named-operations-object": "^3.0.0",
-    "@graphql-codegen/typescript-graphql-request": "^6.2.0",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
     "@graphql-codegen/typescript-operations": "^4.2.0",
     "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@hookform/error-message": "^2.0.1",
