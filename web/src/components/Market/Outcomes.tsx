@@ -220,7 +220,7 @@ function AddLiquidityInfo({
                             )}
                           </div>
                           <div>
-                            {!deposit.onFarmingCenter && (
+                            {!deposit.onFarmingCenter && !isRewardEnded && (
                               <Button
                                 text="Deposit NFT"
                                 size="small"
