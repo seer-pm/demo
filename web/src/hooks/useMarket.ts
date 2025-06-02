@@ -52,8 +52,10 @@ export const getUseGraphMarketKey = (marketIdOrSlug: string) => [
 export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: SupportedChain) => {
   const market = await fetchMarket(chainId, marketIdOrSlug);
 
-  // Cache the market data under both its ID and URL keys to enable lookups by either value
-  queryClient.setQueryData(getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url), market);
+  if (market) {
+    // Cache the market data under both its ID and URL keys to enable lookups by either value
+    queryClient.setQueryData(getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url), market);
+  }
 
   return market;
 };

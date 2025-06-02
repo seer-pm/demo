@@ -22,7 +22,7 @@ export async function fetchMarkets(params: FetchMarketParams = {}): Promise<Mark
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 }
 
-export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market> {
+export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market | undefined> {
   const params: { chainId: SupportedChain; id: Address } | { chainId: SupportedChain; url: string } = !isAddress(
     idOrSlug,
     { strict: false },
@@ -37,7 +37,12 @@ export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | s
     },
     body: JSON.stringify(params),
   });
-  return deserializeMarket(await response.json());
+
+  if (response.status === 200) {
+    return deserializeMarket(await response.json());
+  }
+
+  return;
 }
 
 export function sortMarkets(

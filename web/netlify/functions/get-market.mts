@@ -1,6 +1,5 @@
-import { SupportedChain, gnosis, mainnet, sepolia } from "@/lib/chains";
+import { SupportedChain } from "@/lib/chains";
 import { serializeMarket } from "@/lib/market";
-import { http } from "@wagmi/core";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {
   SubgraphMarket,
@@ -63,12 +62,19 @@ export default async (req: Request) => {
       result.verification = verification;
     }
 
-    const market = serializeMarket(
-      mapGraphMarketFromDbResult(
-        subgraphMarket.status === "fulfilled" ? subgraphMarket.value! : (result.subgraph_data as SubgraphMarket),
-        result,
-      ),
-    );
+    const marketData =
+      subgraphMarket.status === "fulfilled" ? subgraphMarket.value : (result.subgraph_data as SubgraphMarket);
+
+    if (!marketData) {
+      return new Response(JSON.stringify({ error: "Market not found" }), {
+        status: 404,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    const market = serializeMarket(mapGraphMarketFromDbResult(marketData, result));
 
     return new Response(JSON.stringify(market), {
       status: 200,
