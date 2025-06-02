@@ -10,34 +10,12 @@ function formatOdds(prices: number[]): number[] {
 }
 
 export function normalizeOdds(prices: number[]): number[] {
-  const sumArray = (data: number[]) =>
-    data.reduce((acc, curr) => {
-      if (Number.isNaN(curr)) {
-        return acc;
-      }
-      return acc + curr;
-    }, 0);
-
-  if (prices.some((price) => Number.isNaN(price))) {
-    // When a price is significantly above 1, it indicates extremely thin liquidity or out-of-range prices
-    // Rather than normalizing these unrealistic prices, we display them as NA while keeping valid prices as-is
-    // For example: with prices [200, 0.4, 0.3], we show [NA, 0.4, 0.3] instead of trying to normalize 200
-    return formatOdds(prices);
-  }
-
-  const pricesSum = sumArray(prices);
-
-  const odds = formatOdds(prices.map((price) => price / pricesSum));
-
-  const oddsSum = sumArray(odds);
-
-  if (oddsSum > 100) {
-    const maxIndex = odds.indexOf(Math.max(...odds));
-    odds[maxIndex] = Number((odds[maxIndex] - (oddsSum - 100)).toFixed(1));
-  }
-
-  return odds;
+  // Filter out unrealistic prices (>1) by converting them to NaN
+  // This handles cases where there is liquidity, but it's too thin or out of price range
+  const filteredPrices = prices.map((price) => (price > 1 ? Number.NaN : price));
+  return formatOdds(filteredPrices);
 }
+
 const CEIL_PRICE = 1.1;
 async function getTokenPrice(
   wrappedAddress: Address,
