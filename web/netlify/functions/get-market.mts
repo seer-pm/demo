@@ -40,32 +40,30 @@ export default async (req: Request) => {
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    const [dbResult, subgraphMarket, verificationStatusList] = await Promise.allSettled([
+    const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
       getDatabaseMarket(id),
       getSubgraphMarket(Number(body.chainId) as SupportedChain, id),
       getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain),
     ]);
 
-    if (dbResult.status === "rejected") {
-      throw new Error(`Market fetch failed: ${id}`);
-    }
-
-    if (subgraphMarket.status === "rejected") {
-      console.log("Subgraph query failed");
-    }
-
-    const result = dbResult.value;
+    const dbRow = (dbResult.status === "fulfilled" && dbResult.value) || {
+      id,
+      chain_id: Number(body.chainId) as SupportedChain,
+      verification: undefined,
+      subgraph_data: undefined,
+    };
 
     const verification =
       verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
     if (verification !== undefined) {
-      result.verification = verification;
+      dbRow.verification = verification;
     }
 
-    const marketData =
-      subgraphMarket.status === "fulfilled" ? subgraphMarket.value : (result.subgraph_data as SubgraphMarket);
+    const subgraphMarket =
+      (subgraphResult.status === "fulfilled" && subgraphResult.value) ||
+      (dbRow?.subgraph_data as SubgraphMarket | undefined);
 
-    if (!marketData) {
+    if (!subgraphMarket) {
       return new Response(JSON.stringify({ error: "Market not found" }), {
         status: 404,
         headers: {
@@ -74,7 +72,7 @@ export default async (req: Request) => {
       });
     }
 
-    const market = serializeMarket(mapGraphMarketFromDbResult(marketData, result));
+    const market = serializeMarket(mapGraphMarketFromDbResult(subgraphMarket, dbRow));
 
     return new Response(JSON.stringify(market), {
       status: 200,

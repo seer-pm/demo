@@ -17,6 +17,20 @@ export const MARKET_DB_FIELDS =
 
 export type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
 
+type DbMarket = {
+  id: string;
+  chain_id: number | null;
+  url?: string | null;
+  subgraph_data?: Json;
+  categories?: string[] | null;
+  liquidity?: number | null;
+  incentive?: number | null;
+  odds?: number[] | null;
+  pool_balance?: Json;
+  verification?: Json;
+  images?: Json;
+};
+
 type PoolBalance = Array<{
   token0: { symbol: string; balance: number };
   token1: { symbol: string; balance: number };
@@ -81,33 +95,18 @@ export function mapGraphMarket(
   };
 }
 
-export function mapGraphMarketFromDbResult(
-  market: SubgraphMarket,
-  result: {
-    id: string;
-    chain_id: number | null;
-    url: string | null;
-    subgraph_data: Json;
-    categories: string[] | null;
-    liquidity: number | null;
-    incentive: number | null;
-    odds: number[] | null;
-    pool_balance: Json;
-    verification: Json;
-    images: Json;
-  },
-) {
-  return mapGraphMarket(market, {
-    chainId: result.chain_id as SupportedChain,
-    verification: result.verification as VerificationResult,
-    liquidityUSD: result?.liquidity ?? 0,
-    incentive: result?.incentive ?? 0,
-    hasLiquidity: result?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
-    odds: result?.odds?.map((x) => x ?? Number.NaN) ?? [],
-    categories: result?.categories ?? ["misc"],
-    poolBalance: (result?.pool_balance || []) as PoolBalance,
-    url: result?.url || "",
-    images: (result?.images as VerificationImages) || undefined,
+export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extraData: DbMarket) {
+  return mapGraphMarket(subgraphMarket, {
+    chainId: extraData.chain_id as SupportedChain,
+    verification: extraData?.verification as VerificationResult,
+    liquidityUSD: extraData?.liquidity ?? 0,
+    incentive: extraData?.incentive ?? 0,
+    hasLiquidity: extraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
+    odds: extraData?.odds?.map((x) => x ?? Number.NaN) ?? [],
+    categories: extraData?.categories ?? ["misc"],
+    poolBalance: (extraData?.pool_balance || []) as PoolBalance,
+    url: extraData?.url || "",
+    images: (extraData?.images as VerificationImages) || undefined,
   });
 }
 
@@ -261,15 +260,12 @@ export async function getMarketId(id: string | undefined, url: string | undefine
 export async function getDatabaseMarket(id: "" | Address) {
   const { data: result, error } = await supabase.from("markets").select(MARKET_DB_FIELDS).eq("id", id).single();
 
-  if (error) {
-    throw error;
+  if (!error) {
+    return result;
   }
 
-  if (!result) {
-    throw new Error("Market not found");
-  }
-
-  return result;
+  // no market found
+  return;
 }
 
 export async function getSubgraphMarket(chainId: SupportedChain, id: "" | Address) {
