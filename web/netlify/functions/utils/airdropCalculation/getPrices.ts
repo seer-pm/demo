@@ -67,6 +67,6 @@ export async function getPrices(
         token1Price: data.token1Price,
       };
     }),
-    chainId as number,
+    chainId,
   );
 }

@@ -19,6 +19,11 @@ export default async (req: Request) => {
     return;
   }
   const market = await fetchMarket(chainId, marketId as Address);
+
+  if (!market) {
+    return;
+  }
+
   if (!isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
     console.log("skip conditional market ", marketId);
     return;
