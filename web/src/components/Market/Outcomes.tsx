@@ -17,6 +17,7 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
+import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
@@ -25,7 +26,7 @@ import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } 
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";

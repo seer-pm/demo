@@ -2,9 +2,10 @@ import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
+import { formatDate } from "@/lib/date";
 import { fetchMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
-import { formatDate, getAppUrl } from "@/lib/utils";
+import { getAppUrl } from "@/lib/utils";
 import { QueryClient, dehydrate } from "@tanstack/react-query";
 import { Address } from "viem";
 

@@ -92,7 +92,7 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-export const useCreateMarket = (onSuccess: (data: TransactionReceipt) => unknown) => {
+export const useCreateMarket = (onSuccess: (data: TransactionReceipt) => void) => {
   return useMutation({
     mutationFn: createMarket,
     onSuccess,

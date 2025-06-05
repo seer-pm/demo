@@ -46,7 +46,7 @@ async function claimAirdrop(chainId: SupportedChain): Promise<TransactionReceipt
   return result.receipt;
 }
 
-export const useClaimAirdrop = (onSuccess: (data: TransactionReceipt | undefined) => unknown) => {
+export const useClaimAirdrop = (onSuccess: (data: TransactionReceipt | undefined) => void) => {
   return useMutation({
     mutationFn: claimAirdrop,
     onSuccess,

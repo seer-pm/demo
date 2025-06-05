@@ -15,6 +15,7 @@ dist-ssr
 src/hooks/contracts
 src/hooks/queries
 cosmos-export
+netlify/functions-dist
 
 # Editor directories and files
 .vscode/*

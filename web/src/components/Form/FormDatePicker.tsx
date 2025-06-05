@@ -4,8 +4,8 @@ import DatePicker from "react-datepicker";
 import { Controller, UseFormReturn, get } from "react-hook-form";
 import FormError from "./FormError";
 
+import { localTimeToUtc } from "@/lib/date";
 import { CalendarHTMLInputIcon } from "@/lib/icons";
-import { localTimeToUtc } from "@/lib/utils";
 import "react-datepicker/dist/react-datepicker.css";
 
 type InputProps = {
