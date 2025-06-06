@@ -18,7 +18,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
+import { getMarketStatus, isOdd } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
@@ -532,12 +532,12 @@ function OutcomeDetails({
   );
 }
 
-function MultiScalarEstimate({ market, odds }: { market: Market; odds: number }) {
-  if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || Number.isNaN(odds)) {
+function MultiScalarEstimate({ market, odds }: { market: Market; odds: number | undefined }) {
+  if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || !isOdd(odds)) {
     return null;
   }
 
-  const estimate = getMultiScalarEstimate(market, odds);
+  const estimate = getMultiScalarEstimate(market, odds!);
 
   if (estimate === null) {
     return null;
@@ -553,7 +553,7 @@ function MultiScalarEstimate({ market, odds }: { market: Market; odds: number })
 export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: odds = [] } = useMarketOdds(market, true);
+  const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
@@ -611,12 +611,11 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
               />
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
-                  {odds.length === 0 ? (
+                  {isLoading ? (
                     <Spinner />
                   ) : (
                     <>
                       <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-
                       {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
                     </>
                   )}
