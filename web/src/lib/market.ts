@@ -271,7 +271,7 @@ export function getMultiScalarEstimate(market: Market, odds: number): { value: n
     "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
   };
 
-  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [Number(market.upperBound), getMarketUnit(market)];
+  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [displayScalarBound(market.upperBound), getMarketUnit(market)];
 
   if (upperBound <= 0 || unit === "") {
     return null;
