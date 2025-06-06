@@ -1,9 +1,10 @@
 import { ChartData, fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
+import { formatDate } from "@/lib/date";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv, formatDate } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";

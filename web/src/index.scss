@@ -1,7 +1,7 @@
+@use "react-datepicker/dist/react-datepicker";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import "react-datepicker/dist/react-datepicker";
 
 /* increase root specificity */
 :root:root {

@@ -1,7 +1,8 @@
 import Button from "@/components/Form/Button";
 import { useModal } from "@/hooks/useModal";
+import { formatDate } from "@/lib/date";
 import { CalendarIcon } from "@/lib/icons";
-import { getMarketType, getOpeningTime } from "@/lib/market";
+import { getMarketType } from "@/lib/market";
 import { MarketStatus } from "@/lib/market.ts";
 import { Market, Question } from "@/lib/market.ts";
 import { getRealityLink } from "@/lib/reality";
@@ -17,6 +18,10 @@ interface MarketInfoProps {
   marketStatus: MarketStatus;
   isPreview: boolean;
   openAnswerModal: (question: Question) => void;
+}
+
+function getOpeningTime(market: Market) {
+  return `${formatDate(market.questions[0].opening_ts)} UTC`;
 }
 
 function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModal }: MarketInfoProps) {

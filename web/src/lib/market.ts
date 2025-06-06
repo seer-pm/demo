@@ -12,7 +12,7 @@ import {
   isQuestionPending,
   isQuestionUnanswered,
 } from "./reality";
-import { formatDate, isUndefined } from "./utils";
+import { isUndefined } from "./utils";
 
 export interface Question {
   id: `0x${string}`;
@@ -163,10 +163,6 @@ export function isInDispute(market: Market) {
 
 export function isWaitingResults(market: Market) {
   return market.questions.some((question) => isQuestionPending(question));
-}
-
-export function getOpeningTime(market: Market) {
-  return `${formatDate(market.questions[0].opening_ts)} UTC`;
 }
 
 export function getClosingTime(market: Market) {

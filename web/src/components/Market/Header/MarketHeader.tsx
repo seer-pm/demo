@@ -7,6 +7,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -25,7 +26,7 @@ import { MarketStatus } from "@/lib/market.ts";
 import { Market } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality.ts";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";

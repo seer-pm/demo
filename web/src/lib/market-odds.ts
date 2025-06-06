@@ -1,9 +1,8 @@
-import { getCowQuote, getSwaprQuote, getUniswapQuote } from "@/hooks/trade/index";
 import { SupportedChain } from "@/lib/chains";
-import { MarketTypes, getMarketType } from "@/lib/market";
-import { Market } from "@/lib/market";
+import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
+import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 
 function formatOdds(prices: number[]): number[] {
   return prices.map((price) => (Number.isNaN(price) ? Number.NaN : Number((price * 100).toFixed(1))));

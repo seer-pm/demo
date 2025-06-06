@@ -1,8 +1,8 @@
-import { QuoteTradeResult } from "@/hooks/trade";
 import { CoWTrade } from "@swapr/sdk";
 import { Address, formatUnits, parseUnits } from "viem";
 import { SupportedChain } from "./chains";
 import { COLLATERAL_TOKENS } from "./config";
+import { QuoteTradeResult } from "./trade";
 import { isUndefined } from "./utils";
 
 export interface Token {
