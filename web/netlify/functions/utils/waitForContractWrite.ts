@@ -17,8 +17,9 @@ export const waitForContractWrite = async (contractWrite: () => Promise<`0x${str
     // timeout so we poll manually
     if (
       hash &&
-      error instanceof
-        (WaitForTransactionReceiptTimeoutError || TransactionNotFoundError || TransactionReceiptNotFoundError)
+      (error instanceof WaitForTransactionReceiptTimeoutError ||
+        error instanceof TransactionNotFoundError ||
+        error instanceof TransactionReceiptNotFoundError)
     ) {
       const newReceipt = await pollForTransactionReceipt(hash);
       if (newReceipt) {
@@ -36,9 +37,13 @@ async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, i
       if (txReceipt?.blockNumber) {
         return txReceipt;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn(`Failed to get transaction receipt for ${hash}, attempt ${i + 1}:`, e);
+    }
     const backoffTime = initialInterval * 2 ** i;
     const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries
     await new Promise((resolve) => setTimeout(resolve, backoffTime + jitter));
   }
+
+  return null;
 }

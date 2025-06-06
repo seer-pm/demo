@@ -15,5 +15,5 @@ export function useCheck7702Support(): boolean {
     return false;
   }
 
-  return capabilities[chainId].atomic?.status === "ready" || capabilities[chainId].atomic?.status === "supported";
+  return capabilities[chainId]?.atomic?.status === "ready" || capabilities[chainId]?.atomic?.status === "supported";
 }

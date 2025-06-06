@@ -133,7 +133,7 @@ async function mergePositions7702(
   );
 
   if (!result.status) {
-    throw result.error;
+    throw result.status;
   }
 
   return result.receipt;

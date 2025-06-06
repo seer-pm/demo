@@ -6,7 +6,7 @@ import { fromUnixTime } from "date-fns/fromUnixTime";
 
 // https://stackoverflow.com/a/72190364
 
-export function localTimeToUtc(utcTime: Date | string | number) {
+export function utcToLocalTime(utcTime: Date | string | number) {
   if (typeof utcTime === "string" || typeof utcTime === "number") {
     // biome-ignore lint/style/noParameterAssign:
     utcTime = new Date(utcTime);

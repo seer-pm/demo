@@ -10,7 +10,7 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
-import { localTimeToUtc } from "@/lib/date";
+import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { getMarketName, getOutcomes } from "@/lib/market";
@@ -291,7 +291,7 @@ export function PreviewForm({
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
-  const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
+  const openingTime = Math.round(utcToLocalTime(dateValues.openingTime).getTime() / 1000);
 
   const createMarketHandler = async () => {
     await createMarket.mutateAsync({
