@@ -1,8 +1,11 @@
+import { Execution } from "@/hooks/useCheck7702Support";
 import { config as wagmiConfig } from "@/wagmi";
 import {
+  Config,
   ConnectorNotConnectedError,
   SendCallsReturnType,
   getTransactionReceipt,
+  sendCalls,
   waitForCallsStatus,
   waitForTransactionReceipt,
 } from "@wagmi/core";
@@ -67,6 +70,12 @@ type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Pro
 
 type ToastifyTxFn = (
   contractWrite: () => Promise<`0x${string}` | SendCallsReturnType>,
+  config?: ToastifyConfig,
+) => Promise<ToastifyTxReturn>;
+
+type ToastifySendCalls = (
+  calls: Execution[],
+  wagmiConfig: Config,
   config?: ToastifyConfig,
 ) => Promise<ToastifyTxReturn>;
 
@@ -178,6 +187,67 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
 
     return { status: false, error };
   }
+};
+
+export const toastifySendCallsTx: ToastifySendCalls = async (calls, wagmiConfig, config) => {
+  const BATCH_SIZE = 10;
+  const batches = [];
+
+  // Split calls into batches of 10
+  for (let i = 0; i < calls.length; i += BATCH_SIZE) {
+    batches.push(calls.slice(i, i + BATCH_SIZE));
+  }
+
+  const isSingleBatch = batches.length === 1;
+
+  // Show initial info about batching
+  if (!isSingleBatch) {
+    toastInfo({
+      title: "Processing multiple batches",
+      subtitle: `Due to wallet limitations, ${calls.length} calls will be processed in ${batches.length} batches of up to ${BATCH_SIZE} calls each.`,
+      options: { autoClose: 8000 },
+    });
+  }
+
+  let lastReceipt: TransactionReceipt | undefined;
+
+  // Process each batch sequentially
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    const isLastBatch = i === batches.length - 1;
+
+    const result = await toastifyTx(
+      () => sendCalls(wagmiConfig, { calls: batch }),
+      isSingleBatch
+        ? config
+        : {
+            txSent: {
+              title: config?.txSent?.title || `Sending batch ${i + 1}/${batches.length}...`,
+              subtitle: config?.txSent?.subtitle,
+            },
+            txSuccess: {
+              title: isLastBatch
+                ? config?.txSuccess?.title || "All transactions sent!"
+                : `Batch ${i + 1}/${batches.length} sent!`,
+              subtitle: config?.txSuccess?.subtitle,
+            },
+            txError: {
+              title: config?.txError?.title || `Failed to send batch ${i + 1}/${batches.length}`,
+              subtitle: config?.txError?.subtitle,
+            },
+            options: config?.options,
+          },
+    );
+
+    // If any batch fails, abort the entire process and return the error
+    if (!result.status) {
+      return result;
+    }
+
+    lastReceipt = result.receipt;
+  }
+
+  return { status: true, receipt: lastReceipt! };
 };
 
 async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, initialInterval = 500) {
