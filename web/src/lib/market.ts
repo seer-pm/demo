@@ -266,9 +266,11 @@ export function isInvalidOutcome(market: Market, outcomeIndex: number) {
 }
 
 export function getMultiScalarEstimate(market: Market, odds: number): { value: number; unit: string } | null {
+  // Fixed upper bounds and units for specific market addresses
   const UPPER_BOUNDS: Record<Address, [number, string]> = {
     "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
     "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
+    "0xbfea94c611fbe8a5353eddd94e025a2b3ad425d3": [128, "seats"],
   };
 
   const [upperBound, unit] = UPPER_BOUNDS[market.id] || [displayScalarBound(market.upperBound), getMarketUnit(market)];
