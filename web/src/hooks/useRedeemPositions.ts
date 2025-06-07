@@ -2,10 +2,10 @@ import { RouterAbi } from "@/abi/RouterAbi";
 import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, getRouterAddress } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
-import { toastifyTx } from "@/lib/toastify";
+import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, sendTransaction } from "@wagmi/core";
+import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import {
   conditionalRouterAbi,
@@ -160,16 +160,10 @@ async function redeemPositions7702(
     ),
   );
 
-  const result = await toastifyTx(
-    () =>
-      sendCalls(config, {
-        calls,
-      }),
-    {
-      txSent: { title: "Redeeming tokens..." },
-      txSuccess: { title: "Tokens redeemed!" },
-    },
-  );
+  const result = await toastifySendCallsTx(calls, config, {
+    txSent: { title: "Redeeming tokens..." },
+    txSuccess: { title: "Tokens redeemed!" },
+  });
 
   if (!result.status) {
     throw result.error;

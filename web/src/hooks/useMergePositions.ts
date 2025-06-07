@@ -1,10 +1,10 @@
 import { RouterAbi } from "@/abi/RouterAbi";
 import { RouterTypes } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
-import { toastifyTx } from "@/lib/toastify";
+import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { sendCalls, sendTransaction } from "@wagmi/core";
+import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
@@ -124,13 +124,10 @@ async function mergePositions7702(
     ),
   );
 
-  const result = await toastifyTx(
-    () =>
-      sendCalls(config, {
-        calls,
-      }),
-    { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
-  );
+  const result = await toastifySendCallsTx(calls, config, {
+    txSent: { title: "Merging tokens..." },
+    txSuccess: { title: "Tokens merged!" },
+  });
 
   if (!result.status) {
     throw result.status;
