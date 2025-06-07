@@ -92,33 +92,29 @@ const REALITY_LOG_NEW_ANSWER_EVENT = parseAbiItem(
 // );
 
 async function getNewAnswerEvents(chainId: SupportedChain, fromBlock: bigint) {
-  try {
-    // Listen for RealityETH LogNewAnswer events
-    const newAnswerLogs = await getPublicClientForNetwork(chainId).getLogs({
-      address: realityAddress[chainId],
-      event: REALITY_LOG_NEW_ANSWER_EVENT,
-      fromBlock,
-      toBlock: "latest",
-    });
+  // Listen for RealityETH LogNewAnswer events
+  console.log(`[Network ${chainId}] Searching new answer events from block ${fromBlock.toString()}`);
+  const newAnswerLogs = await getPublicClientForNetwork(chainId).getLogs({
+    address: realityAddress[chainId],
+    event: REALITY_LOG_NEW_ANSWER_EVENT,
+    fromBlock,
+    toBlock: "latest",
+  });
 
-    console.log(`[Network ${chainId}] Found ${newAnswerLogs.length} new answer events`);
+  console.log(`[Network ${chainId}] Found ${newAnswerLogs.length} new answer events`);
 
-    const questionIdToAnswerMap = newAnswerLogs.reduce(
-      (acc, { args }) => {
-        acc[args.question_id!] = args.answer!;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+  const questionIdToAnswerMap = newAnswerLogs.reduce(
+    (acc, { args }) => {
+      acc[args.question_id!] = args.answer!;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 
-    const questionToMarketMap = await getMarketsFromQuestions(questionIdToAnswerMap);
-    console.log(`[Network ${chainId}] Filtered down to ${questionToMarketMap.size} market-related question events`);
+  const questionToMarketMap = await getMarketsFromQuestions(questionIdToAnswerMap);
+  console.log(`[Network ${chainId}] Filtered down to ${questionToMarketMap.size} market-related question events`);
 
-    return [...questionToMarketMap.values()];
-  } catch (error) {
-    console.error(`[Network ${chainId}] Error fetching answer events:`, error);
-    throw error;
-  }
+  return [...questionToMarketMap.values()];
 }
 
 function getLastProcessedBlockKey(chainId: SupportedChain): string {
@@ -128,29 +124,36 @@ function getLastProcessedBlockKey(chainId: SupportedChain): string {
 async function processChain(chainId: SupportedChain, botToken: string) {
   const fromBlock = await getLastProcessedBlock(chainId, getLastProcessedBlockKey(chainId));
 
-  const newAnswers = await getNewAnswerEvents(chainId, fromBlock);
+  try {
+    const newAnswers = await getNewAnswerEvents(chainId, fromBlock);
 
-  if (newAnswers.length > 0) {
-    const messages = newAnswers.map((data) => {
-      const decodedQuestion = decodeQuestion(data.encodedQuestion);
-      const question = data.question;
-      question.best_answer = data.answer;
+    if (newAnswers.length > 0) {
+      const messages = newAnswers.map((data) => {
+        const decodedQuestion = decodeQuestion(data.encodedQuestion);
+        const question = data.question;
+        question.best_answer = data.answer;
 
-      return `Question: ${decodedQuestion.question}\n
+        return `Question: ${decodedQuestion.question}\n
 Answer: ${getAnswerText(question, data.outcomes, BigInt(data.templateId))}\n
 <a href="${getRealityLink(chainId, data.question.id)}">Check on Reality</a>\n
 <a href="https://app.seer.pm/markets/${chainId}/${data.url}">Check on Seer</a>`;
-    });
+      });
 
-    // Send messages with a 2-second delay between each one
-    for (const message of messages) {
-      await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, message);
+      // Send messages with a 2-second delay between each one
+      for (const message of messages) {
+        await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, message);
 
-      // Wait for 2 seconds before sending the next message
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Wait for 2 seconds before sending the next message
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
+  } catch (error) {
+    console.error(`[Network ${chainId}] Error fetching answer events:`, error);
   }
 
+  // Update the last processed block even if this execution failed
+  // This is because RPCs only allow reading a fixed number of blocks
+  // So there's no point in trying to read from an old block that may fail
   const currentBlock = await getBlockNumber(wagmiConfig, {
     chainId,
   });
