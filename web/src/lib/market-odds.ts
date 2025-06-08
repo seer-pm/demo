@@ -1,21 +1,22 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market, MarketTypes, getMarketType } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
+
+const CEIL_PRICE = 1;
 
 function formatOdds(prices: number[]): number[] {
   return prices.map((price) => (Number.isNaN(price) ? Number.NaN : Number((price * 100).toFixed(1))));
 }
 
 export function normalizeOdds(prices: number[]): number[] {
-  // Filter out unrealistic prices (>1) by converting them to NaN
+  // Filter out unrealistic prices by converting them to NaN
   // This handles cases where there is liquidity, but it's too thin or out of price range
-  const filteredPrices = prices.map((price) => (price > 1 ? Number.NaN : price));
+  const filteredPrices = prices.map((price) => (price > CEIL_PRICE ? Number.NaN : price));
   return formatOdds(filteredPrices);
 }
 
-const CEIL_PRICE = 1.1;
 async function getTokenPrice(
   wrappedAddress: Address,
   collateralToken: Token,
@@ -74,7 +75,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
         const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
         const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
         if (price === 0n || pricePerShare > CEIL_PRICE) {
-          // try to get sell price instead
+          // low buy liquidity, try to get sell price instead
           const sellPrice = await getTokenPrice(
             wrappedAddress,
             collateralToken,
@@ -96,15 +97,5 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
     }),
   );
 
-  // We filter out odds greater than 1.1 (an arbitrary threshold) by converting them to NaN
-  // This handles cases where there is liquidity, but it's too thin or out of price range,
-  // resulting in extremely high share prices that would display misleading odds
-  // NaN values indicate to the UI that these odds should not be shown
-  const tmpPrices = prices.map((p) => (p > 1.1 ? Number.NaN : p));
-
-  if (getMarketType(market) === MarketTypes.MULTI_CATEGORICAL) {
-    return formatOdds(tmpPrices);
-  }
-
-  return normalizeOdds(tmpPrices);
+  return normalizeOdds(prices);
 }
