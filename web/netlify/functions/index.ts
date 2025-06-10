@@ -45,7 +45,7 @@ export default async (req: Request) => {
 
   // Add cache control only for market pages
   if (req.url.includes("/markets/")) {
-    headers["Netlify-CDN-Cache-Control"] = "public, durable, max-age=60, stale-while-revalidate=120";
+    headers["Netlify-CDN-Cache-Control"] = "public, durable, max-age=3600, stale-while-revalidate=86400";
   }
 
   return new Response(pageContext.httpResponse.body, {
