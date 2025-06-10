@@ -1,0 +1,90 @@
+name: Check New Markets and Deploy
+
+# Timing considerations:
+# - The markets-search endpoint updates its local database every 5 minutes
+# - GitHub Actions has a minimum cron interval of 5 minutes
+# - This creates a potential race condition:
+#   1. A new market is created
+#   2. Our workflow runs before the markets-search endpoint updates its local database
+#   3. The market won't be detected in this run
+#   4. The market will be detected in the next run (5 minutes later)
+# - We chose to run every 5 minutes (minimum possible) instead of 10 minutes because:
+#   1. The worst case is missing a market in one run (it will be caught in the next)
+#   2. Changes will be reflected faster in the site
+#   3. Any build issues will be detected sooner
+#   4. The cost of an occasional unnecessary build is minimal compared to the benefit
+#      of more frequent updates
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Runs every 5 minutes (minimum allowed by GitHub Actions)
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check for new markets
+        id: check-markets
+        run: |
+          # Create a temporary file for the check
+          cat > check-markets.js << 'EOF'
+          async function checkNewMarkets() {
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            
+            try {
+              const response = await fetch('https://app.seer.pm/.netlify/functions/markets-search', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  orderBy: "creationDate",
+                  orderDirection: "desc"
+                })
+              });
+
+              const markets = await response.json();
+              
+              if (markets.length > 0) {
+                const mostRecentMarket = markets[0];
+                const marketTimestamp = mostRecentMarket.blockTimestamp;
+                
+                if (marketTimestamp > fiveMinutesAgo) {
+                  console.log('New market found:', mostRecentMarket);
+                  process.exit(0); // Exit with success
+                }
+              }
+              
+              console.log('No new markets found in the last 5 minutes');
+              process.exit(0); // Exit with success - no new markets is a valid outcome
+            } catch (error) {
+              console.error('Error checking for new markets:', error);
+              process.exit(1); // Only exit with error if there's an actual error
+            }
+          }
+
+          checkNewMarkets();
+          EOF
+
+          # Run the check
+          node check-markets.js > check-output.txt
+          if [ $? -eq 0 ]; then
+            # Check if we found new markets by looking at the command output
+            if grep -q "New market found" check-output.txt; then
+              echo "changes_detected=true" >> $GITHUB_OUTPUT
+            else
+              echo "changes_detected=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Error running market check" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Trigger Netlify build
+        if: steps.check-markets.outputs.changes_detected == 'true'
+        run: |
+          curl -X POST -d '{}' \
+            -H "Content-Type: application/json" \
+            "https://api.netlify.com/build_hooks/${{ secrets.NETLIFY_BUILD_HOOK_ID }}" 
