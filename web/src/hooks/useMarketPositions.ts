@@ -10,6 +10,7 @@ export const useMarketPositions = (address: Address | undefined, market: Market)
   return useQuery<Position[] | undefined, Error>({
     enabled: !!address,
     queryKey: ["useMarketPositions", address, market.id],
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const balances = (await readContracts(config, {
         contracts: market.wrappedTokens!.map((wrappedAddresses) => ({
