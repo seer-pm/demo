@@ -1,4 +1,4 @@
-import { realityAbi, realityAddress } from "@/hooks/contracts/generated.ts";
+import { realityAbi, realityAddress } from "@/hooks/contracts/generated-reality.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
@@ -8,6 +8,7 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
+import { CityCode, WEATHER_CITIES } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
@@ -31,6 +32,14 @@ async function getCityTemperature(city: string, date: string) {
   } catch (error) {
     console.error(`Error fetching temperature data for ${city} on ${date}:`, error);
     throw error;
+  }
+}
+
+async function setAnswered(id: number) {
+  const { error: updateError } = await supabase.from("weather_markets").update({ answered: true }).eq("id", id);
+
+  if (updateError) {
+    console.error(`Error updating market ${id} as answered:`, updateError);
   }
 }
 
@@ -58,11 +67,16 @@ async function resolveMarketForCity(
 
   // @ts-ignore
   const questionId = marketData.subgraph_data.questions[0].question.id;
-  // TODO: use correct city name
-  const resolvedTemp = await getCityTemperature("london", data.date!.split("T")[0]);
+
+  const resolvedTemp = await getCityTemperature(
+    WEATHER_CITIES[data.city as CityCode].formatted,
+    data.date!.split("T")[0],
+  );
 
   const answer = numberToHex(parseEther(String(resolvedTemp)), { size: 32 });
   const maxPrevious = 0n;
+
+  console.log(`Submitting answer for market ${marketData.id}...`);
 
   const simulation = await simulateContract(wagmiConfig, {
     account,
@@ -75,13 +89,11 @@ async function resolveMarketForCity(
     value: BigInt(marketData.subgraph_data.questions[0].question.min_bond),
   });
 
-  const _txHash = await writeContract(wagmiConfig, simulation.request);
+  const txHash = await writeContract(wagmiConfig, simulation.request);
 
-  const { error: updateError } = await supabase.from("weather_markets").update({ answered: true }).eq("id", data.id);
+  console.log(`Submitted answer for market ${marketData.id} with tx hash ${txHash}`);
 
-  if (updateError) {
-    console.error(`Error updating market ${data.id} as answered:`, updateError);
-  }
+  await setAnswered(data.id);
 }
 
 export default async () => {
@@ -114,7 +126,12 @@ export default async () => {
 
         await resolveMarketForCity(account, market);
       } catch (error) {
-        console.error(`Error resolving market for ${market.city} on ${market.date}:`, error);
+        if (error.message.includes("finalization deadline must not have passed")) {
+          console.error(`Market for ${market.city} on ${market.date} already answered`);
+          await setAnswered(market.id);
+        } else {
+          console.error(`Error resolving market for ${market.city} on ${market.date}:`, error.message);
+        }
       }
 
       // Wait 1 second between resolutions to avoid rate limits
@@ -124,5 +141,5 @@ export default async () => {
 };
 
 export const config: Config = {
-  schedule: "0 0 * * *",
+  schedule: "0 */4 * * *",
 };

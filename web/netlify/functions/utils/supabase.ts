@@ -28,6 +28,48 @@ export type Database = {
   };
   public: {
     Tables: {
+      airdrops: {
+        Row: {
+          address: string;
+          chain_id: number;
+          direct_holding: number;
+          id: number;
+          indirect_holding: number;
+          is_poh: boolean;
+          seer_tokens_count: number;
+          share_of_holding: number;
+          share_of_holding_poh: number;
+          timestamp: string;
+          total_holding: number;
+        };
+        Insert: {
+          address: string;
+          chain_id: number;
+          direct_holding: number;
+          id?: number;
+          indirect_holding: number;
+          is_poh: boolean;
+          seer_tokens_count: number;
+          share_of_holding: number;
+          share_of_holding_poh: number;
+          timestamp: string;
+          total_holding: number;
+        };
+        Update: {
+          address?: string;
+          chain_id?: number;
+          direct_holding?: number;
+          id?: number;
+          indirect_holding?: number;
+          is_poh?: boolean;
+          seer_tokens_count?: number;
+          share_of_holding?: number;
+          share_of_holding_poh?: number;
+          timestamp?: string;
+          total_holding?: number;
+        };
+        Relationships: [];
+      };
       collections: {
         Row: {
           created_at: string | null;
@@ -248,31 +290,31 @@ export type Database = {
       };
       weather_markets: {
         Row: {
-          answered: boolean | null;
-          chain_id: number | null;
-          city: string | null;
+          answered: boolean;
+          chain_id: number;
+          city: string;
           created_at: string;
-          date: string | null;
+          date: string;
           id: number;
-          tx_hash: string | null;
+          tx_hash: string;
         };
         Insert: {
-          answered?: boolean | null;
-          chain_id?: number | null;
-          city?: string | null;
+          answered?: boolean;
+          chain_id: number;
+          city: string;
           created_at?: string;
-          date?: string | null;
+          date: string;
           id?: number;
-          tx_hash?: string | null;
+          tx_hash: string;
         };
         Update: {
-          answered?: boolean | null;
-          chain_id?: number | null;
-          city?: string | null;
+          answered?: boolean;
+          chain_id?: number;
+          city?: string;
           created_at?: string;
-          date?: string | null;
+          date?: string;
           id?: number;
-          tx_hash?: string | null;
+          tx_hash?: string;
         };
         Relationships: [];
       };
@@ -281,7 +323,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_airdrop_totals_current_week: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          address: string;
+          chain_id: number;
+          current_week_seer_tokens: number;
+          current_month_seer_tokens: number;
+          total_seer_tokens: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
