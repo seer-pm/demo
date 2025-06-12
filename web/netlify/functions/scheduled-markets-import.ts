@@ -3,115 +3,11 @@ import { SupportedChain } from "@/lib/chains.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
-import { chainIds, config as wagmiConfig } from "./utils/config.ts";
-import {
-  CurateItem,
-  ItemAndMetadata,
-  getNewItemEvents,
-  getVerification,
-  getVerificationStatusList,
-} from "./utils/curate.ts";
-import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
+import { chainIds } from "./utils/config.ts";
+import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
-
-/**
- * Fetches and stores metadata for curate items in the database.
- *
- * 1. Checks which items already exist in the database
- * 2. Identifies items that need metadata fetching (new items or items with null metadata)
- * 3. Processes a limited batch of items (controlled by batchSize) to avoid overloading
- * 4. Fetches metadata from IPFS for the batch
- * 5. Stores both processed items (with metadata) and remaining items (without metadata)
- *    in the database for later processing
- *
- * @param chainId - The blockchain network ID
- * @param batchSize - Maximum number of items to fetch metadata for in one execution
- */
-async function fetchAndStoreMetadata(chainId: SupportedChain, batchSize = 10): Promise<void> {
-  const fromBlock = await getLastProcessedBlock(chainId, getLastProcessedBlockKey(chainId));
-
-  const items: ItemAndMetadata[] = (await getNewItemEvents(chainId, fromBlock)).map((d) => ({
-    itemID: d.args._itemID || "0x",
-    metadataPath: d.args._data || "",
-  }));
-
-  // Get existing items from the database
-  const { data: existingItems } = await supabase
-    .from("curate")
-    .select("item_id, metadata")
-    .eq("chain_id", chainId)
-    .in(
-      "item_id",
-      items.map((item) => item.itemID),
-    );
-
-  // Create a map for quick lookup
-  const existingItemsMap = new Map(existingItems?.map((item) => [item.item_id, item]) || []);
-
-  // Filter items that need metadata fetching (not in DB or have null metadata)
-  const itemsToFetch = items.filter(
-    (item) => !existingItemsMap.has(item.itemID) || existingItemsMap.get(item.itemID)?.metadata === null,
-  );
-
-  // Process only the first batchSize items
-  const itemsToProcess = itemsToFetch.slice(0, batchSize);
-
-  // For the remaining items, just ensure they're in the database without metadata
-  const itemsToStore = itemsToFetch.slice(batchSize).map((item) => ({
-    item_id: item.itemID,
-    chain_id: chainId,
-    metadata_path: item.metadataPath,
-    metadata: null,
-  }));
-
-  // Fetch metadata for the batch
-  const processedItems = await Promise.all(
-    itemsToProcess.map(async (item) => {
-      const metadataUrl = `https://cdn.kleros.link${item.metadataPath}`;
-      let metadata = null;
-      try {
-        const response = await fetch(metadataUrl);
-        if (response.ok) {
-          metadata = await response.json();
-        } else {
-          console.error(`Failed to fetch metadata from ${metadataUrl}: ${response.status}`);
-        }
-      } catch (error) {
-        console.error(`Error fetching metadata from ${metadataUrl}:`, error);
-      }
-
-      return {
-        item_id: item.itemID,
-        chain_id: chainId,
-        metadata_path: item.metadataPath,
-        metadata,
-      };
-    }),
-  );
-
-  // Combine all items to store
-  const allItemsToStore = [...processedItems, ...itemsToStore];
-
-  // Store in database
-  if (allItemsToStore.length > 0) {
-    const { error } = await supabase.from("curate").upsert(allItemsToStore);
-
-    if (error) {
-      console.error("Error upserting curate items:", error);
-    } else {
-      console.log(
-        `Successfully stored ${allItemsToStore.length} curate items (${processedItems.length} with metadata)`,
-      );
-    }
-  }
-}
-
-function getLastProcessedBlockKey(chainId: SupportedChain): string {
-  return `curate-new-item-events-${chainId}-last-block`;
-}
 
 async function updateImages() {
   // 1. First search markets where images is null and verification->itemID is not empty
@@ -232,14 +128,15 @@ async function processChain(chainId: SupportedChain) {
   const { markets } = await getSeerSdk(client).GetMarkets({ first: 1000 });
 
   if (markets.length === 0) {
+    console.log(`No markets found for chain ${chainId}`);
     return;
   }
 
-  await fetchAndStoreMetadata(chainId);
+  await fetchAndStoreMetadata(supabase, chainId);
 
   const { data: curateItems } = await supabase
     .from("curate")
-    .select("item_id, metadata_path, metadata")
+    .select("chain_id, item_id, metadata_path, metadata")
     .eq("chain_id", chainId)
     .not("metadata", "is", null);
 
@@ -256,11 +153,6 @@ async function processChain(chainId: SupportedChain) {
       },
     })),
   );
-
-  const currentBlock = await getBlockNumber(wagmiConfig, {
-    chainId,
-  });
-  await updateLastProcessedBlock(chainId, currentBlock, getLastProcessedBlockKey(chainId));
 }
 
 export default async () => {
