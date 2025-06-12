@@ -13,16 +13,22 @@ import { getSplitMergeRedeemEvents } from "./getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./getSwapEvents";
 import { TransactionData } from "./types";
 
-async function getTransactions(initialMarkets: Market[] | undefined, account?: string, chainId?: SupportedChain) {
+async function getTransactions(
+  initialMarkets: Market[] | undefined,
+  account?: string,
+  chainId?: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+) {
   if (!chainId || !account || !initialMarkets) return [];
   const markets = initialMarkets.filter((x) => x.chainId === chainId);
 
   const mappings = await getMappings(markets, chainId);
   const { tokenIdToTokenSymbolMapping } = mappings;
   const events = await Promise.all([
-    getSwapEvents(mappings, account, chainId),
-    getLiquidityEvents(mappings, account, chainId),
-    getLiquidityWithdrawEvents(mappings, account, chainId),
+    getSwapEvents(mappings, account, chainId, startTime, endTime),
+    getLiquidityEvents(mappings, account, chainId, startTime, endTime),
+    getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
     getSplitMergeRedeemEvents(mappings, account, chainId),
   ]);
 
@@ -51,14 +57,19 @@ async function getTransactions(initialMarkets: Market[] | undefined, account?: s
   return data.sort((a, b) => b.blockNumber - a.blockNumber);
 }
 
-export const useHistoryTransactions = (address: Address, chainId: SupportedChain) => {
+export const useHistoryTransactions = (
+  address: Address,
+  chainId: SupportedChain,
+  startTime: number | undefined,
+  endTime: number | undefined,
+) => {
   const { data: markets } = useMarkets({});
   return useQuery<TransactionData[] | undefined, Error>({
     enabled: !!address && !isUndefined(markets),
-    queryKey: ["useHistoryTransactions", address, chainId, !!markets],
+    queryKey: ["useHistoryTransactions", address, chainId, !!markets, startTime, endTime],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     retry: false,
-    queryFn: async () => getTransactions(markets, address, chainId),
+    queryFn: async () => getTransactions(markets, address, chainId, startTime, endTime),
   });
 };

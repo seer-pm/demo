@@ -2,7 +2,7 @@ import { useHistoryTransactions } from "@/hooks/portfolio/historyTab/useHistoryT
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isUndefined } from "@/lib/utils";
-import { endOfDay, format, startOfDay } from "date-fns";
+import { endOfDay, format, startOfDay, subMonths } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
@@ -14,9 +14,16 @@ import HistoryTable from "./HistoryTable";
 
 function HistoryTab() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: historyTransactions, error } = useHistoryTransactions(address as Address, chainId as SupportedChain);
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const currentDate = startOfDay(new Date());
+  const [startDate, setStartDate] = useState<Date | undefined>(subMonths(currentDate, 1));
+  const [endDate, setEndDate] = useState<Date | undefined>(currentDate);
+  const { data: historyTransactions, error } = useHistoryTransactions(
+    address as Address,
+    chainId as SupportedChain,
+    startDate && Math.floor(startOfDay(startDate).getTime() / 1000),
+    endDate && Math.floor(endOfDay(endDate).getTime() / 1000),
+  );
+
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
