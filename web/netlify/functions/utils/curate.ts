@@ -144,6 +144,7 @@ export async function getSubgraphVerificationStatusList(
       where: {
         registryAddress,
       },
+      first: 1000,
     });
     return litems.reduce(
       (obj, item) => {

@@ -26,6 +26,7 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
           // status: registered ? Status.Registered : undefined,
           registryAddress,
         },
+        first: 1000,
       });
       return data.litems;
     },
