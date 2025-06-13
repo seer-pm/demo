@@ -13,6 +13,7 @@ import {
   BugIcon,
   CloseCircleOutlineIcon,
   CloseIcon,
+  DiscordIcon,
   DownArrow,
   EthIcon,
   Menu,
@@ -21,7 +22,6 @@ import {
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
-  TelegramIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
@@ -248,7 +248,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
                   >
-                    <TelegramIcon />
+                    <DiscordIcon />
                     Get Help
                   </Link>
                 </li>
@@ -444,7 +444,7 @@ function MobileMenu() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
               >
-                <TelegramIcon />
+                <DiscordIcon />
                 Get Help
               </Link>
             </li>
