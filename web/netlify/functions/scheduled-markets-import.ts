@@ -1,4 +1,4 @@
-import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
+import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
@@ -123,13 +123,17 @@ function sortQuestions(market: any) {
   };
 }
 
-async function processChain(chainId: SupportedChain) {
+async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<boolean> {
   const client = graphQLClient(chainId);
-  const { markets } = await getSeerSdk(client).GetMarkets({ first: 1000 });
+  const { markets } = await getSeerSdk(client).GetMarkets({
+    first: 1000,
+    orderBy: Market_OrderBy.BlockNumber,
+    orderDirection: OrderDirection.Desc,
+  });
 
   if (markets.length === 0) {
     console.log(`No markets found for chain ${chainId}`);
-    return;
+    return false;
   }
 
   await fetchAndStoreMetadata(supabase, chainId);
@@ -153,13 +157,25 @@ async function processChain(chainId: SupportedChain) {
       },
     })),
   );
+
+  // Check if the most recent market was created within the maxAgeSeconds window
+  const now = Math.floor(Date.now() / 1000);
+  const timestamp = Number(markets[0].blockTimestamp);
+  return now - timestamp < maxAgeSeconds;
 }
 
 export default async () => {
+  const maxAgeSeconds = 60 * 5; // 5 minutes
+  let shouldRebuild = false;
+
   // update markets & verification status
   for (const chainId of chainIds) {
     try {
-      await processChain(chainId);
+      const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
+
+      if (hasNewMarkets) {
+        shouldRebuild = true;
+      }
     } catch (e) {
       console.log(e);
     }
@@ -167,6 +183,27 @@ export default async () => {
 
   // update images
   await updateImages();
+
+  // Trigger rebuild if new markets were found
+  if (shouldRebuild) {
+    if (!process.env.NETLIFY_BUILD_HOOK_ID) {
+      console.error("NETLIFY_BUILD_HOOK_ID environment variable not set");
+      return;
+    }
+
+    try {
+      await fetch(`https://api.netlify.com/build_hooks/${process.env.NETLIFY_BUILD_HOOK_ID}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      console.log("Triggered rebuild due to new markets");
+    } catch (error) {
+      console.error("Error triggering rebuild:", error);
+    }
+  }
 };
 
 export const config: Config = {
