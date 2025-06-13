@@ -129,6 +129,7 @@ export default function Header() {
         content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
       />
       <BetaWarning />
+      <GroupNotice />
 
       <nav className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative">
         <div className="absolute left-[24px] lg:left-[64px]">
@@ -332,6 +333,44 @@ function BetaWarning() {
     <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>Note that this is a Beta version and can still be unstable</div>
       <button type="button" className="hover:opacity-80" onClick={closeWarning}>
+        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+      </button>
+    </div>
+  );
+}
+
+function GroupNotice() {
+  const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("group-notice-closed") === "1") {
+      setGroupNoticeClosed(true);
+    }
+  }, []);
+
+  if (groupNoticeClosed) {
+    return null;
+  }
+
+  const closeNotice = () => {
+    window.localStorage.setItem("group-notice-closed", "1");
+    setGroupNoticeClosed(true);
+  };
+
+  return (
+    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
+      <div>
+        Our telegram accout is banned, community is moving to discord. Join the{" "}
+        <a
+          href="https://discord.com/channels/1297986061095407677/1297986061095407680"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="italic underline  hover:opacity-80"
+        >
+          Discord
+        </a>
+      </div>
+      <button type="button" className="hover:opacity-80" onClick={closeNotice}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
     </div>
