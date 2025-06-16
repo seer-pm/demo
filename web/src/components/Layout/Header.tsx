@@ -362,7 +362,7 @@ function GroupNotice() {
       <div>
         Our telegram accout is banned, community is moving to discord. Join the{" "}
         <a
-          href="https://discord.gg/dKsqhfpt"
+          href={paths.discord()}
           target="_blank"
           rel="noopener noreferrer"
           className="italic underline  hover:opacity-80"
