@@ -17,6 +17,7 @@ import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
@@ -40,9 +41,10 @@ export function OutcomesInfo({
   marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
+  const marketType = getMarketType(market);
 
-  const { data: odds = [] } = useMarketOdds(market, false);
-
+  const { data: initialOdds = [] } = useMarketOdds(market, false);
+  const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? initialOdds : rescaleOdds(initialOdds);
   const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const visibleIndexes = market.outcomes.reduce((acc, _, j) => {
@@ -66,8 +68,6 @@ export function OutcomesInfo({
   const sumVisibleOdds = visibleIndexes
     .map((index) => (isOdd(odds[index]) ? odds[index] : 0))
     .reduce((acc, curr) => acc + curr, 0);
-
-  const marketType = getMarketType(market);
 
   if (odds.length === 0) {
     return <div className="shimmer-container w-full h-[6px] rounded-[8px]"></div>;

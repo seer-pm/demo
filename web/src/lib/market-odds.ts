@@ -10,6 +10,30 @@ function formatOdds(prices: number[]): number[] {
   return prices.map((price) => (Number.isNaN(price) ? Number.NaN : Number((price * 100).toFixed(1))));
 }
 
+export function rescaleOdds(odds: number[]): number[] {
+  if (!odds?.length) {
+    return odds;
+  }
+  if (odds.some((odd) => Number.isNaN(odd))) {
+    // When a price is significantly above 1, it indicates extremely thin liquidity or out-of-range prices
+    // Rather than normalizing these unrealistic prices, we display them as NA while keeping valid prices as-is
+    // For example: with prices [200, 0.4, 0.3], we show [NA, 0.4, 0.3] instead of trying to normalize 200
+    return odds;
+  }
+  const oddsSum = odds.reduce((acc, curr) => {
+    if (Number.isNaN(curr)) {
+      return acc;
+    }
+    return acc + curr;
+  }, 0);
+
+  if (oddsSum > 100) {
+    return odds.map((odd) => Number(((odd / oddsSum) * 100).toFixed(1)));
+  }
+
+  return odds;
+}
+
 export function normalizeOdds(prices: number[]): number[] {
   // Filter out unrealistic prices by converting them to NaN
   // This handles cases where there is liquidity, but it's too thin or out of price range
