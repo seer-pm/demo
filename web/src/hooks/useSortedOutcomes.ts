@@ -2,7 +2,6 @@ import { Market } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
 import { useWinningOutcomes } from "./useWinningOutcomes";
 
 type OutcomeWithOdds = {
@@ -28,7 +27,7 @@ function sortOdds(
 }
 
 export function useSortedOutcomes(odds: number[], market: Market, marketStatus?: MarketStatus) {
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
     enabled: odds.length > 0,

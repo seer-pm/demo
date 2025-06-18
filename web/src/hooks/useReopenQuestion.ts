@@ -52,7 +52,6 @@ export const useReopenQuestion = () => {
     mutationFn: reopenQuestion,
     onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
-      queryClient.invalidateQueries({ queryKey: ["useMarketStatus"] });
     },
   });
 };

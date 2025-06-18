@@ -1,6 +1,6 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { SupportedChain } from "@/lib/chains";
 import { CHAIN_ROUTERS, getRouterAddress } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -17,77 +17,81 @@ import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface RedeemPositionProps {
-  market: Address;
-  chainId: SupportedChain;
-  parentOutcome: bigint;
+  market: Market;
   collateralToken: Address;
+  parentOutcome: bigint;
   outcomeIndexes: bigint[];
   amounts: bigint[];
   isMainCollateral: boolean;
   isRedeemToParentCollateral: boolean;
 }
 
-export function getRedeemRouter(isRedeemToParentCollateral: boolean, chainId: SupportedChain) {
-  return isRedeemToParentCollateral ? conditionalRouterAddress[chainId as SupportedChain] : getRouterAddress(chainId);
+export function getRedeemRouter(isRedeemToParentCollateral: boolean, market: Market) {
+  return isRedeemToParentCollateral ? conditionalRouterAddress[market.chainId] : getRouterAddress(market);
 }
 
 function redeemFromRouter(
   isMainCollateral: boolean,
   isRedeemToParentCollateral: boolean,
-  chainId: SupportedChain,
   collateralToken: Address,
-  market: Address,
+  market: Market,
   parentOutcome: bigint,
   outcomeIndexes: bigint[],
   amounts: bigint[],
 ) {
-  const router = getRedeemRouter(isRedeemToParentCollateral, chainId);
+  const router = getRedeemRouter(isRedeemToParentCollateral, market);
 
   if (isRedeemToParentCollateral) {
+    // redeem to the market's main collateral:
+    // - sDAI for regular markets
+    // - parent outcome token for conditional markets (e.g. YES token from parent market)
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: conditionalRouterAbi,
         functionName: "redeemConditionalToCollateral",
-        args: [collateralToken, market, outcomeIndexes, [parentOutcome], amounts],
+        args: [collateralToken, market.id, outcomeIndexes, [parentOutcome], amounts],
       }),
     };
   }
 
   if (isMainCollateral) {
+    // redeem to the market's main collateral:
+    // - sDAI for regular markets
+    // - parent outcome token for conditional markets (e.g. YES token from parent market)
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: RouterAbi,
         functionName: "redeemPositions",
-        args: [collateralToken, market, outcomeIndexes, amounts],
+        args: [collateralToken, market.id, outcomeIndexes, amounts],
       }),
     };
   }
 
-  const routerType = CHAIN_ROUTERS[chainId];
-
-  if (routerType === "mainnet") {
+  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
+    // redeem to DAI on mainnet
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: mainnetRouterAbi,
         functionName: "redeemToDai",
-        args: [market, outcomeIndexes, amounts],
+        args: [market.id, outcomeIndexes, amounts],
       }),
     };
   }
 
+  // redeem to xDAI on gnosis
   return {
     to: router,
     value: 0n,
     data: encodeFunctionData({
       abi: gnosisRouterAbi,
       functionName: "redeemToBase",
-      args: [market, outcomeIndexes, amounts],
+      args: [market.id, outcomeIndexes, amounts],
     }),
   };
 }
@@ -100,7 +104,6 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
         redeemFromRouter(
           props.isMainCollateral,
           props.isRedeemToParentCollateral,
-          props.chainId,
           props.collateralToken,
           props.market,
           props.parentOutcome,
@@ -151,7 +154,6 @@ async function redeemPositions7702(
     redeemFromRouter(
       props.isMainCollateral,
       props.isRedeemToParentCollateral,
-      props.chainId,
       props.collateralToken,
       props.market,
       props.parentOutcome,

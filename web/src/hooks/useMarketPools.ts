@@ -1,6 +1,5 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market } from "@/lib/market";
+import { Market, getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -17,8 +16,6 @@ import {
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { useMarket } from "./useMarket";
-import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -193,63 +190,11 @@ export const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral, isLoading } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-  const tokens = market.wrappedTokens.map((outcomeToken) => {
-    return outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
-      ? [collateralToken.address, outcomeToken]
-      : [outcomeToken, collateralToken.address];
-  });
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
-    enabled: tokens && tokens.length > 0 && !isLoading,
-    queryKey: ["useMarketPools", market.id, tokens],
+    queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(tokens.map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })));
-    },
-  });
-};
-
-interface OutcomePool {
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  liquidity: string;
-}
-
-export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Address) => {
-  return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", chainId, collateralToken],
-    retry: false,
-    queryFn: async () => {
-      const graphQLClient =
-        chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-      if (!graphQLClient) {
-        throw new Error("Subgraph not available");
-      }
-
-      const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-      const { pools } = await graphQLSdk(graphQLClient).GetPools({
-        where: {
-          or: [
-            { token0_: { id: collateralToken.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.toLocaleLowerCase() as Address } },
-          ],
-        },
-        first: 1000,
-      });
-      return pools;
+      return await Promise.all(getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId).fetch(poolPair)));
     },
   });
 };

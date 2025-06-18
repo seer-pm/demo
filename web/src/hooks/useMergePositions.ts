@@ -1,5 +1,6 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { RouterTypes } from "@/lib/config";
+import { CHAIN_ROUTERS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -12,71 +13,60 @@ import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from 
 
 interface MergePositionProps {
   router: Address;
-  market: Address;
-  collateralToken: Address;
-  outcomeSlotCount: number;
+  market: Market;
   amount: bigint;
-  isMainCollateral: boolean;
-  routerType: RouterTypes;
+  collateralToken: Address | undefined;
 }
 
 function mergeFromRouter(
-  isMainCollateral: boolean,
-  routerType: RouterTypes,
+  collateralToken: Address | undefined,
   router: Address,
-  collateralToken: Address,
-  market: Address,
+  market: Market,
   amount: bigint,
 ): Execution {
-  if (isMainCollateral) {
+  if (collateralToken) {
+    // merge to the market's main collateral:
+    // - sDAI for regular markets
+    // - parent outcome token for conditional markets (e.g. YES token from parent market)merge to the market main collateral (sDAI)
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: RouterAbi,
         functionName: "mergePositions",
-        args: [collateralToken, market, amount],
+        args: [collateralToken, market.id, amount],
       }),
     };
   }
 
-  if (routerType === "mainnet") {
+  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
+    // merge to DAI on mainnet
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: mainnetRouterAbi,
         functionName: "mergeToDai",
-        args: [market, amount],
+        args: [market.id, amount],
       }),
     };
   }
 
+  // merge to xDAI on gnosis
   return {
     to: router,
     value: amount,
     data: encodeFunctionData({
       abi: gnosisRouterAbi,
       functionName: "mergeToBase",
-      args: [market, amount],
+      args: [market.id, amount],
     }),
   };
 }
 
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () =>
-      sendTransaction(
-        config,
-        mergeFromRouter(
-          props.isMainCollateral,
-          props.routerType,
-          props.router,
-          props.collateralToken,
-          props.market,
-          props.amount,
-        ),
-      ),
+    () => sendTransaction(config, mergeFromRouter(props.collateralToken, props.router, props.market, props.amount)),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
   );
 
@@ -113,16 +103,7 @@ async function mergePositions7702(
 ): Promise<TransactionReceipt> {
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
-  calls.push(
-    mergeFromRouter(
-      props.isMainCollateral,
-      props.routerType,
-      props.router,
-      props.collateralToken,
-      props.market,
-      props.amount,
-    ),
-  );
+  calls.push(mergeFromRouter(props.collateralToken, props.router, props.market, props.amount));
 
   const result = await toastifySendCallsTx(calls, config, {
     txSent: { title: "Merging tokens..." },

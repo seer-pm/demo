@@ -22,7 +22,6 @@ import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
-import { Address } from "viem";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
 import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
@@ -44,7 +43,7 @@ function OutcomesInfo({
 
   const { data: odds = [] } = useMarketOdds(market, false);
 
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const visibleIndexes = market.outcomes.reduce((acc, _, j) => {
     const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
