@@ -442,7 +442,7 @@ export function OutcomesForm({
 
   const { fields: outcomesFields } = useFieldArrayReturn;
 
-  const [marketName] = watch(["market"]);
+  const [marketName, isArbitraryQuestion] = watch(["market", "isArbitraryQuestion"]);
 
   useEffect(() => {
     if (marketName !== "") {
@@ -485,6 +485,34 @@ export function OutcomesForm({
                   : ""
               }
             />
+            {isFutarchyMarket && (
+              <>
+                <div className="mt-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      {...register("isArbitraryQuestion")}
+                      className="rounded border-gray-300 text-purple-primary focus:ring-purple-primary"
+                    />
+                    <span className="text-sm cursor-help">
+                      This is a market about an event, not a governance proposal
+                    </span>
+                  </label>
+                </div>
+
+                {isArbitraryQuestion && (
+                  <Alert type="info" className="mt-5">
+                    <div className="space-y-[10px]">
+                      <p>
+                        This market will measure the impact of an event on token price, rather than measuring the impact
+                        of a governance proposal.
+                      </p>
+                      <p>For example, "Will GnosisPay reach $5mil weekly volume by December 31 2025?"</p>
+                    </div>
+                  </Alert>
+                )}
+              </>
+            )}
           </div>
 
           <Alert type="info">

@@ -109,6 +109,7 @@ export type OutcomesFormValues = {
   lowerBound: { value: number; token: string }; // for scalar markets
   upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
+  isArbitraryQuestion?: boolean; // for futarchy markets
 };
 
 export type DateFormValues = {

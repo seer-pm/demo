@@ -307,6 +307,7 @@ export function PreviewForm({
       marketName: outcomesValues.market,
       collateralToken1: outcomesValues.collateralToken1,
       collateralToken2: outcomesValues.collateralToken2,
+      isArbitraryQuestion: outcomesValues.isArbitraryQuestion || false,
       outcomes: outcomes,
       tokenNames:
         marketTypeValues.marketType === MarketTypes.SCALAR
@@ -352,7 +353,7 @@ export function PreviewForm({
     collateralToken2: zeroAddress,
     chainId,
     marketName: isFutarchyMarket
-      ? getProposalName(outcomesValues.market, openingTime)
+      ? getProposalName(outcomesValues.market, openingTime, outcomesValues.isArbitraryQuestion || false)
       : marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
         ? `${outcomesValues.market} [${outcomesValues.unit}]`
         : outcomesValues.market,

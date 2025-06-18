@@ -13,6 +13,7 @@ interface CreateMarketProps {
   marketName: string;
   collateralToken1: Address | ""; // for futarchy markets
   collateralToken2: Address | ""; // for futarchy markets
+  isArbitraryQuestion: boolean; // for futarchy markets
   questionStart: string;
   questionEnd: string;
   outcomeType: string;
@@ -99,7 +100,10 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-export function getProposalName(marketName: string, openingTime: number) {
+export function getProposalName(marketName: string, openingTime: number, isArbitraryQuestion: boolean) {
+  if (isArbitraryQuestion) {
+    return marketName;
+  }
   return `Will proposal "${marketName}" be accepted by ${formatDate(openingTime)} UTC?`;
 }
 
@@ -109,7 +113,7 @@ async function createProposal(props: CreateMarketProps): Promise<TransactionRece
       writeFutarchyFactoryCreateProposal(config, {
         args: [
           {
-            marketName: escapeJson(getProposalName(props.marketName, props.openingTime)),
+            marketName: escapeJson(getProposalName(props.marketName, props.openingTime, props.isArbitraryQuestion)),
             collateralToken1: props.collateralToken1 as Address,
             collateralToken2: props.collateralToken2 as Address,
             lang: "en_US",
