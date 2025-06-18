@@ -1,8 +1,10 @@
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
+  GetPoolsQuery,
   OrderDirection,
   PoolHourData_OrderBy,
+  Pool_OrderBy,
   getSdk,
 } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain } from "@/lib/chains";
@@ -73,17 +75,40 @@ export async function getUniswapCurrentTokensPrices(
     throw new Error("Subgraph not available");
   }
 
-  const { pools } = await getSdk(subgraphClient).GetPools({
-    where: {
-      or: tokens.reduce(
-        (acc, { tokenId }) => {
-          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-          return acc;
-        },
-        [] as { [key: string]: string }[],
-      ),
-    },
-  });
+  const maxAttempts = 20;
+  let attempt = 0;
+  let id = undefined;
+  let total: GetPoolsQuery["pools"] = [];
+  while (attempt < maxAttempts) {
+    const { pools } = await getSdk(subgraphClient).GetPools({
+      where: {
+        and: [
+          {
+            or: tokens.reduce(
+              (acc, { tokenId }) => {
+                acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+                return acc;
+              },
+              [] as { [key: string]: string }[],
+            ),
+          },
+          { id_lt: id },
+        ],
+      },
+      first: 1000,
+      orderBy: Pool_OrderBy.Id,
+      orderDirection: OrderDirection.Desc,
+    });
+    total = total.concat(pools);
+    if (pools[pools.length - 1]?.id === id) {
+      break;
+    }
+    if (pools.length < 1000) {
+      break;
+    }
+    id = pools[pools.length - 1]?.id;
+    attempt++;
+  }
 
-  return getTokenPricesMapping(tokens, pools, chainId);
+  return getTokenPricesMapping(tokens, total, chainId);
 }

@@ -112,6 +112,7 @@ async function getSwaprPools(
     },
     orderBy: SwaprPool_OrderBy.TotalValueLockedUsd,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(
@@ -153,6 +154,7 @@ async function getUniswapPools(
     },
     orderBy: UniswapPool_OrderBy.Liquidity,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(

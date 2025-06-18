@@ -121,16 +121,17 @@ function getConditionalTokenToLiquidityMapping(
   sDaiPriceByChainMapping: sDaiPriceByChain,
 ): TokenLiquidityMapping {
   return conditionalTokenPools.reduce((acc, curr) => {
-    const relativePrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
-    const tokenPriceInSDai =
-      relativePrice *
-      (genericTokenToLiquidityMapping[curr.isToken0Collateral ? curr.token0.id : curr.token1.id]?.tokenPriceInSDai ||
-        1 / curr.outcomesCountWithoutInvalid);
+    const relativeTokenPrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
+    const collateralPriceInSDai =
+      genericTokenToLiquidityMapping[curr.isToken0Collateral ? curr.token0.id : curr.token1.id]?.tokenPriceInSDai ||
+      1 / curr.outcomesCountWithoutInvalid;
     const [balanceToken, balanceCollateral] = curr.isToken0Collateral
       ? [curr.balance1, curr.balance0]
       : [curr.balance0, curr.balance1];
     const liquidity =
-      (tokenPriceInSDai * balanceToken + balanceCollateral) * (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
+      (relativeTokenPrice * balanceToken + balanceCollateral) *
+      collateralPriceInSDai *
+      (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
     const key = curr.isToken0Collateral ? curr.token1.id : curr.token0.id;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {

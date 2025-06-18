@@ -167,6 +167,7 @@ export async function getAllPools(
         [] as { [key: string]: string }[],
       ),
     },
+    first: 1000,
   });
 
   return pools;
