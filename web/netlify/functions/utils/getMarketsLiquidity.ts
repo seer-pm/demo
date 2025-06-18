@@ -8,7 +8,7 @@ import { Pool } from "./fetchPools.ts";
 
 type sDaiPriceByChain = Record<SupportedChain, number>;
 
-async function getsDaiPriceByChainMapping(): Promise<sDaiPriceByChain> {
+export async function getsDaiPriceByChainMapping(): Promise<sDaiPriceByChain> {
   let sDaiPriceByChain: number[] = [];
   try {
     sDaiPriceByChain = await Promise.all(
