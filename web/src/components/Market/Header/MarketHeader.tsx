@@ -29,7 +29,6 @@ import { displayScalarBound } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
-import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
@@ -60,7 +59,7 @@ function OutcomesInfo({
 
   const { data: odds = [] } = useMarketOdds(market, false);
 
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   return (

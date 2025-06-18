@@ -293,7 +293,7 @@ export function SwapTokensMarket({
           {isUndefined(parentCollateral) && (
             <AltCollateralSwitch
               {...register("useAltCollateral")}
-              chainId={market.chainId}
+              market={market}
               isUseWrappedToken={isUseWrappedToken}
             />
           )}

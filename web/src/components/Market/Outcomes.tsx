@@ -398,7 +398,7 @@ function OutcomeDetails({
 }: OutcomeDetailProps) {
   const { address } = useAccount();
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const [, setSearchParams] = useSearchParams();
 

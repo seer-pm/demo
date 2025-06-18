@@ -75,8 +75,10 @@ function getOutcomesOptions(market: Market, question: Question) {
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
-  // the last element is the Invalid Result outcome
-  options.pop();
+  if (market.type === "Generic") {
+    // the last element is the Invalid Result outcome
+    options.pop();
+  }
 
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
     options = options.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));

@@ -351,7 +351,7 @@ export function SwapTokensLimit({
           {isUndefined(parentCollateral) && (
             <AltCollateralSwitch
               {...register("useAltCollateral")}
-              chainId={market.chainId}
+              market={market}
               isUseWrappedToken={isUseWrappedToken}
               disabled={swapType === "buy" && market.chainId === gnosis.id}
             />

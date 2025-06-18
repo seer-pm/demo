@@ -1,23 +1,22 @@
 import { Market } from "@/lib/market";
 import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { useAllOutcomePools } from "./useMarketPools";
+import { useMarketPools } from "./useMarketPools";
 
 function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
-  const { data: outcomePools = [], isPending } = useAllOutcomePools(market.chainId, market.collateralToken);
+  const { data: outcomePools = [], isPending } = useMarketPools(market);
 
   if (isPending) {
     return;
   }
 
-  const outcomeLiquidityMapping = outcomePools.reduce(
+  const outcomeLiquidityMapping = outcomePools.flat().reduce(
     (obj, item) => {
-      const outcomeTokenId = isTwoStringsEqual(item.token0.id, market.collateralToken)
-        ? item.token1.id
-        : item.token0.id;
-      obj[outcomeTokenId.toLowerCase()] =
-        obj[outcomeTokenId.toLowerCase()] > BigInt(item.liquidity)
-          ? obj[outcomeTokenId.toLowerCase()]
-          : BigInt(item.liquidity);
+      const outcomeTokenId = (
+        market.wrappedTokens.some((outcomeToken) => isTwoStringsEqual(item.token0, outcomeToken))
+          ? item.token0
+          : item.token1
+      ).toLowerCase();
+      obj[outcomeTokenId] = obj[outcomeTokenId] > BigInt(item.liquidity) ? obj[outcomeTokenId] : BigInt(item.liquidity);
       return obj;
     },
     {} as { [key: string]: bigint },

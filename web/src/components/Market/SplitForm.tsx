@@ -4,12 +4,12 @@ import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
+import { getRouterAddress } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
@@ -24,7 +24,7 @@ interface SplitFormProps {
 }
 
 export function SplitForm({ account, market }: SplitFormProps) {
-  const router = getRouterAddress(market.chainId);
+  const router = getRouterAddress(market);
 
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
@@ -77,14 +77,12 @@ export function SplitForm({ account, market }: SplitFormProps) {
 
   const onSubmit = async (/*values: SplitFormValues*/) => {
     await splitPosition.mutateAsync({
-      account: account!,
       router: router,
-      market: market.id,
-      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
+      market: market,
+      collateralToken: selectedCollateral.address,
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
       isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
@@ -141,9 +139,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
         />
       </div>
 
-      {market.parentMarket.id === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
-      )}
+      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>
