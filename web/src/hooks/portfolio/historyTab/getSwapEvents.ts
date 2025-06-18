@@ -7,6 +7,7 @@ import {
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Token0Token1, getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
@@ -16,10 +17,7 @@ import { MarketDataMapping } from "../getMappings";
 import { TransactionData } from "./types";
 
 export async function fetchSwapsFromSubgraph(
-  tokens: {
-    tokenId: string;
-    parentTokenId: `0x${string}`;
-  }[],
+  outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
   account: string,
   chainId: SupportedChain,
   startTime?: number,
@@ -37,7 +35,10 @@ export async function fetchSwapsFromSubgraph(
   let totalSwaps: GetSwapsQuery["swaps"] = [];
 
   // Split tokens into batches
-  const tokenBatches: (typeof tokens)[] = [];
+  const tokenBatches: Array<Token0Token1>[] = [];
+  const tokens = Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
+    getToken0Token1(tokenId, collateralToken),
+  );
   for (let i = 0; i < tokens.length; i += batchSize) {
     tokenBatches.push(tokens.slice(i, i + batchSize));
   }
@@ -57,21 +58,7 @@ export async function fetchSwapsFromSubgraph(
         where: {
           and: [
             {
-              or: batch.reduce(
-                (acc, { tokenId, parentTokenId }) => {
-                  if (parentTokenId) {
-                    acc.push(
-                      tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
-                        ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
-                        : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
-                    );
-                  } else {
-                    acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-                  }
-                  return acc;
-                },
-                [] as { [key: string]: string }[],
-              ),
+              or: batch,
             },
             {
               recipient: account.toLocaleLowerCase() as Address,
@@ -112,15 +99,9 @@ export async function getSwapEvents(
   startTime?: number,
   endTime?: number,
 ) {
-  const { outcomeTokenToCollateral, tokenPairToMarketMapping, marketIdToCollateral } = mappings;
-  const tokens = Object.keys(outcomeTokenToCollateral).map((x) => {
-    return {
-      tokenId: x,
-      parentTokenId: outcomeTokenToCollateral[x],
-    };
-  });
-  if (!tokens) return [];
-  const total = await fetchSwapsFromSubgraph(tokens, account, chainId, startTime, endTime);
+  const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
+  if (outcomeTokenToCollateral.size === 0) return [];
+  const total = await fetchSwapsFromSubgraph(outcomeTokenToCollateral, account, chainId, startTime, endTime);
   const swapsFromSubgraph = total.reduce((acc, swap) => {
     const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));
     const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));
@@ -147,7 +128,7 @@ export async function getSwapEvents(
         marketName: market.marketName,
         marketId: market.id,
         type: "swap",
-        collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+        collateral: getCollateralFromDexTx(market, tokenIn as Address, tokenOut as Address),
         transactionHash: swap.transaction.id,
       });
     }
@@ -196,7 +177,7 @@ export async function getSwapEvents(
         marketName: market.marketName,
         marketId: market.id,
         type: "swap",
-        collateral: marketIdToCollateral[market.id.toLocaleLowerCase()],
+        collateral: getCollateralFromDexTx(market, tokenIn as Address, tokenOut as Address),
         transactionHash: trade.txHash ?? undefined,
         tokenInSymbol,
         tokenOutSymbol,

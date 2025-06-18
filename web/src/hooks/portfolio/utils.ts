@@ -1,28 +1,25 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { readContracts } from "@wagmi/core";
-import { ethers } from "ethers";
+import { getBlock, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
+import { PortfolioPosition } from "./positionsTab/usePortfolioPositions";
 
 export function getTokenPricesMapping(
-  tokens: { tokenId: string; parentTokenId?: string }[],
+  positions: PortfolioPosition[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
   chainId: SupportedChain,
 ) {
-  const [simpleTokens, conditionalTokens] = tokens.reduce(
+  const [simpleTokens, conditionalTokens] = positions.reduce(
     (acc, curr) => {
-      acc[curr.parentTokenId ? 1 : 0].push(curr);
+      acc[!isUndefined(curr.parentMarketId) ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as {
-      tokenId: string;
-      parentTokenId?: string;
-    }[][],
+    [[], []] as PortfolioPosition[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
@@ -48,14 +45,14 @@ export function getTokenPricesMapping(
   );
 
   const conditionalTokensMapping = conditionalTokens.reduce(
-    (acc, { tokenId, parentTokenId }) => {
+    (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        if (parentTokenId!.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
+        if (collateralToken!.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
-          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, parentTokenId);
+          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
-        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, parentTokenId);
+        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, collateralToken);
       });
 
       const relativePrice = correctPool
@@ -65,7 +62,7 @@ export function getTokenPricesMapping(
         : 0;
 
       acc[tokenId.toLocaleLowerCase()] =
-        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
+        relativePrice * (simpleTokensMapping?.[collateralToken!.toLocaleLowerCase()] || 0);
       return acc;
     },
     {} as { [key: string]: number },
@@ -74,57 +71,16 @@ export function getTokenPricesMapping(
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }
 
-export async function getBlockNumberAtTime(timestamp: number, parentBlockCache?: Map<number, ethers.providers.Block>) {
-  // Connect to an Ethereum node (replace with your own provider URL)
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  const blockCache = parentBlockCache ?? new Map<number, ethers.providers.Block>();
-  // Get the latest block
-  const latestBlock = await provider.getBlock("latest");
-
-  // Binary search to find the block closest to the target timestamp
-  let left = 1;
-  let right = latestBlock.number;
-
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    let block: ethers.providers.Block;
-    if (blockCache.has(mid)) {
-      block = blockCache.get(mid)!;
-    } else {
-      block = await provider.getBlock(mid);
-      blockCache.set(mid, block);
-    }
-
-    if (block.timestamp === timestamp) {
-      return block.number;
-    }
-    if (block.timestamp < timestamp) {
-      left = mid + 1;
-    } else {
-      right = mid - 1;
-    }
-  }
-
-  // Return the closest block number
-  return right;
-}
-
-export async function getBlockNumbersAtTimes(timestamps: number[]) {
-  const blockCache = new Map();
-  return await Promise.all(timestamps.map((timestamp) => getBlockNumberAtTime(timestamp, blockCache)));
-}
-
 export async function getBlockTimestamp(initialBlockNumber: number) {
   let blockNumber = initialBlockNumber;
   const maxAttempts = 10; // Limit the number of attempts
   let attempts = 0;
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
 
   while (attempts < maxAttempts) {
     try {
-      const block = await provider.getBlock(blockNumber);
+      const block = await getBlock(config, { blockNumber: BigInt(blockNumber) });
       if (block.timestamp) {
-        return block.timestamp;
+        return Number(block.timestamp);
       }
       // Increment block number and attempts
       blockNumber++;

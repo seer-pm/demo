@@ -1,7 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market } from "@/lib/market";
-import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useMarkets } from "../../useMarkets";
@@ -14,22 +12,22 @@ import { getSwapEvents } from "./getSwapEvents";
 import { TransactionData } from "./types";
 
 async function getTransactions(
-  initialMarkets: Market[] | undefined,
+  initialMarkets: Market[],
   account?: string,
   chainId?: SupportedChain,
   startTime?: number,
   endTime?: number,
 ) {
-  if (!chainId || !account || !initialMarkets) return [];
+  if (!chainId || !account || initialMarkets.length === 0) return [];
   const markets = initialMarkets.filter((x) => x.chainId === chainId);
 
-  const mappings = await getMappings(markets, chainId);
+  const mappings = await getMappings(markets);
   const { tokenIdToTokenSymbolMapping } = mappings;
   const events = await Promise.all([
     getSwapEvents(mappings, account, chainId, startTime, endTime),
     getLiquidityEvents(mappings, account, chainId, startTime, endTime),
     getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
-    getSplitMergeRedeemEvents(mappings, account, chainId),
+    getSplitMergeRedeemEvents(account, chainId),
   ]);
 
   let data = events.flat();
@@ -38,10 +36,7 @@ async function getTransactions(
 
   data = data.map((x, index) => {
     function parseSymbol(tokenAddress?: string) {
-      if (!tokenAddress) return;
-      return isTwoStringsEqual(tokenAddress, COLLATERAL_TOKENS[chainId!].primary.address)
-        ? "sDAI"
-        : tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()];
+      return tokenAddress ? tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()] : undefined;
     }
     return {
       ...x,
@@ -63,10 +58,10 @@ export const useHistoryTransactions = (
   startTime: number | undefined,
   endTime: number | undefined,
 ) => {
-  const { data: markets } = useMarkets({});
+  const { data: markets = [] } = useMarkets({});
   return useQuery<TransactionData[] | undefined, Error>({
-    enabled: !!address && !isUndefined(markets),
-    queryKey: ["useHistoryTransactions", address, chainId, !!markets, startTime, endTime],
+    enabled: !!address && markets.length > 0,
+    queryKey: ["useHistoryTransactions", address, chainId, startTime, endTime],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     retry: false,
