@@ -185,10 +185,10 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDai
           tokenId > parentTokenId
             ? [Number(pool.volumeToken1), Number(pool.volumeToken0)]
             : [Number(pool.volumeToken0), Number(pool.volumeToken1)];
-        const tokenPriceInSDai = tokenPriceMapping[tokenId] ?? 0;
+        const tokenPriceInSDai = tokenPriceMapping[tokenId] || 1 / (market.wrappedTokens.length - 1);
         const collateralPriceInSDai = isTwoStringsEqual(parentTokenId, COLLATERAL_TOKENS[chainId].primary.address)
           ? 1
-          : tokenPriceMapping[parentTokenId] || 1 / (market.wrappedTokens.length - 1);
+          : tokenPriceMapping[parentTokenId] || (parentMarket ? 1 / (parentMarket.wrappedTokens.length - 1) : 0);
         const volumeUSD =
           (tokenPriceInSDai * volumeToken + collateralPriceInSDai * volumeCollateral) * (sDaiPrice ?? 1.13);
         totalVolume += volumeUSD;
