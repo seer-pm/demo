@@ -4,6 +4,7 @@ import { CHAIN_ROUTERS } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { sendCalls, sendTransaction } from "@wagmi/core";
@@ -21,7 +22,7 @@ interface SplitPositionProps {
 }
 
 function splitFromRouter(collateralToken: Address, router: Address, market: Market, amount: bigint): Execution {
-  if (collateralToken) {
+  if (!isTwoStringsEqual(collateralToken, NATIVE_TOKEN)) {
     // split from the market's main collateral:
     // - sDAI for regular markets
     // - parent outcome token for conditional markets (e.g. YES token from parent market)

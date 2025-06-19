@@ -3,6 +3,7 @@ import { CHAIN_ROUTERS } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
+import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
@@ -15,16 +16,11 @@ interface MergePositionProps {
   router: Address;
   market: Market;
   amount: bigint;
-  collateralToken: Address | undefined;
+  collateralToken: Address;
 }
 
-function mergeFromRouter(
-  collateralToken: Address | undefined,
-  router: Address,
-  market: Market,
-  amount: bigint,
-): Execution {
-  if (collateralToken) {
+function mergeFromRouter(collateralToken: Address, router: Address, market: Market, amount: bigint): Execution {
+  if (!isTwoStringsEqual(collateralToken, NATIVE_TOKEN)) {
     // merge to the market's main collateral:
     // - sDAI for regular markets
     // - parent outcome token for conditional markets (e.g. YES token from parent market)merge to the market main collateral (sDAI)
