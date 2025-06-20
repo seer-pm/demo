@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
@@ -62,17 +62,23 @@ async function getTokenPrice(
       }
     }
   } catch (e) {}
-  const [uniswapQuote, swaprQuote] = await Promise.allSettled([
-    getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType),
-    getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType),
-  ]);
-
-  if (uniswapQuote.status === "fulfilled" && uniswapQuote?.value?.value && uniswapQuote.value.value > 0n) {
-    return uniswapQuote.value.value;
+  // we either call uniswap or swapr quote based on chainId
+  if (chainId === gnosis.id) {
+    try {
+      const swaprQuote = await getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
+      return swaprQuote.value;
+    } catch (e) {
+      return 0n;
+    }
   }
 
-  if (swaprQuote.status === "fulfilled" && swaprQuote?.value?.value && swaprQuote.value.value > 0n) {
-    return swaprQuote.value.value;
+  if (chainId === mainnet.id) {
+    try {
+      const uniswapQuote = await getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
+      return uniswapQuote.value;
+    } catch (e) {
+      return 0n;
+    }
   }
 
   return 0n;
