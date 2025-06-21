@@ -312,15 +312,16 @@ export default function Header() {
 }
 
 function BetaWarning() {
+  const [isReady, setIsReady] = useState(false);
   const [betaWarningClosed, setBetaWarningClosed] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem("beta-warning-closed") === "1") {
-      setBetaWarningClosed(true);
-    }
+    const isClosed = window.localStorage.getItem("beta-warning-closed") === "1";
+    setBetaWarningClosed(isClosed);
+    setIsReady(true);
   }, []);
 
-  if (betaWarningClosed) {
+  if (!isReady || betaWarningClosed) {
     return null;
   }
 
@@ -340,15 +341,16 @@ function BetaWarning() {
 }
 
 function GroupNotice() {
+  const [isReady, setIsReady] = useState(false);
   const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem("group-notice-closed") === "1") {
-      setGroupNoticeClosed(true);
-    }
+    const isClosed = window.localStorage.getItem("group-notice-closed") === "1";
+    setGroupNoticeClosed(isClosed);
+    setIsReady(true);
   }, []);
 
-  if (groupNoticeClosed) {
+  if (!isReady || groupNoticeClosed) {
     return null;
   }
 
@@ -360,7 +362,7 @@ function GroupNotice() {
   return (
     <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>
-        Our telegram accout is banned, community is moving to discord. Join the{" "}
+        Our telegram account is banned, community is moving to discord. Join the{" "}
         <a
           href={paths.discord()}
           target="_blank"
