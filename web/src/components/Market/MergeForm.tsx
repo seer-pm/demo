@@ -2,16 +2,16 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance, useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
+import { getRouterAddress } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
@@ -27,7 +27,7 @@ interface MergeFormProps {
 }
 
 export function MergeForm({ account, market }: MergeFormProps) {
-  const router = getRouterAddress(market.chainId);
+  const router = getRouterAddress(market);
 
   const { data: balances, isLoading: isLoadingBalances } = useTokenBalances(
     account,
@@ -83,12 +83,9 @@ export function MergeForm({ account, market }: MergeFormProps) {
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
       router,
-      market: market.id,
-      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
-      outcomeSlotCount: market.outcomes.length,
+      market: market,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[market.chainId],
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
 
@@ -159,9 +156,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
         />
       </div>
 
-      {market.parentMarket.id === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
-      )}
+      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>

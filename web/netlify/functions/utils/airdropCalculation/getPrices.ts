@@ -9,9 +9,10 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import combineQuery from "graphql-combine-query";
+import { Address } from "viem";
 
 export async function getPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[] | undefined,
   chainId: SupportedChain,
   startTime: number,
 ) {

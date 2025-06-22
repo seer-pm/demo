@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
+import { Market, getCollateralByIndex } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
@@ -36,11 +36,12 @@ async function getAllTokens(markets: Market[]) {
         acum.push({
           tokenId,
           parentTokenId,
+          collateralToken: getCollateralByIndex(market, i),
         });
       }
       return acum;
     },
-    [] as { tokenId: Address; parentTokenId?: Address }[],
+    [] as { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
   );
   return tokens;
 }

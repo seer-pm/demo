@@ -3,12 +3,14 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
+import { useTokensInfo } from "./useTokenInfo";
 
-export type Position = { tokenId: Address; balance: bigint; symbol: string; decimals: bigint };
+export type Position = { tokenId: Address; balance: bigint; symbol: string; decimals: number };
 
 export const useMarketPositions = (address: Address | undefined, market: Market) => {
+  const { data: tokensInfo } = useTokensInfo(market.wrappedTokens, market.chainId);
   return useQuery<Position[] | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && tokensInfo && tokensInfo.length > 0,
     queryKey: ["useMarketPositions", address, market.id],
     refetchOnWindowFocus: true,
     queryFn: async () => {
@@ -22,31 +24,11 @@ export const useMarketPositions = (address: Address | undefined, market: Market)
         allowFailure: false,
       })) as bigint[];
 
-      const decimals = (await readContracts(config, {
-        contracts: market.wrappedTokens!.map((wrappedAddresses) => ({
-          abi: erc20Abi,
-          address: wrappedAddresses,
-          functionName: "decimals",
-          args: [],
-        })),
-        allowFailure: false,
-      })) as bigint[];
-
-      const symbols = (await readContracts(config, {
-        contracts: market.wrappedTokens!.map((wrappedAddresses) => ({
-          abi: erc20Abi,
-          address: wrappedAddresses,
-          functionName: "symbol",
-          args: [],
-        })),
-        allowFailure: false,
-      })) as string[];
-
-      return market.wrappedTokens!.map((wrappedAddress, i) => ({
-        tokenId: wrappedAddress,
+      return tokensInfo!.map((tokenInfo, i) => ({
+        tokenId: tokenInfo.address,
         balance: balances[i],
-        symbol: symbols[i],
-        decimals: decimals[i],
+        symbol: tokenInfo.symbol,
+        decimals: tokenInfo.decimals,
       }));
     },
   });

@@ -1,17 +1,22 @@
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType, getQuestionParts } from "@/lib/market";
-import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import {
+  Market,
+  MarketStatus,
+  MarketTypes,
+  getCollateralByIndex,
+  getMarketStatus,
+  getMarketType,
+  getQuestionParts,
+} from "@/lib/market";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits, zeroAddress } from "viem";
 import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
   tokenName: string;
-  tokenId: string;
+  tokenId: Address;
   tokenIndex: number;
   marketAddress: string;
   marketName: string;
@@ -20,8 +25,8 @@ export interface PortfolioPosition {
   tokenValue?: number;
   tokenPrice?: number;
   outcome: string;
-  parentTokenId?: string;
-  parentMarketId?: string;
+  collateralToken: Address;
+  parentMarketId?: Address;
   parentMarketName?: string;
   parentOutcome?: string;
   redeemedPrice: number;
@@ -107,7 +112,7 @@ export const fetchPositions = async (
         marketStatus: market.marketStatus,
         marketFinalizeTs: market.finalizeTs,
         outcome: market.outcomes[outcomeIndex],
-        parentTokenId: parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined,
+        collateralToken: getCollateralByIndex(market, tokenIndex),
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
@@ -133,10 +138,10 @@ export const fetchPositions = async (
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data: markets = [] } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address && !isUndefined(markets),
-    queryKey: ["usePositions", address, !!markets, chainId],
+    enabled: !!address && markets.length > 0,
+    queryKey: ["usePositions", address, chainId],
     queryFn: async () => fetchPositions(markets, address, chainId),
   });
 };

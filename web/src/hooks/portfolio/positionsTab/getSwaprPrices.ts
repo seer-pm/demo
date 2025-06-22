@@ -8,17 +8,18 @@ import {
   getSdk,
 } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient } from "@/lib/subgraph";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
+import { PortfolioPosition } from "./usePortfolioPositions";
 
 export async function getSwaprHistoryTokensPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
+  positions: PortfolioPosition[],
   chainId: SupportedChain,
   startTime: number,
 ) {
-  if (!tokens?.length) return {};
+  if (positions.length === 0) return {};
   const subgraphClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!subgraphClient) {
@@ -28,19 +29,13 @@ export async function getSwaprHistoryTokensPrices(
   const { document, variables } = (() =>
     combineQuery("GetPoolHourDatas").addN(
       GetPoolHourDatasDocument,
-      tokens.map(({ tokenId, parentTokenId }) => {
-        const collateral = parentTokenId
-          ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+      positions.map(({ tokenId, collateralToken }) => {
         return {
           first: 1,
           orderBy: PoolHourData_OrderBy.PeriodStartUnix,
           orderDirection: OrderDirection.Desc,
           where: {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
+            pool_: getToken0Token1(tokenId, collateralToken),
             periodStartUnix_lte: startTime,
             periodStartUnix_gte: startTime - 60 * 60 * 24 * 30 * 3,
           },
@@ -54,7 +49,7 @@ export async function getSwaprHistoryTokensPrices(
     .map((d) => d?.[0])
     .filter((x) => x);
   return getTokenPricesMapping(
-    tokens,
+    positions,
     poolHourDatas.map((data) => {
       return {
         ...data.pool,
@@ -66,11 +61,10 @@ export async function getSwaprHistoryTokensPrices(
   );
 }
 
-export async function getSwaprCurrentTokensPrices(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
-  chainId: SupportedChain,
-) {
-  if (!tokens) return {};
+export async function getSwaprCurrentTokensPrices(positions: PortfolioPosition[], chainId: SupportedChain) {
+  if (positions.length === 0) {
+    return {};
+  }
   const subgraphClient = swaprGraphQLClient(chainId, "algebra");
   if (!subgraphClient) {
     throw new Error("Subgraph not available");
@@ -85,7 +79,7 @@ export async function getSwaprCurrentTokensPrices(
       where: {
         and: [
           {
-            or: tokens.reduce(
+            or: positions.reduce(
               (acc, { tokenId }) => {
                 acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
                 return acc;
@@ -111,5 +105,5 @@ export async function getSwaprCurrentTokensPrices(
     attempt++;
   }
 
-  return getTokenPricesMapping(tokens, total, chainId);
+  return getTokenPricesMapping(positions, total, chainId);
 }

@@ -1,7 +1,7 @@
 import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
-import { isTextInString, isUndefined } from "@/lib/utils";
+import { isTextInString } from "@/lib/utils";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -10,14 +10,14 @@ import PositionsTable from "./PositionsTable";
 
 function PositionsTab() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { positions, error } = useCalculatePositionsValue();
+  const { positions = [], error } = useCalculatePositionsValue();
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);
   };
 
   const filteredPositions =
-    positions?.filter((position) => {
+    positions.filter((position) => {
       const isMatchName = isTextInString(filterMarketName, position.marketName);
       const isMatchOutcome = isTextInString(filterMarketName, position.outcome);
       return isMatchName || isMatchOutcome;
@@ -25,7 +25,7 @@ function PositionsTab() {
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
-  if (isUndefined(positions)) {
+  if (positions.length === 0) {
     return <div className="shimmer-container w-full h-[200px]" />;
   }
   if (!filteredPositions.length) {

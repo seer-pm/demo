@@ -4,8 +4,8 @@ import { DateForm } from "@/components/MarketForm/DateForm";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
+import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import clsx from "clsx";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
@@ -15,22 +15,6 @@ enum FormSteps {
   OUTCOMES = 2,
   DATE = 3,
   PREVIEW = 4,
-}
-
-function Steps({ activeStep }: { activeStep: number }) {
-  const stepsCount = 3;
-  const steps = [...Array(stepsCount).keys()].map((n) => n + 1);
-  return (
-    <ul className="steps steps-horizontal mb-[48px]">
-      {steps.map((step) => (
-        <li
-          className={clsx("step", step <= activeStep && "step-primary")}
-          data-content={step < activeStep ? "✓" : undefined}
-          key={step}
-        ></li>
-      ))}
-    </ul>
-  );
 }
 
 function CreateMarket() {

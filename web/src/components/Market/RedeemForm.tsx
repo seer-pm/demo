@@ -1,9 +1,9 @@
 import Button from "@/components/Form/Button";
 import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
@@ -34,11 +34,13 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
       isRedeemToParentCollateral: true,
     },
   });
-  const isRedeemToParentCollateral = watch("isRedeemToParentCollateral");
+  const [isRedeemToParentCollateral, useAltCollateral] = watch(["isRedeemToParentCollateral", "useAltCollateral"]);
   const isParentPayoutReported =
     market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
 
-  const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market.chainId);
+  const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+
+  const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market);
 
   const { data: winningPositions = [], isPending } = useWinningPositions(account, market, router);
 
@@ -64,14 +66,12 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
 
   const onSubmit = async (values: RedeemFormValues) => {
     await redeemPositions.mutateAsync({
-      market: market.id,
-      chainId: market.chainId,
+      market: market,
       parentOutcome: market.parentOutcome,
-      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
-      isMainCollateral: !values.useAltCollateral,
       isRedeemToParentCollateral: isParentPayoutReported && values.isRedeemToParentCollateral,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
   if (isPending) {
@@ -90,9 +90,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
   }
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {market.parentMarket.id === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
-      )}
+      {market.type === "Generic" && <AltCollateralSwitch {...register("useAltCollateral")} market={market} />}
       {market.parentMarket.id !== zeroAddress && isParentPayoutReported && (
         <div className="flex space-x-2">
           <div>Parent Token</div>
