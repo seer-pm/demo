@@ -67,11 +67,6 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 } as const;
 
 export const getRouterAddress = (market: Market): Address => {
-  if (market.type === "Futarchy") {
-    // @ts-ignore
-    return futarchyRouterAddress[market.chainId];
-  }
-
   const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
   return addresses[market.chainId || DEFAULT_CHAIN];
 };
