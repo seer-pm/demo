@@ -51,8 +51,8 @@ const ConnectWallet = ({ isMobile = false, ...props }: ConnectWallerProps) => {
     }
 
     return (
-      <div className="flex items-center gap-4">
-        <ChainDropdown isMobile={isMobile} />
+      <div className="flex items-center gap-2">
+        <ChainDropdown />
         <AccountDisplay isMobile={isMobile} />
       </div>
     );

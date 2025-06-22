@@ -1,7 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { Market } from "../../useMarket";
 import { useMarkets } from "../../useMarkets";
 import { getMappings } from "../getMappings";
 import { getBlockTimestamp } from "../utils";
@@ -11,15 +11,22 @@ import { getSplitMergeRedeemEvents } from "./getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./getSwapEvents";
 import { TransactionData } from "./types";
 
-async function getTransactions(markets: Market[], account?: string, chainId?: SupportedChain) {
-  if (!chainId || !account || markets.length === 0) return [];
+async function getTransactions(
+  initialMarkets: Market[],
+  account?: string,
+  chainId?: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+) {
+  if (!chainId || !account || initialMarkets.length === 0) return [];
+  const markets = initialMarkets.filter((x) => x.chainId === chainId);
 
   const mappings = await getMappings(markets);
   const { tokenIdToTokenSymbolMapping } = mappings;
   const events = await Promise.all([
-    getSwapEvents(mappings, account, chainId),
-    getLiquidityEvents(mappings, account, chainId),
-    getLiquidityWithdrawEvents(mappings, account, chainId),
+    getSwapEvents(mappings, account, chainId, startTime, endTime),
+    getLiquidityEvents(mappings, account, chainId, startTime, endTime),
+    getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
     getSplitMergeRedeemEvents(account, chainId),
   ]);
 
@@ -45,14 +52,19 @@ async function getTransactions(markets: Market[], account?: string, chainId?: Su
   return data.sort((a, b) => b.blockNumber - a.blockNumber);
 }
 
-export const useHistoryTransactions = (address: Address, chainId: SupportedChain) => {
+export const useHistoryTransactions = (
+  address: Address,
+  chainId: SupportedChain,
+  startTime: number | undefined,
+  endTime: number | undefined,
+) => {
   const { data: markets = [] } = useMarkets({});
   return useQuery<TransactionData[] | undefined, Error>({
     enabled: !!address && markets.length > 0,
-    queryKey: ["useHistoryTransactions", address, chainId],
+    queryKey: ["useHistoryTransactions", address, chainId, startTime, endTime],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     retry: false,
-    queryFn: async () => getTransactions(markets, address, chainId),
+    queryFn: async () => getTransactions(markets, address, chainId, startTime, endTime),
   });
 };

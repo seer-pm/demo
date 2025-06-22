@@ -44,6 +44,8 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       queryClient.invalidateQueries({ queryKey: ["useCowOrders"] }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["usePositions"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       });
       removePendingOrder(pendingOrderId);
     }),

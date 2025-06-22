@@ -60,6 +60,16 @@ function MarkeVerifyPage() {
     }
   }, [market]);
 
+  if (import.meta.env.VITE_VERIFICATION_DISABLED === "true") {
+    return (
+      <div className="py-10 px-10">
+        <Alert type="error" className="mb-5">
+          Market verifications are temporarily disabled. Please try again later.
+        </Alert>
+      </div>
+    );
+  }
+
   if (isMarketError) {
     return (
       <div className="py-10 px-10">

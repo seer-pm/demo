@@ -6,7 +6,7 @@ import {
   readLightGeneralizedTcrArbitrator,
   readLightGeneralizedTcrArbitratorExtraData,
   readLightGeneralizedTcrSubmissionBaseDeposit,
-} from "./contracts/generated";
+} from "./contracts/generated-curate";
 
 export async function getSubmissionDeposit(): Promise<bigint> {
   const [arbitrator, arbitratorExtraData, submissionBaseDeposit] = await Promise.all([

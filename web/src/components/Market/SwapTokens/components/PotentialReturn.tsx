@@ -1,5 +1,5 @@
-import { Market } from "@/hooks/useMarket";
 import { QuestionIcon } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType } from "@/lib/market";
 import { Token, getPotentialReturn } from "@/lib/tokens";
 import clsx from "clsx";
@@ -125,7 +125,7 @@ export function PotentialReturnResult({
 
   return (
     <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}
+      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
       %)
     </span>
   );

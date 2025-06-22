@@ -1,9 +1,14 @@
 import { Link } from "@/components/Link";
 import { useDepositNft, useEnterFarming, useExitFarming, useWithdrawNft } from "@/hooks/useFarmingCenter";
-import { Market } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { PoolIncentive, PoolInfo, useMarketPools, usePoolsDeposits } from "@/hooks/useMarketPools";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
+import {
+  NftPosition,
+  PoolIncentive,
+  PoolInfo,
+  useMarketPools,
+  useNftPositions,
+  usePoolsDeposits,
+} from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
@@ -12,16 +17,22 @@ import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
+import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes, getMarketType } from "@/lib/market";
+import { getMarketStatus, isOdd } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
+import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { displayScalarBound } from "@/lib/reality";
 import { toastError } from "@/lib/toastify";
-import { displayBalance, formatDate, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect } from "react";
-import { Address, RpcError } from "viem";
+import { differenceInSeconds, startOfDay } from "date-fns";
+import { useEffect, useState } from "react";
+import { Address, RpcError, formatUnits } from "viem";
 import { watchAsset } from "viem/actions";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -34,6 +45,7 @@ import PoolDetails from "./PoolDetails/PoolDetails";
 interface PositionsProps {
   market: Market;
   images?: string[];
+  activeOutcome: number;
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -55,13 +67,15 @@ function poolRewardsInfo(pool: PoolInfo) {
           <span className="font-semibold">{pool.dex}</span> ~ {poolIncentive}
         </div>
       )}
-      {pool.incentives.length > 0 && (
+      {pool.incentives.length > 0 ? (
         <div className="flex items-center gap-2">
           <p>
             {isRewardEnded ? "Rewards ended on" : "Rewards end"}:{" "}
             <span className={isRewardEnded ? "text-[#6E6E6E]" : "text-purple-primary"}>{realEndTime}</span>
           </p>
         </div>
+      ) : (
+        "This pool currently has no active incentives or rewards"
       )}
     </div>
   );
@@ -81,6 +95,13 @@ function AddLiquidityInfo({
     chainId,
     pools.map((p) => p.id),
     address,
+  );
+
+  const { data: nftPositionMapping } = useNftPositions(
+    chainId,
+    Object.values(deposits ?? {})
+      .flat()
+      .map((x) => x.id),
   );
 
   const enterFarming = useEnterFarming();
@@ -149,7 +170,7 @@ function AddLiquidityInfo({
       <div className="space-y-[12px]">
         {pools.map((pool) => {
           const isRewardEnded =
-            pool.incentives.length > 0 ? Number(pool.incentives[0].endTime) * 1000 < new Date().getTime() : true;
+            pool.incentives.length > 0 ? Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime() : true;
           return (
             <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
               <div className="flex justify-between items-center">
@@ -161,85 +182,97 @@ function AddLiquidityInfo({
                     rel="noopener noreferrer"
                     className="text-purple-primary flex items-center space-x-2"
                   >
-                    <span>Open</span> <RightArrow />
+                    <span>Add liquidity</span> <RightArrow />
                   </a>
                 </div>
               </div>
 
               {deposits?.[pool.id] && (
                 <div className="space-y-[16px] mt-[16px]">
-                  {deposits[pool.id].map((deposit) => (
-                    <div className="flex items-center justify-between items-center" key={deposit.id}>
-                      <div>
-                        <a
-                          href={getPositionUrl(chainId, deposit.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-primary hover:underline block"
-                        >
-                          Position #{deposit.id}
-                        </a>
-                        {deposit.onFarmingCenter && (
-                          <>
-                            {" "}
+                  {deposits[pool.id].map((deposit) => {
+                    const isFarming =
+                      deposit.onFarmingCenter && (deposit.limitFarming !== null || deposit.eternalFarming !== null);
+                    return (
+                      <div key={deposit.id}>
+                        <div className="flex items-center justify-between items-center">
+                          <div>
                             <a
-                              href={getFarmingUrl(chainId, deposit.id)}
+                              href={getPositionUrl(chainId, deposit.id)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-purple-primary hover:underline text-[13px]"
+                              className="text-purple-primary hover:underline block"
                             >
-                              {deposit.limitFarming === null && deposit.eternalFarming === null
-                                ? "(On Farming Center)"
-                                : "(In Farming)"}
+                              Position #{deposit.id}
                             </a>
-                          </>
-                        )}
-                      </div>
-                      <div>
-                        {!deposit.onFarmingCenter && (
-                          <Button
-                            text="Deposit NFT"
-                            size="small"
-                            variant="secondary"
-                            onClick={depositHandler(deposit.id)}
-                            disabled={isLoading}
-                          />
-                        )}
-                        {deposit.onFarmingCenter &&
-                          (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {deposit.onFarmingCenter && (
+                              <>
+                                {" "}
+                                <a
+                                  href={getFarmingUrl(chainId, deposit.id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-purple-primary hover:underline text-[13px]"
+                                >
+                                  {deposit.limitFarming === null && deposit.eternalFarming === null
+                                    ? "(On Farming Center)"
+                                    : "(In Farming)"}
+                                </a>
+                              </>
+                            )}
+                          </div>
+                          <div>
+                            {!deposit.onFarmingCenter && !isRewardEnded && (
                               <Button
-                                text="Withdraw NFT"
+                                text="Deposit NFT"
                                 size="small"
                                 variant="secondary"
-                                onClick={withdrawHandler(deposit.id)}
+                                onClick={depositHandler(deposit.id)}
                                 disabled={isLoading}
                               />
-                              <div className="tooltip">
+                            )}
+                            {deposit.onFarmingCenter &&
+                              (deposit.limitFarming === null && deposit.eternalFarming === null ? (
+                                <div className="flex items-center gap-2 flex-wrap justify-end">
+                                  <Button
+                                    text="Withdraw NFT"
+                                    size="small"
+                                    variant="secondary"
+                                    onClick={withdrawHandler(deposit.id)}
+                                    disabled={isLoading}
+                                  />
+                                  <div className="tooltip">
+                                    <Button
+                                      text="Enter Farming"
+                                      size="small"
+                                      variant="secondary"
+                                      onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                      disabled={isLoading || isRewardEnded}
+                                    />
+                                    {isRewardEnded && (
+                                      <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
                                 <Button
-                                  text="Enter Farming"
+                                  text="Exit Farming"
                                   size="small"
                                   variant="secondary"
-                                  onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                                  disabled={isLoading || isRewardEnded}
+                                  onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+                                  disabled={isLoading}
                                 />
-                                {isRewardEnded && (
-                                  <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              text="Exit Farming"
-                              size="small"
-                              variant="secondary"
-                              onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                              disabled={isLoading}
-                            />
-                          ))}
+                              ))}
+                          </div>
+                        </div>
+                        {nftPositionMapping?.[deposit.id] && !isRewardEnded && isFarming && (
+                          <RewardsDisplay
+                            position={nftPositionMapping[deposit.id]}
+                            totalRewardPerDay={Number(formatUnits(pool.incentives[0].rewardRate * 86400n, 18))}
+                          />
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -280,9 +313,7 @@ function AddLiquidityLinks({
 }) {
   return (
     <>
-      {openLiquidityModal &&
-      !isUndefined(pools[outcomeIndex]) &&
-      pools[outcomeIndex].some((pool) => pool.incentives.length > 0 && pool.incentives[0].rewardRate > 0n) ? (
+      {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
         <button
           type="button"
           onClick={() => {
@@ -308,6 +339,37 @@ function AddLiquidityLinks({
         </button>
       )}
     </>
+  );
+}
+
+function RewardsDisplay({ position, totalRewardPerDay }: { position: NftPosition; totalRewardPerDay: number }) {
+  const {
+    pool: { tick },
+    tickLower: { tickIdx: tickLowerIdx },
+    tickUpper: { tickIdx: tickUpperIdx },
+  } = position;
+  const [currentReward, setCurrentReward] = useState(0);
+  const rewardPerDay = (Number(position.liquidity) / Number(position.pool.liquidity)) * totalRewardPerDay;
+  const rewardPerSecond = rewardPerDay / (24 * 60 * 60);
+  useEffect(() => {
+    const now = new Date();
+    const currentReward = differenceInSeconds(now, startOfDay(now)) * rewardPerSecond;
+    setCurrentReward(currentReward);
+    const interval = setInterval(() => {
+      setCurrentReward((curr) => curr + rewardPerSecond);
+    }, 1000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+  if (Number(tick) <= Number(tickLowerIdx) || Number(tick) >= Number(tickUpperIdx)) {
+    return <p className="text-[12px] text-warning-primary">Position out of range.</p>;
+  }
+  return (
+    <p className="text-[12px]">
+      Today's reward: <span className="text-purple-primary font-semibold">{currentReward.toFixed(0)}</span> /{" "}
+      <span className="text-purple-primary font-semibold">{rewardPerDay.toFixed(0)}</span> SEER
+    </p>
   );
 }
 
@@ -362,7 +424,7 @@ function OutcomeDetails({
   };
 
   const getTooltipContent = (market: Market, outcomeIndex: number) => {
-    const [lowerBound, upperBound] = [market.lowerBound, market.upperBound];
+    const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
     if (outcomeIndex === 1) {
       return `Redeem for (sDAI per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
     }
@@ -372,15 +434,14 @@ function OutcomeDetails({
     return "";
   };
 
-  const hasInvalidOutcome = market.type === "Generic";
-  const isInvalidOutcome = hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
+  const _isInvalidOutcome = isInvalidOutcome(market, outcomeIndex);
 
   return (
     <div className="flex items-center space-x-[12px]">
       <div className="flex-shrink-0">
         <OutcomeImage
           image={images?.[outcomeIndex]}
-          isInvalidOutcome={isInvalidOutcome}
+          isInvalidOutcome={_isInvalidOutcome}
           title={market.outcomes[outcomeIndex]}
         />
       </div>
@@ -390,7 +451,7 @@ function OutcomeDetails({
             {market.type === "Generic" && <>#{loopIndex + 1}</>} {market.outcomes[outcomeIndex]}{" "}
             {outcomeIndex <= 1 &&
               getMarketType(market) === MarketTypes.SCALAR &&
-              `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}{" "}
+              `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}{" "}
           </p>
           {getMarketType(market) === MarketTypes.SCALAR && outcomeIndex !== market.wrappedTokens.length - 1 && (
             <span className="tooltip">
@@ -400,7 +461,7 @@ function OutcomeDetails({
               <QuestionIcon fill="#9747FF" />
             </span>
           )}
-          {isInvalidOutcome && (
+          {_isInvalidOutcome && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
@@ -473,11 +534,28 @@ function OutcomeDetails({
   );
 }
 
-export function Outcomes({ market, images }: PositionsProps) {
+function MultiScalarEstimate({ market, odds }: { market: Market; odds: number | undefined }) {
+  if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || !isOdd(odds)) {
+    return null;
+  }
+
+  const estimate = getMultiScalarEstimate(market, odds!);
+
+  if (estimate === null) {
+    return null;
+  }
+
+  return (
+    <div className="text-[13px] font-normal">
+      ~ {estimate.value} {estimate.unit}
+    </div>
+  );
+}
+
+export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const outcomeIndexFromSearch = market.outcomes.findIndex((outcome) => outcome === searchParams.get("outcome"));
-  const activeOutcome = Math.max(outcomeIndexFromSearch, 0);
-  const { data: odds = [] } = useMarketOdds(market, true);
+
+  const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
@@ -565,8 +643,15 @@ export function Outcomes({ market, images }: PositionsProps) {
               )}
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 {market.type === "Generic" && (
-                  <div className="text-[20px] min-[400px]:text-[24px] font-semibold">
-                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
+                    {isLoading ? (
+                      <Spinner />
+                    ) : (
+                      <>
+                        <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+                        {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
+                      </>
+                    )}
                   </div>
                 )}
 

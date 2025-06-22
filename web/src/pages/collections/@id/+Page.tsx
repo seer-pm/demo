@@ -1,5 +1,4 @@
 import { Alert } from "@/components/Alert";
-import Breadcrumb from "@/components/Breadcrumb";
 import Button from "@/components/Form/Button";
 import DropdownWrapper from "@/components/Form/DropdownWrapper";
 import Input from "@/components/Form/Input";
@@ -21,7 +20,8 @@ import { useSignIn } from "@/hooks/useSignIn";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { EditIcon, PlusCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { checkWalletConnectCallback, isAccessTokenExpired, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { isAccessTokenExpired, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
 import { useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
@@ -83,8 +83,7 @@ function CollectionsPage() {
   });
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] ">
-      <Breadcrumb links={[{ title: "Collections" }]} />
+    <div className="px-[64px] py-[24px] space-y-[24px]">
       <AddCollectionModal
         className="max-w-[500px]"
         title="Add Collection"
@@ -252,15 +251,17 @@ function CollectionsPage() {
         </div>
       )}
       {isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="shimmer-container h-[450px]"></div>
-          <div className="shimmer-container h-[450px]"></div>
+        <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+          <div className="shimmer-container h-[225px]"></div>
+          <div className="shimmer-container h-[225px]"></div>
+          <div className="shimmer-container h-[225px]"></div>
+          <div className="shimmer-container h-[225px]"></div>
         </div>
       )}
 
       {!isLoading && markets.length === 0 && <Alert type="warning">No markets in this collection.</Alert>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
         {markets.map((market) => (
           <PreviewCard key={market.id} market={market} />
         ))}

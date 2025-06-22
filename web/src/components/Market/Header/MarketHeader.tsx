@@ -1,13 +1,13 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -20,18 +20,22 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
+import { getMarketStatus } from "@/lib/market";
 import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
+import { MarketStatus } from "@/lib/market.ts";
+import { Market } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, getTimeLeft, isUndefined } from "@/lib/utils";
+import { displayScalarBound } from "@/lib/reality.ts";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
-import { OutcomeImage } from "../OutcomeImage";
+import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
+import { COLORS, MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
@@ -96,7 +100,7 @@ function OutcomesInfo({
                     #{j + 1} {outcome}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
-                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                      `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}
                     {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
 
@@ -124,7 +128,7 @@ type PoolTokensInfo = {
   token1: { symbol: string; balance: number };
 }[];
 
-function PoolTokensInfo({
+export function PoolTokensInfo({
   market,
   marketStatus,
   type,
@@ -299,7 +303,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </p>
           )}
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
-            <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
+            <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
           ) : (
             <>
               <div className="flex space-x-2 items-center text-[14px]">
@@ -320,7 +324,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
-          <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
+          <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
         </div>
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
@@ -349,17 +353,18 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           />
         </div>
       )}
+
       {type !== "small" && (
         <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
             <SeerLogo fill="#511778" width="50px" height="100%" />
-            <div className="flex items-center gap-2">
-              <div className="tooltip">
-                <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
-                {MARKET_TYPES_ICONS[marketType]}
-              </div>
-              <div className="@[510px]:block hidden">
-                {market.type === "Futarchy" ? "Futarchy" : MARKET_TYPES_TEXTS[marketType]}
+            <div className="tooltip">
+              <p className="tooltiptext !text-left min-w-[250px] !whitespace-pre-wrap">
+                {MARKET_TYPES_DESCRIPTION[marketType]}
+              </p>
+              <div className="flex items-center gap-2">
+                <div>{MARKET_TYPES_ICONS[marketType]}</div>
+                <div>{MARKET_TYPES_TEXTS[marketType]}</div>
               </div>
             </div>
             <div className="!flex items-center tooltip">

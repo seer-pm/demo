@@ -1,5 +1,4 @@
-import { hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
-import { Market } from "./useMarket";
+import { Market, hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
 
 export enum MarketStatus {
   NOT_OPEN = "not_open",

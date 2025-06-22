@@ -1,12 +1,12 @@
 import { getConfigNumber } from "@/lib/config";
-import { MarketTypes, getOutcomes } from "@/lib/market";
+import { formatDate } from "@/lib/date";
+import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "@/lib/market";
 import { escapeJson } from "@/lib/reality";
 import { toastifyTx } from "@/lib/toastify";
-import { formatDate } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { Address, TransactionReceipt } from "viem";
-import { writeFutarchyFactoryCreateProposal, writeMarketFactory } from "./contracts/generated";
+import { writeFutarchyFactoryCreateProposal, writeMarketFactory } from "./contracts/generated-market-factory";
 
 interface CreateMarketProps {
   marketType: MarketTypes;
@@ -14,15 +14,12 @@ interface CreateMarketProps {
   collateralToken1: Address | ""; // for futarchy markets
   collateralToken2: Address | ""; // for futarchy markets
   isArbitraryQuestion: boolean; // for futarchy markets
-  questionStart: string;
-  questionEnd: string;
-  outcomeType: string;
   parentMarket: Address;
   parentOutcome: bigint;
   outcomes: string[];
   tokenNames: string[];
-  lowerBound: number;
-  upperBound: number;
+  lowerBound: bigint;
+  upperBound: bigint;
   unit: string;
   category: string;
   openingTime: number;
@@ -60,6 +57,8 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
 
 async function createMarket(props: CreateMarketProps): Promise<TransactionReceipt> {
   const outcomes = getOutcomes(props.outcomes, props.marketType);
+  const marketName = getMarketName(props.marketType, props.marketName, props.unit);
+  const questionParts = getQuestionParts(marketName, props.marketType);
 
   const result = await toastifyTx(
     () =>
@@ -67,21 +66,18 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
         functionName: MarketTypeFunction[props.marketType],
         args: [
           {
-            marketName:
-              props.marketType === MarketTypes.SCALAR && props.unit.trim()
-                ? `${escapeJson(props.marketName)} [${escapeJson(props.unit)}]`
-                : escapeJson(props.marketName),
-            questionStart: escapeJson(props.questionStart),
-            questionEnd: escapeJson(props.questionEnd),
-            outcomeType: escapeJson(props.outcomeType),
+            marketName,
+            questionStart: escapeJson(questionParts?.questionStart || ""),
+            questionEnd: escapeJson(questionParts?.questionEnd || ""),
+            outcomeType: escapeJson(questionParts?.outcomeType || ""),
             parentMarket: props.parentMarket,
             parentOutcome: props.parentOutcome,
             lang: "en_US",
             category: "misc",
             outcomes: outcomes.map(escapeJson),
             tokenNames: getTokenNames(props.tokenNames, outcomes),
-            lowerBound: BigInt(props.lowerBound),
-            upperBound: BigInt(props.upperBound),
+            lowerBound: props.lowerBound,
+            upperBound: props.upperBound,
             minBond: getConfigNumber("MIN_BOND", props.chainId),
             openingTime: props.openingTime,
           },
@@ -136,7 +132,7 @@ async function createProposal(props: CreateMarketProps): Promise<TransactionRece
   return result.receipt;
 }
 
-export const useCreateMarket = (isFutarchyMarket: boolean, onSuccess: (data: TransactionReceipt) => unknown) => {
+export const useCreateMarket = (isFutarchyMarket: boolean, onSuccess: (data: TransactionReceipt) => void) => {
   return useMutation({
     mutationFn: isFutarchyMarket ? createProposal : createMarket,
     onSuccess,

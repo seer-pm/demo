@@ -8,26 +8,20 @@ import { MarketTypes, SimpleMarket, SupportedChain } from "./utils/types.ts";
 const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
 
 async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address): Promise<SimpleMarket> {
-  const params: Record<string, string | string[]> = { chainsList: [chainId.toString()] };
+  const params: Record<string, string | string[]> = { chainId: chainId.toString() };
   if (!isAddress(id, { strict: false })) {
     params.url = id;
   } else {
     params.id = id;
   }
-  const response = await fetch(`${baseUrl}/.netlify/functions/markets-search`, {
+  const response = await fetch(`${baseUrl}/.netlify/functions/get-market`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(params),
   });
-  const markets = await response.json();
-
-  if (markets.length === 0) {
-    throw new Error("Market not found");
-  }
-
-  return markets[0];
+  return await response.json();
 }
 
 export default async (request: Request, context: Context) => {

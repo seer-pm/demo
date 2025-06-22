@@ -1,13 +1,15 @@
 import { STATUS_TEXTS } from "@/components/Market/Header";
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { Market, SerializedMarket, deserializeMarket } from "@/hooks/useMarket";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { UseGraphMarketsParams } from "@/hooks/useMarkets";
+import { getMarketStatus } from "@/lib/market";
 import { Address, isAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
+import { MarketStatus } from "./market";
+import { deserializeMarket } from "./market";
+import { Market, SerializedMarket } from "./market";
 import { getAppUrl } from "./utils";
 
-export type FetchMarketParams = Partial<UseGraphMarketsParams> & { id?: Address; url?: string; parentMarket?: Address };
+export type FetchMarketParams = Partial<UseGraphMarketsParams> & { parentMarket?: Address };
 
 export async function fetchMarkets(params: FetchMarketParams = {}): Promise<Market[]> {
   const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-search`, {
@@ -20,27 +22,27 @@ export async function fetchMarkets(params: FetchMarketParams = {}): Promise<Mark
   return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
 }
 
-export async function fetchAllMarkets(): Promise<Market[]> {
-  const response = await fetch(`${getAppUrl()}/all-markets-search`);
-  return (await response.json()).map((market: SerializedMarket) => deserializeMarket(market));
-}
+export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market | undefined> {
+  const params: { chainId: SupportedChain; id: Address } | { chainId: SupportedChain; url: string } = !isAddress(
+    idOrSlug,
+    { strict: false },
+  )
+    ? { chainId, url: idOrSlug }
+    : { chainId, id: idOrSlug };
 
-export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market> {
-  const params: FetchMarketParams = { chainsList: [chainId.toString()] };
+  const response = await fetch(`${getAppUrl()}/.netlify/functions/get-market`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
 
-  if (!isAddress(idOrSlug, { strict: false })) {
-    params.url = idOrSlug;
-  } else {
-    params.id = idOrSlug;
+  if (response.status === 200) {
+    return deserializeMarket(await response.json());
   }
 
-  const markets = await fetchMarkets(params);
-
-  if (markets.length === 0) {
-    throw new Error("Market not found");
-  }
-
-  return markets[0];
+  return;
 }
 
 export function sortMarkets(

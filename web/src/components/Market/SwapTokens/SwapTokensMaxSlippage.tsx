@@ -1,3 +1,4 @@
+import Toggle from "@/components/Form/Toggle";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import clsx from "clsx";
@@ -19,6 +20,8 @@ const MAX_SLIPPAGE_OPTIONS = [
 export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => void }) {
   const initialMaxSlippage = useGlobalState((state) => state.maxSlippage);
   const setMaxSlippage = useGlobalState((state) => state.setMaxSlippage);
+  const initialIsInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const setInstantSwap = useGlobalState((state) => state.setInstantSwap);
   const {
     handleSubmit,
     setValue,
@@ -26,23 +29,29 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
     watch,
     trigger,
     formState: { errors },
-  } = useForm<{ maxSlippage: string }>({
+  } = useForm<{ maxSlippage: string; isInstantSwap: boolean }>({
     mode: "all",
     defaultValues: {
       maxSlippage: initialMaxSlippage,
+      isInstantSwap: initialIsInstantSwap,
     },
   });
-  const onSubmit = ({ maxSlippage }: { maxSlippage: string }) => {
+  const onSubmit = ({ maxSlippage, isInstantSwap }: { maxSlippage: string; isInstantSwap: boolean }) => {
     setMaxSlippage(maxSlippage);
+    setInstantSwap(isInstantSwap);
     onReturn();
   };
   const maxSlippage = watch("maxSlippage");
+  const isInstantSwap = watch("isInstantSwap");
   return (
-    <div className="space-y-5 bg-white p-[24px] drop-shadow">
+    <div className="space-y-5">
       <div className="flex items-center gap-2">
-        <p>Max Slippage</p>
+        <p className="font-semibold text-[18px]">Parameters</p>
         <Parameter />
-        <div className="tooltip ml-auto">
+      </div>
+      <div className="flex gap-1 items-center">
+        <p>Max slippage</p>
+        <div className="tooltip">
           <p className="tooltiptext w-[300px] !whitespace-break-spaces">
             Your transaction will revert if the price changes unfavorably by more than this percentage
           </p>
@@ -94,6 +103,18 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           })}
         />
         <p>%</p>
+      </div>
+      <div className="flex items-center gap-1">
+        <p>Instant Swap</p>
+        <div className="tooltip">
+          <p className="tooltiptext w-[200px] !whitespace-break-spaces">Swap directly without using Cowswap</p>
+          <QuestionIcon fill="#9747FF" />
+        </div>
+        <Toggle
+          className="checked:bg-purple-primary ml-3"
+          checked={isInstantSwap}
+          onChange={(e) => setValue("isInstantSwap", e.target.checked)}
+        />
       </div>
       <FormError errors={errors} name="maxSlippage" />
       <Button text="Cancel" variant="secondary" onClick={onReturn} className="mr-2" />

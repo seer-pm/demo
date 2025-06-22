@@ -1,8 +1,8 @@
-import { Market } from "@/hooks/useMarket";
 import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { Market } from "@/lib/market";
+import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { DAI, WXDAI } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
@@ -63,10 +63,24 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
         buyTokenSymbol,
         sellTokenSymbol,
         sellAmount: Number(formatUnits(BigInt(curr.sellAmount), 18)).toFixed(4),
+        formattedExecutedSellAmount: Number(curr.executedSellAmount)
+          ? Number(formatUnits(BigInt(curr.executedSellAmount), 18)).toFixed(4)
+          : null,
         buyAmount: Number(formatUnits(BigInt(curr.buyAmount), 18)).toFixed(4),
+        formattedExecutedBuyAmount: Number(curr.executedBuyAmount)
+          ? Number(formatUnits(BigInt(curr.executedBuyAmount), 18)).toFixed(4)
+          : null,
         limitPrice: (
           Number(formatUnits(BigInt(curr.sellAmount), 18)) / Number(formatUnits(BigInt(curr.buyAmount), 18))
         ).toFixed(4),
+        executionPrice: Number(curr.executedSellAmount)
+          ? (
+              Number(formatUnits(BigInt(curr.executedSellAmount), 18)) /
+              Number(formatUnits(BigInt(curr.executedBuyAmount), 18))
+            ).toFixed(4)
+          : null,
+        isOnChainOrder: !!curr.onchainUser,
+        isEthFlow: !!curr.ethflowData,
       });
     }
     return acc;
@@ -77,7 +91,7 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
 export const useCowOrders = (address: Address, chainId: SupportedChain) => {
   const { data: markets } = useMarkets({});
   return useQuery<CowOrderData[] | undefined, Error>({
-    enabled: !!address,
+    enabled: !!address && !isUndefined(markets),
     queryKey: ["useCowOrders", address, chainId, !!markets],
     retry: false,
     queryFn: async () => getCowOrders(markets, address, chainId),

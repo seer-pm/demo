@@ -1,13 +1,14 @@
+import { Market } from "@/lib/market";
 import { isTextInString } from "@/lib/utils";
 import { UseQueryResult } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
-import { Market } from "./useMarket";
+import { useCollectionsSearch } from "./collections/useCollectionsSearch";
 import { UseMarketsProps } from "./useMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 20;
 
 export const useSortAndFilterResults = (
   params: UseMarketsProps,
@@ -15,16 +16,18 @@ export const useSortAndFilterResults = (
 ) => {
   const { address = "" } = useAccount();
   const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
+  const { data: marketsInCollections = [] } = useCollectionsSearch(params.marketName);
   const { page, setPage } = useMarketsSearchParams();
 
   let data = result.data || [];
 
-  // filter by market name or market outcomes
+  // filter by market name or market outcomes or markets in collections which name contains search string
   if (params.marketName) {
     data = data.filter((market) => {
       const isMatchName = isTextInString(params.marketName!, market.marketName);
       const isMatchOutcomes = market.outcomes.some((outcome) => isTextInString(params.marketName!, outcome));
-      return isMatchName || isMatchOutcomes;
+      const isInCollection = marketsInCollections.includes(market.id);
+      return isMatchName || isMatchOutcomes || isInCollection;
     });
   }
 
@@ -60,6 +63,13 @@ export const useSortAndFilterResults = (
   if (params.categoryList) {
     data = data.filter((market: Market) => {
       return params.categoryList?.some((category) => market.categories?.includes(category));
+    });
+  }
+
+  // filter by minimum liquidity
+  if (params.minLiquidity) {
+    data = data.filter((market: Market) => {
+      return market.liquidityUSD > params.minLiquidity!;
     });
   }
 

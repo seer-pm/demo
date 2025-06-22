@@ -1,8 +1,10 @@
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
+  GetPoolsQuery,
   OrderDirection,
   PoolHourData_OrderBy,
+  Pool_OrderBy,
   getSdk,
 } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain } from "@/lib/chains";
@@ -17,9 +19,7 @@ export async function getSwaprHistoryTokensPrices(
   chainId: SupportedChain,
   startTime: number,
 ) {
-  if (positions.length === 0) {
-    return {};
-  }
+  if (positions.length === 0) return {};
   const subgraphClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!subgraphClient) {
@@ -57,7 +57,7 @@ export async function getSwaprHistoryTokensPrices(
         token1Price: data.token1Price,
       };
     }),
-    chainId as number,
+    chainId,
   );
 }
 
@@ -70,17 +70,40 @@ export async function getSwaprCurrentTokensPrices(positions: PortfolioPosition[]
     throw new Error("Subgraph not available");
   }
 
-  const { pools } = await getSdk(subgraphClient).GetPools({
-    where: {
-      or: positions.reduce(
-        (acc, { tokenId }) => {
-          acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-          return acc;
-        },
-        [] as { [key: string]: string }[],
-      ),
-    },
-  });
+  const maxAttempts = 20;
+  let attempt = 0;
+  let id = undefined;
+  let total: GetPoolsQuery["pools"] = [];
+  while (attempt < maxAttempts) {
+    const { pools } = await getSdk(subgraphClient).GetPools({
+      where: {
+        and: [
+          {
+            or: positions.reduce(
+              (acc, { tokenId }) => {
+                acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
+                return acc;
+              },
+              [] as { [key: string]: string }[],
+            ),
+          },
+          { id_lt: id },
+        ],
+      },
+      first: 1000,
+      orderBy: Pool_OrderBy.Id,
+      orderDirection: OrderDirection.Desc,
+    });
+    total = total.concat(pools);
+    if (pools[pools.length - 1]?.id === id) {
+      break;
+    }
+    if (pools.length < 1000) {
+      break;
+    }
+    id = pools[pools.length - 1]?.id;
+    attempt++;
+  }
 
-  return getTokenPricesMapping(positions, pools, chainId as number);
+  return getTokenPricesMapping(positions, total, chainId);
 }

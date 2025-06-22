@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
@@ -7,7 +7,7 @@ import { Address, TransactionReceipt } from "viem";
 import { approveTokens } from "../useApproveTokens";
 import { fetchNeededApprovals } from "../useMissingApprovals";
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
-  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(
@@ -32,7 +32,7 @@ export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
 }
 
 export async function setUniswapTradeLimit(trade: UniswapTrade, newInputValue: bigint, account: string) {
-  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(
@@ -56,7 +56,7 @@ export async function setUniswapTradeLimit(trade: UniswapTrade, newInputValue: b
 }
 
 export async function setCowTradeLimit(trade: CoWTrade, newInputValue: bigint, account: string) {
-  const sDAIAddress = COLLATERAL_TOKENS[trade.chainId].primary.address;
+  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(

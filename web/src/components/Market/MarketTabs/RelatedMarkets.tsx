@@ -1,6 +1,6 @@
 import { Alert } from "@/components/Alert";
-import { Market } from "@/hooks/useMarket";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
+import { Market } from "@/lib/market";
 import { MarketHeader } from "../Header/MarketHeader";
 
 interface RelatedMarketsProps {

@@ -1,14 +1,14 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
-import { ChainId } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
 import { Address, formatUnits, parseUnits } from "viem";
 
 interface HandleSDAIProps {
   amount: bigint;
-  chainId: ChainId;
+  chainId: SupportedChain;
   owner: Address;
 }
 
@@ -235,7 +235,7 @@ export async function depositFromNativeToSDAI({ chainId, amount, owner }: Handle
   return wrappedResult.receipt;
 }
 
-export function useConvertToShares(amount: bigint, chainId: number) {
+export function useConvertToShares(amount: bigint, chainId: SupportedChain) {
   return useQuery<bigint | undefined, Error>({
     enabled: amount > 0,
     queryKey: ["useConvertToShares", amount.toString(), chainId],
@@ -245,7 +245,7 @@ export function useConvertToShares(amount: bigint, chainId: number) {
   });
 }
 
-export function useConvertToAssets(amount: bigint, chainId: number) {
+export function useConvertToAssets(amount: bigint, chainId: SupportedChain) {
   return useQuery<bigint | undefined, Error>({
     enabled: amount > 0,
     queryKey: ["useConvertToAssets", amount.toString(), chainId],
@@ -255,7 +255,7 @@ export function useConvertToAssets(amount: bigint, chainId: number) {
   });
 }
 
-export function useSDaiDaiRatio(chainId: number) {
+export function useSDaiDaiRatio(chainId: SupportedChain) {
   const { data: sDaiToDai, isFetching: isFetchingSharesToAssets } = useConvertToAssets(parseUnits("1", 18), chainId);
   const { data: daiToSDai, isFetching: isFetchingAssetsToShares } = useConvertToShares(parseUnits("1", 18), chainId);
   return {

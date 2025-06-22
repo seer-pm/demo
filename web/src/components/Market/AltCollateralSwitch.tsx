@@ -1,6 +1,6 @@
-import { Market } from "@/hooks/useMarket";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
 import React from "react";
 import { Address, zeroAddress } from "viem";

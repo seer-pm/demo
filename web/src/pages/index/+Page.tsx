@@ -19,25 +19,30 @@ function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; para
   } = useSortAndFilterResults(params, results);
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
-      <div className="text-[24px] font-semibold">{isFutarchyPage ? "Proposals" : "Markets"}</div>
-      <MarketsFilter isFutarchyPage={isFutarchyPage} />
-
-      {isPending && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="shimmer-container h-[450px]"></div>
-          <div className="shimmer-container h-[450px]"></div>
-        </div>
-      )}
-
-      {!isPending && markets.length === 0 && <Alert type="warning">No results found.</Alert>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {markets.map((market) => (
-          <PreviewCard key={market.id} market={market} />
-        ))}
+    <div>
+      <div className="px-[24px] lg:px-[64px] py-[16px]">
+        <MarketsFilter isFutarchyPage={isFutarchyPage} />
       </div>
-      <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
+
+      <div className="px-[24px] lg:px-[64px] py-[24px]">
+        {isPending && (
+          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+            <div className="shimmer-container h-[225px]"></div>
+            <div className="shimmer-container h-[225px]"></div>
+            <div className="shimmer-container h-[225px]"></div>
+            <div className="shimmer-container h-[225px]"></div>
+          </div>
+        )}
+
+        {!isPending && markets.length === 0 && <Alert type="warning">No results found.</Alert>}
+
+        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+          {markets.map((market) => (
+            <PreviewCard key={market.id} market={market} />
+          ))}
+        </div>
+        <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
+      </div>
     </div>
   );
 }

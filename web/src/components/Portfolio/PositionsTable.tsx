@@ -2,11 +2,10 @@ import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarket } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
+import { MarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import {
   ColumnDef,
@@ -46,11 +45,10 @@ function RedeemModalContent({
   if (!market) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
   }
-  const router = getRouterAddress(market);
   return (
     <div className="space-y-4">
       <p className="font-semibold text-purple-primary">{market.marketName}</p>
-      <RedeemForm account={account} router={router!} market={market} successCallback={() => closeModal()} />
+      <RedeemForm account={account} market={market} successCallback={() => closeModal()} />
     </div>
   );
 }
@@ -58,7 +56,6 @@ function RedeemModalContent({
 export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const { address: account } = useAccount();
-
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
@@ -193,6 +190,17 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           return <p className="text-[14px] text-black-secondary">Not yet</p>;
         },
         header: "Redeem",
+        sortingFn: (rowA, rowB) => {
+          const statusA = rowA.original.marketStatus;
+          const statusB = rowB.original.marketStatus;
+          if (statusA === MarketStatus.CLOSED && statusB !== MarketStatus.CLOSED) {
+            return -1;
+          }
+          if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
+            return 1;
+          }
+          return 0;
+        },
       },
     ],
     [],
@@ -232,6 +240,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 type="button"
                 className="absolute right-[20px] top-[20px] hover:opacity-60"
                 onClick={() => closeModal()}
+                aria-label="Close modal"
               >
                 <CloseIcon fill="black" />
               </button>

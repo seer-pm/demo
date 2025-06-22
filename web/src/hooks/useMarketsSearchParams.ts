@@ -1,7 +1,7 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { VerificationStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { VerificationStatus } from "./useMarket";
-import { MarketStatus } from "./useMarketStatus";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,6 +22,7 @@ function useMarketsSearchParams() {
   const isShowConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
   const isShowMarketsWithRewards = searchParams.get("rewardsMarkets") === "true";
   const orderDirection = (searchParams.get("orderDirection") || undefined) as "asc" | "desc";
+  const minLiquidity = searchParams.get("minLiquidity") ? Number(searchParams.get("minLiquidity")) : 0;
 
   const setMarketName = (value: string) => {
     setSearchParams((params) => {
@@ -163,6 +164,20 @@ function useMarketsSearchParams() {
     });
   };
 
+  const setMinLiquidity = (value: number) => {
+    setSearchParams((params) => {
+      if (!value) {
+        params.delete("minLiquidity");
+      } else {
+        params.set("minLiquidity", value.toString());
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
   return {
     marketName,
     marketStatusList,
@@ -175,6 +190,7 @@ function useMarketsSearchParams() {
     isShowConditionalMarkets,
     isShowMarketsWithRewards,
     orderDirection,
+    minLiquidity,
 
     setMarketName,
     setMarketStatus,
@@ -187,6 +203,7 @@ function useMarketsSearchParams() {
     toggleShowConditionalMarkets,
     toggleShowMarketsWithRewards,
     setOrderDirection,
+    setMinLiquidity,
 
     hasFilters:
       verificationStatusList?.length ||
@@ -194,7 +211,8 @@ function useMarketsSearchParams() {
       chainsList?.length ||
       orderBy ||
       isShowConditionalMarkets ||
-      isShowMarketsWithRewards,
+      isShowMarketsWithRewards ||
+      minLiquidity > 0,
   };
 }
 

@@ -19,3 +19,7 @@ export const SUPPORTED_CHAINS: Partial<
 export type SupportedChain = keyof typeof SUPPORTED_CHAINS;
 
 export const DEFAULT_CHAIN: SupportedChain = gnosis.id;
+
+export function filterChain(chainId: number | undefined): SupportedChain {
+  return chainId && chainId in SUPPORTED_CHAINS ? (chainId as SupportedChain) : DEFAULT_CHAIN;
+}

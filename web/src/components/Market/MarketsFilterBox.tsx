@@ -1,6 +1,4 @@
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { VerificationStatus } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
@@ -13,11 +11,14 @@ import {
   LawBalanceIcon,
   QuestionIcon,
 } from "@/lib/icons";
+import { MarketStatus } from "@/lib/market";
+import { VerificationStatus } from "@/lib/market";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
+import Input from "../Form/Input";
 import Toggle from "../Form/Toggle";
 import { STATUS_TEXTS } from "./Header";
 
@@ -88,6 +89,7 @@ interface MarketFilters {
   isShowConditionalMarkets: boolean;
   isShowMarketsWithRewards: boolean;
   orderDirection: "asc" | "desc";
+  minLiquidity: number;
 }
 
 export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFilters: boolean) => void }) {
@@ -99,6 +101,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     isShowConditionalMarkets: initialShowConditionalMarkets,
     isShowMarketsWithRewards: initialShowMarketsWithRewards,
     orderDirection: initialOrderDirection,
+    minLiquidity: initialMinLiquidity,
     setMarketStatus,
     setVerificationStatus,
     setChains,
@@ -106,6 +109,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     toggleShowConditionalMarkets,
     toggleShowMarketsWithRewards,
     setOrderDirection,
+    setMinLiquidity,
   } = useMarketsSearchParams();
   const {
     handleSubmit,
@@ -124,6 +128,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       isShowConditionalMarkets: initialShowConditionalMarkets ?? false,
       isShowMarketsWithRewards: initialShowMarketsWithRewards ?? false,
       orderDirection: initialOrderDirection ?? "desc",
+      minLiquidity: initialMinLiquidity ?? 0,
     },
   });
 
@@ -136,6 +141,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       isShowConditionalMarkets,
       isShowMarketsWithRewards,
       orderDirection,
+      minLiquidity,
     } = data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
@@ -149,11 +155,12 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     if (orderBy !== "default") {
       setOrderDirection(orderDirection);
     }
+    setMinLiquidity(minLiquidity);
   };
   const isDefaultOrder = watch("orderBy") === "default" || !watch("orderBy");
   return (
     <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-5 @container">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
         <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-3">
             Market States{" "}
@@ -443,6 +450,25 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             <label className="cursor-pointer flex items-center gap-2" htmlFor="show-reward-market">
               Show only markets with rewards
             </label>
+          </div>
+        </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
+            Minimum Liquidity{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <Input
+              autoComplete="off"
+              type="number"
+              step="any"
+              min="0"
+              className="w-full"
+              value={watch("minLiquidity")}
+              onChange={(e) => setValue("minLiquidity", Number(e.target.value ?? 0))}
+            />
           </div>
         </div>
       </div>

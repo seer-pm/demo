@@ -2,30 +2,35 @@ import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
+import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { SupportedChain, filterChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import {
-  AccountCircleIcon,
   BookIcon,
   BugIcon,
+  CloseCircleOutlineIcon,
   CloseIcon,
+  DiscordIcon,
   DownArrow,
   EthIcon,
   Menu,
   NotificationIcon,
+  PersonAdd,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
-  TelegramIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { fetchAuth, isAccessTokenExpired } from "@/lib/utils";
+import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
+import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
 
@@ -83,8 +88,14 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
 
 export default function Header() {
   const pageContext = usePageContext();
-  const { chainId = DEFAULT_CHAIN, isConnected } = useAccount();
+  const { isConnected, chainId: _chainId, address } = useAccount();
+  const chainId = filterChain(_chainId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: balance = BigInt(0), isFetching } = useTokenBalance(
+    address,
+    COLLATERAL_TOKENS?.[chainId].secondary?.address,
+    chainId as SupportedChain,
+  );
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
       window.document.body.classList.add("overflow-hidden");
@@ -110,11 +121,19 @@ export default function Header() {
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
+  const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
     <header>
-      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4">
-        <div>
+      <Modal
+        title="Deposit"
+        className="w-[500px]"
+        content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
+      />
+      <BetaWarning />
+      <GroupNotice />
+
+      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative">
+        <div className="absolute left-[24px] lg:left-[64px]">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
@@ -122,14 +141,14 @@ export default function Header() {
 
         {mobileMenuOpen && <MobileMenu />}
 
-        <ul className="ml-10 hidden lg:menu-horizontal gap-2 text-[16px] font-semibold space-x-[32px] justify-center">
+        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] space-x-[32px] justify-center">
           <li>
-            <Link to={"/"} className="hover:opacity-85">
+            <Link to={"/"} className="hover:opacity-85 py-3">
               Markets
             </Link>
           </li>
           <li>
-            <Link to={"/create-market"} className="whitespace-nowrap hover:opacity-85">
+            <Link to={"/create-market"} className="whitespace-nowrap hover:opacity-85 py-3">
               Create Market
             </Link>
           </li>
@@ -142,43 +161,60 @@ export default function Header() {
           )}
           <li>
             <div className="dropdown dropdown-end">
-              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85">
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
                 <span>Policies</span> <DownArrow />
               </button>
-              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary font-normal ">
-                <li className="flex space-x-2 items-center px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <Link to={"/policy/verified"} className="flex items-center space-x-2">
+              <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal ">
+                <li>
+                  <Link
+                    to={"/policy/verified"}
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
                     <PolicyIcon /> <span> Verified Market Policy </span>
                   </Link>
                 </li>
-                <li className="flex space-x-2 items-center  px-[24px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary">
-                  <Link to={"/policy/rules"} className="flex items-center space-x-2">
+                <li>
+                  <Link
+                    to={"/policy/rules"}
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
                     <PolicyIcon /> <span>Market Rules Policy</span>
                   </Link>
                 </li>
               </ul>
             </div>
           </li>
-          <li>
-            {/* <Link to={paths.farmingProgram()} className="hover:opacity-85" target="_blank" rel="noopener noreferrer">
-              Airdrop
-            </Link> */}
-            <Link to={"/airdrop"} className="hover:opacity-85">
+          {/* <li>
+            <Link to={"/airdrop"} className="hover:opacity-85 py-3">
               Airdrop
             </Link>
-          </li>
+          </li> */}
         </ul>
 
-        <ul className="hidden lg:menu-horizontal gap-[16px] justify-end w-1/3 ml-auto">
+        <ul className="hidden lg:menu-horizontal gap-2 absolute right-[64px]">
           <li>
             <ConnectWallet />
           </li>
           {isConnected && (
             <div className="dropdown dropdown-end mt-[5px]">
-              <button type="button" tabIndex={0} className="hover:opacity-85">
-                <AccountCircleIcon />
+              <button type="button" tabIndex={0} className="flex flex-col items-center hover:opacity-85">
+                <PersonAdd />
+                {!isFetching && (
+                  <p className="text-[10px]">
+                    {displayBalance(balance, 18, true)} {COLLATERAL_TOKENS[chainId].secondary?.symbol}
+                  </p>
+                )}
               </button>
-              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] [&_svg]:text-purple-primary">
+                <li>
+                  <button
+                    type="button"
+                    onClick={openModal}
+                    className="w-full flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    Deposit
+                  </button>
+                </li>
                 <li>
                   <Link
                     to={"/portfolio"}
@@ -203,7 +239,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <NotificationIcon />
               </button>
-              <ul className="dropdown-content z-[1] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] [&_svg]:text-purple-primary">
                 <li>
                   <AccountSettings />
                 </li>
@@ -213,7 +249,7 @@ export default function Header() {
               <button type="button" tabIndex={0} className="hover:opacity-85">
                 <QuestionIcon />
               </button>
-              <ul className="dropdown-content z-[2] w-[248px] [&_svg]:text-purple-primary">
+              <ul className="dropdown-content z-[20] w-[248px] [&_svg]:text-purple-primary">
                 <li>
                   <Link
                     to={paths.getHelp()}
@@ -221,7 +257,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
                   >
-                    <TelegramIcon />
+                    <DiscordIcon />
                     Get Help
                   </Link>
                 </li>
@@ -279,7 +315,6 @@ export default function Header() {
           </button>
         </div>
       </nav>
-      <BetaWarning />
     </header>
   );
 }
@@ -303,24 +338,71 @@ function BetaWarning() {
   };
 
   return (
-    <div className="bg-warning-light text-warning-primary text-[14px] text-center py-[10px] px-[30px] font-medium border-b-[2px] border-t-[2px] border-warning-primary relative">
+    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>Note that this is a Beta version and can still be unstable</div>
-      <div className="font-bold text-[14px] absolute top-0 right-[20px] w-[10px] h-full flex items-center">
-        <span className="cursor-pointer" onClick={closeWarning}>
-          x
-        </span>
+      <button type="button" className="hover:opacity-80" onClick={closeWarning}>
+        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+      </button>
+    </div>
+  );
+}
+
+function GroupNotice() {
+  const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("group-notice-closed") === "1") {
+      setGroupNoticeClosed(true);
+    }
+  }, []);
+
+  if (groupNoticeClosed) {
+    return null;
+  }
+
+  const closeNotice = () => {
+    window.localStorage.setItem("group-notice-closed", "1");
+    setGroupNoticeClosed(true);
+  };
+
+  return (
+    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
+      <div>
+        Our telegram accout is banned, community is moving to discord. Join the{" "}
+        <a
+          href={paths.discord()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="italic underline  hover:opacity-80"
+        >
+          Discord
+        </a>
       </div>
+      <button type="button" className="hover:opacity-80" onClick={closeNotice}>
+        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+      </button>
     </div>
   );
 }
 
 function MobileMenu() {
-  const { chainId = DEFAULT_CHAIN } = useAccount();
+  const { chainId: _chainId, address, isConnected } = useAccount();
+  const chainId = filterChain(_chainId);
+  const { data: balance = BigInt(0), isFetching } = useTokenBalance(
+    address,
+    COLLATERAL_TOKENS[chainId].secondary?.address,
+    chainId as SupportedChain,
+  );
   const { data: verifiedMarketPolicy } = useVerifiedMarketPolicy(chainId as SupportedChain);
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
-
+  const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[64px] w-full block z-[100] overflow-y-auto">
+    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[100px] w-full block z-[100] overflow-y-auto">
+      <Modal
+        title="Deposit"
+        className="w-[400px]"
+        content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
+      />
       <div className="px-[24px] py-[48px]">
         <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
         <ul className="space-y-[24px]">
@@ -385,8 +467,20 @@ function MobileMenu() {
           </li>
         </ul>
 
-        <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px]">
+        <div className="border-t border-b border-t-black-medium border-b-black-medium py-[24px] my-[24px] space-y-2">
           <ConnectWallet isMobile={true} />
+          {isConnected && (
+            <>
+              {!isFetching && (
+                <p className="text-[14px]">
+                  Current balance:{" "}
+                  <span className="text-purple-primary font-semibold">{displayBalance(balance, 18, true)}</span>{" "}
+                  {COLLATERAL_TOKENS[chainId].secondary?.symbol}
+                </p>
+              )}
+              <Button type="button" text="Deposit" onClick={openModal} />
+            </>
+          )}
         </div>
         <div className="mb-6">
           <div className="mb-2">Email Notifications</div>
@@ -404,7 +498,7 @@ function MobileMenu() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
               >
-                <TelegramIcon />
+                <DiscordIcon />
                 Get Help
               </Link>
             </li>

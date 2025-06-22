@@ -10,6 +10,7 @@ type State = {
     [address: string]: Address[];
   };
   maxSlippage: string;
+  isInstantSwap: boolean;
 };
 
 type Action = {
@@ -18,6 +19,7 @@ type Action = {
   removePendingOrder: (orderId: string) => void;
   migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
+  setInstantSwap: (value: boolean) => void;
 };
 
 const useGlobalState = create<State & Action>()(
@@ -27,6 +29,7 @@ const useGlobalState = create<State & Action>()(
       pendingOrders: [],
       favorites: {},
       maxSlippage: "1",
+      isInstantSwap: false,
       setAccessToken: (accessToken: string) =>
         set(() => ({
           accessToken,
@@ -46,6 +49,10 @@ const useGlobalState = create<State & Action>()(
       setMaxSlippage: (maxSlippage: string) =>
         set(() => ({
           maxSlippage,
+        })),
+      setInstantSwap: (isInstantSwap: boolean) =>
+        set(() => ({
+          isInstantSwap,
         })),
     }),
     {

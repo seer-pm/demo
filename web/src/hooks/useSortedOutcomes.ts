@@ -1,7 +1,7 @@
+import { Market } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Market } from "./useMarket";
-import { MarketStatus } from "./useMarketStatus";
 import { useWinningOutcomes } from "./useWinningOutcomes";
 
 type OutcomeWithOdds = {

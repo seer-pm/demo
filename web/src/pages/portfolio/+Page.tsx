@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
@@ -11,7 +12,6 @@ import { useAccount } from "wagmi";
 
 function PortfolioPage() {
   const { address } = useAccount();
-
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "positions";
@@ -21,7 +21,8 @@ function PortfolioPage() {
 
   if (!address) {
     return (
-      <div className="container-fluid py-[24px] lg:py-[65px]">
+      <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
+        <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
           Connect your wallet to see your portfolio.
         </Alert>
@@ -68,7 +69,7 @@ function PortfolioPage() {
       <div>
         <div
           role="tablist"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-[300px] mb-6"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
         >
           <button
             type="button"
@@ -106,10 +107,23 @@ function PortfolioPage() {
           >
             History
           </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${activeTab === "airdrop" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "airdrop",
+              })
+            }
+          >
+            Airdrop
+          </button>
         </div>
         {activeTab === "positions" && <PositionsTab />}
         {activeTab === "orders" && <OrdersTab />}
         {activeTab === "history" && <HistoryTab />}
+        {activeTab === "airdrop" && <AirdropTab />}
       </div>
     </div>
   );

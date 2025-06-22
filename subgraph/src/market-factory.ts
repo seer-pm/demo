@@ -264,6 +264,7 @@ export function processMarket(
       market.id.concat(data.questionsIds[i].toHexString()).concat(i.toString())
     );
     marketQuestion.market = market.id;
+    marketQuestion.baseQuestion = question.id;
     marketQuestion.question = question.id;
     marketQuestion.index = i;
     marketQuestion.save();

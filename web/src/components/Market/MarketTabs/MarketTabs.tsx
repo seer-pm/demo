@@ -1,7 +1,9 @@
-import { Market } from "@/hooks/useMarket";
+import { Market } from "@/lib/market";
 import { useState } from "react";
-import Comments from "./Comments";
+import { clientOnly } from "vike-react/clientOnly";
 import { RelatedMarkets } from "./RelatedMarkets";
+
+const Comments = clientOnly(() => import("./Comments"));
 
 export default function MarketTabs({ market }: { market: Market }) {
   const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets">("comments");

@@ -1,10 +1,10 @@
-import { ChartData, getChartData } from "@/hooks/chart/getChartData";
-import { useChartData } from "@/hooks/chart/useChartData";
+import { ChartData, fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
-import { Market } from "@/hooks/useMarket";
+import { formatDate } from "@/lib/date";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv, formatDate } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
@@ -59,10 +59,6 @@ function MarketChart({ market }: { market: Market }) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
-
-  const marketResolvedDate =
-    market.payoutReported && market.finalizeTs > 0 ? new Date(market.finalizeTs * 1000) : undefined;
-
   const onChangeDate = (dates: (Date | null)[]) => {
     const [start, end] = dates;
     if (!start && !end) {
@@ -73,17 +69,15 @@ function MarketChart({ market }: { market: Market }) {
   };
 
   const chartTimeConfig = (() => {
-    const effectiveEndDate = endDate || marketResolvedDate;
-
     if (startDate) {
-      const endDateForCalc = effectiveEndDate || new Date();
+      const endDateForCalc = endDate || new Date();
       const dayCount = differenceInDays(endDateForCalc, startDate);
       return {
         dayCount,
         interval: 60 * 60 * 3,
       };
     }
-    if (effectiveEndDate) {
+    if (endDate) {
       return {
         dayCount: 365 * 10,
         interval: 60 * 60 * 3,
@@ -99,7 +93,7 @@ function MarketChart({ market }: { market: Market }) {
     market,
     chartTimeConfig.dayCount,
     chartTimeConfig.interval,
-    endDate || marketResolvedDate,
+    endDate,
   );
 
   const { chartData = [], timestamps = [] } = data ?? {};
@@ -161,6 +155,7 @@ function MarketChart({ market }: { market: Market }) {
       axisPointer: {
         type: "none",
       },
+      confine: true,
       valueFormatter: (value: number) => {
         if (market.type === "Futarchy") {
           return `${value}`;
@@ -196,12 +191,16 @@ function MarketChart({ market }: { market: Market }) {
         }
         return name;
       },
+      type: "scroll",
+      left: "center",
+      right: isSmallScreen ? 20 : 80,
+      padding: [20, 50, 10, 10],
     },
 
     grid: {
       left: isSmallScreen ? "20%" : 80,
       right: isSmallScreen ? 20 : 80,
-      top: "15%",
+      top: "20%",
       bottom: "15%",
     },
     xAxis: {
@@ -249,7 +248,13 @@ function MarketChart({ market }: { market: Market }) {
         },
       },
     },
-    series: series.map((x) => ({
+    series: (series[0]?.data?.length > 1
+      ? series
+      : series.map((x) => ({
+          ...x,
+          data: [x.data[0], [x.data[0][0] + 1, x.data[0][1]]],
+        }))
+    ).map((x) => ({
       ...x,
       symbol: "circle",
       symbolSize: 7,
@@ -259,7 +264,7 @@ function MarketChart({ market }: { market: Market }) {
 
   const exportData = async () => {
     // Use resolved date for export if available
-    const { chartData, timestamps } = await getChartData(market, 365 * 10, 60 * 60 * 24, marketResolvedDate);
+    const { chartData, timestamps }: ChartData = await fetchFullChartData(market);
     const series = getSeries(market, chartData);
     const headers = [
       {

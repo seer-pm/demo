@@ -3,11 +3,11 @@ import { SupportedChain, gnosis, mainnet, sepolia } from "./utils/types.ts";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
     [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
-    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
+    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
     [sepolia.id]: "https://api.studio.thegraph.com/query/74975/seer-pm-sepolia/version/latest",
   },
   curate: {
@@ -15,10 +15,6 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
     [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
-  },
-  "curate-fallback": {
-    [gnosis.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-gnosis/version/latest",
-    [mainnet.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-mainnet/version/latest",
   },
   algebra: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
@@ -28,6 +24,18 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
   },
   uniswap: {
     [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  },
+  tokens: {
+    [gnosis.id]:
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
+    [mainnet.id]:
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/D1bjzs39GBk5HDrNm5ui27TDpX6pMqp8omUCRr79CjSQ",
+  },
+  poh: {
+    [gnosis.id]:
+      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/FFx16fGNSpdq2TpQer3KqpadP8UaLELS4Jocd1LtwAmG",
+    [mainnet.id]:
+      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/8oHw9qNXdeCT2Dt4QPZK9qHZNAhPWNVrCKnFDarYEJF5",
   },
 };
 

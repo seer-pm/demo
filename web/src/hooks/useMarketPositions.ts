@@ -1,8 +1,8 @@
+import { Market } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { Market } from "./useMarket";
 import { useTokensInfo } from "./useTokenInfo";
 
 export type Position = { tokenId: Address; balance: bigint; symbol: string; decimals: number };
@@ -12,6 +12,7 @@ export const useMarketPositions = (address: Address | undefined, market: Market)
   return useQuery<Position[] | undefined, Error>({
     enabled: !!address && tokensInfo && tokensInfo.length > 0,
     queryKey: ["useMarketPositions", address, market.id],
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const balances = (await readContracts(config, {
         contracts: market.wrappedTokens!.map((wrappedAddresses) => ({

@@ -7,15 +7,24 @@ import { useGetCollections } from "@/hooks/collections/useGetCollections";
 import { useUpdateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
-import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
 import { CheckIcon, PlusCircleIcon, PlusIcon, StarFilled, StarOutlined } from "@/lib/icons";
-import { checkWalletConnectCallback, isAccessTokenExpired } from "@/lib/utils";
+import { Market } from "@/lib/market";
+import { isAccessTokenExpired } from "@/lib/utils";
+import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
 import { useState } from "react";
 
-function MarketFavorite({ market, colorClassName }: { market: Market; colorClassName?: string }) {
+function MarketFavorite({
+  market,
+  colorClassName,
+  iconWidth = "14",
+}: {
+  market: Market;
+  colorClassName?: string;
+  iconWidth?: string;
+}) {
   const accessToken = useGlobalState((state) => state.accessToken);
   const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
 
@@ -146,14 +155,14 @@ function MarketFavorite({ market, colorClassName }: { market: Market; colorClass
         {isFavorite ? (
           <div className="tooltip cursor-pointer">
             <p className="tooltiptext">Remove from collection</p>
-            <StarFilled />
+            <StarFilled width={iconWidth} />
           </div>
         ) : (
           <div className={clsx(colorClassName, "tooltip cursor-pointer")}>
             <p className="tooltiptext">
               {isAccountConnectedAndSignedIn ? "Add to collection" : "Sign in to add to collection"}
             </p>
-            <StarOutlined fill="currentColor" />
+            <StarOutlined width={iconWidth} />
           </div>
         )}
       </DropdownWrapper>

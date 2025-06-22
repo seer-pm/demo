@@ -6,20 +6,15 @@ const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
 export type SupportedChain = (typeof chainIds)[number];
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export type SubgraphTypes = "seer" | "curate" | "curate-fallback" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
     [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
-    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
+    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
   },
   curate: {
-    // TODO: add fallback urls? or change subgraph?
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
-  },
-  "curate-fallback": {
-    [gnosis.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-gnosis/version/latest",
-    [mainnet.id]: "https://api.studio.thegraph.com/query/61738/legacy-curate-mainnet/version/latest",
   },
   algebra: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,

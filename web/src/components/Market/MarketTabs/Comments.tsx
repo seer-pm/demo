@@ -1,8 +1,9 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useIsAccountConnected } from "@/hooks/useIsConnectedAndSignedIn";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
-import { Market } from "@/hooks/useMarket";
 import SEER_ENV from "@/lib/env";
+import { Market } from "@/lib/market";
 import { Discussion } from "@orbisclub/components";
 import "@orbisclub/components/dist/index.modern.css";
 import { Orbis } from "@orbisclub/orbis-sdk";
@@ -46,7 +47,9 @@ function Comments({ market }: { market: Market }) {
           onClick={() => signOrbis()}
         />
       )}
-      <Discussion key={ceramicSession} context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`} />
+      <ErrorBoundary fallback={<p>Something went wrong.</p>}>
+        <Discussion key={ceramicSession} context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`} />
+      </ErrorBoundary>
     </>
   );
 }

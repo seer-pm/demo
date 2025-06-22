@@ -4,8 +4,8 @@ import DatePicker from "react-datepicker";
 import { Controller, UseFormReturn, get } from "react-hook-form";
 import FormError from "./FormError";
 
+import { utcToLocalTime } from "@/lib/date";
 import { CalendarHTMLInputIcon } from "@/lib/icons";
-import { localTimeToUtc } from "@/lib/utils";
 import "react-datepicker/dist/react-datepicker.css";
 
 type InputProps = {
@@ -34,7 +34,7 @@ const FormDatePicker = (props: InputProps) => {
           rules={{
             required: "This field is required.",
             validate: (v) => {
-              return (v && localTimeToUtc(v) > new Date()) || "Opening date must be in the future";
+              return (v && utcToLocalTime(v) > new Date()) || "Opening date must be in the future";
             },
           }}
           render={({ field }) => (

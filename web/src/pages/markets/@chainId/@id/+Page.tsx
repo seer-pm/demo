@@ -8,30 +8,29 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
-import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getRouterAddress } from "@/lib/config";
-import { getLiquidityPairForToken, isMarketReliable } from "@/lib/market";
+import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { Market } from "@/lib/market";
+import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 function SwapWidget({
   market,
-  account,
   outcomeIndex,
   images,
 }: {
   market: Market;
-  account?: Address;
   outcomeIndex: number;
   images?: string[];
 }) {
@@ -66,7 +65,6 @@ function SwapWidget({
 
   return (
     <SwapTokens
-      account={account}
       market={market}
       outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
@@ -80,25 +78,30 @@ function SwapWidget({
 function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
+  const [outcomeIndex, setOutcomeIndex] = useState(0);
   const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
-  const {
+
+  let {
     data: market,
     isError: isMarketError,
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
 
-  const router = getRouterAddress(market);
+  market = useMarketQuestions(market, chainId);
 
-  const outcomeIndexFromSearch =
-    market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
-  const outcomeIndex = Math.max(outcomeIndexFromSearch, 0);
   useEffect(() => {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
   }, []);
+  useEffect(() => {
+    const outcomeIndexFromSearch =
+      market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
+    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
+  }, [searchParams, market?.id]);
+
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -109,7 +112,7 @@ function MarketPage() {
     );
   }
 
-  if ((isMarketLoading && !isPlaceholderData) || !router || !market) {
+  if ((isMarketLoading && !isPlaceholderData) || !market) {
     return (
       <div className="container-fluid py-10 space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
@@ -171,16 +174,11 @@ function MarketPage() {
         <MarketChart market={market} />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
-            <Outcomes market={market} images={market?.images?.outcomes} />
+            <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
-            <SwapWidget
-              market={market}
-              account={account}
-              outcomeIndex={outcomeIndex}
-              images={market?.images?.outcomes}
-            />
-            <ConditionalTokenActions router={router} market={market} account={account} outcomeIndex={outcomeIndex} />
+            <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+            <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
             <MarketTabs market={market} />

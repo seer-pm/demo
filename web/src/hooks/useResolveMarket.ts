@@ -4,7 +4,7 @@ import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { marketAbi } from "./contracts/generated";
+import { marketAbi } from "./contracts/generated-market-factory";
 
 interface ResolveMarketProps {
   marketId: Address;
@@ -36,7 +36,6 @@ export const useResolveMarket = () => {
     mutationFn: resolveMarket,
     onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
-      queryClient.invalidateQueries({ queryKey: ["useMarketStatus"] });
     },
   });
 };

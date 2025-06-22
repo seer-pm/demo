@@ -1,11 +1,11 @@
-import { realityAddress } from "@/hooks/contracts/generated";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
+import { MarketStatus } from "./market";
+import { Market, Question } from "./market";
 
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
@@ -82,7 +82,12 @@ const overrideAnswerText: Record<`0x${string}`, string> = {
   "0x13fc8e8fdfac473d5e9263604b36c6f203545125109976f9ffadee64b912289c": "1",
 };
 
-export function getAnswerText(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
+export function getAnswerText(
+  question: Question,
+  outcomes: string[],
+  template: number,
+  noAnswerText = "Not answered yet",
+): string {
   if (overrideAnswerText[question.id] !== undefined) {
     return overrideAnswerText[question.id];
   }
@@ -99,19 +104,25 @@ export function getAnswerText(question: Question, market: Market, noAnswerText =
     return "Answered too soon";
   }
 
-  if (Number(market.templateId) === REALITY_TEMPLATE_UINT) {
-    return formatEther(BigInt(question.best_answer));
+  if (template === REALITY_TEMPLATE_UINT) {
+    return isScalarBoundInWei(BigInt(question.best_answer))
+      ? formatEther(BigInt(question.best_answer))
+      : BigInt(question.best_answer).toString();
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
-  const outcomes = decodeOutcomes(market, question);
-  if (Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  if (template === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }
 
   return outcomes[outcomeIndex] || noAnswerText;
+}
+
+export function getAnswerTextFromMarket(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
+  const outcomes = decodeOutcomes(market, question);
+  return getAnswerText(question, outcomes, Number(market.templateId), noAnswerText);
 }
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint, chainId: SupportedChain) {
@@ -166,6 +177,27 @@ export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;
 }
 
+export function encodeOutcomes(outcomes: string[]) {
+  return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
+}
+
+export function encodeQuestionText(
+  qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
+  txt: string,
+  outcomes: string[],
+  category: string,
+  lang?: string,
+) {
+  let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
+  const delim = "\u241f";
+  //console.log('using template_id', template_id);
+  if (qtype === "single-select" || qtype === "multiple-select") {
+    qText = qText + delim + encodeOutcomes(outcomes);
+  }
+  qText = qText + delim + category + delim + (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
+  return qText;
+}
+
 export function decodeQuestion(encodedQuestion: string): {
   question: string;
   outcomes: string[] | undefined;
@@ -203,4 +235,25 @@ export function decodeQuestion(encodedQuestion: string): {
 export function decodeOutcomes(market: Market, question: Question) {
   const questionIndex = market.questions.findIndex((q) => q.id === question.id);
   return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
+}
+
+export function isScalarBoundInWei(bound: bigint) {
+  // NOTE: This is a backwards compatibility check.
+  // Going forward, all scalar bounds will be in wei (1e18) format.
+  // However, some older markets used basic units (regular integers).
+  // We detect the format based on the size of the number.
+
+  // We use 1e10 as a threshold to distinguish between regular numbers and numbers in wei (1e18) format
+  // Numbers below 1e10 are assumed to be in their basic units (like regular integers)
+  // Numbers above 1e10 are assumed to be in wei format (1e18 decimals) and need to be formatted with formatEther
+
+  return bound > BigInt(1e10);
+}
+
+export function displayScalarBound(bound: bigint): number {
+  if (isScalarBoundInWei(bound)) {
+    return Number(formatEther(bound));
+  }
+
+  return Number(bound);
 }

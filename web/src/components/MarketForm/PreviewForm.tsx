@@ -1,8 +1,9 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
-import { futarchyFactoryAbi, marketFactoryAbi } from "@/hooks/contracts/generated";
+import { futarchyFactoryAbi } from "@/hooks/contracts/generated-market-factory";
+import { marketFactoryAbi } from "@/hooks/contracts/generated-market-factory";
 import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market, getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
+import { getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -10,15 +11,17 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
-import { getOutcomes } from "@/lib/market";
+import { Market } from "@/lib/market";
+import { getMarketName, getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
+import { Address, TransactionReceipt, isAddress, parseEther, zeroAddress, zeroHash } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
 import {
@@ -29,7 +32,6 @@ import {
   MarketTypeFormValues,
   OutcomesFormValues,
   getImagesForVerification,
-  getQuestionParts,
 } from ".";
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
@@ -298,10 +300,9 @@ export function PreviewForm({
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
-  const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
+  const openingTime = Math.round(utcToLocalTime(dateValues.openingTime).getTime() / 1000);
 
   const createMarketHandler = async () => {
-    const questionParts = getQuestionParts(outcomesValues.market, marketTypeValues.marketType);
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
@@ -313,13 +314,10 @@ export function PreviewForm({
         marketTypeValues.marketType === MarketTypes.SCALAR
           ? [outcomesValues.lowerBound.token, outcomesValues.upperBound.token]
           : outcomesValues.outcomes.map((o) => o.token),
-      questionStart: questionParts?.questionStart || "",
-      questionEnd: questionParts?.questionEnd || "",
-      outcomeType: questionParts?.outcomeType || "",
       parentMarket: parentMarketAddress as Address,
       parentOutcome: BigInt(parentOutcomeIndex),
-      lowerBound: outcomesValues.lowerBound.value,
-      upperBound: outcomesValues.upperBound.value,
+      lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+      upperBound: parseEther(String(outcomesValues.upperBound.value)),
       unit: outcomesValues.unit,
       category: MISC_CATEGORY,
       openingTime,
@@ -354,9 +352,7 @@ export function PreviewForm({
     chainId,
     marketName: isFutarchyMarket
       ? getProposalName(outcomesValues.market, openingTime, outcomesValues.isArbitraryQuestion || false)
-      : marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
-        ? `${outcomesValues.market} [${outcomesValues.unit}]`
-        : outcomesValues.market,
+      : getMarketName(marketTypeValues.marketType, outcomesValues.market, outcomesValues.unit),
     outcomes: dummyOutcomes,
     parentMarket: {
       id: parentMarketAddress as Address,
@@ -374,8 +370,8 @@ export function PreviewForm({
     conditionId: "0x000",
     questionId: "0x000",
     templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
-    lowerBound: BigInt(outcomesValues.lowerBound.value),
-    upperBound: BigInt(outcomesValues.upperBound.value),
+    lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+    upperBound: parseEther(String(outcomesValues.upperBound.value)),
     payoutReported: true,
     payoutNumerators: [0n, 0n],
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
@@ -389,6 +385,7 @@ export function PreviewForm({
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
         bond: 0n,
         min_bond: 100000000000000000n,
+        base_question: zeroHash,
       }),
     ),
     openingTs: 0,

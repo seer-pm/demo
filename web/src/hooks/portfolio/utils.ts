@@ -1,22 +1,21 @@
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { ChainId } from "@swapr/sdk";
 import { getBlock, readContracts } from "@wagmi/core";
-import { Address, Block, erc20Abi } from "viem";
-import { PortfolioPosition } from "./positionsTab/usePortfolioPositions";
+import { Address, erc20Abi } from "viem";
 
 export function getTokenPricesMapping(
-  positions: PortfolioPosition[],
+  positions: { parentMarketId?: string; tokenId: string; collateralToken?: string }[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
-  chainId: ChainId,
+  chainId: SupportedChain,
 ) {
   const [simpleTokens, conditionalTokens] = positions.reduce(
     (acc, curr) => {
       acc[!isUndefined(curr.parentMarketId) ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as PortfolioPosition[][],
+    [[], []] as { parentMarketId?: string; tokenId: string; collateralToken?: string }[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
@@ -45,7 +44,7 @@ export function getTokenPricesMapping(
     (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        if (collateralToken.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
+        if (collateralToken!.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
           return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
@@ -66,45 +65,6 @@ export function getTokenPricesMapping(
   );
 
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
-}
-
-async function getBlockNumberAtTime(timestamp: number, parentBlockCache?: Map<number, Block>): Promise<number> {
-  const blockCache = parentBlockCache ?? new Map<number, Block>();
-
-  // Get the latest block
-  const latestBlock = await getBlock(config);
-
-  // Binary search to find the block closest to the target timestamp
-  let left = 1;
-  let right = Number(latestBlock.number!);
-
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    let block: Block;
-    if (blockCache.has(mid)) {
-      block = blockCache.get(mid)!;
-    } else {
-      block = await getBlock(config, { blockNumber: BigInt(mid) });
-      blockCache.set(mid, block);
-    }
-
-    if (Number(block.timestamp) === timestamp) {
-      return Number(block.number);
-    }
-    if (Number(block.timestamp) < timestamp) {
-      left = mid + 1;
-    } else {
-      right = mid - 1;
-    }
-  }
-
-  // Return the closest block number
-  return right;
-}
-
-export async function getBlockNumbersAtTimes(timestamps: number[]) {
-  const blockCache = new Map();
-  return await Promise.all(timestamps.map((timestamp) => getBlockNumberAtTime(timestamp, blockCache)));
 }
 
 export async function getBlockTimestamp(initialBlockNumber: number) {

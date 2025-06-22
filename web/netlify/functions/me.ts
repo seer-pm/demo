@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import * as postmark from "postmark";
 import { verifyToken } from "./utils/auth";
-import { getPostmarkClient } from "./utils/common";
 import { FROM_EMAIL } from "./utils/common";
 
 const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!);
 
 export default async (req: Request) => {
   // Handle GET request
@@ -48,7 +49,7 @@ export default async (req: Request) => {
         return new Response(JSON.stringify({ error: "Failed to update email" }), { status: 500 });
       }
 
-      await getPostmarkClient().sendEmailWithTemplate({
+      await postmarkClient.sendEmailWithTemplate({
         From: FROM_EMAIL,
         To: email,
         TemplateAlias: "welcome",

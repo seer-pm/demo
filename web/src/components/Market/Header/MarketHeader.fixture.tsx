@@ -1,8 +1,8 @@
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { SupportedChain, gnosis } from "@/lib/chains";
+import { MarketStatus } from "@/lib/market";
+import { Market, Question } from "@/lib/market";
 import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
-import { zeroAddress } from "viem";
+import { zeroAddress, zeroHash } from "viem";
 import { MarketHeader } from "./MarketHeader";
 
 const baseMarket: Market = {
@@ -45,7 +45,7 @@ const baseMarket: Market = {
 };
 
 const baseQuestion: Question = {
-  id: "0x000" as `0x${string}`,
+  id: "0x000",
   arbitrator: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
   opening_ts: 1717192800,
   timeout: 129600,
@@ -54,6 +54,7 @@ const baseQuestion: Question = {
   best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
   bond: 0n,
   min_bond: 100000000000000000n,
+  base_question: zeroHash,
 };
 
 let questionIdCounter = 1;

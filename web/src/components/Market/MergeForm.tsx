@@ -1,12 +1,12 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { Market } from "@/hooks/useMarket";
-import { Position, useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { useTokenBalance, useTokenBalances } from "@/hooks/useTokenBalance";
+import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { getRouterAddress } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect } from "react";
@@ -24,23 +24,29 @@ export interface MergeFormValues {
 interface MergeFormProps {
   account?: Address;
   market: Market;
-  router: Address;
 }
 
-function getMergePositions(market: Market, positions: Position[], useAltCollateral: boolean) {
-  if (positions.length === 0) {
-    return [];
-  }
-
+function getMergePositions(market: Market, useAltCollateral: boolean): Address[] {
   if (market.type === "Generic") {
-    return positions;
+    return market.wrappedTokens;
   }
 
   // in a futarchy market we merge the first or the last two tokens
-  return !useAltCollateral ? [positions[0], positions[1]] : [positions[2], positions[3]];
+  return !useAltCollateral
+    ? [market.wrappedTokens[0], market.wrappedTokens[1]]
+    : [market.wrappedTokens[2], market.wrappedTokens[3]];
 }
 
-export function MergeForm({ account, market, router }: MergeFormProps) {
+export function MergeForm({ account, market }: MergeFormProps) {
+  const router = getRouterAddress(market);
+
+  const { data: balances, isLoading: isLoadingBalances } = useTokenBalances(
+    account,
+    market.wrappedTokens,
+    market.chainId,
+  );
+  const { data: tokensInfo = [], isLoading: isLoadingInfo } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const isLoading = isLoadingBalances || isLoadingInfo;
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
@@ -60,50 +66,41 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
 
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
-  const { data: _positions = [], isFetching: isFetchingPositions } = useMarketPositions(account, market);
-  // in a futarchy market we merge the first or the last two tokens
-  const positions = getMergePositions(market, _positions, useAltCollateral);
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
 
-  const tokensToMerge = positions.map((position) => position.tokenId);
-
-  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
-    tokensToMerge,
-    account,
-    router,
-    parsedAmount,
-    market.chainId,
-  );
-
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
-  const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const {
+    mergePositions,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useMergePositions(
+    {
+      tokensAddresses: getMergePositions(market, useAltCollateral),
+      account,
+      spender: router,
+      amounts: parsedAmount,
+      chainId: market.chainId,
+    },
+    (/*receipt: TransactionReceipt*/) => {
+      reset();
+    },
+  );
 
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
       router,
       market: market,
       amount: parsedAmount,
-      collateralToken:
-        market.type === "Futarchy"
-          ? selectedCollateral.address
-          : !useAltCollateral
-            ? selectedCollateral.address
-            : undefined,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
 
-  const maxPositionAmount = positions.reduce(
-    (min, curr) => (min < curr.balance ? min : curr.balance),
-    positions?.[0]?.balance ?? 0n,
-  );
+  const maxPositionAmount = balances?.reduce((min, curr) => (min < curr ? min : curr), balances?.[0] ?? 0n) ?? 0n;
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
@@ -126,23 +123,18 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
             Max
           </div>
         </div>
-        <div
-          className={clsx(
-            "text-[12px] text-black-secondary mb-2 flex gap-1",
-            isFetchingPositions ? "items-center" : "",
-          )}
-        >
+        <div className={clsx("text-[12px] text-black-secondary mb-2 flex gap-1", isLoading ? "items-center" : "")}>
           Balance:{" "}
           <div>
-            {isFetchingPositions ? (
+            {isLoading ? (
               <div className="shimmer-container w-[80px] h-[13px]" />
             ) : (
               <div className="max-h-[80px] overflow-y-auto custom-scrollbar">
-                {positions.length > 0
-                  ? positions.map((position) => {
+                {balances && balances.length > 0
+                  ? balances.map((balance, index) => {
                       return (
-                        <div key={position.tokenId}>
-                          {displayBalance(position.balance, Number(position.decimals))} {position.symbol}
+                        <div key={tokensInfo?.[index]?.address}>
+                          {displayBalance(balance, 18, true)} {tokensInfo?.[index]?.symbol}
                         </div>
                       );
                     })

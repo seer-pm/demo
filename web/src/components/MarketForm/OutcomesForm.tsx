@@ -3,12 +3,12 @@ import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
 import { PlusCircleIcon, PolicyIcon } from "@/lib/icons";
-import { MarketTypes, hasOutcomes } from "@/lib/market";
+import { MarketTypes, getMarketName, getQuestionParts, hasOutcomes } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
 import { Address, isAddress } from "viem";
-import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues, getQuestionParts } from ".";
+import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
@@ -313,9 +313,6 @@ function OutcomesSection({
                     if (Number.isNaN(Number(v)) || Number(v) < 0) {
                       return "Value cannot be negative.";
                     }
-                    if (!Number.isInteger(Number(v))) {
-                      return "Value must be integer.";
-                    }
                     return true;
                   },
                 })}
@@ -339,9 +336,6 @@ function OutcomesSection({
                   validate: (v) => {
                     if (v <= lowerBound.value) {
                       return `Value must be greater than ${lowerBound.value}.`;
-                    }
-                    if (!Number.isInteger(Number(v))) {
-                      return "Value must be integer.";
                     }
                     return true;
                   },
@@ -442,7 +436,7 @@ export function OutcomesForm({
 
   const { fields: outcomesFields } = useFieldArrayReturn;
 
-  const [marketName, isArbitraryQuestion] = watch(["market", "isArbitraryQuestion"]);
+  const [marketName, unit, isArbitraryQuestion] = watch(["market", "unit", "isArbitraryQuestion"]);
 
   useEffect(() => {
     if (marketName !== "") {
@@ -470,7 +464,7 @@ export function OutcomesForm({
                     return true;
                   }
 
-                  if (isUndefined(getQuestionParts(v, marketType))) {
+                  if (isUndefined(getQuestionParts(getMarketName(marketType, v, unit), marketType))) {
                     return "Invalid question format. The question must include one [outcome type] at the beginning or within the question body.";
                   }
 
@@ -552,6 +546,63 @@ export function OutcomesForm({
             <CollateralsSection useFormReturn={useFormReturn} chainId={chainId} />
           ) : (
             <OutcomesSection {...{ marketHasOutcomes, marketName, marketType, useFormReturn, useFieldArrayReturn }} />
+          )}
+
+          {marketType === MarketTypes.MULTI_SCALAR && (
+            <>
+              <div className="text-[24px] font-semibold mb-[32px]">Amounts</div>
+
+              <Alert type="info">
+                <div className="space-y-[10px]">
+                  <p>You can set the expected total amount and units if they are known.</p>
+                  <p>
+                    For example on the market "How many seats in Canada's House of Commons will the [party name] win in
+                    the 45th Canadian federal election?", total amount is "343" and unit is "seats".
+                  </p>
+                </div>
+              </Alert>
+
+              <div className="grid grid-cols-2 gap-4 w-full text-left">
+                <div className="col-span-1">
+                  <div className="space-y-2">
+                    <div className="text-[14px] mb-[10px]">Unit</div>
+                    <Input
+                      autoComplete="off"
+                      type="text"
+                      {...register("unit")}
+                      className="w-full"
+                      useFormReturn={useFormReturn}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <div className="space-y-2">
+                    <div className="text-[14px] mb-[10px]">Total Amount</div>
+                    <Input
+                      autoComplete="off"
+                      type="number"
+                      min="0"
+                      step="any"
+                      {...register("upperBound.value", {
+                        required: "This field is required.",
+                        valueAsNumber: true,
+                        validate: (v) => {
+                          if (Number(v) < 0) {
+                            return "Value must be greater than 0.";
+                          }
+                          if (!Number.isInteger(Number(v))) {
+                            return "Value must be integer.";
+                          }
+                          return true;
+                        },
+                      })}
+                      className="w-full"
+                      useFormReturn={useFormReturn}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
 

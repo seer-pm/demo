@@ -1,14 +1,16 @@
-import * as generatedHooks from "@/hooks/contracts/generated";
-import { futarchyRouterAddress } from "@/hooks/contracts/generated";
-import { Market } from "@/hooks/useMarket";
+import {
+  futarchyRouterAddress,
+  gnosisRouterAddress,
+  mainnetRouterAddress,
+  routerAddress,
+} from "@/hooks/contracts/generated-router";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
+import { Market } from "./market";
 import { getLiquidityPair } from "./market";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
-// to make it work even if generatedHooks.routerAddress doesn't exist (e.g. if we are testing with a non-forked hardhat node)
-const { gnosisRouterAddress, mainnetRouterAddress, ...restGeneratedHooks } = generatedHooks;
 
 type BigInt = Record<number, bigint>;
 
@@ -16,7 +18,7 @@ type BigIntConfigValues = {
   MIN_BOND: BigInt;
 };
 
-type CollateralTokensMap = Record<number, { primary: Token; secondary: Token | undefined }>;
+type CollateralTokensMap = Record<SupportedChain, { primary: Token; secondary: Token | undefined }>;
 
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
@@ -36,10 +38,10 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
     secondary: undefined,
   },
-  [hardhat.id]: {
-    primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
-    secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
-  },
+  // [hardhat.id]: {
+  //   primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
+  //   secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
+  // },
 } as const;
 
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
@@ -69,23 +71,13 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [sepolia.id]: "base",
 } as const;
 
-export const getRouterAddress = (market: Market | undefined): Address | undefined => {
-  if (!market) {
-    return;
-  }
-
+export const getRouterAddress = (market: Market): Address => {
   if (market.type === "Futarchy") {
     // @ts-ignore
     return futarchyRouterAddress[market.chainId];
   }
 
-  const addresses = Object.assign(
-    {},
-    gnosisRouterAddress,
-    mainnetRouterAddress,
-    // biome-ignore lint/suspicious/noExplicitAny:
-    (restGeneratedHooks as any)?.routerAddress || {},
-  );
+  const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
   return addresses[market.chainId || DEFAULT_CHAIN];
 };
 

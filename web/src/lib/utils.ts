@@ -1,13 +1,4 @@
-import { config } from "@/wagmi";
-import { getAccount } from "@wagmi/core";
-import { useWeb3Modal } from "@web3modal/wagmi/react";
-import { intervalToDuration } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
-import { compareAsc } from "date-fns/compareAsc";
-import { FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
-import { fromUnixTime } from "date-fns/fromUnixTime";
-import { Address, formatUnits, getAddress } from "viem";
-import { SupportedChain } from "./chains";
+import { formatUnits, getAddress } from "viem";
 import SEER_ENV from "./env";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -17,51 +8,6 @@ export const INVALID_RESULT_OUTCOME = "Invalid result";
 
 // display text for invalid outcome
 export const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
-
-// https://stackoverflow.com/a/72190364
-export function localTimeToUtc(utcTime: Date | string | number) {
-  if (typeof utcTime === "string" || typeof utcTime === "number") {
-    // biome-ignore lint/style/noParameterAssign:
-    utcTime = new Date(utcTime);
-  }
-
-  const tzOffset = utcTime.getTimezoneOffset() * 60000;
-  return new Date(utcTime.getTime() - tzOffset);
-}
-
-export function formatDate(timestamp: number, formatString?: string) {
-  const date = fromUnixTime(timestamp);
-  return formatInTimeZone(date, "UTC", formatString ?? "MMMM d yyyy, HH:mm");
-}
-
-export function getTimeLeft(endDate: Date | string | number, withSeconds = false): string | false {
-  const startDate = new Date();
-
-  if (typeof endDate === "number" || typeof endDate === "string") {
-    // biome-ignore lint/style/noParameterAssign:
-    endDate = fromUnixTime(Number(endDate));
-  }
-
-  if (compareAsc(startDate, endDate) === 1) {
-    return false;
-  }
-
-  const duration = intervalToDuration({ start: startDate, end: endDate });
-
-  const format: FormatDurationOptions["format"] = ["years", "months", "weeks", "days", "hours"];
-
-  if (withSeconds) {
-    format.push("minutes", "seconds");
-  } else if (Number(duration.days || 0) < 1) {
-    if (Number(duration.minutes || 0) < 2) {
-      format.push("seconds");
-    } else {
-      format.push("minutes");
-    }
-  }
-
-  return formatDuration(duration, { format });
-}
 
 export function shortenAddress(address: string): string {
   try {
@@ -241,26 +187,6 @@ export function stripDiacritics(str: string) {
 
 export function isTextInString(text: string, string: string) {
   return stripDiacritics(string).toLowerCase().includes(stripDiacritics(text).toLowerCase());
-}
-
-export function checkWalletConnectCallback(
-  callback: (address: Address, chainId: SupportedChain) => void,
-  timeout = 1000,
-) {
-  const account = getAccount(config);
-  if (account.address && account.chainId && account.isConnected) {
-    callback(account.address, account.chainId as SupportedChain);
-    return;
-  }
-  const { open } = useWeb3Modal();
-  open({ view: "Connect" });
-  const interval = setInterval(() => {
-    const account = getAccount(config);
-    if (account.address && account.chainId && account.isConnected) {
-      callback(account.address, account.chainId as SupportedChain);
-      clearInterval(interval);
-    }
-  }, timeout);
 }
 
 interface HeaderConfig {

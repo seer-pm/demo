@@ -1,10 +1,10 @@
+import { Question } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { TransactionReceipt } from "viem";
-import { writeRealityReopenQuestion } from "./contracts/generated";
-import { Question } from "./useMarket";
+import { TransactionReceipt, zeroHash } from "viem";
+import { writeRealityReopenQuestion } from "./contracts/generated-reality";
 
 interface ResolveMarketProps {
   question: Question;
@@ -14,8 +14,14 @@ interface ResolveMarketProps {
 
 async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () =>
-      writeRealityReopenQuestion(config, {
+    () => {
+      if (props.question.base_question === zeroHash) {
+        // this question was loaded using marketView, it doesn't have information about the baseQuestion
+        // it needs to be loadad using the subgraph
+        throw new Error("Incorrect base question, please try again later.");
+      }
+
+      return writeRealityReopenQuestion(config, {
         args: [
           props.templateId,
           props.encodedQuestion,
@@ -24,9 +30,10 @@ async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionRec
           props.question.opening_ts,
           0n,
           props.question.min_bond,
-          props.question.id,
+          props.question.base_question,
         ],
-      }),
+      });
+    },
     {
       txSent: { title: "Reopening question..." },
       txSuccess: { title: "Question reopened!" },
@@ -45,7 +52,6 @@ export const useReopenQuestion = () => {
     mutationFn: reopenQuestion,
     onSuccess: (/*data: TransactionReceipt*/) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
-      queryClient.invalidateQueries({ queryKey: ["useMarketStatus"] });
     },
   });
 };

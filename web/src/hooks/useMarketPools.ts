@@ -1,5 +1,5 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { getMarketPoolsPairs } from "@/lib/market";
+import { Market, getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -10,12 +10,12 @@ import { Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
+  GetPositionsQuery,
   OrderDirection,
   Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { Market } from "./useMarket";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -109,6 +109,7 @@ async function getSwaprPools(
     },
     orderBy: SwaprPool_OrderBy.TotalValueLockedUsd,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(
@@ -150,6 +151,7 @@ async function getUniswapPools(
     },
     orderBy: UniswapPool_OrderBy.Liquidity,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(
@@ -224,6 +226,35 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
 
         return acum;
       }, {} as PoolsDeposits);
+    },
+  });
+};
+
+export type NftPosition = GetPositionsQuery["positions"][0];
+
+export const useNftPositions = (chainId: SupportedChain, ids: string[]) => {
+  return useQuery<Record<string, NftPosition> | undefined, Error>({
+    queryKey: ["useNftPositions", chainId, ids],
+    enabled: ids.length > 0,
+    refetchOnWindowFocus: "always",
+    queryFn: async () => {
+      const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+      if (!algebraClient) {
+        throw new Error("Subgraph not available");
+      }
+
+      const { positions } = await getSwaprSdk(algebraClient).GetPositions({
+        where: { id_in: ids },
+      });
+
+      return positions.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr;
+          return acc;
+        },
+        {} as Record<string, NftPosition>,
+      );
     },
   });
 };

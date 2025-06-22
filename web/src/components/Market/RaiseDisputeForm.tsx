@@ -1,8 +1,8 @@
 import Button from "@/components/Form/Button";
 import { useArbitrationCost } from "@/hooks/useArbitrationCost";
-import { Question } from "@/hooks/useMarket";
 import { useRaiseDispute } from "@/hooks/useRaiseDispute";
 import { SupportedChain, mainnet } from "@/lib/chains";
+import { Question } from "@/lib/market";
 import { getCurrentBond } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";

@@ -1,6 +1,7 @@
 import { useCowOrders } from "@/hooks/portfolio/ordersTab/useCowOrders";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
+import { isUndefined } from "@/lib/utils";
 import { endOfDay, format, startOfDay } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";
@@ -13,7 +14,7 @@ import OrdersTable from "./OrdersTable";
 
 function OrdersTab() {
   const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: orders, isLoading } = useCowOrders(address as Address, chainId as SupportedChain);
+  const { data: orders, error } = useCowOrders(address as Address, chainId as SupportedChain);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
@@ -36,51 +37,54 @@ function OrdersTab() {
       const endDateFilter = endDate ? new Date(order.creationDate).getTime() <= endOfDay(endDate).getTime() : true;
       return nameFilter && startDateFilter && endDateFilter;
     }) ?? [];
+  if (error) {
+    return <Alert type="error">{error.message}</Alert>;
+  }
+  if (isUndefined(orders)) {
+    return <div className="shimmer-container w-full h-[200px]" />;
+  }
+  if (!filteredOrders.length) {
+    return <Alert type="warning">No orders found.</Alert>;
+  }
   return (
     <>
-      {isLoading && <div className="shimmer-container w-full h-[200px]" />}
-
-      {!isLoading && !orders?.length && <Alert type="warning">No orders found.</Alert>}
-
-      {!!orders?.length && (
-        <div>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="grow">
-              <Input
-                placeholder="Search by Market Name"
-                className="w-full"
-                icon={<SearchIcon />}
-                onKeyUp={marketNameCallback}
-              />
-            </div>
-            <div className="relative">
-              <Button
-                type="button"
-                variant="secondary"
-                text={
-                  !startDate && !endDate
-                    ? "Filter By Date"
-                    : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
-                        endDate ? format(endDate, "MMM d, yyyy") : "_"
-                      }`
-                }
-                onClick={() => setShowDateRangePicker((state) => !state)}
-              />
-              {isShowDateRangePicker && (
-                <div className="absolute right-0 top-[60px] z-10">
-                  <DateRangePicker
-                    startDate={startDate}
-                    endDate={endDate}
-                    onChange={onChangeDate}
-                    onClose={() => setShowDateRangePicker(false)}
-                  />
-                </div>
-              )}
-            </div>
+      <div>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="grow">
+            <Input
+              placeholder="Search by Market Name"
+              className="w-full"
+              icon={<SearchIcon />}
+              onKeyUp={marketNameCallback}
+            />
           </div>
-          <OrdersTable chainId={chainId as SupportedChain} data={filteredOrders} />
+          <div className="relative">
+            <Button
+              type="button"
+              variant="secondary"
+              text={
+                !startDate && !endDate
+                  ? "Filter By Date"
+                  : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                      endDate ? format(endDate, "MMM d, yyyy") : "_"
+                    }`
+              }
+              onClick={() => setShowDateRangePicker((state) => !state)}
+            />
+            {isShowDateRangePicker && (
+              <div className="absolute right-0 top-[60px] z-10">
+                <DateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={onChangeDate}
+                  onClose={() => setShowDateRangePicker(false)}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      )}
+        <OrdersTable chainId={chainId as SupportedChain} data={filteredOrders} />
+      </div>
     </>
   );
 }

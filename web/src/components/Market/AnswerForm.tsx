@@ -1,11 +1,11 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
+import { MarketStatus } from "@/lib/market";
+import { Market, Question } from "@/lib/market";
 import {
   ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
@@ -15,9 +15,10 @@ import {
   REALITY_TEMPLATE_UINT,
   decodeOutcomes,
   formatOutcome,
-  getAnswerText,
+  getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
+  isScalarBoundInWei,
 } from "@/lib/reality";
 import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -44,13 +45,18 @@ interface AnswerFormProps {
   raiseDispute: () => void;
 }
 
-function getOutcome(templateId: bigint, values: AnswerFormValues) {
+// NOTE about scalarBoundInWei:
+// It's a temporary fix for backwards compatibility.
+// Some older scalar markets were created using basic units (regular integers),
+// while newer markets use wei (1e18) for scalar bounds.
+// Going forward, all new scalar markets will use wei format.
+function getOutcome(templateId: bigint, values: AnswerFormValues, scalarBoundInWei: boolean) {
   if (values.answerType === INVALID_RESULT || values.answerType === ANSWERED_TOO_SOON) {
     return values.answerType;
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return parseEther(String(values.outcome)).toString();
+    return scalarBoundInWei ? parseEther(String(values.outcome)).toString() : String(values.outcome);
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
@@ -120,7 +126,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const onSubmit = async (values: AnswerFormValues) => {
     await submitAnswer.mutateAsync({
       questionId: question.id,
-      outcome: formatOutcome(getOutcome(market.templateId, values)),
+      outcome: formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound))),
       currentBond: currentBond,
       chainId: market.chainId,
     });
@@ -184,7 +190,8 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         <div className="text-black-secondary text-[16px] space-y-[15px] text-center">
           <div>This market is already resolved.</div>
           <div>
-            Final answer: <span className="text-purple-primary font-semibold">{getAnswerText(question, market)}</span>
+            Final answer:{" "}
+            <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
           </div>
         </div>
         <div className="text-center mt-[24px]">
@@ -239,7 +246,8 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           .
         </div>
         <div>
-          Current answer: <span className="text-purple-primary font-semibold">{getAnswerText(question, market)}</span>
+          Current answer:{" "}
+          <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
         </div>
       </div>
 
