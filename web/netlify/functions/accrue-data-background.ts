@@ -2,7 +2,7 @@ import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
 import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market, getMarketStatus } from "@/lib/market";
+import { Market, getCollateralByIndex, getMarketStatus } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-search";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
@@ -87,7 +87,6 @@ async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
 async function getAllPools(
   tokens: {
     tokenId: `0x${string}`;
-    parentTokenId: `0x${string}` | undefined;
   }[],
   chainId: SupportedChain,
 ) {
@@ -158,10 +157,12 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDai
   const tokens = allTokensIds.map((tokenId) => {
     const market = tokenToMarket[tokenId];
     const parentMarket = marketIdToMarket[market.parentMarket.id];
-    const parentTokenId = parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined;
+    const tokenIndex = market.wrappedTokens.indexOf(tokenId);
     return {
       tokenId,
-      parentTokenId,
+      parentMarketId: parentMarket?.id,
+      collateralToken: getCollateralByIndex(market, tokenIndex),
+      tokenIndex,
     };
   });
   const pools = await getAllPools(tokens, chainId);

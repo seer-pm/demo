@@ -7,10 +7,9 @@ import { getBlock, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
-import { PortfolioPosition } from "./positionsTab/usePortfolioPositions";
 
 export function getTokenPricesMapping(
-  positions: PortfolioPosition[],
+  positions: { parentMarketId?: string; tokenId: string; collateralToken?: string }[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
   chainId: SupportedChain,
 ) {
@@ -19,7 +18,7 @@ export function getTokenPricesMapping(
       acc[!isUndefined(curr.parentMarketId) ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as PortfolioPosition[][],
+    [[], []] as { parentMarketId?: string; tokenId: string; collateralToken?: string }[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
