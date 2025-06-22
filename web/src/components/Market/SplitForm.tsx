@@ -1,7 +1,7 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { getRouterAddress } from "@/lib/config";
@@ -79,10 +79,9 @@ export function SplitForm({ account, market }: SplitFormProps) {
     await splitPosition.mutateAsync({
       router: router,
       market: market,
-      collateralToken: selectedCollateral.address,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
     });
   };
 

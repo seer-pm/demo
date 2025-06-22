@@ -1,5 +1,5 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { CHAIN_ROUTERS, getRouterAddress } from "@/lib/config";
+import { CHAIN_ROUTERS, COLLATERAL_TOKENS, getRouterAddress } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
@@ -18,11 +18,10 @@ import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from 
 
 interface RedeemPositionProps {
   market: Market;
-  collateralToken: Address;
+  collateralToken: Address | undefined;
   parentOutcome: bigint;
   outcomeIndexes: bigint[];
   amounts: bigint[];
-  isMainCollateral: boolean;
   isRedeemToParentCollateral: boolean;
 }
 
@@ -31,9 +30,8 @@ export function getRedeemRouter(isRedeemToParentCollateral: boolean, market: Mar
 }
 
 function redeemFromRouter(
-  isMainCollateral: boolean,
   isRedeemToParentCollateral: boolean,
-  collateralToken: Address,
+  collateralToken: Address | undefined,
   market: Market,
   parentOutcome: bigint,
   outcomeIndexes: bigint[],
@@ -42,24 +40,20 @@ function redeemFromRouter(
   const router = getRedeemRouter(isRedeemToParentCollateral, market);
 
   if (isRedeemToParentCollateral) {
-    // redeem to the market's main collateral:
-    // - sDAI for regular markets
-    // - parent outcome token for conditional markets (e.g. YES token from parent market)
+    // redeen to the market's parent outcome
     return {
       to: router,
       value: 0n,
       data: encodeFunctionData({
         abi: conditionalRouterAbi,
         functionName: "redeemConditionalToCollateral",
-        args: [collateralToken, market.id, outcomeIndexes, [parentOutcome], amounts],
+        args: [COLLATERAL_TOKENS[market.chainId].primary.address!, market.id, outcomeIndexes, [parentOutcome], amounts],
       }),
     };
   }
 
-  if (isMainCollateral) {
-    // redeem to the market's main collateral:
-    // - sDAI for regular markets
-    // - parent outcome token for conditional markets (e.g. YES token from parent market)
+  if (collateralToken) {
+    // redeem to the market's main collateral (sDAI)
     return {
       to: router,
       value: 0n,
@@ -102,7 +96,6 @@ async function redeemPositions(props: RedeemPositionProps): Promise<TransactionR
       sendTransaction(
         config,
         redeemFromRouter(
-          props.isMainCollateral,
           props.isRedeemToParentCollateral,
           props.collateralToken,
           props.market,
@@ -152,7 +145,6 @@ async function redeemPositions7702(
 
   calls.push(
     redeemFromRouter(
-      props.isMainCollateral,
       props.isRedeemToParentCollateral,
       props.collateralToken,
       props.market,

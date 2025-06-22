@@ -25,9 +25,7 @@ function mergeFromRouter(
   amount: bigint,
 ): Execution {
   if (collateralToken) {
-    // merge to the market's main collateral:
-    // - sDAI for regular markets
-    // - parent outcome token for conditional markets (e.g. YES token from parent market)merge to the market main collateral (sDAI)
+    // merge to the market's main collateral (sDAI)
     return {
       to: router,
       value: 0n,
@@ -134,6 +132,8 @@ const useMergePositions7702 = (
         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useMissingApprovals"] });
+
         onSuccess(data);
       },
     }),

@@ -2,7 +2,7 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useTokenBalance, useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { getRouterAddress } from "@/lib/config";
@@ -85,12 +85,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
       router,
       market: market,
       amount: parsedAmount,
-      collateralToken:
-        market.type === "Futarchy"
-          ? selectedCollateral.address
-          : !useAltCollateral
-            ? selectedCollateral.address
-            : undefined,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
 

@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
@@ -70,9 +70,8 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
       parentOutcome: market.parentOutcome,
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
-      isMainCollateral: !values.useAltCollateral,
       isRedeemToParentCollateral: isParentPayoutReported && values.isRedeemToParentCollateral,
-      collateralToken: selectedCollateral.address,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
   if (isPending) {

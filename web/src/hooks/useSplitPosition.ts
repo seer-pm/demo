@@ -14,17 +14,19 @@ import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from 
 interface SplitPositionProps {
   router: Address;
   market: Market;
-  collateralToken: Address;
+  collateralToken: Address | undefined;
   outcomeSlotCount: number;
   amount: bigint;
-  isMainCollateral: boolean;
 }
 
-function splitFromRouter(collateralToken: Address, router: Address, market: Market, amount: bigint): Execution {
+function splitFromRouter(
+  collateralToken: Address | undefined,
+  router: Address,
+  market: Market,
+  amount: bigint,
+): Execution {
   if (collateralToken) {
-    // split from the market's main collateral:
-    // - sDAI for regular markets
-    // - parent outcome token for conditional markets (e.g. YES token from parent market)
+    // split from the market's main collateral (sDAI)
     return {
       to: router,
       value: 0n,
@@ -88,6 +90,8 @@ const useSplitPositionLegacy = (
         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useMissingApprovals"] });
+
         onSuccess(data);
       },
     }),
