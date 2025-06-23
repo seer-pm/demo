@@ -6529,9 +6529,9 @@
   dependencies:
     "@swapr/core" "^0.3.17"
 
-"@swapr/sdk@https://github.com/rodsouto/swapr-sdk#b9c226e3ad3c402ac0b1d75a0c2f895e52786b78":
+"@swapr/sdk@https://github.com/rodsouto/swapr-sdk#acfee9eb8bd93f44c2a7b15a55cf4208524eb27a":
   version "1.12.0"
-  resolved "https://github.com/rodsouto/swapr-sdk#b9c226e3ad3c402ac0b1d75a0c2f895e52786b78"
+  resolved "https://github.com/rodsouto/swapr-sdk#acfee9eb8bd93f44c2a7b15a55cf4208524eb27a"
   dependencies:
     "@cowprotocol/app-data" "^2.1.0"
     "@cowprotocol/cow-sdk" "^2.3.1"
