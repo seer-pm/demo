@@ -7,6 +7,7 @@ import { searchMarkets } from "./utils/markets";
 async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Promise<SerializedMarket[]> {
   const {
     chainsList = [],
+    type = "",
     parentMarket = "",
     marketName = "",
     marketStatusList,
@@ -26,6 +27,7 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
 
   const markets = await searchMarkets(
     chainIds,
+    type,
     id,
     parentMarket,
     marketName,

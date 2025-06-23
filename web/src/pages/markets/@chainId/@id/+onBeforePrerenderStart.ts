@@ -94,6 +94,7 @@ export default async function onBeforePrerenderStart() {
       queryKeyFn: () =>
         getUseGraphMarketsKey({
           chainsList: [],
+          type: "Generic",
           marketName: "",
           marketStatusList: [],
           creator: "",

@@ -1,16 +1,24 @@
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market } from "@/lib/market";
-import { Token, hasAltCollateral } from "@/lib/tokens";
+import { EMPTY_TOKEN, Token, hasAltCollateral } from "@/lib/tokens";
 import { Address, zeroAddress } from "viem";
-import { useMarket } from "./useMarket";
 import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.parentMarket.id !== zeroAddress ? market.collateralToken : undefined,
     market.chainId,
   );
+
+  const { data: futarchyCollateral } = useTokenInfo(
+    useAltCollateral ? market.collateralToken2 : market.collateralToken1,
+    market.chainId,
+  );
+
+  if (market.type === "Futarchy") {
+    return futarchyCollateral || EMPTY_TOKEN;
+  }
+
   if (parentCollateral) {
     return parentCollateral;
   }

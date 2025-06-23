@@ -1,0 +1,42 @@
+import { Market, hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
+
+export enum MarketStatus {
+  NOT_OPEN = "not_open",
+  OPEN = "open",
+  ANSWER_NOT_FINAL = "answer_not_final",
+  IN_DISPUTE = "in_dispute",
+  PENDING_EXECUTION = "pending_execution",
+  CLOSED = "closed",
+}
+
+export const getMarketStatus = (market: Market) => {
+  if (!hasOpenQuestions(market!)) {
+    return MarketStatus.NOT_OPEN;
+  }
+
+  if (hasAllUnansweredQuestions(market!)) {
+    return MarketStatus.OPEN;
+  }
+
+  if (isInDispute(market!)) {
+    return MarketStatus.IN_DISPUTE;
+  }
+
+  if (isWaitingResults(market!)) {
+    return MarketStatus.ANSWER_NOT_FINAL;
+  }
+
+  if (!market!.payoutReported) {
+    return MarketStatus.PENDING_EXECUTION;
+  }
+
+  return MarketStatus.CLOSED;
+};
+
+/* export const useMarketStatus = (market: Market) => {
+  return useQuery<MarketStatus | undefined, Error>({
+    queryKey: ["useMarketStatus", market.id],
+    queryFn: async () => getMarketStatus(market),
+    refetchOnWindowFocus: true,
+  });
+}; */

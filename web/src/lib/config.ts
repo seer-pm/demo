@@ -1,4 +1,9 @@
-import { gnosisRouterAddress, mainnetRouterAddress, routerAddress } from "@/hooks/contracts/generated-router";
+import {
+  futarchyRouterAddress,
+  gnosisRouterAddress,
+  mainnetRouterAddress,
+  routerAddress,
+} from "@/hooks/contracts/generated-router";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet } from "./chains";
@@ -67,6 +72,11 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
 } as const;
 
 export const getRouterAddress = (market: Market): Address => {
+  if (market.type === "Futarchy") {
+    // @ts-ignore
+    return futarchyRouterAddress[market.chainId];
+  }
+
   const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
   return addresses[market.chainId || DEFAULT_CHAIN];
 };

@@ -84,8 +84,8 @@ const overrideAnswerText: Record<`0x${string}`, string> = {
 
 export function getAnswerText(
   question: Question,
-  outcomes: Market["outcomes"],
-  templateId: bigint,
+  outcomes: string[],
+  template: number,
   noAnswerText = "Not answered yet",
 ): string {
   if (overrideAnswerText[question.id] !== undefined) {
@@ -104,21 +104,25 @@ export function getAnswerText(
     return "Answered too soon";
   }
 
-  if (Number(templateId) === REALITY_TEMPLATE_UINT) {
+  if (template === REALITY_TEMPLATE_UINT) {
     return isScalarBoundInWei(BigInt(question.best_answer))
       ? formatEther(BigInt(question.best_answer))
       : BigInt(question.best_answer).toString();
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
-
-  if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  if (template === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }
 
   return outcomes[outcomeIndex] || noAnswerText;
+}
+
+export function getAnswerTextFromMarket(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
+  const outcomes = decodeOutcomes(market, question);
+  return getAnswerText(question, outcomes, Number(market.templateId), noAnswerText);
 }
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint, chainId: SupportedChain) {
@@ -226,6 +230,11 @@ export function decodeQuestion(encodedQuestion: string): {
     category,
     lang,
   };
+}
+
+export function decodeOutcomes(market: Market, question: Question) {
+  const questionIndex = market.questions.findIndex((q) => q.id === question.id);
+  return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
 }
 
 export function isScalarBoundInWei(bound: bigint) {

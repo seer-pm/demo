@@ -112,6 +112,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
 
 export async function searchMarkets(
   chainsIds: SupportedChain[],
+  type?: "Generic" | "Futarchy" | "",
   id?: Address | "",
   parentMarket?: Address | "",
   _marketName?: string,
@@ -130,6 +131,10 @@ export async function searchMarkets(
 
   if (parentMarket) {
     query = query.eq("subgraph_data->parentMarket->>id", parentMarket.toLowerCase());
+  }
+
+  if (type) {
+    query = query.eq("subgraph_data->>type", type);
   }
 
   if (marketIds?.length) {

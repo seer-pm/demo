@@ -1,12 +1,9 @@
-import { SupportedChain, gnosis } from "@/lib/chains";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { getBlock, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 
 export function getTokenPricesMapping(
   positions: { parentMarketId?: string; tokenId: string; collateralToken?: string }[],
@@ -89,43 +86,6 @@ export async function getBlockTimestamp(initialBlockNumber: number) {
       attempts++;
     }
   }
-}
-
-export async function getAllPools(
-  tokens: { tokenId: string; parentTokenId?: string }[] | undefined,
-  chainId: SupportedChain,
-) {
-  if (!tokens) return [];
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-  const { pools } = await graphQLSdk(graphQLClient).GetPools({
-    where: {
-      or: tokens.reduce(
-        (acc, { tokenId, parentTokenId }) => {
-          if (parentTokenId) {
-            acc.push(
-              tokenId.toLocaleLowerCase() > parentTokenId.toLocaleLowerCase()
-                ? { token1: tokenId.toLocaleLowerCase(), token0: parentTokenId.toLocaleLowerCase() }
-                : { token0: tokenId.toLocaleLowerCase(), token1: parentTokenId.toLocaleLowerCase() },
-            );
-          } else {
-            acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-          }
-          return acc;
-        },
-        [] as { [key: string]: string }[],
-      ),
-    },
-    first: 1000,
-  });
-
-  return pools;
 }
 
 export async function getTokensInfo(tokenAddresses: readonly Address[], account: Address) {
