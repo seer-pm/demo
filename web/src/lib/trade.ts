@@ -12,11 +12,8 @@ import {
   TradeType,
   UniswapTrade,
 } from "@swapr/sdk";
-import pLimit from "p-limit";
 import { Address, parseUnits, zeroAddress } from "viem";
 import { Token } from "./tokens";
-
-const limit = pLimit(1);
 
 export interface QuoteTradeResult {
   value: bigint;
@@ -63,16 +60,12 @@ export function getSwaprTrade(
   account: Address | undefined,
   _chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  return limit(async () => {
-    const quoteResult = await SwaprV3Trade.getQuote({
-      amount: currencyAmountIn,
-      quoteCurrency: currencyOut,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    });
-    await new Promise((res) => setTimeout(res, 300));
-    return quoteResult;
+  return SwaprV3Trade.getQuote({
+    amount: currencyAmountIn,
+    quoteCurrency: currencyOut,
+    maximumSlippage,
+    recipient: account || zeroAddress,
+    tradeType: TradeType.EXACT_INPUT,
   });
 }
 
