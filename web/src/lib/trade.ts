@@ -13,6 +13,8 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { Address, parseUnits, zeroAddress } from "viem";
+import { SupportedChain } from "./chains";
+import { COLLATERAL_TOKENS } from "./config";
 import { Token } from "./tokens";
 
 export interface QuoteTradeResult {
@@ -58,15 +60,24 @@ export function getSwaprTrade(
   currencyAmountIn: CurrencyAmount,
   maximumSlippage: Percent,
   account: Address | undefined,
-  _chainId: number,
+  chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  return SwaprV3Trade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
+  const isSingleHop =
+    isTwoStringsEqual(
+      currencyAmountIn.currency.address,
+      COLLATERAL_TOKENS[chainId as SupportedChain].primary.address,
+    ) || isTwoStringsEqual(currencyOut.address, COLLATERAL_TOKENS[chainId as SupportedChain].primary.address);
+  return SwaprV3Trade.getQuote(
+    {
+      amount: currencyAmountIn,
+      quoteCurrency: currencyOut,
+      maximumSlippage,
+      recipient: account || zeroAddress,
+      tradeType: TradeType.EXACT_INPUT,
+    },
+    undefined,
+    isSingleHop,
+  );
 }
 
 function getCurrenciesFromTokens(
@@ -226,7 +237,6 @@ export const getSwaprQuote: QuoteTradeFn = async (
   if (!trade) {
     throw new Error("No route found");
   }
-
   return {
     value: BigInt(trade.outputAmount.raw.toString()),
     decimals: args.sellToken.decimals,
