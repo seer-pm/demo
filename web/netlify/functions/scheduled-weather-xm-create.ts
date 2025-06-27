@@ -79,16 +79,9 @@ async function getForecast(cityCode: CityCode, year: string, month: string, day:
   return { lowerBound: forecast.market.low, upperBound: forecast.market.high };
 }
 
-async function createMarketForCity(
-  account: PrivateKeyAccount,
-  cityCode: CityCode,
-  localDate: Date,
-  utcDate: Date,
-  chainId: SupportedChain,
-): Promise<`0x${string}`> {
+async function checkMarketExists(cityCode: CityCode, localDate: Date, chainId: SupportedChain): Promise<boolean> {
   const { year, month, day } = getDateParts(localDate);
 
-  // Check if market already exists
   const { data: existingMarket, error: queryError } = await supabase
     .from("weather_markets")
     .select("tx_hash")
@@ -102,9 +95,17 @@ async function createMarketForCity(
     throw new Error(`Error checking existing markets: ${queryError.message}`);
   }
 
-  if (existingMarket?.tx_hash) {
-    throw new Error(`Market already exists for ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}`);
-  }
+  return !!existingMarket?.tx_hash;
+}
+
+async function createMarketForCity(
+  account: PrivateKeyAccount,
+  cityCode: CityCode,
+  localDate: Date,
+  utcDate: Date,
+  chainId: SupportedChain,
+): Promise<`0x${string}`> {
+  const { year, month, day } = getDateParts(localDate);
 
   const { lowerBound, upperBound } = await getForecast(cityCode, year, month, day);
   const outcomes = ["DOWN", "UP"];
@@ -121,7 +122,7 @@ async function createMarketForCity(
     args: [
       getCreateMarketParams({
         marketType: MarketTypes.SCALAR,
-        marketName: `What will be WeatherXM's median highest temperature in ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}?`,
+        marketName: `What will be WeatherXM's median highest temperature in ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}, considering only stations with 100% QoD?`,
         outcomes,
         tokenNames,
         parentMarket: zeroAddress,
@@ -225,7 +226,7 @@ function getOpeningDate(city: CityCode): { localDate: Date; utcDate: Date } {
 }
 
 export default async () => {
-  const chainId = sepolia.id;
+  const chainId = gnosis.id;
 
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
@@ -234,6 +235,18 @@ export default async () => {
   for (const cityCode of Object.keys(WEATHER_CITIES)) {
     try {
       const { localDate, utcDate } = getOpeningDate(cityCode as CityCode);
+
+      // Check if market already exists before attempting to create it
+      const marketExists = await checkMarketExists(cityCode as CityCode, localDate, chainId);
+
+      if (marketExists) {
+        const { year, month, day } = getDateParts(localDate);
+        console.log(
+          `Market already exists for ${WEATHER_CITIES[cityCode as CityCode].name} on ${year}-${month}-${day}, skipping...`,
+        );
+        continue;
+      }
+
       console.log(
         `Creating weather market for ${WEATHER_CITIES[cityCode as CityCode].name} ${localDate.toISOString()}`,
       );

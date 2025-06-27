@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, numberToHex, parseEther } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
+import { gnosis, sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
 import { CityCode, WEATHER_CITIES } from "./utils/weather.ts";
@@ -97,7 +97,7 @@ async function resolveMarketForCity(
 }
 
 export default async () => {
-  const chainId = sepolia.id;
+  const chainId = gnosis.id;
 
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
