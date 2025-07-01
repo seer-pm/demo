@@ -13,7 +13,7 @@ import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
 import { CityCode, DateParts, WEATHER_CITIES, celciusToKelvin, getOpeningDate } from "./utils/weather.ts";
 
-const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 function getTokenName(cityCode: CityCode, marketDate: DateParts, upOrDown: "UP" | "DOWN") {
   const { year, month, day } = marketDate;

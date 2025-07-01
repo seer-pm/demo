@@ -7,7 +7,7 @@ import { chainIds } from "./utils/config.ts";
 import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { Database } from "./utils/supabase.ts";
 
-const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 async function updateImages() {
   // 1. First search markets where images is null and verification->itemID is not empty

@@ -12,7 +12,7 @@ import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts
 
 const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 async function sendTelegramMessage(botToken: string, chatId: string, message: string) {
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

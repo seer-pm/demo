@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 const SEER_PER_DAY = 200000000 / 30;
 export default async (req: Request) => {
   const body = await req.json();

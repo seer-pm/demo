@@ -12,7 +12,7 @@ interface NetworkContracts {
   conditionalTokens: `0x${string}`;
 }
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const NETWORK_CONTRACTS: Record<number, NetworkContracts> = {
   // Mainnet

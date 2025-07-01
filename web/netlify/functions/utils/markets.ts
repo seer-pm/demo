@@ -10,7 +10,7 @@ import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import { config } from "./config";
 import { Database, Json } from "./supabase";
 
-const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export const MARKET_DB_FIELDS =
   "id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images";

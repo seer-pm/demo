@@ -13,7 +13,7 @@ import { getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./utils/airdropCal
 import { getPrices } from "./utils/airdropCalculation/getPrices";
 import { getRandomNextDayTimestamp, getTokensByTimestamp } from "./utils/airdropCalculation/utils";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const START_TIME = 1728579600; //October 11, 2024
 

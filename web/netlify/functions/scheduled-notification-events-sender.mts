@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import * as postmark from "postmark";
 import { FROM_EMAIL } from "./utils/common";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!);
 
 async function sendPendingNotifications() {
