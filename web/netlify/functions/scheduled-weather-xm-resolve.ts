@@ -106,13 +106,13 @@ export default async () => {
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
 
-  // Get markets that need to be resolved (date is in the past and not yet answered)
+  // Get markets that need to be resolved (opening_date is in the past and not yet answered)
   const now = new Date();
 
   const { data: marketsToResolve, error: fetchError } = await supabase
     .from("weather_markets")
     .select("*")
-    .lt("date", now.toISOString().split("T")[0])
+    .lt("opening_date", now.toISOString())
     .eq("answered", false)
     .eq("chain_id", chainId);
 
@@ -145,5 +145,5 @@ export default async () => {
 };
 
 export const config: Config = {
-  schedule: "0 * * * *",
+  schedule: "*/30 * * * *",
 };

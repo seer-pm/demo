@@ -27,8 +27,15 @@ export type CityCode = keyof typeof WEATHER_CITIES;
 
 export type DateParts = { year: string; month: string; day: string; formatted: string };
 
-export function getDateParts(date: Date): DateParts {
-  const formatted = date.toISOString().split("T")[0];
+export function getDateParts(dateOrString: Date | string): DateParts {
+  let formatted: string;
+  if (typeof dateOrString === "string") {
+    // If input is a string, assume format 'yyyy-MM-dd' or 'yyyy-MM-ddTHH:mm:ss' and extract the date part
+    formatted = dateOrString.split("T")[0];
+  } else {
+    // If input is a Date, use toISOString (UTC) and extract the date part
+    formatted = dateOrString.toISOString().split("T")[0];
+  }
   const [year, month, day] = formatted.split("-");
   return { year, month, day, formatted };
 }
@@ -54,7 +61,7 @@ export function getOpeningDate(initialDate: Date, city: CityCode): { marketDate:
   const openingDate = new Date(marketDateUTC.getTime() + 24 * 60 * 60 * 1000);
 
   return {
-    marketDate: getDateParts(new Date(localDateStr)),
+    marketDate: getDateParts(localDateStr),
     openingDate,
   };
 }

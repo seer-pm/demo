@@ -136,6 +136,7 @@ async function createMarketForCity(
 
   const { error: insertError } = await supabase.from("weather_markets").insert({
     date: `${year}-${month}-${day}`,
+    opening_time: utcDate.toISOString(),
     tx_hash: txHash,
     city: cityCode,
     chain_id: chainId,
@@ -155,29 +156,29 @@ export default async () => {
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
 
   // TODO: verify markets
-  for (const cityCode of Object.keys(WEATHER_CITIES)) {
+  for (const cityCode of Object.keys(WEATHER_CITIES) as CityCode[]) {
     try {
-      const { marketDate, openingDate } = getOpeningDate(new Date(), cityCode as CityCode);
+      const { marketDate, openingDate } = getOpeningDate(new Date(), cityCode);
 
       // Check if market already exists before attempting to create it
-      const marketExists = await checkMarketExists(cityCode as CityCode, marketDate, chainId);
+      const marketExists = await checkMarketExists(cityCode, marketDate, chainId);
 
       if (marketExists) {
         const { year, month, day } = marketDate;
         console.log(
-          `Market already exists for ${WEATHER_CITIES[cityCode as CityCode].name} on ${year}-${month}-${day}, skipping...`,
+          `Market already exists for ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}, skipping...`,
         );
         continue;
       }
 
       console.log(
-        `Creating weather market for ${WEATHER_CITIES[cityCode as CityCode].name} ${marketDate.year}-${marketDate.month}-${marketDate.day}`,
+        `Creating weather market for ${WEATHER_CITIES[cityCode].name} ${marketDate.year}-${marketDate.month}-${marketDate.day}`,
       );
-      const txHash = await createMarketForCity(account, cityCode as CityCode, marketDate, openingDate, chainId);
+      const txHash = await createMarketForCity(account, cityCode, marketDate, openingDate, chainId);
       // TODO: set category
       console.log(`Market created, tx hash: ${txHash}`);
     } catch (error) {
-      console.error(`Error creating market for ${WEATHER_CITIES[cityCode as CityCode].name}:`, error);
+      console.error(`Error creating market for ${WEATHER_CITIES[cityCode].name}:`, error);
     }
 
     // Wait 1 second between market creations to avoid rate limits

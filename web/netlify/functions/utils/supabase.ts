@@ -296,6 +296,7 @@ export type Database = {
           created_at: string;
           date: string;
           id: number;
+          opening_time: string;
           tx_hash: string;
         };
         Insert: {
@@ -305,6 +306,7 @@ export type Database = {
           created_at?: string;
           date: string;
           id?: number;
+          opening_time: string;
           tx_hash: string;
         };
         Update: {
@@ -314,6 +316,7 @@ export type Database = {
           created_at?: string;
           date?: string;
           id?: number;
+          opening_time?: string;
           tx_hash?: string;
         };
         Relationships: [];
