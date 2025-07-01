@@ -8,7 +8,7 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { gnosis, sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
-import { CityCode, WEATHER_CITIES } from "./utils/weather.ts";
+import { CityCode, WEATHER_CITIES, celciusToKelvin } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
@@ -25,7 +25,7 @@ async function getCityTemperature(city: string, date: string) {
     const data = await response.json();
 
     if (data.status === "resolved") {
-      return data.temperatureCelsius;
+      return celciusToKelvin(data.temperatureCelsius);
     }
 
     throw new Error("WeatherXM API returned resolved=false");
@@ -47,6 +47,12 @@ async function resolveMarketForCity(
   account: PrivateKeyAccount,
   data: Database["public"]["Tables"]["weather_markets"]["Row"],
 ) {
+  // Check if the city exists
+  if (!WEATHER_CITIES[data.city as CityCode]) {
+    console.error(`City ${data.city} not found in WEATHER_CITIES`);
+    return;
+  }
+
   // Get market address from the database by matching transaction hash
   const { data: marketData, error: marketError } = await supabase
     .from("markets")
@@ -89,8 +95,7 @@ async function resolveMarketForCity(
     chainId: data.chain_id as SupportedChain,
     abi: realityAbi,
     args: [questionId, answer, maxPrevious],
-    // @ts-ignore
-    value: BigInt(marketData.subgraph_data.questions[0].question.min_bond),
+    value: BigInt(subgraphData.questions[0].question.min_bond),
   });
 
   const txHash = await writeContract(wagmiConfig, simulation.request);
@@ -106,13 +111,13 @@ export default async () => {
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
 
-  // Get markets that need to be resolved (opening_date is in the past and not yet answered)
+  // Get markets that need to be resolved (opening_time is in the past and not yet answered)
   const now = new Date();
 
   const { data: marketsToResolve, error: fetchError } = await supabase
     .from("weather_markets")
     .select("*")
-    .lt("opening_date", now.toISOString())
+    .lt("opening_time", now.toISOString())
     .eq("answered", false)
     .eq("chain_id", chainId);
 

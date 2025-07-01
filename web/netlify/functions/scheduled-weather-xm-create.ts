@@ -11,7 +11,7 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { gnosis, sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
-import { CityCode, DateParts, WEATHER_CITIES, getOpeningDate } from "./utils/weather.ts";
+import { CityCode, DateParts, WEATHER_CITIES, celciusToKelvin, getOpeningDate } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
@@ -71,7 +71,7 @@ async function getForecast(cityCode: CityCode, year: string, month: string, day:
     throw new Error(`No forecast found for date ${targetDate}`);
   }
 
-  return { lowerBound: forecast.market.low, upperBound: forecast.market.high };
+  return { lowerBound: celciusToKelvin(forecast.market.low), upperBound: celciusToKelvin(forecast.market.high) };
 }
 
 async function checkMarketExists(cityCode: CityCode, marketDate: DateParts, chainId: SupportedChain): Promise<boolean> {
@@ -124,7 +124,7 @@ async function createMarketForCity(
         parentOutcome: BigInt(0),
         lowerBound: parseEther(String(lowerBound)),
         upperBound: parseEther(String(upperBound)),
-        unit: "°C",
+        unit: "K",
         category: WEATHER_CATEGORY,
         openingTime,
         chainId,

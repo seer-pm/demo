@@ -65,3 +65,7 @@ export function getOpeningDate(initialDate: Date, city: CityCode): { marketDate:
     openingDate,
   };
 }
+
+export function celciusToKelvin(temperature: number) {
+  return temperature + 273.15;
+}
