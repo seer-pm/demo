@@ -65,8 +65,12 @@ async function resolveMarketForCity(
     return;
   }
 
-  // @ts-ignore
-  const questionId = marketData.subgraph_data.questions[0].question.id;
+  // biome-ignore lint/suspicious/noExplicitAny:
+  const subgraphData = marketData.subgraph_data as any;
+  if (!subgraphData?.questions?.[0]?.question?.id) {
+    throw new Error(`Invalid market data structure for tx hash ${data.tx_hash}`);
+  }
+  const questionId = subgraphData.questions[0].question.id;
 
   const resolvedTemp = await getCityTemperature(
     WEATHER_CITIES[data.city as CityCode].formatted,

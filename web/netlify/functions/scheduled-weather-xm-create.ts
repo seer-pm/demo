@@ -11,17 +11,12 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { gnosis, sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
-import { CityCode, WEATHER_CITIES } from "./utils/weather.ts";
+import { CityCode, DateParts, WEATHER_CITIES, getOpeningDate } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
 
-function getDateParts(date: Date): { year: string; month: string; day: string } {
-  const [year, month, day] = date.toISOString().split("T")[0].split("-");
-  return { year, month, day };
-}
-
-function getTokenName(cityCode: CityCode, date: Date, upOrDown: "UP" | "DOWN") {
-  const { year, month, day } = getDateParts(date);
+function getTokenName(cityCode: CityCode, marketDate: DateParts, upOrDown: "UP" | "DOWN") {
+  const { year, month, day } = marketDate;
   const dateStr = `${year.slice(2)}${month}${day}`;
 
   // Determine U or D based on UP or DOWN
@@ -57,7 +52,7 @@ async function getForecast(cityCode: CityCode, year: string, month: string, day:
     `https://markets-api.weatherxm.com/api/v2/forecast/temperature/${WEATHER_CITIES[cityCode].formatted}`,
     {
       headers: {
-        "x-api-key": process.env.WEATER_XM_API_KEY!,
+        "x-api-key": process.env.WEATHER_XM_API_KEY!,
       },
     },
   );
@@ -79,8 +74,8 @@ async function getForecast(cityCode: CityCode, year: string, month: string, day:
   return { lowerBound: forecast.market.low, upperBound: forecast.market.high };
 }
 
-async function checkMarketExists(cityCode: CityCode, localDate: Date, chainId: SupportedChain): Promise<boolean> {
-  const { year, month, day } = getDateParts(localDate);
+async function checkMarketExists(cityCode: CityCode, marketDate: DateParts, chainId: SupportedChain): Promise<boolean> {
+  const { year, month, day } = marketDate;
 
   const { data: existingMarket, error: queryError } = await supabase
     .from("weather_markets")
@@ -101,15 +96,15 @@ async function checkMarketExists(cityCode: CityCode, localDate: Date, chainId: S
 async function createMarketForCity(
   account: PrivateKeyAccount,
   cityCode: CityCode,
-  localDate: Date,
+  marketDate: DateParts,
   utcDate: Date,
   chainId: SupportedChain,
 ): Promise<`0x${string}`> {
-  const { year, month, day } = getDateParts(localDate);
+  const { year, month, day } = marketDate;
 
   const { lowerBound, upperBound } = await getForecast(cityCode, year, month, day);
   const outcomes = ["DOWN", "UP"];
-  const tokenNames = [getTokenName(cityCode, localDate, "DOWN"), getTokenName(cityCode, localDate, "UP")];
+  const tokenNames = [getTokenName(cityCode, marketDate, "DOWN"), getTokenName(cityCode, marketDate, "UP")];
 
   const openingTime = Math.round(utcDate.getTime() / 1000);
 
@@ -153,78 +148,6 @@ async function createMarketForCity(
   return txHash;
 }
 
-function getOpeningDate(city: CityCode): { localDate: Date; utcDate: Date } {
-  const cityTimezone = WEATHER_CITIES[city].timezone;
-
-  // Create current date
-  const now: Date = new Date();
-
-  // Add 4 days for verification
-  const targetDate: Date = new Date(now);
-  targetDate.setUTCDate(now.getUTCDate() + 4);
-
-  // Set time to 00:00 in local timezone
-  const formatter: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", {
-    timeZone: cityTimezone,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hour12: false,
-  });
-
-  // Get date components in local timezone
-  const parts: Intl.DateTimeFormatPart[] = formatter.formatToParts(targetDate);
-  const dateParts: { [key: string]: number } = {
-    year: Number.parseInt(parts.find((p) => p.type === "year")!.value),
-    month: Number.parseInt(parts.find((p) => p.type === "month")!.value) - 1, // Months in JS are 0-based
-    day: Number.parseInt(parts.find((p) => p.type === "day")!.value),
-    hour: 0,
-    minute: 0,
-    second: 0,
-  };
-
-  // Create a date in local timezone at 00:00
-  const localDate: Date = new Date(
-    Date.UTC(dateParts.year, dateParts.month, dateParts.day, dateParts.hour, dateParts.minute, dateParts.second),
-  );
-
-  // Manually adjust to timezone to get correct UTC date
-  const offsetFormatter: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", {
-    timeZone: cityTimezone,
-    timeZoneName: "longOffset",
-  });
-  const offsetParts: Intl.DateTimeFormatPart[] = offsetFormatter.formatToParts(localDate);
-  const offsetString: string | undefined = offsetParts.find((p) => p.type === "timeZoneName")?.value;
-
-  // Parse offset (example: GMT+01:00)
-  if (!offsetString) {
-    throw new Error("Invalid timezone offset");
-  }
-
-  const offsetMatch: RegExpMatchArray | null = offsetString.match(/GMT([+-])(\d{2}):(\d{2})/);
-  if (!offsetMatch) {
-    throw new Error("Invalid timezone offset format");
-  }
-
-  const sign: number = offsetMatch[1] === "+" ? 1 : -1;
-  const hours: number = Number.parseInt(offsetMatch[2]);
-  const minutes: number = Number.parseInt(offsetMatch[3]);
-  const totalOffsetMinutes: number = (hours * 60 + minutes) * sign;
-
-  // Adjust UTC date by subtracting the timezone offset to get the correct UTC time.
-  // Then add 24 hours because markets should open at 00:00 UTC the day after the target date
-  // (e.g., for a market about 2025-01-01's temperature, the opening time should be 2025-01-02 00:00:00 UTC)
-  const utcDate: Date = new Date(localDate.getTime() - totalOffsetMinutes * 60 * 1000 + 24 * 60 * 60 * 1000);
-
-  return {
-    localDate,
-    utcDate,
-  };
-}
-
 export default async () => {
   const chainId = gnosis.id;
 
@@ -234,13 +157,13 @@ export default async () => {
   // TODO: verify markets
   for (const cityCode of Object.keys(WEATHER_CITIES)) {
     try {
-      const { localDate, utcDate } = getOpeningDate(cityCode as CityCode);
+      const { marketDate, openingDate } = getOpeningDate(new Date(), cityCode as CityCode);
 
       // Check if market already exists before attempting to create it
-      const marketExists = await checkMarketExists(cityCode as CityCode, localDate, chainId);
+      const marketExists = await checkMarketExists(cityCode as CityCode, marketDate, chainId);
 
       if (marketExists) {
-        const { year, month, day } = getDateParts(localDate);
+        const { year, month, day } = marketDate;
         console.log(
           `Market already exists for ${WEATHER_CITIES[cityCode as CityCode].name} on ${year}-${month}-${day}, skipping...`,
         );
@@ -248,9 +171,9 @@ export default async () => {
       }
 
       console.log(
-        `Creating weather market for ${WEATHER_CITIES[cityCode as CityCode].name} ${localDate.toISOString()}`,
+        `Creating weather market for ${WEATHER_CITIES[cityCode as CityCode].name} ${marketDate.year}-${marketDate.month}-${marketDate.day}`,
       );
-      const txHash = await createMarketForCity(account, cityCode as CityCode, localDate, utcDate, chainId);
+      const txHash = await createMarketForCity(account, cityCode as CityCode, marketDate, openingDate, chainId);
       // TODO: set category
       console.log(`Market created, tx hash: ${txHash}`);
     } catch (error) {
