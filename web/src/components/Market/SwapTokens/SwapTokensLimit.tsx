@@ -56,8 +56,8 @@ export function SwapTokensLimit({
     mode: "all",
     defaultValues: {
       type: "buy",
-      amount: "0",
-      limitPrice: "0",
+      amount: "",
+      limitPrice: "",
       useAltCollateral: false,
       validTo: addHours(new Date(), 1).toString(),
       partiallyFillable: true,
