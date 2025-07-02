@@ -249,10 +249,12 @@ export function PreviewCard({ market }: { market: Market }) {
           <div className={clsx("tooltip", parentMarket ? "block" : "hidden")}>
             <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
               <p className="text-purple-primary">Conditional Market:</p>
-              <p className="text-black-secondary">
-                Conditional on <span className="text-black-primary">"{parentMarket?.marketName}"</span> being{" "}
-                <span className="text-black-primary">"{parentMarket?.outcomes?.[Number(market.parentOutcome)]}"</span>
-              </p>
+              {parentMarket?.marketName && parentMarket?.outcomes?.[Number(market.parentOutcome)] && (
+                <p className="text-black-secondary">
+                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
+                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                </p>
+              )}
             </div>
             <ConditionalMarketIcon />
           </div>
