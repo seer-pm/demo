@@ -67,5 +67,5 @@ export function getOpeningDate(initialDate: Date, city: CityCode): { marketDate:
 }
 
 export function celciusToKelvin(temperature: number) {
-  return temperature + 273.15;
+  return Math.round((temperature + 273.15) * 100) / 100;
 }
