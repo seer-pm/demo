@@ -1,22 +1,18 @@
-import { useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, LawBalanceIcon, PresentIcon, SeerLogo } from "@/lib/icons";
 import {
-  CheckCircleIcon,
-  ClockIcon,
-  ConditionalMarketIcon,
-  ExclamationCircleIcon,
-  LawBalanceIcon,
-  PresentIcon,
-  SeerLogo,
-} from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+  Market,
+  MarketStatus,
+  MarketTypes,
+  getMarketEstimate,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+} from "@/lib/market";
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
@@ -24,9 +20,8 @@ import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/li
 import clsx from "clsx";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
-import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
 
 export function OutcomesInfo({
@@ -188,9 +183,9 @@ export function PreviewCard({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
-  const colors = marketStatus && COLORS[marketStatus];
+  // const colors = marketStatus && COLORS[marketStatus];
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -248,7 +243,7 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && (
+          {/* {parentMarket && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
@@ -259,7 +254,7 @@ export function PreviewCard({ market }: { market: Market }) {
               </div>
               <ConditionalMarketIcon />
             </div>
-          )}
+          )} */}
           {market.incentive > 0 && (
             <div className="tooltip">
               <p className="tooltiptext">
@@ -327,7 +322,7 @@ export function PreviewCard({ market }: { market: Market }) {
               )}
             </Link>
           )}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          {/* {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />} */}
         </div>
       </div>
     </div>
