@@ -81,22 +81,22 @@ export default async function onBeforePrerenderStart() {
         };
       });
     // on the homepage we want to dehydrate the full list + the individual markets to preload each market page too
-    const allMarkets: QuerClientConfig[] = markets
-      .filter((market) => market.url && market.url.length < 120)
-      .flatMap((market) => [
-        {
-          queryKeyFn: () => getUseGraphMarketKey(market.id),
-          data: market,
-        },
-        {
-          queryKeyFn: () => getUseGraphMarketKey(market.url),
-          data: market,
-        },
-        {
-          queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
-          data: charts?.[market.id] || { chartData: [], timestamps: [] },
-        },
-      ]);
+    // const allMarkets: QuerClientConfig[] = markets
+    //   .filter((market) => market.url && market.url.length < 120)
+    //   .flatMap((market) => [
+    //     {
+    //       queryKeyFn: () => getUseGraphMarketKey(market.id),
+    //       data: market,
+    //     },
+    //     {
+    //       queryKeyFn: () => getUseGraphMarketKey(market.url),
+    //       data: market,
+    //     },
+    //     {
+    //       queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
+    //       data: charts?.[market.id] || { chartData: [], timestamps: [] },
+    //     },
+    //   ]);
 
     const homePage: QuerClientConfig = {
       queryKeyFn: () =>
@@ -118,7 +118,7 @@ export default async function onBeforePrerenderStart() {
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient([homePage, ...allMarkets])),
+        dehydratedState: dehydrate(getQueryClient([homePage])),
       },
     });
 
