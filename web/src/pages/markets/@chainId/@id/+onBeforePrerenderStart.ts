@@ -41,9 +41,7 @@ export default async function onBeforePrerenderStart() {
       .map((market) => {
         let description = "Efficient on-chain prediction markets.";
         try {
-          description = `Answer opening date: ${`${formatDate(
-            market.questions[0].opening_ts,
-          )} UTC`}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`;
+          description = `Answer opening date: ${`${formatDate(market.questions[0].opening_ts)} UTC`}. Outcomes: ${market.outcomes.slice(0, -1).join(", ")}.`;
         } catch {}
 
         return {
@@ -103,7 +101,7 @@ export default async function onBeforePrerenderStart() {
           marketIds: undefined,
           disabled: undefined,
         }),
-      data: markets,
+      data: markets.filter((market) => market.url),
     };
 
     data.push({
