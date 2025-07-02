@@ -33,17 +33,7 @@ async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
 
 export default async function onBeforePrerenderStart() {
   try {
-    const markets = await fetchMarkets({
-      chainsList: [],
-      marketName: "",
-      marketStatusList: [],
-      creator: "",
-      participant: "",
-      orderBy: undefined,
-      orderDirection: undefined,
-      marketIds: undefined,
-      disabled: undefined,
-    });
+    const markets = await fetchMarkets();
     const charts = await fetchCharts();
     // biome-ignore lint/suspicious/noExplicitAny:
     const data: { url: string; pageContext: any }[] = markets
@@ -111,7 +101,7 @@ export default async function onBeforePrerenderStart() {
           marketIds: undefined,
           disabled: undefined,
         }),
-      data: [],
+      data: markets.slice(0, 1),
     };
 
     data.push({
