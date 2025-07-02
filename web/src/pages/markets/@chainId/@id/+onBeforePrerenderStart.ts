@@ -101,7 +101,7 @@ export default async function onBeforePrerenderStart() {
           marketIds: undefined,
           disabled: undefined,
         }),
-      data: markets.slice(0, Math.floor(markets.length / 2)),
+      data: markets.slice(Math.floor(markets.length / 2)),
     };
 
     data.push({
