@@ -69,7 +69,31 @@ export type UseGraphMarketsParams = {
   disabled: boolean | undefined;
 };
 
-export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
+export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => {
+  const {
+    chainsList,
+    marketName,
+    marketStatusList,
+    creator,
+    participant,
+    orderBy,
+    orderDirection,
+    marketIds,
+    disabled,
+  } = params;
+  return [
+    "useGraphMarkets",
+    chainsList,
+    marketName,
+    marketStatusList,
+    creator,
+    participant,
+    orderBy,
+    orderDirection,
+    marketIds,
+    disabled,
+  ];
+};
 
 export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
   const markets = await fetchMarkets(params);
