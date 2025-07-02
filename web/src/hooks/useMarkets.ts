@@ -76,21 +76,21 @@ export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => {
     marketStatusList,
     creator,
     participant,
-    orderBy,
-    orderDirection,
-    marketIds,
-    disabled,
+    orderBy = null,
+    orderDirection = null,
+    marketIds = null,
+    disabled = null,
   } = params;
   return [
     "useGraphMarkets",
-    JSON.stringify(chainsList),
+    chainsList,
     marketName,
-    JSON.stringify(marketStatusList),
+    marketStatusList,
     creator,
     participant,
     orderBy,
     orderDirection,
-    JSON.stringify(marketIds),
+    marketIds,
     disabled,
   ];
 };
@@ -105,7 +105,7 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
 };
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
-  console.log(params);
+  console.log(getUseGraphMarketsKey(params));
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),
