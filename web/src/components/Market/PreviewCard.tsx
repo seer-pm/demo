@@ -20,20 +20,16 @@ import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/li
 import clsx from "clsx";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
+import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
 
 export function OutcomesInfo({
   market,
   outcomesCount = 0,
   marketStatus,
-}: {
-  market: Market;
-  outcomesCount?: number;
-  images?: string[];
-  marketStatus?: MarketStatus;
-}) {
+}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const marketType = getMarketType(market);
 
@@ -100,9 +96,7 @@ export function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${
-                6 * marketEstimate.toLocaleString().length
-              }px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -185,7 +179,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const incentive = formatBigNumbers(market.incentive);
   // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
-  // const colors = marketStatus && COLORS[marketStatus];
+  const colors = marketStatus && COLORS[marketStatus];
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -322,7 +316,7 @@ export function PreviewCard({ market }: { market: Market }) {
               )}
             </Link>
           )}
-          {/* {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />} */}
+          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
         </div>
       </div>
     </div>
