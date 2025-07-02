@@ -56,7 +56,7 @@ export function SwapTokensMarket({
     mode: "all",
     defaultValues: {
       type: "buy",
-      amount: "0",
+      amount: "",
       useAltCollateral: false,
     },
   });
