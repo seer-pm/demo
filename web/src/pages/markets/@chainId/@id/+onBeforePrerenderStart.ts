@@ -1,7 +1,7 @@
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
-// import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
+import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
 import { fetchMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
@@ -88,27 +88,27 @@ export default async function onBeforePrerenderStart() {
         },
       ]);
 
-    // const homePage: QuerClientConfig = {
-    //   queryKeyFn: () =>
-    //     getUseGraphMarketsKey({
-    //       chainsList: [],
-    //       marketName: "",
-    //       marketStatusList: [],
-    //       creator: "",
-    //       participant: "",
-    //       orderBy: undefined,
-    //       orderDirection: undefined,
-    //       marketIds: undefined,
-    //       disabled: undefined,
-    //     }),
-    //   data: markets,
-    // };
+    const homePage: QuerClientConfig = {
+      queryKeyFn: () =>
+        getUseGraphMarketsKey({
+          chainsList: [],
+          marketName: "",
+          marketStatusList: [],
+          creator: "",
+          participant: "",
+          orderBy: undefined,
+          orderDirection: undefined,
+          marketIds: undefined,
+          disabled: undefined,
+        }),
+      data: markets,
+    };
 
     data.push({
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient(allMarkets)),
+        dehydratedState: dehydrate(getQueryClient([homePage, ...allMarkets])),
       },
     });
 
