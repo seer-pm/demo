@@ -184,7 +184,7 @@ export function OutcomesInfo({
 }
 
 export function PreviewCard({ market }: { market: Market }) {
-  const outcomesCount = 3;
+  // const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
@@ -225,12 +225,12 @@ export function PreviewCard({ market }: { market: Market }) {
       </div>
 
       <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">
-        <OutcomesInfo
+        {/* <OutcomesInfo
           market={market}
           outcomesCount={outcomesCount}
           images={market.images?.outcomes}
           marketStatus={marketStatus}
-        />
+        /> */}
       </div>
       <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="#511778" width="50px" />
