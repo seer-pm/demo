@@ -1,18 +1,9 @@
-import { useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  ConditionalMarketIcon,
-  ExclamationCircleIcon,
-  LawBalanceIcon,
-  PresentIcon,
-  SeerLogo,
-} from "@/lib/icons";
+import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, LawBalanceIcon, PresentIcon, SeerLogo } from "@/lib/icons";
 // import { getMarketStatus } from "@/lib/market";
 import { Market, MarketStatus, MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { rescaleOdds } from "@/lib/market-odds";
@@ -185,7 +176,7 @@ export function PreviewCard({ market }: { market: Market }) {
   // const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   // const colors = marketStatus && COLORS[marketStatus];
 
@@ -245,7 +236,7 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && (
+          {/* {parentMarket && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
@@ -256,7 +247,7 @@ export function PreviewCard({ market }: { market: Market }) {
               </div>
               <ConditionalMarketIcon />
             </div>
-          )}
+          )} */}
           {market.incentive > 0 && (
             <div className="tooltip">
               <p className="tooltiptext">
