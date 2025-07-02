@@ -10,7 +10,6 @@ import { navigate } from "vike/client/router";
 
 function PageContent({ params }: { params: UseMarketsProps }) {
   const results = useMarkets(params);
-  console.log(results.data);
   const {
     data: markets = [],
     isPending,
