@@ -4,15 +4,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  ConditionalMarketIcon,
-  ExclamationCircleIcon,
-  LawBalanceIcon,
-  PresentIcon,
-  SeerLogo,
-} from "@/lib/icons";
+import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, LawBalanceIcon, PresentIcon, SeerLogo } from "@/lib/icons";
 import {
   Market,
   MarketStatus,
