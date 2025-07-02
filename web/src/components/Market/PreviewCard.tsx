@@ -1,3 +1,4 @@
+import { useMarket } from "@/hooks/useMarket";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
@@ -177,7 +178,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: _ } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
