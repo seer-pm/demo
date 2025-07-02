@@ -105,7 +105,6 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
 };
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
-  console.log(getUseGraphMarketsKey(params));
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),

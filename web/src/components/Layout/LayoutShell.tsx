@@ -18,6 +18,7 @@ globalThis.Buffer = Buffer;
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();
   const { dehydratedState } = pageContext;
+  console.log(dehydratedState);
   return (
     <React.StrictMode>
       <WagmiProvider config={config}>
