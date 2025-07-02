@@ -13,10 +13,8 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+// import { getMarketStatus } from "@/lib/market";
+import { Market, MarketStatus, MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
@@ -24,10 +22,10 @@ import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/li
 import clsx from "clsx";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
-import { PoolTokensInfo } from "./Header/MarketHeader";
+// import { PoolTokensInfo } from "./Header/MarketHeader";
 
 export function OutcomesInfo({
   market,
@@ -185,12 +183,12 @@ export function OutcomesInfo({
 
 export function PreviewCard({ market }: { market: Market }) {
   // const outcomesCount = 3;
-  const marketStatus = getMarketStatus(market);
+  // const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
-  const colors = marketStatus && COLORS[marketStatus];
+  // const colors = marketStatus && COLORS[marketStatus];
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -239,7 +237,7 @@ export function PreviewCard({ market }: { market: Market }) {
             {market.liquidityUSD > 0 && (
               <div className="tooltiptext !text-left min-w-[300px]">
                 <p className="text-purple-primary">Liquidity:</p>
-                <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
+                {/* <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} /> */}
               </div>
             )}
             <p className="text-[12px]">${liquidityUSD}</p>
@@ -327,7 +325,7 @@ export function PreviewCard({ market }: { market: Market }) {
               )}
             </Link>
           )}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          {market.id !== "0x000" && <MarketFavorite market={market} />}
         </div>
       </div>
     </div>
