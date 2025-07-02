@@ -1,7 +1,7 @@
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
-import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
+// import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
 import { fetchMarkets } from "@/lib/markets-search";
 import { unescapeJson } from "@/lib/reality";
@@ -81,38 +81,38 @@ export default async function onBeforePrerenderStart() {
         };
       });
     // on the homepage we want to dehydrate the full list + the individual markets to preload each market page too
-    // const allMarkets: QuerClientConfig[] = markets
-    //   .filter((market) => market.url && market.url.length < 120)
-    //   .flatMap((market) => [
-    //     {
-    //       queryKeyFn: () => getUseGraphMarketKey(market.id),
-    //       data: market,
-    //     },
-    //     {
-    //       queryKeyFn: () => getUseGraphMarketKey(market.url),
-    //       data: market,
-    //     },
-    //     {
-    //       queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
-    //       data: charts?.[market.id] || { chartData: [], timestamps: [] },
-    //     },
-    //   ]);
+    const allMarkets: QuerClientConfig[] = markets
+      .filter((market) => market.url && market.url.length < 120)
+      .flatMap((market) => [
+        {
+          queryKeyFn: () => getUseGraphMarketKey(market.id),
+          data: market,
+        },
+        {
+          queryKeyFn: () => getUseGraphMarketKey(market.url),
+          data: market,
+        },
+        {
+          queryKeyFn: () => getUsePoolHourDataSetsKey(market.chainId, market.id),
+          data: charts?.[market.id] || { chartData: [], timestamps: [] },
+        },
+      ]);
 
-    const homePage: QuerClientConfig = {
-      queryKeyFn: () =>
-        getUseGraphMarketsKey({
-          chainsList: [],
-          marketName: "",
-          marketStatusList: [],
-          creator: "",
-          participant: "",
-          orderBy: undefined,
-          orderDirection: undefined,
-          marketIds: undefined,
-          disabled: undefined,
-        }),
-      data: markets,
-    };
+    // const homePage: QuerClientConfig = {
+    //   queryKeyFn: () =>
+    //     getUseGraphMarketsKey({
+    //       chainsList: [],
+    //       marketName: "",
+    //       marketStatusList: [],
+    //       creator: "",
+    //       participant: "",
+    //       orderBy: undefined,
+    //       orderDirection: undefined,
+    //       marketIds: undefined,
+    //       disabled: undefined,
+    //     }),
+    //   data: markets,
+    // };
 
     data.push({
       url: "/",
