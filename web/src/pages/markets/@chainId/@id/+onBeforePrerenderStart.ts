@@ -111,7 +111,7 @@ export default async function onBeforePrerenderStart() {
           marketIds: undefined,
           disabled: undefined,
         }),
-      data: markets,
+      data: [],
     };
 
     data.push({
