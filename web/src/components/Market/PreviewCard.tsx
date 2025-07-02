@@ -247,16 +247,10 @@ export function PreviewCard({ market }: { market: Market }) {
             {MARKET_TYPES_ICONS[marketType]}
           </div>
           {parentMarket && (
-            <div className="tooltip">
-              <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
-                <p className="text-purple-primary">Conditional Market:</p>
-                <p className="text-black-secondary">
-                  {/* Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
-                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span> */}
-                </p>
-              </div>
-              <ConditionalMarketIcon />
-            </div>
+            <p className="text-black-secondary">
+              Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
+              <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+            </p>
           )}
           {market.incentive > 0 && (
             <div className="tooltip">
