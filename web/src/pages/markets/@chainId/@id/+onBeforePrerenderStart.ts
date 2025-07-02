@@ -108,7 +108,7 @@ export default async function onBeforePrerenderStart() {
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient([homePage, ...allMarkets])),
+        dehydratedState: dehydrate(getQueryClient([homePage])),
       },
     });
 
