@@ -101,7 +101,7 @@ export default async function onBeforePrerenderStart() {
           marketIds: undefined,
           disabled: undefined,
         }),
-      data: markets.filter((market) => market.url && market.url.length < 120),
+      data: markets.slice(0, Math.floor(markets.length / 2)),
     };
 
     data.push({
