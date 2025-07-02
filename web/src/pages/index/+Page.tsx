@@ -36,7 +36,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
         <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
           {markets.map((market) => (
-            <PreviewCard key={market.id} market={market} />
+            <p key={market.id}>{market.marketName}</p>
           ))}
         </div>
         <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
