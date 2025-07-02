@@ -6,13 +6,7 @@ import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
-const GNOSIS_RPC = "https://lb.drpc.org/ogrpc?network=gnosis&dkey=As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
-
-import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
-  configureRpcProviders({
-    [ChainId.XDAI]: GNOSIS_RPC,
-  });
-});
+export const GNOSIS_RPC = "https://lb.drpc.org/ogrpc?network=gnosis&dkey=As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
 
 const metadata = {
   name: "Seer",
