@@ -1,4 +1,4 @@
-import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
+import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
@@ -44,7 +44,7 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
-async function getTokenPrice(
+async function getTokenSwapResult(
   wrappedAddress: Address,
   collateralToken: Token,
   chainId: SupportedChain,
@@ -87,68 +87,65 @@ async function getTokenPrice(
   return 0n;
 }
 
-async function getTokenPricesFromSubgraph(
-  tokens: Address[],
-  collateralToken: Token,
-  chainId: SupportedChain,
-): Promise<number[]> {
+async function getTokenPriceFromSwap(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+  const BUY_AMOUNT = 3; //collateral token
+  const SELL_AMOUNT = 3; //outcome token
+
+  try {
+    const price = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT));
+    const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
+    if (pricePerShare > CEIL_PRICE) {
+      // low buy liquidity, try to get sell price instead
+      const sellPrice = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(SELL_AMOUNT), "sell");
+      const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
+      if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
+        return Number.NaN;
+      }
+      return sellPricePerShare;
+    }
+
+    return pricePerShare;
+  } catch {
+    return Number.NaN;
+  }
+}
+
+async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
   const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
-    return [];
+    return Number.NaN;
   }
-  const maxAttempts = 20;
-  let attempt = 0;
-  let id = undefined;
-  let total: GetPoolsQuery["pools"] = [];
-  while (attempt < maxAttempts) {
+  try {
     const { pools } = await getSdk(subgraphClient).GetPools({
       where: {
-        and: [
-          {
-            or: tokens.reduce(
-              (acc, tokenId) => {
-                acc.push(getToken0Token1(tokenId, collateralToken.address));
-                return acc;
-              },
-              [] as { [key: string]: string }[],
-            ),
-          },
-          { id_lt: id },
-        ],
+        ...getToken0Token1(wrappedAddress, collateralToken.address),
       },
-      first: 1000,
-      orderBy: Pool_OrderBy.Id,
+      orderBy: Pool_OrderBy.Liquidity,
       orderDirection: OrderDirection.Desc,
+      first: 1,
     });
-    total = total.concat(pools);
-    if (pools[pools.length - 1]?.id === id) {
-      break;
-    }
-    if (pools.length < 1000) {
-      break;
-    }
-    id = pools[pools.length - 1]?.id;
-    attempt++;
-  }
-  return tokens.map((tokenId) => {
-    const { token0, token1 } = getToken0Token1(tokenId, collateralToken.address);
-    const pool = total.find(
-      (pool) => isTwoStringsEqual(pool.token0.id, token0) && isTwoStringsEqual(pool.token1.id, token1),
-    );
+    const { token0 } = getToken0Token1(wrappedAddress, collateralToken.address);
+    const pool = pools[0];
     if (!pool) {
       return Number.NaN;
     }
-    return isTwoStringsEqual(tokenId, token0) ? Number(pool.token1Price) : Number(pool.token0Price);
-  });
+    return isTwoStringsEqual(wrappedAddress, token0) ? Number(pool.token1Price) : Number(pool.token0Price);
+  } catch {
+    return Number.NaN;
+  }
 }
 
-export async function getMarketOdds(market: Market, hasLiquidity: boolean): Promise<number[]> {
+export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+  if (chainId === gnosis.id) {
+    return await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
+  }
+  return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
+}
+
+export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   if (!hasLiquidity) {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
   }
-
-  const BUY_AMOUNT = 3; //collateral token
-  const SELL_AMOUNT = 3; //outcome token
 
   const collateralToken = {
     address: market.collateralToken,
@@ -156,42 +153,10 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
     name: "",
     symbol: "",
   };
-  let prices: number[] = [];
-  //if gnosis, get prices from pool
-  if (market.chainId === gnosis.id) {
-    try {
-      prices = await getTokenPricesFromSubgraph(market.wrappedTokens, collateralToken, market.chainId);
-    } catch {}
-  }
-  if (market.chainId !== gnosis.id || !prices.length) {
-    prices = await Promise.all(
-      market.wrappedTokens.map(async (wrappedAddress) => {
-        try {
-          const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
-          const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
-          if (pricePerShare > CEIL_PRICE) {
-            // low buy liquidity, try to get sell price instead
-            const sellPrice = await getTokenPrice(
-              wrappedAddress,
-              collateralToken,
-              market.chainId,
-              String(SELL_AMOUNT),
-              "sell",
-            );
-            const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
-            if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
-              return Number.NaN;
-            }
-            return sellPricePerShare;
-          }
 
-          return pricePerShare;
-        } catch {
-          return Number.NaN;
-        }
-      }),
-    );
-  }
+  const prices = await Promise.all(
+    market.wrappedTokens.map((wrappedAddress) => getTokenPrice(wrappedAddress, collateralToken, market.chainId)),
+  );
 
   return normalizeOdds(prices);
 }
