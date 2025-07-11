@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
+  console.log({ [market.id]: { enabled, odds: market.odds } });
   const hasLiquidity = useMarketHasLiquidity(market);
 
   const getInitialData = () => {
@@ -29,7 +30,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
   return useQuery<number[] | undefined, Error>({
     // hasLiquidity is undefined while loading market liquidity data
     enabled: enabled && !isUndefined(hasLiquidity),
-    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity, market.odds],
+    queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity ?? "loading"],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     initialData: getInitialData(),

@@ -25,7 +25,7 @@ import {
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Link } from "../Link";
@@ -44,7 +44,11 @@ export function OutcomesInfo({
   const marketType = getMarketType(market);
 
   const { data: initialOdds = [] } = useMarketOdds(market, false);
+
   const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? initialOdds : rescaleOdds(initialOdds);
+  if (isTwoStringsEqual(market.id, "0x75eC3512ff6bA942dE1E990822D80cF5C7FD9587 ")) {
+    console.log({ initialOdds, odds, marketOdds: market.odds });
+  }
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const visibleIndexes = market.outcomes.reduce((acc, _, j) => {
