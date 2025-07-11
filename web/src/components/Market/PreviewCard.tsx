@@ -1,8 +1,17 @@
+import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, LawBalanceIcon, PresentIcon, SeerLogo } from "@/lib/icons";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  ConditionalMarketIcon,
+  ExclamationCircleIcon,
+  LawBalanceIcon,
+  PresentIcon,
+  SeerLogo,
+} from "@/lib/icons";
 import {
   Market,
   MarketStatus,
@@ -175,7 +184,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: parentMarket, isLoading } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
@@ -234,17 +243,18 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {/* {parentMarket && (
+          {parentMarket && !isLoading && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
                 <p className="text-black-secondary">
-                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
+                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
                 </p>
               </div>
               <ConditionalMarketIcon />
             </div>
-          )} */}
+          )}
           {market.incentive > 0 && (
             <div className="tooltip">
               <p className="tooltiptext">
