@@ -196,7 +196,7 @@ export function PreviewCard({ market }: { market: Market }) {
     setIsClient(true);
   }, []);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
-
+  if (!isClient) return null;
   return (
     <div
       className={clsx(
@@ -251,7 +251,7 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && isClient && (
+          {parentMarket && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
