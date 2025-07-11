@@ -1,7 +1,6 @@
 import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
-import { PreviewCard } from "@/components/Market/PreviewCard";
 import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
