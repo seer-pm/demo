@@ -1,4 +1,4 @@
-import { useMarket } from "@/hooks/useMarket";
+import { useGraphMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -184,7 +184,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  const { data: parentMarket, isLoading } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: parentMarket } = useGraphMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
@@ -243,7 +243,7 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && !isLoading && (
+          {parentMarket && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
