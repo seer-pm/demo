@@ -17,8 +17,8 @@ globalThis.Buffer = Buffer;
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();
-  const { dehydratedState: _ } = pageContext;
-  console.log("start hydrating", Date.now());
+  const { dehydratedState } = pageContext;
+  console.log("start dehydrating");
   return (
     <React.StrictMode>
       <WagmiProvider config={config}>
@@ -26,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <AuthUpdater />
           <SwapUpdater />
           <ToastContainer />
-          <HydrationBoundary state={undefined}>{children}</HydrationBoundary>
+          <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
       </WagmiProvider>
