@@ -1,3 +1,4 @@
+import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getToken0Token1 } from "@/lib/market";
@@ -129,7 +130,8 @@ async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToke
     if (!pool) {
       return Number.NaN;
     }
-    return isTwoStringsEqual(wrappedAddress, token0) ? Number(pool.token1Price) : Number(pool.token0Price);
+    const [price0, price1] = tickToPrice(Number(pool.tick));
+    return isTwoStringsEqual(wrappedAddress, token0) ? Number(price0) : Number(price1);
   } catch {
     return Number.NaN;
   }
