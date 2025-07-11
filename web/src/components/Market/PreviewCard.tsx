@@ -25,7 +25,7 @@ import {
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Link } from "../Link";
