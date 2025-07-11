@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
+import { PreviewCard } from "@/components/Market/PreviewCard";
 import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
@@ -35,7 +36,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
         <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
           {markets.map((market) => (
-            <p key={market.id}>{market.marketName}</p>
+            <PreviewCard key={market.id} market={market} />
           ))}
         </div>
         <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
