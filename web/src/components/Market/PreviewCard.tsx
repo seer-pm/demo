@@ -26,7 +26,7 @@ import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
 import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
@@ -180,16 +180,27 @@ export function OutcomesInfo({
   );
 }
 
+const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Market; parentMarket: Market }) => (
+  <div className="tooltip">
+    <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
+      <p className="text-purple-primary">Conditional Market:</p>
+      <p className="text-black-secondary">
+        Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
+        <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+      </p>
+    </div>
+    <ConditionalMarketIcon />
+  </div>
+);
+
+const ConditionalMarketTooltip = clientOnly(async () => ConditionalMarketTooltipInner);
+
 export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
   const { data: parentMarket } = useGraphMarket(market.parentMarket.id, market.chainId);
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
@@ -248,18 +259,7 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && isClient && (
-            <div className="tooltip">
-              <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
-                <p className="text-purple-primary">Conditional Market:</p>
-                <p className="text-black-secondary">
-                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
-                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
-                </p>
-              </div>
-              <ConditionalMarketIcon />
-            </div>
-          )}
+          {parentMarket && <ConditionalMarketTooltip parentMarket={parentMarket} market={market} />}
           {market.incentive > 0 && (
             <div className="tooltip">
               <p className="tooltiptext">
