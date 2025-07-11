@@ -46,9 +46,6 @@ export function OutcomesInfo({
   const { data: initialOdds = [] } = useMarketOdds(market, false);
 
   const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? initialOdds : rescaleOdds(initialOdds);
-  if (isTwoStringsEqual(market.id, "0x75eC3512ff6bA942dE1E990822D80cF5C7FD9587 ")) {
-    console.log({ initialOdds, odds, marketOdds: market.odds });
-  }
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const visibleIndexes = market.outcomes.reduce((acc, _, j) => {

@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
-  console.log({ [market.id]: { enabled, odds: market.odds } });
   const hasLiquidity = useMarketHasLiquidity(market);
 
   const getInitialData = () => {
