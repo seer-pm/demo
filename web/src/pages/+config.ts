@@ -2,6 +2,7 @@ import vikeReact from "vike-react/config";
 import type { Config } from "vike/types";
 import Layout from "../components/Layout/Layout";
 
+console.log("run config", Date.now());
 // Default config (can be overridden by pages)
 export default {
   Layout,
