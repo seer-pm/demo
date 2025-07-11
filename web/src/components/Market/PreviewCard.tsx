@@ -1,5 +1,4 @@
 import { useMarket } from "@/hooks/useMarket";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -42,9 +41,7 @@ export function OutcomesInfo({
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const marketType = getMarketType(market);
 
-  const { data: initialOdds = [] } = useMarketOdds(market, false);
-
-  const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? initialOdds : rescaleOdds(initialOdds);
+  const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
   const visibleIndexes = market.outcomes.reduce((acc, _, j) => {
@@ -187,7 +184,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  // const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
@@ -246,18 +243,17 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
           </div>
-          {parentMarket && (
+          {/* {parentMarket && (
             <div className="tooltip">
               <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
                 <p className="text-black-secondary">
-                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
-                  <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                  Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
                 </p>
               </div>
               <ConditionalMarketIcon />
             </div>
-          )}
+          )} */}
           {market.incentive > 0 && (
             <div className="tooltip">
               <p className="tooltiptext">
