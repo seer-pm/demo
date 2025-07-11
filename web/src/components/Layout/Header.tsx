@@ -26,7 +26,7 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
@@ -90,11 +90,14 @@ export default function Header() {
   const { isConnected, chainId: _chainId, address } = useAccount();
   const chainId = filterChain(_chainId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [topOffset, setTopOffset] = useState<number>(0);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
     COLLATERAL_TOKENS?.[chainId].secondary?.address,
     chainId as SupportedChain,
   );
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
       window.document.body.classList.add("overflow-hidden");
@@ -110,6 +113,18 @@ export default function Header() {
       toggleMenu();
     }
   }, [pageContext.urlParsed.pathname]);
+
+  useEffect(() => {
+    if (containerRef.current && mobileMenuOpen) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollY = window.scrollY || window.pageYOffset;
+      const bottom = rect.top + rect.height + scrollY;
+
+      // Set the top offset for sticky item relative to document
+      const stickyTop = bottom;
+      setTopOffset(stickyTop);
+    }
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     function handleResize() {
@@ -131,14 +146,17 @@ export default function Header() {
       <BetaWarning />
       <GroupNotice />
 
-      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative">
+      <nav
+        ref={containerRef}
+        className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative"
+      >
         <div className="absolute left-[24px] lg:left-[64px]">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
         </div>
 
-        {mobileMenuOpen && <MobileMenu />}
+        {mobileMenuOpen && <MobileMenu topOffset={topOffset} />}
 
         <ul className="hidden lg:menu-horizontal gap-2 text-[16px] space-x-[32px] justify-center">
           <li>
@@ -379,7 +397,7 @@ function GroupNotice() {
   );
 }
 
-function MobileMenu() {
+function MobileMenu({ topOffset }: { topOffset: number }) {
   const { chainId: _chainId, address, isConnected } = useAccount();
   const chainId = filterChain(_chainId);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
@@ -391,7 +409,10 @@ function MobileMenu() {
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[100px] w-full block z-[100] overflow-y-auto">
+    <div
+      style={{ top: `${topOffset}px` }}
+      className="bg-white text-black fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
+    >
       <Modal
         title="Deposit"
         className="w-[400px]"
