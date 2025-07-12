@@ -115,16 +115,30 @@ export default function Header() {
   }, [pageContext.urlParsed.pathname]);
 
   useEffect(() => {
-    if (containerRef.current && mobileMenuOpen) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const scrollY = window.scrollY || window.pageYOffset;
-      const bottom = rect.top + rect.height + scrollY;
+    const updateTop = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        const menuPos = rect.top + rect.height + scrollY;
 
-      // Set the top offset for sticky item relative to document
-      const stickyTop = bottom;
-      setTopOffset(stickyTop);
+        // Set the top offset for menu relative to navbar
+        setTopOffset(menuPos);
+      }
+    };
+
+    // update top offset for menu if header dom changes
+    const observer = new MutationObserver(updateTop);
+    const header = document.getElementById("header");
+    if (header) {
+      observer.observe(header, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
     }
-  }, [mobileMenuOpen]);
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     function handleResize() {
@@ -137,7 +151,7 @@ export default function Header() {
   }, []);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <header>
+    <header id="header">
       <Modal
         title="Deposit"
         className="w-[500px]"
