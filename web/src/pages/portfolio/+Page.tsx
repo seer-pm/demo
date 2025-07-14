@@ -1,6 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
-import AirdropTab from "@/components/Portfolio/AirdropTab";
+// import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
@@ -107,7 +107,7 @@ function PortfolioPage() {
           >
             History
           </button>
-          <button
+          {/* <button
             type="button"
             role="tab"
             className={`tab ${activeTab === "airdrop" && "tab-active"}`}
@@ -118,12 +118,12 @@ function PortfolioPage() {
             }
           >
             Airdrop
-          </button>
+          </button> */}
         </div>
         {activeTab === "positions" && <PositionsTab />}
         {activeTab === "orders" && <OrdersTab />}
         {activeTab === "history" && <HistoryTab />}
-        {activeTab === "airdrop" && <AirdropTab />}
+        {/* {activeTab === "airdrop" && <AirdropTab />} */}
       </div>
     </div>
   );
