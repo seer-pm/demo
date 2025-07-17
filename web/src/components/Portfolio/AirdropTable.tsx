@@ -18,25 +18,69 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
       {
         accessorKey: "currentWeekAllocation",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Current Week Allocation (SEER)",
+        header: () => (
+          <span>
+            Current Week Allocation (SEER){" "}
+            <span className="font-normal text-black-secondary text-[12px]">
+              <br />
+              (Estimated)
+            </span>
+          </span>
+        ),
         enableSorting: false,
       },
       {
         accessorKey: "outcomeTokenHoldingAllocation",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Total Outcome Token Holding Allocation (SEER)",
+        header: () => (
+          <span>
+            Total Outcome Token Holding Allocation (SEER){" "}
+            <span className="font-normal text-black-secondary text-[12px]">
+              <br />
+              (Estimated)
+            </span>
+          </span>
+        ),
         enableSorting: false,
       },
       {
         accessorKey: "pohUserAllocation",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Total Proof of Humanity Allocation (SEER)",
+        header: () => (
+          <span>
+            Total Proof of Humanity Allocation (SEER){" "}
+            <span className="font-normal text-black-secondary text-[12px]">
+              <br />
+              (Estimated)
+            </span>
+          </span>
+        ),
         enableSorting: false,
       },
       {
         accessorKey: "totalAllocation",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Total Allocation (SEER)",
+        header: () => (
+          <span>
+            Total Allocation (SEER){" "}
+            <span className="font-normal text-black-secondary text-[12px]">
+              <br />
+              (Estimated)
+            </span>
+          </span>
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "serLppMainnet",
+        cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
+        header: "Liquidity (Seer LP Point Mainnet)",
+        enableSorting: false,
+      },
+      {
+        accessorKey: "serLppGnosis",
+        cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
+        header: "Liquidity (Seer LP Point Gnosis)",
         enableSorting: false,
       },
     ],
@@ -60,7 +104,7 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <th key={header.id} colSpan={header.colSpan}>
+                    <th key={header.id} colSpan={header.colSpan} className="align-top">
                       {header.isPlaceholder ? null : (
                         <div
                           className={clsx(

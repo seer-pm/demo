@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
+import { gnosis, mainnet } from "viem/chains";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+
 const SEER_PER_DAY = 200000000 / 30;
+
 export default async (req: Request) => {
   const body = await req.json();
 
@@ -15,8 +18,8 @@ export default async (req: Request) => {
     });
   }
 
-  if (!body.chainId || !body.address) {
-    return new Response(JSON.stringify({ error: "Missing required parameters: chainId or address" }), {
+  if (!body.address) {
+    return new Response(JSON.stringify({ error: "Missing required parameters: address" }), {
       status: 400,
       headers: {
         "Content-Type": "application/json",
@@ -24,13 +27,14 @@ export default async (req: Request) => {
     });
   }
 
-  const { data, error } = await supabase
-    .from("airdrops")
+  const { data, error } = await supabase.from("airdrops").select("*").eq("address", body.address.toLowerCase());
+  const { data: serLppBalances, error: errorBalances } = await supabase
+    .from("ser_lpp_balances")
     .select("*")
-    .eq("address", body.address.toLowerCase())
-    .eq("chain_id", body.chainId);
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    .eq("address", body.address.toLowerCase());
+
+  if (error || errorBalances) {
+    return new Response(JSON.stringify({ error: error?.message || errorBalances?.message }), { status: 500 });
   }
   const outcomeTokenHoldingAllocation = data.reduce(
     (acc, curr) => acc + SEER_PER_DAY * curr.share_of_holding * 0.25,
@@ -45,8 +49,17 @@ export default async (req: Request) => {
     }
     return acc;
   }, 0);
+  const serLppMainnet = serLppBalances.find((x) => x.chain_id === mainnet.id)?.balance ?? 0;
+  const serLppGnosis = serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0;
   return new Response(
-    JSON.stringify({ outcomeTokenHoldingAllocation, pohUserAllocation, totalAllocation, currentWeekAllocation }),
+    JSON.stringify({
+      outcomeTokenHoldingAllocation,
+      pohUserAllocation,
+      totalAllocation,
+      currentWeekAllocation,
+      serLppMainnet,
+      serLppGnosis,
+    }),
     { status: 200 },
   );
 };

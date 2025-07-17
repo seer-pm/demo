@@ -1,6 +1,4 @@
 [build]
-  base = "/"
-  package = "/web"
   publish = "/web/dist/client/"
   command = "NODE_ENV=production yarn workspace @seer-pm/web build"
   edge_functions = "web/netlify/edge-functions"
@@ -10,7 +8,6 @@
 
 [dev]
   command = "node ./web/server"
-  framework = "#custom"
   targetPort = 3000
   port = 8888
 

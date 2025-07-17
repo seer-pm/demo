@@ -6,9 +6,9 @@ import { useAccount } from "wagmi";
 import AirdropTable from "./AirdropTable";
 
 function AirdropTab() {
-  const { address, chainId } = useAccount();
-  const { data: airdrop, error } = useGetAirdropDataByUser(address, chainId);
-
+  const { address } = useAccount();
+  const { data: airdrop, error } = useGetAirdropDataByUser(address);
+  console.log(error);
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
