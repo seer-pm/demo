@@ -1,10 +1,12 @@
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains.ts";
+import { getMarketStatus } from "@/lib/market.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { chainIds } from "./utils/config.ts";
 import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
+import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -151,6 +153,7 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
     markets.map((market) => ({
       id: market.id,
       chain_id: chainId,
+      status: getMarketStatus(mapGraphMarketFromDbResult(market, { id: market.id, chain_id: chainId })),
       subgraph_data: sortQuestions(market),
       verification: verificationStatusList[market.id as `0x${string}`] ?? {
         status: "not_verified",

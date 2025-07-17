@@ -1,20 +1,30 @@
 import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "@/lib/chains";
 import { SerializedMarket, serializeMarket } from "@/lib/market";
-import { FetchMarketParams, sortMarkets } from "@/lib/markets-search";
+import { FetchMarketParams } from "@/lib/markets-fetch";
 import { Address } from "viem";
 import { searchMarkets } from "./utils/markets";
 
-async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Promise<SerializedMarket[]> {
+async function multiChainSearch(
+  body: FetchMarketParams,
+  id: Address | "",
+): Promise<{ markets: SerializedMarket[]; count: number; pages: number }> {
   const {
     chainsList = [],
     parentMarket = "",
     marketName = "",
+    categoryList,
     marketStatusList,
+    verificationStatusList,
+    showConditionalMarkets,
+    showMarketsWithRewards,
+    minLiquidity,
     creator = "",
     participant = "",
     orderBy,
     orderDirection,
     marketIds,
+    limit = 1000,
+    page = 1,
   } = body;
 
   const chainIds =
@@ -24,20 +34,31 @@ async function multiChainSearch(body: FetchMarketParams, id: Address | ""): Prom
           .filter((chain) => chain !== "31337")
           .map((chainId) => Number(chainId)) as SupportedChain[]);
 
-  const markets = await searchMarkets(
+  const { markets, count } = await searchMarkets(
     chainIds,
     id,
     parentMarket,
     marketName,
+    categoryList,
     marketStatusList,
+    verificationStatusList,
+    showConditionalMarkets,
+    showMarketsWithRewards,
+    minLiquidity,
     creator,
     participant,
     marketIds,
+    limit,
+    page,
+    orderBy,
+    orderDirection,
   );
 
-  markets.sort(sortMarkets(orderBy, orderDirection || "desc"));
-
-  return markets.map((market) => serializeMarket(market));
+  return {
+    markets: markets.map((market) => serializeMarket(market)),
+    count,
+    pages: Math.ceil(count / limit),
+  };
 }
 
 export default async (req: Request) => {
@@ -53,9 +74,9 @@ export default async (req: Request) => {
   }
 
   try {
-    const markets: SerializedMarket[] = await multiChainSearch(body as FetchMarketParams, "");
+    const result = await multiChainSearch(body as FetchMarketParams, "");
 
-    return new Response(JSON.stringify(markets), {
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

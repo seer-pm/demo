@@ -1,5 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { Market } from "@/lib/market";
+import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useMarkets } from "../../useMarkets";
@@ -58,13 +59,13 @@ export const useHistoryTransactions = (
   startTime: number | undefined,
   endTime: number | undefined,
 ) => {
-  const { data: markets = [] } = useMarkets({});
+  const { data } = useMarkets({});
   return useQuery<TransactionData[] | undefined, Error>({
-    enabled: !!address && markets.length > 0,
+    enabled: !!address && !isUndefined(data?.markets),
     queryKey: ["useHistoryTransactions", address, chainId, startTime, endTime],
     gcTime: 1000 * 60 * 60 * 24, //24 hours
     staleTime: 0,
     retry: false,
-    queryFn: async () => getTransactions(markets, address, chainId, startTime, endTime),
+    queryFn: async () => getTransactions(data!.markets, address, chainId, startTime, endTime),
   });
 };
