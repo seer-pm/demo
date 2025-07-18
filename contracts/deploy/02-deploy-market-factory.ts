@@ -29,7 +29,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
       conditionalTokens.address,
       collateralToken.address,
       realityProxy.address,
-      60 * 60 * 24 * 3.5, // 3.5 days
+      60, // 60 seconds
     ],
     log: true,
   });

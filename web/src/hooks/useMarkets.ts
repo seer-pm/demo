@@ -80,7 +80,7 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
   return markets;
 };
 
-function useGraphMarkets(params: UseGraphMarketsParams) {
+export function useGraphMarkets(params: UseGraphMarketsParams) {
   return useQuery<Market[], Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),
@@ -109,34 +109,6 @@ export interface UseMarketsProps {
   disabled?: boolean;
 }
 
-export const useMarkets = ({
-  marketName = "",
-  marketStatusList = [],
-  chainsList = [],
-  creator = "",
-  participant = "",
-  orderBy,
-  orderDirection,
-  marketIds,
-  disabled,
-}: UseMarketsProps) => {
-  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
-  const graphMarkets = useGraphMarkets({
-    chainsList,
-    marketName,
-    marketStatusList,
-    creator,
-    participant,
-    orderBy,
-    orderDirection,
-    marketIds,
-    disabled,
-  });
-  if (marketName || marketStatusList.length > 0) {
-    // we only filter using the subgraph
-    return graphMarkets;
-  }
-
-  // if the subgraph is error we return on chain markets, otherwise we return subgraph
-  return graphMarkets.isError ? onChainMarkets : graphMarkets;
+export const useMarkets = ({ marketName = "", marketStatusList = [], chainsList = [], disabled }: UseMarketsProps) => {
+  return useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
 };
