@@ -37,7 +37,7 @@ export default function LiquidityBarChart({
     );
   }
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
-    getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount);
+    getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount, outcome);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
   const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
   const chartOption = priceList
