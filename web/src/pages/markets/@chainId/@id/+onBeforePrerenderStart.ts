@@ -3,7 +3,7 @@ import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchMarkets } from "@/lib/markets-fetch";
 import { unescapeJson } from "@/lib/reality";
 import { getAppUrl } from "@/lib/utils";
 import { QueryClient, dehydrate } from "@tanstack/react-query";
@@ -33,7 +33,7 @@ async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
 
 export default async function onBeforePrerenderStart() {
   try {
-    const markets = await fetchMarkets();
+    const { markets } = await fetchMarkets();
     const charts = await fetchCharts();
     // biome-ignore lint/suspicious/noExplicitAny:
     const data: { url: string; pageContext: any }[] = markets
@@ -96,12 +96,17 @@ export default async function onBeforePrerenderStart() {
           chainsList: [],
           marketName: "",
           marketStatusList: [],
+          verificationStatusList: [],
+          showConditionalMarkets: undefined,
+          showMarketsWithRewards: undefined,
           creator: "",
           participant: "",
           orderBy: undefined,
           orderDirection: undefined,
           marketIds: undefined,
           disabled: undefined,
+          limit: 24,
+          page: 1,
         }),
       data: markets,
     };

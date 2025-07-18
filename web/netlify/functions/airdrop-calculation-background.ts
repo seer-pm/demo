@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { Market, getCollateralByIndex } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchMarkets } from "@/lib/markets-fetch";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
@@ -166,7 +166,7 @@ async function updateSnapshot() {
     if (nextTimestamp >= now) {
       return;
     }
-    const markets = await fetchMarkets();
+    const { markets } = await fetchMarkets();
     //gnosis
     const gnosisData = await getSnapshotData(
       markets.filter((x) => x.chainId === gnosis.id),

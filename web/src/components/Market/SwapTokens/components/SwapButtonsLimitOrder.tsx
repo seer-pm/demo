@@ -30,7 +30,7 @@ export default function SwapButtonsLimitOrder({
     amounts: parseUnits(amount, 18),
     chainId,
   });
-  console.log(account);
+
   const isShowApproval = missingApprovals && missingApprovals.length > 0;
 
   return (

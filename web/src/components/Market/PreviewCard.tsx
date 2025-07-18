@@ -89,6 +89,7 @@ export function OutcomesInfo({
             max={upperBound}
             step={0.001}
             value={marketEstimate}
+            readOnly
             className="
               w-full
               h-[6px]

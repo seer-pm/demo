@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { fetchMarket } from "@/lib/markets-search";
+import { fetchMarket } from "@/lib/markets-fetch";
 import { isAddress } from "viem";
 import { renderPage } from "vike/server";
 

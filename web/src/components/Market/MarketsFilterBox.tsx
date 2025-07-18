@@ -86,8 +86,8 @@ interface MarketFilters {
   verificationStatusList: VerificationStatus[];
   chainsList: string[];
   orderBy: Market_OrderBy | "default";
-  isShowConditionalMarkets: boolean;
-  isShowMarketsWithRewards: boolean;
+  showConditionalMarkets: boolean;
+  showMarketsWithRewards: boolean;
   orderDirection: "asc" | "desc";
   minLiquidity: number;
 }
@@ -98,8 +98,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     verificationStatusList: initialVerificationStatusList,
     chainsList: initialChainsList,
     orderBy: initialOrderBy,
-    isShowConditionalMarkets: initialShowConditionalMarkets,
-    isShowMarketsWithRewards: initialShowMarketsWithRewards,
+    showConditionalMarkets: initialShowConditionalMarkets,
+    showMarketsWithRewards: initialShowMarketsWithRewards,
     orderDirection: initialOrderDirection,
     minLiquidity: initialMinLiquidity,
     setMarketStatus,
@@ -125,8 +125,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         initialVerificationStatusList ?? VERIFY_STATUS_OPTIONS.slice(1).map((x) => x.value as VerificationStatus),
       chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
-      isShowConditionalMarkets: initialShowConditionalMarkets ?? false,
-      isShowMarketsWithRewards: initialShowMarketsWithRewards ?? false,
+      showConditionalMarkets: initialShowConditionalMarkets ?? false,
+      showMarketsWithRewards: initialShowMarketsWithRewards ?? false,
       orderDirection: initialOrderDirection ?? "desc",
       minLiquidity: initialMinLiquidity ?? 0,
     },
@@ -138,8 +138,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       verificationStatusList,
       chainsList,
       orderBy,
-      isShowConditionalMarkets,
-      isShowMarketsWithRewards,
+      showConditionalMarkets,
+      showMarketsWithRewards,
       orderDirection,
       minLiquidity,
     } = data;
@@ -150,8 +150,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setChains(chainsList.length === CHAINS_OPTIONS.slice(1).length ? undefined : chainsList);
     setOrderBy(orderBy);
     setShowFilters(false);
-    toggleShowConditionalMarkets(isShowConditionalMarkets);
-    toggleShowMarketsWithRewards(isShowMarketsWithRewards);
+    toggleShowConditionalMarkets(showConditionalMarkets);
+    toggleShowMarketsWithRewards(showMarketsWithRewards);
     if (orderBy !== "default") {
       setOrderDirection(orderDirection);
     }
@@ -426,8 +426,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               className="cursor-pointer checkbox"
               id="show-conditional-market"
               type="checkbox"
-              checked={watch("isShowConditionalMarkets")}
-              onChange={(e) => setValue("isShowConditionalMarkets", e.target.checked)}
+              checked={watch("showConditionalMarkets")}
+              onChange={(e) => setValue("showConditionalMarkets", e.target.checked)}
             />
             <label className="cursor-pointer flex items-center gap-2" htmlFor="show-conditional-market">
               Show only conditional markets
@@ -444,8 +444,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               className="cursor-pointer checkbox"
               id="show-reward-market"
               type="checkbox"
-              checked={watch("isShowMarketsWithRewards")}
-              onChange={(e) => setValue("isShowMarketsWithRewards", e.target.checked)}
+              checked={watch("showMarketsWithRewards")}
+              onChange={(e) => setValue("showMarketsWithRewards", e.target.checked)}
             />
             <label className="cursor-pointer flex items-center gap-2" htmlFor="show-reward-market">
               Show only markets with rewards

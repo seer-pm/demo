@@ -20,7 +20,8 @@ export interface AirdropTokenInfo {
 }
 
 export const useGetListAirdropTokens = (account: Address | undefined, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data } = useMarkets({});
+  const { markets = [] } = data || {};
   const queryResult = useQuery<AirdropTokenInfo[] | undefined, Error>({
     enabled: !!account,
     queryKey: ["useGetListAirdropTokens", account],

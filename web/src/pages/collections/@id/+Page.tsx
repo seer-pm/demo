@@ -55,10 +55,10 @@ function CollectionsPage() {
   const params = useMarketsSearchParams();
   const results = useMarkets({ ...params, marketIds: collectionMarkets, disabled: !collectionMarkets?.length });
   const {
-    data: markets = [],
+    data,
     isLoading,
     pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterResults(params, results);
+  } = useSortAndFilterResults(results);
   const {
     Modal: AddCollectionModal,
     openModal: openAddCollectionModal,
@@ -259,10 +259,10 @@ function CollectionsPage() {
         </div>
       )}
 
-      {!isLoading && markets.length === 0 && <Alert type="warning">No markets in this collection.</Alert>}
+      {!isLoading && data.markets.length === 0 && <Alert type="warning">No markets in this collection.</Alert>}
 
       <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
-        {markets.map((market) => (
+        {data.markets.map((market) => (
           <PreviewCard key={market.id} market={market} />
         ))}
       </div>

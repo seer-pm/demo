@@ -16,7 +16,7 @@ export default async () => {
     // ignore markets finalized more than two days ago
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
-    const markets = (await searchMarkets(chainIds.map((c) => c))).filter((market) => {
+    const markets = (await searchMarkets(chainIds.map((c) => c))).markets.filter((market) => {
       return market.finalizeTs > twoDaysAgo;
     });
 
