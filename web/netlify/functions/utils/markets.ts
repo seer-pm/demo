@@ -110,7 +110,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
   });
 }
 
-export function sortMarkets(
+function sortMarkets(
   orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | undefined,
   orderDirection: "asc" | "desc",
 ) {
@@ -134,6 +134,16 @@ export function sortMarkets(
 
   // by opening date
   return [{ column: "subgraph_data->>openingTs", ascending: orderDirection === "asc" }];
+}
+
+function escapePostgrest(str: string): string {
+  return str
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/"/g, '\\"')
+    .replace(/,/g, "\\,")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 }
 
 export async function searchMarkets(
@@ -174,8 +184,13 @@ export async function searchMarkets(
   }
 
   if (marketName) {
+    const safeMarketName = escapePostgrest(marketName);
     query = query.or(
-      `subgraph_data->>marketName.ilike.%${marketName}%,outcomes_text.ilike.%${marketName}%,collections_names.ilike.%${marketName}%`,
+      [
+        `subgraph_data->>marketName.ilike.%${safeMarketName}%`,
+        `outcomes_text.ilike.%${safeMarketName}%`,
+        `collections_names.ilike.%${safeMarketName}%`,
+      ].join(","),
     );
   }
 
@@ -219,7 +234,9 @@ export async function searchMarkets(
       .map((a) => a.toLocaleLowerCase());
     if (marketsWithUserPositions.length > 0) {
       // the user is an active trader in some market
-      query = query.or(`id.in.(${marketsWithUserPositions.join(",")}),subgraph_data->>creator.eq.${participant})`);
+      const safeMarketIds = marketsWithUserPositions.map((id) => escapePostgrest(id)).join(",");
+      const safeParticipant = escapePostgrest(participant);
+      query = query.or([`id.in.(${safeMarketIds})`, `subgraph_data->>creator.eq.${safeParticipant}`].join(","));
     } else {
       // the user is not trading, search only created markets
       query = query.eq("subgraph_data->>creator", participant);
