@@ -1,17 +1,17 @@
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
-import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
+import { getUseGraphMarketsKey, useGraphMarketsQueryFn } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchMarkets } from "@/lib/markets-fetch";
 import { unescapeJson } from "@/lib/reality";
 import { getAppUrl } from "@/lib/utils";
 import { QueryClient, dehydrate } from "@tanstack/react-query";
 import { Address } from "viem";
 
 // biome-ignore lint/suspicious/noExplicitAny:
-type QuerClientConfig = { queryKeyFn: () => any; data: any };
-function getQueryClient(config: QuerClientConfig[]) {
+type QueryClientConfig = { queryKeyFn: () => any; data: any };
+function getQueryClient(config: QueryClientConfig[]) {
   const queryClient = new QueryClient();
 
   for (const { queryKeyFn, data } of config) {
@@ -33,10 +33,10 @@ async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
 
 export default async function onBeforePrerenderStart() {
   try {
-    const markets = await fetchMarkets();
+    const { markets: allMarkets } = await fetchMarkets();
     const charts = await fetchCharts();
     // biome-ignore lint/suspicious/noExplicitAny:
-    const data: { url: string; pageContext: any }[] = markets
+    const data: { url: string; pageContext: any }[] = allMarkets
       .filter((market) => market.url && market.url.length < 120)
       .map((market) => {
         let description = "Efficient on-chain prediction markets.";
@@ -73,7 +73,28 @@ export default async function onBeforePrerenderStart() {
         };
       });
     // on the homepage we want to dehydrate the full list + the individual markets to preload each market page too
-    const allMarkets: QuerClientConfig[] = markets
+    const homeParams = {
+      chainsList: [],
+      marketName: "",
+      categoryList: [],
+      marketStatusList: [],
+      verificationStatusList: [],
+      showConditionalMarkets: false,
+      showMarketsWithRewards: false,
+      minLiquidity: 0,
+      creator: "" as const,
+      participant: "" as const,
+      orderBy: undefined,
+      orderDirection: undefined,
+      marketIds: undefined,
+      disabled: undefined,
+      limit: 24,
+      page: 1,
+    };
+
+    const homeMarketsResult = await useGraphMarketsQueryFn(homeParams);
+    const homeMarkets = homeMarketsResult.markets;
+    const homeMarketsConfig: QueryClientConfig[] = homeMarkets
       .filter((market) => market.url)
       .flatMap((market) => [
         {
@@ -90,27 +111,16 @@ export default async function onBeforePrerenderStart() {
         },
       ]);
 
-    const homePage: QuerClientConfig = {
-      queryKeyFn: () =>
-        getUseGraphMarketsKey({
-          chainsList: [],
-          marketName: "",
-          marketStatusList: [],
-          creator: "",
-          participant: "",
-          orderBy: undefined,
-          orderDirection: undefined,
-          marketIds: undefined,
-          disabled: undefined,
-        }),
-      data: markets,
+    const homePageConfig: QueryClientConfig = {
+      queryKeyFn: () => getUseGraphMarketsKey(homeParams),
+      data: homeMarketsResult,
     };
 
     data.push({
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient([homePage].concat(allMarkets))),
+        dehydratedState: dehydrate(getQueryClient([homePageConfig].concat(homeMarketsConfig))),
       },
     });
 

@@ -1,6 +1,6 @@
-import { GetMarketQuery, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
+import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains";
-import { Market, MarketStatus, VerificationResult } from "@/lib/market";
+import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
@@ -110,19 +110,70 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
   });
 }
 
+function sortMarkets(
+  orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | undefined,
+  orderDirection: "asc" | "desc",
+) {
+  if (!orderBy) {
+    return [
+      { column: "is_closed", ascending: true },
+      { column: "is_underlying_worthless", ascending: true },
+      { column: "verification_priority", ascending: true },
+      { column: "liquidity", ascending: false },
+      { column: "opening_ts", ascending: true },
+    ];
+  }
+
+  if (orderBy === "liquidityUSD") {
+    return [{ column: "liquidity", ascending: orderDirection === "asc" }];
+  }
+
+  if (orderBy === "creationDate") {
+    return [{ column: "block_timestamp", ascending: orderDirection === "asc" }];
+  }
+
+  // by opening date
+  return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
+}
+
+function escapePostgrest(str: string): string {
+  return str
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/"/g, '\\"')
+    .replace(/,/g, "\\,")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
 export async function searchMarkets(
   chainsIds: SupportedChain[],
   id?: Address | "",
   parentMarket?: Address | "",
-  _marketName?: string,
+  marketName?: string,
+  categoryList?: string[] | undefined,
   marketStatusList?: MarketStatus[] | undefined,
+  verificationStatusList?: VerificationStatus[] | undefined,
+  showConditionalMarkets?: boolean | undefined,
+  showMarketsWithRewards?: boolean | undefined,
+  minLiquidity?: number | undefined,
   creator?: Address | "",
   participant?: Address | "",
   marketIds?: string[] | undefined,
-): Promise<Market[]> {
-  const now = Math.round(new Date().getTime() / 1000);
+  limit?: number,
+  page?: number,
+  orderBy?: Market_OrderBy | "liquidityUSD" | "creationDate",
+  orderDirection?: "asc" | "desc",
+): Promise<{ markets: Market[]; count: number }> {
+  let query = supabase
+    .from("markets_search")
+    .select(MARKET_DB_FIELDS, { count: "exact" })
+    .not("subgraph_data", "is", null);
 
-  let query = supabase.from("markets").select(MARKET_DB_FIELDS).not("subgraph_data", "is", null);
+  if (limit !== undefined && page !== undefined) {
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+  }
 
   if (id) {
     query = query.eq("id", id.toLowerCase());
@@ -132,35 +183,46 @@ export async function searchMarkets(
     query = query.eq("subgraph_data->parentMarket->>id", parentMarket.toLowerCase());
   }
 
+  if (marketName) {
+    const safeMarketName = escapePostgrest(marketName);
+    query = query.or(
+      [
+        `subgraph_data->>marketName.ilike.%${safeMarketName}%`,
+        `outcomes_text.ilike.%${safeMarketName}%`,
+        `collections_names.ilike.%${safeMarketName}%`,
+      ].join(","),
+    );
+  }
+
   if (marketIds?.length) {
     query = query.in("id", marketIds);
   }
 
-  const conditions = [];
+  if (categoryList?.length) {
+    query = query.overlaps("categories", categoryList);
+  }
 
-  if (marketStatusList?.includes(MarketStatus.NOT_OPEN)) {
-    conditions.push(`subgraph_data->>openingTs.gt.${now}`);
-  }
-  if (marketStatusList?.includes(MarketStatus.OPEN)) {
-    conditions.push(`and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.false)`);
-  }
-  if (marketStatusList?.includes(MarketStatus.ANSWER_NOT_FINAL)) {
-    conditions.push(
-      `and(subgraph_data->>openingTs.lt.${now},subgraph_data->hasAnswers.eq.true,subgraph_data->>finalizeTs.gt.${now})`,
+  if (marketStatusList?.length) {
+    query = query.in(
+      "status",
+      marketStatusList.map((s) => s.toLowerCase()),
     );
   }
-  if (marketStatusList?.includes(MarketStatus.IN_DISPUTE)) {
-    conditions.push("subgraph_data->>questionsInArbitration.gt.0");
-  }
-  if (marketStatusList?.includes(MarketStatus.PENDING_EXECUTION)) {
-    conditions.push(`and(subgraph_data->>finalizeTs.lt.${now},subgraph_data->payoutReported.eq.false)`);
-  }
-  if (marketStatusList?.includes(MarketStatus.CLOSED)) {
-    conditions.push("subgraph_data->payoutReported.eq.true");
+
+  if (verificationStatusList?.length) {
+    query = query.in("verification->>status", verificationStatusList);
   }
 
-  if (conditions.length > 0) {
-    query = query.or(conditions.join(","));
+  if (showConditionalMarkets) {
+    query = query.neq("subgraph_data->parentMarket->>id", zeroAddress);
+  }
+
+  if (showMarketsWithRewards) {
+    query = query.gt("incentive", 0);
+  }
+
+  if (minLiquidity) {
+    query = query.gt("liquidity", Number(minLiquidity));
   }
 
   if (participant) {
@@ -172,7 +234,9 @@ export async function searchMarkets(
       .map((a) => a.toLocaleLowerCase());
     if (marketsWithUserPositions.length > 0) {
       // the user is an active trader in some market
-      query = query.or(`id.in.(${marketsWithUserPositions.join(",")}),subgraph_data->>creator.eq.${participant})`);
+      const safeMarketIds = marketsWithUserPositions.map((id) => escapePostgrest(id)).join(",");
+      const safeParticipant = escapePostgrest(participant);
+      query = query.or([`id.in.(${safeMarketIds})`, `subgraph_data->>creator.eq.${safeParticipant}`].join(","));
     } else {
       // the user is not trading, search only created markets
       query = query.eq("subgraph_data->>creator", participant);
@@ -183,15 +247,22 @@ export async function searchMarkets(
 
   query = query.in("chain_id", chainsIds);
 
-  const { data, error } = await query;
+  for (const { column, ascending } of sortMarkets(orderBy, orderDirection || "desc")) {
+    query = query.order(column, { ascending });
+  }
+
+  const { data, count, error } = await query;
 
   if (error) {
     throw error;
   }
 
-  return data.map((result) => {
-    return mapGraphMarketFromDbResult(result.subgraph_data as SubgraphMarket, result);
-  });
+  return {
+    markets: data.map((result) => {
+      return mapGraphMarketFromDbResult(result.subgraph_data as SubgraphMarket, result);
+    }),
+    count: count || 0,
+  };
 }
 
 const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {

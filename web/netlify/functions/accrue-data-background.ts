@@ -3,7 +3,7 @@ import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/que
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market, getCollateralByIndex, getMarketStatus } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { fetchMarkets } from "@/lib/markets-fetch";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Address } from "viem";
@@ -235,7 +235,7 @@ async function writeToSheet(data: string) {
 }
 
 export default async () => {
-  const markets = await fetchMarkets();
+  const { markets } = await fetchMarkets();
   const sDaiPriceByChainMapping = await getsDaiPriceByChainMapping();
   const predictors = await getTopPredictors(
     markets.filter((x) => x.chainId === gnosis.id),

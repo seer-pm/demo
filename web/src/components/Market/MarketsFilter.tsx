@@ -16,7 +16,7 @@ export function MarketsFilter() {
   const [searchParams] = useSearchParams();
   const {
     setMarketName: setMarketNameParam,
-    // isShowMyMarkets,
+    // showMyMarkets,
     // toggleShowMyMarkets,
     hasFilters,
     marketName: marketNameParam,
