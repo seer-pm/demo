@@ -1,7 +1,7 @@
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
-import { getUseGraphMarketsKey } from "@/hooks/useMarkets";
+import { getUseGraphMarketsKey, useGraphMarketsQueryFn } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
 import { fetchMarkets } from "@/lib/markets-fetch";
 import { unescapeJson } from "@/lib/reality";
@@ -73,7 +73,24 @@ export default async function onBeforePrerenderStart() {
         };
       });
     // on the homepage we want to dehydrate the full list + the individual markets to preload each market page too
-    const allMarkets: QuerClientConfig[] = markets
+    const homeParams = {
+      chainsList: [],
+      marketName: "",
+      marketStatusList: [],
+      verificationStatusList: [],
+      showConditionalMarkets: undefined,
+      showMarketsWithRewards: undefined,
+      creator: "" as const,
+      participant: "" as const,
+      orderBy: undefined,
+      orderDirection: undefined,
+      marketIds: undefined,
+      disabled: undefined,
+      limit: 24,
+      page: 1,
+    };
+
+    const homeMarkets: QuerClientConfig[] = (await useGraphMarketsQueryFn(homeParams)).markets
       .filter((market) => market.url)
       .flatMap((market) => [
         {
@@ -91,31 +108,15 @@ export default async function onBeforePrerenderStart() {
       ]);
 
     const homePage: QuerClientConfig = {
-      queryKeyFn: () =>
-        getUseGraphMarketsKey({
-          chainsList: [],
-          marketName: "",
-          marketStatusList: [],
-          verificationStatusList: [],
-          showConditionalMarkets: undefined,
-          showMarketsWithRewards: undefined,
-          creator: "",
-          participant: "",
-          orderBy: undefined,
-          orderDirection: undefined,
-          marketIds: undefined,
-          disabled: undefined,
-          limit: 24,
-          page: 1,
-        }),
-      data: markets,
+      queryKeyFn: () => getUseGraphMarketsKey(homeParams),
+      data: homeMarkets,
     };
 
     data.push({
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient([homePage].concat(allMarkets))),
+        dehydratedState: dehydrate(getQueryClient([homePage].concat(homeMarkets))),
       },
     });
 
