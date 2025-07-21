@@ -3,7 +3,8 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { Chain, sepolia } from "wagmi/chains";
+import { Chain, mainnet, sepolia } from "wagmi/chains";
+import { FAST_TESTNET_FACTORY } from "./src/lib/constants";
 
 const readArtifacts = async (chains: Chain[]) => {
   const results: Record<string, ContractConfig> = {};
@@ -27,6 +28,11 @@ const readArtifacts = async (chains: Chain[]) => {
 
         const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {};
         addresses[chain.id] = jsonContent.address as `0x{string}`;
+
+        if (process.env.VITE_IS_FAST_TESTNET === "1" && name === "MarketFactory" && chain.id === 100) {
+          addresses[chain.id] = FAST_TESTNET_FACTORY;
+        }
+
         results[name] = {
           name,
           address: addresses,
@@ -50,6 +56,9 @@ const getConfig = async (): Promise<Config[]> => {
   const chains = Object.values(SUPPORTED_CHAINS);
   if (!chains.some((chain) => chain.id === sepolia.id)) {
     chains.push(sepolia);
+  }
+  if (process.env.VITE_IS_FAST_TESTNET === "1") {
+    chains.push(mainnet);
   }
 
   const allContracts = Object.values(await readArtifacts(chains));
