@@ -89,12 +89,12 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
 }
 
 export const useCowOrders = (address: Address, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data } = useMarkets({});
   return useQuery<CowOrderData[] | undefined, Error>({
-    enabled: !!address && !isUndefined(markets),
-    queryKey: ["useCowOrders", address, chainId, !!markets],
+    enabled: !!address && !isUndefined(data),
+    queryKey: ["useCowOrders", address, chainId],
     retry: false,
-    queryFn: async () => getCowOrders(markets, address, chainId),
+    queryFn: async () => getCowOrders(data!.markets, address, chainId),
     refetchOnMount: true,
   });
 };

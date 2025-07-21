@@ -1,10 +1,12 @@
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains.ts";
+import { getMarketStatus } from "@/lib/market.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { chainIds } from "./utils/config.ts";
 import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
+import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -151,6 +153,7 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
     markets.map((market) => ({
       id: market.id,
       chain_id: chainId,
+      status: getMarketStatus(mapGraphMarketFromDbResult(market, { id: market.id, chain_id: chainId })),
       subgraph_data: sortQuestions(market),
       verification: verificationStatusList[market.id as `0x${string}`] ?? {
         status: "not_verified",
@@ -185,6 +188,17 @@ export default async () => {
   await updateImages();
 
   // Trigger rebuild if new markets were found
+  await triggerRebuildIfNeeded(shouldRebuild);
+
+  try {
+    await fetch("https://app.seer.pm/");
+    console.log("Pinged app.seer.pm to help prevent cold starts");
+  } catch (error) {
+    console.error("Error pinging app.seer.pm:", error);
+  }
+};
+
+async function triggerRebuildIfNeeded(shouldRebuild: boolean) {
   if (shouldRebuild) {
     if (!process.env.NETLIFY_BUILD_HOOK_ID) {
       console.error("NETLIFY_BUILD_HOOK_ID environment variable not set");
@@ -204,7 +218,7 @@ export default async () => {
       console.error("Error triggering rebuild:", error);
     }
   }
-};
+}
 
 export const config: Config = {
   schedule: "*/5 * * * *",

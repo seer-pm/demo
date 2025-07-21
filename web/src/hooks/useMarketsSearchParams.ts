@@ -18,9 +18,9 @@ function useMarketsSearchParams() {
   const categoryList = searchParams.getAll("category").length === 0 ? undefined : searchParams.getAll("category");
   const orderBy = (searchParams.get("orderBy") || undefined) as Market_OrderBy;
   const page = Number(searchParams.get("page") ?? 1);
-  const isShowMyMarkets = searchParams.get("myMarkets") === "true";
-  const isShowConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
-  const isShowMarketsWithRewards = searchParams.get("rewardsMarkets") === "true";
+  const showMyMarkets = searchParams.get("myMarkets") === "true";
+  const showConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
+  const showMarketsWithRewards = searchParams.get("rewardsMarkets") === "true";
   const orderDirection = (searchParams.get("orderDirection") || undefined) as "asc" | "desc";
   const minLiquidity = searchParams.get("minLiquidity") ? Number(searchParams.get("minLiquidity")) : 0;
 
@@ -186,9 +186,10 @@ function useMarketsSearchParams() {
     categoryList,
     orderBy,
     page,
-    isShowMyMarkets,
-    isShowConditionalMarkets,
-    isShowMarketsWithRewards,
+    limit: 24,
+    showMyMarkets,
+    showConditionalMarkets,
+    showMarketsWithRewards,
     orderDirection,
     minLiquidity,
 
@@ -210,8 +211,8 @@ function useMarketsSearchParams() {
       marketStatusList?.length ||
       chainsList?.length ||
       orderBy ||
-      isShowConditionalMarkets ||
-      isShowMarketsWithRewards ||
+      showConditionalMarkets ||
+      showMarketsWithRewards ||
       minLiquidity > 0,
   };
 }

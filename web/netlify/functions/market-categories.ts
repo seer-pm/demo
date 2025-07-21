@@ -1,4 +1,4 @@
-import { fetchMarket } from "@/lib/markets-search";
+import { fetchMarket } from "@/lib/markets-fetch";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
