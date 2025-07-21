@@ -10,8 +10,8 @@ import { QueryClient, dehydrate } from "@tanstack/react-query";
 import { Address } from "viem";
 
 // biome-ignore lint/suspicious/noExplicitAny:
-type QuerClientConfig = { queryKeyFn: () => any; data: any };
-function getQueryClient(config: QuerClientConfig[]) {
+type QueryClientConfig = { queryKeyFn: () => any; data: any };
+function getQueryClient(config: QueryClientConfig[]) {
   const queryClient = new QueryClient();
 
   for (const { queryKeyFn, data } of config) {
@@ -90,7 +90,8 @@ export default async function onBeforePrerenderStart() {
       page: 1,
     };
 
-    const homeMarkets: QuerClientConfig[] = (await useGraphMarketsQueryFn(homeParams)).markets
+    const homeMarkets = (await useGraphMarketsQueryFn(homeParams)).markets;
+    const homeMarketsConfig: QueryClientConfig[] = homeMarkets
       .filter((market) => market.url)
       .flatMap((market) => [
         {
@@ -107,7 +108,7 @@ export default async function onBeforePrerenderStart() {
         },
       ]);
 
-    const homePage: QuerClientConfig = {
+    const homePageConfig: QueryClientConfig = {
       queryKeyFn: () => getUseGraphMarketsKey(homeParams),
       data: homeMarkets,
     };
@@ -116,7 +117,7 @@ export default async function onBeforePrerenderStart() {
       url: "/",
       pageContext: {
         data: {},
-        dehydratedState: dehydrate(getQueryClient([homePage].concat(homeMarkets))),
+        dehydratedState: dehydrate(getQueryClient([homePageConfig].concat(homeMarketsConfig))),
       },
     });
 
