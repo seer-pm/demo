@@ -120,7 +120,7 @@ function sortMarkets(
       { column: "is_underlying_worthless", ascending: true },
       { column: "verification_priority", ascending: true },
       { column: "liquidity", ascending: false },
-      { column: "subgraph_data->>openingTs", ascending: true },
+      { column: "opening_ts", ascending: true },
     ];
   }
 
@@ -129,11 +129,11 @@ function sortMarkets(
   }
 
   if (orderBy === "creationDate") {
-    return [{ column: "subgraph_data->>blockTimestamp", ascending: orderDirection === "asc" }];
+    return [{ column: "block_timestamp", ascending: orderDirection === "asc" }];
   }
 
   // by opening date
-  return [{ column: "subgraph_data->>openingTs", ascending: orderDirection === "asc" }];
+  return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
 }
 
 function escapePostgrest(str: string): string {
