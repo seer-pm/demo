@@ -33,10 +33,10 @@ async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
 
 export default async function onBeforePrerenderStart() {
   try {
-    const { markets } = await fetchMarkets();
+    const { markets: allMarkets } = await fetchMarkets();
     const charts = await fetchCharts();
     // biome-ignore lint/suspicious/noExplicitAny:
-    const data: { url: string; pageContext: any }[] = markets
+    const data: { url: string; pageContext: any }[] = allMarkets
       .filter((market) => market.url && market.url.length < 120)
       .map((market) => {
         let description = "Efficient on-chain prediction markets.";
@@ -76,10 +76,12 @@ export default async function onBeforePrerenderStart() {
     const homeParams = {
       chainsList: [],
       marketName: "",
+      categoryList: [],
       marketStatusList: [],
       verificationStatusList: [],
-      showConditionalMarkets: undefined,
-      showMarketsWithRewards: undefined,
+      showConditionalMarkets: false,
+      showMarketsWithRewards: false,
+      minLiquidity: 0,
       creator: "" as const,
       participant: "" as const,
       orderBy: undefined,
@@ -90,7 +92,8 @@ export default async function onBeforePrerenderStart() {
       page: 1,
     };
 
-    const homeMarkets = (await useGraphMarketsQueryFn(homeParams)).markets;
+    const homeMarketsResult = await useGraphMarketsQueryFn(homeParams);
+    const homeMarkets = homeMarketsResult.markets;
     const homeMarketsConfig: QueryClientConfig[] = homeMarkets
       .filter((market) => market.url)
       .flatMap((market) => [
@@ -110,7 +113,7 @@ export default async function onBeforePrerenderStart() {
 
     const homePageConfig: QueryClientConfig = {
       queryKeyFn: () => getUseGraphMarketsKey(homeParams),
-      data: homeMarkets,
+      data: homeMarketsResult,
     };
 
     data.push({
