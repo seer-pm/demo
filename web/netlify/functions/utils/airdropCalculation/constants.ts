@@ -37,8 +37,7 @@ export const SUBGRAPHS = {
   tokens: {
     [gnosis.id]:
       "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
-    [mainnet.id]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/D1bjzs39GBk5HDrNm5ui27TDpX6pMqp8omUCRr79CjSQ",
+    [mainnet.id]: "https://api.studio.thegraph.com/query/101341/seer-outcome-tokens-mainnet/version/latest",
   },
   poh: {
     [gnosis.id]:
@@ -55,6 +54,7 @@ export const SUBGRAPHS = {
       "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV",
   },
   bunniLpPositionMainnet: {
-    [mainnet.id]: "https://api.studio.thegraph.com/query/101341/seer-lp-tokens-mainnet/version/latest",
+    [mainnet.id]:
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/8necVcWSBJk7mj7VHPEKjbwXoKKH3C938tJCjNjQctrp",
   },
 };
