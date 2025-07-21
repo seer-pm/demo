@@ -191,7 +191,7 @@ export default async () => {
   await triggerRebuildIfNeeded(shouldRebuild);
 
   try {
-    await fetch("https://app.seer.pm");
+    await fetch("https://app.seer.pm/");
     console.log("Pinged app.seer.pm to help prevent cold starts");
   } catch (error) {
     console.error("Error pinging app.seer.pm:", error);
