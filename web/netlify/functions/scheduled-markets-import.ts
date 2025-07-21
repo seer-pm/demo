@@ -188,6 +188,17 @@ export default async () => {
   await updateImages();
 
   // Trigger rebuild if new markets were found
+  await triggerRebuildIfNeeded(shouldRebuild);
+
+  try {
+    await fetch("https://app.seer.pm");
+    console.log("Pinged app.seer.pm to help prevent cold starts");
+  } catch (error) {
+    console.error("Error pinging app.seer.pm:", error);
+  }
+};
+
+async function triggerRebuildIfNeeded(shouldRebuild: boolean) {
   if (shouldRebuild) {
     if (!process.env.NETLIFY_BUILD_HOOK_ID) {
       console.error("NETLIFY_BUILD_HOOK_ID environment variable not set");
@@ -207,7 +218,7 @@ export default async () => {
       console.error("Error triggering rebuild:", error);
     }
   }
-};
+}
 
 export const config: Config = {
   schedule: "*/5 * * * *",

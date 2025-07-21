@@ -198,6 +198,10 @@ export type Database = {
           liquidity: number | null;
           metadata: Json | null;
           odds: number[] | null;
+          opening_ts: number | null;
+          parent_outcome: string | null;
+          payout_numerators_value: number | null;
+          payout_reported: boolean | null;
           pool_balance: Json;
           status: string | null;
           subgraph_data: Json | null;
@@ -217,6 +221,10 @@ export type Database = {
           liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
+          opening_ts?: number | null;
+          parent_outcome?: string | null;
+          payout_numerators_value?: number | null;
+          payout_reported?: boolean | null;
           pool_balance?: Json;
           status?: string | null;
           subgraph_data?: Json | null;
@@ -236,6 +244,10 @@ export type Database = {
           liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
+          opening_ts?: number | null;
+          parent_outcome?: string | null;
+          payout_numerators_value?: number | null;
+          payout_reported?: boolean | null;
           pool_balance?: Json;
           status?: string | null;
           subgraph_data?: Json | null;
@@ -269,6 +281,27 @@ export type Database = {
           event_id?: string;
           id?: number;
           sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      ser_lpp_balances: {
+        Row: {
+          address: string;
+          balance: number;
+          chain_id: number;
+          id: string;
+        };
+        Insert: {
+          address: string;
+          balance: number;
+          chain_id: number;
+          id: string;
+        };
+        Update: {
+          address?: string;
+          balance?: number;
+          chain_id?: number;
+          id?: string;
         };
         Relationships: [];
       };
@@ -333,8 +366,12 @@ export type Database = {
     Views: {
       markets_search: {
         Row: {
+          block_timestamp: number | null;
           categories: string[] | null;
           chain_id: number | null;
+          chart_data: Json | null;
+          collections_names: string | null;
+          created_at: string | null;
           creator: string | null;
           id: string;
           images: Json | null;
@@ -342,12 +379,20 @@ export type Database = {
           is_closed: number | null;
           is_underlying_worthless: number | null;
           liquidity: number | null;
+          market_name: string | null;
           metadata: Json | null;
           odds: number[] | null;
+          opening_ts: number | null;
+          outcomes: Json | null;
+          outcomes_text: string | null;
           parent_market: Json | null;
+          parent_outcome: string | null;
+          payout_numerators_value: number | null;
+          payout_reported: boolean | null;
           pool_balance: Json;
           status: string | null;
           subgraph_data: Json | null;
+          updated_at: string | null;
           url: string | null;
           verification: Json | null;
           verification_priority: number | null;
@@ -365,6 +410,38 @@ export type Database = {
           current_month_seer_tokens: number;
           total_seer_tokens: number;
         }[];
+      };
+      gtrgm_compress: {
+        Args: { "": unknown };
+        Returns: unknown;
+      };
+      gtrgm_decompress: {
+        Args: { "": unknown };
+        Returns: unknown;
+      };
+      gtrgm_in: {
+        Args: { "": unknown };
+        Returns: unknown;
+      };
+      gtrgm_options: {
+        Args: { "": unknown };
+        Returns: undefined;
+      };
+      gtrgm_out: {
+        Args: { "": unknown };
+        Returns: unknown;
+      };
+      set_limit: {
+        Args: { "": number };
+        Returns: number;
+      };
+      show_limit: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      show_trgm: {
+        Args: { "": string };
+        Returns: string[];
       };
     };
     Enums: {
