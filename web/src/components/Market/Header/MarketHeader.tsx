@@ -49,12 +49,7 @@ function OutcomesInfo({
   outcomesCount = 0,
   images = [],
   marketStatus,
-}: {
-  market: Market;
-  outcomesCount?: number;
-  images?: string[];
-  marketStatus?: MarketStatus;
-}) {
+}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
 
   const { data: odds = [] } = useMarketOdds(market, false);
@@ -132,11 +127,7 @@ export function PoolTokensInfo({
   market,
   marketStatus,
   type,
-}: {
-  market: Market;
-  marketStatus: MarketStatus;
-  type: "default" | "preview" | "small";
-}) {
+}: { market: Market; marketStatus: MarketStatus; type: "default" | "preview" | "small" }) {
   const { data: odds = [] } = useMarketOdds(market, type === "default");
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
@@ -292,9 +283,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(
-                  parentMarket.outcomes[Number(market.parentOutcome)],
-                )}`}
+                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(parentMarket.outcomes[Number(market.parentOutcome)])}`}
                 target="_blank"
                 className="text-purple-primary font-medium"
               >
@@ -385,7 +374,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className="flex items-center gap-2">
             {market.incentive > 0 && (
               <div className="tooltip">
-                <p className="tooltiptext">Reward: {incentive} SEER/day</p>
+                <p className="tooltiptext">
+                  Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
+                </p>
                 <PresentIcon width="16px" />
               </div>
             )}

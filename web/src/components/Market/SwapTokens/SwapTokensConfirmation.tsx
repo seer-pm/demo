@@ -50,9 +50,9 @@ export function SwapTokensConfirmation({
   outputToken = outputToken?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
-    ? (Number(outputAmount) / Number(inputAmount)).toFixed(6)
+    ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)
     : price;
-  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(6) : invertedPrice;
+  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(2) : invertedPrice;
 
   return (
     <div className="flex flex-col justify-center items-center">

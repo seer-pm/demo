@@ -27,7 +27,7 @@ const chartOptions = {
     dayCount: 30,
     interval: 60 * 60 * 3,
   },
-  All: { dayCount: 365 * 10, interval: 60 * 60 * 12 },
+  All: { dayCount: 365 * 10, interval: 60 * 30 },
 };
 
 type ChartOptionPeriod = keyof typeof chartOptions;
@@ -326,9 +326,7 @@ function MarketChart({ market }: { market: Market }) {
             >
               {!startDate && !endDate
                 ? "Custom"
-                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
-                    endDate ? format(endDate, "MMM d, yyyy") : "_"
-                  }`}
+                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${endDate ? format(endDate, "MMM d, yyyy") : "_"}`}
             </button>
             {isShowDateRangePicker && (
               <div className="absolute left-0 top-[60px] z-10">
