@@ -34,6 +34,9 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
       }),
     });
     const json = await results.json();
+    if (json.errors?.length) {
+      throw json.errors[0].message;
+    }
     const requests = json?.data?.requests ?? [];
     allRequests = allRequests.concat(requests);
 

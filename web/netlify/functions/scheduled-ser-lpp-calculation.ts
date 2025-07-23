@@ -9,7 +9,7 @@ export default async (req: Request) => {
     const { next_run } = await req.json();
     console.log("Received event! Next invocation at:", next_run);
     await fetch(
-      process.env.AIRDROP_CALCULATION_URL ?? "http://app.seer.pm/.netlify/functions/airdrop-calculation-background",
+      process.env.SER_LPP_CALCULATION_URL ?? "http://app.seer.pm/.netlify/functions/ser-lpp-calculation-background",
     );
   } catch (e) {
     console.log(e);
@@ -17,5 +17,5 @@ export default async (req: Request) => {
 };
 
 export const config: Config = {
-  schedule: "0 */4 * * *",
+  schedule: "0 */12 * * *",
 };

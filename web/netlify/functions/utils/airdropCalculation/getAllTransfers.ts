@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import ethers, { BigNumber } from "ethers";
-import { getSubgraphUrl } from "../subgraph";
+import { gnosis } from "viem/chains";
 import { SUBGRAPHS } from "./constants";
 
 export interface Transfer {
@@ -20,9 +20,7 @@ export async function getAllTransfers(chainId: SupportedChain) {
   let currentTimestamp = undefined;
   while (true) {
     const query: string = `{
-              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${
-                currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}"}` : ""
-              }) {
+              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}"}` : ""}) {
                 id
                 from
                 to
@@ -44,6 +42,56 @@ export async function getAllTransfers(chainId: SupportedChain) {
       }),
     });
     const json = await results.json();
+    if (json.errors?.length) {
+      throw json.errors[0].message;
+    }
+    const transfers = json?.data?.transfers ?? [];
+    allTransfers = allTransfers.concat(transfers);
+
+    if (transfers[transfers.length - 1]?.timestamp === currentTimestamp) {
+      break;
+    }
+    if (transfers.length < 1000) {
+      break; // We've fetched all
+    }
+    currentTimestamp = transfers[transfers.length - 1]?.timestamp;
+  }
+  return allTransfers;
+}
+
+export async function getAllFutarchyTransfers(chainId: SupportedChain) {
+  if (chainId !== gnosis.id) {
+    return [];
+  }
+  let allTransfers: Transfer[] = [];
+  let currentTimestamp = undefined;
+  while (true) {
+    const query: string = `{
+              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}"}` : ""}) {
+                id
+                from
+                to
+                token {
+                    id
+                }
+                timestamp
+                blockNumber
+                value
+              }
+            }`;
+    const results = await fetch(SUBGRAPHS["futarchy"][100], {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+      }),
+    });
+    const json = await results.json();
+    if (json.errors?.length) {
+      throw json.errors[0].message;
+    }
     const transfers = json?.data?.transfers ?? [];
     allTransfers = allTransfers.concat(transfers);
 
