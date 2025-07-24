@@ -1,5 +1,6 @@
 import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains";
+import { FAST_TESTNET_FACTORY } from "@/lib/constants";
 import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
@@ -194,8 +195,17 @@ export async function searchMarkets(
     );
   }
 
+  // exclude futarchy markets
+  query = query.eq("subgraph_data->>type", "Generic");
+
   if (marketIds?.length) {
     query = query.in("id", marketIds);
+  }
+
+  if (process.env.VITE_IS_FAST_TESTNET) {
+    query = query.eq("subgraph_data->>factory", FAST_TESTNET_FACTORY);
+  } else {
+    query = query.neq("subgraph_data->>factory", FAST_TESTNET_FACTORY);
   }
 
   if (categoryList?.length) {
@@ -254,6 +264,13 @@ export async function searchMarkets(
   const { data, count, error } = await query;
 
   if (error) {
+    // If the error is PGRST103 (Requested range not satisfiable), return empty results
+    if (error.code === "PGRST103") {
+      return {
+        markets: [],
+        count: 0,
+      };
+    }
     throw error;
   }
 
