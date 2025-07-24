@@ -6,7 +6,7 @@ const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
 export type SupportedChain = (typeof chainIds)[number];
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "reality";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmY8H9jhz4K4gXuNsvnerSKKzHUBdTekCkHEvxkA7A8wzh`,
@@ -24,6 +24,9 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
   },
   uniswap: {
     [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  },
+  reality: {
+    [gnosis.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh`,
   },
 };
 
@@ -47,6 +50,11 @@ const schemasAndDocuments = [
     type: "uniswap",
     schema: SUBGRAPHS.uniswap[mainnet.id]!,
     documents: "./src/queries/uniswap.graphql",
+  },
+  {
+    type: "reality",
+    schema: SUBGRAPHS.reality[gnosis.id]!,
+    documents: "./src/queries/reality.graphql",
   },
 ];
 
