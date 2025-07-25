@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
+import { futarchyRouterAbi } from "./contracts/generated-router";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface SplitPositionProps {
@@ -25,6 +26,22 @@ function splitFromRouter(
   market: Market,
   amount: bigint,
 ): Execution {
+  if (market.type === "Futarchy") {
+    // futarchy markets have two collateral tokens
+    if (!collateralToken) {
+      throw new Error("Missing collateral token to split");
+    }
+    return {
+      to: router,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: futarchyRouterAbi,
+        functionName: "splitPosition",
+        args: [market.id, collateralToken, amount],
+      }),
+    };
+  }
+
   if (collateralToken) {
     // split from the market's main collateral (sDAI)
     return {

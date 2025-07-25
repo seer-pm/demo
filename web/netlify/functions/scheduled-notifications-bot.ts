@@ -134,7 +134,7 @@ async function processChain(chainId: SupportedChain, botToken: string) {
         question.best_answer = data.answer;
 
         return `Question: ${decodedQuestion.question}\n
-Answer: ${getAnswerText(question, data.outcomes, BigInt(data.templateId))}\n
+Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
 <a href="${getRealityLink(chainId, data.question.id)}">Check on Reality</a>\n
 <a href="https://app.seer.pm/markets/${chainId}/${data.url}">Check on Seer</a>`;
       });

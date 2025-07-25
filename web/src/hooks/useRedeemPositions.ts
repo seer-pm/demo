@@ -13,6 +13,7 @@ import {
   gnosisRouterAbi,
   mainnetRouterAbi,
 } from "./contracts/generated-router";
+import { futarchyRouterAbi, futarchyRouterAddress } from "./contracts/generated-router";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
@@ -26,6 +27,10 @@ interface RedeemPositionProps {
 }
 
 export function getRedeemRouter(isRedeemToParentCollateral: boolean, market: Market) {
+  if (market.type === "Futarchy") {
+    // @ts-ignore
+    return futarchyRouterAddress[market.chainId];
+  }
   return isRedeemToParentCollateral ? conditionalRouterAddress[market.chainId] : getRouterAddress(market);
 }
 
@@ -38,6 +43,18 @@ function redeemFromRouter(
   amounts: bigint[],
 ) {
   const router = getRedeemRouter(isRedeemToParentCollateral, market);
+
+  if (market.type === "Futarchy") {
+    return {
+      to: router,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: futarchyRouterAbi,
+        functionName: "redeemProposal",
+        args: [market.id, amounts[0], amounts[1]],
+      }),
+    };
+  }
 
   if (isRedeemToParentCollateral) {
     // redeen to the market's parent outcome

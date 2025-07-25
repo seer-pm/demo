@@ -75,6 +75,7 @@ export default async function onBeforePrerenderStart() {
     // on the homepage we want to dehydrate the full list + the individual markets to preload each market page too
     const homeParams = {
       chainsList: [],
+      type: "Generic" as const,
       marketName: "",
       categoryList: [],
       marketStatusList: [],

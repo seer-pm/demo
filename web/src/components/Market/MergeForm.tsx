@@ -26,6 +26,17 @@ interface MergeFormProps {
   market: Market;
 }
 
+function getMergePositions(market: Market, useAltCollateral: boolean): Address[] {
+  if (market.type === "Generic") {
+    return market.wrappedTokens;
+  }
+
+  // in a futarchy market we merge the first or the last two tokens
+  return !useAltCollateral
+    ? [market.wrappedTokens[0], market.wrappedTokens[1]]
+    : [market.wrappedTokens[2], market.wrappedTokens[3]];
+}
+
 export function MergeForm({ account, market }: MergeFormProps) {
   const router = getRouterAddress(market);
 
@@ -69,7 +80,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
   } = useMergePositions(
     {
-      tokensAddresses: market.wrappedTokens,
+      tokensAddresses: getMergePositions(market, useAltCollateral),
       account,
       spender: router,
       amounts: parsedAmount,

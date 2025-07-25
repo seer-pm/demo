@@ -15,9 +15,11 @@ function createConditionalEvent(
   blockNumber: BigInt,
   collateral: Address,
   transactionHash: Bytes,
-  logIndex: BigInt,
+  logIndex: BigInt
 ): void {
-  const conditionalEvent = new ConditionalEvent(transactionHash.concatI32(logIndex.toI32()));
+  const conditionalEvent = new ConditionalEvent(
+    transactionHash.concatI32(logIndex.toI32())
+  );
   conditionalEvent.market = marketId;
   conditionalEvent.accountId = accountId;
   conditionalEvent.type = type;
@@ -103,10 +105,13 @@ const redeemMethods: MethodSignature[] = [
   },
 ];
 
-function getMethodSignature(methods: MethodSignature[], methodId: string): MethodSignature | null {
-  for(let i = 0; i < methods.length; i++) {
+function getMethodSignature(
+  methods: MethodSignature[],
+  methodId: string
+): MethodSignature | null {
+  for (let i = 0; i < methods.length; i++) {
     if (methods[i].signature == methodId) {
-      return methods[i]
+      return methods[i];
     }
   }
   return null;
@@ -114,7 +119,7 @@ function getMethodSignature(methods: MethodSignature[], methodId: string): Metho
 
 function getMarketFromTx(
   txInput: Bytes,
-  methods: MethodSignature[],
+  methods: MethodSignature[]
 ): Market | null {
   const methodId = Bytes.fromUint8Array(txInput.slice(0, 4)).toHexString();
   const matchingMethod = getMethodSignature(methods, methodId);
@@ -122,7 +127,10 @@ function getMarketFromTx(
     return null;
   }
   const startIndex: i32 = matchingMethod.marketParamPos * 32 + 4;
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32)));
+  const decodedMarket = ethereum.decode(
+    "address",
+    Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32))
+  );
   if (!decodedMarket) {
     return null;
   }
@@ -171,7 +179,7 @@ export function handlePositionSplit(evt: PositionSplit): void {
     evt.block.number,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 
@@ -205,7 +213,7 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     evt.block.number,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 
@@ -239,7 +247,7 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     evt.block.number,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 
