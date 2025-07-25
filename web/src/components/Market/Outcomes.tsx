@@ -1,14 +1,6 @@
 import { Link } from "@/components/Link";
-import { useDepositNft, useEnterFarming, useExitFarming, useWithdrawNft } from "@/hooks/useFarmingCenter";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import {
-  NftPosition,
-  PoolIncentive,
-  PoolInfo,
-  useMarketPools,
-  useNftPositions,
-  usePoolsDeposits,
-} from "@/hooks/useMarketPools";
+import { NftPosition, PoolInfo, useMarketPools, useNftPositions, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
@@ -16,7 +8,7 @@ import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { SWAPR_CONFIG, getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
+import { getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { getMarketStatus, isOdd } from "@/lib/market";
@@ -39,6 +31,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { DisplayOdds } from "./DisplayOdds";
+import { FarmingActions } from "./FarmingActions";
 import { OutcomeImage } from "./OutcomeImage";
 import PoolDetails from "./PoolDetails/PoolDetails";
 
@@ -104,61 +97,6 @@ function AddLiquidityInfo({
       .map((x) => x.id),
   );
 
-  const enterFarming = useEnterFarming();
-  const exitFarming = useExitFarming();
-  const depositNft = useDepositNft();
-  const withdrawNft = useWithdrawNft();
-
-  const enterFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
-    return async () => {
-      await enterFarming.mutateAsync({
-        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        rewardToken: poolIncentive.rewardToken,
-        bonusRewardToken: poolIncentive.bonusRewardToken,
-        pool: poolInfo.id,
-        startTime: poolIncentive.startTime,
-        endTime: poolIncentive.endTime,
-        tokenId: BigInt(tokenId),
-      });
-    };
-  };
-
-  const exitFarmingHandler = (poolInfo: PoolInfo, poolIncentive: PoolIncentive, tokenId: string) => {
-    return async () => {
-      await exitFarming.mutateAsync({
-        account: address!,
-        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        rewardToken: poolIncentive.rewardToken,
-        bonusRewardToken: poolIncentive.bonusRewardToken,
-        pool: poolInfo.id,
-        startTime: poolIncentive.startTime,
-        endTime: poolIncentive.endTime,
-        tokenId: BigInt(tokenId),
-      });
-    };
-  };
-
-  const depositHandler = (tokenId: string) => {
-    return async () => {
-      await depositNft.mutateAsync({
-        nonFungiblePositionManager: SWAPR_CONFIG[chainId]?.NON_FUNGIBLE_POSITION_MANAGER!,
-        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        account: address!,
-        tokenId: BigInt(tokenId),
-      });
-    };
-  };
-
-  const withdrawHandler = (tokenId: string) => {
-    return async () => {
-      await withdrawNft.mutateAsync({
-        farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
-        account: address!,
-        tokenId: BigInt(tokenId),
-      });
-    };
-  };
-  const isLoading = enterFarming.isPending || exitFarming.isPending || depositNft.isPending || withdrawNft.isPending;
   return (
     <div>
       <Alert type="info" title="Farming Rewards">
@@ -221,47 +159,15 @@ function AddLiquidityInfo({
                             )}
                           </div>
                           <div>
-                            {!deposit.onFarmingCenter && !isRewardEnded && (
-                              <Button
-                                text="Deposit NFT"
-                                size="small"
-                                variant="secondary"
-                                onClick={depositHandler(deposit.id)}
-                                disabled={isLoading}
+                            {address && (
+                              <FarmingActions
+                                account={address}
+                                chainId={chainId}
+                                deposit={deposit}
+                                pool={pool}
+                                isRewardEnded={isRewardEnded}
                               />
                             )}
-                            {deposit.onFarmingCenter &&
-                              (deposit.limitFarming === null && deposit.eternalFarming === null ? (
-                                <div className="flex items-center gap-2 flex-wrap justify-end">
-                                  <Button
-                                    text="Withdraw NFT"
-                                    size="small"
-                                    variant="secondary"
-                                    onClick={withdrawHandler(deposit.id)}
-                                    disabled={isLoading}
-                                  />
-                                  <div className="tooltip">
-                                    <Button
-                                      text="Enter Farming"
-                                      size="small"
-                                      variant="secondary"
-                                      onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                                      disabled={isLoading || isRewardEnded}
-                                    />
-                                    {isRewardEnded && (
-                                      <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <Button
-                                  text="Exit Farming"
-                                  size="small"
-                                  variant="secondary"
-                                  onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
-                                  disabled={isLoading}
-                                />
-                              ))}
                           </div>
                         </div>
                         {nftPositionMapping?.[deposit.id] && !isRewardEnded && isFarming && (
