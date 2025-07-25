@@ -12,11 +12,10 @@ import {
   TradeType,
   UniswapTrade,
 } from "@swapr/sdk";
-import pLimit from "p-limit";
 import { Address, parseUnits, zeroAddress } from "viem";
+import { SupportedChain } from "./chains";
+import { COLLATERAL_TOKENS } from "./config";
 import { Token } from "./tokens";
-
-const limit = pLimit(1);
 
 export interface QuoteTradeResult {
   value: bigint;
@@ -61,19 +60,24 @@ export function getSwaprTrade(
   currencyAmountIn: CurrencyAmount,
   maximumSlippage: Percent,
   account: Address | undefined,
-  _chainId: number,
+  chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  return limit(async () => {
-    const quoteResult = await SwaprV3Trade.getQuote({
+  const isSingleHop =
+    isTwoStringsEqual(
+      currencyAmountIn.currency.address,
+      COLLATERAL_TOKENS[chainId as SupportedChain].primary.address,
+    ) || isTwoStringsEqual(currencyOut.address, COLLATERAL_TOKENS[chainId as SupportedChain].primary.address);
+  return SwaprV3Trade.getQuote(
+    {
       amount: currencyAmountIn,
       quoteCurrency: currencyOut,
       maximumSlippage,
       recipient: account || zeroAddress,
       tradeType: TradeType.EXACT_INPUT,
-    });
-    await new Promise((res) => setTimeout(res, 300));
-    return quoteResult;
-  });
+    },
+    undefined,
+    isSingleHop,
+  );
 }
 
 function getCurrenciesFromTokens(
@@ -233,7 +237,6 @@ export const getSwaprQuote: QuoteTradeFn = async (
   if (!trade) {
     throw new Error("No route found");
   }
-
   return {
     value: BigInt(trade.outputAmount.raw.toString()),
     decimals: args.sellToken.decimals,

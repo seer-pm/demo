@@ -3,12 +3,12 @@ import { SupportedChain, gnosis, mainnet, sepolia } from "./utils/types.ts";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh";
+export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh" | "reality";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
     [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
-    [sepolia.id]: "https://api.studio.thegraph.com/query/74975/seer-pm-sepolia/version/latest",
+    [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
     // TODO: add fallback urls? or change subgraph?
@@ -36,6 +36,9 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
       "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/FFx16fGNSpdq2TpQer3KqpadP8UaLELS4Jocd1LtwAmG",
     [mainnet.id]:
       "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/8oHw9qNXdeCT2Dt4QPZK9qHZNAhPWNVrCKnFDarYEJF5",
+  },
+  reality: {
+    [gnosis.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh`,
   },
 };
 

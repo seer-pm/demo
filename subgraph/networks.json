@@ -4,15 +4,11 @@
       "address": "0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1",
       "startBlock": 36404701
     },
+    "MarketFactoryFast": {
+      "address": "0x1246C7E5Ac59BA73A45a62E3081b548F02F58e90",
+      "startBlock": 41143123
+    },
     "FutarchyFactory": {
-      "address": "0xEcFbc2272c85DEe97D7816CB25A4fFB80230942F",
-      "startBlock": 37353745
-    },
-    "FutarchyFactoryV2": {
-      "address": "0xe789e4A240d153AC55e32106821e785E71f6b792",
-      "startBlock": 38042685
-    },
-    "FutarchyFactoryV3": {
       "address": "0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345",
       "startBlock": 38290244
     },
@@ -42,6 +38,14 @@
       "address": "0x1F728c2fD6a3008935c1446a965a313E657b7904",
       "startBlock": 20894990
     },
+    "MarketFactoryFast": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 41143123
+    },
+    "FutarchyFactory": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 38290244
+    },
     "Reality": {
       "address": "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
       "startBlock": 20894990
@@ -67,6 +71,14 @@
     "MarketFactory": {
       "address": "0x221456ACFD185EE168052B3DA899939303775C7a",
       "startBlock": 6992825
+    },
+    "MarketFactoryFast": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 41143123
+    },
+    "FutarchyFactory": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 38290244
     },
     "Reality": {
       "address": "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA",

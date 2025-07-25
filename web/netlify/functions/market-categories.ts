@@ -1,9 +1,9 @@
-import { fetchMarket } from "@/lib/markets-search";
+import { fetchMarket } from "@/lib/markets-fetch";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export default async (req: Request) => {
   try {

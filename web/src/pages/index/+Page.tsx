@@ -13,10 +13,10 @@ function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; para
   params.type = isFutarchyPage ? "Futarchy" : "Generic";
   const results = useMarkets(params);
   const {
-    data: markets = [],
+    data,
     isPending,
     pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterResults(params, results);
+  } = useSortAndFilterResults(results);
 
   return (
     <div>
@@ -34,10 +34,10 @@ function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; para
           </div>
         )}
 
-        {!isPending && markets.length === 0 && <Alert type="warning">No results found.</Alert>}
+        {!isPending && data.markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
         <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
-          {markets.map((market) => (
+          {data.markets.map((market) => (
             <PreviewCard key={market.id} market={market} />
           ))}
         </div>

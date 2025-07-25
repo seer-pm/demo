@@ -3,7 +3,7 @@ import * as postmark from "postmark";
 import { verifyToken } from "./utils/auth";
 import { FROM_EMAIL } from "./utils/common";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!);
 
 export default async (req: Request) => {

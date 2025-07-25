@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { sepolia } from "viem/chains";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export default async () => {
   try {

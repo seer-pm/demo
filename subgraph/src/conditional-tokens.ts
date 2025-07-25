@@ -56,7 +56,7 @@ const splitMethods: MethodSignature[] = [
     name: "splitPosition",
     signature: "0x21816254",
     marketParamPos: 0,
-  }
+  },
 ];
 
 const mergeMethods: MethodSignature[] = [
@@ -79,7 +79,7 @@ const mergeMethods: MethodSignature[] = [
     name: "mergePositions",
     signature: "0xaab8ff62",
     marketParamPos: 0,
-  }
+  },
 ];
 
 const redeemMethods: MethodSignature[] = [
@@ -102,7 +102,7 @@ const redeemMethods: MethodSignature[] = [
     name: "redeemProposal",
     signature: "0x3f325a2b",
     marketParamPos: 0,
-  }
+  },
 ];
 
 function getMethodSignature(

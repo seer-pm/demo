@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 function parseCollectionId(url: string) {
   const idOrSlug = url.split("/")[url.split("/").indexOf("collections") + 1] || "";

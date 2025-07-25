@@ -25,9 +25,6 @@ export default function Footer() {
         <a href={paths.github()} target="_blank" rel="noopener noreferrer">
           <GithubIcon />
         </a>
-        {/* <a href={paths.telegram()} target="_blank" rel="noopener noreferrer">
-          <TelegramIcon />
-        </a>  */}
       </div>
     </div>
   );

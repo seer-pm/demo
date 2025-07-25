@@ -106,6 +106,52 @@ EOF
 fi
 cat <<EOF >> subgraph.yaml 
   - kind: ethereum
+    name: MarketFactoryFast
+    network: gnosis
+    source:
+      abi: MarketFactory
+      address: "0x1246C7E5Ac59BA73A45a62E3081b548F02F58e90"
+      startBlock: 41143123
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities: []
+      abis:
+        - name: MarketFactory
+          file: ./abis/MarketFactory.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+        - name: MarketView
+          file: ./abis/MarketView.json
+      eventHandlers:
+        - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
+          handler: handleNewMarket
+      file: ./src/market-factory.ts
+  - kind: ethereum
+    name: FutarchyFactory
+    network: gnosis
+    source:
+      abi: FutarchyFactory
+      address: "0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345"
+      startBlock: 38290244
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities: []
+      abis:
+        - name: FutarchyFactory
+          file: ./abis/FutarchyFactory.json
+        - name: Reality
+          file: ./abis/Realitiy.json
+        - name: FutarchyProposal
+          file: ./abis/FutarchyProposal.json
+      eventHandlers:
+        - event: NewProposal(indexed address,string,bytes32,bytes32)
+          handler: handleNewProposal
+      file: ./src/market-factory.ts
+  - kind: ethereum
     name: Reality
     network: gnosis
     source:

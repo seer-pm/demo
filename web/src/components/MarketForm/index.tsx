@@ -3,6 +3,7 @@ import { FieldValues, UseFormReturn } from "react-hook-form";
 import { Address } from "viem";
 
 export const MISC_CATEGORY = "misc";
+export const WEATHER_CATEGORY = "weather";
 
 export const MARKET_CATEGORIES: { value: string; text: string }[] = [
   { value: "elections", text: "Elections" },
@@ -13,7 +14,8 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
   { value: "pop_culture", text: "Pop Culture" },
   { value: "sports", text: "Sports" },
   { value: "doge", text: "DOGE" },
-  { value: "misc", text: "Miscellaneous" },
+  { value: MISC_CATEGORY, text: "Miscellaneous" },
+  { value: WEATHER_CATEGORY, text: "Weather" },
 ];
 
 interface GetImagesReturn {

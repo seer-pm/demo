@@ -5,7 +5,7 @@ import { Address, privateKeyToAccount } from "viem/accounts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
 
-const supabase = createClient<Database>(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export default async () => {
   const chainId = 100;

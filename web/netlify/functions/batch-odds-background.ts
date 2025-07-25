@@ -7,7 +7,7 @@ import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 import { searchMarkets } from "./utils/markets";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export default async () => {
   try {
@@ -16,7 +16,7 @@ export default async () => {
     // ignore markets finalized more than two days ago
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
-    const markets = (await searchMarkets(chainIds.map((c) => c))).filter((market) => {
+    const markets = (await searchMarkets(chainIds.map((c) => c))).markets.filter((market) => {
       return market.finalizeTs > twoDaysAgo;
     });
 

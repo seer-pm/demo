@@ -5,7 +5,7 @@ import slug from "slug";
 import { Address } from "viem";
 import { chainIds } from "./utils/config.ts";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 type MarketData = { id: Address; marketName: string };
 

@@ -1,7 +1,7 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { Market, VerificationStatus } from "@/lib/market";
+import { VerificationStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { MarketsResult, fetchMarkets } from "@/lib/markets-fetch";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -48,11 +48,16 @@ const useOnChainMarkets = (
     .filter((chain) => chain !== "31337")
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
-  return useQuery<Market[] | undefined, Error>({
+  return useQuery<MarketsResult, Error>({
     queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
     enabled: !disabled,
     queryFn: async () => {
-      return (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
+      const markets = (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
+      return {
+        markets,
+        count: markets.length,
+        pages: 1,
+      };
     },
   });
 };
@@ -61,28 +66,35 @@ export type UseGraphMarketsParams = {
   chainsList: Array<string | "all">;
   type: "Generic" | "Futarchy" | "";
   marketName: string;
+  categoryList?: string[];
   marketStatusList: MarketStatus[] | undefined;
+  verificationStatusList: VerificationStatus[] | undefined;
+  showConditionalMarkets: boolean | undefined;
+  showMarketsWithRewards: boolean | undefined;
+  minLiquidity?: number;
   creator: Address | "";
   participant: Address | "";
   orderBy: Market_OrderBy | undefined;
   orderDirection: "asc" | "desc" | undefined;
   marketIds: string[] | undefined;
   disabled: boolean | undefined;
+  limit: number | undefined;
+  page: number | undefined;
 };
 
 export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
 
 export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
-  const markets = await fetchMarkets(params);
-  for (const market of markets) {
+  const result = await fetchMarkets(params);
+  for (const market of result.markets) {
     queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
   }
 
-  return markets;
+  return result;
 };
 
 function useGraphMarkets(params: UseGraphMarketsParams) {
-  return useQuery<Market[], Error>({
+  return useQuery<MarketsResult, Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
@@ -102,19 +114,26 @@ export interface UseMarketsProps {
   creator?: Address | "";
   participant?: Address | "";
   orderBy?: Market_OrderBy;
-  isShowMyMarkets?: boolean;
-  isShowConditionalMarkets?: boolean;
-  isShowMarketsWithRewards?: boolean;
+  showMyMarkets?: boolean;
+  showConditionalMarkets?: boolean;
+  showMarketsWithRewards?: boolean;
   minLiquidity?: number;
   orderDirection?: "asc" | "desc";
   marketIds?: string[];
   disabled?: boolean;
+  limit?: number;
+  page?: number;
 }
 
 export const useMarkets = ({
   type = "",
   marketName = "",
+  categoryList = [],
   marketStatusList = [],
+  verificationStatusList = [],
+  showConditionalMarkets,
+  showMarketsWithRewards,
+  minLiquidity,
   chainsList = [],
   creator = "",
   participant = "",
@@ -122,19 +141,28 @@ export const useMarkets = ({
   orderDirection,
   marketIds,
   disabled,
+  limit,
+  page,
 }: UseMarketsProps) => {
   const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
   const graphMarkets = useGraphMarkets({
     chainsList,
     type,
     marketName,
+    categoryList,
     marketStatusList,
+    verificationStatusList,
+    showConditionalMarkets,
+    showMarketsWithRewards,
+    minLiquidity,
     creator,
     participant,
     orderBy,
     orderDirection,
     marketIds,
     disabled,
+    limit,
+    page,
   });
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph

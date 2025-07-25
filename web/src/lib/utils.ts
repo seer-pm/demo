@@ -23,16 +23,16 @@ export const isUndefined = (maybeObject: any): maybeObject is undefined | null =
   return typeof maybeObject === "undefined" || maybeObject === null;
 };
 
-export function formatBigNumbers(amount: number) {
+export function formatBigNumbers(amount: number): string {
   const quantifiers: [number, string][] = [
-    [10 ** 9, "B"],
-    [10 ** 6, "M"],
-    [10 ** 3, "k"],
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "k"],
   ];
 
   for (const [denominator, letter] of quantifiers) {
     if (amount >= denominator) {
-      return `${+Math.round((amount * 100) / denominator / 100)}${letter}`;
+      return `${(amount / denominator).toFixed(2)}${letter}`;
     }
   }
 

@@ -27,8 +27,8 @@ export function LimitOrderConfirmation({
 }: LimitOrderConfirmation) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const { buyAmount: buyAmountBigInt, sellAmount: sellAmountBigInt, validTo, partiallyFillable } = order;
-  const buyAmount = Number(formatUnits(BigInt(buyAmountBigInt), 18)).toFixed(6);
-  const sellAmount = Number(formatUnits(BigInt(sellAmountBigInt), 18)).toFixed(6);
+  const buyAmount = Number(formatUnits(BigInt(buyAmountBigInt), 18)).toFixed(2);
+  const sellAmount = Number(formatUnits(BigInt(sellAmountBigInt), 18)).toFixed(2);
   const invertedLimitPrice = 1 / limitPrice;
   return (
     <div className="flex flex-col justify-center items-center">
@@ -47,11 +47,11 @@ export function LimitOrderConfirmation({
           <p>
             {isInvertedPrice ? (
               <>
-                {invertedLimitPrice.toFixed(6)} {buyTokenSymbol}/{sellTokenSymbol}{" "}
+                {invertedLimitPrice.toFixed(2)} {buyTokenSymbol}/{sellTokenSymbol}{" "}
               </>
             ) : (
               <>
-                {limitPrice.toFixed(6)} {sellTokenSymbol}/{buyTokenSymbol}{" "}
+                {limitPrice.toFixed(2)} {sellTokenSymbol}/{buyTokenSymbol}{" "}
               </>
             )}
             <span className="cursor-pointer" onClick={() => toggleInvertedPrice((state) => !state)}>

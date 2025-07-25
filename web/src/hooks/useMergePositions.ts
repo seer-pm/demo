@@ -70,7 +70,7 @@ function mergeFromRouter(
   // merge to xDAI on gnosis
   return {
     to: router,
-    value: amount,
+    value: 0n,
     data: encodeFunctionData({
       abi: gnosisRouterAbi,
       functionName: "mergeToBase",

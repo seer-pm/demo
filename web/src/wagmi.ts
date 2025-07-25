@@ -6,6 +6,16 @@ import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
+const GNOSIS_RPC = "https://lb.drpc.org/ogrpc?network=gnosis&dkey=As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
+
+if (typeof window !== "undefined") {
+  import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
+    configureRpcProviders({
+      [ChainId.XDAI]: GNOSIS_RPC,
+    });
+  });
+}
+
 const metadata = {
   name: "Seer",
   description: "Prediction Markets",
@@ -20,11 +30,7 @@ export const config = defaultWagmiConfig({
   connectors: [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })],
   enableCoinbase: false,
   transports: {
-    [gnosis.id]: fallback([
-      http("https://gnosis-pokt.nodies.app"),
-      http("https://rpc.gnosischain.com"),
-      http("https://rpc.ankr.com/gnosis"),
-    ]),
+    [gnosis.id]: fallback([http(GNOSIS_RPC), http("https://rpc.gnosischain.com")]),
     [mainnet.id]: http("https://eth-pokt.nodies.app"),
     [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
     [hardhat.id]: http(),

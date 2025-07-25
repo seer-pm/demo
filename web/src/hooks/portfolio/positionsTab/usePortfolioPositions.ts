@@ -137,10 +137,10 @@ export const fetchPositions = async (
 };
 
 export const usePositions = (address: Address, chainId: SupportedChain) => {
-  const { data: markets = [] } = useMarkets({});
+  const { data } = useMarkets({});
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address && markets.length > 0,
+    enabled: !!address && data && data.markets.length > 0,
     queryKey: ["usePositions", address, chainId],
-    queryFn: async () => fetchPositions(markets, address, chainId),
+    queryFn: async () => fetchPositions(data!.markets, address, chainId),
   });
 };

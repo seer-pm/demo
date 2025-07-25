@@ -1,91 +1,101 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market, getCollateralByIndex } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
-import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
+import { fetchSubgraphMarkets } from "./utils/airdropCalculation/getAllMarkets";
+import { getAllTokens } from "./utils/airdropCalculation/getAllTokens";
+import {
+  getAllFutarchyTransfers,
+  getAllTransfers,
+  getHoldersAtTimestamp,
+} from "./utils/airdropCalculation/getAllTransfers";
+import {
+  BunniPositionSnapshot,
+  getBunniLpTokensByTokenPairs,
+  getBunniPositionHoldersAtTimestamp,
+  getBunniPositionSnapshots,
+} from "./utils/airdropCalculation/getBunniData";
 import {
   getAllLiquidityEvents,
   getLiquidityBalancesAtTimestamp,
 } from "./utils/airdropCalculation/getLiquidityBalances";
 import { getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./utils/airdropCalculation/getPOHVerifiedUsers";
+import {
+  PositionSnapshot,
+  getLiquidityBalancesByPositionAtTimestamp,
+  getPositionSnapshotsByTokenPairs,
+} from "./utils/airdropCalculation/getPositionSnapshots";
 import { getPrices } from "./utils/airdropCalculation/getPrices";
-import { getRandomNextDayTimestamp, getTokensByTimestamp } from "./utils/airdropCalculation/utils";
+import { getRandomNextDayTimestamp, getTokensByTimestamp, mergeTokenBalances } from "./utils/airdropCalculation/utils";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const START_TIME = 1728579600; //October 11, 2024
 
 const SEER_PER_DAY = 200000000 / 30;
 
-async function getAllTokens(markets: Market[]) {
-  const marketIdToMarket = markets.reduce(
-    (acum, market) => {
-      acum[market.id] = market;
-      return acum;
-    },
-    {} as { [key: string]: Market },
-  );
-  const tokens = markets.reduce(
-    (acum, market) => {
-      const parentMarket = marketIdToMarket[market.parentMarket.id];
-      const parentTokenId = parentMarket ? parentMarket.wrappedTokens[Number(market.parentOutcome)] : undefined;
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum.push({
-          tokenId,
-          parentTokenId,
-          collateralToken: getCollateralByIndex(market, i),
-        });
-      }
-      return acum;
-    },
-    [] as { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
-  );
-  return tokens;
-}
-
-async function getSnapshotData(markets: Market[], chainId: SupportedChain, timestamp: number) {
+async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   // FETCHING DATA
   console.log("START FETCHING DATA ", { chainId, timestamp });
+  // get markets
+  const markets = await fetchSubgraphMarkets(chainId);
   // get tokens
-  const tokens = await getAllTokens(markets);
+  const tokens = getAllTokens(markets);
   const tokensByTimestamp = getTokensByTimestamp(markets, timestamp);
   // get all transfers
-  const transfers = await getAllTransfers(chainId);
+  const originalTransfers = await getAllTransfers(chainId);
+  const futarchyTransfers = await getAllFutarchyTransfers(chainId);
+  const transfers = originalTransfers
+    .concat(futarchyTransfers)
+    .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   // get all liquidity events
-  const liquidityEvents = await getAllLiquidityEvents(chainId, tokens);
-  // get poh verified users
-  const requests = await getPOHVerifiedUsers(chainId);
+  const liquidityEvents = chainId === gnosis.id ? [] : await getAllLiquidityEvents(chainId, tokens);
   // get prices at timestamps
   const processedPrices = await getPrices(tokens, chainId, timestamp);
+  let positionSnapshots: BunniPositionSnapshot[] | PositionSnapshot[];
+  let bunniGauges: string[] = [];
+  if (chainId === mainnet.id) {
+    const { tokens: bunniTokens, gauges } = await getBunniLpTokensByTokenPairs(chainId, tokens);
+    bunniGauges = gauges;
+    positionSnapshots = await getBunniPositionSnapshots(bunniTokens);
+  } else {
+    positionSnapshots = await getPositionSnapshotsByTokenPairs(chainId, tokens);
+  }
+
   console.log({
     tokens: tokens.length,
     tokensByTimestamp: Object.keys(tokensByTimestamp).length,
     transfers: transfers.length,
     liquidityEvents: liquidityEvents.length,
-    requests: requests.length,
     prices: Object.keys(processedPrices).length,
     chainId,
   });
 
   // START PROCESSING AIRDROP USERS
-  const finalData = [];
   const users: {
-    [key: string]: { directHolding: number; indirectHolding: number; isPOH: boolean; timestamp: number };
+    [key: string]: { directHolding: number; indirectHolding: number; chainId: SupportedChain };
   } = {};
   const holdersAtTimestamp = getHoldersAtTimestamp(transfers, timestamp);
-  const liquidityHoldersAtTimestamp = getLiquidityBalancesAtTimestamp(liquidityEvents, timestamp);
+  let liquidityHoldersAtTimestamp: { [key: string]: { [key: string]: number } };
+  if (chainId === gnosis.id) {
+    liquidityHoldersAtTimestamp = getLiquidityBalancesByPositionAtTimestamp(
+      positionSnapshots as PositionSnapshot[],
+      timestamp,
+    );
+  } else {
+    liquidityHoldersAtTimestamp = mergeTokenBalances(
+      getLiquidityBalancesAtTimestamp(liquidityEvents, timestamp),
+      getBunniPositionHoldersAtTimestamp(positionSnapshots as BunniPositionSnapshot[], timestamp, bunniGauges),
+    );
+  }
   const initialUser = {
     directHolding: 0,
     indirectHolding: 0,
-    isPOH: false,
-    timestamp,
+    chainId,
   };
   Object.entries(holdersAtTimestamp).map(([holderAddress, tokenBalanceMapping]) => {
     if (!users[holderAddress]) {
-      users[holderAddress] = initialUser;
+      users[holderAddress] = { ...initialUser };
     }
     users[holderAddress]["directHolding"] =
       (users[holderAddress]["directHolding"] ?? 0) +
@@ -98,7 +108,7 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
   });
   Object.entries(liquidityHoldersAtTimestamp).map(([holderAddress, tokenBalanceMapping]) => {
     if (!users[holderAddress]) {
-      users[holderAddress] = initialUser;
+      users[holderAddress] = { ...initialUser };
     }
     users[holderAddress]["indirectHolding"] =
       (users[holderAddress]["indirectHolding"] ?? 0) +
@@ -109,22 +119,50 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
         return acc + (processedPrices[tokenId] ?? 0) * tokenBalance;
       }, 0);
   });
+  return users;
+}
+
+async function distributeAirdrop(timestamp: number) {
+  // {[userAddress]:{directHolding, indirectHolding}}
+  // get poh verified users
+  const requestsGnosis = await getPOHVerifiedUsers(gnosis.id);
+  const requestsMainnet = await getPOHVerifiedUsers(mainnet.id);
+  const usersGnosis = await getSnapshotData(gnosis.id, timestamp);
+  const usersMainnet = await getSnapshotData(mainnet.id, timestamp);
+
+  const finalData = [];
+  const userHoldingsAcrossChains: {
+    [key: string]: { directHolding: number; indirectHolding: number; chainIds: Set<number> };
+  } = {};
   let total = 0;
   let pohTotal = 0;
-  for (const [holderAddress, holderData] of Object.entries(users)) {
-    const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
-    const isPOHUser = isPOHVerifiedUserAtTime(requests, holderAddress, timestamp);
-    total += totalHoldingPerUser;
-    if (isPOHUser) {
-      pohTotal += Math.sqrt(totalHoldingPerUser);
+  for (const users of [usersGnosis, usersMainnet]) {
+    for (const [holderAddress, holderData] of Object.entries(users)) {
+      if (!userHoldingsAcrossChains[holderAddress]) {
+        userHoldingsAcrossChains[holderAddress] = { directHolding: 0, indirectHolding: 0, chainIds: new Set() };
+      }
+      const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
+      const isPOHUser =
+        isPOHVerifiedUserAtTime(requestsMainnet, holderAddress, timestamp) ||
+        isPOHVerifiedUserAtTime(requestsGnosis, holderAddress, timestamp);
+      total += totalHoldingPerUser;
+      if (isPOHUser) {
+        pohTotal += Math.sqrt(totalHoldingPerUser);
+      }
+      userHoldingsAcrossChains[holderAddress].directHolding += holderData.directHolding ?? 0;
+      userHoldingsAcrossChains[holderAddress].indirectHolding += holderData.indirectHolding ?? 0;
+      userHoldingsAcrossChains[holderAddress].chainIds.add(holderData.chainId);
     }
   }
-  for (const [holderAddress, holderData] of Object.entries(users)) {
+  for (const [holderAddress, holderData] of Object.entries(userHoldingsAcrossChains)) {
     const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
+
     if (totalHoldingPerUser.toLocaleString() !== "0") {
-      const isPOHUser = isPOHVerifiedUserAtTime(requests, holderAddress, timestamp);
-      const shareOfHolding = total ? totalHoldingPerUser / total : 0;
-      const shareOfHoldingPoh = isPOHUser && pohTotal > 0 ? Math.sqrt(totalHoldingPerUser) / pohTotal : 0;
+      const isPOHUser =
+        isPOHVerifiedUserAtTime(requestsMainnet, holderAddress, timestamp) ||
+        isPOHVerifiedUserAtTime(requestsGnosis, holderAddress, timestamp);
+      const shareOfHolding = totalHoldingPerUser / total;
+      const shareOfHoldingPoh = isPOHUser ? Math.sqrt(totalHoldingPerUser) / pohTotal : 0;
       const seerTokens = SEER_PER_DAY * (shareOfHolding * 0.25 + shareOfHoldingPoh * 0.25);
       finalData.push({
         address: holderAddress,
@@ -136,6 +174,7 @@ async function getSnapshotData(markets: Market[], chainId: SupportedChain, times
         shareOfHolding,
         shareOfHoldingPoh,
         seerTokens,
+        chainIds: Array.from(holderData.chainIds),
       });
     }
   }
@@ -156,39 +195,22 @@ async function getLatestSnapshotTimestamp() {
   return data?.timestamp ?? START_TIME;
 }
 
-async function updateSnapshot() {
+async function addNewAirdropDayToDb() {
   try {
     const latestSnapshotTimestamp = await getLatestSnapshotTimestamp();
     const now = Math.floor(new Date().getTime() / 1000);
     const latestSnapshotTimestampInSeconds = Math.floor(new Date(latestSnapshotTimestamp).getTime() / 1000);
     const nextTimestamp = getRandomNextDayTimestamp(latestSnapshotTimestampInSeconds, now);
-
+    console.log({ nextTimestamp });
     if (nextTimestamp >= now) {
       return;
     }
-    const markets = await fetchMarkets();
-    //gnosis
-    const gnosisData = await getSnapshotData(
-      markets.filter((x) => x.chainId === gnosis.id),
-      gnosis.id,
-      nextTimestamp,
-    );
-    //mainnet
-    const mainnetData = await getSnapshotData(
-      markets.filter((x) => x.chainId === mainnet.id),
-      mainnet.id,
-      nextTimestamp,
-    );
-    const allData = [
-      ...gnosisData.map((x) => ({ ...x, chainId: gnosis.id })),
-      ...mainnetData.map((x) => ({ ...x, chainId: mainnet.id })),
-    ];
-    console.log({ gnosisData: gnosisData.length, mainnetData: mainnetData.length });
+
+    const allData = await distributeAirdrop(nextTimestamp);
     //write to supabase
     const { error: writeError } = await supabase.from("airdrops").insert(
       allData.map((data) => ({
         address: data.address,
-        chain_id: data.chainId,
         is_poh: data.isPOHUser,
         timestamp: new Date(nextTimestamp * 1000),
         total_holding: data.totalHolding ?? 0,
@@ -197,6 +219,7 @@ async function updateSnapshot() {
         share_of_holding: data.shareOfHolding ?? 0,
         share_of_holding_poh: data.shareOfHoldingPoh ?? 0,
         seer_tokens_count: data.seerTokens ?? 0,
+        chain_ids: data.chainIds,
       })),
     );
 
@@ -204,11 +227,12 @@ async function updateSnapshot() {
       console.log(writeError);
       throw writeError;
     }
+    console.log("finish writing");
   } catch (e) {
     console.log(e);
   }
 }
 
 export default async () => {
-  await updateSnapshot();
+  await addNewAirdropDayToDb();
 };

@@ -1,15 +1,27 @@
-import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
-import {
-  GetPoolHourDatasDocument,
-  GetPoolHourDatasQuery,
-  OrderDirection,
-  PoolHourData_OrderBy,
-} from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain, gnosis } from "@/lib/chains";
+import { GetPoolHourDatasQuery } from "@/hooks/queries/gql-generated-swapr";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import combineQuery from "graphql-combine-query";
+import { getToken0Token1 } from "@/lib/market";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { Address } from "viem";
+import { getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
+
+async function getLatestPoolHourDataMap(
+  tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
+  chainId: SupportedChain,
+  startTime: number,
+) {
+  const resolvedMap = new Map<string, GetPoolHourDatasQuery["poolHourDatas"][0]>();
+  const poolHourDatas = await getPoolHourDatasByTokenPairs(chainId, tokens);
+  for (const entry of poolHourDatas) {
+    const key = entry.pool.token0.id + entry.pool.token1.id;
+    if (!resolvedMap.has(key) && Number(entry.periodStartUnix) <= startTime) {
+      // since we sorted poolHourDatas by periodStartUnix desc already
+      resolvedMap.set(key, entry);
+    }
+  }
+  return resolvedMap;
+}
 
 export async function getPrices(
   tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[] | undefined,
@@ -17,57 +29,49 @@ export async function getPrices(
   startTime: number,
 ) {
   if (!tokens?.length) return {};
-  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!subgraphClient) {
-    throw new Error("Subgraph not available");
-  }
-  const BATCH_SIZE = chainId === gnosis.id ? 10 : 1;
-  const batches = [];
-  for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
-    batches.push(tokens.slice(i, i + BATCH_SIZE));
-  }
-  const results = [];
-  for (const batch of batches) {
-    const { document, variables } = combineQuery("GetPoolHourDatas").addN(
-      GetPoolHourDatasDocument,
-      batch.map(({ tokenId, parentTokenId }) => {
-        const collateral = parentTokenId
-          ? parentTokenId.toLocaleLowerCase()
-          : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
-        return {
-          first: 1,
-          orderBy: PoolHourData_OrderBy.PeriodStartUnix,
-          orderDirection: OrderDirection.Desc,
-          where: {
-            pool_:
-              tokenId.toLocaleLowerCase() > collateral
-                ? { token1: tokenId.toLocaleLowerCase(), token0: collateral }
-                : { token0: tokenId.toLocaleLowerCase(), token1: collateral },
-            periodStartUnix_lte: startTime,
-            periodStartUnix_gte: startTime - 60 * 60 * 24 * 30 * 1,
-          },
-        };
-      }),
-    );
-
-    const batchResult = Object.values(
-      await subgraphClient.request<Record<string, GetPoolHourDatasQuery["poolHourDatas"]>>(document, variables),
-    )
-      .map((d) => d?.[0])
-      .filter((x) => x);
-    results.push(...batchResult);
-  }
-
-  return getTokenPricesMapping(
-    tokens,
-    results.map((data) => {
-      return {
-        ...data.pool,
-        token0Price: data.token0Price,
-        token1Price: data.token1Price,
-      };
-    }),
-    chainId,
+  const latestPoolHourDataMap = await getLatestPoolHourDataMap(tokens, chainId, startTime);
+  const [simpleTokens, conditionalTokens] = tokens.reduce(
+    (acc, curr) => {
+      acc[curr.parentTokenId ? 1 : 0].push(curr);
+      return acc;
+    },
+    [[], []] as {
+      tokenId: Address;
+      parentTokenId?: Address;
+      collateralToken: Address;
+    }[][],
   );
+
+  const simpleTokensMapping = simpleTokens.reduce(
+    (acc, { tokenId }) => {
+      const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+      const { token0, token1 } = getToken0Token1(tokenId, sDAIAddress);
+      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
+      acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
+        ? isTwoStringsEqual(tokenId, token0)
+          ? Number(correctPoolHourData.token1Price)
+          : Number(correctPoolHourData.token0Price)
+        : 0;
+      return acc;
+    },
+    {} as { [key: string]: number },
+  );
+
+  const conditionalTokensMapping = conditionalTokens.reduce(
+    (acc, { tokenId, parentTokenId }) => {
+      const { token0, token1 } = getToken0Token1(tokenId, parentTokenId!);
+      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
+      const relativePrice = correctPoolHourData
+        ? isTwoStringsEqual(tokenId, token0)
+          ? Number(correctPoolHourData.token1Price)
+          : Number(correctPoolHourData.token0Price)
+        : 0;
+
+      acc[tokenId.toLocaleLowerCase()] =
+        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
+      return acc;
+    },
+    {} as { [key: string]: number },
+  );
+  return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }

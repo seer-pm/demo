@@ -5,12 +5,14 @@ export interface AirdropDataByUser {
   pohUserAllocation: number;
   totalAllocation: number;
   currentWeekAllocation: number;
+  serLppMainnet: number;
+  serLppGnosis: number;
 }
 
-export const useGetAirdropDataByUser = (user: string | undefined, chainId: number | undefined) => {
+export const useGetAirdropDataByUser = (user: string | undefined) => {
   return useQuery<AirdropDataByUser | undefined, Error>({
-    queryKey: ["useGetAirdropData", user, chainId],
-    enabled: !!user && !!chainId,
+    queryKey: ["useGetAirdropData", user],
+    enabled: !!user,
     retry: false,
     queryFn: async () => {
       const data = await fetch("/.netlify/functions/get-airdrop-data-by-user", {
@@ -18,8 +20,11 @@ export const useGetAirdropDataByUser = (user: string | undefined, chainId: numbe
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ address: user, chainId }),
+        body: JSON.stringify({ address: user }),
       }).then((res) => res.json());
+      if (data.error) {
+        throw { message: data.error };
+      }
       return data;
     },
   });

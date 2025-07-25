@@ -5,7 +5,7 @@ import { Address } from "viem";
 import { getChartData } from "./utils/getChartData";
 import { searchMarkets } from "./utils/markets";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export function getMarketChartKeyValueHash(marketId: Address | "%", chainId: SupportedChain | "%") {
   return `market_chart_hour_data_${marketId}_${chainId}`;
@@ -76,7 +76,7 @@ export default async (req: Request) => {
 
   try {
     // Fetch market
-    const market = (await searchMarkets([chainId], "", marketId))?.[0];
+    const market = (await searchMarkets([chainId], "", marketId))?.markets?.[0];
 
     if (!market) {
       return new Response(JSON.stringify({ error: "Market not found" }), {

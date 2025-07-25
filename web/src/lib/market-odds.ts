@@ -1,8 +1,12 @@
+import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
-import { Market } from "@/lib/market";
+import { Market, getToken0Token1 } from "@/lib/market";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
+import { isTwoStringsEqual } from "./utils";
 
 const CEIL_PRICE = 1;
 
@@ -41,7 +45,7 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
-async function getTokenPrice(
+async function getTokenSwapResult(
   wrappedAddress: Address,
   collateralToken: Token,
   chainId: SupportedChain,
@@ -84,13 +88,66 @@ async function getTokenPrice(
   return 0n;
 }
 
+async function getTokenPriceFromSwap(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+  const BUY_AMOUNT = 3; //collateral token
+  const SELL_AMOUNT = 3; //outcome token
+
+  try {
+    const price = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT));
+    const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
+    if (pricePerShare > CEIL_PRICE) {
+      // low buy liquidity, try to get sell price instead
+      const sellPrice = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(SELL_AMOUNT), "sell");
+      const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
+      if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
+        return Number.NaN;
+      }
+      return sellPricePerShare;
+    }
+
+    return pricePerShare;
+  } catch {
+    return Number.NaN;
+  }
+}
+
+async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  if (!subgraphClient) {
+    return Number.NaN;
+  }
+  try {
+    const { pools } = await getSdk(subgraphClient).GetPools({
+      where: {
+        ...getToken0Token1(wrappedAddress, collateralToken.address),
+      },
+      orderBy: Pool_OrderBy.Liquidity,
+      orderDirection: OrderDirection.Desc,
+      first: 1,
+    });
+    const { token0 } = getToken0Token1(wrappedAddress, collateralToken.address);
+    const pool = pools[0];
+    if (!pool) {
+      return Number.NaN;
+    }
+    const [price0, price1] = tickToPrice(Number(pool.tick));
+    return isTwoStringsEqual(wrappedAddress, token0) ? Number(price0) : Number(price1);
+  } catch {
+    return Number.NaN;
+  }
+}
+
+export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+  if (chainId === gnosis.id) {
+    return await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
+  }
+  return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
+}
+
 export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   if (!hasLiquidity || market.type === "Futarchy") {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
   }
-
-  const BUY_AMOUNT = 3; //collateral token
-  const SELL_AMOUNT = 3; //outcome token
 
   const collateralToken = {
     address: market.collateralToken,
@@ -100,31 +157,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   };
 
   const prices = await Promise.all(
-    market.wrappedTokens.map(async (wrappedAddress) => {
-      try {
-        const price = await getTokenPrice(wrappedAddress, collateralToken, market.chainId, String(BUY_AMOUNT));
-        const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
-        if (price === 0n || pricePerShare > CEIL_PRICE) {
-          // low buy liquidity, try to get sell price instead
-          const sellPrice = await getTokenPrice(
-            wrappedAddress,
-            collateralToken,
-            market.chainId,
-            String(SELL_AMOUNT),
-            "sell",
-          );
-          if (sellPrice === 0n) {
-            return 0;
-          }
-          const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
-          return Math.min(pricePerShare, sellPricePerShare);
-        }
-
-        return pricePerShare;
-      } catch {
-        return 0;
-      }
-    }),
+    market.wrappedTokens.map((wrappedAddress) => getTokenPrice(wrappedAddress, collateralToken, market.chainId)),
   );
 
   return normalizeOdds(prices);

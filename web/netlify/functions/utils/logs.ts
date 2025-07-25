@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { config as wagmiConfig } from "./config.ts";
 
-const supabase = createClient(process.env.VITE_SUPABASE_PROJECT_URL!, process.env.VITE_SUPABASE_API_KEY!);
+const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export async function getLastProcessedBlock(networkId: SupportedChain, key: string): Promise<bigint> {
   const { data, error } = await supabase.from("key_value").select("value").eq("key", key).single();

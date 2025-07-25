@@ -65,6 +65,9 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
       }),
     });
     const json = await results.json();
+    if (json.errors?.length) {
+      throw json.errors[0].message;
+    }
     const mints = json?.data?.mints ?? [];
     allMints = allMints.concat(mints);
     if (mints[mints.length - 1]?.timestamp === currentTimestamp) {
@@ -118,6 +121,9 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
       }),
     });
     const json = await results.json();
+    if (json.errors?.length) {
+      throw json.errors[0].message;
+    }
     const burns = json?.data?.burns ?? [];
     allBurns = allBurns.concat(burns);
     if (burns[burns.length - 1]?.timestamp === currentTimestamp) {

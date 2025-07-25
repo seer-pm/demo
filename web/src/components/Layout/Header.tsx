@@ -26,7 +26,7 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -91,11 +91,14 @@ export default function Header() {
   const { isConnected, chainId: _chainId, address } = useAccount();
   const chainId = filterChain(_chainId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [topOffset, setTopOffset] = useState<number>(0);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
     COLLATERAL_TOKENS?.[chainId].secondary?.address,
     chainId as SupportedChain,
   );
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const toggleMenu = () => {
     if (!mobileMenuOpen) {
       window.document.body.classList.add("overflow-hidden");
@@ -113,6 +116,32 @@ export default function Header() {
   }, [pageContext.urlParsed.pathname]);
 
   useEffect(() => {
+    const updateTop = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        const menuPos = rect.top + rect.height + scrollY;
+
+        // Set the top offset for menu relative to navbar
+        setTopOffset(menuPos);
+      }
+    };
+
+    // update top offset for menu if header dom changes
+    const observer = new MutationObserver(updateTop);
+    const header = document.getElementById("header");
+    if (header) {
+      observer.observe(header, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     function handleResize() {
       setMobileMenuOpen(false);
     }
@@ -123,7 +152,7 @@ export default function Header() {
   }, []);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <header>
+    <header id="header">
       <Modal
         title="Deposit"
         className="w-[500px]"
@@ -132,14 +161,17 @@ export default function Header() {
       <BetaWarning />
       <GroupNotice />
 
-      <nav className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative">
+      <nav
+        ref={containerRef}
+        className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative"
+      >
         <div className="absolute left-[24px] lg:left-[64px]">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
         </div>
 
-        {mobileMenuOpen && <MobileMenu />}
+        {mobileMenuOpen && <MobileMenu topOffset={topOffset} />}
 
         <ul className="hidden lg:menu-horizontal gap-2 text-[16px] space-x-[32px] justify-center">
           <li>
@@ -320,15 +352,16 @@ export default function Header() {
 }
 
 function BetaWarning() {
+  const [isReady, setIsReady] = useState(false);
   const [betaWarningClosed, setBetaWarningClosed] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem("beta-warning-closed") === "1") {
-      setBetaWarningClosed(true);
-    }
+    const isClosed = window.localStorage.getItem("beta-warning-closed") === "1";
+    setBetaWarningClosed(isClosed);
+    setIsReady(true);
   }, []);
 
-  if (betaWarningClosed) {
+  if (!isReady || betaWarningClosed) {
     return null;
   }
 
@@ -348,15 +381,16 @@ function BetaWarning() {
 }
 
 function GroupNotice() {
+  const [isReady, setIsReady] = useState(false);
   const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem("group-notice-closed") === "1") {
-      setGroupNoticeClosed(true);
-    }
+    const isClosed = window.localStorage.getItem("group-notice-closed") === "1";
+    setGroupNoticeClosed(isClosed);
+    setIsReady(true);
   }, []);
 
-  if (groupNoticeClosed) {
+  if (!isReady || groupNoticeClosed) {
     return null;
   }
 
@@ -368,7 +402,7 @@ function GroupNotice() {
   return (
     <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>
-        Our telegram accout is banned, community is moving to discord. Join the{" "}
+        Our telegram account is banned, community is moving to discord. Join the{" "}
         <a
           href={paths.discord()}
           target="_blank"
@@ -385,7 +419,7 @@ function GroupNotice() {
   );
 }
 
-function MobileMenu() {
+function MobileMenu({ topOffset }: { topOffset: number }) {
   const { chainId: _chainId, address, isConnected } = useAccount();
   const chainId = filterChain(_chainId);
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
@@ -397,7 +431,10 @@ function MobileMenu() {
   const { data: marketRulesPolicy } = useMarketRulesPolicy(chainId as SupportedChain);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <div className="bg-white text-black fixed left-0 right-0 bottom-0 top-[100px] w-full block z-[100] overflow-y-auto">
+    <div
+      style={{ top: `${topOffset}px` }}
+      className="bg-white text-black fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
+    >
       <Modal
         title="Deposit"
         className="w-[400px]"
