@@ -1,0 +1,40 @@
+query ClaimsQuery($user: Bytes!) {
+  claims(first: 1000, where: { user: $user }) {
+    question {
+      id
+    }
+  }
+}
+
+query UserActionsQuery($user: Bytes!, $questionIds: [String!]) {
+  userActions(where: { user: $user, question_not_in: $questionIds, actionType: "AnswerQuestion" }) {
+    question {
+      questionId
+    }
+  }
+}
+
+query QuestionsQuery($questionIds: [Bytes!], $answerFinalizedTimestamp: BigInt!) {
+  questions(
+    where: {
+      questionId_in: $questionIds
+      isPendingArbitration: false
+      answerFinalizedTimestamp_lt: $answerFinalizedTimestamp
+      currentAnswer_not: null
+    }
+    orderBy: answerFinalizedTimestamp
+    orderDirection: desc
+  ) {
+    questionId
+    historyHash
+    currentAnswer
+    bounty
+    responses {
+      commitmentId
+      answer
+      user
+      bond
+      historyHash
+    }
+  }
+}

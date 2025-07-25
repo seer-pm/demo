@@ -50,6 +50,11 @@ const splitMethods: MethodSignature[] = [
     signature: "0xd5f82280",
     marketParamPos: 1,
   },
+  {
+    name: "splitPosition",
+    signature: "0x21816254",
+    marketParamPos: 0,
+  },
 ];
 
 const mergeMethods: MethodSignature[] = [
@@ -68,6 +73,11 @@ const mergeMethods: MethodSignature[] = [
     signature: "0x7abef8d1",
     marketParamPos: 1,
   },
+  {
+    name: "mergePositions",
+    signature: "0xaab8ff62",
+    marketParamPos: 0,
+  },
 ];
 
 const redeemMethods: MethodSignature[] = [
@@ -85,6 +95,11 @@ const redeemMethods: MethodSignature[] = [
     name: "redeemPositions",
     signature: "0x865955a0",
     marketParamPos: 1,
+  },
+  {
+    name: "redeemProposal",
+    signature: "0x3f325a2b",
+    marketParamPos: 0,
   },
 ];
 
@@ -120,6 +135,12 @@ function getMarketFromTx(
   return market;
 }
 
+function getCollateralToken(market: Market, collateralToken: Address): Address {
+  // for Generic markets, market.collateralToken contains the correct value both for conditional and non-conditional markets.
+  // Futarchy markets are always non-conditional, so evt.params.collateralToken contains the correct value.
+  return market.type == "Generic" ? Address.fromBytes(market.collateralToken) : collateralToken;
+}
+
 export function handlePositionSplit(evt: PositionSplit): void {
   const condition = Condition.load(evt.params.conditionId.toHexString());
 
@@ -148,7 +169,7 @@ export function handlePositionSplit(evt: PositionSplit): void {
     "split",
     evt.params.amount,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex,
   );
@@ -182,7 +203,7 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     "merge",
     evt.params.amount,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex,
   );
@@ -216,7 +237,7 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     "redeem",
     evt.params.payout,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex,
   );

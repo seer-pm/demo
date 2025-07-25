@@ -7,6 +7,7 @@ import { PrivateKeyAccount, numberToHex, parseEther } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { gnosis, sepolia } from "viem/chains";
 import { config as wagmiConfig } from "./utils/config.ts";
+import { getRealityClaimArgs } from "./utils/reality.ts";
 import { Database } from "./utils/supabase.ts";
 import { CityCode, WEATHER_CITIES, celciusToKelvin } from "./utils/weather.ts";
 
@@ -105,11 +106,43 @@ async function resolveMarketForCity(
   await setAnswered(data.id);
 }
 
+async function claimRealityBonds(account: PrivateKeyAccount, chainId: SupportedChain) {
+  const claimArgs = await getRealityClaimArgs(account.address, chainId);
+
+  if (claimArgs.total === 0n) {
+    return;
+  }
+
+  const simulation = await simulateContract(wagmiConfig, {
+    account,
+    address: realityAddress[chainId],
+    functionName: "claimMultipleAndWithdrawBalance",
+    chainId: chainId,
+    abi: realityAbi,
+    args: [
+      claimArgs.question_ids,
+      claimArgs.answer_lengths,
+      claimArgs.history_hashes,
+      claimArgs.answerers,
+      claimArgs.bonds,
+      claimArgs.answers,
+    ],
+  });
+
+  const txHash = await writeContract(wagmiConfig, simulation.request);
+}
+
 export default async () => {
   const chainId = gnosis.id;
 
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
+
+  try {
+    await claimRealityBonds(account, chainId);
+  } catch (e) {
+    console.log("Reality claim error:", e);
+  }
 
   // Get markets that need to be resolved (opening_time is in the past and not yet answered)
   const now = new Date();
