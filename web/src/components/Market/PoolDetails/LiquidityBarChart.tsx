@@ -15,11 +15,7 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
-}: {
-  market: Market;
-  outcomeTokenIndex: number;
-  poolInfo: PoolInfo;
-}) {
+}: { market: Market; outcomeTokenIndex: number; poolInfo: PoolInfo }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
   const { token0Symbol, token1Symbol, token0, tick, id } = poolInfo;
   const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
@@ -28,7 +24,7 @@ export default function LiquidityBarChart({
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
   const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
-  if (!ticksByPool?.[id]?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
+  if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
         <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
@@ -37,7 +33,7 @@ export default function LiquidityBarChart({
     );
   }
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
-    getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount, outcome);
+    getLiquidityChartData(poolInfo, ticksByPool?.[id]?.ticks, isShowToken0Price, zoomCount, outcome);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
   const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
   const chartOption = priceList
@@ -76,7 +72,6 @@ export default function LiquidityBarChart({
           // biome-ignore lint/suspicious/noExplicitAny:
           formatter: (params: any[]) => {
             let tooltipContent = "";
-            const currentPriceIndex = params[0].data[0] - 0.5;
             const currentLineIndex = params[0].data[0] * 2;
             for (const param of params) {
               if (!param?.data[1]) {
@@ -88,21 +83,11 @@ export default function LiquidityBarChart({
             }
             if (params[0] && sellLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(
-                sellLineData[currentLineIndex][1]!.toFixed(2),
-              ).toLocaleString()}<br>`;
-              //current price
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
+              tooltipContent += `Total Volume: ${Number(sellLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
             }
             if (params[1] && buyLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(
-                buyLineData[currentLineIndex][1]!.toFixed(2),
-              ).toLocaleString()}<br>`;
-
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
+              tooltipContent += `Total Volume: ${Number(buyLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
             }
             // Return the formatted tooltip content with the colored dot
             return tooltipContent;

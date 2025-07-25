@@ -14,6 +14,7 @@ export function useGetTradeInfo(trade: Trade | undefined) {
     price: trade.executionPrice.toFixed(2),
     invertedPrice: trade.executionPrice.invert().toFixed(2),
     minimumReceive: trade.minimumAmountOut().toFixed(2),
+    maximumSent: trade.maximumAmountIn().toFixed(2),
     maximumSlippage: trade.maximumSlippage.toFixed(2),
     fee: trade.fee.toFixed(2),
     priceImpact: trade.priceImpact.toFixed(2),

@@ -1,15 +1,18 @@
-import { getLiquidityPair } from "@/lib/market";
-import { Market } from "@/lib/market";
+import { Market, getLiquidityPair } from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
-import { getTicksData } from "./getTicksData";
+import { PoolInfo } from "../useMarketPools";
+import { getPoolAndTicksData } from "./getTicksData";
 
 export const useTicksData = (market: Market, outcomeTokenIndex: number) => {
   return useQuery<
     | {
         [key: string]: {
-          tickIdx: string;
-          liquidityNet: string;
-        }[];
+          ticks: {
+            tickIdx: string;
+            liquidityNet: string;
+          }[];
+          poolInfo: PoolInfo;
+        };
       }
     | undefined,
     Error
@@ -17,7 +20,7 @@ export const useTicksData = (market: Market, outcomeTokenIndex: number) => {
     queryKey: ["useTicksData", market.id, outcomeTokenIndex],
     queryFn: async () => {
       const { token0, token1 } = getLiquidityPair(market, outcomeTokenIndex);
-      return await getTicksData(market.chainId, token0, token1);
+      return await getPoolAndTicksData(market.chainId, token0, token1);
     },
   });
 };

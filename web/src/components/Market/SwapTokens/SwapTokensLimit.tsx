@@ -13,9 +13,9 @@ import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isUndefined } from "@/lib/utils";
 import { OrderKind, UnsignedOrder } from "@cowprotocol/cow-sdk";
-import { ChainId, CoWTrade } from "@swapr/sdk";
+import { ChainId, CoWTrade, TradeType } from "@swapr/sdk";
 import { addHours, formatDate } from "date-fns";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
@@ -52,6 +52,7 @@ export function SwapTokensLimit({
   parentCollateral,
 }: SwapTokensLimitProps) {
   const { address: account } = useAccount();
+  const [tradeType] = useState(TradeType.EXACT_INPUT);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -343,6 +344,7 @@ export function SwapTokensLimit({
               amount,
               receivedAmount,
               collateralPerShare,
+              tradeType,
             }}
           />
         </div>

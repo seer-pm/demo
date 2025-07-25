@@ -34,6 +34,7 @@ export default function SellInStepsButton({
     await tradeTokens.mutateAsync({
       trade: trade as SwaprV3Trade | UniswapTrade,
       account,
+      isBuyExactOutputNative: false,
     });
     setCurrentStep(1);
   };
