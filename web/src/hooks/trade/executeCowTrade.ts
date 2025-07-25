@@ -6,23 +6,12 @@ import { config } from "@/wagmi";
 import { EnrichedOrder, OrderBookApi, OrderSigningUtils, UnsignedOrder } from "@cowprotocol/cow-sdk";
 import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
-import { Contract, providers } from "ethers";
-import { Account, Chain, Client, Transport, parseUnits } from "viem";
+import { Contract } from "ethers";
+import { parseUnits } from "viem";
 import { ethFlowAbi } from "./abis";
+import { clientToSigner } from "./utils";
 
 export const ethFlowAddress = "0xba3cb449bd2b4adddbc894d8697f5170800eadec";
-
-function clientToSigner(client: Client<Transport, Chain, Account>) {
-  const { account, chain, transport } = client;
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-    ensAddress: chain.contracts?.ensRegistry?.address,
-  };
-  const provider = new providers.Web3Provider(transport, network);
-  const signer = provider.getSigner(account.address);
-  return signer;
-}
 
 export async function executeCoWTrade(trade: CoWTrade): Promise<string> {
   const client = await getConnectorClient(config);

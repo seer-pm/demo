@@ -19,7 +19,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
     formState: { errors, dirtyFields },
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined } };
 
-  const hasError = !!get(errors, restProps.name);
+  const hasError = !!get(dirtyFields, restProps.name) && !!get(errors, restProps.name);
   const isValid = !!get(dirtyFields, restProps.name) && !hasError;
   return (
     <>
@@ -46,7 +46,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
         <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
-      <FormError errors={errors} name={props.name} />
+      {hasError && <FormError errors={errors} name={props.name} />}
     </>
   );
 });
