@@ -40,6 +40,10 @@ export function MarketsFilter() {
   };
 
   const [isShowFilters, setShowFilters] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   return (
     <div>
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
@@ -55,6 +59,7 @@ export function MarketsFilter() {
               setMarketName("");
               debounceSetMarketNameParams("");
             }}
+            disabled={!isClient}
           />
         </div>
         <button
