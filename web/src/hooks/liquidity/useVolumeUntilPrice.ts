@@ -6,7 +6,7 @@ import { TickMath, priceToClosestTick } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";
 import { useTicksData } from "./useTicksData";
 
-function getTargetTickFromPrice(
+export function getTargetTickFromPrice(
   price: number,
   token0Address: Address,
   token1Address: Address,
@@ -18,8 +18,8 @@ function getTargetTickFromPrice(
   const p = new Price(
     isOutcomeToken0 ? token0 : token1,
     isOutcomeToken0 ? token1 : token0,
-    1e6, // baseAmount
-    Math.floor(price * 1e6), // quoteAmount
+    1e10, // baseAmount
+    Math.floor(price * 1e10), // quoteAmount
   );
   return priceToClosestTick(p);
 }

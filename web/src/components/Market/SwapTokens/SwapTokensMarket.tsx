@@ -1,7 +1,7 @@
 import Toggle from "@/components/Form/Toggle";
 import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
-import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
+import { getTargetTickFromPrice, useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce";
@@ -303,6 +303,19 @@ export function SwapTokensMarket({
                       return swapType === "buy"
                         ? "Limit price must be greater than current price."
                         : "Limit price must be less than current price.";
+                    }
+                    if (!poolInfo) return true;
+                    const targetTick = getTargetTickFromPrice(
+                      Number(v),
+                      poolInfo.token0,
+                      poolInfo.token1,
+                      isTwoStringsEqual(poolInfo.token0, outcomeToken.address),
+                      market.chainId,
+                    );
+                    if (targetTick === poolInfo.tick) {
+                      return swapType === "buy"
+                        ? "Not enough liquidity. Try to increase limit price."
+                        : "Not enough liquidity. Try to decrease limit price.";
                     }
                     return true;
                   },
