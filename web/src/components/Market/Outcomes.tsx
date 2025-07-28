@@ -78,11 +78,7 @@ function AddLiquidityInfo({
   chainId,
   pools,
   closeModal,
-}: {
-  chainId: SupportedChain;
-  pools: PoolInfo[];
-  closeModal: () => void;
-}) {
+}: { chainId: SupportedChain; pools: PoolInfo[]; closeModal: () => void }) {
   const { address } = useAccount();
   const { data: deposits } = usePoolsDeposits(
     chainId,
@@ -107,8 +103,10 @@ function AddLiquidityInfo({
 
       <div className="space-y-[12px]">
         {pools.map((pool) => {
-          const isRewardEnded =
-            pool.incentives.length > 0 ? Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime() : true;
+          const hasIncentives = pool.incentives.length > 0;
+          const isRewardEnded = hasIncentives
+            ? Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime()
+            : true;
           return (
             <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
               <div className="flex justify-between items-center">
@@ -159,7 +157,7 @@ function AddLiquidityInfo({
                             )}
                           </div>
                           <div>
-                            {address && (
+                            {address && hasIncentives && (
                               <FarmingActions
                                 account={address}
                                 chainId={chainId}
@@ -416,9 +414,7 @@ function OutcomeDetails({
 
           {market.type === "Generic" && (
             <Link
-              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
-                market.outcomes[outcomeIndex],
-              )}`}
+              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setSearchParams(
