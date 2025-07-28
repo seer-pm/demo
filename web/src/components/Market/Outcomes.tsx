@@ -157,7 +157,7 @@ function AddLiquidityInfo({
                             )}
                           </div>
                           <div>
-                            {address && hasIncentives && (
+                            {address && (
                               <FarmingActions
                                 account={address}
                                 chainId={chainId}
