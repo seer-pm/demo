@@ -303,12 +303,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header, index) => {
-                  const isRedeemColumn = index === headerGroup.headers.length - 1;
-                  if (isRedeemColumn && isTableOverflowing) {
-                    return null;
-                  }
-
+                {headerGroup.headers.map((header) => {
                   return (
                     <th key={header.id} colSpan={header.colSpan}>
                       {header.isPlaceholder ? null : (
@@ -348,12 +343,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
             {table.getRowModel().rows.map((row) => {
               return (
                 <tr key={row.id}>
-                  {row.getVisibleCells().map((cell, index) => {
-                    const isRedeemCell = index === row.getVisibleCells().length - 1;
-                    if (isRedeemCell && isTableOverflowing) {
-                      return null;
-                    }
-
+                  {row.getVisibleCells().map((cell) => {
                     return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
                   })}
                 </tr>
