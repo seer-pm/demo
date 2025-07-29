@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useMarket } from "@/hooks/useMarket";
@@ -57,6 +57,31 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const { address: account } = useAccount();
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
+  const [isTableOverflowing, setisTableOverflowing] = useState(false);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const checkTableOverflow = () => {
+    if (tableContainerRef.current && tableRef.current) {
+      const containerWidth = tableContainerRef.current.clientWidth;
+      const tableWidth = tableRef.current.scrollWidth;
+      setisTableOverflowing(tableWidth > containerWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkTableOverflow();
+  }, [data]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      checkTableOverflow();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
       {
@@ -86,6 +111,25 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 />
                 <p className="text-[13px]">{position.outcome}</p>
               </div>
+              {isTableOverflowing && (
+                <div className="py-2">
+                  {position.marketStatus === MarketStatus.CLOSED ? (
+                    <Button
+                      type="button"
+                      text="Redeem"
+                      className="!min-w-[100px] !w-[100px] !min-h-[40px] !h-[40px]"
+                      onClick={() => {
+                        setSelectedMarketId(position.marketAddress as Address);
+                        openModal();
+                      }}
+                    >
+                      Redeemable
+                    </Button>
+                  ) : (
+                    <p className="text-[14px] text-black-secondary">Not yet redeemable</p>
+                  )}
+                </div>
+              )}
             </div>
           );
         },
@@ -162,7 +206,6 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         },
         header: "Current Token Price (sDAI)",
       },
-
       {
         accessorKey: "tokenValue",
         cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
@@ -203,12 +246,14 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         },
       },
     ],
-    [],
+    [isTableOverflowing],
   );
+
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
+
   const table = useReactTable({
     columns,
     data,
@@ -231,7 +276,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
 
   return (
     <>
-      <div className="w-full overflow-x-auto mb-6">
+      <div className="w-full overflow-x-auto mb-6" ref={tableContainerRef}>
         <Modal
           title="Redeem"
           content={
@@ -254,11 +299,16 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           }
           className="[&_.btn-primary]:w-full"
         />
-        <table className="simple-table">
+        <table className="simple-table" ref={tableRef}>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
+                  const isRedeemColumn = index === headerGroup.headers.length - 1;
+                  if (isRedeemColumn && isTableOverflowing) {
+                    return null;
+                  }
+
                   return (
                     <th key={header.id} colSpan={header.colSpan}>
                       {header.isPlaceholder ? null : (
@@ -298,7 +348,12 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
             {table.getRowModel().rows.map((row) => {
               return (
                 <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => {
+                  {row.getVisibleCells().map((cell, index) => {
+                    const isRedeemCell = index === row.getVisibleCells().length - 1;
+                    if (isRedeemCell && isTableOverflowing) {
+                      return null;
+                    }
+
                     return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
                   })}
                 </tr>
