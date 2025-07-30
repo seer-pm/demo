@@ -868,16 +868,16 @@ export const Collections = () => (
   </svg>
 );
 
-export const ConditionalMarketIcon = ({ width = "16" }) => (
+export const ConditionalMarketIcon = ({ width = "16", fill = "#333333" }) => (
   <svg width={width} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M2 8H8M8 8V5C8 4.44772 8.44772 4 9 4H13M8 8V11C8 11.5523 8.44772 12 9 12H13"
-      stroke="#333333"
+      stroke={fill}
       strokeWidth="0.6"
     />
-    <circle cx="2.16618" cy="7.99967" r="1.16667" fill="#333333" />
-    <circle cx="13" cy="4" r="1" fill="#333333" />
-    <circle cx="13" cy="12" r="1" fill="#333333" />
-    <circle cx="7.99992" cy="7.99967" r="1.01667" fill="white" stroke="#333333" strokeWidth="0.3" />
+    <circle cx="2.16618" cy="7.99967" r="1.16667" fill={fill} />
+    <circle cx="13" cy="4" r="1" fill={fill} />
+    <circle cx="13" cy="12" r="1" fill={fill} />
+    <circle cx="7.99992" cy="7.99967" r="1.01667" fill="white" stroke={fill} strokeWidth="0.3" />
   </svg>
 );
