@@ -1,4 +1,4 @@
-import { Dropdown } from "@/components/Dropdown";
+// import { Dropdown } from "@/components/Dropdown";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
-import { SwapTokensLimit } from "./SwapTokensLimit";
+// import { SwapTokensLimit } from "./SwapTokensLimit";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
@@ -29,7 +29,7 @@ export function SwapTokens({
   isInvalidResult,
   parentCollateral,
 }: SwapTokensProps) {
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
+  const [orderType] = useState<"market" | "limit">("market");
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
@@ -83,7 +83,7 @@ export function SwapTokens({
                 Sell
               </button>
             </div>
-            <Dropdown
+            {/* <Dropdown
               options={[
                 { text: "Market", value: "market" },
                 { text: "Limit", value: "limit" },
@@ -91,7 +91,7 @@ export function SwapTokens({
               value={orderType}
               onClick={(type) => setOrderType(type)}
               defaultLabel="Order Type"
-            />
+            /> */}
           </div>
           {orderType === "market" && (
             <SwapTokensMarket
@@ -103,7 +103,7 @@ export function SwapTokens({
               setShowMaxSlippage={setShowMaxSlippage}
             />
           )}
-          {orderType === "limit" && (
+          {/* {orderType === "limit" && (
             <SwapTokensLimit
               market={market}
               outcomeText={outcomeText}
@@ -111,7 +111,7 @@ export function SwapTokens({
               parentCollateral={parentCollateral}
               swapType={swapType}
             />
-          )}
+          )} */}
         </div>
       )}
       {isShowMaxSlippage && <SwapTokensMaxSlippage onReturn={() => setShowMaxSlippage(false)} />}

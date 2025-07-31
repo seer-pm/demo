@@ -5890,9 +5890,9 @@
   dependencies:
     "@swapr/core" "^0.3.17"
 
-"@swapr/sdk@https://github.com/seer-pm/swapr-sdk#3b772c1d2af0bdbef914fbac519efa30e4e723ba":
+"@swapr/sdk@https://github.com/seer-pm/swapr-sdk#2b2f7e0b86c06809f6871a14f206b835433c224b":
   version "1.12.0"
-  resolved "https://github.com/seer-pm/swapr-sdk#3b772c1d2af0bdbef914fbac519efa30e4e723ba"
+  resolved "https://github.com/seer-pm/swapr-sdk#2b2f7e0b86c06809f6871a14f206b835433c224b"
   dependencies:
     "@cowprotocol/app-data" "^2.1.0"
     "@cowprotocol/cow-sdk" "^2.3.1"
