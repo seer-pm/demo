@@ -1,7 +1,7 @@
 import React from "react";
 
 import { AirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
-import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp, ArrowSwap, QuestionIcon } from "@/lib/icons";
 import {
   ColumnDef,
   flexRender,
@@ -11,16 +11,76 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
+import { useAccount } from "wagmi";
+import Tooltip from "../Tooltip";
 
 export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
+  const { address } = useAccount();
   const columns = React.useMemo<ColumnDef<AirdropDataByUser>[]>(
     () => [
+      // {
+      //   accessorKey: "currentWeekAllocation",
+      //   cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
+      //   header: () => (
+      //     <span>
+      //       Current Week Allocation (SEER){" "}
+      //       <span className="font-normal text-black-secondary text-[12px]">
+      //         <br />
+      //         (Estimated)
+      //       </span>
+      //     </span>
+      //   ),
+      //   enableSorting: false,
+      // },
       {
-        accessorKey: "currentWeekAllocation",
-        cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
+        accessorKey: "monthlyEstimate",
+        cell: (info) => <p className="text-[14px]">{info.getValue<number>()?.toLocaleString()}</p>,
         header: () => (
           <span>
-            Current Week Allocation (SEER){" "}
+            Monthly Holding Allocation (SEER){" "}
+            <span className="font-normal text-black-secondary text-[12px]">
+              <br />
+              (Estimated)
+            </span>
+          </span>
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "monthlyEstimatePoH",
+        cell: (info) => {
+          if (!info.getValue<number>()) {
+            return (
+              <div className="flex items-center gap-2">
+                <p className="text-[14px]">0</p>
+                <Tooltip
+                  trigger={<QuestionIcon fill="#9747FF" />}
+                  content={
+                    <div className="text-[14px] flex flex-col gap-2 p-4">
+                      <p>Register Proof of Humanity for additional SEER allocation.</p>
+                      <a
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-fit items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
+                        href={
+                          address
+                            ? `https://v2.proofofhumanity.id/${address.replace(/^0x/, "")}/claim`
+                            : "`https://v2.proofofhumanity.id"
+                        }
+                      >
+                        Register
+                      </a>
+                    </div>
+                  }
+                />
+              </div>
+            );
+          }
+          return <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>;
+        },
+        header: () => (
+          <span>
+            Monthly PoH Allocation (SEER){" "}
             <span className="font-normal text-black-secondary text-[12px]">
               <br />
               (Estimated)
@@ -34,7 +94,7 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
         header: () => (
           <span>
-            Total Outcome Token Holding Allocation (SEER){" "}
+            Total Holding Allocation (SEER){" "}
             <span className="font-normal text-black-secondary text-[12px]">
               <br />
               (Estimated)
@@ -48,7 +108,7 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
         header: () => (
           <span>
-            Total Proof of Humanity Allocation (SEER){" "}
+            Total PoH Allocation (SEER){" "}
             <span className="font-normal text-black-secondary text-[12px]">
               <br />
               (Estimated)
@@ -74,13 +134,13 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
       {
         accessorKey: "serLppMainnet",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Liquidity (Seer LP Point Mainnet)",
+        header: "Liquidity (Mainnet)",
         enableSorting: false,
       },
       {
         accessorKey: "serLppGnosis",
         cell: (info) => <p className="text-[14px]">{info.getValue<number>().toLocaleString()}</p>,
-        header: "Liquidity (Seer LP Point Gnosis)",
+        header: "Liquidity (Gnosis)",
         enableSorting: false,
       },
     ],

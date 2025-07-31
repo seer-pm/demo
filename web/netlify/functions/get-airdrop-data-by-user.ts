@@ -27,7 +27,11 @@ export default async (req: Request) => {
     });
   }
 
-  const { data, error } = await supabase.from("airdrops").select("*").eq("address", body.address.toLowerCase());
+  const { data, error } = await supabase
+    .from("airdrops")
+    .select("*")
+    .eq("address", body.address.toLowerCase())
+    .order("timestamp", { ascending: true });
   const { data: serLppBalances, error: errorBalances } = await supabase
     .from("ser_lpp_balances")
     .select("*")
@@ -51,6 +55,12 @@ export default async (req: Request) => {
   }, 0);
   const serLppMainnet = serLppBalances.find((x) => x.chain_id === mainnet.id)?.balance ?? 0;
   const serLppGnosis = serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0;
+
+  // get latest share of holdings
+  const { share_of_holding, share_of_holding_poh } = data[data.length - 1];
+  const monthlyEstimate = SEER_PER_DAY * 30 * share_of_holding * 0.25;
+  const monthlyEstimatePoH = SEER_PER_DAY * 30 * share_of_holding_poh * 0.25;
+
   return new Response(
     JSON.stringify({
       outcomeTokenHoldingAllocation,
@@ -59,6 +69,8 @@ export default async (req: Request) => {
       currentWeekAllocation,
       serLppMainnet,
       serLppGnosis,
+      monthlyEstimate,
+      monthlyEstimatePoH,
     }),
     { status: 200 },
   );
