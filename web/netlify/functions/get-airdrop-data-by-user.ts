@@ -57,7 +57,7 @@ export default async (req: Request) => {
   const serLppGnosis = serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0;
 
   // get latest share of holdings
-  const { share_of_holding, share_of_holding_poh } = data[data.length - 1];
+  const { share_of_holding = 0, share_of_holding_poh = 0 } = data[data.length - 1] ?? {};
   const monthlyEstimate = SEER_PER_DAY * 30 * share_of_holding * 0.25;
   const monthlyEstimatePoH = SEER_PER_DAY * 30 * share_of_holding_poh * 0.25;
 
