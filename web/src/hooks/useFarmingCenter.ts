@@ -1,9 +1,13 @@
+import { SupportedChain } from "@/lib/chains";
+import { SWAPR_CONFIG } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
-import { toastifyTx } from "@/lib/toastify";
+import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
-import { writeContract } from "@wagmi/core";
+import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
+import { Execution } from "./useCheck7702Support";
+import { PoolDeposit, PoolIncentive, PoolInfo } from "./useMarketPools";
 
 interface FarmingProps {
   farmingCenter: Address;
@@ -244,7 +248,7 @@ const NON_FUNGIBLE_POSITION_MANAGER_ABI = [
   },
 ] as const;
 
-async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceipt> {
+function getEnterFarmingParams(props: EnterFarmingProps) {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -253,16 +257,22 @@ async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceip
     endTime: props.endTime,
   };
 
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.farmingCenter,
-        abi: FARMING_CENTER_ABI,
-        functionName: "enterFarming",
-        args: [incentiveKey, props.tokenId, 0n, false],
-      }),
-    { txSent: { title: "Enter farming..." }, txSuccess: { title: "Token entered!" } },
-  );
+  return {
+    to: props.farmingCenter,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: FARMING_CENTER_ABI,
+      functionName: "enterFarming",
+      args: [incentiveKey, props.tokenId, 0n, false],
+    }),
+  };
+}
+
+async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(() => sendTransaction(config, getEnterFarmingParams(props)), {
+    txSent: { title: "Enter farming..." },
+    txSuccess: { title: "Token entered!" },
+  });
 
   if (!result.status) {
     throw result.error;
@@ -272,7 +282,7 @@ async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt> {
+function getExitFarmingParams(props: ExitFarmingProps) {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -295,16 +305,22 @@ async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt>
     args: [props.rewardToken, props.account, 0n, MAX_ETERNAL_AMOUNT],
   });
 
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.farmingCenter,
-        abi: FARMING_CENTER_ABI,
-        functionName: "multicall",
-        args: [[exitFarmingData, claimMainRewardData]],
-      }),
-    { txSent: { title: "Exit farming and claiming rewards..." }, txSuccess: { title: "Exited and claimed rewards!" } },
-  );
+  return {
+    to: props.farmingCenter,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: FARMING_CENTER_ABI,
+      functionName: "multicall",
+      args: [[exitFarmingData, claimMainRewardData]],
+    }),
+  };
+}
+
+async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt> {
+  const result = await toastifyTx(() => sendTransaction(config, getExitFarmingParams(props)), {
+    txSent: { title: "Exit farming and claiming rewards..." },
+    txSuccess: { title: "Exited and claimed rewards!" },
+  });
 
   if (!result.status) {
     throw result.error;
@@ -312,19 +328,25 @@ async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt>
   //delay to update subgraph
   await new Promise((res) => setTimeout(res, 3000));
   return result.receipt;
+}
+
+function getDepositNftParams(props: DepositNftProps) {
+  return {
+    to: props.nonFungiblePositionManager,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: NON_FUNGIBLE_POSITION_MANAGER_ABI,
+      functionName: "safeTransferFrom",
+      args: [props.account, props.farmingCenter, props.tokenId],
+    }),
+  };
 }
 
 async function depositNft(props: DepositNftProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.nonFungiblePositionManager,
-        abi: NON_FUNGIBLE_POSITION_MANAGER_ABI,
-        functionName: "safeTransferFrom",
-        args: [props.account, props.farmingCenter, props.tokenId],
-      }),
-    { txSent: { title: "Depositing token..." }, txSuccess: { title: "Token deposited!" } },
-  );
+  const result = await toastifyTx(() => sendTransaction(config, getDepositNftParams(props)), {
+    txSent: { title: "Depositing token..." },
+    txSuccess: { title: "Token deposited!" },
+  });
 
   if (!result.status) {
     throw result.error;
@@ -334,17 +356,23 @@ async function depositNft(props: DepositNftProps): Promise<TransactionReceipt> {
   return result.receipt;
 }
 
+function getWithdrawNftParams(props: WithdrawNftProps) {
+  return {
+    to: props.farmingCenter,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: FARMING_CENTER_ABI,
+      functionName: "withdrawToken",
+      args: [props.tokenId, props.account, "0x0000000000000000000000000000000000000000000000000000000000000000"],
+    }),
+  };
+}
+
 async function withdrawNft(props: WithdrawNftProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.farmingCenter,
-        abi: FARMING_CENTER_ABI,
-        functionName: "withdrawToken",
-        args: [props.tokenId, props.account, "0x0000000000000000000000000000000000000000000000000000000000000000"],
-      }),
-    { txSent: { title: "Withdrawing token..." }, txSuccess: { title: "Token withdrawn!" } },
-  );
+  const result = await toastifyTx(() => sendTransaction(config, getWithdrawNftParams(props)), {
+    txSent: { title: "Withdrawing token..." },
+    txSuccess: { title: "Token withdrawn!" },
+  });
 
   if (!result.status) {
     throw result.error;
@@ -388,4 +416,131 @@ export const useWithdrawNft = () => {
       queryClient.invalidateQueries({ queryKey: ["usePoolsDeposits"] });
     },
   });
+};
+
+type FarmAction = {
+  text: string;
+  calls: Execution[];
+  sentTitle: string;
+  successTitle: string;
+};
+
+function getFarmActions(
+  chainId: SupportedChain,
+  account: Address,
+  deposit: PoolDeposit,
+  poolInfo: PoolInfo,
+  poolIncentive: PoolIncentive,
+  tokenId: string,
+  isRewardEnded: boolean,
+): FarmAction[] {
+  const depositNftProps: DepositNftProps = {
+    nonFungiblePositionManager: SWAPR_CONFIG[chainId]?.NON_FUNGIBLE_POSITION_MANAGER!,
+    farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+    account: account,
+    tokenId: BigInt(tokenId),
+  };
+
+  const enterFarmingProps: EnterFarmingProps = {
+    farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+    rewardToken: poolIncentive.rewardToken,
+    bonusRewardToken: poolIncentive.bonusRewardToken,
+    pool: poolInfo.id,
+    startTime: poolIncentive.startTime,
+    endTime: poolIncentive.endTime,
+    tokenId: BigInt(tokenId),
+  };
+
+  const withdrawNftProps: WithdrawNftProps = {
+    farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+    account,
+    tokenId: BigInt(tokenId),
+  };
+
+  const exitFarmingProps: ExitFarmingProps = {
+    account,
+    farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
+    rewardToken: poolIncentive.rewardToken,
+    bonusRewardToken: poolIncentive.bonusRewardToken,
+    pool: poolInfo.id,
+    startTime: poolIncentive.startTime,
+    endTime: poolIncentive.endTime,
+    tokenId: BigInt(tokenId),
+  };
+
+  if (!deposit.onFarmingCenter && !isRewardEnded) {
+    return [
+      {
+        text: "Deposit & Enter Farming",
+        calls: [getDepositNftParams(depositNftProps), getEnterFarmingParams(enterFarmingProps)],
+        sentTitle: "Depositing and entering farming...",
+        successTitle: "Successfully deposited and entered farming!",
+      },
+    ];
+  }
+
+  if (deposit.onFarmingCenter && deposit.limitFarming === null && deposit.eternalFarming === null) {
+    // withdraw or enter farming
+    return [
+      {
+        text: "Withdraw",
+        calls: [getWithdrawNftParams(withdrawNftProps)],
+        sentTitle: "Withdrawing NFT...",
+        successTitle: "Successfully withdrew NFT!",
+      },
+      {
+        text: "Enter Farming",
+        calls: [getEnterFarmingParams(enterFarmingProps)],
+        sentTitle: "Entering farming...",
+        successTitle: "Successfully entered farming!",
+      },
+    ];
+  }
+
+  return [
+    {
+      text: "Exit Farming & Withdraw",
+      calls: [getExitFarmingParams(exitFarmingProps), getWithdrawNftParams(withdrawNftProps)],
+      sentTitle: "Exiting farming and withdrawing...",
+      successTitle: "Successfully exited farming and withdrew!",
+    },
+  ];
+}
+
+export const useFarmPosition7702 = (
+  chainId: SupportedChain,
+  account: Address,
+  deposit: PoolDeposit,
+  poolInfo: PoolInfo,
+  poolIncentive: PoolIncentive,
+  tokenId: string,
+  isRewardEnded: boolean,
+  onSuccess?: () => unknown,
+) => {
+  const actions = getFarmActions(chainId, account, deposit, poolInfo, poolIncentive, tokenId, isRewardEnded);
+
+  return {
+    actions,
+    mutation: useMutation({
+      mutationFn: async (farmAction: FarmAction) => {
+        const result = await toastifySendCallsTx(farmAction.calls, config, {
+          txSent: { title: farmAction.sentTitle },
+          txSuccess: { title: farmAction.successTitle },
+        });
+
+        if (!result.status) {
+          throw result.error;
+        }
+
+        //delay to update subgraph
+        await new Promise((res) => setTimeout(res, 3000));
+
+        return result.receipt;
+      },
+      onSuccess: async () => {
+        queryClient.invalidateQueries({ queryKey: ["usePoolsDeposits"] });
+        onSuccess?.();
+      },
+    }),
+  };
 };

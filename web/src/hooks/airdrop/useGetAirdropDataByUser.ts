@@ -7,6 +7,8 @@ export interface AirdropDataByUser {
   currentWeekAllocation: number;
   serLppMainnet: number;
   serLppGnosis: number;
+  monthlyEstimate: number;
+  monthlyEstimatePoH: number;
 }
 
 export const useGetAirdropDataByUser = (user: string | undefined) => {

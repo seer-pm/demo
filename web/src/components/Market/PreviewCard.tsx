@@ -183,7 +183,7 @@ export function OutcomesInfo({
 
 const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Market; parentMarket: Market }) => (
   <div className="tooltip">
-    <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
+    <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
       <p className="text-purple-primary">Conditional Market:</p>
       <p className="text-black-secondary">
         Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
@@ -249,7 +249,7 @@ export function PreviewCard({ market }: { market: Market }) {
         <div className="flex items-center gap-2">
           <div className="tooltip">
             {market.liquidityUSD > 0 && (
-              <div className="tooltiptext !text-left min-w-[300px]">
+              <div className="tooltiptext !text-left min-w-[300px] max-sm:min-w-[220px]">
                 <p className="text-purple-primary">Liquidity:</p>
                 <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
               </div>

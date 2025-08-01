@@ -199,7 +199,8 @@ export const useMarketPools = (market: Market) => {
   });
 };
 
-type PoolsDeposits = Record<Address, GetDepositsQuery["deposits"]>;
+export type PoolDeposit = GetDepositsQuery["deposits"][0];
+type PoolsDeposits = Record<Address, PoolDeposit[]>;
 
 export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owner?: Address) => {
   return useQuery<PoolsDeposits | undefined, Error>({

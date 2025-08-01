@@ -401,16 +401,6 @@ export type Database = {
       };
     };
     Functions: {
-      get_airdrop_totals_current_week: {
-        Args: Record<PropertyKey, never>;
-        Returns: {
-          address: string;
-          chain_id: number;
-          current_week_seer_tokens: number;
-          current_month_seer_tokens: number;
-          total_seer_tokens: number;
-        }[];
-      };
       gtrgm_compress: {
         Args: { "": unknown };
         Returns: unknown;

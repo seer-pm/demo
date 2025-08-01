@@ -4,7 +4,15 @@ import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPo
 import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain } from "@/lib/chains";
-import { ArrowDropDown, ArrowDropUp, ArrowSwap, CloseIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
+import {
+  ArrowDropDown,
+  ArrowDropUp,
+  ArrowSwap,
+  CloseIcon,
+  ConditionalMarketIcon,
+  QuestionIcon,
+  SubDirArrowRight,
+} from "@/lib/icons";
 import { MarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import {
@@ -20,24 +28,18 @@ import clsx from "clsx";
 import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
-import Button from "../Form/Button";
 import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
-import TextOverflowTooltip from "../TextOverflowTooltip";
+import Popover from "../Popover";
 
 function RedeemModalContent({
   account,
   marketId,
   chainId,
   closeModal,
-}: {
-  account?: Address;
-  marketId: Address;
-  chainId: SupportedChain;
-  closeModal: () => void;
-}) {
+}: { account?: Address; marketId: Address; chainId: SupportedChain; closeModal: () => void }) {
   const { data: market, isPending: isMarketPending } = useMarket(marketId, chainId);
   if (isMarketPending) {
     return <div className="shimmer-container w-full h-10"></div>;
@@ -57,6 +59,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const { address: account } = useAccount();
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
+
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
       {
@@ -64,80 +67,72 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
         cell: (info) => {
           const position = info.row.original;
           return (
-            <div className="space-y-2">
-              <a
-                className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer w-[350px]"
-                href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(
-                  position.outcome,
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
-                <p>{info.getValue<string>()}</p>
-              </a>
-              <div className="py-4 flex items-center gap-2">
-                <SubDirArrowRight />
-                <OutcomeImage
-                  image={position.outcomeImage}
-                  title={position.outcome}
-                  isInvalidOutcome={position.isInvalidOutcome}
-                  className="w-[30px] h-[30px] rounded-full"
+            <div className="w-[100%] flex gap-1">
+              {position.parentMarketId && (
+                <Popover
+                  trigger={
+                    <div title="Conditional Market">
+                      <ConditionalMarketIcon width="24" fill="#9747ff" />
+                    </div>
+                  }
+                  content={
+                    <p className="text-black-secondary text-[14px]">
+                      Conditional on{" "}
+                      <a
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline text-purple-primary cursor-pointer hover:underline"
+                        href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
+                      >
+                        "{position.parentMarketName}"
+                      </a>{" "}
+                      being <span className="text-black-primary">"{position.parentOutcome}"</span>
+                    </p>
+                  }
                 />
-                <p className="text-[13px]">{position.outcome}</p>
+              )}
+              <div className="w-[100%]">
+                <a
+                  className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer"
+                  href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
+                  <p title={info.getValue<string>()} className="truncate">
+                    {info.getValue<string>()}
+                  </p>
+                </a>
+                <div className="flex items-center gap-2">
+                  <div className="flex-shrink-0">
+                    <SubDirArrowRight />
+                  </div>
+                  <OutcomeImage
+                    image={position.outcomeImage}
+                    title={position.outcome}
+                    isInvalidOutcome={position.isInvalidOutcome}
+                    className="w-[24px] h-[24px] rounded-full"
+                  />
+                  <p className="text-[13px] truncate">
+                    <span className="text-purple-primary font-semibold">{position.tokenBalance.toFixed(2)} </span>
+                    <span title={position.outcome}>{position.outcome}</span>
+                  </p>
+                </div>
               </div>
             </div>
           );
         },
-        header: "Market Name",
+        header: "Market",
       },
-      {
-        accessorFn: (position) => position.parentMarketName ?? "",
-        id: "parentMarket",
-        cell: (info) => {
-          const position = info.row.original;
-          if (!position.parentMarketId) return "-";
-          return (
-            <a
-              className="flex text-[13px] cursor-pointer hover:underline"
-              href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(
-                position.parentOutcome!,
-              )}`}
-            >
-              <TextOverflowTooltip text={info.getValue<string>()} maxChar={30} />
-            </a>
-          );
-        },
-        header: "Parent Market",
-        enableSorting: true,
-      },
-      {
-        accessorFn: (position) => `${position.tokenBalance.toFixed(2)} ${position.tokenName}`,
-        id: "position",
-        cell: (info) => {
-          const position = info.row.original;
-          return (
-            <a
-              className="text-purple-primary font-semibold text-[14px] whitespace-nowrap cursor-pointer"
-              href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {info.getValue<string>()}
-            </a>
-          );
-        },
-        header: "Position",
-        enableSorting: false,
-      },
+
       {
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
           if (position.redeemedPrice) {
             return (
-              <div className="font-semibold text-[14px] flex items-center gap-2">
-                <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+              <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
+                <p>{position.redeemedPrice.toFixed(2)}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
                   <QuestionIcon fill="#9747FF" />
@@ -147,7 +142,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           }
           if (position.parentMarketId) {
             return (
-              <div className="font-semibold text-[14px] flex items-center gap-2">
+              <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
                 <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
@@ -158,15 +153,17 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               </div>
             );
           }
-          return <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>;
+          return <p className="font-semibold text-[14px] text-center">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>;
         },
-        header: "Current Token Price (sDAI)",
+        header: "Price (sDAI)",
       },
 
       {
         accessorKey: "tokenValue",
-        cell: (info) => <p className="font-semibold text-[14px]">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>,
-        header: "Position Value (sDAI)",
+        cell: (info) => (
+          <p className="font-semibold text-[14px] text-center">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+        ),
+        header: "Value (sDAI)",
       },
       {
         accessorKey: "marketStatus",
@@ -174,20 +171,19 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           const position = info.row.original;
           if (info.getValue<string>() === MarketStatus.CLOSED) {
             return (
-              <Button
+              <button
                 type="button"
-                text="Redeem"
-                className="!min-w-[100px] !w-[100px] !min-h-[40px] !h-[40px]"
+                className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
                 onClick={() => {
                   setSelectedMarketId(position.marketAddress as Address);
                   openModal();
                 }}
               >
-                Redeemable
-              </Button>
+                Redeem
+              </button>
             );
           }
-          return <p className="text-[14px] text-black-secondary">Not yet</p>;
+          return <p className="text-[14px] text-black-secondary">Not redeemable</p>;
         },
         header: "Redeem",
         sortingFn: (rowA, rowB) => {
@@ -254,18 +250,25 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           }
           className="[&_.btn-primary]:w-full"
         />
-        <table className="simple-table">
+        <table className="simple-table table-fixed">
+          <colgroup>
+            <col style={{ width: "46%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "24%" }} />
+          </colgroup>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
                   return (
-                    <th key={header.id} colSpan={header.colSpan}>
+                    <th key={header.id} colSpan={header.colSpan} className={index > 0 ? "text-center" : ""}>
                       {header.isPlaceholder ? null : (
                         <div
                           className={clsx(
                             header.column.getCanSort() ? "cursor-pointer select-none" : "",
                             "flex items-center gap-2",
+                            index > 0 ? "justify-center" : "",
                           )}
                           onClick={header.column.getToggleSortingHandler()}
                           title={
@@ -299,7 +302,11 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               return (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => {
-                    return <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
+                    return (
+                      <td className="text-center" key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
                   })}
                 </tr>
               );
