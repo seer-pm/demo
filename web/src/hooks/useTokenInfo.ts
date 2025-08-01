@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 
-interface GetTokenResult {
+export interface GetTokenResult {
   address: Address;
   decimals: number;
   name: string;

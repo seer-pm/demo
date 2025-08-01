@@ -1,41 +1,49 @@
 import { Alert } from "@/components/Alert";
 import { DateFormValues, MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { DateForm } from "@/components/MarketForm/DateForm";
-import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
+import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { MarketTypes } from "@/lib/market";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 
 enum FormSteps {
-  MARKET_TYPE = 1,
-  OUTCOMES = 2,
-  DATE = 3,
-  PREVIEW = 4,
+  OUTCOMES = 1,
+  DATE = 2,
+  PREVIEW = 3,
 }
 
-function CreateMarket() {
-  const { chain, chainId = DEFAULT_CHAIN } = useAccount();
-  const [activeStep, setActiveStep] = useState(FormSteps.MARKET_TYPE);
+function getOutcomes(tokensInfo: GetTokenResult[] | undefined): OutcomesFormValues["outcomes"] {
+  if (!tokensInfo) {
+    return [];
+  }
 
-  const useMarketTypeFormReturn = useForm<MarketTypeFormValues>({
-    mode: "all",
-    defaultValues: {
-      marketType: undefined,
-      marketCategories: ["misc"],
-    },
-  });
+  return [
+    { value: `Yes-${tokensInfo[0]?.symbol}`, token: "", image: "" },
+    { value: `No-${tokensInfo[0]?.symbol}`, token: "", image: "" },
+    { value: `Yes-${tokensInfo[1]?.symbol}`, token: "", image: "" },
+    { value: `No-${tokensInfo[1]?.symbol}`, token: "", image: "" },
+  ];
+}
+
+function CreateProposal() {
+  const { chain, chainId = DEFAULT_CHAIN } = useAccount();
+  const [activeStep, setActiveStep] = useState(FormSteps.OUTCOMES);
 
   const useOutcomesFormReturn = useForm<OutcomesFormValues>({
     mode: "all",
     defaultValues: {
       market: "",
       outcomes: [
-        { value: "", token: "", image: "" },
-        { value: "", token: "", image: "" },
+        { value: "Yes-Token1", token: "", image: "" },
+        { value: "No-Token1", token: "", image: "" },
+        { value: "Yes-Token2", token: "", image: "" },
+        { value: "No-Token2", token: "", image: "" },
       ],
       lowerBound: { value: 0, token: "" },
       upperBound: { value: 0, token: "" },
@@ -43,14 +51,17 @@ function CreateMarket() {
     },
   });
 
+  const collaterals = useOutcomesFormReturn.watch(["collateralToken1", "collateralToken2"]);
+  const { data: tokensInfo } = useTokensInfo(collaterals as Address[], chainId as SupportedChain);
+
+  const outcomes = getOutcomes(tokensInfo);
+
   const useDateFormReturn = useForm<DateFormValues>({
     mode: "all",
     defaultValues: {
       openingTime: "",
     },
   });
-
-  const marketType = useMarketTypeFormReturn.watch("marketType");
 
   const goToPrevStep = () => {
     if (activeStep > 1) {
@@ -63,27 +74,28 @@ function CreateMarket() {
     }
   };
 
+  const marketTypeValues: MarketTypeFormValues = {
+    marketType: MarketTypes.CATEGORICAL,
+    marketCategories: ["misc"],
+  };
+
   return (
     <div className="container-fluid !w-[924px] py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
       {chain && (
         <>
-          <div className="text-[16px] text-purple-primary mb-[24px]">Create New Market</div>
+          <div className="text-[16px] text-purple-primary mb-[24px]">Create New Proposal</div>
 
           {activeStep !== FormSteps.PREVIEW && <Steps activeStep={activeStep} />}
-
-          {activeStep === FormSteps.MARKET_TYPE && (
-            <MarketTypeForm useFormReturn={useMarketTypeFormReturn} goToNextStep={goToNextStep} />
-          )}
 
           {activeStep === FormSteps.OUTCOMES && (
             <OutcomesForm
               useFormReturn={useOutcomesFormReturn}
               goToPrevStep={goToPrevStep}
               goToNextStep={goToNextStep}
-              marketType={marketType}
-              isFutarchyMarket={false}
+              marketType={marketTypeValues.marketType}
+              isFutarchyMarket={true}
               chainId={chainId as SupportedChain}
             />
           )}
@@ -94,12 +106,12 @@ function CreateMarket() {
 
           {activeStep === FormSteps.PREVIEW && (
             <PreviewForm
-              marketTypeValues={useMarketTypeFormReturn.getValues()}
-              outcomesValues={useOutcomesFormReturn.getValues()}
+              marketTypeValues={marketTypeValues}
+              outcomesValues={{ ...useOutcomesFormReturn.getValues(), outcomes }}
               dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}
-              isFutarchyMarket={false}
+              isFutarchyMarket={true}
               useOutcomesFormReturn={useOutcomesFormReturn}
             />
           )}
@@ -109,4 +121,4 @@ function CreateMarket() {
   );
 }
 
-export default CreateMarket;
+export default CreateProposal;

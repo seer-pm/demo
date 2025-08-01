@@ -67,9 +67,9 @@ const getConfig = async (): Promise<Config[]> => {
     curate: ["LightGeneralizedTCR"],
     reality: ["Reality"],
     arbitrators: ["RealitioForeignArbitrationProxyWithAppeals", "Realitio_v2_1_ArbitratorWithAppeals"],
-    "market-factory": ["MarketFactory", "Market"],
+    "market-factory": ["MarketFactory", "Market", "FutarchyFactory"],
     "market-view": ["MarketView"],
-    router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter"],
+    router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],
     "multi-drop": ["MultiDrop", "GovernedRecipient"],
   };
 

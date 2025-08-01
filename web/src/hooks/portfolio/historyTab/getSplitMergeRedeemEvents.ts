@@ -11,7 +11,6 @@ export async function getSplitMergeRedeemEvents(account: string, chainId: Suppor
   if (!client) {
     throw new Error("Subgraph not available");
   }
-
   const data = await getSeerSdk(client).GetConditionalEvents({
     first: 1000,
     orderBy: ConditionalEvent_OrderBy.BlockNumber,

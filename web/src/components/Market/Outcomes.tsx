@@ -234,7 +234,7 @@ function AddLiquidityLinks({
           rel="noopener noreferrer"
           className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
         >
-          <span>Add Liquidity</span>
+          Add Liquidity
         </a>
       )}
       {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
@@ -384,7 +384,7 @@ function OutcomeDetails({
             </div>
           )}
         </div>
-        <div className="text-[12px] flex items-start gap-x-4 gap-y-2 flex-wrap flex-col justify-start min-[400px]:flex-row min-[400px]:items-center">
+        <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-col justify-start min-[400px]:flex-row min-[400px]:items-center">
           {balances && balances[outcomeIndex] > 0n && (
             <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(outcomeIndex)}>
               Add token to wallet
@@ -430,6 +430,7 @@ function OutcomeDetails({
             </Link>
           )}
         </div>
+        <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>
       </div>
     </div>
   );
@@ -488,7 +489,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
       />
       <div className="text-[16px] font-semibold mb-[24px]">Outcomes</div>
       <div className="space-y-3">
-        {market.wrappedTokens.map((_, j) => {
+        {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
@@ -497,41 +498,84 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
               key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               className={clsx(
-                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
-                activeOutcome === i ? "border-purple-primary" : "border-black-medium",
+                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer flex-wrap",
+                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
+                  ? "border-purple-primary"
+                  : "border-black-medium",
+                market.type === "Futarchy" && "max-md:space-y-[12px]",
               )}
             >
-              <OutcomeDetails
-                market={market}
-                wrappedAddress={market.wrappedTokens[i]}
-                marketStatus={marketStatus}
-                openModal={openModalCallback}
-                openPoolDetailsModal={openPoolDetailsModal}
-                outcomeIndex={i}
-                pools={pools}
-                loopIndex={j}
-                images={images}
-              />
+              {market.type === "Generic" ? (
+                <OutcomeDetails
+                  market={market}
+                  wrappedAddress={market.wrappedTokens[i]}
+                  marketStatus={marketStatus}
+                  openModal={openModalCallback}
+                  openPoolDetailsModal={openPoolDetailsModal}
+                  outcomeIndex={i}
+                  pools={pools}
+                  loopIndex={j}
+                  images={images}
+                />
+              ) : (
+                <>
+                  <OutcomeDetails
+                    market={market}
+                    wrappedAddress={market.wrappedTokens[i]}
+                    marketStatus={marketStatus}
+                    openModal={openModalCallback}
+                    openPoolDetailsModal={openPoolDetailsModal}
+                    outcomeIndex={i}
+                    pools={pools}
+                    loopIndex={j}
+                    images={images}
+                  />
+                  <OutcomeDetails
+                    market={market}
+                    wrappedAddress={market.wrappedTokens[i + 2]}
+                    marketStatus={marketStatus}
+                    openModal={openModalCallback}
+                    openPoolDetailsModal={openPoolDetailsModal}
+                    outcomeIndex={i + 2}
+                    pools={pools}
+                    loopIndex={j}
+                    images={images}
+                  />
+                </>
+              )}
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
-                <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
-                  {isLoading ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-                      {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
-                    </>
-                  )}
-                </div>
+                {market.type === "Generic" && (
+                  <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
+                    {isLoading ? (
+                      <Spinner />
+                    ) : (
+                      <>
+                        <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+                        {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <input
                   type="radio"
                   name="outcome"
                   className="radio"
                   onChange={outcomeClick(i)}
-                  checked={activeOutcome === i}
+                  checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>
+              {market.type === "Futarchy" && (
+                <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
+                  <AddLiquidityLinks
+                    market={market}
+                    outcomeIndex={i}
+                    pools={pools}
+                    openLiquidityModal={openModal}
+                    openPoolDetailsModal={openPoolDetailsModal}
+                  />
+                </div>
+              )}
             </div>
           );
         })}

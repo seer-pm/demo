@@ -76,7 +76,7 @@ export default async (req: Request) => {
 
   try {
     // Fetch market
-    const market = (await searchMarkets([chainId], marketId))?.markets?.[0];
+    const market = (await searchMarkets([chainId], "", marketId))?.markets?.[0];
 
     if (!market) {
       return new Response(JSON.stringify({ error: "Market not found" }), {

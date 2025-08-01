@@ -13,8 +13,9 @@ import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
+  decodeOutcomes,
   formatOutcome,
-  getAnswerText,
+  getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
   isScalarBoundInWei,
@@ -71,7 +72,9 @@ function getOutcome(templateId: bigint, values: AnswerFormValues, scalarBoundInW
 function getOutcomesOptions(market: Market, question: Question) {
   let options: { value: FormEventOutcomeValue; text: string }[] = [];
 
-  options = market.outcomes
+  const outcomes = decodeOutcomes(market, question);
+
+  options = outcomes
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
@@ -188,9 +191,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           <div>This market is already resolved.</div>
           <div>
             Final answer:{" "}
-            <span className="text-purple-primary font-semibold">
-              {getAnswerText(question, market.outcomes, market.templateId)}
-            </span>
+            <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
           </div>
         </div>
         <div className="text-center mt-[24px]">
@@ -246,9 +247,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         </div>
         <div>
           Current answer:{" "}
-          <span className="text-purple-primary font-semibold">
-            {getAnswerText(question, market.outcomes, market.templateId)}
-          </span>
+          <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
         </div>
       </div>
 

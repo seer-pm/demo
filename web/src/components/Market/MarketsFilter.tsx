@@ -11,7 +11,7 @@ import { Link } from "../Link";
 import { MARKET_CATEGORIES } from "../MarketForm";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter() {
+export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
   const { address } = useAccount();
   const [searchParams] = useSearchParams();
   const {
@@ -84,8 +84,8 @@ export function MarketsFilter() {
 
         <div>
           <LinkButton
-            to={"/create-market"}
-            text="Create New Market"
+            to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
+            text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
             icon={<PlusCircleIcon />}
             className="max-lg:w-full min-w-[256px]"
           />

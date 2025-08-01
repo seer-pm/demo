@@ -88,6 +88,7 @@ interface MarketFilters {
   orderBy: Market_OrderBy | "default";
   showConditionalMarkets: boolean;
   showMarketsWithRewards: boolean;
+  showFutarchyMarkets: boolean;
   orderDirection: "asc" | "desc";
   minLiquidity: number;
 }
@@ -100,6 +101,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     orderBy: initialOrderBy,
     showConditionalMarkets: initialShowConditionalMarkets,
     showMarketsWithRewards: initialShowMarketsWithRewards,
+    showFutarchyMarkets: initialShowFutarchyMarkets,
     orderDirection: initialOrderDirection,
     minLiquidity: initialMinLiquidity,
     setMarketStatus,
@@ -108,6 +110,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setOrderBy,
     toggleShowConditionalMarkets,
     toggleShowMarketsWithRewards,
+    toggleShowFutarchyMarkets,
     setOrderDirection,
     setMinLiquidity,
   } = useMarketsSearchParams();
@@ -127,6 +130,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       orderBy: initialOrderBy ?? "default",
       showConditionalMarkets: initialShowConditionalMarkets ?? false,
       showMarketsWithRewards: initialShowMarketsWithRewards ?? false,
+      showFutarchyMarkets: initialShowFutarchyMarkets ?? false,
       orderDirection: initialOrderDirection ?? "desc",
       minLiquidity: initialMinLiquidity ?? 0,
     },
@@ -140,6 +144,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
       orderBy,
       showConditionalMarkets,
       showMarketsWithRewards,
+      showFutarchyMarkets,
       orderDirection,
       minLiquidity,
     } = data;
@@ -152,6 +157,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setShowFilters(false);
     toggleShowConditionalMarkets(showConditionalMarkets);
     toggleShowMarketsWithRewards(showMarketsWithRewards);
+    toggleShowFutarchyMarkets(showFutarchyMarkets);
     if (orderBy !== "default") {
       setOrderDirection(orderDirection);
     }
@@ -470,9 +476,27 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               onChange={(e) => setValue("minLiquidity", Number(e.target.value ?? 0))}
             />
           </div>
+          <div className="font-semibold flex items-center gap-2 pb-3 mt-5">
+            Futarchy{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-futarchy-markets"
+              type="checkbox"
+              checked={watch("showFutarchyMarkets")}
+              onChange={(e) => setValue("showFutarchyMarkets", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-futarchy-markets">
+              Show only futarchy markets
+            </label>
+          </div>
         </div>
       </div>
-      <div className="flex items-center justify-end px-9 gap-8">
+      <div className="flex items-center justify-end px-9 gap-8 mt-4">
         <button
           type="button"
           className="text-purple-primary hover:opacity-50 text-[14px]"
