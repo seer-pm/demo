@@ -187,6 +187,10 @@ export async function searchMarkets(
 
   if (type) {
     query = query.eq("subgraph_data->>type", type);
+
+    if (type === "Futarchy") {
+      query = query.neq("subgraph_data->>marketName", "");
+    }
   }
 
   if (marketName) {

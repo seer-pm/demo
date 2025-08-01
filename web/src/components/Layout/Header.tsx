@@ -27,7 +27,6 @@ import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
-import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
@@ -184,13 +183,6 @@ export default function Header() {
               Create Market
             </Link>
           </li>
-          {chainId === gnosis.id && (
-            <li>
-              <Link to={"/futarchy"} className="whitespace-nowrap hover:opacity-85">
-                Futarchy
-              </Link>
-            </li>
-          )}
           <li>
             <div className="dropdown dropdown-end">
               <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
@@ -453,13 +445,6 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
               Create Market
             </Link>
           </li>
-          {chainId === gnosis.id && (
-            <li>
-              <Link to={"/futarchy"} className="hover:font-semibold">
-                Futarchy
-              </Link>
-            </li>
-          )}
           <li>
             <div>
               <span>Policies</span>

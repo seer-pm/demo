@@ -6,11 +6,9 @@ import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { useEffect } from "react";
-import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 
-function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; params: UseMarketsProps }) {
-  params.type = isFutarchyPage ? "Futarchy" : "Generic";
+function PageContent({ params }: { params: UseMarketsProps }) {
   const results = useMarkets(params);
   const {
     data,
@@ -21,7 +19,7 @@ function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; para
   return (
     <div>
       <div className="px-[24px] lg:px-[64px] py-[16px]">
-        <MarketsFilter isFutarchyPage={isFutarchyPage} />
+        <MarketsFilter />
       </div>
 
       <div className="px-[24px] lg:px-[64px] py-[24px]">
@@ -48,9 +46,8 @@ function PageContent({ isFutarchyPage, params }: { isFutarchyPage: boolean; para
 }
 
 function Home() {
-  const { pageId } = usePageContext();
-  const isFutarchyPage = pageId === "/src/pages/futarchy";
   const params = useMarketsSearchParams();
+
   useEffect(() => {
     if (/#\/markets\/(?<chainId>\d*)\/(?<marketId>0x[0-9a-fA-F]{40})/.test(window.location.hash)) {
       // redirect old client urls
@@ -58,7 +55,7 @@ function Home() {
     }
   }, []);
 
-  return <PageContent isFutarchyPage={isFutarchyPage} params={params} />;
+  return <PageContent params={params} />;
 }
 
 export default Home;

@@ -11,7 +11,7 @@ import { Link } from "../Link";
 import { MARKET_CATEGORIES } from "../MarketForm";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter({ isFutarchyPage }: { isFutarchyPage: boolean }) {
+export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
   const { address } = useAccount();
   const [searchParams] = useSearchParams();
   const {
