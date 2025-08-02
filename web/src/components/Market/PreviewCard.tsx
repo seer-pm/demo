@@ -23,7 +23,7 @@ import {
 } from "@/lib/market";
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
-import { displayScalarBound } from "@/lib/reality";
+import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { clientOnly } from "vike-react/clientOnly";
@@ -196,6 +196,35 @@ const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Marke
 
 const ConditionalMarketTooltip = clientOnly(async () => ConditionalMarketTooltipInner);
 
+function MarketResult({ market }: { market: Market }) {
+  const marketStatus = getMarketStatus(market);
+
+  if (marketStatus !== MarketStatus.CLOSED) {
+    return null;
+  }
+
+  const marketType = getMarketType(market);
+
+  return (
+    <Link
+      className="h-[24px] block rounded-[3px] text-[12px] leading-[24px] relative"
+      style={{ background: `${BAR_COLOR[marketType][0]}29`, color: BAR_COLOR[marketType][0] }}
+      to={paths.market(market)}
+    >
+      <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+        <CheckCircleIcon />
+      </div>
+      <div className="text-center px-7 whitespace-nowrap text-ellipsis overflow-hidden">
+        {marketType === MarketTypes.MULTI_CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR ? (
+          <span className="font-medium">See results</span>
+        ) : (
+          getAnswerTextFromMarket(market.questions[0], market)
+        )}
+      </div>
+    </Link>
+  );
+}
+
 export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
@@ -237,13 +266,18 @@ export function PreviewCard({ market }: { market: Market }) {
       </div>
 
       <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">
-        <OutcomesInfo
-          market={market}
-          outcomesCount={outcomesCount}
-          images={market.images?.outcomes}
-          marketStatus={marketStatus}
-        />
+        {marketStatus === MarketStatus.CLOSED ? (
+          <MarketResult market={market} />
+        ) : (
+          <OutcomesInfo
+            market={market}
+            outcomesCount={outcomesCount}
+            images={market.images?.outcomes}
+            marketStatus={marketStatus}
+          />
+        )}
       </div>
+
       <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="#511778" width="50px" />
         <div className="flex items-center gap-2">
