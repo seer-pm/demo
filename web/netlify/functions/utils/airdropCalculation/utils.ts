@@ -19,23 +19,22 @@ export function getTokensByTimestamp(markets: SubgraphMarket[], timestamp: numbe
 }
 
 export function getRandomNextDayTimestamp(timestampInSeconds: number, lastDayInSeconds: number) {
-  // Convert seconds to milliseconds
+  // Get start of next UTC day
   const date = new Date(timestampInSeconds * 1000);
-
-  // Set to start of next day (00:00:00)
-  date.setDate(date.getDate() + 1);
-  date.setHours(0, 0, 0, 0);
-
-  // Get seconds for start of next day
+  date.setUTCDate(date.getUTCDate() + 1);
+  date.setUTCHours(0, 0, 0, 0);
   const nextDayStartSeconds = Math.floor(date.getTime() / 1000);
-  console.log({ nextDayStartSeconds, lastDayInSeconds });
-  if (nextDayStartSeconds >= lastDayInSeconds) {
-    return nextDayStartSeconds;
-  }
-  // Add random seconds
-  const randomSeconds =
-    Math.floor(Math.random() * (Math.min(lastDayInSeconds - nextDayStartSeconds, 86399) - 1 + 1)) + 1;
-  return nextDayStartSeconds + randomSeconds;
+
+  const nextDayEndSeconds = nextDayStartSeconds + 86400;
+  // No valid range if nextDayStart >= lastDay
+  if (nextDayStartSeconds >= lastDayInSeconds) return;
+
+  const maxExclusive = Math.min(nextDayEndSeconds, lastDayInSeconds);
+
+  const range = maxExclusive - nextDayStartSeconds;
+  const randomOffset = Math.floor(Math.random() * range);
+
+  return nextDayStartSeconds + randomOffset;
 }
 
 const Q96 = BigNumber.from(2).pow(96);
