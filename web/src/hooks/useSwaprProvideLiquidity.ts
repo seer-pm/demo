@@ -1,9 +1,9 @@
-import { Market } from "@/hooks/useMarket";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { LiquidityFormData, OutcomeFormData, isValidLiquidityOutcome } from "@/lib/liquidity";
+import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
-import { toastifyTx } from "@/lib/toastify";
-import { config as wagmiConfig } from "@/wagmi";
+import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
+import { config } from "@/wagmi";
 import {
   // Reverted import path, assuming Token/FeeAmount are top-level or re-exported
   FeeAmount,
@@ -18,16 +18,18 @@ import {
   // Add other necessary SDK imports (e.g., Price, SqrtPriceMath)
 } from "@algebra/sdk"; // Reverted import path
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { writeContract } from "@wagmi/core"; // Import for sending transactions
-import { http, Address, Hex, TransactionReceipt, createPublicClient } from "viem";
+import { sendTransaction } from "@wagmi/core";
+import { http, Address, Hex, TransactionReceipt, createPublicClient, encodeFunctionData } from "viem";
 import { parseUnits } from "viem"; // Import parseUnits
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi"; // Import useAccount to get the recipient address
+import { Execution, useCheck7702Support } from "./useCheck7702Support";
+import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 export const SLIPPAGE_TOLERANCE = new Percent(50, 10000); // Slippage tolerance 0.5% (50 BPS)
 export const USE_FULL_PRECISION = true;
 
-const NonfungiblePositionManagerAbi = [
+export const NonfungiblePositionManagerAbi = [
   {
     inputs: [
       {
@@ -186,67 +188,116 @@ export const usePrepareLiquidityMint = (props: ProvideLiquidityProps, enabled = 
 
 // Executes the multicall mint or throws an error
 // Changed input type to accept PrepareMintResult
-async function executeMint(prepareResult: PrepareMintResult): Promise<TransactionReceipt> {
+function executeMint(prepareResult: PrepareMintResult): Execution {
   const { calldatas } = prepareResult;
+
   if (!calldatas || calldatas.length === 0) {
     console.log("No calldata provided to executeMint.");
     throw new Error("No liquidity positions to add.");
   }
-  console.log("calldatas", calldatas);
-  console.log(`Submitting multicall transaction for ${calldatas.length} outcomes...`);
-  const txResult = await toastifyTx(
-    () =>
-      writeContract(wagmiConfig, {
-        address: V3_CONTRACTS.NONFUNGIBLE_POSITION_MANAGER_ADDRESS as Address,
-        abi: NonfungiblePositionManagerAbi,
-        functionName: "multicall",
-        args: [calldatas],
-      }),
-    {
-      txSent: { title: `Adding Liquidity (${calldatas.length} Positions)...` },
-      txSuccess: { title: `Liquidity Added (${calldatas.length} Positions)!` },
-      txError: { title: "Liquidity Add Failed" },
-    },
-  );
 
-  if (!txResult.status || !txResult.receipt) {
-    console.error("Multicall transaction failed or receipt missing. See toast notification.");
-    // Throwing a more specific error based on status
-    throw new Error(
-      txResult.status === false ? "Multicall transaction failed" : "Missing receipt for multicall transaction",
-    );
-  }
-
-  console.log("Multicall transaction successful:", txResult.receipt);
-  return txResult.receipt;
+  return {
+    to: V3_CONTRACTS.NONFUNGIBLE_POSITION_MANAGER_ADDRESS as Address,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: NonfungiblePositionManagerAbi,
+      functionName: "multicall",
+      args: [calldatas],
+    }),
+  };
 }
 
-// --- Updated Mutation Hook ---
-// Accepts PrepareMintResult instead of ProvideLiquidityProps
-export const useSwaprProvideLiquidity = (
-  onSuccess?: (data: TransactionReceipt) => void,
-  onError?: (error: Error) => void,
-) => {
-  return useMutation<TransactionReceipt, Error, PrepareMintResult>({
-    mutationFn: executeMint,
-    onSuccess: (data) => {
-      // Invalidate relevant queries upon success
-      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-      console.log("Liquidity provided successfully via multicall (hook):", data);
-      if (onSuccess) {
-        onSuccess(data);
-      }
-    },
-    onError: (error) => {
-      // Log errors from either preparation or execution
-      console.error("Error providing liquidity (hook):", error);
-      if (onError) {
-        onError(error);
-      }
-    },
+async function executeMintLegacy(props: PrepareMintResult): Promise<TransactionReceipt> {console.log("add legacy");
+  const result = await toastifyTx(() => sendTransaction(config, executeMint(props)), {
+    txSent: { title: "Adding liquidity..." },
+    txSuccess: { title: "Liquidity added!" },
   });
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+export const useExecuteLiquidityMintLegacy = (
+  approvalsConfig: UseMissingApprovalsProps,
+  onSuccess?: (data: TransactionReceipt) => void,
+) => {
+  const approvals = useMissingApprovals(approvalsConfig);
+
+  return {
+    approvals,
+    executeLiquidityMint: useMutation<TransactionReceipt, Error, PrepareMintResult>({
+      mutationFn: (props: PrepareMintResult) => executeMintLegacy(props),
+      onSuccess: (data) => {
+        // Invalidate relevant queries upon success
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        console.log("Liquidity provided successfully via multicall (hook):", data);
+        if (onSuccess) {
+          onSuccess(data);
+        }
+      },
+    }),
+  };
+};
+
+async function executeLiquidityMint7702(
+  approvalsConfig: UseMissingApprovalsProps,
+  props: PrepareMintResult,
+): Promise<TransactionReceipt> {
+  
+  const calls: Execution[] = getApprovals7702(approvalsConfig);
+
+  calls.push(executeMint(props));
+
+  const result = await toastifySendCallsTx(calls, config, {
+    txSent: { title: "Adding liquidity..." },
+    txSuccess: { title: "Liquidity added!" },
+  });
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+export const useExecuteLiquidityMint7702 = (
+  approvalsConfig: UseMissingApprovalsProps,
+  onSuccess?: (data: TransactionReceipt) => void,
+) => {console.log("add 7702");
+  const approvals = {
+    data: [],
+    isLoading: false,
+  };
+
+  return {
+    approvals,
+    executeLiquidityMint: useMutation<TransactionReceipt, Error, PrepareMintResult>({
+      mutationFn: (props: PrepareMintResult) => executeLiquidityMint7702(approvalsConfig, props),
+      onSuccess: (data) => {
+        // Invalidate relevant queries upon success
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        console.log("Liquidity provided successfully via multicall (hook):", data);
+        if (onSuccess) {
+          onSuccess(data);
+        }
+      },
+    }),
+  };
+};
+
+export const useExecuteLiquidityMint = (approvalsConfig: UseMissingApprovalsProps, onSuccess?: () => void) => {
+  const supports7702 = useCheck7702Support();
+  const execute7702 = useExecuteLiquidityMint7702(approvalsConfig, onSuccess);
+  const executeLegacy = useExecuteLiquidityMintLegacy(approvalsConfig, onSuccess);
+
+  return supports7702 ? execute7702 : executeLegacy;
 };
 
 // --- Pool Data Hook ---

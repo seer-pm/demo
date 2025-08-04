@@ -1,11 +1,10 @@
-import { Market } from "@/hooks/useMarket";
 import {
   SLIPPAGE_TOLERANCE,
   USE_FULL_PRECISION,
   buildPrice,
+  useExecuteLiquidityMint,
   usePoolsData,
   usePrepareLiquidityMint,
-  useSwaprProvideLiquidity,
 } from "@/hooks/useSwaprProvideLiquidity";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { MinusIcon, PlusIcon } from "@/lib/icons";
@@ -17,11 +16,14 @@ import {
   calculateRange,
   isValidLiquidityOutcome,
 } from "@/lib/liquidity";
+import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { displayBalance } from "@/lib/utils";
 import {
   FeeAmount,
+  MintCallParams,
   PoolDataResult,
+  V3_CONTRACTS,
   calculateMintAmountsFromInput,
   getCurrentPriceAsNumber,
   getPoolFromPoolData,
@@ -29,8 +31,11 @@ import {
 import ReactECharts from "echarts-for-react";
 import { BaseSyntheticEvent } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { parseUnits } from "viem";
+import { Address, parseUnits } from "viem";
 import { useAccount } from "wagmi";
+import { ApproveButton } from "../Form/ApproveButton";
+import Button from "../Form/Button";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 const sDaiAddress = COLLATERAL_TOKENS[100]?.primary?.address;
 
@@ -206,9 +211,9 @@ const OutcomeLiquidityConfig = ({
   }
 
   return (
-    <div className={`p-4 border rounded space-y-3 bg-gray-50 transition-opacity ${!isEnabled ? "opacity-50" : ""}`}>
+    <div className={`space-y-3 bg-white py-[12px] px-[24px] border rounded-[3px] shadow-sm cursor-pointer border-black-medium`}>
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-gray-800">{outcomeName}</h3>
+        <h3 className="text-[16px] font-medium text-black">{outcomeName}</h3>
         <Controller
           name={`outcomes.${index}.enabled`}
           control={control}
@@ -227,7 +232,7 @@ const OutcomeLiquidityConfig = ({
       {isEnabled && (
         <>
           <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-[150px] p-[12px ]border rounded-[12px] border-black-medium">
               <label htmlFor={`outcomes.${index}.minPrice`} className="block text-sm font-medium text-gray-700">
                 Min Price
               </label>
@@ -275,8 +280,8 @@ const OutcomeLiquidityConfig = ({
               {outcomeErrors?.minPrice && <p className="text-red-500 text-xs mt-1">{outcomeErrors.minPrice.message}</p>}
             </div>
 
-            <div className="flex-1 min-w-[100px]">
-              <label htmlFor={`outcomes.${index}.centerPrice`} className="block text-sm font-medium text-gray-700">
+            <div className="flex-1 min-w-[100px] p-[12px ]border rounded-[12px] border-black-medium">
+              <label htmlFor={poolData.poolExists ? `outcomes.${index}.centerPrice` : undefined} className="block text-sm font-medium text-gray-700">
                 {poolData.poolExists ? "Current Pool Price" : "Center Price"}
               </label>
               {poolData.poolExists ? (
@@ -305,7 +310,7 @@ const OutcomeLiquidityConfig = ({
               )}
             </div>
 
-            <div className="flex-1 min-w-[150px]">
+            <div className="flex-1 min-w-[150px] p-[12px ]border rounded-[12px] border-black-medium">
               <label htmlFor={`outcomes.${index}.maxPrice`} className="block text-sm font-medium text-gray-700">
                 Max Price
               </label>
@@ -454,6 +459,46 @@ const OutcomeLiquidityConfig = ({
   );
 };
 
+/**
+ * Generates approval addresses and amounts from mint arguments
+ * @param mintArgs Array of MintCallParams from the prepared liquidity data
+ * @returns Object containing approveAddresses and approveAmounts arrays
+ */
+function generateApprovalData(mintArgs: MintCallParams[] | undefined): {
+  approveAddresses: Address[];
+  approveAmounts: bigint[];
+} {
+  const approveAddresses: Address[] = [];
+  const approveAmounts: bigint[] = [];
+
+  if (!mintArgs || mintArgs.length === 0) {
+    return { approveAddresses, approveAmounts };
+  }
+
+  // Create a map to track total amounts needed for each token
+  const tokenAmounts = new Map<Address, bigint>();
+
+  mintArgs.forEach((mintArg) => {
+    // Add amount0Desired for token0
+    const token0 = mintArg.token0 as Address;
+    const currentAmount0 = tokenAmounts.get(token0) || 0n;
+    tokenAmounts.set(token0, currentAmount0 + mintArg.amount0Desired);
+
+    // Add amount1Desired for token1
+    const token1 = mintArg.token1 as Address;
+    const currentAmount1 = tokenAmounts.get(token1) || 0n;
+    tokenAmounts.set(token1, currentAmount1 + mintArg.amount1Desired);
+  });
+
+  // Convert map to arrays
+  tokenAmounts.forEach((amount, tokenAddress) => {
+    approveAddresses.push(tokenAddress);
+    approveAmounts.push(amount);
+  });
+
+  return { approveAddresses, approveAmounts };
+}
+
 // --- Liquidity Form Component ---
 function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolDataResult[] }) {
   const { address } = useAccount();
@@ -505,18 +550,28 @@ function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolD
     isSuccess: isPrepareSuccess,
   } = usePrepareLiquidityMint({ formData: watchedOutcomes, market }, enabledFormData.outcomes.length > 0);
 
-  const provideLiquidityMutation = useSwaprProvideLiquidity(
-    (receipts) => {
-      console.log("Liquidity added successfully! Receipts:", receipts);
+  // Generate approval addresses and amounts from preparedData.mintArgs
+  const { approveAddresses, approveAmounts } = generateApprovalData(preparedData?.mintArgs);
+
+  const {
+    executeLiquidityMint,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useExecuteLiquidityMint(
+    {
+      tokensAddresses: approveAddresses,
+      account: address,
+      spender: V3_CONTRACTS.NONFUNGIBLE_POSITION_MANAGER_ADDRESS as Address,
+      amounts: approveAmounts,
+      chainId: market.chainId,
     },
-    (error) => {
-      console.error("Failed to add liquidity:", error);
+    () => {
+      console.log("Liquidity added successfully!");
     },
   );
 
   const onSubmit: SubmitHandler<LiquidityFormData> = () => {
     if (isPrepareSuccess && preparedData) {
-      provideLiquidityMutation.mutate(preparedData);
+      executeLiquidityMint.mutate(preparedData);
     } else {
       console.error("Attempted to submit liquidity without successful preparation or prepared data.");
     }
@@ -540,7 +595,7 @@ function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolD
   const isButtonDisabled =
     !address ||
     isPreparing ||
-    provideLiquidityMutation.isPending ||
+    executeLiquidityMint.isPending ||
     !isPrepareSuccess ||
     !preparedData ||
     preparedData.calldatas.length === 0;
@@ -550,7 +605,7 @@ function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolD
     buttonText = "Connect Wallet";
   } else if (isPreparing) {
     buttonText = "Preparing...";
-  } else if (provideLiquidityMutation.isPending) {
+  } else if (executeLiquidityMint.isPending) {
     buttonText = "Adding Liquidity...";
   } else if (isPrepareError) {
     buttonText = "Preparation Error";
@@ -562,6 +617,7 @@ function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolD
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-6">
+      <div>Add Liquidity</div>
       <p className="text-sm text-gray-600">Configure liquidity provision for each outcome token paired with sDAI.</p>
 
       {market.outcomes.map((outcomeName, index) => {
@@ -609,10 +665,33 @@ function LiquidityForm({ market, poolsData }: { market: Market; poolsData: PoolD
         <div className="text-red-500 text-sm mt-2">Error preparing transaction: {prepareError.message}</div>
       )}
 
-      <div>
-        <button type="submit" className="btn btn-primary w-full mt-4" disabled={isButtonDisabled}>
-          {buttonText}
-        </button>
+      <div className="text-center">
+        {missingApprovals && (
+          <SwitchChainButtonWrapper chainId={market.chainId}>
+            {missingApprovals.length === 0 && (
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={isButtonDisabled || executeLiquidityMint.isPending || !address}
+                isLoading={executeLiquidityMint.isPending || isLoadingApprovals}
+                text={buttonText}
+              />
+            )}
+            {missingApprovals.length > 0 && (
+              <div className="space-y-[8px]">
+                {missingApprovals.map((approval) => (
+                  <ApproveButton
+                    key={approval.address}
+                    tokenAddress={approval.address}
+                    tokenName={approval.name}
+                    spender={approval.spender}
+                    amount={approval.amount}
+                  />
+                ))}
+              </div>
+            )}
+          </SwitchChainButtonWrapper>
+        )}
       </div>
     </form>
   );
