@@ -1,4 +1,5 @@
 import { Address, Hex } from "viem";
+import { gnosis } from "viem/chains";
 import { useAccount, useCapabilities } from "wagmi";
 
 export type Execution = {
@@ -12,6 +13,11 @@ export function useCheck7702Support(): boolean {
   const { data: capabilities } = useCapabilities();
 
   if (!chainId || !capabilities) {
+    return false;
+  }
+
+  if (chainId === gnosis.id) {
+    // metamask doesn't work on gnosis
     return false;
   }
 

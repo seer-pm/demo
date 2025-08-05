@@ -29,7 +29,7 @@ const useGlobalState = create<State & Action>()(
       pendingOrders: [],
       favorites: {},
       maxSlippage: "1",
-      isInstantSwap: false,
+      isInstantSwap: true,
       setAccessToken: (accessToken: string) =>
         set(() => ({
           accessToken,
