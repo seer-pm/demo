@@ -23,16 +23,13 @@ export function getRandomNextDayTimestamp(timestampInSeconds: number, lastDayInS
   const date = new Date(timestampInSeconds * 1000);
   date.setUTCDate(date.getUTCDate() + 1);
   date.setUTCHours(0, 0, 0, 0);
+
   const nextDayStartSeconds = Math.floor(date.getTime() / 1000);
-
   const nextDayEndSeconds = nextDayStartSeconds + 86400;
-  // No valid range if nextDayStart >= lastDay
-  if (nextDayStartSeconds >= lastDayInSeconds) return;
+  // we need to wait a whole day to get a true random snapshot
+  if (nextDayEndSeconds >= lastDayInSeconds) return;
 
-  const maxExclusive = Math.min(nextDayEndSeconds, lastDayInSeconds);
-
-  const range = maxExclusive - nextDayStartSeconds;
-  const randomOffset = Math.floor(Math.random() * range);
+  const randomOffset = Math.floor(Math.random() * 86400);
 
   return nextDayStartSeconds + randomOffset;
 }
