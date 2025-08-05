@@ -30,8 +30,6 @@ export function SwapTokens({
   parentCollateral,
 }: SwapTokensProps) {
   const [orderType] = useState<"market" | "limit">("market");
-  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
@@ -65,24 +63,6 @@ export function SwapTokens({
           )}
         >
           <div className="flex items-center justify-between">
-            <div role="tablist" className="tabs tabs-bordered">
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "buy" && "tab-active"}`}
-                onClick={tabClick("buy")}
-              >
-                Buy
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "sell" && "tab-active"}`}
-                onClick={tabClick("sell")}
-              >
-                Sell
-              </button>
-            </div>
             {/* <Dropdown
               options={[
                 { text: "Market", value: "market" },
@@ -99,8 +79,9 @@ export function SwapTokens({
               outcomeText={outcomeText}
               outcomeToken={outcomeToken}
               parentCollateral={parentCollateral}
-              swapType={swapType}
               setShowMaxSlippage={setShowMaxSlippage}
+              outcomeImage={outcomeImage}
+              isInvalidResult={isInvalidResult}
             />
           )}
           {/* {orderType === "limit" && (
