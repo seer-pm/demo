@@ -1,21 +1,6 @@
 import { MarketTypes } from "@/lib/market";
 import { FieldValues, UseFormReturn } from "react-hook-form";
-
-export const MISC_CATEGORY = "misc";
-export const WEATHER_CATEGORY = "weather";
-
-export const MARKET_CATEGORIES: { value: string; text: string }[] = [
-  { value: "elections", text: "Elections" },
-  { value: "politics", text: "Politics" },
-  { value: "business", text: "Business" },
-  { value: "science", text: "Science" },
-  { value: "crypto", text: "Crypto" },
-  { value: "pop_culture", text: "Pop Culture" },
-  { value: "sports", text: "Sports" },
-  { value: "doge", text: "DOGE" },
-  { value: MISC_CATEGORY, text: "Miscellaneous" },
-  { value: WEATHER_CATEGORY, text: "Weather" },
-];
+import { Address } from "viem";
 
 interface GetImagesReturn {
   url: {
@@ -74,13 +59,16 @@ export type MarketTypeFormValues = {
 
 export type OutcomesFormValues = {
   market: string;
-  image: File;
+  image: File | "";
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
+  collateralToken1: Address | ""; // for futarchy markets
+  collateralToken2: Address | ""; // for futarchy markets
   lowerBound: { value: number; token: string }; // for scalar markets
   upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
+  isArbitraryQuestion?: boolean; // for futarchy markets
 };
 
-export interface DateFormValues {
+export type DateFormValues = {
   openingTime: string;
-}
+};

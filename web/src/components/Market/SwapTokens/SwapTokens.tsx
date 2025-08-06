@@ -1,5 +1,5 @@
 import { Dropdown } from "@/components/Dropdown";
-import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
+import { getLiquidityUrlByMarket } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import clsx from "clsx";
@@ -12,33 +12,31 @@ import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
 interface SwapTokensProps {
   market: Market;
-  outcomeText: string;
+  outcomeIndex: number;
   outcomeToken: Token;
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
-  isInvalidResult: boolean;
-  parentCollateral: Token | undefined;
+  fixedCollateral: Token | undefined;
 }
 
 export function SwapTokens({
   market,
-  outcomeText,
+  outcomeIndex,
   outcomeToken,
   hasEnoughLiquidity,
   outcomeImage,
-  isInvalidResult,
-  parentCollateral,
+  fixedCollateral,
 }: SwapTokensProps) {
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
-  const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
-
+  const outcomeText = market.outcomes[outcomeIndex];
+  const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
   return (
     <div className="space-y-5 bg-white p-[24px] shadow-md">
       <div className="flex items-center space-x-[12px]">
         <div className="flex-shrink-0">
-          <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidResult} title={outcomeText} />
+          <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />
         </div>
         <div className="text-[16px]">{outcomeText}</div>
       </div>
@@ -46,7 +44,7 @@ export function SwapTokens({
         <Alert type="warning">
           This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
           <a
-            href={getLiquidityUrl(market.chainId, outcomeToken.address, parentCollateral?.address || sDAI.address)}
+            href={getLiquidityUrlByMarket(market, outcomeIndex)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-purple-primary"
@@ -76,23 +74,23 @@ export function SwapTokens({
           {orderType === "market" && (
             <SwapTokensMarket
               market={market}
-              outcomeText={outcomeText}
+              outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
-              parentCollateral={parentCollateral}
+              fixedCollateral={fixedCollateral}
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
-              isInvalidResult={isInvalidResult}
+              isInvalidOutcome={isInvalidOutcome}
             />
           )}
           {orderType === "limit" && (
             <SwapTokensLimitUpto
               market={market}
-              outcomeText={outcomeText}
+              outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
-              parentCollateral={parentCollateral}
+              fixedCollateral={fixedCollateral}
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
-              isInvalidResult={isInvalidResult}
+              isInvalidOutcome={isInvalidOutcome}
             />
           )}
         </div>

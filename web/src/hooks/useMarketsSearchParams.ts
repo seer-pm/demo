@@ -2,6 +2,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { VerificationStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
+import { UseGraphMarketsParams } from "./useMarkets";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,6 +22,7 @@ function useMarketsSearchParams() {
   const showMyMarkets = searchParams.get("myMarkets") === "true";
   const showConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
   const showMarketsWithRewards = searchParams.get("rewardsMarkets") === "true";
+  const showFutarchyMarkets = searchParams.get("type") === "Futarchy";
   const orderDirection = (searchParams.get("orderDirection") || undefined) as "asc" | "desc";
   const minLiquidity = searchParams.get("minLiquidity") ? Number(searchParams.get("minLiquidity")) : 0;
 
@@ -164,6 +166,20 @@ function useMarketsSearchParams() {
     });
   };
 
+  const toggleShowFutarchyMarkets = (showFutarchyMarkets: boolean) => {
+    setSearchParams((params) => {
+      if (showFutarchyMarkets) {
+        params.set("type", "Futarchy");
+      } else {
+        params.delete("type");
+      }
+      if (page > 1) {
+        params.set("page", "1");
+      }
+      return params;
+    });
+  };
+
   const setMinLiquidity = (value: number) => {
     setSearchParams((params) => {
       if (!value) {
@@ -190,6 +206,8 @@ function useMarketsSearchParams() {
     showMyMarkets,
     showConditionalMarkets,
     showMarketsWithRewards,
+    showFutarchyMarkets,
+    type: (showFutarchyMarkets ? "Futarchy" : "Generic") as UseGraphMarketsParams["type"],
     orderDirection,
     minLiquidity,
 
@@ -203,6 +221,7 @@ function useMarketsSearchParams() {
     toggleShowMyMarkets,
     toggleShowConditionalMarkets,
     toggleShowMarketsWithRewards,
+    toggleShowFutarchyMarkets,
     setOrderDirection,
     setMinLiquidity,
 
@@ -213,6 +232,7 @@ function useMarketsSearchParams() {
       orderBy ||
       showConditionalMarkets ||
       showMarketsWithRewards ||
+      showFutarchyMarkets ||
       minLiquidity > 0,
   };
 }

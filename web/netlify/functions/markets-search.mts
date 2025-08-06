@@ -10,6 +10,7 @@ async function multiChainSearch(
 ): Promise<{ markets: SerializedMarket[]; count: number; pages: number }> {
   const {
     chainsList = [],
+    type = "",
     parentMarket = "",
     marketName = "",
     categoryList,
@@ -36,6 +37,7 @@ async function multiChainSearch(
 
   const { markets, count } = await searchMarkets(
     chainIds,
+    type,
     id,
     parentMarket,
     marketName,

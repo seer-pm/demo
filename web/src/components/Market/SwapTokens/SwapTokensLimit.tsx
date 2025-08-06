@@ -38,7 +38,7 @@ interface SwapFormValues {
 
 interface SwapTokensLimitProps {
   market: Market;
-  outcomeText: string;
+  outcomeIndex: number;
   outcomeToken: Token;
   parentCollateral: Token | undefined;
   swapType: "buy" | "sell";
@@ -46,7 +46,7 @@ interface SwapTokensLimitProps {
 
 export function SwapTokensLimit({
   market,
-  outcomeText,
+  outcomeIndex,
   outcomeToken,
   swapType,
   parentCollateral,
@@ -88,6 +88,8 @@ export function SwapTokensLimit({
     openModal: openDatePickerModal,
     closeModal: closeDatePickerModal,
   } = useModal("date-picker-modal", true);
+
+  const outcomeText = market.outcomes[outcomeIndex];
 
   const isUseWrappedToken = useWrappedToken(account, market.chainId);
   const selectedCollateral =

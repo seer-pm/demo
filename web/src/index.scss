@@ -312,7 +312,7 @@ body {
 .simple-table td,
 .simple-table th {
   border-bottom: 1px solid #e5e5e5;
-  padding: 16px 24px;
+  padding: 12px 16px;
 }
 
 .simple-table th {
@@ -414,12 +414,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    /* Light gray shimmer with some opacity */ transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), /* Light gray shimmer with some opacity */ transparent);
   animation: shimmer 1.5s infinite linear;
 }
 

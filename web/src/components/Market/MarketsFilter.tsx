@@ -1,5 +1,6 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { MARKET_CATEGORIES } from "@/lib/create-market";
 import { Collections, Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
@@ -8,10 +9,9 @@ import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
 import { Link } from "../Link";
-import { MARKET_CATEGORIES } from "../MarketForm";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter() {
+export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
   const { address } = useAccount();
   const [searchParams] = useSearchParams();
   const {
@@ -84,8 +84,8 @@ export function MarketsFilter() {
 
         <div>
           <LinkButton
-            to={"/create-market"}
-            text="Create New Market"
+            to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
+            text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
             icon={<PlusCircleIcon />}
             className="max-lg:w-full min-w-[256px]"
           />

@@ -30,7 +30,7 @@ export function useSortedOutcomes(odds: number[], market: Market, marketStatus?:
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
-    enabled: odds.length > 0,
+    enabled: odds.length > 0 && market.type === "Generic",
     queryFn: () => {
       const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
 

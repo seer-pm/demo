@@ -149,6 +149,7 @@ function escapePostgrest(str: string): string {
 
 export async function searchMarkets(
   chainsIds: SupportedChain[],
+  type?: "Generic" | "Futarchy" | "",
   id?: Address | "",
   parentMarket?: Address | "",
   marketName?: string,
@@ -184,6 +185,14 @@ export async function searchMarkets(
     query = query.eq("subgraph_data->parentMarket->>id", parentMarket.toLowerCase());
   }
 
+  if (type) {
+    query = query.eq("subgraph_data->>type", type);
+
+    if (type === "Futarchy") {
+      query = query.neq("subgraph_data->>marketName", "");
+    }
+  }
+
   if (marketName) {
     const safeMarketName = escapePostgrest(marketName);
     query = query.or(
@@ -194,9 +203,6 @@ export async function searchMarkets(
       ].join(","),
     );
   }
-
-  // exclude futarchy markets
-  query = query.eq("subgraph_data->>type", "Generic");
 
   if (marketIds?.length) {
     query = query.in("id", marketIds);

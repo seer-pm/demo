@@ -39,8 +39,51 @@ export function formatBigNumbers(amount: number): string {
   return amount.toFixed(2);
 }
 
+/**
+ * Formats small numbers. E.g.: 0.0000001 will be formated as 0.0(6)1
+ */
+function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
+  let numberStr = input.toString();
+
+  // If the number is in exponential notation, convert it to a full decimal representation
+  if (numberStr.includes("e")) {
+    const [base, exponent] = numberStr.split("e").map(Number);
+    numberStr = (base * 10 ** exponent).toFixed(Math.abs(exponent));
+  }
+
+  const [integerPart, decimalPart] = numberStr.split(".");
+
+  if (!decimalPart || decimalPart.length <= zerosCount) {
+    return numberStr;
+  }
+
+  let leadingZeroCount = 0;
+  for (const char of decimalPart) {
+    if (char === "0") {
+      leadingZeroCount++;
+    } else {
+      break;
+    }
+  }
+
+  if (leadingZeroCount === 0) {
+    return numberStr;
+  }
+
+  const significantDecimalPart = decimalPart.slice(leadingZeroCount, leadingZeroCount + zerosCount);
+  return `${integerPart}.${decimalPart.slice(0, 1)}(${leadingZeroCount})${significantDecimalPart}`;
+}
+
 export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {
   const number = Number(formatUnits(amount, decimals));
+
+  return displayNumber(number, 2, formatAmount);
+}
+
+export function displayNumber(number: number, decimals = 2, formatAmount = false) {
+  if (number < 0.01) {
+    return formatNumberWithZeroCount(number);
+  }
 
   if (formatAmount) {
     return formatBigNumbers(number);
@@ -50,7 +93,7 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
     return String(number);
   }
 
-  return number.toFixed(number < 0.1 ? 4 : 2);
+  return number.toFixed(number < 0.1 ? 4 : decimals);
 }
 
 export function bigIntMax(...args: bigint[]): bigint {

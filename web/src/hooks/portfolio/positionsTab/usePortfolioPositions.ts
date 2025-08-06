@@ -123,7 +123,6 @@ export const fetchPositions = async (
     }
     return acumm;
   }, [] as PortfolioPosition[]);
-
   return positions.filter((position) => {
     const market = marketIdToMarket[position.marketAddress as Address];
     if (position.marketStatus === MarketStatus.CLOSED) {

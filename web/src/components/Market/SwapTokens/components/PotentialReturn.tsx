@@ -34,7 +34,7 @@ export function PotentialReturn({
   receivedAmount,
   collateralPerShare,
 }: PotentialReturnProps) {
-  if (swapType !== "buy") {
+  if (swapType !== "buy" || market.type === "Futarchy") {
     return null;
   }
 

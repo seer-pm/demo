@@ -22,6 +22,10 @@ interface FarmingActionsProps {
 
 export function FarmingActions(props: FarmingActionsProps) {
   const supports7702 = useCheck7702Support();
+  // don't show the farming component if no incentives
+  if (props.pool.incentives.length === 0) {
+    return null;
+  }
   const FarmingComponent = supports7702 ? FarmingActions7702 : FarmingActionsLegacy;
   return <FarmingComponent {...props} />;
 }

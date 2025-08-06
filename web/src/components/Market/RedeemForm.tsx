@@ -3,7 +3,6 @@ import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions"
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { DEFAULT_CHAIN } from "@/lib/chains";
-import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
 import { Market } from "@/lib/market";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
@@ -42,20 +41,17 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
 
   const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market);
 
-  const { data: winningPositions = [], isPending } = useWinningPositions(account, market, router);
+  const { data: winningPositionsData, isPending } = useWinningPositions(account, market, router);
+  const { winningPositions = [], winningOutcomeIndexes = [] } = winningPositionsData || {};
 
-  const winningOutcomeIndexes = generateWinningOutcomeIndexes(winningPositions);
-
-  const filteredWinningPositions = winningPositions.filter((wp) => wp.balance > 0n);
-
-  const redeemAmounts = filteredWinningPositions.map((wp) => wp.balance);
+  const redeemAmounts = winningPositions.map((wp) => wp.balance);
 
   const {
     redeemPositions,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
   } = useRedeemPositions(
     {
-      tokensAddresses: filteredWinningPositions.map((wp) => wp.tokenId),
+      tokensAddresses: winningPositions.map((wp) => wp.tokenId),
       account,
       spender: router,
       amounts: redeemAmounts,
@@ -85,7 +81,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
     return <div className="shimmer-container w-full h-6"></div>;
   }
 
-  if (winningOutcomeIndexes.length === 0) {
+  if (!winningPositions || winningOutcomeIndexes.length === 0) {
     return <Alert type="warning">There's nothing to redeem.</Alert>;
   }
   return (
@@ -107,7 +103,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
               type="submit"
               disabled={redeemPositions.isPending || !account}
               isLoading={redeemPositions.isPending || isLoadingApprovals}
-              text="Submit"
+              text="Redeem"
             />
           )}
           {missingApprovals.length > 0 && (

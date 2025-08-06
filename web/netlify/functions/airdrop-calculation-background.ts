@@ -181,38 +181,39 @@ async function distributeAirdrop(timestamp: number) {
   return finalData;
 }
 
-async function getLatestSnapshotTimestamp() {
-  // from
-  const { data, error } = await supabase
-    .from("airdrops")
-    .select("timestamp")
-    .order("timestamp", { ascending: false })
-    .limit(1)
-    .single();
+async function getLatestSnapshotUnixTimestamp() {
+  const { data, error } = await supabase.from("airdrop_state").select("last_timestamp").eq("id", "latest_day").single();
+
   if (error && error.code !== "PGRST116") {
+    console.error("Failed to fetch airdrop_state:", error);
     throw error;
   }
-  return data?.timestamp ?? START_TIME;
+
+  if (!data?.last_timestamp) {
+    throw "No timestamp found";
+  }
+
+  return data.last_timestamp;
 }
 
 async function addNewAirdropDayToDb() {
   try {
-    const latestSnapshotTimestamp = await getLatestSnapshotTimestamp();
+    const latestSnapshotUnixTimestamp = await getLatestSnapshotUnixTimestamp();
     const now = Math.floor(new Date().getTime() / 1000);
-    const latestSnapshotTimestampInSeconds = Math.floor(new Date(latestSnapshotTimestamp).getTime() / 1000);
-    const nextTimestamp = getRandomNextDayTimestamp(latestSnapshotTimestampInSeconds, now);
+    const nextTimestamp = getRandomNextDayTimestamp(latestSnapshotUnixTimestamp, now);
     console.log({ nextTimestamp });
-    if (nextTimestamp >= now) {
+    if (!nextTimestamp || nextTimestamp >= now) {
+      console.log("next timestamp is in the future");
       return;
     }
 
     const allData = await distributeAirdrop(nextTimestamp);
     //write to supabase
-    const { error: writeError } = await supabase.from("airdrops").insert(
-      allData.map((data) => ({
+    const rpcPayload = {
+      new_timestamp: nextTimestamp,
+      records: allData.map((data) => ({
         address: data.address,
         is_poh: data.isPOHUser,
-        timestamp: new Date(nextTimestamp * 1000),
         total_holding: data.totalHolding ?? 0,
         direct_holding: data.directHolding ?? 0,
         indirect_holding: data.indirectHolding ?? 0,
@@ -221,14 +222,17 @@ async function addNewAirdropDayToDb() {
         seer_tokens_count: data.seerTokens ?? 0,
         chain_ids: data.chainIds,
       })),
-    );
+    };
 
-    if (writeError) {
-      console.log(writeError);
-      throw writeError;
+    const { error } = await supabase.rpc("insert_airdrop_safely", rpcPayload);
+
+    if (error) {
+      throw error;
     }
-    console.log("finish writing");
+
+    console.log("Airdrop inserted safely");
   } catch (e) {
+    console.log("airdrop error");
     console.log(e);
   }
 }

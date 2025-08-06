@@ -1,4 +1,4 @@
-import { Market } from "@/lib/market";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useMarketPools } from "./useMarketPools";
 
@@ -23,6 +23,12 @@ function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined
   );
 
   if (!isUndefined(outcomeIndex)) {
+    if (market.type === "Futarchy") {
+      return (
+        (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n ||
+        (outcomeLiquidityMapping[market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]] || 0n) > 0n
+      );
+    }
     return (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n;
   }
   return (

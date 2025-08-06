@@ -64,6 +64,7 @@ const useOnChainMarkets = (
 
 export type UseGraphMarketsParams = {
   chainsList: Array<string | "all">;
+  type: "Generic" | "Futarchy" | "";
   marketName: string;
   categoryList?: string[];
   marketStatusList: MarketStatus[] | undefined;
@@ -104,6 +105,7 @@ function useGraphMarkets(params: UseGraphMarketsParams) {
 }
 
 export interface UseMarketsProps {
+  type?: "Generic" | "Futarchy" | "";
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
@@ -115,6 +117,7 @@ export interface UseMarketsProps {
   showMyMarkets?: boolean;
   showConditionalMarkets?: boolean;
   showMarketsWithRewards?: boolean;
+  showFutarchyMarkets?: boolean;
   minLiquidity?: number;
   orderDirection?: "asc" | "desc";
   marketIds?: string[];
@@ -124,6 +127,7 @@ export interface UseMarketsProps {
 }
 
 export const useMarkets = ({
+  type = "",
   marketName = "",
   categoryList = [],
   marketStatusList = [],
@@ -144,6 +148,7 @@ export const useMarkets = ({
   const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
   const graphMarkets = useGraphMarkets({
     chainsList,
+    type,
     marketName,
     categoryList,
     marketStatusList,

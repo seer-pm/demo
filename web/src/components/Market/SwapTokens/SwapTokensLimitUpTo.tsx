@@ -27,6 +27,7 @@ import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
+import { FutarchyTokenSwitch } from "./SwapTokensMarket";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
@@ -40,22 +41,22 @@ interface SwapFormValues {
 
 interface SwapTokensLimitUptoProps {
   market: Market;
-  outcomeText: string;
+  outcomeIndex: number;
   outcomeToken: Token;
-  parentCollateral: Token | undefined;
+  fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
-  isInvalidResult: boolean;
+  isInvalidOutcome: boolean;
 }
 
 export function SwapTokensLimitUpto({
   market,
-  outcomeText,
+  outcomeIndex,
   outcomeToken,
   setShowMaxSlippage,
-  parentCollateral,
+  fixedCollateral,
   outcomeImage,
-  isInvalidResult,
+  isInvalidOutcome,
 }: SwapTokensLimitUptoProps) {
   const { address: account } = useAccount();
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -105,9 +106,9 @@ export function SwapTokensLimitUpto({
 
   const isUseWrappedToken = useWrappedToken(account, market.chainId);
   const selectedCollateral =
-    parentCollateral || getSelectedCollateral(market.chainId, useAltCollateral, isUseWrappedToken);
+    fixedCollateral || getSelectedCollateral(market.chainId, useAltCollateral, isUseWrappedToken);
   const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
-  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(parentCollateral);
+  const isCollateralDai = selectedCollateral.address !== sDAI.address && isUndefined(fixedCollateral);
   const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
 
   const [buyToken, sellToken] =
@@ -192,8 +193,10 @@ export function SwapTokensLimitUpto({
     daiToSDai,
     sDaiToDai,
   );
+
+  const outcomeText = market.outcomes[outcomeIndex];
   // check if current token price higher than 1 collateral per token
-  const isPriceTooHigh = collateralPerShare > 1 && swapType === "buy";
+  const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
   const resetInputs = () => {
     setValue("limitPrice", "", {
@@ -223,7 +226,7 @@ export function SwapTokensLimitUpto({
           <OutcomeImage
             className="w-full h-full"
             image={outcomeImage}
-            isInvalidOutcome={isInvalidResult}
+            isInvalidOutcome={isInvalidOutcome}
             title={outcomeText}
           />
         )}
@@ -489,13 +492,14 @@ export function SwapTokensLimitUpto({
         )}
 
         <div className="flex justify-between flex-wrap gap-4">
-          {isUndefined(parentCollateral) && (
+          {market.type === "Generic" && isUndefined(fixedCollateral) && (
             <AltCollateralSwitch
               {...register("useAltCollateral")}
               market={market}
               isUseWrappedToken={isUseWrappedToken}
             />
           )}
+          {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
           <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
             Parameters:{" "}
             <div

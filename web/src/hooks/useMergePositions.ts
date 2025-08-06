@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
 import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
+import { futarchyRouterAbi } from "./contracts/generated-router";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
@@ -24,6 +25,22 @@ function mergeFromRouter(
   market: Market,
   amount: bigint,
 ): Execution {
+  if (market.type === "Futarchy") {
+    // futarchy markets have two collateral tokens
+    if (!collateralToken) {
+      throw new Error("Missing collateral token to merge");
+    }
+    return {
+      to: router,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: futarchyRouterAbi,
+        functionName: "mergePositions",
+        args: [market.id, collateralToken, amount],
+      }),
+    };
+  }
+
   if (collateralToken) {
     // merge to the market's main collateral (sDAI)
     return {
