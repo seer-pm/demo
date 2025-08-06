@@ -11,6 +11,7 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { MARKET_CATEGORIES, MISC_CATEGORY } from "@/lib/create-market";
 import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
@@ -27,8 +28,6 @@ import { navigate } from "vike/client/router";
 import {
   DateFormValues,
   FormWithPrevStep,
-  MARKET_CATEGORIES,
-  MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
   getImagesForVerification,

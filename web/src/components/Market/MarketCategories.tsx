@@ -2,6 +2,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { useSignIn } from "@/hooks/useSignIn";
 import { DEFAULT_CHAIN } from "@/lib/chains";
+import { MARKET_CATEGORIES } from "@/lib/create-market";
 import { CloseIcon, EditIcon, SaveIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
@@ -11,7 +12,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
 import MultiSelect from "../Form/MultiSelect";
-import { MARKET_CATEGORIES } from "../MarketForm";
 import { Spinner } from "../Spinner";
 
 function MarketCategories({ market }: { market: Market }) {

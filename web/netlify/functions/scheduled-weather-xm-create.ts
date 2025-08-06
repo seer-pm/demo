@@ -1,7 +1,6 @@
-import { WEATHER_CATEGORY } from "@/components/MarketForm/index.tsx";
 import { marketFactoryAbi, marketFactoryAddress } from "@/hooks/contracts/generated-market-factory.ts";
-import { getCreateMarketParams } from "@/hooks/useCreateMarket.ts";
 import { SupportedChain } from "@/lib/chains.ts";
+import { WEATHER_CATEGORY, getCreateMarketParams } from "@/lib/create-market.ts";
 import { MarketTypes } from "@/lib/market.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
@@ -128,6 +127,9 @@ async function createMarketForCity(
         category: WEATHER_CATEGORY,
         openingTime,
         chainId,
+        collateralToken1: "",
+        collateralToken2: "",
+        isArbitraryQuestion: false,
       }),
     ],
   });

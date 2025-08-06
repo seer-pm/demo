@@ -2,22 +2,6 @@ import { MarketTypes } from "@/lib/market";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 import { Address } from "viem";
 
-export const MISC_CATEGORY = "misc";
-export const WEATHER_CATEGORY = "weather";
-
-export const MARKET_CATEGORIES: { value: string; text: string }[] = [
-  { value: "elections", text: "Elections" },
-  { value: "politics", text: "Politics" },
-  { value: "business", text: "Business" },
-  { value: "science", text: "Science" },
-  { value: "crypto", text: "Crypto" },
-  { value: "pop_culture", text: "Pop Culture" },
-  { value: "sports", text: "Sports" },
-  { value: "doge", text: "DOGE" },
-  { value: MISC_CATEGORY, text: "Miscellaneous" },
-  { value: WEATHER_CATEGORY, text: "Weather" },
-];
-
 interface GetImagesReturn {
   url: {
     market: string;
