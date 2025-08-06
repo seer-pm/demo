@@ -12,16 +12,17 @@ export default function SwapButtons({
   swapType,
   isDisabled,
   isLoading,
+  isBuyExactOutputNative,
 }: {
   account?: Address;
   trade: Trade;
   swapType: "buy" | "sell";
   isDisabled: boolean;
   isLoading: boolean;
+  isBuyExactOutputNative: boolean;
 }) {
   const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
-  const isShowApproval = missingApprovals && missingApprovals.length > 0;
-
+  const isShowApproval = !isBuyExactOutputNative && missingApprovals && missingApprovals.length > 0;
   return (
     <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
       {!isShowApproval && (

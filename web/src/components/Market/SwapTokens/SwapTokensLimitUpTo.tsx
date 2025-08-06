@@ -1,24 +1,25 @@
+import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { useTicksData } from "@/hooks/liquidity/useTicksData";
+import { getTargetTickFromPrice, useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-
-import { useMarket } from "@/hooks/useMarket";
-import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
+import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
-import { NATIVE_TOKEN, displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
@@ -27,6 +28,7 @@ import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
+import { FutarchyTokenSwitch } from "./SwapTokensMarket";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
@@ -35,9 +37,10 @@ interface SwapFormValues {
   amount: string;
   amountOut: string;
   useAltCollateral: boolean;
+  limitPrice: string;
 }
 
-interface SwapTokensMarketProps {
+interface SwapTokensLimitUptoProps {
   market: Market;
   outcomeIndex: number;
   outcomeToken: Token;
@@ -47,58 +50,7 @@ interface SwapTokensMarketProps {
   isInvalidOutcome: boolean;
 }
 
-export function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
-  const [, setSearchParams] = useSearchParams();
-
-  const collateralPair = [outcomeIndex, FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]
-    .sort()
-    .map((collateralIndex) => market.wrappedTokens[collateralIndex]) as [Address, Address];
-
-  return (
-    <AltCollateralSwitch
-      key={collateralPair.join("-")}
-      onChange={() =>
-        setSearchParams(
-          { outcome: market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]] },
-          { overwriteLastHistoryEntry: true, keepScrollPosition: true },
-        )
-      }
-      collateralPair={collateralPair}
-      market={market}
-    />
-  );
-}
-
-function FutarchyPricePerShare({
-  swapType,
-  collateralPerShare,
-  buyToken,
-  sellToken,
-  outcomeIndex,
-}: { swapType: "buy" | "sell"; collateralPerShare: number; buyToken: Token; sellToken: Token; outcomeIndex: number }) {
-  const tokenPair = outcomeIndex <= 1 ? [buyToken.symbol, sellToken.symbol] : [sellToken.symbol, buyToken.symbol];
-  const swapTerms = swapType === "sell" ? `${tokenPair[1]} / ${tokenPair[0]}` : `${tokenPair[0]} / ${tokenPair[1]}`;
-
-  return (
-    <div className="flex items-center gap-2">
-      {collateralPerShare > 0
-        ? displayNumber(
-            swapType === "sell"
-              ? outcomeIndex <= 1
-                ? collateralPerShare
-                : 1 / collateralPerShare
-              : outcomeIndex <= 1
-                ? 1 / collateralPerShare
-                : collateralPerShare,
-            3,
-          )
-        : 0}{" "}
-      {swapTerms}
-    </div>
-  );
-}
-
-export function SwapTokensMarket({
+export function SwapTokensLimitUpto({
   market,
   outcomeIndex,
   outcomeToken,
@@ -106,14 +58,21 @@ export function SwapTokensMarket({
   fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
-}: SwapTokensMarketProps) {
+}: SwapTokensLimitUptoProps) {
   const { address: account } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const [focusContainer, setFocusContainer] = useState(0);
+  const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const { data: ticksByPool } = useTicksData(
+    market,
+    market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
+  );
+  const poolInfo = ticksByPool ? Object.values(ticksByPool)[0].poolInfo : undefined;
+  const currentPrice = poolInfo
+    ? Number(tickToPrice(poolInfo.tick)[isTwoStringsEqual(poolInfo.token0, outcomeToken.address) ? 0 : 1])
+    : 0;
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -121,6 +80,7 @@ export function SwapTokensMarket({
       amount: "",
       amountOut: "",
       useAltCollateral: false,
+      limitPrice: "",
     },
   });
 
@@ -132,10 +92,14 @@ export function SwapTokensMarket({
     watch,
     setValue,
     trigger,
-    setFocus,
   } = useFormReturn;
 
-  const [amount, amountOut, useAltCollateral] = watch(["amount", "amountOut", "useAltCollateral"]);
+  const [amount, amountOut, limitPrice, useAltCollateral] = watch([
+    "amount",
+    "amountOut",
+    "limitPrice",
+    "useAltCollateral",
+  ]);
   const {
     Modal: ConfirmSwapModal,
     openModal: openConfirmSwapModal,
@@ -176,6 +140,14 @@ export function SwapTokensMarket({
 
   const debouncedAmount = useDebounce(amount, 500);
   const debouncedAmountOut = useDebounce(amountOut, 500);
+  const debounceLimitPrice = useDebounce(limitPrice, 500);
+
+  const volume = useVolumeUntilPrice(
+    market,
+    outcomeToken.address,
+    swapType,
+    debounceLimitPrice ? Number(debounceLimitPrice) : undefined,
+  );
 
   const {
     data: quoteData,
@@ -229,6 +201,10 @@ export function SwapTokensMarket({
   const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
   const resetInputs = () => {
+    setValue("limitPrice", "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
     setValue("amount", "", {
       shouldValidate: true,
       shouldDirty: true,
@@ -296,6 +272,49 @@ export function SwapTokensMarket({
     );
   };
 
+  const renderLimitTokenDisplay = () => {
+    const imageElement = (() => {
+      if (isUndefined(fixedCollateral)) {
+        return (
+          <img
+            className="w-full h-full"
+            alt={isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+            src={paths.tokenImage(isCollateralDai ? sDAI.address : selectedCollateral.address, market.chainId)}
+          />
+        );
+      }
+      if (market.type === "Futarchy") {
+        return (
+          <OutcomeImage
+            className="w-full h-full"
+            image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+            isInvalidOutcome={false}
+            title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+          />
+        );
+      }
+      if (!parentMarket) {
+        return <div className="w-full h-full bg-purple-primary"></div>;
+      }
+      return (
+        <OutcomeImage
+          className="w-full h-full"
+          image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
+          isInvalidOutcome={
+            parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
+          }
+          title={parentMarket.outcomes[Number(market.parentOutcome)]}
+        />
+      );
+    })();
+    return (
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
+        <p className="font-semibold text-[16px]">{isCollateralDai ? "sDAI" : selectedCollateral.symbol}</p>
+      </div>
+    );
+  };
+
   // useEffects
 
   useEffect(() => {
@@ -320,6 +339,15 @@ export function SwapTokensMarket({
     }
   }, [quoteData?.value]);
 
+  useEffect(() => {
+    if (volume) {
+      setTradeType(swapType === "buy" ? TradeType.EXACT_OUTPUT : TradeType.EXACT_INPUT);
+      setValue(swapType === "buy" ? "amountOut" : "amount", volume.toString(), {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [volume]);
   return (
     <>
       <ConfirmSwapModal
@@ -338,18 +366,69 @@ export function SwapTokensMarket({
         }
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
-        <div>
-          <div
-            onClick={() => {
-              setFocusContainer(0);
-              setFocus("amount");
-            }}
-            className={clsx(
-              "rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
-              focusContainer === 0 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
-            )}
-          >
-            <p className="text-[#131313a1]">Sell</p>
+        <div className="space-y-2">
+          <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
+            <div className="flex items-center justify-between">
+              <p className="text-[#131313a1]">{swapType === "buy" ? "Buy" : "Sell"} until the price reaches</p>
+              <button
+                type="button"
+                className="hover:opacity-70"
+                onClick={() => setSwapType((state) => (state === "buy" ? "sell" : "buy"))}
+              >
+                <ArrowSwap />
+              </button>
+            </div>
+            <div className="flex justify-between items-start">
+              <div>
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  {...register("limitPrice", {
+                    required: "This field is required.",
+                    validate: (v) => {
+                      if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                        return "Limit price must be greater than 0.";
+                      }
+                      const isPriceTooHigh = Number(v) > 1;
+                      if (isPriceTooHigh) {
+                        return `Limit price exceeds 1 ${isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share.`;
+                      }
+                      const isPriceNotInRange =
+                        currentPrice > 0 &&
+                        (swapType === "buy" ? Number(v) <= currentPrice : Number(v) >= currentPrice);
+                      if (isPriceNotInRange) {
+                        return swapType === "buy"
+                          ? "Limit price must be greater than current price."
+                          : "Limit price must be less than current price.";
+                      }
+                      if (!poolInfo) return true;
+                      const targetTick = getTargetTickFromPrice(
+                        Number(v),
+                        poolInfo.token0,
+                        poolInfo.token1,
+                        isTwoStringsEqual(poolInfo.token0, outcomeToken.address),
+                        market.chainId,
+                      );
+                      if (targetTick === poolInfo.tick) {
+                        return swapType === "buy"
+                          ? "Not enough liquidity. Try to increase limit price."
+                          : "Not enough liquidity. Try to decrease limit price.";
+                      }
+                      return true;
+                    },
+                  })}
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  placeholder="0"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              {renderLimitTokenDisplay()}
+            </div>
+          </div>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+            <p className="text-[#131313a1]">You will sell</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -377,6 +456,7 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
                   }}
+                  disabled
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
@@ -389,50 +469,15 @@ export function SwapTokensMarket({
                 <div className="shimmer-container w-[80px] h-[13px]" />
               ) : (
                 <div className="flex items-center gap-1">
-                  <p className="text-[14px] font-semibold text-[#131313a1]">
+                  <p className="text-[12px] font-semibold text-[#131313a1]">
                     {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
                   </p>
-                  <button
-                    type="button"
-                    className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
-                    onClick={() => {
-                      setTradeType(TradeType.EXACT_INPUT);
-                      setValue("amount", formatUnits(balance, sellToken.decimals), {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      });
-                    }}
-                  >
-                    Max
-                  </button>
                 </div>
               )}
             </div>
           </div>
-          <div className="my-1 relative">
-            <button
-              type="button"
-              onClick={() => {
-                setSwapType((state) => (state === "buy" ? "sell" : "buy"));
-                setFocusContainer(0);
-                setFocus("amount");
-              }}
-              className="absolute border-[4px] border-[#fff] rounded-[16px] p-2 bg-[#f9f9f9] hover:bg-[#f2f2f2] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            >
-              <ArrowDown />
-            </button>
-          </div>
-          <div
-            onClick={() => {
-              setFocusContainer(1);
-              setFocus("amountOut");
-            }}
-            className={clsx(
-              "rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
-              focusContainer === 1 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
-            )}
-          >
-            <p className="text-[#131313a1]">Buy</p>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+            <p className="text-[#131313a1]">To receive</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -447,6 +492,7 @@ export function SwapTokensMarket({
                   }}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
+                  disabled
                   useFormReturn={useFormReturn}
                 />
               </div>
@@ -469,8 +515,6 @@ export function SwapTokensMarket({
             Avg price
             {quoteIsLoading || isFetching ? (
               <div className="shimmer-container ml-2 w-[100px]" />
-            ) : market.type === "Futarchy" ? (
-              <FutarchyPricePerShare {...{ swapType, collateralPerShare, buyToken, sellToken, outcomeIndex }} />
             ) : (
               <div className="flex items-center gap-2">
                 {avgPrice} {selectedCollateral.symbol}

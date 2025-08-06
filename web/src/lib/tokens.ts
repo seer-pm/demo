@@ -83,7 +83,7 @@ export function getCollateralPerShare(
   isCollateralDai: boolean,
   daiToSDai: number,
 ) {
-  if (!quoteData) {
+  if (!quoteData || !receivedAmount) {
     return 0;
   }
 

@@ -11,6 +11,7 @@ import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market
 import { displayScalarBound } from "@/lib/reality";
 import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { TradeType } from "@swapr/sdk";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
 import { Dispatch, ReactNode, SetStateAction, useRef, useState } from "react";
@@ -202,13 +203,21 @@ function ScalarForecastChecker({
       %)
     </span>
   );
-
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
     // fetchStatus: quoteFetchStatus,
     // error: quoteError,
-  } = useQuoteTrade(market.chainId, zeroAddress, amount, otherOutcomeToken, selectedCollateral, "buy");
+  } = useQuoteTrade(
+    market.chainId,
+    zeroAddress,
+    amount,
+    otherOutcomeToken,
+    selectedCollateral,
+    "buy",
+    TradeType.EXACT_INPUT,
+  );
+
   const otherTokenIndex = outcomeTokens.findIndex((token) =>
     isTwoStringsEqual(token.address, otherOutcomeToken.address),
   );
