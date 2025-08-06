@@ -8,6 +8,7 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 
+import { useMarket } from "@/hooks/useMarket";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -107,6 +108,7 @@ export function SwapTokensMarket({
   isInvalidOutcome,
 }: SwapTokensMarketProps) {
   const { address: account } = useAccount();
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [focusContainer, setFocusContainer] = useState(0);
@@ -237,31 +239,62 @@ export function SwapTokensMarket({
     });
   };
 
-  const renderTokenDisplay = (container: "buy" | "sell") => (
-    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-      <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
-        {isTwoStringsEqual(container === "sell" ? sellToken.address : buyToken.address, selectedCollateral.address) ? (
-          isUndefined(fixedCollateral) ? (
+  const renderTokenDisplay = (container: "buy" | "sell") => {
+    const imageElement = (() => {
+      const isTokenCollateral = isTwoStringsEqual(
+        container === "sell" ? sellToken.address : buyToken.address,
+        selectedCollateral.address,
+      );
+      if (isTokenCollateral) {
+        if (isUndefined(fixedCollateral)) {
+          return (
             <img
               className="w-full h-full"
               alt={selectedCollateral.symbol}
               src={paths.tokenImage(selectedCollateral.address, market.chainId)}
             />
-          ) : (
-            <div className="w-full h-full bg-purple-primary"></div>
-          )
-        ) : (
+          );
+        }
+        if (market.type === "Futarchy") {
+          return (
+            <OutcomeImage
+              className="w-full h-full"
+              image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+              isInvalidOutcome={false}
+              title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+            />
+          );
+        }
+        if (!parentMarket) {
+          return <div className="w-full h-full bg-purple-primary"></div>;
+        }
+        return (
           <OutcomeImage
             className="w-full h-full"
-            image={outcomeImage}
-            isInvalidOutcome={isInvalidOutcome}
-            title={outcomeText}
+            image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
+            isInvalidOutcome={
+              parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
+            }
+            title={parentMarket.outcomes[Number(market.parentOutcome)]}
           />
-        )}
+        );
+      }
+      return (
+        <OutcomeImage
+          className="w-full h-full"
+          image={outcomeImage}
+          isInvalidOutcome={isInvalidOutcome}
+          title={outcomeText}
+        />
+      );
+    })();
+    return (
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
+        <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
       </div>
-      <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
-    </div>
-  );
+    );
+  };
 
   // useEffects
 

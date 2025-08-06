@@ -5,12 +5,13 @@ import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -59,6 +60,7 @@ export function SwapTokensLimitUpto({
   isInvalidOutcome,
 }: SwapTokensLimitUptoProps) {
   const { address: account } = useAccount();
+  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
@@ -213,27 +215,105 @@ export function SwapTokensLimitUpto({
     });
   };
 
-  const renderTokenDisplay = (container: "buy" | "sell") => (
-    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-      <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
-        {isTwoStringsEqual(container === "sell" ? sellToken.address : buyToken.address, selectedCollateral.address) ? (
-          <img
-            className="w-full h-full"
-            alt={selectedCollateral.symbol}
-            src={paths.tokenImage(selectedCollateral.address, market.chainId)}
-          />
-        ) : (
+  const renderTokenDisplay = (container: "buy" | "sell") => {
+    const imageElement = (() => {
+      const isTokenCollateral = isTwoStringsEqual(
+        container === "sell" ? sellToken.address : buyToken.address,
+        selectedCollateral.address,
+      );
+      if (isTokenCollateral) {
+        if (isUndefined(fixedCollateral)) {
+          return (
+            <img
+              className="w-full h-full"
+              alt={selectedCollateral.symbol}
+              src={paths.tokenImage(selectedCollateral.address, market.chainId)}
+            />
+          );
+        }
+        if (market.type === "Futarchy") {
+          return (
+            <OutcomeImage
+              className="w-full h-full"
+              image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+              isInvalidOutcome={false}
+              title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+            />
+          );
+        }
+        if (!parentMarket) {
+          return <div className="w-full h-full bg-purple-primary"></div>;
+        }
+        return (
           <OutcomeImage
             className="w-full h-full"
-            image={outcomeImage}
-            isInvalidOutcome={isInvalidOutcome}
-            title={outcomeText}
+            image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
+            isInvalidOutcome={
+              parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
+            }
+            title={parentMarket.outcomes[Number(market.parentOutcome)]}
           />
-        )}
+        );
+      }
+      return (
+        <OutcomeImage
+          className="w-full h-full"
+          image={outcomeImage}
+          isInvalidOutcome={isInvalidOutcome}
+          title={outcomeText}
+        />
+      );
+    })();
+    return (
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
+        <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
       </div>
-      <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
-    </div>
-  );
+    );
+  };
+
+  const renderLimitTokenDisplay = () => {
+    const imageElement = (() => {
+      if (isUndefined(fixedCollateral)) {
+        return (
+          <img
+            className="w-full h-full"
+            alt={isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+            src={paths.tokenImage(isCollateralDai ? sDAI.address : selectedCollateral.address, market.chainId)}
+          />
+        );
+      }
+      if (market.type === "Futarchy") {
+        return (
+          <OutcomeImage
+            className="w-full h-full"
+            image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+            isInvalidOutcome={false}
+            title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
+          />
+        );
+      }
+      if (!parentMarket) {
+        return <div className="w-full h-full bg-purple-primary"></div>;
+      }
+      return (
+        <OutcomeImage
+          className="w-full h-full"
+          image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
+          isInvalidOutcome={
+            parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
+          }
+          title={parentMarket.outcomes[Number(market.parentOutcome)]}
+        />
+      );
+    })();
+    return (
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
+        <p className="font-semibold text-[16px]">{isCollateralDai ? "sDAI" : selectedCollateral.symbol}</p>
+      </div>
+    );
+  };
 
   // useEffects
 
@@ -344,16 +424,7 @@ export function SwapTokensLimitUpto({
                   useFormReturn={useFormReturn}
                 />
               </div>
-              <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-                <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
-                  <img
-                    className="w-full h-full"
-                    alt={isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-                    src={paths.tokenImage(isCollateralDai ? sDAI.address : selectedCollateral.address, market.chainId)}
-                  />
-                </div>
-                <p className="font-semibold text-[16px]">{isCollateralDai ? "sDAI" : selectedCollateral.symbol}</p>
-              </div>
+              {renderLimitTokenDisplay()}
             </div>
           </div>
           <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
