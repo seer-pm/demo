@@ -262,7 +262,7 @@ export function SwapTokensMarket({
             )}
           >
             <p className="text-[#131313a1]">Sell</p>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-start">
               <div>
                 <Input
                   autoComplete="off"
@@ -289,7 +289,7 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
                   }}
-                  className="w-full p-0 h-auto text-[24px] bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                 />
@@ -345,7 +345,7 @@ export function SwapTokensMarket({
             )}
           >
             <p className="text-[#131313a1]">Buy</p>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-start">
               <div>
                 <Input
                   autoComplete="off"
@@ -357,7 +357,7 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_OUTPUT);
                     register("amountOut").onChange(e);
                   }}
-                  className="w-full p-0 h-auto text-[24px] bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                 />

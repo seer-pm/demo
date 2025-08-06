@@ -1,4 +1,3 @@
-import Toggle from "@/components/Form/Toggle";
 import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { getTargetTickFromPrice, useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
@@ -10,12 +9,13 @@ import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWrappedToken } from "@/hooks/useWrappedToken";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Parameter, QuestionIcon } from "@/lib/icons";
+import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
@@ -25,6 +25,7 @@ import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
+import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
@@ -34,28 +35,30 @@ interface SwapFormValues {
   amount: string;
   amountOut: string;
   useAltCollateral: boolean;
-  useLimitPrice: boolean;
   limitPrice: string;
 }
 
-interface SwapTokensMarketProps {
+interface SwapTokensLimitUptoProps {
   market: Market;
   outcomeText: string;
   outcomeToken: Token;
   parentCollateral: Token | undefined;
-  swapType: "buy" | "sell";
   setShowMaxSlippage: (isShow: boolean) => void;
+  outcomeImage?: string;
+  isInvalidResult: boolean;
 }
 
-export function SwapTokensMarket({
+export function SwapTokensLimitUpto({
   market,
   outcomeText,
   outcomeToken,
-  swapType,
   setShowMaxSlippage,
   parentCollateral,
-}: SwapTokensMarketProps) {
+  outcomeImage,
+  isInvalidResult,
+}: SwapTokensLimitUptoProps) {
   const { address: account } = useAccount();
+  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
@@ -74,7 +77,6 @@ export function SwapTokensMarket({
       amount: "",
       amountOut: "",
       useAltCollateral: false,
-      useLimitPrice: false,
       limitPrice: "",
     },
   });
@@ -89,12 +91,11 @@ export function SwapTokensMarket({
     trigger,
   } = useFormReturn;
 
-  const [amount, amountOut, limitPrice, useAltCollateral, useLimitPrice] = watch([
+  const [amount, amountOut, limitPrice, useAltCollateral] = watch([
     "amount",
     "amountOut",
     "limitPrice",
     "useAltCollateral",
-    "useLimitPrice",
   ]);
   const {
     Modal: ConfirmSwapModal,
@@ -208,6 +209,29 @@ export function SwapTokensMarket({
       shouldDirty: true,
     });
   };
+
+  const renderTokenDisplay = (container: "buy" | "sell") => (
+    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+      <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+        {isTwoStringsEqual(container === "sell" ? sellToken.address : buyToken.address, selectedCollateral.address) ? (
+          <img
+            className="w-full h-full"
+            alt={selectedCollateral.symbol}
+            src={paths.tokenImage(selectedCollateral.address, market.chainId)}
+          />
+        ) : (
+          <OutcomeImage
+            className="w-full h-full"
+            image={outcomeImage}
+            isInvalidOutcome={isInvalidResult}
+            title={outcomeText}
+          />
+        )}
+      </div>
+      <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
+    </div>
+  );
+
   // useEffects
 
   useEffect(() => {
@@ -216,7 +240,7 @@ export function SwapTokensMarket({
 
   useEffect(() => {
     resetInputs();
-  }, [swapType, useLimitPrice, useAltCollateral]);
+  }, [swapType, useAltCollateral]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
@@ -236,11 +260,6 @@ export function SwapTokensMarket({
     if (volume) {
       setTradeType(swapType === "buy" ? TradeType.EXACT_OUTPUT : TradeType.EXACT_INPUT);
       setValue(swapType === "buy" ? "amountOut" : "amount", volume.toString(), {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    } else if (useLimitPrice) {
-      setValue(swapType === "buy" ? "amountOut" : "amount", "", {
         shouldValidate: true,
         shouldDirty: true,
       });
@@ -264,144 +283,147 @@ export function SwapTokensMarket({
         }
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
-        <div className="space-y-3">
-          <div>
-            <div className="flex items-center gap-1 mb-2">
-              <p>Use Limit Price ({isCollateralDai ? "sDAI" : selectedCollateral.symbol})</p>
-              <div className="tooltip">
-                <p className="tooltiptext w-[200px] !whitespace-break-spaces">
-                  {swapType === "buy" ? "Buy" : "Sell"} up to a specified price. View pool details for volume
-                  distribution.
-                </p>
-                <QuestionIcon fill="#9747FF" />
-              </div>
-              <Toggle
-                className="checked:bg-purple-primary ml-3"
-                checked={useLimitPrice}
-                onChange={(e) => setValue("useLimitPrice", e.target.checked)}
-              />
+        <div className="space-y-2">
+          <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
+            <div className="flex items-center justify-between">
+              <p className="text-[#131313a1]">{swapType === "buy" ? "Buy" : "Sell"} until the price reaches</p>
+              <button
+                type="button"
+                className="hover:opacity-70"
+                onClick={() => setSwapType((state) => (state === "buy" ? "sell" : "buy"))}
+              >
+                <ArrowSwap />
+              </button>
             </div>
-            {useLimitPrice && (
-              <Input
-                autoComplete="off"
-                type="number"
-                step="any"
-                min="0"
-                {...register("limitPrice", {
-                  ...(useLimitPrice && { required: "This field is required." }),
-                  validate: (v) => {
-                    if (Number.isNaN(Number(v)) || Number(v) < 0) {
-                      return "Limit price must be greater than 0.";
-                    }
-                    const isPriceTooHigh = Number(v) > 1;
-                    if (isPriceTooHigh) {
-                      return `Limit price exceeds 1 ${isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share.`;
-                    }
-                    const isPriceNotInRange =
-                      currentPrice > 0 && (swapType === "buy" ? Number(v) <= currentPrice : Number(v) >= currentPrice);
-                    if (isPriceNotInRange) {
-                      return swapType === "buy"
-                        ? "Limit price must be greater than current price."
-                        : "Limit price must be less than current price.";
-                    }
-                    if (!poolInfo) return true;
-                    const targetTick = getTargetTickFromPrice(
-                      Number(v),
-                      poolInfo.token0,
-                      poolInfo.token1,
-                      isTwoStringsEqual(poolInfo.token0, outcomeToken.address),
-                      market.chainId,
-                    );
-                    if (targetTick === poolInfo.tick) {
-                      return swapType === "buy"
-                        ? "Not enough liquidity. Try to increase limit price."
-                        : "Not enough liquidity. Try to decrease limit price.";
-                    }
-                    return true;
-                  },
-                })}
-                className="w-full"
-                useFormReturn={useFormReturn}
-              />
-            )}
+            <div className="flex justify-between items-start">
+              <div>
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  {...register("limitPrice", {
+                    required: "This field is required.",
+                    validate: (v) => {
+                      if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                        return "Limit price must be greater than 0.";
+                      }
+                      const isPriceTooHigh = Number(v) > 1;
+                      if (isPriceTooHigh) {
+                        return `Limit price exceeds 1 ${isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share.`;
+                      }
+                      const isPriceNotInRange =
+                        currentPrice > 0 &&
+                        (swapType === "buy" ? Number(v) <= currentPrice : Number(v) >= currentPrice);
+                      if (isPriceNotInRange) {
+                        return swapType === "buy"
+                          ? "Limit price must be greater than current price."
+                          : "Limit price must be less than current price.";
+                      }
+                      if (!poolInfo) return true;
+                      const targetTick = getTargetTickFromPrice(
+                        Number(v),
+                        poolInfo.token0,
+                        poolInfo.token1,
+                        isTwoStringsEqual(poolInfo.token0, outcomeToken.address),
+                        market.chainId,
+                      );
+                      if (targetTick === poolInfo.tick) {
+                        return swapType === "buy"
+                          ? "Not enough liquidity. Try to increase limit price."
+                          : "Not enough liquidity. Try to decrease limit price.";
+                      }
+                      return true;
+                    },
+                  })}
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  placeholder="0"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+                <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+                  <img
+                    className="w-full h-full"
+                    alt={isCollateralDai ? "sDAI" : selectedCollateral.symbol}
+                    src={paths.tokenImage(isCollateralDai ? sDAI.address : selectedCollateral.address, market.chainId)}
+                  />
+                </div>
+                <p className="font-semibold text-[16px]">{isCollateralDai ? "sDAI" : selectedCollateral.symbol}</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="flex justify-between items-center">
-              <div className="text-[14px]">From {sellToken.symbol}</div>
-              {!useLimitPrice && (
-                <div
-                  className="text-purple-primary cursor-pointer"
-                  onClick={() => {
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+            <p className="text-[#131313a1]">You will sell</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  {...register("amount", {
+                    required: "This field is required.",
+                    validate: (v) => {
+                      if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                        return "Amount must be greater than 0.";
+                      }
+
+                      const val = parseUnits(v, sellToken.decimals);
+
+                      if (val > balance) {
+                        return "Not enough balance.";
+                      }
+
+                      return true;
+                    },
+                  })}
+                  onChange={(e) => {
                     setTradeType(TradeType.EXACT_INPUT);
-                    setValue("amount", formatUnits(balance, sellToken.decimals), {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
+                    register("amount").onChange(e);
                   }}
-                >
-                  Max
+                  disabled
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  placeholder="0"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              {renderTokenDisplay("sell")}
+            </div>
+            <div className="flex justify-end">
+              {isFetchingBalance ? (
+                <div className="shimmer-container w-[80px] h-[13px]" />
+              ) : (
+                <div className="flex items-center gap-1">
+                  <p className="text-[12px] font-semibold text-[#131313a1]">
+                    {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
+                  </p>
                 </div>
               )}
             </div>
-            <div className="text-[12px] text-black-secondary mb-2 flex items-center gap-1">
-              Balance:{" "}
-              <div>
-                {isFetchingBalance ? (
-                  <div className="shimmer-container w-[80px] h-[13px]" />
-                ) : (
-                  <>
-                    {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
-                  </>
-                )}
-              </div>
-            </div>
-            <Input
-              autoComplete="off"
-              type="number"
-              step="any"
-              min="0"
-              {...register("amount", {
-                required: "This field is required.",
-                validate: (v) => {
-                  if (Number.isNaN(Number(v)) || Number(v) < 0) {
-                    return "Amount must be greater than 0.";
-                  }
-
-                  const val = parseUnits(v, sellToken.decimals);
-
-                  if (val > balance) {
-                    return "Not enough balance.";
-                  }
-
-                  return true;
-                },
-              })}
-              onChange={(e) => {
-                setTradeType(TradeType.EXACT_INPUT);
-                register("amount").onChange(e);
-              }}
-              disabled={useLimitPrice}
-              className="w-full"
-              useFormReturn={useFormReturn}
-            />
           </div>
-
-          <div>
-            <div className="text-[14px] mb-2">To {buyToken.symbol}</div>
-            <Input
-              autoComplete="off"
-              type="number"
-              step="any"
-              min="0"
-              {...register("amountOut")}
-              onChange={(e) => {
-                setTradeType(TradeType.EXACT_OUTPUT);
-                register("amountOut").onChange(e);
-              }}
-              disabled={useLimitPrice}
-              className="w-full"
-              useFormReturn={useFormReturn}
-            />
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+            <p className="text-[#131313a1]">To receive</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  {...register("amountOut")}
+                  onChange={(e) => {
+                    setTradeType(TradeType.EXACT_OUTPUT);
+                    register("amountOut").onChange(e);
+                  }}
+                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  placeholder="0"
+                  disabled
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              {renderTokenDisplay("buy")}
+            </div>
           </div>
         </div>
         {isShowXDAIBridgeLink && (

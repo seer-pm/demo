@@ -4,6 +4,7 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import { Price, Token } from "@uniswap/sdk-core";
 import { TickMath, priceToClosestTick } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";
+import { tickToPrice } from "./getLiquidityChartData";
 import { useTicksData } from "./useTicksData";
 
 export function getTargetTickFromPrice(
@@ -98,6 +99,11 @@ export function useVolumeUntilPrice(
   if (!ticksByPool || !targetPrice || targetPrice > 1 || targetPrice < 0) {
     return;
   }
+
   const { ticks, poolInfo } = Object.values(ticksByPool)[0];
+  const currentPrice = Number(tickToPrice(poolInfo.tick)[isTwoStringsEqual(poolInfo.token0, outcome) ? 0 : 1]);
+  if (currentPrice === targetPrice) {
+    return;
+  }
   return getVolumeUntilPrice(poolInfo, ticks, targetPrice, outcome, market.chainId, swapType);
 }

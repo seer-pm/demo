@@ -1,4 +1,4 @@
-// import { Dropdown } from "@/components/Dropdown";
+import { Dropdown } from "@/components/Dropdown";
 import { COLLATERAL_TOKENS, getLiquidityUrl } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
-// import { SwapTokensLimit } from "./SwapTokensLimit";
+import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
@@ -29,7 +29,7 @@ export function SwapTokens({
   isInvalidResult,
   parentCollateral,
 }: SwapTokensProps) {
-  const [orderType] = useState<"market" | "limit">("market");
+  const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
@@ -63,7 +63,7 @@ export function SwapTokens({
           )}
         >
           <div className="flex items-center justify-between">
-            {/* <Dropdown
+            <Dropdown
               options={[
                 { text: "Market", value: "market" },
                 { text: "Limit", value: "limit" },
@@ -71,7 +71,7 @@ export function SwapTokens({
               value={orderType}
               onClick={(type) => setOrderType(type)}
               defaultLabel="Order Type"
-            /> */}
+            />
           </div>
           {orderType === "market" && (
             <SwapTokensMarket
@@ -84,15 +84,17 @@ export function SwapTokens({
               isInvalidResult={isInvalidResult}
             />
           )}
-          {/* {orderType === "limit" && (
-            <SwapTokensLimit
+          {orderType === "limit" && (
+            <SwapTokensLimitUpto
               market={market}
               outcomeText={outcomeText}
               outcomeToken={outcomeToken}
               parentCollateral={parentCollateral}
-              swapType={swapType}
+              setShowMaxSlippage={setShowMaxSlippage}
+              outcomeImage={outcomeImage}
+              isInvalidResult={isInvalidResult}
             />
-          )} */}
+          )}
         </div>
       )}
       {isShowMaxSlippage && <SwapTokensMaxSlippage onReturn={() => setShowMaxSlippage(false)} />}
