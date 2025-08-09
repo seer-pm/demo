@@ -340,22 +340,6 @@ export function isOdd(odd: number | undefined | null) {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 
-export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
-  const { lowerBound, upperBound } = market;
-  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
-    return "NA";
-  }
-  const estimate = (odds[0] * displayScalarBound(lowerBound) + odds[1] * displayScalarBound(upperBound)) / 100;
-  if (!convertToString) {
-    return estimate;
-  }
-  const marketUnit = getMarketUnit(market);
-  if (marketUnit) {
-    return `${Number(estimate).toLocaleString()} ${marketUnit}`;
-  }
-  return Number(estimate).toLocaleString();
-}
-
 export function getMarketUnit(market: Market) {
   const marketName = market.marketName;
   if (marketName.lastIndexOf("[") > -1) {

@@ -12,15 +12,8 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import {
-  Market,
-  MarketStatus,
-  MarketTypes,
-  getMarketEstimate,
-  getMarketStatus,
-  getMarketType,
-  isOdd,
-} from "@/lib/market";
+import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOdd } from "@/lib/market";
+import { getMarketEstimate } from "@/lib/market-odds";
 import { rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
