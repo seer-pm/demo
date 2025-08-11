@@ -85,7 +85,7 @@ function AddLiquidityInfo({
     pools.map((p) => p.id),
     address,
   );
-
+console.log("deposits", deposits)
   const { data: nftPositionMapping } = useNftPositions(
     chainId,
     Object.values(deposits ?? {})

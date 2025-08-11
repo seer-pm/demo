@@ -456,15 +456,15 @@ export const ExclamationCircleIcon = ({ width = 24, height = 24 }: SVGAttributes
 );
 
 export const PlusIcon = ({ className }: SVGAttributes<SVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="#000" className={className}>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="currentColor" className={className}>
     <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
   </svg>
 );
 
 export const MinusIcon = ({ className }: SVGAttributes<SVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="20px" fill="#000" className={className}>
-    <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
-  </svg>
+<svg fill="none" viewBox="0 0 17 3" xmlns="http://www.w3.org/2000/svg" className={className}>
+<path d="m16.326 0.83301h-15.652c-0.095652 0-0.17391 0.078261-0.17391 0.17391v1.3044c0 0.09565 0.078261 0.17391 0.17391 0.17391h15.652c0.0956 0 0.1739-0.07826 0.1739-0.17391v-1.3044c0-0.095651-0.0783-0.17391-0.1739-0.17391z" fill="#9747FF"/>
+</svg>
 );
 
 export const PlusCircleIcon = ({ width = 32 }) => (

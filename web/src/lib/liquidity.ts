@@ -1,5 +1,7 @@
 import { PoolDataResult } from "@algebra/sdk";
 import { Control, FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
+import { Address } from "viem";
+import { Market } from "./market";
 
 // Define preset configurations
 export const PRESETS = {
@@ -14,45 +16,49 @@ export const calculateRange = (centerPriceStr: string | number, presetName: Pres
   // Ensure centerPriceStr is treated as a number
   const center = typeof centerPriceStr === "string" ? Number.parseFloat(centerPriceStr) : centerPriceStr;
   if (Number.isNaN(center) || center < 0 || center > 1) {
-    return { minPrice: 0, maxPrice: 1 }; // Default/invalid
+    return { minPrice: "0", maxPrice: "1" }; // Default/invalid
   }
 
   const preset = PRESETS[presetName];
   const calculatedMin = Math.max(0, center * (1 - preset.downside));
   const calculatedMax = Math.min(1, center * (1 + preset.upside));
-  return { minPrice: calculatedMin, maxPrice: calculatedMax };
+  return { minPrice: calculatedMin.toString(), maxPrice: calculatedMax.toString() };
 };
 
 // Define the shape of the form data for one outcome
 export interface OutcomeFormData {
   independentToken: "quote" | "base";
-  quoteAmount: number;
-  centerPrice: number;
-  minPrice: number;
-  maxPrice: number;
-  baseAmount: number;
+  quoteAmount: string;
+  centerPrice: string;
+  minPrice: string;
+  maxPrice: string;
+  baseAmount: string;
   enabled: boolean;
 }
 
 export function isValidLiquidityOutcome(outcome: OutcomeFormData) {
+  // Parse price strings to numbers for validation
+  const centerPrice = Number.parseFloat(outcome.centerPrice);
+  const minPrice = Number.parseFloat(outcome.minPrice);
+  const maxPrice = Number.parseFloat(outcome.maxPrice);
+  const quoteAmount = Number.parseFloat(outcome.quoteAmount);
+  const baseAmount = Number.parseFloat(outcome.baseAmount);
+  
   return (
     outcome.enabled &&
     // at least the independenToken must be defined
     // Check if quoteAmount is a valid non-negative number
-    ((outcome.independentToken === "quote" && outcome.quoteAmount > 0) ||
+    ((outcome.independentToken === "quote" && !Number.isNaN(quoteAmount) && quoteAmount > 0) ||
       // Check if baseAmount is a valid non-negative number
-      (outcome.independentToken === "base" && outcome.baseAmount > 0)) &&
+      (outcome.independentToken === "base" && !Number.isNaN(baseAmount) && baseAmount > 0)) &&
     // Check centerPrice validity
-    outcome.centerPrice >= 0 &&
-    outcome.centerPrice <= 1 &&
+    !Number.isNaN(centerPrice) && centerPrice >= 0 && centerPrice <= 1 &&
     // Check minPrice validity
-    outcome.minPrice >= 0 &&
-    outcome.minPrice < 1 &&
+    !Number.isNaN(minPrice) && minPrice >= 0 && minPrice < 1 &&
     // Check maxPrice validity
-    outcome.maxPrice > 0 &&
-    outcome.maxPrice <= 1 &&
+    !Number.isNaN(maxPrice) && maxPrice > 0 && maxPrice <= 1 &&
     // Ensure minPrice < maxPrice
-    outcome.minPrice < outcome.maxPrice
+    minPrice < maxPrice
   );
 }
 
@@ -71,4 +77,6 @@ export interface OutcomeLiquidityConfigProps {
   watch: UseFormWatch<LiquidityFormData>;
   setValue: UseFormSetValue<LiquidityFormData>;
   poolData: PoolDataResult;
+  market: Market;
+  userAddress: Address | undefined;
 }
