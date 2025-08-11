@@ -42,7 +42,7 @@ export function formatBigNumbers(amount: number): string {
 /**
  * Formats small numbers. E.g.: 0.0000001 will be formated as 0.0(6)1
  */
-function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
+/* function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
   let numberStr = input.toString();
 
   // If the number is in exponential notation, convert it to a full decimal representation
@@ -72,7 +72,7 @@ function formatNumberWithZeroCount(input: number, zerosCount = 2): string {
 
   const significantDecimalPart = decimalPart.slice(leadingZeroCount, leadingZeroCount + zerosCount);
   return `${integerPart}.${decimalPart.slice(0, 1)}(${leadingZeroCount})${significantDecimalPart}`;
-}
+} */
 
 export function displayBalance(amount: bigint, decimals: number, formatAmount = false) {
   const number = Number(formatUnits(amount, decimals));
@@ -81,8 +81,8 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
 }
 
 export function displayNumber(number: number, decimals = 2, formatAmount = false) {
-  if (number < 0.01) {
-    return formatNumberWithZeroCount(number);
+  if (number < 0.001) {
+    return "<0.001";
   }
 
   if (formatAmount) {
