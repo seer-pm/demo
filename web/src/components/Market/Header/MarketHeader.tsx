@@ -21,7 +21,8 @@ import {
   USDIcon,
 } from "@/lib/icons";
 import { getMarketStatus } from "@/lib/market";
-import { MarketTypes, getCollateralByIndex, getMarketEstimate, getMarketPoolsPairs, getMarketType } from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketType } from "@/lib/market";
+import { getMarketEstimate } from "@/lib/market-odds.ts";
 import { MarketStatus } from "@/lib/market.ts";
 import { Market } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";

@@ -1,10 +1,11 @@
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
-import { Market, getToken0Token1 } from "@/lib/market";
+import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
+import { displayScalarBound } from "./reality";
 import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
 import { isTwoStringsEqual } from "./utils";
 
@@ -16,12 +17,6 @@ function formatOdds(prices: number[]): number[] {
 
 export function rescaleOdds(odds: number[]): number[] {
   if (!odds?.length) {
-    return odds;
-  }
-  if (odds.some((odd) => Number.isNaN(odd))) {
-    // When a price is significantly above 1, it indicates extremely thin liquidity or out-of-range prices
-    // Rather than normalizing these unrealistic prices, we display them as NA while keeping valid prices as-is
-    // For example: with prices [200, 0.4, 0.3], we show [NA, 0.4, 0.3] instead of trying to normalize 200
     return odds;
   }
   const oddsSum = odds.reduce((acc, curr) => {
@@ -41,6 +36,8 @@ export function rescaleOdds(odds: number[]): number[] {
 export function normalizeOdds(prices: number[]): number[] {
   // Filter out unrealistic prices by converting them to NaN
   // This handles cases where there is liquidity, but it's too thin or out of price range
+  // Rather than normalizing these unrealistic prices, we display them as NA while keeping valid prices as-is
+  // For example: with prices [200, 0.4, 0.3], we show [NA, 0.4, 0.3] instead of trying to normalize 200
   const filteredPrices = prices.map((price) => (price > CEIL_PRICE ? Number.NaN : price));
   return formatOdds(filteredPrices);
 }
@@ -161,4 +158,24 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   );
 
   return normalizeOdds(prices);
+}
+
+export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
+  const { lowerBound, upperBound } = market;
+  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
+    return "NA";
+  }
+  const scaledOdds = rescaleOdds(odds);
+
+  const estimate =
+    (scaledOdds[0] * displayScalarBound(lowerBound) + scaledOdds[1] * displayScalarBound(upperBound)) / 100;
+
+  if (!convertToString) {
+    return estimate;
+  }
+  const marketUnit = getMarketUnit(market);
+  if (marketUnit) {
+    return `${Number(estimate).toLocaleString()} ${marketUnit}`;
+  }
+  return Number(estimate).toLocaleString();
 }

@@ -16,7 +16,8 @@ import {
 import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
-import { MarketTypes, getMarketEstimate, getMarketType, isOdd } from "@/lib/market";
+import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
+import { getMarketEstimate } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
