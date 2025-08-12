@@ -1,4 +1,4 @@
-import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { tickToPrice } from "@/hooks/liquidity/utils";
 import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getToken0Token1 } from "@/lib/market";

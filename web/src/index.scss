@@ -34,11 +34,12 @@
 }
 
 .container-fluid {
-  max-width: 100%;
-  padding-left: 18px;
-  padding-right: 18px;
+  max-width: 90%;
+  margin: 0 auto;
+  padding-left: 0px;
+  padding-right: 0px;
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1600px) {
     & {
       max-width: 75%;
       margin: 0 auto;
@@ -61,6 +62,7 @@ body {
   --n: var(--black-light);
   --tw-bg-opacity: 1;
   border-color: transparent;
+  color: #131313a1;
 }
 .btn.btn-primary {
   --pc: var(--white);

@@ -1,6 +1,7 @@
-import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
-import { getTargetTickFromPrice, useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
+import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
+import { decimalToFraction } from "@/hooks/liquidity/utils";
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
 import useDebounce from "@/hooks/useDebounce";
@@ -16,6 +17,7 @@ import { paths } from "@/lib/paths";
 import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -63,6 +65,7 @@ export function SwapTokensLimitUpto({
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
+  const [isUseMax, setUseMax] = useState(false);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const { data: ticksByPool } = useTicksData(
@@ -70,9 +73,7 @@ export function SwapTokensLimitUpto({
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
   );
   const poolInfo = ticksByPool ? Object.values(ticksByPool)[0].poolInfo : undefined;
-  const currentPrice = poolInfo
-    ? Number(tickToPrice(poolInfo.tick)[isTwoStringsEqual(poolInfo.token0, outcomeToken.address) ? 0 : 1])
-    : 0;
+  const currentSqrtPriceX96 = poolInfo ? BigInt(TickMath.getSqrtRatioAtTick(poolInfo.tick).toString()) : 0n;
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -87,6 +88,7 @@ export function SwapTokensLimitUpto({
   const {
     register,
     reset,
+    resetField,
     formState: { isValid, dirtyFields, errors },
     handleSubmit,
     watch,
@@ -100,6 +102,9 @@ export function SwapTokensLimitUpto({
     "limitPrice",
     "useAltCollateral",
   ]);
+
+  const limitErrorMessage = limitPrice && errors.limitPrice?.message;
+
   const {
     Modal: ConfirmSwapModal,
     openModal: openConfirmSwapModal,
@@ -148,7 +153,13 @@ export function SwapTokensLimitUpto({
     swapType,
     debounceLimitPrice ? Number(debounceLimitPrice) : undefined,
   );
-
+  const limitPriceFromVolume = usePriceFromVolume(
+    market,
+    outcomeToken.address,
+    swapType,
+    tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
+  );
+  console.log({ limitPriceFromVolume });
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -199,21 +210,6 @@ export function SwapTokensLimitUpto({
   const outcomeText = market.outcomes[outcomeIndex];
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
-
-  const resetInputs = () => {
-    setValue("limitPrice", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-    setValue("amount", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-    setValue("amountOut", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-  };
 
   const renderTokenDisplay = (container: "buy" | "sell") => {
     const imageElement = (() => {
@@ -315,6 +311,44 @@ export function SwapTokensLimitUpto({
     );
   };
 
+  const renderButtons = () => {
+    if (isCowFastQuote) {
+      return (
+        <Button variant="primary" type="button" disabled={true} isLoading={true} text="Calculating best price..." />
+      );
+    }
+    if (limitErrorMessage && limitErrorMessage !== "This field is required." && !isUseMax) {
+      return <Button variant="primary" className="w-full" type="button" disabled={true} text={limitErrorMessage} />;
+    }
+    if (quoteData?.trade) {
+      return (
+        <SwapButtons
+          account={account}
+          trade={quoteData.trade}
+          isBuyExactOutputNative={isBuyExactOutputNative}
+          isDisabled={
+            isUndefined(quoteData?.value) ||
+            quoteData?.value === 0n ||
+            !account ||
+            (!isUseMax && !isValid) ||
+            tradeTokens.isPending ||
+            isPriceTooHigh
+          }
+          isLoading={
+            tradeTokens.isPending ||
+            (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
+            isFetching
+          }
+        />
+      );
+    }
+
+    if (quoteIsLoading && quoteFetchStatus === "fetching") {
+      return <Button variant="primary" type="button" className="w-full" disabled={true} isLoading={true} text="" />;
+    }
+    return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter target price" />;
+  };
+
   // useEffects
 
   useEffect(() => {
@@ -322,7 +356,9 @@ export function SwapTokensLimitUpto({
   }, [balance]);
 
   useEffect(() => {
-    resetInputs();
+    resetField("limitPrice");
+    resetField("amount");
+    resetField("amountOut");
   }, [swapType, useAltCollateral]);
 
   useEffect(() => {
@@ -346,8 +382,21 @@ export function SwapTokensLimitUpto({
         shouldValidate: true,
         shouldDirty: true,
       });
+    } else {
+      setTradeType(TradeType.EXACT_INPUT);
+      resetField("amount");
+      resetField("amountOut");
     }
   }, [volume]);
+
+  useEffect(() => {
+    if (!isUseMax) {
+      setTradeType(TradeType.EXACT_INPUT);
+      resetField("amount");
+      resetField("amountOut");
+    }
+  }, [isUseMax]);
+
   return (
     <>
       <ConfirmSwapModal
@@ -395,33 +444,31 @@ export function SwapTokensLimitUpto({
                       if (isPriceTooHigh) {
                         return `Limit price exceeds 1 ${isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share.`;
                       }
+                      if (!poolInfo) return true;
+                      const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
+                      const [num, den] = decimalToFraction(isOutcomeToken0 ? Number(v) : 1 / Number(v));
+                      const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
                       const isPriceNotInRange =
-                        currentPrice > 0 &&
-                        (swapType === "buy" ? Number(v) <= currentPrice : Number(v) >= currentPrice);
+                        currentSqrtPriceX96 > 0n &&
+                        (swapType === "buy"
+                          ? targetSqrtPriceX96 <= currentSqrtPriceX96
+                          : targetSqrtPriceX96 >= currentSqrtPriceX96);
                       if (isPriceNotInRange) {
                         return swapType === "buy"
                           ? "Limit price must be greater than current price."
                           : "Limit price must be less than current price.";
                       }
-                      if (!poolInfo) return true;
-                      const targetTick = getTargetTickFromPrice(
-                        Number(v),
-                        poolInfo.token0,
-                        poolInfo.token1,
-                        isTwoStringsEqual(poolInfo.token0, outcomeToken.address),
-                        market.chainId,
-                      );
-                      if (targetTick === poolInfo.tick) {
-                        return swapType === "buy"
-                          ? "Not enough liquidity. Try to increase limit price."
-                          : "Not enough liquidity. Try to decrease limit price.";
-                      }
-                      return true;
                     },
                   })}
+                  onChange={(e) => {
+                    setUseMax(false);
+                    register("limitPrice").onChange(e);
+                  }}
+                  value={isUseMax ? (limitPriceFromVolume?.toFixed(8) ?? "") : limitPrice}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
+                  errorClassName="hidden"
                 />
               </div>
               {renderLimitTokenDisplay()}
@@ -460,6 +507,7 @@ export function SwapTokensLimitUpto({
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
+                  errorClassName="absolute"
                 />
               </div>
               {renderTokenDisplay("sell")}
@@ -472,6 +520,22 @@ export function SwapTokensLimitUpto({
                   <p className="text-[12px] font-semibold text-[#131313a1]">
                     {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
                   </p>
+                  {balance > 0 && (
+                    <button
+                      type="button"
+                      className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
+                      onClick={() => {
+                        setUseMax(true);
+                        setTradeType(TradeType.EXACT_INPUT);
+                        setValue("amount", formatUnits(balance, sellToken.decimals), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }}
+                    >
+                      Max
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -585,31 +649,7 @@ export function SwapTokensLimitUpto({
             </div>
           </div>
         </div>
-        {isCowFastQuote ? (
-          <Button variant="primary" type="button" disabled={true} isLoading={true} text="Calculating best price..." />
-        ) : quoteData?.trade ? (
-          <SwapButtons
-            account={account}
-            trade={quoteData.trade}
-            swapType={swapType}
-            isBuyExactOutputNative={isBuyExactOutputNative}
-            isDisabled={
-              isUndefined(quoteData?.value) ||
-              quoteData?.value === 0n ||
-              !account ||
-              !isValid ||
-              tradeTokens.isPending ||
-              isPriceTooHigh
-            }
-            isLoading={
-              tradeTokens.isPending ||
-              (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
-              isFetching
-            }
-          />
-        ) : quoteIsLoading && quoteFetchStatus === "fetching" ? (
-          <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
-        ) : null}
+        {renderButtons()}
       </form>
     </>
   );

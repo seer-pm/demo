@@ -133,9 +133,13 @@ export function SwapTokensMarket({
     setValue,
     trigger,
     setFocus,
+    resetField,
   } = useFormReturn;
 
   const [amount, amountOut, useAltCollateral] = watch(["amount", "amountOut", "useAltCollateral"]);
+
+  const amountErrorMessage = amount && errors.amount?.message;
+
   const {
     Modal: ConfirmSwapModal,
     openModal: openConfirmSwapModal,
@@ -167,7 +171,7 @@ export function SwapTokensMarket({
     market.chainId === gnosis.id &&
     !isFetchingBalance &&
     !isFetchingNativeBalance &&
-    ((nativeBalance === 0n && balance === 0n) || errors.amount?.message === "Not enough balance.");
+    ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
   const isBuyExactOutputNative =
     swapType === "buy" &&
     isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN) &&
@@ -229,14 +233,8 @@ export function SwapTokensMarket({
   const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
   const resetInputs = () => {
-    setValue("amount", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-    setValue("amountOut", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
+    resetField("amount");
+    resetField("amountOut");
   };
 
   const renderTokenDisplay = (container: "buy" | "sell") => {
@@ -295,6 +293,43 @@ export function SwapTokensMarket({
       </div>
     );
   };
+  const renderButtons = () => {
+    if (isCowFastQuote) {
+      return (
+        <Button variant="primary" type="button" disabled={true} isLoading={true} text="Calculating best price..." />
+      );
+    }
+    if (amountErrorMessage && amountErrorMessage !== "This field is required.") {
+      return <Button variant="primary" className="w-full" type="button" disabled={true} text={amountErrorMessage} />;
+    }
+    if (quoteData?.trade) {
+      return (
+        <SwapButtons
+          account={account}
+          trade={quoteData.trade}
+          isBuyExactOutputNative={isBuyExactOutputNative}
+          isDisabled={
+            isUndefined(quoteData?.value) ||
+            quoteData?.value === 0n ||
+            !account ||
+            !isValid ||
+            tradeTokens.isPending ||
+            isPriceTooHigh
+          }
+          isLoading={
+            tradeTokens.isPending ||
+            (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
+            isFetching
+          }
+        />
+      );
+    }
+
+    if (quoteIsLoading && quoteFetchStatus === "fetching") {
+      return <Button variant="primary" type="button" className="w-full" disabled={true} isLoading={true} text="" />;
+    }
+    return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter an amount" />;
+  };
 
   // useEffects
 
@@ -345,7 +380,7 @@ export function SwapTokensMarket({
               setFocus("amount");
             }}
             className={clsx(
-              "rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
+              "rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
               focusContainer === 0 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
             )}
           >
@@ -377,9 +412,10 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
                   }}
-                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full min-w-[50px] p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
+                  errorClassName="hidden"
                 />
               </div>
               {renderTokenDisplay("sell")}
@@ -541,31 +577,7 @@ export function SwapTokensMarket({
             </div>
           </div>
         </div>
-        {isCowFastQuote ? (
-          <Button variant="primary" type="button" disabled={true} isLoading={true} text="Calculating best price..." />
-        ) : quoteData?.trade ? (
-          <SwapButtons
-            account={account}
-            trade={quoteData.trade}
-            swapType={swapType}
-            isBuyExactOutputNative={isBuyExactOutputNative}
-            isDisabled={
-              isUndefined(quoteData?.value) ||
-              quoteData?.value === 0n ||
-              !account ||
-              !isValid ||
-              tradeTokens.isPending ||
-              isPriceTooHigh
-            }
-            isLoading={
-              tradeTokens.isPending ||
-              (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
-              isFetching
-            }
-          />
-        ) : quoteIsLoading && quoteFetchStatus === "fetching" ? (
-          <Button variant="primary" type="button" disabled={true} isLoading={true} text="" />
-        ) : null}
+        {renderButtons()}
       </form>
     </>
   );

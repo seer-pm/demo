@@ -1,28 +1,46 @@
-import { SupportedChain } from "@/lib/chains";
 import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
-import { Price, Token } from "@uniswap/sdk-core";
-import { TickMath, priceToClosestTick } from "@uniswap/v3-sdk";
+import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";
-import { tickToPrice } from "./getLiquidityChartData";
 import { useTicksData } from "./useTicksData";
+import { decimalToFraction, tickToPrice } from "./utils";
 
-export function getTargetTickFromPrice(
-  price: number,
-  token0Address: Address,
-  token1Address: Address,
+export function getVolumeWithinRange(
+  currentSqrtPriceX96: bigint,
+  targetSqrtPriceX96: bigint,
+  liquidity: bigint,
   isOutcomeToken0: boolean,
-  chainId: SupportedChain,
+  swapType: "buy" | "sell",
 ): number {
-  const token0 = new Token(chainId, token0Address, 18);
-  const token1 = new Token(chainId, token1Address, 18);
-  const p = new Price(
-    isOutcomeToken0 ? token0 : token1,
-    isOutcomeToken0 ? token1 : token0,
-    1e10, // baseAmount
-    Math.floor(price * 1e10), // quoteAmount
-  );
-  return priceToClosestTick(p);
+  if (swapType === "buy" && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
+  if (swapType === "sell" && targetSqrtPriceX96 >= currentSqrtPriceX96) return 0;
+
+  if (swapType === "buy") {
+    if (isOutcomeToken0) {
+      // Buy token0: price goes UP, we're trading token1 for token0
+      // Amount of token0 we get: Δx = L * (√P_target - √P_current) / (√P_target * √P_current)
+      const amount0 =
+        (liquidity * (1n << 96n) * (targetSqrtPriceX96 - currentSqrtPriceX96)) /
+        (targetSqrtPriceX96 * currentSqrtPriceX96);
+      return Number(formatUnits(amount0, 18));
+    }
+    // Buy token1: price goes DOWN, we're trading token0 for token1
+    // Amount of token1 we get: Δy = L * (√P_current - √P_target) / (2^96)
+    const amount1 = (liquidity * (currentSqrtPriceX96 - targetSqrtPriceX96)) / (1n << 96n);
+    return Number(formatUnits(amount1, 18));
+  }
+  if (isOutcomeToken0) {
+    // Sell token0: price goes DOWN, we're trading token0 for token1
+    // Amount of token0 we sell: Δx = L * (√P_current - √P_target) / (√P_target * √P_current)
+    const amount0 =
+      (liquidity * (1n << 96n) * (currentSqrtPriceX96 - targetSqrtPriceX96)) /
+      (targetSqrtPriceX96 * currentSqrtPriceX96);
+    return Number(formatUnits(amount0, 18));
+  }
+  // Sell token1: price goes UP, we're trading token1 for token0
+  // Amount of token1 we sell: Δy = L * (√P_target - √P_current) / (2^96)
+  const amount1 = (liquidity * (targetSqrtPriceX96 - currentSqrtPriceX96)) / (1n << 96n);
+  return Number(formatUnits(amount1, 18));
 }
 
 export function getVolumeUntilPrice(
@@ -34,56 +52,74 @@ export function getVolumeUntilPrice(
     token1: Address;
   },
   ticks: { liquidityNet: string; tickIdx: string }[],
-  targetPrice: number, // decimal price (not sqrtPriceX96)
+  targetPrice: number,
   outcome: Address,
-  chainId: SupportedChain,
   swapType: "buy" | "sell",
 ): number {
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
-  const targetTick = getTargetTickFromPrice(targetPrice, pool.token0, pool.token1, isOutcomeToken0, chainId);
-  let currentLiquidity = pool.liquidity;
-  let currentHighTick = pool.tick;
-  let currentLowTick = pool.tick;
-  let totalVolumeBuy = 0;
-  let totalVolumeSell = 0;
+  // Exact sqrt prices for current and target
+  let currentSqrtPriceX96 = TickMath.getSqrtRatioAtTick(pool.tick);
+  const [num, den] = decimalToFraction(isOutcomeToken0 ? targetPrice : 1 / targetPrice);
+  const targetSqrtPriceX96 = encodeSqrtRatioX96(num, den);
+  if (swapType === "buy" && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
+  if (swapType === "sell" && targetSqrtPriceX96 >= currentSqrtPriceX96) return 0;
 
-  const mappedTicks = [...ticks.map((t) => ({ ...t, tickIdx: Number(t.tickIdx) }))];
+  // Determine direction and filter/sort ticks
+  const movingUp = (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
 
-  // ✅ Push target tick if missing
-  if (!mappedTicks.some((t) => t.tickIdx === targetTick)) {
-    mappedTicks.push({ tickIdx: targetTick, liquidityNet: "0" });
+  let relevantTicks: { liquidityNet: string; tickIdx: string }[];
+  if (movingUp) {
+    relevantTicks = ticks
+      .filter((tick) => Number(tick.tickIdx) > pool.tick)
+      .sort((a, b) => Number(a.tickIdx) - Number(b.tickIdx));
+  } else {
+    relevantTicks = ticks
+      .filter((tick) => Number(tick.tickIdx) < pool.tick)
+      .sort((a, b) => Number(b.tickIdx) - Number(a.tickIdx));
   }
-  const higherTicks = mappedTicks
-    .filter((t) => t.tickIdx > pool.tick && t.tickIdx <= targetTick)
-    .sort((a, b) => a.tickIdx - b.tickIdx);
-  const lowerTicks = mappedTicks
-    .filter((t) => t.tickIdx < pool.tick && t.tickIdx >= targetTick)
-    .sort((a, b) => a.tickIdx - b.tickIdx);
 
-  for (let i = 0; i < higherTicks.length; i++) {
-    currentLiquidity = currentLiquidity + BigInt(higherTicks[i - 1]?.liquidityNet ?? 0);
-    const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentHighTick).toString());
-    const sqrtB = BigInt(TickMath.getSqrtRatioAtTick(Number(higherTicks[i].tickIdx)).toString());
+  let volume = 0;
+  let liquidity = pool.liquidity;
 
-    const amount0 = (currentLiquidity * 2n ** 96n * (sqrtB - sqrtP)) / (sqrtB * sqrtP);
-    const amount1Need = (currentLiquidity * (sqrtB - sqrtP)) / 2n ** 96n;
+  for (let i = 0; i < relevantTicks.length; i++) {
+    const tick = Number(relevantTicks[i].tickIdx);
+    const sqrtAtTick = TickMath.getSqrtRatioAtTick(tick);
 
-    totalVolumeBuy += isOutcomeToken0 ? Number(formatUnits(amount0, 18)) : 0;
-    totalVolumeSell += isOutcomeToken0 ? 0 : Number(formatUnits(amount1Need, 18));
-    currentHighTick = Number(higherTicks[i].tickIdx);
+    // Check if target price is between current position and this tick
+    let targetWithinRange = false;
+    if (movingUp) {
+      targetWithinRange = targetSqrtPriceX96 <= sqrtAtTick;
+    } else {
+      targetWithinRange = targetSqrtPriceX96 >= sqrtAtTick;
+    }
+
+    if (targetWithinRange) {
+      // Target is within this range, calculate partial volume and stop
+      volume += getVolumeWithinRange(
+        BigInt(currentSqrtPriceX96.toString()),
+        BigInt(targetSqrtPriceX96.toString()),
+        liquidity,
+        isOutcomeToken0,
+        swapType,
+      );
+      break;
+    }
+
+    // Otherwise, swap to tick boundary fully
+    volume += getVolumeWithinRange(
+      BigInt(currentSqrtPriceX96.toString()),
+      BigInt(sqrtAtTick.toString()),
+      liquidity,
+      isOutcomeToken0,
+      swapType,
+    );
+
+    // Move state to next tick
+    currentSqrtPriceX96 = sqrtAtTick;
+    liquidity += BigInt(relevantTicks[i].liquidityNet);
   }
-  currentLiquidity = pool.liquidity;
-  for (let i = lowerTicks.length - 1; i > -1; i--) {
-    currentLiquidity = currentLiquidity - BigInt(lowerTicks[i + 1]?.liquidityNet ?? 0);
-    const sqrtA = BigInt(TickMath.getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx)).toString());
-    const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentLowTick).toString());
-    const amount1 = (currentLiquidity * (sqrtP - sqrtA)) / 2n ** 96n;
-    const amount0Need = ((currentLiquidity * 2n ** 96n * (sqrtA - sqrtP)) / (sqrtA * sqrtP)) * -1n;
-    totalVolumeBuy += isOutcomeToken0 ? 0 : Number(formatUnits(amount1, 18));
-    totalVolumeSell += isOutcomeToken0 ? Number(formatUnits(amount0Need, 18)) : 0;
-    currentLowTick = Number(lowerTicks[i].tickIdx);
-  }
-  return swapType === "buy" ? totalVolumeBuy : totalVolumeSell;
+
+  return volume;
 }
 
 export function useVolumeUntilPrice(
@@ -105,5 +141,5 @@ export function useVolumeUntilPrice(
   if (currentPrice === targetPrice) {
     return;
   }
-  return getVolumeUntilPrice(poolInfo, ticks, targetPrice, outcome, market.chainId, swapType);
+  return getVolumeUntilPrice(poolInfo, ticks, targetPrice, outcome, swapType);
 }
