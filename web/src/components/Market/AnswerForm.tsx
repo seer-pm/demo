@@ -13,7 +13,6 @@ import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
-  decodeOutcomes,
   formatOutcome,
   getAnswerTextFromMarket,
   getCurrentBond,
@@ -72,7 +71,7 @@ function getOutcome(templateId: bigint, values: AnswerFormValues, scalarBoundInW
 function getOutcomesOptions(market: Market, question: Question) {
   let options: { value: FormEventOutcomeValue; text: string }[] = [];
 
-  const outcomes = decodeOutcomes(market, question);
+  const outcomes = market.outcomes;
 
   options = outcomes
     // first map and then filter to keep the index of each outcome as value
