@@ -12,8 +12,7 @@ import { CowOrderData } from "./types";
 
 async function getCowOrders(initialMarkets: Market[] | undefined, account?: string, chainId?: SupportedChain) {
   if (!chainId || !account || !initialMarkets) return [];
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
-  const mappings = await getMappings(markets);
+  const mappings = await getMappings(initialMarkets, chainId);
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
   const orderBookApi = new OrderBookApi({ chainId });
   const orders = await orderBookApi.getOrders({ owner: account });

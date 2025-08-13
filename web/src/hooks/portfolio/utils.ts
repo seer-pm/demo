@@ -2,7 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { getBlock, readContracts } from "@wagmi/core";
+import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 
 export function getTokenPricesMapping(
@@ -65,27 +65,6 @@ export function getTokenPricesMapping(
   );
 
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
-}
-
-export async function getBlockTimestamp(initialBlockNumber: number) {
-  let blockNumber = initialBlockNumber;
-  const maxAttempts = 10; // Limit the number of attempts
-  let attempts = 0;
-
-  while (attempts < maxAttempts) {
-    try {
-      const block = await getBlock(config, { blockNumber: BigInt(blockNumber) });
-      if (block.timestamp) {
-        return Number(block.timestamp);
-      }
-      // Increment block number and attempts
-      blockNumber++;
-      attempts++;
-    } catch (error) {
-      blockNumber++;
-      attempts++;
-    }
-  }
 }
 
 export async function getTokensInfo(tokenAddresses: readonly Address[], account: Address) {

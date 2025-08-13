@@ -1,3 +1,5 @@
+import { MarketDataMapping } from "@/hooks/portfolio/getMappings";
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import {
   Burn_OrderBy,
   GetBurnsQuery,
@@ -9,10 +11,8 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { Token0Token1, getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "../getMappings";
-import { TransactionData } from "./types";
 
-export async function fetchBurnsFromSubgraph(
+async function fetchBurnsFromSubgraph(
   outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
   account: string,
   chainId: SupportedChain,

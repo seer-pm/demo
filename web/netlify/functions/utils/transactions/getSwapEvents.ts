@@ -1,3 +1,5 @@
+import { MarketDataMapping } from "@/hooks/portfolio/getMappings";
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import {
   GetSwapsQuery,
   OrderDirection,
@@ -13,10 +15,8 @@ import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { DAI, WXDAI } from "@swapr/sdk";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "../getMappings";
-import { TransactionData } from "./types";
 
-export async function fetchSwapsFromSubgraph(
+async function fetchSwapsFromSubgraph(
   outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
   account: string,
   chainId: SupportedChain,
