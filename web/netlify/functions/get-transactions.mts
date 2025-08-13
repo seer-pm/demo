@@ -1,4 +1,5 @@
 import { MarketDataMapping, getMappings } from "@/hooks/portfolio/getMappings";
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import { SupportedChain } from "@/lib/chains";
 import { getBlock } from "@wagmi/core";
 import { Address } from "viem";
@@ -36,17 +37,46 @@ async function getEvents(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  eventType?: string,
 ) {
-  const events = await Promise.all([
-    getSwapEvents(mappings, account, chainId, startTime, endTime),
-    getLiquidityEvents(mappings, account, chainId, startTime, endTime),
-    getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
-    getSplitMergeRedeemEvents(account, chainId),
-  ]);
+  let events: TransactionData[][] = [];
+
+  // If no eventType specified or invalid, return all events
+  if (!eventType || !["swap", "lp", "ctf"].includes(eventType)) {
+    events = await Promise.all([
+      getSwapEvents(mappings, account, chainId, startTime, endTime),
+      getLiquidityEvents(mappings, account, chainId, startTime, endTime),
+      getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
+      getSplitMergeRedeemEvents(account, chainId),
+    ]);
+  } else {
+    // Filter events based on eventType
+    switch (eventType) {
+      case "swap":
+        events = [await getSwapEvents(mappings, account, chainId, startTime, endTime)];
+        break;
+      case "lp":
+        events = await Promise.all([
+          getLiquidityEvents(mappings, account, chainId, startTime, endTime),
+          getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
+        ]);
+        break;
+      case "ctf":
+        events = [await getSplitMergeRedeemEvents(account, chainId)];
+        break;
+    }
+  }
+
   return events.flat();
 }
 
-async function getTransactions(account: Address, chainId: SupportedChain, startTime?: number, endTime?: number) {
+async function getTransactions(
+  account: Address,
+  chainId: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+  eventType?: string,
+) {
   const { markets } = await searchMarkets([chainId]);
 
   if (markets.length === 0) {
@@ -57,7 +87,7 @@ async function getTransactions(account: Address, chainId: SupportedChain, startT
 
   const { tokenIdToTokenSymbolMapping } = mappings;
 
-  const data = await getEvents(mappings, account, chainId, startTime, endTime);
+  const data = await getEvents(mappings, account, chainId, startTime, endTime, eventType);
 
   // get timestamp
   const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(x.blockNumber)));
@@ -87,6 +117,7 @@ export default async (req: Request) => {
     const chainId = url.searchParams.get("chainId");
     const startTime = url.searchParams.get("startTime");
     const endTime = url.searchParams.get("endTime");
+    const eventType = url.searchParams.get("eventType");
 
     // Validate required parameters
     if (!account) {
@@ -100,6 +131,16 @@ export default async (req: Request) => {
 
     if (!chainId) {
       return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    // Validate eventType if provided
+    if (eventType && !["swap", "lp", "ctf"].includes(eventType)) {
+      return new Response(JSON.stringify({ error: "eventType must be one of: swap, lp, ctf" }), {
         status: 400,
         headers: {
           "Content-Type": "application/json",
@@ -146,6 +187,7 @@ export default async (req: Request) => {
       chainIdNum as SupportedChain,
       startTimeNum,
       endTimeNum,
+      eventType || undefined,
     );
 
     return new Response(JSON.stringify(transactions), {
