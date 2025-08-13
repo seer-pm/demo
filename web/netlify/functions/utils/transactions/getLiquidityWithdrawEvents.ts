@@ -8,7 +8,7 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { Token0Token1, getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
 
@@ -28,62 +28,50 @@ async function fetchBurnsFromSubgraph(
   }
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-  const batchSize = 100;
-  const maxAttemptsPerBatch = 5;
   let totalBurns: GetBurnsQuery["burns"] = [];
 
-  // Split tokens into batches
-  const tokenBatches: Array<Token0Token1>[] = [];
   const tokens = Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
     getToken0Token1(tokenId, collateralToken),
   );
-  for (let i = 0; i < tokens.length; i += batchSize) {
-    tokenBatches.push(tokens.slice(i, i + batchSize));
-  }
 
   // Process each batch
-  for (const batch of tokenBatches) {
-    let attempt = 1;
-    let timestamp: string | undefined = endTime?.toString();
+  let timestamp: string | undefined = endTime?.toString();
 
-    while (attempt < maxAttemptsPerBatch) {
-      const data = await graphQLSdk(graphQLClient).GetBurns({
-        first: 1000,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Burn_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        where: {
-          and: [
-            {
-              or: batch,
-            },
-            {
-              origin: account.toLocaleLowerCase() as Address,
-              timestamp_lt: timestamp,
-              ...(startTime && { timestamp_gte: startTime.toString() }),
-            },
-          ],
-        },
-      });
+  while (true) {
+    const data = await graphQLSdk(graphQLClient).GetBurns({
+      first: 1000,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: Burn_OrderBy.Timestamp as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Desc as any,
+      where: {
+        and: [
+          {
+            or: tokens,
+          },
+          {
+            origin: account.toLocaleLowerCase() as Address,
+            timestamp_lt: timestamp,
+            ...(startTime && { timestamp_gte: startTime.toString() }),
+          },
+        ],
+      },
+    });
 
-      const burns = data.burns as GetBurnsQuery["burns"];
-      totalBurns = totalBurns.concat(burns);
+    const burns = data.burns as GetBurnsQuery["burns"];
+    totalBurns = totalBurns.concat(burns);
 
-      // Stop if no more burns or same timestamp (no progress)
-      if (burns.length === 0 || burns[burns.length - 1]?.timestamp === timestamp) {
-        break;
-      }
+    // Stop if no more burns or same timestamp (no progress)
+    if (burns.length === 0 || burns[burns.length - 1]?.timestamp === timestamp) {
+      break;
+    }
 
-      // Update timestamp for next page
-      timestamp = burns[burns.length - 1]?.timestamp;
+    // Update timestamp for next page
+    timestamp = burns[burns.length - 1]?.timestamp;
 
-      // Stop if less than the page size (no more data)
-      if (burns.length < 1000) {
-        break;
-      }
-
-      attempt++;
+    // Stop if less than the page size (no more data)
+    if (burns.length < 1000) {
+      break;
     }
   }
 
