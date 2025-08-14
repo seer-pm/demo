@@ -81,6 +81,9 @@ export function displayBalance(amount: bigint, decimals: number, formatAmount = 
 }
 
 export function displayNumber(number: number, decimals = 2, formatAmount = false) {
+  if (!number) {
+    return "0";
+  }
   if (number < 0.001) {
     return "<0.001";
   }
