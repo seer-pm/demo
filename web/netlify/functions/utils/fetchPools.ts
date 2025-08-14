@@ -1,18 +1,23 @@
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
-import { chainIds, config, mainnet } from "./config.ts";
+import { chainIds, config, gnosis } from "./config.ts";
 
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr.ts";
+import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain } from "@/lib/chains.ts";
 import { Market, Token0Token1, getMarketPoolsPairs } from "@/lib/market.ts";
 import { isTwoStringsEqual } from "@/lib/utils.ts";
-import { getSubgraphUrl } from "./subgraph.ts";
+import pLimit from "p-limit";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "./subgraph.ts";
 
-export interface Pool {
-  id: Address;
-  token0: { id: Address; symbol: string };
-  token1: { id: Address; symbol: string };
+interface SubgraphPool {
+  id: string;
+  token0: { id: string; symbol: string };
+  token1: { id: string; symbol: string };
   token0Price: string;
   token1Price: string;
+}
+export interface Pool extends SubgraphPool {
   balance0: number;
   balance1: number;
   isToken0Collateral: boolean;
@@ -55,56 +60,56 @@ export async function fetchTokenBalances(
   }
 }
 
-export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
+async function fetchPoolsByTokenPairs(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
+  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  if (!subgraphClient) {
+    return [];
+  }
+  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
   const maxAttempts = 20;
   let attempt = 0;
-  let allPools: Pool[] = [];
-  let currentId = undefined;
+  let id = undefined;
+  let total: SubgraphPool[] = [];
   while (attempt < maxAttempts) {
-    const query = `{
-        pools(first: 1000, orderBy: id, orderDirection: asc, where: 
-          { 
-            and: [
-              {
-                or: [${tokenPairs.map((tokenPair) => `{token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}`)}]
-              }${currentId ? `,{id_gt: "${currentId}"}` : ""}
-            ]
-          }) {
-          id
-          token0 {
-            id
-            symbol
-          }
-          token1 {
-            id
-            symbol
-          }
-          token0Price
-          token1Price
-        }
-      }`;
-    const results = await fetch(getSubgraphUrl(chainId === mainnet.id ? "uniswap" : "algebra", chainId), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const { pools }: { pools: SubgraphPool[] } = await graphQLSdk(subgraphClient).GetPools({
+      where: {
+        and: [
+          {
+            or: tokenPairs,
+          },
+          { id_lt: id },
+        ],
       },
-      body: JSON.stringify({
-        query,
-      }),
+      first: 1000,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: Pool_OrderBy.Id as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Desc as any,
     });
-    const json = await results.json();
-    const pools = (json?.data?.pools ?? []) as Pool[];
-    allPools = allPools.concat(pools);
-    if (pools[pools.length - 1]?.id === currentId) {
+    total = total.concat(pools);
+    if (pools[pools.length - 1]?.id === id) {
       break;
     }
     if (pools.length < 1000) {
-      break; // We've fetched all pools
+      break;
     }
-    currentId = pools[pools.length - 1]?.id;
+    id = pools[pools.length - 1]?.id;
     attempt++;
   }
-  return allPools;
+  return total;
+}
+
+export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
+  const batchSize = 100;
+  const limit = pLimit(2);
+
+  const batches = Array.from({ length: Math.ceil(tokenPairs.length / batchSize) }, (_, i) =>
+    tokenPairs.slice(i * batchSize, (i + 1) * batchSize),
+  );
+
+  const results = await Promise.all(batches.map((batch) => limit(() => fetchPoolsByTokenPairs(chainId, batch))));
+
+  return results.flat();
 }
 
 export async function getAllMarketPools(markets: Market[]) {
@@ -130,16 +135,16 @@ export async function getAllMarketPools(markets: Market[]) {
         const tokenPoolList = poolsByChain.reduce(
           (acc, curr) => {
             acc.push({
-              token: curr.token0.id,
-              owner: curr.id,
+              token: curr.token0.id as Address,
+              owner: curr.id as Address,
             });
             acc.push({
-              token: curr.token1.id,
-              owner: curr.id,
+              token: curr.token1.id as Address,
+              owner: curr.id as Address,
             });
             return acc;
           },
-          [] as { token: `0x${string}`; owner: `0x${string}` }[],
+          [] as { token: Address; owner: Address }[],
         );
         const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId, 50, true)) as bigint[];
         const poolTokenBalanceMapping = tokenPoolList.reduce(

@@ -2,12 +2,13 @@ import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
 import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market, getCollateralByIndex, getMarketStatus } from "@/lib/market";
+import { Market, getCollateralByIndex, getMarketStatus, getToken0Token1 } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-fetch";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Address } from "viem";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
+import { fetchPools } from "./utils/fetchPools";
 import { getsDaiPriceByChainMapping } from "./utils/getMarketsLiquidity";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
@@ -84,53 +85,6 @@ async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   return finalData;
 }
 
-async function getAllPools(
-  tokens: {
-    tokenId: `0x${string}`;
-  }[],
-  chainId: SupportedChain,
-) {
-  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-  if (!subgraphClient) {
-    return [];
-  }
-  const maxAttempts = 20;
-  let attempt = 0;
-  let id = undefined;
-  let total: GetPoolsQuery["pools"] = [];
-  while (attempt < maxAttempts) {
-    const { pools } = await getSdk(subgraphClient).GetPools({
-      where: {
-        and: [
-          {
-            or: tokens.reduce(
-              (acc, { tokenId }) => {
-                acc.push({ token0: tokenId.toLocaleLowerCase() }, { token1: tokenId.toLocaleLowerCase() });
-                return acc;
-              },
-              [] as { [key: string]: string }[],
-            ),
-          },
-          { id_lt: id },
-        ],
-      },
-      first: 1000,
-      orderBy: Pool_OrderBy.Id,
-      orderDirection: OrderDirection.Desc,
-    });
-    total = total.concat(pools);
-    if (pools[pools.length - 1]?.id === id) {
-      break;
-    }
-    if (pools.length < 1000) {
-      break;
-    }
-    id = pools[pools.length - 1]?.id;
-    attempt++;
-  }
-  return total;
-}
-
 async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDaiPrice: number) {
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
@@ -165,7 +119,10 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDai
       tokenIndex,
     };
   });
-  const pools = await getAllPools(tokens, chainId);
+  const pools = await fetchPools(
+    chainId,
+    tokens.map((x) => getToken0Token1(x.tokenId, x.collateralToken)),
+  );
 
   const tokenPriceMapping = getTokenPricesMapping(tokens, pools, chainId);
   const marketsVolume = markets.map((market) => {
