@@ -9,19 +9,12 @@ import { Address } from "viem";
 export default function SwapButtons({
   account,
   trade,
-  swapType,
   isDisabled,
   isLoading,
-}: {
-  account?: Address;
-  trade: Trade;
-  swapType: "buy" | "sell";
-  isDisabled: boolean;
-  isLoading: boolean;
-}) {
+  isBuyExactOutputNative,
+}: { account?: Address; trade: Trade; isDisabled: boolean; isLoading: boolean; isBuyExactOutputNative: boolean }) {
   const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
-  const isShowApproval = missingApprovals && missingApprovals.length > 0;
-
+  const isShowApproval = !isBuyExactOutputNative && missingApprovals && missingApprovals.length > 0;
   return (
     <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
       {!isShowApproval && (
@@ -30,11 +23,12 @@ export default function SwapButtons({
           type="submit"
           disabled={isDisabled}
           isLoading={isLoading || isLoadingApprovals}
-          text={swapType === "buy" ? "Buy" : "Sell"}
+          text="Swap"
+          className="w-full"
         />
       )}
       {isShowApproval && (
-        <div className="space-y-[8px]">
+        <div className="space-y-[8px] w-full">
           {missingApprovals.map((approval) => (
             <ApproveButton
               key={approval.address}

@@ -1,24 +1,8 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { TickMath } from "@uniswap/v3-sdk";
-import { BigNumber } from "ethers";
 import { Address, formatUnits } from "viem";
+import { tickToPrice } from "./utils";
 
-export function tickToPrice(tick: number, decimals = 18) {
-  const sqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
-  const bn = BigNumber.from(sqrtPriceX96);
-
-  const TWO_POW_96 = BigNumber.from(2).pow(96);
-
-  const price0 = bn
-    .mul(bn) // square it
-    .mul(BigNumber.from(10).pow(decimals))
-    .div(TWO_POW_96)
-    .div(TWO_POW_96)
-    .toBigInt();
-  const price1 = TWO_POW_96.mul(TWO_POW_96).mul(BigNumber.from(10).pow(decimals)).div(bn).div(bn).toBigInt();
-
-  return [Number(formatUnits(price0, 18)).toFixed(4), Number(formatUnits(price1, 18)).toFixed(4)];
-}
 const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001
 const TICK_MIN = -69077; //soft cap at price0 = 0.001, price1 = 1000
 export function getChartDataByTicks(

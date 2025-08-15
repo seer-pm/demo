@@ -670,6 +670,12 @@ export const ArrowSwap = ({ fill = "#9747FF" }) => (
   </svg>
 );
 
+export const ArrowDown = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="24px" fill="#000">
+    <path d="M480-240 240-480l56-56 144 144v-368h80v368l144-144 56 56-240 240Z" />
+  </svg>
+);
+
 export const MyMarket = ({ fill = "#9747FF" }) => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path

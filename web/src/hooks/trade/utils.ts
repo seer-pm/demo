@@ -2,10 +2,11 @@ import { SupportedChain, filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
-import { ethers } from "ethers";
-import { Address, TransactionReceipt } from "viem";
+import { ethers, providers } from "ethers";
+import { Account, Address, Chain, Client, TransactionReceipt, Transport } from "viem";
 import { approveTokens } from "../useApproveTokens";
 import { fetchNeededApprovals } from "../useMissingApprovals";
+
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
   const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
@@ -136,4 +137,16 @@ export async function approveIfNeeded(
       spender: spender,
     });
   }
+}
+
+export function clientToSigner(client: Client<Transport, Chain, Account>) {
+  const { account, chain, transport } = client;
+  const network = {
+    chainId: chain.id,
+    name: chain.name,
+    ensAddress: chain.contracts?.ensRegistry?.address,
+  };
+  const provider = new providers.Web3Provider(transport, network);
+  const signer = provider.getSigner(account.address);
+  return signer;
 }

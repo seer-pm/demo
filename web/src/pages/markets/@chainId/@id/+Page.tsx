@@ -25,15 +25,7 @@ import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
-function SwapWidget({
-  market,
-  outcomeIndex,
-  images,
-}: {
-  market: Market;
-  outcomeIndex: number;
-  images?: string[];
-}) {
+function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeIndex: number; images?: string[] }) {
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
@@ -117,13 +109,13 @@ function MarketPage() {
       <div className="container-fluid py-10 space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         <div className="shimmer-container w-full h-[200px]"></div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="col-span-1 lg:col-span-8">
+        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-10">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8">
             <div className="font-[16px] font-semibold mb-[24px]">Outcomes</div>
             <div className="shimmer-container h-[390px]"></div>
           </div>
 
-          <div className="col-span-1 lg:col-span-4 space-y-5">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5">
             <div className="shimmer-container w-full h-[330px]"></div>
             <div className="shimmer-container w-full h-[390px]"></div>
           </div>
@@ -172,15 +164,15 @@ function MarketPage() {
           </Alert>
         )}
         <MarketChart market={market} />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="col-span-1 lg:col-span-8 h-fit space-y-16">
+        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
             <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
-          <div className="col-span-1 lg:col-span-4 space-y-5 lg:row-span-2">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2">
             <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
-          <div className="col-span-1 lg:col-span-8 space-y-16 lg:row-span-2">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
             <MarketTabs market={market} />
           </div>
         </div>
