@@ -1,5 +1,5 @@
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { tickToPrice } from "@/hooks/liquidity/utils";
 import {
   GetPoolHourDatasQuery,
   GetSwapsQuery,
