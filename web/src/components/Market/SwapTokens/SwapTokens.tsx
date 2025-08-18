@@ -64,7 +64,7 @@ export function SwapTokens({
             <Dropdown
               options={[
                 { text: "Market", value: "market" },
-                { text: "Fill", value: "limit" },
+                { text: "Fill-to-price", value: "limit" },
               ]}
               value={orderType}
               onClick={(type) => setOrderType(type)}

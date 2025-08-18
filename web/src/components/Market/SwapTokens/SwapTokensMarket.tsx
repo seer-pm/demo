@@ -16,7 +16,7 @@ import { Token, getSelectedCollateral, getSharesInfo } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
@@ -123,7 +123,7 @@ export function SwapTokensMarket({
       useAltCollateral: false,
     },
   });
-
+  const amountRef = useRef<HTMLInputElement | null>(null);
   const {
     register,
     reset,
@@ -408,6 +408,10 @@ export function SwapTokensMarket({
                       return true;
                     },
                   })}
+                  ref={(el) => {
+                    amountRef.current = el;
+                    register("amount").ref(el);
+                  }}
                   onChange={(e) => {
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
@@ -436,6 +440,11 @@ export function SwapTokensMarket({
                       setValue("amount", formatUnits(balance, sellToken.decimals), {
                         shouldValidate: true,
                         shouldDirty: true,
+                      });
+                      requestAnimationFrame(() => {
+                        if (amountRef.current) {
+                          amountRef.current.scrollLeft = 0;
+                        }
                       });
                     }}
                   >
