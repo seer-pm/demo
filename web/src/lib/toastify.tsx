@@ -138,7 +138,6 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
     toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
 
     let receipt: TransactionReceipt;
-
     if (typeof result === "string") {
       hash = result;
 

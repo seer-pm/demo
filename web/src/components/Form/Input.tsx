@@ -11,15 +11,16 @@ type InputProps = {
   icon?: React.ReactNode;
   isClearable?: boolean;
   onClear?: () => void;
+  errorClassName?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref) => {
-  const { className, helpText, icon, useFormReturn, isClearable, onClear, ...restProps } = props;
+  const { className, helpText, icon, useFormReturn, isClearable, onClear, errorClassName, ...restProps } = props;
   const {
     formState: { errors, dirtyFields },
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined } };
 
-  const hasError = !!get(errors, restProps.name);
+  const hasError = !!get(dirtyFields, restProps.name) && !!get(errors, restProps.name);
   const isValid = !!get(dirtyFields, restProps.name) && !hasError;
   return (
     <>
@@ -46,7 +47,11 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
         <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
-      <FormError errors={errors} name={props.name} />
+      {hasError && (
+        <div className={errorClassName}>
+          <FormError errors={errors} name={props.name} />
+        </div>
+      )}
     </>
   );
 });

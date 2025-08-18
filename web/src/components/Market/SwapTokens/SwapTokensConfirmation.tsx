@@ -18,6 +18,7 @@ interface SwapTokensConfirmationProps {
   onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
+  isBuyExactOutputNative: boolean;
 }
 
 export function SwapTokensConfirmation({
@@ -26,6 +27,7 @@ export function SwapTokensConfirmation({
   isLoading,
   onSubmit,
   collateral,
+  isBuyExactOutputNative,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
@@ -43,10 +45,20 @@ export function SwapTokensConfirmation({
       </div>
     );
   }
-  let { inputToken, outputToken, inputAmount, outputAmount, price, minimumReceive, maximumSlippage, invertedPrice } =
-    tradeInfo;
+  let {
+    inputToken,
+    outputToken,
+    inputAmount,
+    outputAmount,
+    price,
+    minimumReceive,
+    maximumSent,
+    maximumSlippage,
+    invertedPrice,
+  } = tradeInfo;
   const sDAI = trade ? COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address : undefined;
-
+  const isExactInput = trade!.tradeType === 0;
+  inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
   outputToken = outputToken?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
@@ -97,16 +109,17 @@ export function SwapTokensConfirmation({
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <p>Minimum received</p>
+          <p>{isExactInput ? "Minimum received" : "Maximum sent"}</p>
           <p>
-            {minimumReceive} {outputToken}
+            {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
           </p>
         </div>
       </div>
       <Alert type="warning">
-        Current slippage tolerance is {maximumSlippage}%. You will receive at least{" "}
+        Current slippage tolerance is {maximumSlippage}%. You will {isExactInput ? "receive" : "sell"} at{" "}
+        {isExactInput ? "least" : "most"}{" "}
         <span className="font-bold">
-          {minimumReceive} {outputToken}
+          {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
         </span>{" "}
         or the transaction will revert.
       </Alert>

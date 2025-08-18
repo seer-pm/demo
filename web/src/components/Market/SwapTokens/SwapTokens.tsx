@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
-import { SwapTokensLimit } from "./SwapTokensLimit";
+import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
@@ -28,21 +28,15 @@ export function SwapTokens({
   fixedCollateral,
 }: SwapTokensProps) {
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
-  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const outcomeText = market.outcomes[outcomeIndex];
-
+  const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
   return (
     <div className="space-y-5 bg-white p-[24px] shadow-md">
       <div className="flex items-center space-x-[12px]">
         <div className="flex-shrink-0">
-          <OutcomeImage
-            image={outcomeImage}
-            isInvalidOutcome={market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1}
-            title={outcomeText}
-          />
+          <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />
         </div>
         <div className="text-[16px]">{outcomeText}</div>
       </div>
@@ -67,28 +61,10 @@ export function SwapTokens({
           )}
         >
           <div className="flex items-center justify-between">
-            <div role="tablist" className="tabs tabs-bordered">
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "buy" && "tab-active"}`}
-                onClick={tabClick("buy")}
-              >
-                Buy
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "sell" && "tab-active"}`}
-                onClick={tabClick("sell")}
-              >
-                Sell
-              </button>
-            </div>
             <Dropdown
               options={[
                 { text: "Market", value: "market" },
-                { text: "Limit", value: "limit" },
+                { text: "Fill-to-price", value: "limit" },
               ]}
               value={orderType}
               onClick={(type) => setOrderType(type)}
@@ -101,17 +77,20 @@ export function SwapTokens({
               outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
               fixedCollateral={fixedCollateral}
-              swapType={swapType}
               setShowMaxSlippage={setShowMaxSlippage}
+              outcomeImage={outcomeImage}
+              isInvalidOutcome={isInvalidOutcome}
             />
           )}
           {orderType === "limit" && (
-            <SwapTokensLimit
+            <SwapTokensLimitUpto
               market={market}
               outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
-              parentCollateral={fixedCollateral}
-              swapType={swapType}
+              fixedCollateral={fixedCollateral}
+              setShowMaxSlippage={setShowMaxSlippage}
+              outcomeImage={outcomeImage}
+              isInvalidOutcome={isInvalidOutcome}
             />
           )}
         </div>
