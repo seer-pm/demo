@@ -177,7 +177,6 @@ export default async () => {
         `Creating weather market for ${WEATHER_CITIES[cityCode].name} ${marketDate.year}-${marketDate.month}-${marketDate.day}`,
       );
       const txHash = await createMarketForCity(account, cityCode, marketDate, openingDate, chainId);
-      // TODO: set category
       console.log(`Market created, tx hash: ${txHash}`);
     } catch (error) {
       console.error(`Error creating market for ${WEATHER_CITIES[cityCode].name}:`, error);
