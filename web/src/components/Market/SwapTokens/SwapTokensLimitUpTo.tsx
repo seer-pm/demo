@@ -19,7 +19,7 @@ import { NATIVE_TOKEN, displayBalance, isTwoStringsEqual, isUndefined } from "@/
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { gnosis } from "viem/chains";
@@ -61,6 +61,8 @@ export function SwapTokensLimitUpto({
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensLimitUptoProps) {
+  const limitPriceRef = useRef<HTMLInputElement | null>(null);
+
   const { address: account } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -159,7 +161,6 @@ export function SwapTokensLimitUpto({
     swapType,
     tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
   );
-  console.log({ limitPriceFromVolume });
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -376,6 +377,7 @@ export function SwapTokensLimitUpto({
   }, [quoteData?.value]);
 
   useEffect(() => {
+    if (isUseMax) return;
     if (volume) {
       setTradeType(swapType === "buy" ? TradeType.EXACT_OUTPUT : TradeType.EXACT_INPUT);
       setValue(swapType === "buy" ? "amountOut" : "amount", volume.toString(), {
@@ -390,11 +392,10 @@ export function SwapTokensLimitUpto({
   }, [volume]);
 
   useEffect(() => {
-    if (!isUseMax) {
-      setTradeType(TradeType.EXACT_INPUT);
-      resetField("amount");
-      resetField("amountOut");
-    }
+    if (isUseMax) return;
+    setTradeType(TradeType.EXACT_INPUT);
+    resetField("amount");
+    resetField("amountOut");
   }, [isUseMax]);
 
   return (
@@ -463,6 +464,16 @@ export function SwapTokensLimitUpto({
                   onChange={(e) => {
                     setUseMax(false);
                     register("limitPrice").onChange(e);
+                  }}
+                  ref={(el) => {
+                    limitPriceRef.current = el;
+                    register("limitPrice").ref(el);
+                  }}
+                  onWheel={(event) => {
+                    event.currentTarget.blur();
+                    requestAnimationFrame(() => {
+                      limitPriceRef.current?.focus({ preventScroll: true });
+                    });
                   }}
                   value={isUseMax ? (limitPriceFromVolume?.toFixed(8) ?? "") : limitPrice}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"

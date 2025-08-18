@@ -107,6 +107,9 @@ export function SwapTokensMarket({
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensMarketProps) {
+  const amountRef = useRef<HTMLInputElement | null>(null);
+  const amountOutRef = useRef<HTMLInputElement | null>(null);
+
   const { address: account } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
@@ -123,7 +126,7 @@ export function SwapTokensMarket({
       useAltCollateral: false,
     },
   });
-  const amountRef = useRef<HTMLInputElement | null>(null);
+
   const {
     register,
     reset,
@@ -412,6 +415,12 @@ export function SwapTokensMarket({
                     amountRef.current = el;
                     register("amount").ref(el);
                   }}
+                  onWheel={(event) => {
+                    event.currentTarget.blur();
+                    requestAnimationFrame(() => {
+                      amountRef.current?.focus({ preventScroll: true });
+                    });
+                  }}
                   onChange={(e) => {
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
@@ -489,6 +498,16 @@ export function SwapTokensMarket({
                   onChange={(e) => {
                     setTradeType(TradeType.EXACT_OUTPUT);
                     register("amountOut").onChange(e);
+                  }}
+                  ref={(el) => {
+                    amountOutRef.current = el;
+                    register("amountOut").ref(el);
+                  }}
+                  onWheel={(event) => {
+                    event.currentTarget.blur();
+                    requestAnimationFrame(() => {
+                      amountOutRef.current?.focus({ preventScroll: true });
+                    });
                   }}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
