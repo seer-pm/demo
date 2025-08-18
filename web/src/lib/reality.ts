@@ -84,7 +84,7 @@ const overrideAnswerText: Record<`0x${string}`, string> = {
 
 export function getAnswerText(
   question: Question,
-  outcomes: string[],
+  outcomes: readonly string[],
   template: number,
   noAnswerText = "Not answered yet",
 ): string {
@@ -121,8 +121,7 @@ export function getAnswerText(
 }
 
 export function getAnswerTextFromMarket(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
-  const outcomes = decodeOutcomes(market, question);
-  return getAnswerText(question, outcomes, Number(market.templateId), noAnswerText);
+  return getAnswerText(question, market.outcomes, Number(market.templateId), noAnswerText);
 }
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint, chainId: SupportedChain) {

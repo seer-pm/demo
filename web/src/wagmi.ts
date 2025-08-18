@@ -6,7 +6,8 @@ import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
-const GNOSIS_RPC = "https://lb.drpc.org/ogrpc?network=gnosis&dkey=As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
+const GNOSIS_RPC = "https://lb.drpc.org/gnosis/As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
+const MAINNET_RPC = "https://lb.drpc.org/ethereum/As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
 
 if (typeof window !== "undefined") {
   import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
@@ -31,7 +32,7 @@ export const config = defaultWagmiConfig({
   enableCoinbase: false,
   transports: {
     [gnosis.id]: fallback([http(GNOSIS_RPC), http("https://rpc.gnosischain.com")]),
-    [mainnet.id]: http("https://eth-pokt.nodies.app"),
+    [mainnet.id]: fallback([http(MAINNET_RPC), http("https://eth-pokt.nodies.app")]),
     [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
     [hardhat.id]: http(),
   },

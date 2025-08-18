@@ -1,7 +1,8 @@
-import { formatUnits } from "viem";
+import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@/hooks/queries/gql-generated-swapr.ts";
+import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { Pool } from "./fetchPools.ts";
-import { getSubgraphUrl } from "./subgraph.ts";
+import { getSubgraphUrl, swaprGraphQLClient } from "./subgraph.ts";
 
 interface EternalFarming {
   id: string;
@@ -12,52 +13,39 @@ interface EternalFarming {
   pool: string;
 }
 
-async function fetchEternalFarmings(poolIds: string[]): Promise<EternalFarming[]> {
+async function fetchEternalFarmings(poolIds: Address[]): Promise<EternalFarming[]> {
   const maxAttempts = 20;
   let attempt = 0;
   let allFarmings: EternalFarming[] = [];
-  let currentId = undefined;
+  const algebraFarmingClient = swaprGraphQLClient(gnosis.id, "algebrafarming");
+
+  let id = undefined;
   while (attempt < maxAttempts) {
-    const query = `{
-        eternalFarmings(first: 1000, orderBy: id, orderDirection: asc, where: {pool_in:${JSON.stringify(poolIds)}${
-          currentId ? `,id_gt: "${currentId}"` : ""
-        }}) {
-          id
-          pool
-          rewardToken
-          bonusRewardToken
-          reward
-          rewardRate
-          startTime
-          endTime
-        }
-      }`;
-    const results = await fetch(getSubgraphUrl("algebrafarming", gnosis.id), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-      }),
+    if (!algebraFarmingClient) {
+      throw new Error("Subgraph not available");
+    }
+
+    const { eternalFarmings: farmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
+      where: { pool_in: poolIds, id_lt: id },
+      first: 1000,
+      orderBy: EternalFarming_OrderBy.Id,
+      orderDirection: OrderDirection.Desc,
     });
-    const json = await results.json();
-    const farmings = (json?.data?.eternalFarmings ?? []) as EternalFarming[];
     allFarmings = allFarmings.concat(farmings);
-    if (farmings[farmings.length - 1]?.id === currentId) {
+    if (farmings[farmings.length - 1]?.id === id) {
       break;
     }
     if (farmings.length < 1000) {
-      break; // We've fetched all pools
+      break;
     }
-    currentId = farmings[farmings.length - 1]?.id;
+    id = farmings[farmings.length - 1]?.id;
     attempt++;
   }
   return allFarmings;
 }
 
 export async function getMarketsIncentive(pools: Pool[]) {
-  const eternalFarmings = await fetchEternalFarmings(pools.map((pool) => pool.id));
+  const eternalFarmings = await fetchEternalFarmings(pools.map((pool) => pool.id as Address));
 
   const incentiveToPoolMapping = eternalFarmings.reduce(
     (acc, curr) => {

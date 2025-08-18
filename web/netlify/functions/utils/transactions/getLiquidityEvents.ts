@@ -1,3 +1,5 @@
+import { MarketDataMapping } from "@/hooks/portfolio/getMappings";
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import {
   GetMintsQuery,
   Mint_OrderBy,
@@ -6,13 +8,11 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { Token0Token1, getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
-import { MarketDataMapping } from "../getMappings";
-import { TransactionData } from "./types";
 
-export async function fetchMintsFromSubgraph(
+async function fetchMintsFromSubgraph(
   outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
   account: string,
   chainId: SupportedChain,
@@ -26,62 +26,49 @@ export async function fetchMintsFromSubgraph(
   }
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-  const batchSize = 100;
-  const maxAttemptsPerBatch = 5;
   let totalMints: GetMintsQuery["mints"] = [];
 
-  // Split tokens into batches
-  const tokenBatches: Array<Token0Token1>[] = [];
   const tokens = Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
     getToken0Token1(tokenId, collateralToken),
   );
-  for (let i = 0; i < tokens.length; i += batchSize) {
-    tokenBatches.push(tokens.slice(i, i + batchSize));
-  }
 
-  // Process each batch
-  for (const batch of tokenBatches) {
-    let attempt = 1;
-    let timestamp: string | undefined = endTime?.toString();
+  let timestamp: string | undefined = endTime?.toString();
 
-    while (attempt < maxAttemptsPerBatch) {
-      const data = await graphQLSdk(graphQLClient).GetMints({
-        first: 1000,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Mint_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        where: {
-          and: [
-            {
-              or: batch,
-            },
-            {
-              origin: account.toLocaleLowerCase() as Address,
-              timestamp_lt: timestamp,
-              ...(startTime && { timestamp_gte: startTime.toString() }),
-            },
-          ],
-        },
-      });
+  while (true) {
+    const data = await graphQLSdk(graphQLClient).GetMints({
+      first: 1000,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: Mint_OrderBy.Timestamp as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Desc as any,
+      where: {
+        and: [
+          {
+            or: tokens,
+          },
+          {
+            origin: account.toLocaleLowerCase() as Address,
+            timestamp_lt: timestamp,
+            ...(startTime && { timestamp_gte: startTime.toString() }),
+          },
+        ],
+      },
+    });
 
-      const mints = data.mints as GetMintsQuery["mints"];
-      totalMints = totalMints.concat(mints);
+    const mints = data.mints as GetMintsQuery["mints"];
+    totalMints = totalMints.concat(mints);
 
-      // Stop if no more mints or same timestamp (no progress)
-      if (mints.length === 0 || mints[mints.length - 1]?.timestamp === timestamp) {
-        break;
-      }
+    // Stop if no more mints or same timestamp (no progress)
+    if (mints.length === 0 || mints[mints.length - 1]?.timestamp === timestamp) {
+      break;
+    }
 
-      // Update timestamp for next page
-      timestamp = mints[mints.length - 1]?.timestamp;
+    // Update timestamp for next page
+    timestamp = mints[mints.length - 1]?.timestamp;
 
-      // Stop if less than the page size (no more data)
-      if (mints.length < 1000) {
-        break;
-      }
-
-      attempt++;
+    // Stop if less than the page size (no more data)
+    if (mints.length < 1000) {
+      break;
     }
   }
 

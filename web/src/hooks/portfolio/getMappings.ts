@@ -1,4 +1,5 @@
-import { Market, getCollateralByIndex } from "@/lib/market";
+import { SupportedChain } from "@/lib/chains";
+import { Market, getCollateralByIndex, getToken0Token1 } from "@/lib/market";
 import { config } from "@/wagmi";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
@@ -17,7 +18,8 @@ export interface MarketDataMapping {
   };
 }
 
-export async function getMappings(markets: Market[]) {
+export async function getMappings(initialMarkets: Market[], chainId: SupportedChain): Promise<MarketDataMapping> {
+  const markets = initialMarkets.filter((x) => x.chainId === chainId);
   const conditionIdToMarketMapping: MarketDataMapping["conditionIdToMarketMapping"] = {};
   const tokenPairToMarketMapping: MarketDataMapping["tokenPairToMarketMapping"] = {};
   const outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"] = new Map();
@@ -28,11 +30,8 @@ export async function getMappings(markets: Market[]) {
 
     market.wrappedTokens.forEach((outcomeToken, i) => {
       const collateral = getCollateralByIndex(market, i);
-      const key =
-        collateral.toLocaleLowerCase() > outcomeToken.toLocaleLowerCase()
-          ? `${outcomeToken.toLocaleLowerCase()}-${collateral.toLocaleLowerCase()}`
-          : `${collateral.toLocaleLowerCase()}-${outcomeToken.toLocaleLowerCase()}`;
-      tokenPairToMarketMapping[key] = market;
+      const { token0, token1 } = getToken0Token1(collateral, outcomeToken);
+      tokenPairToMarketMapping[`${token0}-${token1}`] = market;
 
       outcomeTokenToCollateral.set(outcomeToken.toLocaleLowerCase() as Address, getCollateralByIndex(market, i));
       allTokensIds.add(market.wrappedTokens[i].toLocaleLowerCase() as Address);
@@ -44,6 +43,7 @@ export async function getMappings(markets: Market[]) {
   const allTokensSymbols = (await readContracts(config, {
     contracts: Array.from(allTokensIds.values()).map((tokenId) => ({
       abi: erc20Abi,
+      chainId,
       address: tokenId,
       functionName: "symbol",
       args: [],

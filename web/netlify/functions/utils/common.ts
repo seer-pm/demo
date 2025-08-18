@@ -20,6 +20,6 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
     pairs: { chainId: string; priceUsd: string }[];
   };
   // @ts-ignore
-  const priceString = data.pairs.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
+  const priceString = data.pairs?.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
   return Number(priceString);
 }

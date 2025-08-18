@@ -1,9 +1,9 @@
+import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import { ConditionalEvent_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains";
 import { unescapeJson } from "@/lib/reality";
 import { graphQLClient } from "@/lib/subgraph";
 import { Address } from "viem";
-import { TransactionData } from "./types";
 
 export async function getSplitMergeRedeemEvents(account: string, chainId: SupportedChain): Promise<TransactionData[]> {
   const client = graphQLClient(chainId);
