@@ -1,9 +1,11 @@
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains.ts";
+import { WEATHER_CATEGORY } from "@/lib/create-market.ts";
 import { getMarketStatus } from "@/lib/market.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { Address, privateKeyToAccount } from "viem/accounts";
 import { chainIds } from "./utils/config.ts";
 import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
@@ -125,6 +127,11 @@ function sortQuestions(market: any) {
   };
 }
 
+function getLiquidityAccount() {
+  const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
+  return privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
+}
+
 async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<boolean> {
   const client = graphQLClient(chainId);
   const { markets } = await getSeerSdk(client).GetMarkets({
@@ -148,7 +155,9 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
 
   const verificationItems = await getVerification(chainId, (curateItems as CurateItem[]) || []);
   const verificationStatusList = getVerificationStatusList(verificationItems);
-
+  const { data: weatherMarkets } = await supabase.from("weather_markets").select("tx_hash");
+  const weatherTxHashSet = new Set((weatherMarkets ?? []).map((weatherMarket) => weatherMarket.tx_hash));
+  const liquidityAccount = getLiquidityAccount();
   await supabase.from("markets").upsert(
     markets.map((market) => ({
       id: market.id,
@@ -158,6 +167,11 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
       verification: verificationStatusList[market.id as `0x${string}`] ?? {
         status: "not_verified",
       },
+      // check if it's a weather market
+      ...(weatherTxHashSet.has(market.transactionHash) && {
+        creator: liquidityAccount.address.toLowerCase(),
+        categories: [WEATHER_CATEGORY],
+      }),
     })),
   );
 
