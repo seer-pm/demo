@@ -1,9 +1,8 @@
-import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastify } from "@/lib/toastify";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { EnrichedOrder, OrderBookApi, OrderSigningUtils, UnsignedOrder } from "@cowprotocol/cow-sdk";
+import { EnrichedOrder, OrderBookApi, OrderSigningUtils, SupportedChainId, UnsignedOrder } from "@cowprotocol/cow-sdk";
 import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
 import { Contract } from "ethers";
@@ -57,7 +56,7 @@ export async function createCowOrder({
   chainId,
 }: {
   order: UnsignedOrder;
-  chainId: SupportedChain;
+  chainId: SupportedChainId;
 }): Promise<string> {
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);
@@ -83,7 +82,7 @@ export async function cancelCowOrder({
   chainId,
 }: {
   orderId: string;
-  chainId: SupportedChain;
+  chainId: SupportedChainId;
 }): Promise<string> {
   const client = await getConnectorClient(config);
   const signer = clientToSigner(client);

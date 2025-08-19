@@ -6,7 +6,7 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
-import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
 import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
@@ -381,7 +381,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <PresentIcon width="16px" />
               </div>
             )}
-            {!isUndefined(market.verification) && (
+            {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
               <Link
                 className={clsx(
                   "!flex items-center space-x-2",

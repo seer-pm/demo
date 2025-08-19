@@ -6,6 +6,7 @@
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
     "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && cd ../web && yarn wagmi generate",
     "verify:gnosis": "npx hardhat --network gnosis etherscan-verify --api-url https://api.gnosisscan.io",
+    "verify:optimism": "npx hardhat --network optimism etherscan-verify --api-url https://api.etherscan.io/v2/api?chainid=10",
     "verify:ethereum": "npx hardhat --network ethereum etherscan-verify",
     "lint:check": "forge fmt --check && yarn lint:sol-tests && yarn lint:sol-logic",
     "lint:fix": "forge fmt && yarn lint:sol-tests --fix && yarn lint:sol-logic --fix",

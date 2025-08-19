@@ -83,7 +83,7 @@ function OrdersTab() {
             )}
           </div>
         </div>
-        <OrdersTable chainId={chainId as SupportedChain} data={filteredOrders} />
+        <OrdersTable chainId={chainId} data={filteredOrders} />
       </div>
     </>
   );

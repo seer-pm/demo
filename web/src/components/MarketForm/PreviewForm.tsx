@@ -11,6 +11,7 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { isVerificationEnabled } from "@/lib/config";
 import { MARKET_CATEGORIES, MISC_CATEGORY } from "@/lib/create-market";
 import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
@@ -443,7 +444,7 @@ export function PreviewForm({
           <div className="text-black-secondary text-center">
             {showSuccessMessage ? (
               <ModalContentSucessMessage isVerified={verifyNow} chainId={chainId} />
-            ) : (
+            ) : isVerificationEnabled(chainId) ? (
               <ModalContentCreateMarket
                 verifyNow={verifyNow}
                 setVerifyNow={setVerifyNow}
@@ -452,6 +453,8 @@ export function PreviewForm({
                 useOutcomesFormReturn={useOutcomesFormReturn}
                 chainId={chainId}
               />
+            ) : (
+              <p className="my-[24px]">The market will be created and available for trading immediately.</p>
             )}
 
             <div className="flex justify-center space-x-[12px]">

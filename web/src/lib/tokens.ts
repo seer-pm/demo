@@ -31,7 +31,9 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
   const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
     pairs: { chainId: string; priceUsd: string }[];
   };
-  const priceString = data.pairs?.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
+  const priceString = data.pairs?.find(
+    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism" }[chainId],
+  )?.priceUsd;
   return Number(priceString);
 }
 
