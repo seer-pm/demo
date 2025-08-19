@@ -1,7 +1,7 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis, mainnet, sepolia } from "viem/chains";
+import { gnosis, mainnet, sepolia, optimism } from "viem/chains";
 
-const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
+const chainIds = [mainnet.id, sepolia.id, gnosis.id, optimism.id] as const;
 
 export type SupportedChain = (typeof chainIds)[number];
 const api = "8b2690ffdd390bad59638b894ee8d9f6";

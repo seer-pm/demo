@@ -3,14 +3,14 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { Chain, mainnet, sepolia } from "wagmi/chains";
+import { Chain, gnosis, mainnet, sepolia, optimism } from "wagmi/chains";
 import { FAST_TESTNET_FACTORY } from "./src/lib/constants";
 
 const readArtifacts = async (chains: Chain[]) => {
   const results: Record<string, ContractConfig> = {};
 
   for (const chain of chains) {
-    const chainName = chain.name.toLocaleLowerCase();
+    const chainName = chain.id === optimism.id ? "optimism" : chain.name.toLocaleLowerCase();
     const directoryPath = `../contracts/deployments/${chainName}`;
 
     if (chainName === "hardhat" && !fs.existsSync(directoryPath)) {
@@ -29,7 +29,7 @@ const readArtifacts = async (chains: Chain[]) => {
         const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {};
         addresses[chain.id] = jsonContent.address as `0x{string}`;
 
-        if (process.env.VITE_IS_FAST_TESTNET === "1" && name === "MarketFactory" && chain.id === 100) {
+        if (process.env.VITE_IS_FAST_TESTNET === "1" && name === "MarketFactory" && chain.id === gnosis.id) {
           addresses[chain.id] = FAST_TESTNET_FACTORY;
         }
 

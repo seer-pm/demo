@@ -67,6 +67,40 @@
       "startBlock": 20922529
     }
   },
+  "optimism": {
+    "MarketFactory": {
+      "address": "0x12BB49DeB8f293435e27F6F4Ab140184604cE346",
+      "startBlock": 140017100
+    },
+    "MarketFactoryFast": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140017100
+    },
+    "FutarchyFactory": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140017100
+    },
+    "Reality": {
+      "address": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
+      "startBlock": 140017100
+    },
+    "ConditionalTokens": {
+      "address": "0x8bdC504dC3A05310059c1c67E0A2667309D27B93",
+      "startBlock": 140017100
+    },
+    "LightGeneralizedTCR": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140017100
+    },
+    "Realitio_v2_1_ArbitratorWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140017100
+    },
+    "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140017100
+    }
+  },
   "sepolia": {
     "MarketFactory": {
       "address": "0x221456ACFD185EE168052B3DA899939303775C7a",
