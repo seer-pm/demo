@@ -29,7 +29,8 @@ import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { useState } from "react";
+import { formatDistanceStrict } from "date-fns";
+import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
@@ -193,6 +194,20 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
+
+  const challengeRemainingTime = useMemo(() => {
+    if (
+      !isUndefined(market.verification) &&
+      market.verification.status === "verifying" &&
+      market.verification.deadline
+    ) {
+      const now = Date.now();
+      if (market.verification.deadline * 1000 < now) {
+        return;
+      }
+      return formatDistanceStrict(market.verification.deadline * 1000, now);
+    }
+  }, [market.verification?.status]);
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -384,9 +399,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             {!isUndefined(market.verification) && (
               <Link
                 className={clsx(
-                  "flex items-center space-x-2",
+                  "!flex items-center space-x-2",
                   market.verification.status === "verified" && "text-success-primary",
-                  market.verification.status === "verifying" && "text-blue-primary",
+                  market.verification.status === "verifying" && "text-blue-primary tooltip",
                   market.verification.status === "challenged" && "text-warning-primary",
                   market.verification.status === "not_verified" && "text-purple-primary",
                 )}
@@ -402,25 +417,26 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 {market.verification.status === "verified" && (
                   <>
                     <CheckCircleIcon />
-                    <div className="max-lg:hidden">Verified</div>
+                    <div>Verified</div>
                   </>
                 )}
                 {market.verification.status === "verifying" && (
                   <>
                     <ClockIcon />
-                    <div className="max-lg:hidden">Verifying</div>
+                    <div>Verifying</div>
+                    {challengeRemainingTime && <p className="tooltiptext">Ends in {challengeRemainingTime}</p>}
                   </>
                 )}
                 {market.verification.status === "challenged" && (
                   <>
                     <LawBalanceIcon />
-                    <div className="max-lg:hidden">Challenged</div>
+                    <div>Challenged</div>
                   </>
                 )}
                 {market.verification.status === "not_verified" && (
                   <>
                     <ExclamationCircleIcon width="14" height="14" />
-                    <div className="max-lg:hidden">Verify it</div>
+                    <div>Verify it</div>
                   </>
                 )}
               </Link>

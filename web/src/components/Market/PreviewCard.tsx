@@ -13,12 +13,13 @@ import {
   SeerLogo,
 } from "@/lib/icons";
 import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOdd } from "@/lib/market";
-import { getMarketEstimate } from "@/lib/market-odds";
-import { rescaleOdds } from "@/lib/market-odds";
+import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
+import { formatDistanceStrict } from "date-fns";
+import { useMemo } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import { DisplayOdds } from "./DisplayOdds";
@@ -226,6 +227,19 @@ export function PreviewCard({ market }: { market: Market }) {
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
+  const challengeRemainingTime = useMemo(() => {
+    if (
+      !isUndefined(market.verification) &&
+      market.verification.status === "verifying" &&
+      market.verification.deadline
+    ) {
+      const now = Date.now();
+      if (market.verification.deadline * 1000 < now) {
+        return;
+      }
+      return formatDistanceStrict(market.verification.deadline * 1000, now);
+    }
+  }, [market.verification?.status]);
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   return (
@@ -338,7 +352,10 @@ export function PreviewCard({ market }: { market: Market }) {
               {market.verification.status === "verifying" && (
                 <>
                   <ClockIcon />
-                  <div className="tooltiptext">Verifying</div>
+                  <div className="tooltiptext">
+                    <p>Verifying</p>
+                    {challengeRemainingTime && <p>Ends in {challengeRemainingTime}</p>}
+                  </div>
                 </>
               )}
               {market.verification.status === "challenged" && (
