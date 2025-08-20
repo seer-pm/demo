@@ -3,6 +3,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -12,15 +13,7 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import {
-  Market,
-  MarketStatus,
-  MarketTypes,
-  getChallengeRemainingTime,
-  getMarketStatus,
-  getMarketType,
-  isOdd,
-} from "@/lib/market";
+import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOdd } from "@/lib/market";
 import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";

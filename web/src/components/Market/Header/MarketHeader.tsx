@@ -7,7 +7,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
-import { getTimeLeft } from "@/lib/date.ts";
+import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -20,14 +20,7 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import {
-  MarketTypes,
-  getChallengeRemainingTime,
-  getCollateralByIndex,
-  getMarketPoolsPairs,
-  getMarketStatus,
-  getMarketType,
-} from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus, getMarketType } from "@/lib/market";
 import { getMarketEstimate } from "@/lib/market-odds.ts";
 import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";

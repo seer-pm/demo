@@ -1,8 +1,10 @@
-import { intervalToDuration } from "date-fns";
+import { formatDistanceStrict, intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
 import { type FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
+import { Market } from "./market";
+import { isUndefined } from "./utils";
 
 // https://stackoverflow.com/a/72190364
 
@@ -48,4 +50,14 @@ export function getTimeLeft(endDate: Date | string | number, withSeconds = false
   }
 
   return formatDuration(duration, { format });
+}
+
+export function getChallengeRemainingTime(market: Market) {
+  if (!isUndefined(market.verification) && market.verification.status === "verifying" && market.verification.deadline) {
+    const now = Date.now();
+    if (market.verification.deadline * 1000 < now) {
+      return;
+    }
+    return formatDistanceStrict(market.verification.deadline * 1000, now);
+  }
 }
