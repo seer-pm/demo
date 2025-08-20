@@ -1,13 +1,17 @@
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
+import {
+  lightGeneralizedTcrAbi,
+  lightGeneralizedTcrAddress,
+  readLightGeneralizedTcrChallengePeriodDuration,
+} from "@/hooks/contracts/generated-curate";
 import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
+import { getBlockNumber, readContract } from "@wagmi/core";
 import { Address, parseAbiItem } from "viem";
 import { getPublicClientForNetwork } from "./common.ts";
-import { config as wagmiConfig } from "./config.ts";
+import { config, config as wagmiConfig } from "./config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./logs.ts";
 import { readContractsInBatch } from "./readContractsInBatch.ts";
 import { curateGraphQLClient } from "./subgraph.ts";
@@ -18,6 +22,7 @@ interface VerificationItem {
   metadata: Json;
   status: number;
   disputed: boolean;
+  deadline?: number;
   marketId?: string;
 }
 
@@ -44,6 +49,14 @@ type ItemAndMetadata = { itemID: `0x${string}`; metadataPath: string };
  * @returns Array of verification items with status information
  */
 export async function getVerification(chainId: SupportedChain, curateItems: CurateItem[]): Promise<VerificationItem[]> {
+  let challengePeriodDuration: bigint;
+  try {
+    challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(config, {
+      args: [],
+      chainId,
+    });
+  } catch {}
+
   const readItemsCall = {
     address: lightGeneralizedTcrAddress[chainId],
     abi: lightGeneralizedTcrAbi,
@@ -104,6 +117,10 @@ export async function getVerification(chainId: SupportedChain, curateItems: Cura
       metadata: item.metadata,
       status: items[n]?.[0],
       disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
+      deadline:
+        lastRequestInfo[n]?.[2] && challengePeriodDuration
+          ? Number(lastRequestInfo[n][2]) - Number(challengePeriodDuration)
+          : undefined,
       marketId,
     };
   });
@@ -125,6 +142,7 @@ export function getVerificationStatusList(verificationItems: VerificationItem[])
         acc[item.marketId as Address] = {
           status,
           itemID: item.itemID,
+          deadline: item.deadline,
         };
       }
       return acc;

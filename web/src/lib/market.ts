@@ -28,7 +28,7 @@ export interface Question {
 }
 
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
-export type VerificationResult = { status: VerificationStatus; itemID?: string };
+export type VerificationResult = { status: VerificationStatus; itemID?: string; deadline?: number };
 export type MarketOffChainFields = {
   chainId: SupportedChain;
   outcomesSupply: bigint;
