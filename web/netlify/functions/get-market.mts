@@ -1,13 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { serializeMarket } from "@/lib/market";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
-import {
-  SubgraphMarket,
-  getDatabaseMarket,
-  getMarketId,
-  getSubgraphMarket,
-  mapGraphMarketFromDbResult,
-} from "./utils/markets";
+import { SubgraphMarket, getDatabaseMarket, getMarketId, getSubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets";
 
 /**
  * For individual market fetches, we prioritize real-time accuracy by querying both the database and subgraph.
@@ -40,11 +34,7 @@ export default async (req: Request) => {
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
-      getDatabaseMarket(id),
-      getSubgraphMarket(Number(body.chainId) as SupportedChain, id),
-      getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain),
-    ]);
+    const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([getDatabaseMarket(id), getSubgraphMarket(Number(body.chainId) as SupportedChain, id), getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain)]);
 
     const dbRow = (dbResult.status === "fulfilled" && dbResult.value) || {
       id,
@@ -52,16 +42,10 @@ export default async (req: Request) => {
       verification: undefined,
       subgraph_data: undefined,
     };
+    const verification = verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
+    dbRow.verification = dbRow.verification ?? verification;
 
-    const verification =
-      verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
-    if (verification !== undefined) {
-      dbRow.verification = verification;
-    }
-
-    const subgraphMarket =
-      (subgraphResult.status === "fulfilled" && subgraphResult.value) ||
-      (dbRow?.subgraph_data as SubgraphMarket | undefined);
+    const subgraphMarket = (subgraphResult.status === "fulfilled" && subgraphResult.value) || (dbRow?.subgraph_data as SubgraphMarket | undefined);
 
     if (!subgraphMarket) {
       return new Response(JSON.stringify({ error: "Market not found" }), {

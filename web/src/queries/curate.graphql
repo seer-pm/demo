@@ -23,5 +23,6 @@ query GetImages(
       requestType
       resolved
     }
+    latestRequestSubmissionTime
   }
 }

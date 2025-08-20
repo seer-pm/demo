@@ -1,5 +1,9 @@
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
-import { GetImagesQuery, Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
+import {
+  lightGeneralizedTcrAbi,
+  lightGeneralizedTcrAddress,
+  readLightGeneralizedTcrChallengePeriodDuration,
+} from "@/hooks/contracts/generated-curate";
+import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
@@ -18,6 +22,7 @@ interface VerificationItem {
   metadata: Json;
   status: number;
   disputed: boolean;
+  deadline?: number;
   marketId?: string;
 }
 
@@ -44,6 +49,14 @@ type ItemAndMetadata = { itemID: `0x${string}`; metadataPath: string };
  * @returns Array of verification items with status information
  */
 export async function getVerification(chainId: SupportedChain, curateItems: CurateItem[]): Promise<VerificationItem[]> {
+  let challengePeriodDuration: bigint;
+  try {
+    challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(wagmiConfig, {
+      args: [],
+      chainId,
+    });
+  } catch {}
+
   const readItemsCall = {
     address: lightGeneralizedTcrAddress[chainId],
     abi: lightGeneralizedTcrAbi,
@@ -104,6 +117,10 @@ export async function getVerification(chainId: SupportedChain, curateItems: Cura
       metadata: item.metadata,
       status: items[n]?.[0],
       disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
+      deadline:
+        lastRequestInfo[n]?.[2] && challengePeriodDuration
+          ? Number(lastRequestInfo[n][2]) + Number(challengePeriodDuration)
+          : undefined,
       marketId,
     };
   });
@@ -125,6 +142,7 @@ export function getVerificationStatusList(verificationItems: VerificationItem[])
         acc[item.marketId as Address] = {
           status,
           itemID: item.itemID,
+          deadline: item.deadline,
         };
       }
       return acc;
@@ -140,6 +158,14 @@ export async function getSubgraphVerificationStatusList(
 
   const registryAddress = lightGeneralizedTcrAddress[chainId];
   if (client && !isUndefined(registryAddress)) {
+    let challengePeriodDuration: bigint;
+    try {
+      challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(wagmiConfig, {
+        args: [],
+        chainId,
+      });
+    } catch {}
+
     const { litems } = await getCurateSdk(client).GetImages({
       where: {
         registryAddress,
@@ -152,18 +178,22 @@ export async function getSubgraphVerificationStatusList(
         if (!marketId) {
           return obj;
         }
+        const deadline =
+          item.latestRequestSubmissionTime && challengePeriodDuration
+            ? Number(item.latestRequestSubmissionTime) + Number(challengePeriodDuration)
+            : undefined;
         const isVerifiedBeforeClearing =
           item.status === Status.ClearingRequested &&
           item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
         if (item.status === Status.Registered || isVerifiedBeforeClearing) {
-          obj[marketId] = { status: "verified", itemID: item.itemID };
+          obj[marketId] = { status: "verified", itemID: item.itemID, deadline };
           return obj;
         }
         if (item.status === Status.RegistrationRequested) {
           if (item.disputed) {
-            obj[marketId] = { status: "challenged", itemID: item.itemID };
+            obj[marketId] = { status: "challenged", itemID: item.itemID, deadline };
           } else {
-            obj[marketId] = { status: "verifying", itemID: item.itemID };
+            obj[marketId] = { status: "verifying", itemID: item.itemID, deadline };
           }
           return obj;
         }
