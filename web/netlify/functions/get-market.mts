@@ -43,7 +43,9 @@ export default async (req: Request) => {
       subgraph_data: undefined,
     };
     const verification = verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
-    dbRow.verification = dbRow.verification ?? verification;
+    if (verification !== undefined) {
+      dbRow.verification = verification;
+    }
 
     const subgraphMarket = (subgraphResult.status === "fulfilled" && subgraphResult.value) || (dbRow?.subgraph_data as SubgraphMarket | undefined);
 
