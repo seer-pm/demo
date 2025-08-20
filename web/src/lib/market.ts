@@ -1,3 +1,4 @@
+import { formatDistanceStrict } from "date-fns";
 import { Address } from "viem";
 import { SupportedChain } from "./chains";
 import {
@@ -467,4 +468,14 @@ export function deserializeMarket(market: SerializedMarket): Market {
         }
       : undefined,
   };
+}
+
+export function getChallengeRemainingTime(market: Market) {
+  if (!isUndefined(market.verification) && market.verification.status === "verifying" && market.verification.deadline) {
+    const now = Date.now();
+    if (market.verification.deadline * 1000 < now) {
+      return;
+    }
+    return formatDistanceStrict(market.verification.deadline * 1000, now);
+  }
 }

@@ -119,7 +119,7 @@ export async function getVerification(chainId: SupportedChain, curateItems: Cura
       disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
       deadline:
         lastRequestInfo[n]?.[2] && challengePeriodDuration
-          ? Number(lastRequestInfo[n][2]) - Number(challengePeriodDuration)
+          ? Number(lastRequestInfo[n][2]) + Number(challengePeriodDuration)
           : undefined,
       marketId,
     };
@@ -158,6 +158,14 @@ export async function getSubgraphVerificationStatusList(
 
   const registryAddress = lightGeneralizedTcrAddress[chainId];
   if (client && !isUndefined(registryAddress)) {
+    let challengePeriodDuration: bigint;
+    try {
+      challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(wagmiConfig, {
+        args: [],
+        chainId,
+      });
+    } catch {}
+
     const { litems } = await getCurateSdk(client).GetImages({
       where: {
         registryAddress,
@@ -170,18 +178,22 @@ export async function getSubgraphVerificationStatusList(
         if (!marketId) {
           return obj;
         }
+        const deadline =
+          item.latestRequestSubmissionTime && challengePeriodDuration
+            ? Number(item.latestRequestSubmissionTime) + Number(challengePeriodDuration)
+            : undefined;
         const isVerifiedBeforeClearing =
           item.status === Status.ClearingRequested &&
           item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
         if (item.status === Status.Registered || isVerifiedBeforeClearing) {
-          obj[marketId] = { status: "verified", itemID: item.itemID };
+          obj[marketId] = { status: "verified", itemID: item.itemID, deadline };
           return obj;
         }
         if (item.status === Status.RegistrationRequested) {
           if (item.disputed) {
-            obj[marketId] = { status: "challenged", itemID: item.itemID };
+            obj[marketId] = { status: "challenged", itemID: item.itemID, deadline };
           } else {
-            obj[marketId] = { status: "verifying", itemID: item.itemID };
+            obj[marketId] = { status: "verifying", itemID: item.itemID, deadline };
           }
           return obj;
         }

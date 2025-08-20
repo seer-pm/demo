@@ -12,13 +12,20 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOdd } from "@/lib/market";
+import {
+  Market,
+  MarketStatus,
+  MarketTypes,
+  getChallengeRemainingTime,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+} from "@/lib/market";
 import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { formatDistanceStrict } from "date-fns";
 import { useMemo } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
@@ -227,20 +234,7 @@ export function PreviewCard({ market }: { market: Market }) {
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
-  const challengeRemainingTime = useMemo(() => {
-    if (
-      !isUndefined(market.verification) &&
-      market.verification.status === "verifying" &&
-      market.verification.deadline
-    ) {
-      const now = Date.now();
-      if (market.verification.deadline * 1000 < now) {
-        return;
-      }
-      return formatDistanceStrict(market.verification.deadline * 1000, now);
-    }
-  }, [market.verification?.status]);
-
+  const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   return (
     <div

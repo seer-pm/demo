@@ -20,16 +20,20 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
-import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketType } from "@/lib/market";
+import {
+  MarketTypes,
+  getChallengeRemainingTime,
+  getCollateralByIndex,
+  getMarketPoolsPairs,
+  getMarketStatus,
+  getMarketType,
+} from "@/lib/market";
 import { getMarketEstimate } from "@/lib/market-odds.ts";
-import { MarketStatus } from "@/lib/market.ts";
-import { Market } from "@/lib/market.ts";
+import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { formatDistanceStrict } from "date-fns";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
@@ -195,19 +199,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
 
-  const challengeRemainingTime = useMemo(() => {
-    if (
-      !isUndefined(market.verification) &&
-      market.verification.status === "verifying" &&
-      market.verification.deadline
-    ) {
-      const now = Date.now();
-      if (market.verification.deadline * 1000 < now) {
-        return;
-      }
-      return formatDistanceStrict(market.verification.deadline * 1000, now);
-    }
-  }, [market.verification?.status]);
+  const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
