@@ -14,6 +14,8 @@ if (typeof window !== "undefined") {
   import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
     configureRpcProviders({
       [ChainId.XDAI]: GNOSIS_RPC,
+      [ChainId.MAINNET]: MAINNET_RPC,
+      [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
     });
   });
 }

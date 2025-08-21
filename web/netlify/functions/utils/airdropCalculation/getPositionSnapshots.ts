@@ -1,4 +1,4 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { SupportedChain, mainnet, optimism } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
@@ -68,13 +68,16 @@ export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, t
                     }
                 }`;
 
-        const results = await fetch(chainId === mainnet.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100], {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const results = await fetch(
+          chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100],
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query }),
           },
-          body: JSON.stringify({ query }),
-        });
+        );
         if (!results.ok) {
           throw new Error(`HTTP error! status: ${results.status}`);
         }

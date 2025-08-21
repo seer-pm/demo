@@ -33,7 +33,7 @@
     "@orbisclub/components": "https://github.com/nvm1410/social-components#d1d5249080de9459c12f98c2be9fbc7984127885",
     "@orbisclub/orbis-sdk": "^0.4.89",
     "@supabase/supabase-js": "^2.46.2",
-    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#2b2f7e0b86c06809f6871a14f206b835433c224b",
+    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#a773f9f78d758cb01b1dc43952ce8b1d7ebd98ca",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",
     "@tanstack/react-query-persist-client": "^5.59.9",
