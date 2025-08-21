@@ -315,7 +315,14 @@ export function SwapTokensLimitUpto({
   const renderButtons = () => {
     if (isCowFastQuote) {
       return (
-        <Button variant="primary" type="button" disabled={true} isLoading={true} text="Calculating best price..." />
+        <Button
+          variant="primary"
+          type="button"
+          disabled={true}
+          isLoading={true}
+          className="w-full"
+          text="Calculating best price..."
+        />
       );
     }
     if (limitErrorMessage && limitErrorMessage !== "This field is required." && !isUseMax) {
