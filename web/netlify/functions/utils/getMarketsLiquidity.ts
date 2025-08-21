@@ -91,7 +91,7 @@ function getGenericTokenToLiquidityMapping(
       : [curr.balance0, curr.balance1];
     const liquidity =
       (tokenPriceInSDai * balanceToken + balanceCollateral) * (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
-    const key = curr.isToken0Collateral ? curr.token1.id : curr.token0.id;
+    const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {
       const isCurrCollateralBalanceHigher =
@@ -123,8 +123,8 @@ function getConditionalTokenToLiquidityMapping(
   return conditionalTokenPools.reduce((acc, curr) => {
     const relativeTokenPrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
     const collateralPriceInSDai =
-      genericTokenToLiquidityMapping[curr.isToken0Collateral ? curr.token0.id : curr.token1.id]?.tokenPriceInSDai ||
-      1 / curr.outcomesCountWithoutInvalid;
+      genericTokenToLiquidityMapping[(curr.isToken0Collateral ? curr.token0.id : curr.token1.id) as Address]
+        ?.tokenPriceInSDai || 1 / curr.outcomesCountWithoutInvalid;
     const [balanceToken, balanceCollateral] = curr.isToken0Collateral
       ? [curr.balance1, curr.balance0]
       : [curr.balance0, curr.balance1];
@@ -132,7 +132,7 @@ function getConditionalTokenToLiquidityMapping(
       (relativeTokenPrice * balanceToken + balanceCollateral) *
       collateralPriceInSDai *
       (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
-    const key = curr.isToken0Collateral ? curr.token1.id : curr.token0.id;
+    const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {
       const isCurrCollateralBalanceHigher =
@@ -165,14 +165,14 @@ function getFutarchyTokenToLiquidityMapping(
         ? [curr.market.collateralToken1, curr.market.collateralToken2]
         : [curr.market.collateralToken2, curr.market.collateralToken1];
     // count 50% of liquidity for both sides
-    acc[curr.token0.id] = {
+    acc[curr.token0.id as Address] = {
       liquidity: (curr.balance0 / 2) * futarchyCollateralsByChainMapping[curr.chainId.toString()][collaterals[0]],
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
       },
     };
-    acc[curr.token1.id] = {
+    acc[curr.token1.id as Address] = {
       liquidity: (curr.balance1 / 2) * futarchyCollateralsByChainMapping[curr.chainId.toString()][collaterals[1]],
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },

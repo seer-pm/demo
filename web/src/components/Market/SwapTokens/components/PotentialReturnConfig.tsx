@@ -551,7 +551,7 @@ function ScalarForecastChecker({
   );
 }
 
-function getDefaultInput(market: Market, outcomeToken: Token, outcomeText: string, odds: number[]) {
+function getDefaultInput(market: Market, outcomeToken: Token, outcomeText: string, odds: (number | null)[]) {
   const defaultValue = {
     multiCategorical: [],
     scalar: undefined,

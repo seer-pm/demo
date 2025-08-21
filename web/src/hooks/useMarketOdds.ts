@@ -26,7 +26,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
     return undefined;
   };
 
-  return useQuery<number[] | undefined, Error>({
+  return useQuery<(number | null)[] | undefined, Error>({
     // hasLiquidity is undefined while loading market liquidity data
     enabled: enabled && !isUndefined(hasLiquidity),
     queryKey: ["useMarketOdds", market.id, market.chainId, hasLiquidity, market.odds],

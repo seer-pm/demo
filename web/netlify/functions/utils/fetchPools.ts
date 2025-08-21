@@ -16,6 +16,8 @@ interface SubgraphPool {
   token1: { id: string; symbol: string };
   token0Price: string;
   token1Price: string;
+  volumeToken0: string;
+  volumeToken1: string;
 }
 export interface Pool extends SubgraphPool {
   balance0: number;

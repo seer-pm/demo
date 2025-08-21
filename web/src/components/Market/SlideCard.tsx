@@ -157,7 +157,7 @@ function OutcomesInfo({
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
-          const adjustedWidth = (odds[i] / sumVisibleOdds) * 100;
+          const adjustedWidth = (Number(odds[i]) / sumVisibleOdds) * 100;
           const color = (() => {
             switch (marketType) {
               case MarketTypes.CATEGORICAL: {

@@ -15,22 +15,25 @@ function formatOdds(prices: number[]): number[] {
   return prices.map((price) => (Number.isNaN(price) ? Number.NaN : Number((price * 100).toFixed(1))));
 }
 
-export function rescaleOdds(odds: number[]): number[] {
-  if (!odds?.length) {
-    return odds;
+export function rescaleOdds(odds: (number | null)[]): number[] {
+  if (!odds.length) {
+    return [];
   }
-  const oddsSum = odds.reduce((acc, curr) => {
+
+  const numericOdds = odds.map((odd) => (odd === null ? 0 : odd));
+
+  const oddsSum = numericOdds.reduce((acc, curr) => {
     if (Number.isNaN(curr)) {
-      return acc;
+      return Number(acc);
     }
-    return acc + curr;
+    return Number(acc) + Number(curr);
   }, 0);
 
   if (oddsSum > 100) {
-    return odds.map((odd) => Number(((odd / oddsSum) * 100).toFixed(1)));
+    return numericOdds.map((odd) => Number(((odd / oddsSum) * 100).toFixed(1)));
   }
 
-  return odds;
+  return numericOdds;
 }
 
 export function normalizeOdds(prices: number[]): number[] {
@@ -160,7 +163,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
   return normalizeOdds(prices);
 }
 
-export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
+export function getMarketEstimate(odds: (number | null)[], market: Market, convertToString?: boolean) {
   const { lowerBound, upperBound } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";

@@ -46,7 +46,7 @@ export type MarketOffChainFields = {
       balance: number;
     };
   } | null)[];
-  odds: number[];
+  odds: (number | null)[];
   creator?: string | null;
   blockTimestamp?: number;
   verification?: VerificationResult;
@@ -265,7 +265,7 @@ export function isInvalidOutcome(market: Market, outcomeIndex: number) {
   return hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
 }
 
-export function getMultiScalarEstimate(market: Market, odds: number): { value: number; unit: string } | null {
+export function getMultiScalarEstimate(market: Market, odds: number | null): { value: number; unit: string } | null {
   // Fixed upper bounds and units for specific market addresses
   const UPPER_BOUNDS: Record<Address, [number, string]> = {
     "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
@@ -280,7 +280,7 @@ export function getMultiScalarEstimate(market: Market, odds: number): { value: n
   }
 
   return {
-    value: Math.round((upperBound * odds) / 100),
+    value: Math.round((upperBound * Number(odds)) / 100),
     unit,
   };
 }
@@ -336,7 +336,7 @@ export function isMarketReliable(market: Market) {
   });
 }
 
-export function isOdd(odd: number | undefined | null) {
+export function isOdd(odd: number | undefined | null): odd is number {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 

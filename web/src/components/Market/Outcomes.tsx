@@ -436,7 +436,7 @@ function OutcomeDetails({
   );
 }
 
-function MultiScalarEstimate({ market, odds }: { market: Market; odds: number | undefined }) {
+function MultiScalarEstimate({ market, odds }: { market: Market; odds: number | null | undefined }) {
   if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || !isOdd(odds)) {
     return null;
   }

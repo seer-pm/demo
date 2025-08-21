@@ -12,21 +12,21 @@ type OutcomeWithOdds = {
 
 function sortOdds(
   a: {
-    odd: number;
+    odd: number | null;
     i: number;
   },
   b: {
-    odd: number;
+    odd: number | null;
     i: number;
   },
 ) {
   if (Number.isNaN(a.odd) && Number.isNaN(b.odd)) return 0;
   if (Number.isNaN(a.odd)) return 1;
   if (Number.isNaN(b.odd)) return -1;
-  return b.odd - a.odd;
+  return Number(b.odd) - Number(a.odd);
 }
 
-export function useSortedOutcomes(odds: number[], market: Market, marketStatus?: MarketStatus) {
+export function useSortedOutcomes(odds: (number | null)[], market: Market, marketStatus?: MarketStatus) {
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
@@ -49,9 +49,9 @@ export function useSortedOutcomes(odds: number[], market: Market, marketStatus?:
 
       odds.forEach((odd, i) => {
         if (winningOutcomes?.[i] === true) {
-          winningIndexes.push({ odd, i });
+          winningIndexes.push({ odd: Number(odd), i });
         } else {
-          nonWinningIndexes.push({ odd, i });
+          nonWinningIndexes.push({ odd: Number(odd), i });
         }
       });
 
