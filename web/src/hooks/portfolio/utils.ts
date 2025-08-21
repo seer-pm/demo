@@ -22,12 +22,16 @@ export function getTokenPricesMapping(
     (acc, { tokenId }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
-        if (sDAIAddress > tokenId.toLocaleLowerCase()) {
+        const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
+        if (primaryCollateralAddress > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
-          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, sDAIAddress);
+          return (
+            isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, primaryCollateralAddress)
+          );
         }
-        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, sDAIAddress);
+        return (
+          isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, primaryCollateralAddress)
+        );
       });
 
       acc[tokenId.toLocaleLowerCase()] = correctPool

@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { useQuery } from "@tanstack/react-query";
-import { gnosis, mainnet } from "viem/chains";
+import { gnosis, mainnet, optimism } from "viem/chains";
 import { getSwaprCurrentTokensPrices, getSwaprHistoryTokensPrices } from "./getSwaprPrices";
 import { getUniswapCurrentTokensPrices, getUniswapHistoryTokensPrices } from "./getUniswapPrices";
 import { PortfolioPosition } from "./usePortfolioPositions";
@@ -14,7 +14,7 @@ export const useHistoryTokensPrices = (positions: PortfolioPosition[], chainId: 
       if (chainId === gnosis.id) {
         return await getSwaprHistoryTokensPrices(positions, chainId, startTime);
       }
-      if (chainId === mainnet.id) {
+      if (chainId === mainnet.id || chainId === optimism.id) {
         return await getUniswapHistoryTokensPrices(positions, chainId, startTime);
       }
     },
@@ -30,7 +30,7 @@ export const useCurrentTokensPrices = (positions: PortfolioPosition[], chainId: 
       if (chainId === gnosis.id) {
         return await getSwaprCurrentTokensPrices(positions, chainId);
       }
-      if (chainId === mainnet.id) {
+      if (chainId === mainnet.id || chainId === optimism.id) {
         return await getUniswapCurrentTokensPrices(positions, chainId);
       }
     },

@@ -44,8 +44,8 @@ export async function getPrices(
 
   const simpleTokensMapping = simpleTokens.reduce(
     (acc, { tokenId }) => {
-      const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
-      const { token0, token1 } = getToken0Token1(tokenId, sDAIAddress);
+      const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
+      const { token0, token1 } = getToken0Token1(tokenId, primaryCollateralAddress);
       const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
       acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
         ? isTwoStringsEqual(tokenId, token0)
