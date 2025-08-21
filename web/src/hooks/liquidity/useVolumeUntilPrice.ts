@@ -5,16 +5,13 @@ import { Address, formatUnits } from "viem";
 import { useTicksData } from "./useTicksData";
 import { decimalToFraction, tickToPrice } from "./utils";
 
-export function getVolumeWithinRange(
+function getVolumeWithinRange(
   currentSqrtPriceX96: bigint,
   targetSqrtPriceX96: bigint,
   liquidity: bigint,
   isOutcomeToken0: boolean,
   swapType: "buy" | "sell",
 ): number {
-  if (swapType === "buy" && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
-  if (swapType === "sell" && targetSqrtPriceX96 >= currentSqrtPriceX96) return 0;
-
   if (swapType === "buy") {
     if (isOutcomeToken0) {
       // Buy token0: price goes UP, we're trading token1 for token0
@@ -58,14 +55,14 @@ export function getVolumeUntilPrice(
 ): number {
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
   // Exact sqrt prices for current and target
-  let currentSqrtPriceX96 = TickMath.getSqrtRatioAtTick(pool.tick);
+  let currentSqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(pool.tick).toString());
   const [num, den] = decimalToFraction(isOutcomeToken0 ? targetPrice : 1 / targetPrice);
-  const targetSqrtPriceX96 = encodeSqrtRatioX96(num, den);
-  if (swapType === "buy" && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
-  if (swapType === "sell" && targetSqrtPriceX96 >= currentSqrtPriceX96) return 0;
+  const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
 
   // Determine direction and filter/sort ticks
   const movingUp = (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
+  if (movingUp && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
+  if (!movingUp && targetSqrtPriceX96 >= currentSqrtPriceX96) return 0;
 
   let relevantTicks: { liquidityNet: string; tickIdx: string }[];
   if (movingUp) {
@@ -83,7 +80,7 @@ export function getVolumeUntilPrice(
 
   for (let i = 0; i < relevantTicks.length; i++) {
     const tick = Number(relevantTicks[i].tickIdx);
-    const sqrtAtTick = TickMath.getSqrtRatioAtTick(tick);
+    const sqrtAtTick = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
 
     // Check if target price is between current position and this tick
     let targetWithinRange = false;
@@ -95,28 +92,16 @@ export function getVolumeUntilPrice(
 
     if (targetWithinRange) {
       // Target is within this range, calculate partial volume and stop
-      volume += getVolumeWithinRange(
-        BigInt(currentSqrtPriceX96.toString()),
-        BigInt(targetSqrtPriceX96.toString()),
-        liquidity,
-        isOutcomeToken0,
-        swapType,
-      );
+      volume += getVolumeWithinRange(currentSqrtPriceX96, targetSqrtPriceX96, liquidity, isOutcomeToken0, swapType);
       break;
     }
 
     // Otherwise, swap to tick boundary fully
-    volume += getVolumeWithinRange(
-      BigInt(currentSqrtPriceX96.toString()),
-      BigInt(sqrtAtTick.toString()),
-      liquidity,
-      isOutcomeToken0,
-      swapType,
-    );
+    volume += getVolumeWithinRange(currentSqrtPriceX96, sqrtAtTick, liquidity, isOutcomeToken0, swapType);
 
     // Move state to next tick
     currentSqrtPriceX96 = sqrtAtTick;
-    liquidity += BigInt(relevantTicks[i].liquidityNet);
+    liquidity += BigInt(relevantTicks[i].liquidityNet) * (movingUp ? 1n : -1n);
   }
 
   return volume;

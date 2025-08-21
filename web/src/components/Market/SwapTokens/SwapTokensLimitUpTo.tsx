@@ -449,9 +449,11 @@ export function SwapTokensLimitUpto({
                       const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
                       const [num, den] = decimalToFraction(isOutcomeToken0 ? Number(v) : 1 / Number(v));
                       const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+                      const movingUp =
+                        (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
                       const isPriceNotInRange =
                         currentSqrtPriceX96 > 0n &&
-                        (swapType === "buy"
+                        (movingUp
                           ? targetSqrtPriceX96 <= currentSqrtPriceX96
                           : targetSqrtPriceX96 >= currentSqrtPriceX96);
                       if (isPriceNotInRange) {
