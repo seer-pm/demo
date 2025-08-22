@@ -15,7 +15,7 @@
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
     "cosmos-export": "cosmos-export",
-    "typecheck-netlify-functions": "npx tsc --noEmit --project netlify/tsconfig.json",
+    "typecheck-netlify-functions": "tsc --noEmit --project netlify/tsconfig.json",
     "test": "vitest"
   },
   "dependencies": {
