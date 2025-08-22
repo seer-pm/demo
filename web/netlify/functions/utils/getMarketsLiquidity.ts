@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains.ts";
+import { SupportedChain, optimism } from "@/lib/chains.ts";
 import { COLLATERAL_TOKENS } from "@/lib/config.ts";
 import { Market, getCollateralByIndex, getMarketPoolsPairs } from "@/lib/market.ts";
 import { Address, zeroAddress } from "viem";
@@ -6,23 +6,31 @@ import { getDexScreenerPriceUSD } from "./common.ts";
 import { chainIds } from "./config.ts";
 import { Pool } from "./fetchPools.ts";
 
-type sDaiPriceByChain = Record<SupportedChain, number>;
+type MainCollateralPriceByChain = Record<Address, Partial<Record<SupportedChain, number>>>;
 
-export async function getsDaiPriceByChainMapping(): Promise<sDaiPriceByChain> {
-  let sDaiPriceByChain: number[] = [];
+export async function getMainCollateralPriceByChainMapping(): Promise<MainCollateralPriceByChain> {
+  let collateralPriceByChain: number[] = [];
   try {
-    sDaiPriceByChain = await Promise.all(
+    collateralPriceByChain = await Promise.all(
       chainIds.map(async (chainId) => {
+        if (chainId === optimism.id) {
+          // TODO: dexscreener doesn't have the sUSDS price
+          return 1.06;
+        }
+        // sDAI
         return getDexScreenerPriceUSD(COLLATERAL_TOKENS[chainId].primary.address, chainId) || 1.13;
       }),
     );
   } catch (e) {
-    sDaiPriceByChain = Array(chainIds.length).fill(1.13);
+    collateralPriceByChain = Array(chainIds.length).fill(1.13);
   }
   return chainIds.reduce((acc, curr, index) => {
-    acc[curr] = sDaiPriceByChain[index];
+    if (!acc[COLLATERAL_TOKENS[curr].primary.address]) {
+      acc[COLLATERAL_TOKENS[curr].primary.address] = {};
+    }
+    acc[COLLATERAL_TOKENS[curr].primary.address][curr] = collateralPriceByChain[index];
     return acc;
-  }, {} as sDaiPriceByChain);
+  }, {} as MainCollateralPriceByChain);
 }
 
 type FutarchyCollateralsPriceMapping = Record<string, Record<string, number>>;
@@ -76,21 +84,22 @@ type GenericTokenLiquidityMapping = Record<
   {
     liquidity: number;
     tokenBalanceInfo: TokenLiquidityBalanceInfo;
-    tokenPriceInSDai: number;
+    tokenPriceInMainCollateral: number;
   }
 >;
 
 function getGenericTokenToLiquidityMapping(
   genericTokenPools: Pool[],
-  sDaiPriceByChainMapping: sDaiPriceByChain,
+  mainCollateralPriceByChainMapping: MainCollateralPriceByChain,
 ): GenericTokenLiquidityMapping {
   const res = genericTokenPools.reduce((acc, curr) => {
-    const tokenPriceInSDai = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
+    const tokenPriceInMainCollateral = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
     const [balanceToken, balanceCollateral] = curr.isToken0Collateral
       ? [curr.balance1, curr.balance0]
       : [curr.balance0, curr.balance1];
     const liquidity =
-      (tokenPriceInSDai * balanceToken + balanceCollateral) * (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
+      (tokenPriceInMainCollateral * balanceToken + balanceCollateral) *
+      (mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[curr.chainId].primary.address]?.[curr.chainId] || 0);
     const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {
@@ -103,7 +112,7 @@ function getGenericTokenToLiquidityMapping(
     }
     acc[key] = {
       liquidity,
-      tokenPriceInSDai,
+      tokenPriceInMainCollateral,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
@@ -118,20 +127,20 @@ function getGenericTokenToLiquidityMapping(
 function getConditionalTokenToLiquidityMapping(
   conditionalTokenPools: Pool[],
   genericTokenToLiquidityMapping: GenericTokenLiquidityMapping,
-  sDaiPriceByChainMapping: sDaiPriceByChain,
+  mainCollateralPriceByChainMapping: MainCollateralPriceByChain,
 ): TokenLiquidityMapping {
   return conditionalTokenPools.reduce((acc, curr) => {
     const relativeTokenPrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
-    const collateralPriceInSDai =
+    const collateralPriceInMainCollateral =
       genericTokenToLiquidityMapping[(curr.isToken0Collateral ? curr.token0.id : curr.token1.id) as Address]
-        ?.tokenPriceInSDai || 1 / curr.outcomesCountWithoutInvalid;
+        ?.tokenPriceInMainCollateral || 1 / curr.outcomesCountWithoutInvalid;
     const [balanceToken, balanceCollateral] = curr.isToken0Collateral
       ? [curr.balance1, curr.balance0]
       : [curr.balance0, curr.balance1];
     const liquidity =
       (relativeTokenPrice * balanceToken + balanceCollateral) *
-      collateralPriceInSDai *
-      (sDaiPriceByChainMapping[curr.chainId] ?? 1.13);
+      collateralPriceInMainCollateral *
+      (mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[curr.chainId].primary.address]?.[curr.chainId] || 0);
     const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {
@@ -230,15 +239,18 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
       futarchyTokenPools: Pool[];
     },
   );
-  const sDaiPriceByChainMapping = await getsDaiPriceByChainMapping();
+  const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
 
   const futarchyCollateralsByChainMapping = await getFutarchyCollateralsByChainMapping(marketGroups.futarchyMarkets);
 
-  const genericTokenToLiquidityMapping = getGenericTokenToLiquidityMapping(genericTokenPools, sDaiPriceByChainMapping);
+  const genericTokenToLiquidityMapping = getGenericTokenToLiquidityMapping(
+    genericTokenPools,
+    mainCollateralPriceByChainMapping,
+  );
   const conditionalTokenToLiquidityMapping = getConditionalTokenToLiquidityMapping(
     conditionalTokenPools,
     genericTokenToLiquidityMapping,
-    sDaiPriceByChainMapping,
+    mainCollateralPriceByChainMapping,
   );
   const futarchyTokenToLiquidityMapping = getFutarchyTokenToLiquidityMapping(
     futarchyTokenPools,

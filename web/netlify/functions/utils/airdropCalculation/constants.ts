@@ -17,7 +17,7 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export const CHAIN_IDS = [gnosis.id, mainnet.id];
 export const SUBGRAPHS = {
   seer: {
-    [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
   },
   curate: {

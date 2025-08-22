@@ -1,15 +1,13 @@
 import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
-import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market, getCollateralByIndex, getMarketStatus, getToken0Token1 } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-fetch";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Address } from "viem";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import { fetchPools } from "./utils/fetchPools";
-import { getsDaiPriceByChainMapping } from "./utils/getMarketsLiquidity";
+import { getMainCollateralPriceByChainMapping } from "./utils/getMarketsLiquidity";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   const transfers = await getAllTransfers(chainId);
@@ -85,7 +83,7 @@ async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   return finalData;
 }
 
-async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDaiPrice: number) {
+async function getMarketsVolume(markets: Market[], chainId: SupportedChain, mainCollateralPrice: number) {
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
       acum[market.id] = {
@@ -143,12 +141,16 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDai
           tokenId > parentTokenId
             ? [Number(pool.volumeToken1), Number(pool.volumeToken0)]
             : [Number(pool.volumeToken0), Number(pool.volumeToken1)];
-        const tokenPriceInSDai = tokenPriceMapping[tokenId] || 1 / (market.wrappedTokens.length - 1);
-        const collateralPriceInSDai = isTwoStringsEqual(parentTokenId, COLLATERAL_TOKENS[chainId].primary.address)
+        const tokenPriceInMainCollateral = tokenPriceMapping[tokenId] || 1 / (market.wrappedTokens.length - 1);
+        const collateralPriceInMainCollateral = isTwoStringsEqual(
+          parentTokenId,
+          COLLATERAL_TOKENS[chainId].primary.address,
+        )
           ? 1
           : tokenPriceMapping[parentTokenId] || (parentMarket ? 1 / (parentMarket.wrappedTokens.length - 1) : 0);
         const volumeUSD =
-          (tokenPriceInSDai * volumeToken + collateralPriceInSDai * volumeCollateral) * (sDaiPrice ?? 1.13);
+          (tokenPriceInMainCollateral * volumeToken + collateralPriceInMainCollateral * volumeCollateral) *
+          mainCollateralPrice;
         totalVolume += volumeUSD;
       }
     }
@@ -193,7 +195,7 @@ async function writeToSheet(data: string) {
 
 export default async () => {
   const { markets } = await fetchMarkets();
-  const sDaiPriceByChainMapping = await getsDaiPriceByChainMapping();
+  const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
   const predictors = await getTopPredictors(
     markets.filter((x) => x.chainId === gnosis.id),
     gnosis.id,
@@ -201,7 +203,7 @@ export default async () => {
   const marketsVolume = await getMarketsVolume(
     markets.filter((x) => x.chainId === gnosis.id),
     gnosis.id,
-    sDaiPriceByChainMapping[gnosis.id],
+    mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[gnosis.id].primary.address]?.[gnosis.id] || 0,
   );
 
   const predictorsToRows = [
