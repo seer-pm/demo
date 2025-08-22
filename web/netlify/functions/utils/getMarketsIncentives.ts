@@ -14,17 +14,21 @@ interface EternalFarming {
 }
 
 async function fetchEternalFarmings(poolIds: Address[]): Promise<EternalFarming[]> {
+  if (poolIds.length === 0) {
+    return [];
+  }
+
   const maxAttempts = 20;
   let attempt = 0;
   let allFarmings: EternalFarming[] = [];
   const algebraFarmingClient = swaprGraphQLClient(gnosis.id, "algebrafarming");
 
+  if (!algebraFarmingClient) {
+    throw new Error("Subgraph not available");
+  }
+
   let id = undefined;
   while (attempt < maxAttempts) {
-    if (!algebraFarmingClient) {
-      throw new Error("Subgraph not available");
-    }
-
     const { eternalFarmings: farmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
       where: { pool_in: poolIds, id_lt: id },
       first: 1000,

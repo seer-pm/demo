@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis, mainnet, sepolia, optimism } from "viem/chains";
+import { gnosis, mainnet, optimism, sepolia } from "viem/chains";
 
 const chainIds = [mainnet.id, sepolia.id, gnosis.id, optimism.id] as const;
 
@@ -9,7 +9,7 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "reality";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
-    [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
   },
   curate: {

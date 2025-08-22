@@ -5,6 +5,7 @@ import {
 } from "@/hooks/contracts/generated-curate";
 import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
 import { SupportedChain } from "@/lib/chains.ts";
+import { isVerificationEnabled } from "@/lib/config.ts";
 import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -284,6 +285,10 @@ export async function fetchAndStoreMetadata(
   chainId: SupportedChain,
   batchSize = 10,
 ): Promise<void> {
+  if (!isVerificationEnabled(chainId)) {
+    return;
+  }
+
   const items: ItemAndMetadata[] = await getItemsAndMetadata(chainId, true);
 
   // Get existing items from the database
