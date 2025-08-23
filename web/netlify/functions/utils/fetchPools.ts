@@ -5,7 +5,7 @@ import { chainIds, config, gnosis } from "./config.ts";
 import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr.ts";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain } from "@/lib/chains.ts";
-import { Market, Token0Token1, getMarketPoolsPairs } from "@/lib/market.ts";
+import { Market, Token0Token1, getMarketPoolsPairs, getTokensPairKey } from "@/lib/market.ts";
 import { isTwoStringsEqual } from "@/lib/utils.ts";
 import pLimit from "p-limit";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./subgraph.ts";
@@ -157,7 +157,7 @@ export async function getAllMarketPools(markets: Market[]) {
           {} as { [key: string]: number },
         );
         const poolsByChainWithMarketData = poolsByChain.map((pool) => {
-          const market = tokenPairToMarketMapping[`${pool.token0.id}-${pool.token1.id}`];
+          const market = tokenPairToMarketMapping[getTokensPairKey(pool.token0.id, pool.token1.id)];
           if (!market) return;
           return {
             ...pool,

@@ -4,7 +4,6 @@ import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import clsx from "clsx";
 import { useState } from "react";
-import { optimism } from "viem/chains";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
@@ -65,7 +64,7 @@ export function SwapTokens({
             <Dropdown
               options={[
                 { text: "Market", value: "market" },
-                ...(market.chainId !== optimism.id ? [{ text: "Fill-to-price", value: "limit" }] : []),
+                { text: "Fill-to-price", value: "limit" },
               ]}
               value={orderType}
               onClick={(type) => setOrderType(type)}
@@ -83,7 +82,7 @@ export function SwapTokens({
               isInvalidOutcome={isInvalidOutcome}
             />
           )}
-          {orderType === "limit" && market.chainId !== optimism.id && (
+          {orderType === "limit" && (
             <SwapTokensLimitUpto
               market={market}
               outcomeIndex={outcomeIndex}

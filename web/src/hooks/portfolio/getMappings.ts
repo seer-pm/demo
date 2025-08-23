@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market, getCollateralByIndex, getToken0Token1 } from "@/lib/market";
+import { Market, getCollateralByIndex, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { config } from "@/wagmi";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
@@ -31,7 +31,7 @@ export async function getMappings(initialMarkets: Market[], chainId: SupportedCh
     market.wrappedTokens.forEach((outcomeToken, i) => {
       const collateral = getCollateralByIndex(market, i);
       const { token0, token1 } = getToken0Token1(collateral, outcomeToken);
-      tokenPairToMarketMapping[`${token0}-${token1}`] = market;
+      tokenPairToMarketMapping[getTokensPairKey(token0, token1)] = market;
 
       outcomeTokenToCollateral.set(outcomeToken.toLocaleLowerCase() as Address, getCollateralByIndex(market, i));
       allTokensIds.add(market.wrappedTokens[i].toLocaleLowerCase() as Address);
