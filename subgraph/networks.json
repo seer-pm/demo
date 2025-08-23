@@ -31,6 +31,10 @@
     "RealitioForeignArbitrationProxyWithAppeals": {
       "address": "0x0000000000000000000000000000000000000000",
       "startBlock": 36404701
+    },
+    "RealitioForeignProxyOptimism": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
     }
   },
   "mainnet": {
@@ -65,40 +69,48 @@
     "RealitioForeignArbitrationProxyWithAppeals": {
       "address": "0xFe0eb5fC686f929Eb26D541D75Bb59F816c0Aa68",
       "startBlock": 20922529
+    },
+    "RealitioForeignProxyOptimism": {
+      "address": "0xd8b33e3f5426db753d1c6c78b43d5151970cd928",
+      "startBlock": 23198525
     }
   },
   "optimism": {
     "MarketFactory": {
-      "address": "0x12BB49DeB8f293435e27F6F4Ab140184604cE346",
-      "startBlock": 140017100
+      "address": "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
+      "startBlock": 140163863
     },
     "MarketFactoryFast": {
       "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "FutarchyFactory": {
       "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "Reality": {
       "address": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "ConditionalTokens": {
       "address": "0x8bdC504dC3A05310059c1c67E0A2667309D27B93",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "LightGeneralizedTCR": {
       "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "Realitio_v2_1_ArbitratorWithAppeals": {
       "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 140017100
+      "startBlock": 140163863
     },
     "RealitioForeignArbitrationProxyWithAppeals": {
       "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 140017100
+      "startBlock": 140163863
+    },
+    "RealitioForeignProxyOptimism": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 140163863
     }
   },
   "sepolia": {
@@ -131,6 +143,10 @@
       "startBlock": 36404701
     },
     "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 36404701
+    },
+    "RealitioForeignProxyOptimism": {
       "address": "0x0000000000000000000000000000000000000000",
       "startBlock": 36404701
     }
