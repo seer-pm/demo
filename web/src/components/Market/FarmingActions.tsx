@@ -40,11 +40,30 @@ export function FarmingActions7702({ account, chainId, deposit, pool, isRewardEn
     deposit.id,
     isRewardEnded,
   );
-
+  if (!actions.length && isRewardEnded) {
+    return <p>Incentive program has ended</p>;
+  }
   return (
-    <>
-      <div className="flex items-center gap-2 flex-wrap justify-end">
-        {actions.map((action) => (
+    <div className="flex items-center gap-2 flex-wrap justify-end">
+      {actions.map((action) => {
+        if (action.text === "Enter Farming") {
+          return (
+            <div className="tooltip">
+              <Button
+                text={action.text}
+                key={action.text}
+                size="small"
+                variant="secondary"
+                onClick={() => {
+                  mutation.mutateAsync(action);
+                }}
+                disabled={mutation.isPending || isRewardEnded}
+              />
+              {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
+            </div>
+          );
+        }
+        return (
           <Button
             text={action.text}
             key={action.text}
@@ -55,10 +74,9 @@ export function FarmingActions7702({ account, chainId, deposit, pool, isRewardEn
             }}
             disabled={mutation.isPending}
           />
-        ))}
-      </div>
-      {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
-    </>
+        );
+      })}
+    </div>
   );
 }
 
@@ -118,7 +136,6 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
     };
   };
   const isLoading = enterFarming.isPending || exitFarming.isPending || depositNft.isPending || withdrawNft.isPending;
-
   if (!deposit.onFarmingCenter && !isRewardEnded) {
     return (
       <Button
@@ -131,37 +148,39 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
     );
   }
 
-  if (deposit.onFarmingCenter && deposit.limitFarming === null && deposit.eternalFarming === null) {
-    return (
-      <div className="flex items-center gap-2 flex-wrap justify-end">
-        <Button
-          text="Withdraw NFT"
-          size="small"
-          variant="secondary"
-          onClick={withdrawHandler(deposit.id)}
-          disabled={isLoading}
-        />
-        <div className="tooltip">
+  if (deposit.onFarmingCenter) {
+    if (deposit.limitFarming === null && deposit.eternalFarming === null) {
+      return (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <Button
-            text="Enter Farming"
+            text="Withdraw NFT"
             size="small"
             variant="secondary"
-            onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
-            disabled={isLoading || isRewardEnded}
+            onClick={withdrawHandler(deposit.id)}
+            disabled={isLoading}
           />
-          {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
+          <div className="tooltip">
+            <Button
+              text="Enter Farming"
+              size="small"
+              variant="secondary"
+              onClick={enterFarmingHandler(pool, pool.incentives[0], deposit.id)}
+              disabled={isLoading || isRewardEnded}
+            />
+            {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
+          </div>
         </div>
-      </div>
+      );
+    }
+    return (
+      <Button
+        text="Exit Farming"
+        size="small"
+        variant="secondary"
+        onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
+        disabled={isLoading}
+      />
     );
   }
-
-  return (
-    <Button
-      text="Exit Farming"
-      size="small"
-      variant="secondary"
-      onClick={exitFarmingHandler(pool, pool.incentives[0], deposit.id)}
-      disabled={isLoading}
-    />
-  );
+  return <>{isRewardEnded && <p>Incentive program has ended</p>}</>;
 }

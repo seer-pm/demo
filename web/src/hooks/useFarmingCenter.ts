@@ -479,32 +479,34 @@ function getFarmActions(
     ];
   }
 
-  if (deposit.onFarmingCenter && deposit.limitFarming === null && deposit.eternalFarming === null) {
+  if (deposit.onFarmingCenter) {
     // withdraw or enter farming
+    if (deposit.limitFarming === null && deposit.eternalFarming === null) {
+      return [
+        {
+          text: "Withdraw",
+          calls: [getWithdrawNftParams(withdrawNftProps)],
+          sentTitle: "Withdrawing NFT...",
+          successTitle: "Successfully withdrew NFT!",
+        },
+        {
+          text: "Enter Farming",
+          calls: [getEnterFarmingParams(enterFarmingProps)],
+          sentTitle: "Entering farming...",
+          successTitle: "Successfully entered farming!",
+        },
+      ];
+    }
     return [
       {
-        text: "Withdraw",
-        calls: [getWithdrawNftParams(withdrawNftProps)],
-        sentTitle: "Withdrawing NFT...",
-        successTitle: "Successfully withdrew NFT!",
-      },
-      {
-        text: "Enter Farming",
-        calls: [getEnterFarmingParams(enterFarmingProps)],
-        sentTitle: "Entering farming...",
-        successTitle: "Successfully entered farming!",
+        text: "Exit Farming & Withdraw",
+        calls: [getExitFarmingParams(exitFarmingProps), getWithdrawNftParams(withdrawNftProps)],
+        sentTitle: "Exiting farming and withdrawing...",
+        successTitle: "Successfully exited farming and withdrew!",
       },
     ];
   }
-
-  return [
-    {
-      text: "Exit Farming & Withdraw",
-      calls: [getExitFarmingParams(exitFarmingProps), getWithdrawNftParams(withdrawNftProps)],
-      sentTitle: "Exiting farming and withdrawing...",
-      successTitle: "Successfully exited farming and withdrew!",
-    },
-  ];
+  return [];
 }
 
 export const useFarmPosition7702 = (
