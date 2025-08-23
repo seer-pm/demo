@@ -6,9 +6,10 @@ import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, gnosis, hardhat, mainnet, optimism } from "./lib/chains";
 import SEER_ENV from "./lib/env";
 
-const GNOSIS_RPC = import.meta.env.PRIVATE_RPC_GNOSIS || "https://gnosis-pokt.nodies.app";
-const MAINNET_RPC = import.meta.env.PRIVATE_RPC_MAINNET || "https://eth-pokt.nodies.app";
-const OPTIMISM_RPC = import.meta.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimism.io";
+const rpcEndpoint = (chain: string) => `https://lb.drpc.org/${chain}/As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE`;
+const GNOSIS_RPC = rpcEndpoint("gnosis");
+const MAINNET_RPC = rpcEndpoint("ethereum");
+const OPTIMISM_RPC = rpcEndpoint("optimism");
 
 if (typeof window !== "undefined") {
   import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
