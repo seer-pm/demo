@@ -54,7 +54,7 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100],
+      chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
       {
         method: "POST",
         headers: {
@@ -113,7 +113,7 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100],
+      chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
       {
         method: "POST",
         headers: {

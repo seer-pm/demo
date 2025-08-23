@@ -49,7 +49,7 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100],
+          chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
           {
             method: "POST",
             headers: {
