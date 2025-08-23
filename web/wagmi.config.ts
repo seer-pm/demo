@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { Chain, gnosis, mainnet, sepolia, optimism } from "wagmi/chains";
+import { Chain, gnosis, mainnet, optimism, sepolia } from "wagmi/chains";
 import { FAST_TESTNET_FACTORY } from "./src/lib/constants";
 
 const readArtifacts = async (chains: Chain[]) => {
@@ -66,7 +66,11 @@ const getConfig = async (): Promise<Config[]> => {
   const contractsMapping = {
     curate: ["LightGeneralizedTCR"],
     reality: ["Reality"],
-    arbitrators: ["RealitioForeignArbitrationProxyWithAppeals", "Realitio_v2_1_ArbitratorWithAppeals"],
+    arbitrators: [
+      "RealitioForeignArbitrationProxyWithAppeals",
+      "RealitioForeignProxyOptimism",
+      "Realitio_v2_1_ArbitratorWithAppeals",
+    ],
     "market-factory": ["MarketFactory", "Market", "FutarchyFactory"],
     "market-view": ["MarketView"],
     router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],

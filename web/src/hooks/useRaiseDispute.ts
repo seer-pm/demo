@@ -1,4 +1,4 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { SupportedChain, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
+  writeRealitioForeignProxyOptimismRequestArbitration,
   writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
 } from "./contracts/generated-arbitrators";
 
@@ -18,18 +19,30 @@ interface RaiseDisputeProps {
 
 async function raiseDispute(props: RaiseDisputeProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    async () =>
-      props.chainId === mainnet.id
-        ? writeRealitioV2_1ArbitratorWithAppealsRequestArbitration(config, {
-            args: [props.questionId, props.currentBond],
-            value: props.arbitrationCost,
-            chainId: mainnet.id,
-          })
-        : writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
-            args: [props.questionId, props.currentBond],
-            value: props.arbitrationCost,
-            chainId: mainnet.id,
-          }),
+    async () => {
+      return {
+        [mainnet.id]: writeRealitioV2_1ArbitratorWithAppealsRequestArbitration(config, {
+          args: [props.questionId, props.currentBond],
+          value: props.arbitrationCost,
+          chainId: mainnet.id,
+        }),
+        [sepolia.id]: writeRealitioV2_1ArbitratorWithAppealsRequestArbitration(config, {
+          args: [props.questionId, props.currentBond],
+          value: props.arbitrationCost,
+          chainId: sepolia.id,
+        }),
+        [gnosis.id]: writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
+          args: [props.questionId, props.currentBond],
+          value: props.arbitrationCost,
+          chainId: mainnet.id,
+        }),
+        [optimism.id]: writeRealitioForeignProxyOptimismRequestArbitration(config, {
+          args: [props.questionId, props.currentBond],
+          value: props.arbitrationCost,
+          chainId: mainnet.id,
+        }),
+      }[props.chainId];
+    },
     {
       txSent: { title: "Creating dispute..." },
       txSuccess: { title: "Dispute created!" },
