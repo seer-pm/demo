@@ -9,6 +9,7 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
     [optimism.id]: "https://api.studio.thegraph.com/query/74975/seer-pm-optimism/version/latest", // TODO
+    //[optimism.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmUrD13KfaaoJmnUN9CH9wja8YLVdkGXhVjRTtkdkRw5oH`,
     [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
@@ -71,7 +72,7 @@ export default async (req: Request) => {
     });
   }
 
-  return new Response(JSON.stringify({ error: "Subgraph not found" }), { status: 404 });
+  return new Response(JSON.stringify({ error: `Subgraph not found ${subgraph} chainId ${chainId}` }), { status: 404 });
 };
 
 export const config: Config = { path: "/subgraph" };

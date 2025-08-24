@@ -12,6 +12,7 @@ const deployMarketView: DeployFunction = async (hre: HardhatRuntimeEnvironment) 
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   await deploy("MarketView", {
+    contract: "src/MarketView.sol:MarketView",
     from: deployer,
     args: [],
     log: true,
