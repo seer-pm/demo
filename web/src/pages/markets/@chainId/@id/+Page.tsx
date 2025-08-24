@@ -8,6 +8,7 @@ import MarketChart from "@/components/Market/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
+import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory";
 import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -18,6 +19,7 @@ import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { useEffect, useState } from "react";
@@ -124,11 +126,18 @@ function MarketPage() {
     );
   }
 
+  const marketStatus = getMarketStatus(market);
   const reliableMarket = isMarketReliable(market);
   return (
     <div className="container-fluid py-10">
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
+        {marketStatus !== MarketStatus.CLOSED &&
+          !isTwoStringsEqual(market.factory, marketFactoryAddress[market.chainId]) && (
+            <Alert type="warning" title="This market was not created through an official Seer factory.">
+              It could be malicious or contain misleading information. Proceed with extreme caution.
+            </Alert>
+          )}
         {chainId && connectedChainId && chainId !== connectedChainId && (
           <Alert type="warning">
             This market does not exist on the selected network. Switch to{" "}

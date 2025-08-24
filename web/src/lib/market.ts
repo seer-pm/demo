@@ -31,6 +31,7 @@ export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_
 export type VerificationResult = { status: VerificationStatus; itemID?: string; deadline?: number };
 export type MarketOffChainFields = {
   chainId: SupportedChain;
+  factory?: Address;
   outcomesSupply: bigint;
   liquidityUSD: number;
   incentive: number;
