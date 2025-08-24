@@ -30,6 +30,7 @@ function useSwaprQuote(
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: [
+      "useQuote",
       "useSwaprQuote",
       chainId,
       account,
@@ -59,7 +60,17 @@ const getUseCowQuoteQueryKey = (
   collateralToken: Token,
   swapType: "buy" | "sell",
   tradeType: TradeType,
-) => ["useCowQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType, tradeType];
+) => [
+  "useQuote",
+  "useCowQuote",
+  chainId,
+  account,
+  amount.toString(),
+  outcomeToken,
+  collateralToken,
+  swapType,
+  tradeType,
+];
 
 export function useCowQuote(
   chainId: number,
@@ -107,6 +118,7 @@ function useUniswapQuote(
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: [
+      "useQuote",
       "useUniswapQuote",
       chainId,
       account,
@@ -210,6 +222,7 @@ export function useTrade(onSuccess: () => unknown) {
       if (typeof result === "string") {
         addPendingOrder(result);
       }
+      queryClient.invalidateQueries({ queryKey: ["useQuote"] });
       queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
