@@ -1,5 +1,5 @@
 import { ArbitratorAbi } from "@/abi/ArbitratorAbi";
-import { SupportedChain, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import { SupportedChain, gnosis, mainnet, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
@@ -14,24 +14,25 @@ import {
 
 async function getArbitrationCost(chainId: SupportedChain): Promise<bigint> {
   const [arbitrator, arbitratorExtraData] = await Promise.all(
-    {
-      [mainnet.id]: [
-        readRealitioV2_1ArbitratorWithAppealsArbitrator(config, { chainId: mainnet.id }),
-        readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData(config, { chainId: mainnet.id }),
-      ],
-      [sepolia.id]: [
-        readRealitioV2_1ArbitratorWithAppealsArbitrator(config, { chainId: sepolia.id }),
-        readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData(config, { chainId: sepolia.id }),
-      ],
-      [gnosis.id]: [
-        readRealitioForeignArbitrationProxyWithAppealsArbitrator(config, { chainId: mainnet.id }),
-        readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData(config, { chainId: mainnet.id }),
-      ],
-      [optimism.id]: [
-        readRealitioForeignProxyOptimismArbitrator(config, { chainId: mainnet.id }),
-        readRealitioForeignProxyOptimismArbitratorExtraData(config, { chainId: mainnet.id }),
-      ],
-    }[chainId],
+    chainId === mainnet.id
+      ? [
+          readRealitioV2_1ArbitratorWithAppealsArbitrator(config, { chainId: mainnet.id }),
+          readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData(config, { chainId: mainnet.id }),
+        ]
+      : chainId === sepolia.id
+        ? [
+            readRealitioV2_1ArbitratorWithAppealsArbitrator(config, { chainId: sepolia.id }),
+            readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData(config, { chainId: sepolia.id }),
+          ]
+        : chainId === gnosis.id
+          ? [
+              readRealitioForeignArbitrationProxyWithAppealsArbitrator(config, { chainId: mainnet.id }),
+              readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData(config, { chainId: mainnet.id }),
+            ]
+          : [
+              readRealitioForeignProxyOptimismArbitrator(config, { chainId: mainnet.id }),
+              readRealitioForeignProxyOptimismArbitratorExtraData(config, { chainId: mainnet.id }),
+            ],
   );
 
   return await readContract(config, {
