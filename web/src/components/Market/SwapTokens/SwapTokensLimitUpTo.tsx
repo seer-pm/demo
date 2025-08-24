@@ -367,7 +367,7 @@ export function SwapTokensLimitUpto({
     resetField("limitPrice");
     resetField("amount");
     resetField("amountOut");
-  }, [swapType, useAltCollateral]);
+  }, [swapType, useAltCollateral, outcomeToken.address]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {

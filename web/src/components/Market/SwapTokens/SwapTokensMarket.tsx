@@ -349,7 +349,7 @@ export function SwapTokensMarket({
 
   useEffect(() => {
     resetInputs();
-  }, [swapType, useAltCollateral]);
+  }, [swapType, useAltCollateral, outcomeToken.address]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
