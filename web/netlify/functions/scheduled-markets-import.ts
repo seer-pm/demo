@@ -194,7 +194,7 @@ export default async () => {
         shouldRebuild = true;
       }
     } catch (e) {
-      console.log(e);
+      console.error(`Chain id ${chainId} error`, e);
     }
   }
 
