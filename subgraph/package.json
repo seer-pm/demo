@@ -9,6 +9,8 @@
     "deploy:gnosis": "graph deploy --studio seer-pm --network gnosis",
     "build:mainnet": "ENABLE_FUTARCHY_FACTORY=false ./subgraph-template.sh && graph build --network mainnet",
     "deploy:mainnet": "graph deploy --studio seer-pm-mainnet --network mainnet",
+    "build:optimism": "ENABLE_FUTARCHY_FACTORY=false ./subgraph-template.sh && graph build --network optimism",
+    "deploy:optimism": "graph deploy --studio seer-pm-optimism --network optimism",
     "build:sepolia": "graph build --network sepolia",
     "deploy:sepolia": "graph deploy --studio seer-pm-sepolia --network sepolia",
     "create-local": "graph create --node http://localhost:8020/ xyzseer/seer-pm",

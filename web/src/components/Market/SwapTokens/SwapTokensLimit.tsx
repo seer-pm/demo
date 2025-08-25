@@ -18,7 +18,7 @@ import { addHours, formatDate } from "date-fns";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
-import { gnosis } from "viem/chains";
+import { gnosis, optimism } from "viem/chains";
 import { useAccount } from "wagmi";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
@@ -148,6 +148,10 @@ export function SwapTokensLimit({
   });
 
   const onSubmit = async () => {
+    if (market.chainId === optimism.id) {
+      throw new Error("Unsupported chain");
+    }
+
     await createLimitOrder.mutateAsync({
       order: order!,
       chainId: market.chainId,

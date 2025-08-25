@@ -8,12 +8,12 @@ import { approveTokens } from "../useApproveTokens";
 import { fetchNeededApprovals } from "../useMissingApprovals";
 
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
-  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
+  const primaryCollateralAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(
         trade.chainId,
-        trade.inputAmount.currency.address ?? sDAIAddress,
+        trade.inputAmount.currency.address ?? primaryCollateralAddress,
         trade.inputAmount.currency.decimals,
         trade.inputAmount.currency.symbol,
       ),
@@ -33,12 +33,12 @@ export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
 }
 
 export async function setUniswapTradeLimit(trade: UniswapTrade, newInputValue: bigint, account: string) {
-  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
+  const primaryCollateralAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(
         trade.chainId,
-        trade.inputAmount.currency.address ?? sDAIAddress,
+        trade.inputAmount.currency.address ?? primaryCollateralAddress,
         trade.inputAmount.currency.decimals,
         trade.inputAmount.currency.symbol,
       ),
@@ -57,12 +57,12 @@ export async function setUniswapTradeLimit(trade: UniswapTrade, newInputValue: b
 }
 
 export async function setCowTradeLimit(trade: CoWTrade, newInputValue: bigint, account: string) {
-  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
+  const primaryCollateralAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   if (BigInt(trade.inputAmount.raw.toString()) > newInputValue) {
     const newInputAmount = new TokenAmount(
       new SwaprToken(
         trade.chainId,
-        trade.inputAmount.currency.address ?? sDAIAddress,
+        trade.inputAmount.currency.address ?? primaryCollateralAddress,
         trade.inputAmount.currency.decimals,
         trade.inputAmount.currency.symbol,
       ),
