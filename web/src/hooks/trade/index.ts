@@ -5,16 +5,32 @@ import { SupportedChain } from "@/lib/chains";
 import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
 import { Token } from "@/lib/tokens";
-import { QuoteTradeResult, getCowQuote, getSwaprQuote, getUniswapQuote } from "@/lib/trade";
-import { getCowQuoteExactOut, getSwaprQuoteExactOut, getUniswapQuoteExactOut } from "@/lib/tradeExactOut";
-import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import {
+  QuoteTradeResult,
+  getCowQuote,
+  getSwaprQuote,
+  getUniswapQuote,
+} from "@/lib/trade";
+import {
+  getCowQuoteExactOut,
+  getSwaprQuoteExactOut,
+  getUniswapQuoteExactOut,
+} from "@/lib/tradeExactOut";
+import {
+  CoWTrade,
+  SwaprV3Trade,
+  Trade,
+  TradeType,
+  UniswapTrade,
+} from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Address, TransactionReceipt } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { useGlobalState } from "../useGlobalState";
 import { useMissingApprovals } from "../useMissingApprovals";
 
-const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
+const QUOTE_REFETCH_INTERVAL =
+  Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
 function useSwaprQuote(
   chainId: number,
@@ -24,7 +40,7 @@ function useSwaprQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
   enabled = true,
-  tradeType: TradeType = TradeType.EXACT_INPUT,
+  tradeType: TradeType = TradeType.EXACT_INPUT
 ) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
@@ -46,8 +62,22 @@ function useSwaprQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType)
-        : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType),
+        ? getSwaprQuote(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType
+          )
+        : getSwaprQuoteExactOut(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType
+          ),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -59,7 +89,7 @@ const getUseCowQuoteQueryKey = (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-  tradeType: TradeType,
+  tradeType: TradeType
 ) => [
   "useQuote",
   "useCowQuote",
@@ -80,12 +110,20 @@ export function useCowQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
   enabled = true,
-  tradeType: TradeType = TradeType.EXACT_INPUT,
+  tradeType: TradeType = TradeType.EXACT_INPUT
 ) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const queryKey = [
-    ...getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType, tradeType),
+    ...getUseCowQuoteQueryKey(
+      chainId,
+      account,
+      amount,
+      outcomeToken,
+      collateralToken,
+      swapType,
+      tradeType
+    ),
     maxSlippage,
     isInstantSwap,
   ];
@@ -97,10 +135,28 @@ export function useCowQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery)
-        : getCowQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
+        ? getCowQuote(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType,
+            isFastQuery
+          )
+        : getCowQuoteExactOut(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType,
+            isFastQuery
+          ),
     refetchInterval: (query) =>
-      query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
+      query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0
+        ? 1
+        : QUOTE_REFETCH_INTERVAL,
   });
 }
 
@@ -112,7 +168,7 @@ function useUniswapQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
   enabled = true,
-  tradeType: TradeType = TradeType.EXACT_INPUT,
+  tradeType: TradeType = TradeType.EXACT_INPUT
 ) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
@@ -134,8 +190,22 @@ function useUniswapQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType)
-        : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType),
+        ? getUniswapQuote(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType
+          )
+        : getUniswapQuoteExactOut(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType
+          ),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -147,7 +217,7 @@ export function useQuoteTrade(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-  tradeType: TradeType,
+  tradeType: TradeType
 ) {
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const cowResult = useCowQuote(
@@ -158,11 +228,23 @@ export function useQuoteTrade(
     collateralToken,
     swapType,
     !isInstantSwap,
-    tradeType,
+    tradeType
   );
-  const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
+  const isCowResultOk =
+    cowResult.status === "success" &&
+    cowResult.data?.value &&
+    cowResult.data.value > 0n;
 
-  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, true, tradeType);
+  const swaprResult = useSwaprQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    true,
+    tradeType
+  );
   const uniswapResult = useUniswapQuote(
     chainId,
     account,
@@ -171,7 +253,7 @@ export function useQuoteTrade(
     collateralToken,
     swapType,
     true,
-    tradeType,
+    tradeType
   );
 
   if (isCowResultOk) {
@@ -186,10 +268,12 @@ export function useQuoteTrade(
 
 export function useMissingTradeApproval(account: Address, trade: Trade) {
   const { data: missingApprovals, isLoading } = useMissingApprovals({
-    tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+    tokensAddresses: [
+      trade.executionPrice.baseCurrency.address as `0x${string}`,
+    ],
     account,
     spender: trade.approveAddress as `0x${string}`,
-    amounts: BigInt(trade.inputAmount.raw.toString()),
+    amounts: BigInt(trade.maximumAmountIn().raw.toString()),
     chainId: trade.chainId as SupportedChain,
   });
 
@@ -200,9 +284,13 @@ async function tradeTokens({
   trade,
   account,
   isBuyExactOutputNative,
-}: { trade: CoWTrade | SwaprV3Trade | UniswapTrade; account: Address; isBuyExactOutputNative: boolean }): Promise<
-  string | TransactionReceipt
-> {
+  isSellToNative
+}: {
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  account: Address;
+  isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
+}): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }
@@ -211,7 +299,7 @@ async function tradeTokens({
     return executeUniswapTrade(trade, account);
   }
 
-  return executeSwaprTrade(trade, account, isBuyExactOutputNative);
+  return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative);
 }
 
 export function useTrade(onSuccess: () => unknown) {

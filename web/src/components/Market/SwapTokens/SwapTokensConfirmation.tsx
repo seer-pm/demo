@@ -19,6 +19,7 @@ interface SwapTokensConfirmationProps {
   collateral: Token;
   originalAmount: string;
   isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
 }
 
 export function SwapTokensConfirmation({
@@ -28,6 +29,7 @@ export function SwapTokensConfirmation({
   onSubmit,
   collateral,
   isBuyExactOutputNative,
+  isSellToNative,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
@@ -40,7 +42,12 @@ export function SwapTokensConfirmation({
         </div>
 
         <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-          <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+          <Button
+            type="button"
+            variant="secondary"
+            text="Return"
+            onClick={closeModal}
+          />
         </div>
       </div>
     );
@@ -56,15 +63,18 @@ export function SwapTokensConfirmation({
     maximumSlippage,
     invertedPrice,
   } = tradeInfo;
-  const sDAI = trade ? COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address : undefined;
+
+  const sDAI = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
   const isExactInput = trade!.tradeType === 0;
   inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
-  outputToken = outputToken?.slice(0, 31);
+  outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)
     : price;
-  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(2) : invertedPrice;
+  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI)
+    ? (1 / Number(price)).toFixed(2)
+    : invertedPrice;
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -90,7 +100,10 @@ export function SwapTokensConfirmation({
                 {price} {outputToken}/{inputToken}{" "}
               </>
             )}
-            <span className="cursor-pointer" onClick={() => toggleInvertedPrice((state) => !state)}>
+            <span
+              className="cursor-pointer"
+              onClick={() => toggleInvertedPrice((state) => !state)}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -111,21 +124,28 @@ export function SwapTokensConfirmation({
         <div className="flex items-center justify-between">
           <p>{isExactInput ? "Minimum received" : "Maximum sent"}</p>
           <p>
-            {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
+            {isExactInput ? minimumReceive : maximumSent}{" "}
+            {isExactInput ? outputToken : inputToken}
           </p>
         </div>
       </div>
       <Alert type="warning">
-        Current slippage tolerance is {maximumSlippage}%. You will {isExactInput ? "receive" : "sell"} at{" "}
-        {isExactInput ? "least" : "most"}{" "}
+        Current slippage tolerance is {maximumSlippage}%. You will{" "}
+        {isExactInput ? "receive" : "sell"} at {isExactInput ? "least" : "most"}{" "}
         <span className="font-bold">
-          {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
+          {isExactInput ? minimumReceive : maximumSent}{" "}
+          {isExactInput ? outputToken : inputToken}
         </span>{" "}
         or the transaction will revert.
       </Alert>
 
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-        <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        <Button
+          type="button"
+          variant="secondary"
+          text="Return"
+          onClick={closeModal}
+        />
         <Button
           variant="primary"
           type="submit"

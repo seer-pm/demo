@@ -1,6 +1,10 @@
 import Button from "@/components/Form/Button";
 import { useTrade } from "@/hooks/trade";
-import { S_DAI_ADAPTER, redeemFromSDAI, redeemFromSDAIToNative } from "@/hooks/trade/handleSDAI";
+import {
+  S_DAI_ADAPTER,
+  redeemFromSDAI,
+  redeemFromSDAIToNative,
+} from "@/hooks/trade/handleSDAI";
 import { approveIfNeeded } from "@/hooks/trade/utils";
 import { SupportedChain, filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
@@ -25,7 +29,8 @@ export default function SellInStepsButton({
   const { address: account } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoadingStep, setLoadingStep] = useState(false);
-  const sDAIAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
+  const sDAIAddress =
+    COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
   const receivedAmount = BigInt(trade.outputAmount.raw.toString());
 
   const tradeTokens = useTrade(() => {});
@@ -35,6 +40,7 @@ export default function SellInStepsButton({
       trade: trade as SwaprV3Trade | UniswapTrade,
       account,
       isBuyExactOutputNative: false,
+      isSellToNative: false,
     });
     setCurrentStep(1);
   };
@@ -42,7 +48,13 @@ export default function SellInStepsButton({
   const approveConvert = async () => {
     if (!account) throw "Account not found!";
     if (isTwoStringsEqual(collateral.address, NATIVE_TOKEN)) {
-      await approveIfNeeded(sDAIAddress, account, S_DAI_ADAPTER, receivedAmount, trade.chainId as SupportedChain);
+      await approveIfNeeded(
+        sDAIAddress,
+        account,
+        S_DAI_ADAPTER,
+        receivedAmount,
+        trade.chainId as SupportedChain
+      );
       setCurrentStep(2);
       return;
     }
@@ -50,13 +62,23 @@ export default function SellInStepsButton({
   };
   const convertToDAI = async () => {
     if (!account) throw "Account not found!";
-    const convertFn = isTwoStringsEqual(collateral.address, NATIVE_TOKEN) ? redeemFromSDAIToNative : redeemFromSDAI;
-    await convertFn({ amount: receivedAmount, chainId: filterChain(trade.chainId), owner: account });
+    const convertFn = isTwoStringsEqual(collateral.address, NATIVE_TOKEN)
+      ? redeemFromSDAIToNative
+      : redeemFromSDAI;
+    await convertFn({
+      amount: receivedAmount,
+      chainId: filterChain(trade.chainId),
+      owner: account,
+    });
     closeModalAndReset();
   };
 
   const executeFns = [sellTokens, approveConvert, convertToDAI];
-  const btnTexts = ["Sell", "Approve Convert", `Convert To ${collateral.symbol}`];
+  const btnTexts = [
+    "Sell",
+    "Approve Convert",
+    `Convert To ${collateral.symbol}`,
+  ];
 
   return (
     <Button
