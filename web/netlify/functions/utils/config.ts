@@ -1,7 +1,7 @@
 import { http, createConfig } from "wagmi";
-import { gnosis, mainnet, optimism, sepolia } from "wagmi/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "wagmi/chains";
 
-export { gnosis, mainnet, optimism };
+export { gnosis, mainnet, optimism, base };
 
 // TODO: replace this
 export const config = createConfig({
@@ -14,4 +14,4 @@ export const config = createConfig({
   },
 });
 
-export const chainIds = [mainnet.id, gnosis.id, optimism.id, sepolia.id] as const;
+export const chainIds = [mainnet.id, gnosis.id, optimism.id, base.id, sepolia.id] as const;

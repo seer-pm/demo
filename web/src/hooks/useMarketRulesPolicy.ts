@@ -1,9 +1,11 @@
 import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
-import { SupportedChain, gnosis, mainnet, sepolia } from "@/lib/chains";
+import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { graphQLClient } from "@/lib/subgraph";
 import { useQuery } from "@tanstack/react-query";
+import { zeroAddress } from "viem";
 import {
   realitioForeignArbitrationProxyWithAppealsAddress,
+  realitioForeignProxyBaseAddress,
   realitioForeignProxyOptimismAddress,
   realitioV2_1ArbitratorWithAppealsAddress,
 } from "./contracts/generated-arbitrators";
@@ -26,7 +28,11 @@ export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
             ? realitioV2_1ArbitratorWithAppealsAddress[chainId]
             : chainId === gnosis.id
               ? realitioForeignArbitrationProxyWithAppealsAddress[mainnetId]
-              : realitioForeignProxyOptimismAddress[mainnetId],
+              : chainId === optimism.id
+                ? realitioForeignProxyOptimismAddress[mainnetId]
+                : chainId === base.id
+                  ? realitioForeignProxyBaseAddress[mainnetId]
+                  : zeroAddress,
       });
 
       if (!arbitratorMetadata?.registrationMetaEvidenceURI) {

@@ -1,11 +1,12 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
-import { gnosis, sepolia } from "viem/chains";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester,
   readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests,
+  readRealitioForeignProxyBaseArbitrationIdToRequester,
+  readRealitioForeignProxyBaseArbitrationRequests,
   readRealitioForeignProxyOptimismArbitrationIdToRequester,
   readRealitioForeignProxyOptimismArbitrationRequests,
   readRealitioV2_1ArbitratorWithAppealsArbitrationRequests,
@@ -32,7 +33,13 @@ export async function getArbitrationRequest(
   const readArbitrationIdToRequester =
     chainId === gnosis.id
       ? readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester
-      : readRealitioForeignProxyOptimismArbitrationIdToRequester;
+      : chainId === optimism.id
+        ? readRealitioForeignProxyOptimismArbitrationIdToRequester
+        : chainId === base.id
+          ? readRealitioForeignProxyBaseArbitrationIdToRequester
+          : (() => {
+              throw new Error(`Unsupported chain: ${chainId}.`);
+            })();
 
   const requester = await readArbitrationIdToRequester(config, {
     args: [BigInt(questionId)],
@@ -46,7 +53,13 @@ export async function getArbitrationRequest(
   const readArbitrationRequests =
     chainId === gnosis.id
       ? readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests
-      : readRealitioForeignProxyOptimismArbitrationRequests;
+      : chainId === optimism.id
+        ? readRealitioForeignProxyOptimismArbitrationRequests
+        : chainId === base.id
+          ? readRealitioForeignProxyBaseArbitrationRequests
+          : (() => {
+              throw new Error(`Unsupported chain: ${chainId}.`);
+            })();
 
   const [status, , disputeId] = await readArbitrationRequests(config, {
     args: [BigInt(questionId), requester],

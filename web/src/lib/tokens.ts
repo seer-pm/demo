@@ -32,7 +32,7 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
     pairs: { chainId: string; priceUsd: string }[];
   };
   const priceString = data.pairs?.find(
-    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism" }[chainId],
+    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
   )?.priceUsd;
   return Number(priceString);
 }

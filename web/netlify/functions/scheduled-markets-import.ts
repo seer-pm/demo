@@ -183,20 +183,29 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
 
 export default async () => {
   const maxAgeSeconds = 60 * 5; // 5 minutes
-  let shouldRebuild = false;
 
   // update markets & verification status
-  for (const chainId of chainIds) {
-    try {
-      const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
-
-      if (hasNewMarkets) {
-        shouldRebuild = true;
+  const chainResults = await Promise.allSettled(
+    chainIds.map(async (chainId) => {
+      try {
+        const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
+        return { chainId, hasNewMarkets, success: true };
+      } catch (e) {
+        console.error(`Chain id ${chainId} error`, e);
+        return { chainId, hasNewMarkets: false, success: false, error: e };
       }
-    } catch (e) {
-      console.error(`Chain id ${chainId} error`, e);
-    }
-  }
+    }),
+  );
+
+  // Check if any chain had new markets
+  const shouldRebuild = chainResults.some((result) => result.status === "fulfilled" && result.value.hasNewMarkets);
+
+  // Log results summary
+  const successfulChains = chainResults.filter((r) => r.status === "fulfilled" && r.value.success).length;
+  const failedChains = chainResults.filter(
+    (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success),
+  ).length;
+  console.log(`Chain processing completed: ${successfulChains} successful, ${failedChains} failed`);
 
   // update images
   await updateImages();

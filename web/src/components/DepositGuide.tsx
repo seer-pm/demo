@@ -3,7 +3,7 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CloseIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
-import { mainnet, optimism, sepolia } from "viem/chains";
+import { base, mainnet, optimism, sepolia } from "viem/chains";
 
 function DepositGuide({
   closeModal,
@@ -27,6 +27,7 @@ function DepositGuide({
     ),
     [sepolia.id]: null,
     [optimism.id]: null,
+    [base.id]: null,
   };
   return (
     <div className="flex flex-col items-center gap-4">

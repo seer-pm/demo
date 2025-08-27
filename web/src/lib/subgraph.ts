@@ -1,5 +1,5 @@
 import { GraphQLClient } from "graphql-request";
-import { SupportedChain, gnosis, mainnet, optimism } from "./chains";
+import { SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
 import { getAppUrl } from "./utils";
 
 const SUBGRAPH_ENDPOINT = `${getAppUrl()}/subgraph`;
@@ -20,7 +20,7 @@ export function curateGraphQLClient(chainId: SupportedChain) {
 }
 
 export function uniswapGraphQLClient(chainId: SupportedChain) {
-  if (chainId !== mainnet.id && chainId !== optimism.id) {
+  if (chainId !== mainnet.id && chainId !== optimism.id && chainId !== base.id) {
     return;
   }
 

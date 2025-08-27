@@ -1,5 +1,5 @@
 import { useMarkets } from "@/hooks/useMarkets";
-import { SupportedChain, optimism } from "@/lib/chains";
+import { SupportedChain, base, optimism } from "@/lib/chains";
 import { Market, getTokensPairKey } from "@/lib/market";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { getMappings } from "../getMappings";
 import { CowOrderData } from "./types";
 
 async function getCowOrders(initialMarkets: Market[] | undefined, account?: Address, chainId?: SupportedChain) {
-  if (!chainId || !account || !initialMarkets || chainId === optimism.id) return [];
+  if (!chainId || !account || !initialMarkets || chainId === optimism.id || chainId === base.id) return [];
   const mappings = await getMappings(initialMarkets, chainId);
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
   const orderBookApi = new OrderBookApi({ chainId });

@@ -6,7 +6,7 @@ import {
 } from "@/hooks/contracts/generated-router";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
-import { DEFAULT_CHAIN, SupportedChain, gnosis, mainnet, optimism } from "./chains";
+import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
 import { Market, getLiquidityPair } from "./market";
 import { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./utils";
@@ -37,6 +37,10 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     primary: { address: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0", symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
   },
+  [base.id]: {
+    primary: { address: "0x5875eee11cf8398102fdad704c9e96607675467a", symbol: "sUSDS", decimals: 18 },
+    secondary: undefined,
+  },
   [sepolia.id]: {
     primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
     secondary: undefined,
@@ -51,7 +55,8 @@ const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
     [gnosis.id]: parseUnits("10", 18),
     [mainnet.id]: parseUnits("0.02", 18),
-    [optimism.id]: parseUnits("0.005", 18),
+    [optimism.id]: parseUnits("0.0005", 18),
+    [base.id]: parseUnits("0.0005", 18),
     [sepolia.id]: parseUnits("0.000001", 18),
     [hardhat.id]: parseUnits("5", 18),
   },
@@ -73,6 +78,7 @@ export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [hardhat.id]: "gnosis",
   [mainnet.id]: "mainnet",
   [optimism.id]: "base",
+  [base.id]: "base",
   [sepolia.id]: "base",
 } as const;
 
@@ -98,6 +104,8 @@ export const getLiquidityUrl = (chainId: number, token1: string, token2: string)
       return `https://bunni.pro/add/ethereum?tokenA=${token1}&tokenB=${token2}&fee=3000`;
     case optimism.id:
       return `https://app.uniswap.org/positions/create?step=0&currencyA=${token1}&currencyB=${token2}&chain=optimism`;
+    case base.id:
+      return `https://app.uniswap.org/positions/create?step=0&currencyA=${token1}&currencyB=${token2}&chain=base`;
     default:
       return "#";
   }
@@ -143,12 +151,13 @@ export const getPositionUrl = (chainId: number, farmId: string) => {
 };
 
 export function isVerificationEnabled(chainId: SupportedChain) {
-  return chainId !== optimism.id;
+  return chainId !== optimism.id && chainId !== base.id;
 }
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {
   [gnosis.id]: "/assets/images/gnosis.webp",
   [mainnet.id]: "/assets/images/ethereum.webp",
   [optimism.id]: "/assets/images/optimism.webp",
+  [base.id]: "/assets/images/base.webp",
   [sepolia.id]: "/assets/images/ethereum.webp",
 };

@@ -69,6 +69,7 @@ const getConfig = async (): Promise<Config[]> => {
     arbitrators: [
       "RealitioForeignArbitrationProxyWithAppeals",
       "RealitioForeignProxyOptimism",
+      "RealitioForeignProxyBase",
       "Realitio_v2_1_ArbitratorWithAppeals",
     ],
     "market-factory": ["MarketFactory", "Market", "FutarchyFactory"],

@@ -1,6 +1,6 @@
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain, gnosis, mainnet, optimism } from "@/lib/chains";
+import { SupportedChain, base, gnosis, mainnet, optimism } from "@/lib/chains";
 import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
@@ -76,7 +76,7 @@ async function getTokenSwapResult(
     }
   }
 
-  if (chainId === mainnet.id || chainId === optimism.id) {
+  if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
     try {
       const uniswapQuote = await getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
       return uniswapQuote.value;

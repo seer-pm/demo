@@ -113,6 +113,44 @@
       "startBlock": 140163863
     }
   },
+  "base": {
+    "MarketFactory": {
+      "address": "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
+      "startBlock": 34781185
+    },
+    "MarketFactoryFast": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    },
+    "FutarchyFactory": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    },
+    "Reality": {
+      "address": "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8",
+      "startBlock": 34781185
+    },
+    "ConditionalTokens": {
+      "address": "0xAb797C4C6022A401c31543E316D3cd04c67a87fC",
+      "startBlock": 34781185
+    },
+    "LightGeneralizedTCR": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    },
+    "Realitio_v2_1_ArbitratorWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    },
+    "RealitioForeignArbitrationProxyWithAppeals": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    },
+    "RealitioForeignProxyOptimism": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 34781185
+    }
+  },
   "sepolia": {
     "MarketFactory": {
       "address": "0x221456ACFD185EE168052B3DA899939303775C7a",
