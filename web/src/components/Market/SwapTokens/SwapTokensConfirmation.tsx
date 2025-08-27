@@ -19,6 +19,7 @@ interface SwapTokensConfirmationProps {
   collateral: Token;
   originalAmount: string;
   isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
 }
 
 export function SwapTokensConfirmation({
@@ -28,6 +29,7 @@ export function SwapTokensConfirmation({
   onSubmit,
   collateral,
   isBuyExactOutputNative,
+  isSellToNative,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
@@ -56,10 +58,11 @@ export function SwapTokensConfirmation({
     maximumSlippage,
     invertedPrice,
   } = tradeInfo;
-  const sDAI = trade ? COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address : undefined;
+
+  const sDAI = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
   const isExactInput = trade!.tradeType === 0;
   inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
-  outputToken = outputToken?.slice(0, 31);
+  outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, sDAI)
     ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)

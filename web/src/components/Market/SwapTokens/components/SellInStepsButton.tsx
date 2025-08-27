@@ -35,6 +35,7 @@ export default function SellInStepsButton({
       trade: trade as SwaprV3Trade | UniswapTrade,
       account,
       isBuyExactOutputNative: false,
+      isSellToNative: false,
     });
     setCurrentStep(1);
   };
@@ -51,7 +52,11 @@ export default function SellInStepsButton({
   const convertToDAI = async () => {
     if (!account) throw "Account not found!";
     const convertFn = isTwoStringsEqual(collateral.address, NATIVE_TOKEN) ? redeemFromSDAIToNative : redeemFromSDAI;
-    await convertFn({ amount: receivedAmount, chainId: filterChain(trade.chainId), owner: account });
+    await convertFn({
+      amount: receivedAmount,
+      chainId: filterChain(trade.chainId),
+      owner: account,
+    });
     closeModalAndReset();
   };
 

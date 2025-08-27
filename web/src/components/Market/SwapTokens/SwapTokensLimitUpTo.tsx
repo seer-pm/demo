@@ -145,6 +145,9 @@ export function SwapTokensLimitUpto({
     tradeType === TradeType.EXACT_OUTPUT &&
     market.chainId === gnosis.id;
 
+  const isSellToNative =
+    swapType === "sell" && market.chainId === gnosis.id && isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN);
+
   const debouncedAmount = useDebounce(amount, 500);
   const debouncedAmountOut = useDebounce(amountOut, 500);
   const debounceLimitPrice = useDebounce(limitPrice, 500);
@@ -187,6 +190,7 @@ export function SwapTokensLimitUpto({
       trade,
       account: account!,
       isBuyExactOutputNative,
+      isSellToNative,
     });
   };
 
@@ -419,6 +423,7 @@ export function SwapTokensLimitUpto({
             collateral={selectedCollateral}
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
+            isSellToNative={isSellToNative}
           />
         }
       />
@@ -450,7 +455,9 @@ export function SwapTokensLimitUpto({
                       }
                       const isPriceTooHigh = Number(v) > 1;
                       if (isPriceTooHigh) {
-                        return `Limit price exceeds 1 ${isCollateralDai ? "sDAI" : selectedCollateral.symbol} per share.`;
+                        return `Limit price exceeds 1 ${
+                          isCollateralDai ? "sDAI" : selectedCollateral.symbol
+                        } per share.`;
                       }
                       if (!poolInfo) return true;
                       const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);

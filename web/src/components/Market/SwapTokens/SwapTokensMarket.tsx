@@ -47,7 +47,13 @@ interface SwapTokensMarketProps {
   isInvalidOutcome: boolean;
 }
 
-export function FutarchyTokenSwitch({ market, outcomeIndex }: { market: Market; outcomeIndex: number }) {
+export function FutarchyTokenSwitch({
+  market,
+  outcomeIndex,
+}: {
+  market: Market;
+  outcomeIndex: number;
+}) {
   const [, setSearchParams] = useSearchParams();
 
   const collateralPair = [outcomeIndex, FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]
@@ -75,7 +81,13 @@ function FutarchyPricePerShare({
   buyToken,
   sellToken,
   outcomeIndex,
-}: { swapType: "buy" | "sell"; collateralPerShare: number; buyToken: Token; sellToken: Token; outcomeIndex: number }) {
+}: {
+  swapType: "buy" | "sell";
+  collateralPerShare: number;
+  buyToken: Token;
+  sellToken: Token;
+  outcomeIndex: number;
+}) {
   const tokenPair = outcomeIndex <= 1 ? [buyToken.symbol, sellToken.symbol] : [sellToken.symbol, buyToken.symbol];
   const swapTerms = swapType === "sell" ? `${tokenPair[1]} / ${tokenPair[0]}` : `${tokenPair[0]} / ${tokenPair[1]}`;
 
@@ -175,11 +187,15 @@ export function SwapTokensMarket({
     !isFetchingBalance &&
     !isFetchingNativeBalance &&
     ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
+
   const isBuyExactOutputNative =
     swapType === "buy" &&
     isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN) &&
     tradeType === TradeType.EXACT_OUTPUT &&
     market.chainId === gnosis.id;
+
+  const isSellToNative =
+    swapType === "sell" && market.chainId === gnosis.id && isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN);
 
   const debouncedAmount = useDebounce(amount, 500);
   const debouncedAmountOut = useDebounce(amountOut, 500);
@@ -210,6 +226,7 @@ export function SwapTokensMarket({
       trade,
       account: account!,
       isBuyExactOutputNative,
+      isSellToNative,
     });
   };
 
@@ -379,6 +396,7 @@ export function SwapTokensMarket({
             collateral={selectedCollateral}
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
+            isSellToNative={isSellToNative}
           />
         }
       />
@@ -541,7 +559,15 @@ export function SwapTokensMarket({
             {quoteIsLoading || isFetching ? (
               <div className="shimmer-container ml-2 w-[100px]" />
             ) : market.type === "Futarchy" ? (
-              <FutarchyPricePerShare {...{ swapType, collateralPerShare, buyToken, sellToken, outcomeIndex }} />
+              <FutarchyPricePerShare
+                {...{
+                  swapType,
+                  collateralPerShare,
+                  buyToken,
+                  sellToken,
+                  outcomeIndex,
+                }}
+              />
             ) : (
               <div className="flex items-center gap-2">
                 {avgPrice} {selectedCollateral.symbol}

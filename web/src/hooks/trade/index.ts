@@ -189,7 +189,7 @@ export function useMissingTradeApproval(account: Address, trade: Trade) {
     tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
     spender: trade.approveAddress as `0x${string}`,
-    amounts: BigInt(trade.inputAmount.raw.toString()),
+    amounts: BigInt(trade.maximumAmountIn().raw.toString()),
     chainId: trade.chainId as SupportedChain,
   });
 
@@ -200,9 +200,13 @@ async function tradeTokens({
   trade,
   account,
   isBuyExactOutputNative,
-}: { trade: CoWTrade | SwaprV3Trade | UniswapTrade; account: Address; isBuyExactOutputNative: boolean }): Promise<
-  string | TransactionReceipt
-> {
+  isSellToNative,
+}: {
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  account: Address;
+  isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
+}): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }
@@ -211,7 +215,7 @@ async function tradeTokens({
     return executeUniswapTrade(trade, account);
   }
 
-  return executeSwaprTrade(trade, account, isBuyExactOutputNative);
+  return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative);
 }
 
 export function useTrade(onSuccess: () => unknown) {
