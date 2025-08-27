@@ -21,6 +21,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 
 ### Gnosis
 
+- [ConditionalRouter](https://gnosisscan.io/address/0x774284d5cDFeC3A0a0eBc7283aD4d5b33013c29c)
 - [FutarchyFactory](https://gnosisscan.io/address/0xe789e4A240d153AC55e32106821e785E71f6b792)
 - [FutarchyProposal](https://gnosisscan.io/address/0xec4fb999Db0e8cA28011D85EAD177810055b484c)
 - [FutarchyRealityProxy](https://gnosisscan.io/address/0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc)
@@ -29,12 +30,17 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 - [Market](https://gnosisscan.io/address/0x8F76bC35F8C72E5e2Ec55ebED785da5efaa9636a)
 - [MarketFactory](https://gnosisscan.io/address/0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1)
 - [MarketView](https://gnosisscan.io/address/0x95493F3e3F151eD9ee9338a4Fc1f49c00890F59C)
+- [RealitioHomeArbitrationProxy](https://gnosisscan.io/address/0x68154ea682f95bf582b80dd6453fa401737491dc)
 - [RealityProxy](https://gnosisscan.io/address/0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C)
 - [Wrapped1155Factory](https://gnosisscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f)
-- [RealitioHomeArbitrationProxy](https://gnosisscan.io/address/0x68154ea682f95bf582b80dd6453fa401737491dc)
 
 ### Ethereum
 
+- [ConditionalRouter](https://etherscan.io/address/0x1BA2dB142a69B2D0b0EDbe666A9Bd457E344D9b5)
+- [FutarchyFactory](https://etherscan.io/address/0xf9369c0F7a84CAC3b7Ef78c837cF7313309D3678)
+- [FutarchyProposal](https://etherscan.io/address/0x0956b70AC0Eca45DB9661a1cEE96B2e7062d8a1C)
+- [FutarchyRealityProxy](https://etherscan.io/address/0xa638F22cDD13013494971b0e1325718AA45280dc)
+- [FutarchyRouter](https://etherscan.io/address/0xAc9Bf8EbA6Bd31f8E8c76f8E8B2AAd0BD93f98Dc)
 - [MainnetRouter](https://etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6)
 - [Market](https://etherscan.io/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93)
 - [MarketFactory](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904)

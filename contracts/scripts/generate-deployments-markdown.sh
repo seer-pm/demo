@@ -6,8 +6,12 @@ IGNORED_ARTIFACTS=(
     "CollateralToken.json"
     "ConditionalTokens*"
     "LightGeneralizedTCR.json"
-    "RealitioHomeArbitrationProxy.json"
     "Reality.json"
+    "GovernedRecipient.json"
+    "LiquidityManager.json"
+    "MultiDrop.json"
+    "SavingsXDai.json"
+    "UniswapV2Router02.json"
 )
 
 function generate() { #deploymentDir #explorerUrl
@@ -29,7 +33,7 @@ function generate() { #deploymentDir #explorerUrl
 echo "### Gnosis"
 echo
 generate "$SCRIPT_DIR/../deployments/gnosis" "https://gnosisscan.io/address/"
-
+echo
 echo "### Ethereum"
 echo
 generate "$SCRIPT_DIR/../deployments/ethereum" "https://etherscan.io/address/"
