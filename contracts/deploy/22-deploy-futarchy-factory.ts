@@ -12,8 +12,7 @@ const deployFutarchyFactory: DeployFunction = async (hre: HardhatRuntimeEnvironm
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const proposal = await deployments.get("FutarchyProposal");
-  // TODO: change arbitrator?
-  const realitioArbitrator = await deployments.get("RealitioHomeArbitrationProxy");
+  const realitioArbitrator = await deployments.get(chainId === 100 ? "RealitioHomeArbitrationProxy" : "Realitio_v2_1_ArbitratorWithAppeals");
   const reality = await deployments.get("Reality");
   const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
