@@ -1,6 +1,6 @@
 import { CoWTrade, DAI, WXDAI } from "@swapr/sdk";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
-import { SupportedChain, gnosis, sepolia } from "./chains";
+import { SupportedChain, gnosis } from "./chains";
 import { COLLATERAL_TOKENS } from "./config";
 import { QuoteTradeResult } from "./trade";
 import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "./utils";
@@ -23,19 +23,6 @@ export const EMPTY_TOKEN = {
 export const hasAltCollateral = (token: Token | undefined): token is Token => {
   return !isUndefined(token);
 };
-
-export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain): Promise<number> {
-  if (chainId === sepolia.id) {
-    return 0;
-  }
-  const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
-    pairs: { chainId: string; priceUsd: string }[];
-  };
-  const priceString = data.pairs?.find(
-    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
-  )?.priceUsd;
-  return Number(priceString);
-}
 
 export function getSelectedCollateral(
   chainId: SupportedChain,
