@@ -1,4 +1,4 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
@@ -6,6 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
+  writeRealitioForeignProxyBaseRequestArbitration,
+  writeRealitioForeignProxyOptimismRequestArbitration,
   writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
 } from "./contracts/generated-arbitrators";
 
@@ -18,18 +20,35 @@ interface RaiseDisputeProps {
 
 async function raiseDispute(props: RaiseDisputeProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    async () =>
-      props.chainId === mainnet.id
+    async () => {
+      return props.chainId === mainnet.id || props.chainId === sepolia.id
         ? writeRealitioV2_1ArbitratorWithAppealsRequestArbitration(config, {
             args: [props.questionId, props.currentBond],
             value: props.arbitrationCost,
-            chainId: mainnet.id,
+            chainId: props.chainId,
           })
-        : writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
-            args: [props.questionId, props.currentBond],
-            value: props.arbitrationCost,
-            chainId: mainnet.id,
-          }),
+        : props.chainId === gnosis.id
+          ? writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration(config, {
+              args: [props.questionId, props.currentBond],
+              value: props.arbitrationCost,
+              chainId: mainnet.id,
+            })
+          : props.chainId === optimism.id
+            ? writeRealitioForeignProxyOptimismRequestArbitration(config, {
+                args: [props.questionId, props.currentBond],
+                value: props.arbitrationCost,
+                chainId: mainnet.id,
+              })
+            : props.chainId === base.id
+              ? writeRealitioForeignProxyBaseRequestArbitration(config, {
+                  args: [props.questionId, props.currentBond],
+                  value: props.arbitrationCost,
+                  chainId: mainnet.id,
+                })
+              : (() => {
+                  throw new Error(`Unsupported chain: ${props.chainId}.`);
+                })();
+    },
     {
       txSent: { title: "Creating dispute..." },
       txSuccess: { title: "Dispute created!" },

@@ -65,6 +65,7 @@ export async function getPoolAndTicksData(chainId: SupportedChain, token0: Addre
       },
     );
   } catch (e) {
-    console.log(e);
+    console.error("getTicksData", e);
+    return {};
   }
 }

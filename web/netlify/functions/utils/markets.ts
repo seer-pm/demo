@@ -351,8 +351,13 @@ export async function getMarketId(id: string | undefined, url: string | undefine
   return (id?.toLowerCase() as Address) || "";
 }
 
-export async function getDatabaseMarket(id: "" | Address) {
-  const { data: result, error } = await supabase.from("markets").select(MARKET_DB_FIELDS).eq("id", id).single();
+export async function getDatabaseMarket(chainId: SupportedChain, id: "" | Address) {
+  const { data: result, error } = await supabase
+    .from("markets")
+    .select(MARKET_DB_FIELDS)
+    .eq("id", id)
+    .eq("chain_id", chainId)
+    .single();
 
   if (!error) {
     return result;

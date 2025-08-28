@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, sepolia } from "@/lib/chains";
 import { getPublicClient } from "@wagmi/core";
 import { Address } from "viem";
 import { config } from "./config";
@@ -15,11 +15,15 @@ export function getPublicClientForNetwork(networkId: SupportedChain) {
   return getPublicClient(config, { chainId: networkId });
 }
 
-export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain) {
+export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain): Promise<number> {
+  if (chainId === sepolia.id) {
+    return 0;
+  }
   const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
     pairs: { chainId: string; priceUsd: string }[];
   };
-  // @ts-ignore
-  const priceString = data.pairs?.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
+  const priceString = data.pairs?.find(
+    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
+  )?.priceUsd;
   return Number(priceString);
 }

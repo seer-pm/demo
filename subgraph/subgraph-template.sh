@@ -265,4 +265,23 @@ cat <<EOF >> subgraph.yaml
         - event: MetaEvidence(indexed uint256,string)
           handler: handleArbitratorMetaEvidence
       file: ./src/evidence-metadata.ts
+  - kind: ethereum
+    name: RealitioForeignProxyOptimism
+    network: gnosis
+    source:
+      abi: IEvidence
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 36404701
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: IEvidence
+          file: ./abis/IEvidence.json
+      entities: []
+      eventHandlers:
+        - event: MetaEvidence(indexed uint256,string)
+          handler: handleArbitratorMetaEvidence
+      file: ./src/evidence-metadata.ts
 EOF

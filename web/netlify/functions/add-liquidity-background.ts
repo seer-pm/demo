@@ -28,13 +28,13 @@ export default async (req: Request) => {
     console.log("skip conditional market ", marketId);
     return;
   }
-  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
   const liquidityAmount = BigInt(0.01 * 1e18);
   const totalLiquidityAmount = liquidityAmount * 2n * BigInt(market.wrappedTokens.length - 1);
   const currentSDaiBalance = await readContract(config, {
-    address: sDAIAddress,
+    address: COLLATERAL_TOKENS[chainId].primary.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [account.address],
