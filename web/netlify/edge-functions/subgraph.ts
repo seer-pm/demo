@@ -9,8 +9,7 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
     [optimism.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmUrD13KfaaoJmnUN9CH9wja8YLVdkGXhVjRTtkdkRw5oH`,
-    [base.id]:
-      "https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmS53PLFUSFY22P4PSZ1Davk19Zhj7FTDVxbXpzK1cFMaG",
+    [base.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmS53PLFUSFY22P4PSZ1Davk19Zhj7FTDVxbXpzK1cFMaG`,
     [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
