@@ -1,4 +1,4 @@
-import { gnosis, mainnet, optimism } from "wagmi/chains";
+import { base, gnosis, mainnet, optimism } from "wagmi/chains";
 
 export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
@@ -13,7 +13,7 @@ export const SER_LPP = {
 };
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
-export const CHAIN_IDS = [gnosis.id, mainnet.id, optimism.id];
+export const CHAIN_IDS = [gnosis.id, mainnet.id, optimism.id, base.id];
 export const SUBGRAPHS = {
   seer: {
     [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
@@ -33,6 +33,7 @@ export const SUBGRAPHS = {
   uniswap: {
     [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
     [optimism.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5Vg1mtJELha5ApuhkBk573K1iQKh6uUie72VotwGURy4`,
+    [base.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5vS7rrUPc4ftB2nodNBf4EoAZkdD11jPuUVw7p56bMLb`,
   },
   tokens: {
     [gnosis.id]:

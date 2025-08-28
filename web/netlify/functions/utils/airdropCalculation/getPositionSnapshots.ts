@@ -1,10 +1,10 @@
-import { SupportedChain, mainnet, optimism } from "@/lib/chains";
+import { SupportedChain, base, mainnet, optimism } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
-import ethers, { BigNumber } from "ethers";
+import ethers from "ethers";
 import pLimit from "p-limit";
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { START_TIME, SUBGRAPHS } from "./constants";
 
 export interface PositionSnapshot {
@@ -69,7 +69,9 @@ export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, t
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || chainId === optimism.id ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+          chainId === mainnet.id || chainId === optimism.id || chainId === base.id
+            ? SUBGRAPHS["uniswap"][chainId]
+            : SUBGRAPHS["algebra"][100],
           {
             method: "POST",
             headers: {
@@ -190,7 +192,7 @@ export function getLiquidityBalancesByPositionAtTimestamp(positionSnapshots: Pos
   const formattedBalances: { [key: string]: { [key: string]: number } } = {};
   for (const [user, balances] of Object.entries(tokenBalances)) {
     // Exclude zero address and non-positive balances
-    if (user !== ethers.constants.AddressZero) {
+    if (user !== zeroAddress) {
       formattedBalances[user] = {};
       for (const [tokenId, balance] of Object.entries(balances)) {
         if (balance > 0) {
