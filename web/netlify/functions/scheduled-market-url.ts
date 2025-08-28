@@ -24,9 +24,9 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: MarketDa
           .from("markets")
           .update({
             url,
-            chain_id: chainId,
           })
           .eq("id", market.id)
+          .eq("chain_id", chainId)
           .is("url", null);
 
         if (error) {

@@ -1,7 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)";
@@ -16,10 +16,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
+          extensions?: Json;
           operationName?: string;
           query?: string;
           variables?: Json;
-          extensions?: Json;
         };
         Returns: Json;
       };
@@ -33,6 +33,21 @@ export type Database = {
   };
   public: {
     Tables: {
+      airdrop_state: {
+        Row: {
+          id: string;
+          last_timestamp: number;
+        };
+        Insert: {
+          id: string;
+          last_timestamp: number;
+        };
+        Update: {
+          id?: string;
+          last_timestamp?: number;
+        };
+        Relationships: [];
+      };
       airdrops: {
         Row: {
           address: string;
@@ -188,7 +203,7 @@ export type Database = {
       markets: {
         Row: {
           categories: string[] | null;
-          chain_id: number | null;
+          chain_id: number;
           chart_data: Json | null;
           created_at: string | null;
           creator: string | null;
@@ -211,7 +226,7 @@ export type Database = {
         };
         Insert: {
           categories?: string[] | null;
-          chain_id?: number | null;
+          chain_id: number;
           chart_data?: Json | null;
           created_at?: string | null;
           creator?: string | null;
@@ -234,7 +249,7 @@ export type Database = {
         };
         Update: {
           categories?: string[] | null;
-          chain_id?: number | null;
+          chain_id?: number;
           chart_data?: Json | null;
           created_at?: string | null;
           creator?: string | null;
@@ -420,6 +435,10 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown };
         Returns: unknown;
+      };
+      insert_airdrop_safely: {
+        Args: { new_timestamp: number; records: Json };
+        Returns: undefined;
       };
       set_limit: {
         Args: { "": number };

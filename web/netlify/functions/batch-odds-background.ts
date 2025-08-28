@@ -31,6 +31,7 @@ export default async () => {
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
+        chain_id: market.chainId,
         liquidity: liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0,
         pool_balance: liquidityToMarketMapping[market.id]?.poolBalance || [],
         updated_at: new Date(),
@@ -54,6 +55,7 @@ export default async () => {
     const { error } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({
         id: market.id,
+        chain_id: market.chainId,
         odds: results[index].map((x) => (Number.isNaN(x) ? null : x)),
         updated_at: new Date(),
       })),
@@ -72,6 +74,7 @@ export default async () => {
     const { error: errorIncentive } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
+        chain_id: market.chainId,
         incentive: marketToIncentiveMapping[market.id] ?? 0,
         updated_at: new Date(),
       })),

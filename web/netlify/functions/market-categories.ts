@@ -24,7 +24,7 @@ export default async (req: Request) => {
       if (!chainId) {
         return new Response(JSON.stringify({ error: "Missing chainId" }), { status: 400 });
       }
-      const { data: existing } = await supabase.from("markets").select().eq("id", marketId);
+      const { data: existing } = await supabase.from("markets").select().eq("id", marketId).eq("chain_id", chainId);
       if (!existing?.[0]?.creator) {
         const market = await fetchMarket(chainId.toString(), marketId);
 
@@ -37,7 +37,7 @@ export default async (req: Request) => {
         }
         const { error } = await supabase
           .from("markets")
-          .upsert({ id: marketId, creator: userId.toLowerCase(), categories });
+          .upsert({ id: marketId, chain_id: chainId, creator: userId.toLowerCase(), categories });
         if (error) {
           throw error;
         }
@@ -47,7 +47,11 @@ export default async (req: Request) => {
         if (!isTwoStringsEqual(creator, userId)) {
           return new Response(JSON.stringify({ error: "User is not creator" }), { status: 500 });
         }
-        const { error } = await supabase.from("markets").update({ categories }).eq("id", marketId);
+        const { error } = await supabase
+          .from("markets")
+          .update({ categories })
+          .eq("id", marketId)
+          .eq("chain_id", chainId);
         if (error) {
           throw error;
         }
