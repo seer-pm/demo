@@ -18,6 +18,7 @@ if (typeof window !== "undefined") {
       [ChainId.XDAI]: GNOSIS_RPC,
       [ChainId.MAINNET]: MAINNET_RPC,
       [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
+      [ChainId.BASE]: BASE_RPC,
     });
   });
 }
