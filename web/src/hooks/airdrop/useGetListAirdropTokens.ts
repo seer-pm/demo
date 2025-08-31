@@ -48,7 +48,7 @@ export const useGetListAirdropTokens = (account: Address | undefined, chainId: S
           })),
           allowFailure: false,
         }),
-        getTokensInfo(tokenAddresses, account!),
+        getTokensInfo(config, chainId, tokenAddresses, account!),
       ]);
       const { names: tokenNames, decimals: tokenDecimals } = tokensInfo;
       const tokens = tokenAddresses.reduce((acumm, tokenAddress, index) => {

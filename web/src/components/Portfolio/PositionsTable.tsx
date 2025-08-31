@@ -94,11 +94,11 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               <div className="w-[100%]">
                 <a
                   className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer"
-                  href={`${paths.market(position.marketAddress, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  href={`${paths.market(position.marketId, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <MarketImage marketAddress={position.marketAddress as Address} chainId={chainId as SupportedChain} />
+                  <MarketImage marketAddress={position.marketId} chainId={chainId as SupportedChain} />
                   <p title={info.getValue<string>()} className="truncate">
                     {info.getValue<string>()}
                   </p>
@@ -175,7 +175,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 type="button"
                 className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
                 onClick={() => {
-                  setSelectedMarketId(position.marketAddress as Address);
+                  setSelectedMarketId(position.marketId);
                   openModal();
                 }}
               >
