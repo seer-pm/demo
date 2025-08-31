@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
@@ -12,7 +12,7 @@ import {
   isQuestionPending,
   isQuestionUnanswered,
 } from "./reality";
-import { isUndefined } from "./utils";
+import { isTwoStringsEqual, isUndefined } from "./utils";
 
 export interface Question {
   id: `0x${string}`;
@@ -468,4 +468,52 @@ export function deserializeMarket(market: SerializedMarket): Market {
         }
       : undefined,
   };
+}
+
+/**
+ * Calculates the redeemed price for a specific outcome
+ *
+ * The redeemed price represents the payout ratio when the market is finalized.
+ * For parent-child market relationships, this function handles the cascading payout calculations.
+ *
+ * @param market - The market containing payout information
+ * @param tokenIndex - The index of the specific outcome token
+ * @returns The redeemed price as a decimal ratio (0-1), or 0 if no payout is available
+ */
+export function getRedeemedPrice(market: Market, tokenIndex: number) {
+  // If the market hasn't reported payouts yet, return 0
+  if (!market.payoutReported) {
+    return 0;
+  }
+
+  // Calculate the total sum of all payout numerators for this market
+  const sumPayout = market.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+
+  // Check if this is a standalone market (no parent market)
+  if (isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
+    // Return the ratio of this outcome's payout to total payouts
+    return Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+  }
+
+  // For child markets, check if the parent market has reported payouts and this outcome is winning
+  const isParentPayout =
+    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
+
+  if (isParentPayout) {
+    // Calculate total payouts for the parent market
+    const sumParentPayout = market.parentMarket.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+
+    // Calculate the payout price for this specific outcome in the child market
+    const payoutPrice = Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+
+    // Calculate the payout price for the parent market outcome
+    const parentPayoutPrice =
+      Number(market.parentMarket.payoutNumerators[Number(market.parentOutcome)]) / sumParentPayout;
+
+    // Return the combined payout: child market outcome price × parent market outcome price
+    return payoutPrice * parentPayoutPrice;
+  }
+
+  // If parent market hasn't reported payouts or this outcome isn't winning, return 0
+  return 0;
 }
