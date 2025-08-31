@@ -8,10 +8,10 @@ import {
   getMarketStatus,
   getMarketType,
   getQuestionParts,
+  getRedeemedPrice,
 } from "@/lib/market";
-import { isTwoStringsEqual } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits, zeroAddress } from "viem";
+import { Address, formatUnits } from "viem";
 import { getTokensInfo } from "../utils";
 
 export interface PortfolioPosition {
@@ -34,24 +34,6 @@ export interface PortfolioPosition {
   outcomeImage?: string;
   isInvalidOutcome: boolean;
 }
-
-const getRedeemedPrice = (market: Market, tokenIndex: number) => {
-  if (!market.payoutReported) return 0;
-  const sumPayout = market.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
-  if (isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
-    return Number(market.payoutNumerators[tokenIndex]) / sumPayout;
-  }
-  const isParentPayout =
-    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
-  if (isParentPayout) {
-    const sumParentPayout = market.parentMarket.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
-    const payoutPrice = Number(market.payoutNumerators[tokenIndex]) / sumPayout;
-    const parentPayoutPrice =
-      Number(market.parentMarket.payoutNumerators[Number(market.parentOutcome)]) / sumParentPayout;
-    return payoutPrice * parentPayoutPrice;
-  }
-  return 0;
-};
 
 export const fetchPositions = async (
   initialMarkets: Market[] | undefined,
