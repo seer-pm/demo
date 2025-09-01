@@ -93,6 +93,12 @@ export function mapGraphMarket(
     blockTimestamp: Number(market.blockTimestamp),
     payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
+    images: extra.images
+      ? {
+          market: `https://cdn.kleros.link${extra.images.market}`,
+          outcomes: ((extra.images.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
+        }
+      : undefined,
   };
 }
 
