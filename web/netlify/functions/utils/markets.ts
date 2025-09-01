@@ -93,6 +93,12 @@ export function mapGraphMarket(
     blockTimestamp: Number(market.blockTimestamp),
     payoutNumerators: market.payoutNumerators.map((n) => BigInt(n)),
     ...extra,
+    images: extra.images
+      ? {
+          market: `https://cdn.kleros.link${extra.images.market}`,
+          outcomes: ((extra.images.outcomes || []) as string[]).map((path) => `https://cdn.kleros.link${path}`),
+        }
+      : undefined,
   };
 }
 
@@ -366,4 +372,28 @@ export async function getSubgraphMarket(chainId: SupportedChain, id: "" | Addres
   const client = graphQLClient(chainId);
   const { market } = await getSeerSdk(client).GetMarket({ id });
   return market;
+}
+
+export function getMarketsMappings(markets: Market[]) {
+  return markets.reduce(
+    (acum, market) => {
+      // Add market to marketIdToMarket mapping
+      acum.marketIdToMarket[market.id] = market;
+
+      // Add token mappings to tokenToMarket
+      for (let i = 0; i < market.wrappedTokens.length; i++) {
+        const tokenId = market.wrappedTokens[i];
+        acum.tokenToMarket[tokenId] = {
+          market,
+          tokenIndex: i,
+        };
+      }
+
+      return acum;
+    },
+    {
+      marketIdToMarket: {} as Record<Address, Market>,
+      tokenToMarket: {} as Record<Address, { market: Market; tokenIndex: number }>,
+    },
+  );
 }

@@ -1,8 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { config } from "@/wagmi";
-import { readContracts } from "@wagmi/core";
+import { Config, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 
 export function getTokenPricesMapping(
@@ -67,7 +66,12 @@ export function getTokenPricesMapping(
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }
 
-export async function getTokensInfo(tokenAddresses: readonly Address[], account: Address) {
+export async function getTokensInfo(
+  config: Config,
+  chainId: SupportedChain,
+  tokenAddresses: readonly Address[],
+  account: Address,
+) {
   const functions = [
     {
       name: "balanceOf",
@@ -88,6 +92,7 @@ export async function getTokensInfo(tokenAddresses: readonly Address[], account:
         contracts: tokenAddresses.map((wrappedAddress) => ({
           abi: erc20Abi,
           address: wrappedAddress,
+          chainId,
           functionName: name,
           args,
         })),

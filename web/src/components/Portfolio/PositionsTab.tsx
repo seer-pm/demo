@@ -10,7 +10,7 @@ import PositionsTable from "./PositionsTable";
 
 function PositionsTab() {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { positions = [], error } = useCalculatePositionsValue();
+  const { positions = [], error, isGettingPositions } = useCalculatePositionsValue();
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);
@@ -25,7 +25,7 @@ function PositionsTab() {
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
-  if (positions.length === 0) {
+  if (isGettingPositions) {
     return <div className="shimmer-container w-full h-[200px]" />;
   }
   if (!filteredPositions.length) {

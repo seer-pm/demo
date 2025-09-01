@@ -1,24 +1,12 @@
-import { useMarkets } from "@/hooks/useMarkets";
 import { SupportedChain } from "@/lib/chains";
-import {
-  Market,
-  MarketStatus,
-  MarketTypes,
-  getCollateralByIndex,
-  getMarketStatus,
-  getMarketType,
-  getQuestionParts,
-  getRedeemedPrice,
-} from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
-import { Address, formatUnits } from "viem";
-import { getTokensInfo } from "../utils";
+import { Address } from "viem";
 
 export interface PortfolioPosition {
   tokenName: string;
   tokenId: Address;
   tokenIndex: number;
-  marketAddress: string;
+  marketId: Address;
   marketName: string;
   marketStatus: string;
   tokenBalance: number;
@@ -35,94 +23,18 @@ export interface PortfolioPosition {
   isInvalidOutcome: boolean;
 }
 
-export const fetchPositions = async (
-  initialMarkets: Market[] | undefined,
-  address: Address,
-  chainId: SupportedChain,
-) => {
-  if (!initialMarkets) return [];
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
-  // tokenId => marketId
-  const marketIdToMarket = markets.reduce(
-    (acum, market) => {
-      acum[market.id] = {
-        ...market,
-        marketStatus: getMarketStatus(market),
-      };
-      return acum;
-    },
-    {} as Record<Address, Market & { marketStatus: string }>,
-  );
-
-  const tokenToMarket = markets.reduce(
-    (acum, market) => {
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum[tokenId] = {
-          marketAddress: market.id,
-          tokenIndex: i,
-        };
-      }
-      return acum;
-    },
-    {} as Record<Address, { marketAddress: Address; tokenIndex: number }>,
-  );
-
-  const allTokensIds = Object.keys(tokenToMarket) as Address[];
-  const { balances, names: tokenNames, decimals: tokenDecimals } = await getTokensInfo(allTokensIds, address);
-
-  const positions = balances.reduce((acumm, balance, index) => {
-    if (balance > 0n) {
-      const { marketAddress, tokenIndex } = tokenToMarket[allTokensIds[index]];
-      const market = marketIdToMarket[marketAddress];
-      const parentMarket = marketIdToMarket[market.parentMarket.id];
-      const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
-      const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
-      const marketType = getMarketType(market);
-      const parts = getQuestionParts(market.marketName, marketType);
-      const marketName =
-        marketType === MarketTypes.MULTI_SCALAR && parts
-          ? `${parts?.questionStart} ${market.outcomes[outcomeIndex]} ${parts?.questionEnd}`.trim()
-          : market.marketName;
-      acumm.push({
-        marketAddress,
-        tokenIndex,
-        tokenName: tokenNames[index],
-        tokenId: allTokensIds[index],
-        tokenBalance: Number(formatUnits(balance, Number(tokenDecimals[index]))),
-        marketName,
-        marketStatus: market.marketStatus,
-        marketFinalizeTs: market.finalizeTs,
-        outcome: market.outcomes[outcomeIndex],
-        collateralToken: getCollateralByIndex(market, tokenIndex),
-        parentMarketName: parentMarket?.marketName,
-        parentMarketId: parentMarket?.id,
-        parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
-        redeemedPrice: getRedeemedPrice(market, tokenIndex),
-        outcomeImage: market.images?.outcomes?.[outcomeIndex],
-        isInvalidOutcome,
-      });
-    }
-    return acumm;
-  }, [] as PortfolioPosition[]);
-  return positions.filter((position) => {
-    const market = marketIdToMarket[position.marketAddress as Address];
-    if (position.marketStatus === MarketStatus.CLOSED) {
-      const isPayout = market.payoutReported && market.payoutNumerators[position.tokenIndex] > 0n;
-      const isParentPayout =
-        !market.parentMarket.payoutReported ||
-        (market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n);
-      return isPayout && isParentPayout;
-    }
-    return true;
-  });
-};
-
-export const usePositions = (address: Address, chainId: SupportedChain) => {
-  const { data } = useMarkets({});
+export const usePositions = (address: Address | undefined, chainId: SupportedChain) => {
   return useQuery<PortfolioPosition[] | undefined, Error>({
-    enabled: !!address && data && data.markets.length > 0,
+    enabled: !!address,
     queryKey: ["usePositions", address, chainId],
-    queryFn: async () => fetchPositions(data!.markets, address, chainId),
+    queryFn: async () => {
+      const response = await fetch(`/.netlify/functions/get-portfolio?account=${address}&chainId=${chainId}`);
+
+      if (!response.ok) {
+        throw new Error("Error fetching portfolio");
+      }
+
+      return (await response.json()) as PortfolioPosition[];
+    },
   });
 };

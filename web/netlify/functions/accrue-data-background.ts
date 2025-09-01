@@ -1,15 +1,14 @@
 import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
-import { GetPoolsQuery, OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market, getCollateralByIndex, getMarketStatus, getToken0Token1 } from "@/lib/market";
+import { Market, getCollateralByIndex, getToken0Token1 } from "@/lib/market";
 import { fetchMarkets } from "@/lib/markets-fetch";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Address } from "viem";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import { fetchPools } from "./utils/fetchPools";
 import { getsDaiPriceByChainMapping } from "./utils/getMarketsLiquidity";
+import { getMarketsMappings } from "./utils/markets";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   const transfers = await getAllTransfers(chainId);
@@ -86,30 +85,11 @@ async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
 }
 
 async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDaiPrice: number) {
-  const marketIdToMarket = markets.reduce(
-    (acum, market) => {
-      acum[market.id] = {
-        ...market,
-        marketStatus: getMarketStatus(market),
-      };
-      return acum;
-    },
-    {} as Record<Address, Market & { marketStatus: string }>,
-  );
-  const tokenToMarket = markets.reduce(
-    (acum, market) => {
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum[tokenId] = market;
-      }
-      return acum;
-    },
-    {} as Record<Address, Market>,
-  );
+  const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
 
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
   const tokens = allTokensIds.map((tokenId) => {
-    const market = tokenToMarket[tokenId];
+    const { market } = tokenToMarket[tokenId];
     const parentMarket = marketIdToMarket[market.parentMarket.id];
     const tokenIndex = market.wrappedTokens.indexOf(tokenId);
     return {
@@ -128,7 +108,6 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, sDai
   const marketsVolume = markets.map((market) => {
     let totalVolume = 0;
     for (const tokenId of market.wrappedTokens) {
-      const market = tokenToMarket[tokenId];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const parentTokenId = parentMarket
         ? parentMarket.wrappedTokens[Number(market.parentOutcome)]
