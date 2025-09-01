@@ -2,7 +2,6 @@ import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPo
 import { getTokensInfo } from "@/hooks/portfolio/utils";
 import { SupportedChain } from "@/lib/chains";
 import {
-  Market,
   MarketStatus,
   MarketTypes,
   getCollateralByIndex,
@@ -13,31 +12,7 @@ import {
 } from "@/lib/market";
 import { Address, formatUnits } from "viem";
 import { config } from "./utils/config";
-import { searchMarkets } from "./utils/markets";
-
-function getMarketsMappings(markets: Market[]) {
-  return markets.reduce(
-    (acum, market) => {
-      // Add market to marketIdToMarket mapping
-      acum.marketIdToMarket[market.id] = market;
-
-      // Add token mappings to tokenToMarket
-      for (let i = 0; i < market.wrappedTokens.length; i++) {
-        const tokenId = market.wrappedTokens[i];
-        acum.tokenToMarket[tokenId] = {
-          marketId: market.id,
-          tokenIndex: i,
-        };
-      }
-
-      return acum;
-    },
-    {
-      marketIdToMarket: {} as Record<Address, Market>,
-      tokenToMarket: {} as Record<Address, { marketId: Address; tokenIndex: number }>,
-    },
-  );
-}
+import { getMarketsMappings, searchMarkets } from "./utils/markets";
 
 async function fetchPositions(address: Address, chainId: SupportedChain) {
   const { markets } = await searchMarkets([chainId]);
@@ -57,8 +32,7 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
 
   return balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {
-      const { marketId, tokenIndex } = tokenToMarket[allTokensIds[index]];
-      const market = marketIdToMarket[marketId];
+      const { market, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
       const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
@@ -84,7 +58,7 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
           ? `${parts?.questionStart} ${market.outcomes[outcomeIndex]} ${parts?.questionEnd}`.trim()
           : market.marketName;
       acumm.push({
-        marketId,
+        marketId: market.id,
         tokenIndex,
         tokenName: tokenNames[index],
         tokenId: allTokensIds[index],
