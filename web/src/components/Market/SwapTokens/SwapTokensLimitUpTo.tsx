@@ -27,7 +27,7 @@ import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
-import AltCollateralSwitch from "../AltCollateralSwitch";
+import AltCollateralDropdown from "../AltCollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { FutarchyTokenSwitch } from "./SwapTokensMarket";
@@ -217,6 +217,20 @@ export function SwapTokensLimitUpto({
   const isPriceTooHigh = market.type === "Generic" && collateralPerShare > 1 && swapType === "buy";
 
   const renderTokenDisplay = (container: "buy" | "sell") => {
+    const isTokenCollateral = isTwoStringsEqual(
+      container === "sell" ? sellToken.address : buyToken.address,
+      selectedCollateral.address,
+    );
+    if (isTokenCollateral && isUndefined(fixedCollateral)) {
+      return (
+        <AltCollateralDropdown
+          market={market}
+          isUseWrappedToken={isUseWrappedToken}
+          useAltCollateral={useAltCollateral}
+          setUseAltCollateral={(useAltCollateral) => setValue("useAltCollateral", useAltCollateral)}
+        />
+      );
+    }
     const imageElement = (() => {
       const isTokenCollateral = isTwoStringsEqual(
         container === "sell" ? sellToken.address : buyToken.address,
@@ -501,7 +515,7 @@ export function SwapTokensLimitUpto({
               {renderLimitTokenDisplay()}
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9]")}>
             <p className="text-[#131313a1]">You will sell</p>
             <div className="flex justify-between items-start">
               <div>
@@ -567,7 +581,7 @@ export function SwapTokensLimitUpto({
               )}
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9] hover:bg-[#f2f2f2]")}>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9]")}>
             <p className="text-[#131313a1]">To receive</p>
             <div className="flex justify-between items-start">
               <div>
@@ -654,13 +668,6 @@ export function SwapTokensLimitUpto({
         )}
 
         <div className="flex justify-between flex-wrap gap-4">
-          {market.type === "Generic" && isUndefined(fixedCollateral) && (
-            <AltCollateralSwitch
-              {...register("useAltCollateral")}
-              market={market}
-              isUseWrappedToken={isUseWrappedToken}
-            />
-          )}
           {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
           <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
             Parameters:{" "}
