@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -18,8 +17,8 @@ interface IUniswapV2Router {
 
 interface IRouter {
     function splitPosition(
-        address collateral, 
-        address market, 
+        address collateral,
+        address market,
         uint256 amount
     ) external;
 }
@@ -61,7 +60,9 @@ interface IMarket {
     function questionsIds() external view returns (bytes32[] memory);
 
     /// @dev Getter for encoded questions
-    function encodedQuestions(uint256 index) external view returns (string memory);
+    function encodedQuestions(
+        uint256 index
+    ) external view returns (string memory);
 
     /// @dev Getter for question ID
     function questionId() external view returns (bytes32);
@@ -79,10 +80,15 @@ interface IMarket {
     function parentOutcome() external view returns (uint256);
 
     /// @dev Getter for wrapped outcome
-    function wrappedOutcome(uint256 index) external view returns (IERC20 wrapped1155, bytes memory data);
+    function wrappedOutcome(
+        uint256 index
+    ) external view returns (IERC20 wrapped1155, bytes memory data);
 
     /// @dev Getter for parent wrapped outcome
-    function parentWrappedOutcome() external view returns (IERC20 wrapped1155, bytes memory data);
+    function parentWrappedOutcome()
+        external
+        view
+        returns (IERC20 wrapped1155, bytes memory data);
 
     /// @dev Getter for number of outcomes
     function numOutcomes() external view returns (uint256);
@@ -92,20 +98,36 @@ interface IMarket {
 
     /// @dev Public getters for market properties
     function marketName() external view returns (string memory);
+
     function outcomes(uint256 index) external view returns (string memory);
+
     function lowerBound() external view returns (uint256);
+
     function upperBound() external view returns (uint256);
+
     function initialized() external view returns (bool);
 }
 
 interface IConditionalTokens {
-    function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256);
+    function payoutNumerators(
+        bytes32 conditionId,
+        uint256 index
+    ) external view returns (uint256);
 
-    function payoutDenominator(bytes32 conditionId) external view returns (uint256);
+    function payoutDenominator(
+        bytes32 conditionId
+    ) external view returns (uint256);
 
-    function prepareCondition(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external;
+    function prepareCondition(
+        address oracle,
+        bytes32 questionId,
+        uint256 outcomeSlotCount
+    ) external;
 
-    function reportPayouts(bytes32 questionId, uint256[] calldata payouts) external;
+    function reportPayouts(
+        bytes32 questionId,
+        uint256[] calldata payouts
+    ) external;
 
     function splitPosition(
         /*IERC20*/
@@ -145,11 +167,82 @@ interface IConditionalTokens {
         uint256 indexSet
     ) external view returns (bytes32);
 
-    function getPositionId(address collateralToken, bytes32 collectionId) external pure returns (uint256);
+    function getPositionId(
+        address collateralToken,
+        bytes32 collectionId
+    ) external pure returns (uint256);
 
-    function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256);
+    function getOutcomeSlotCount(
+        bytes32 conditionId
+    ) external view returns (uint256);
 
-    function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes calldata data) external;
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 value,
+        bytes calldata data
+    ) external;
 
-    function balanceOf(address owner, uint256 id) external view returns (uint256);
+    function balanceOf(
+        address owner,
+        uint256 id
+    ) external view returns (uint256);
+}
+
+interface IERC4626 is IERC20 {
+    function previewDeposit(uint256 assets) external view returns (uint256);
+
+    function previewRedeem(uint256 shares) external view returns (uint256);
+}
+
+interface ISingleQuoter {
+    /// @notice Returns the amount out received for a given exact input but for a swap of a single pool
+    /// @param tokenIn The token being swapped in
+    /// @param tokenOut The token being swapped out
+    /// @param amountIn The desired input amount
+    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap
+    /// @return amountOut The amount of `tokenOut` that would be received
+    function quoteExactInputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint160 limitSqrtPrice
+    ) external returns (uint256 amountOut, uint16 fee);
+
+    /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool
+    /// @param tokenIn The token being swapped in
+    /// @param tokenOut The token being swapped out
+    /// @param amountOut The desired output amount
+    /// @param limitSqrtPrice The price limit of the pool that cannot be exceeded by the swap
+    /// @return amountIn The amount required as the input for the swap in order to receive `amountOut`
+    function quoteExactOutputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountOut,
+        uint160 limitSqrtPrice
+    ) external returns (uint256 amountIn, uint16 fee);
+}
+
+interface IAlgebraFactory {
+    /**
+     * @notice Returns the pool address for a given pair of tokens and a fee, or address 0 if it does not exist
+     * @dev tokenA and tokenB may be passed in either token0/token1 or token1/token0 order
+     * @param tokenA The contract address of either token0 or token1
+     * @param tokenB The contract address of the other token
+     * @return pool The pool address
+     */
+    function poolByPair(
+        address tokenA,
+        address tokenB
+    ) external view returns (address pool);
+}
+
+interface IAlgebraPool {
+    /**
+     * @notice The currently in range liquidity available to the pool
+     * @dev This value has no relationship to the total liquidity across all ticks.
+     * Returned value cannot exceed type(uint128).max
+     */
+    function liquidity() external view returns (uint128);
 }
