@@ -55,32 +55,35 @@ export type UseMissingApprovalsProps = {
   chainId: SupportedChain;
 };
 
-interface UseMissingApprovalsReturn {
+export interface UseMissingApprovalsReturn {
   address: Address;
   name: string;
   spender: Address;
   amount: bigint;
 }
 
-export const useMissingApprovals = ({
-  tokensAddresses,
-  account,
-  spender,
-  amounts,
-  chainId,
-}: UseMissingApprovalsProps) => {
-  let approvalAmounts: bigint[];
-  if (typeof amounts === "bigint") {
+export const useMissingApprovals = (props: UseMissingApprovalsProps | undefined) => {
+  let approvalAmounts: bigint[] = [];
+  if (!props) {
+    // nothing
+  } else if (typeof props.amounts === "bigint") {
     // approve the same amount for every token
-    approvalAmounts = new Array(tokensAddresses.length).fill(amounts);
+    approvalAmounts = new Array(props.tokensAddresses.length).fill(props.amounts);
   } else {
-    approvalAmounts = amounts;
+    approvalAmounts = props.amounts;
   }
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
-    enabled: tokensAddresses.length > 0 && !!account,
-    queryKey: ["useMissingApprovals", tokensAddresses, account, spender, approvalAmounts.map((a) => a.toString())],
+    enabled: props && props.tokensAddresses.length > 0 && !!props.account,
+    queryKey: [
+      "useMissingApprovals",
+      props?.tokensAddresses,
+      props?.account,
+      props?.spender,
+      approvalAmounts.map((a) => a.toString()),
+    ],
     queryFn: async () => {
+      const { tokensAddresses, account, spender, chainId } = props!;
       const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, spender, approvalAmounts, chainId);
       const tokensInfo = await Promise.all(
         missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId)),
