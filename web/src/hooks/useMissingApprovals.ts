@@ -74,12 +74,13 @@ export const useMissingApprovals = (props: UseMissingApprovalsProps | undefined)
   }
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
-    enabled: props && props.tokensAddresses.length > 0 && !!props.account,
+    enabled: Boolean(props?.tokensAddresses.length && props?.account),
     queryKey: [
       "useMissingApprovals",
       props?.tokensAddresses,
       props?.account,
       props?.spender,
+      props?.chainId,
       approvalAmounts.map((a) => a.toString()),
     ],
     queryFn: async () => {

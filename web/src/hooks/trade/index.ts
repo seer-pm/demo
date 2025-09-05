@@ -261,16 +261,12 @@ function useTradeLegacy(account: Address | undefined, trade: Trade | undefined, 
   };
 }
 
-async function tradeTokens7702(
-  account: Address,
-  trade: Trade,
-  props: TradeTokensProps,
-): Promise<string | TransactionReceipt> {
+async function tradeTokens7702(props: TradeTokensProps): Promise<string | TransactionReceipt> {
   if (props.trade instanceof CoWTrade) {
     return executeCoWTrade(props.trade);
   }
 
-  const calls: Execution[] = getTradeApprovals7702(account, trade);
+  const calls: Execution[] = getTradeApprovals7702(props.account, props.trade);
 
   calls.push(
     props.trade instanceof UniswapTrade
@@ -296,7 +292,7 @@ async function tradeTokens7702(
   return result.receipt;
 }
 
-const useTrade7702 = (account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) => {
+const useTrade7702 = (onSuccess: () => unknown) => {
   const { addPendingOrder } = useGlobalState();
 
   const approvals = {
@@ -307,7 +303,7 @@ const useTrade7702 = (account: Address | undefined, trade: Trade | undefined, on
   return {
     approvals,
     tradeTokens: useMutation({
-      mutationFn: (props: TradeTokensProps) => tradeTokens7702(account!, trade!, props),
+      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props),
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
           addPendingOrder(result);
@@ -324,7 +320,7 @@ const useTrade7702 = (account: Address | undefined, trade: Trade | undefined, on
 
 export const useTrade = (account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) => {
   const supports7702 = useCheck7702Support();
-  const trade7702 = useTrade7702(account, trade, onSuccess);
+  const trade7702 = useTrade7702(onSuccess);
   const tradeLegacy = useTradeLegacy(account, trade, onSuccess);
 
   return supports7702 ? trade7702 : tradeLegacy;
