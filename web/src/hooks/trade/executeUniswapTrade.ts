@@ -16,7 +16,10 @@ export async function executeUniswapTrade(trade: UniswapTrade, account: Address)
         data: populatedTransaction.data!.toString() as `0x${string}`,
         value: BigInt(populatedTransaction.value?.toString() || 0),
       }),
-    { txSent: { title: "Executing trade..." }, txSuccess: { title: "Trade executed!" } },
+    {
+      txSent: { title: "Executing trade..." },
+      txSuccess: { title: "Trade executed!" },
+    },
   );
 
   if (!result.status) {
@@ -24,4 +27,19 @@ export async function executeUniswapTrade(trade: UniswapTrade, account: Address)
   }
 
   return result.receipt;
+}
+
+export async function buildUniswapTrade(
+  trade: UniswapTrade,
+  account: Address,
+): Promise<{ to: Address; value: bigint; data: `0x${string}` }> {
+  const populatedTransaction = await trade.swapTransaction({
+    recipient: account,
+  });
+
+  return {
+    to: populatedTransaction.to! as Address,
+    value: BigInt(populatedTransaction.value?.toString() || 0),
+    data: populatedTransaction.data!.toString() as `0x${string}`,
+  };
 }

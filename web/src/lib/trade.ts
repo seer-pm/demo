@@ -1,5 +1,12 @@
+import { buildSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
+import { buildUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
+import { Execution } from "@/hooks/useCheck7702Support";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { getApprovals7702 } from "@/hooks/useMissingApprovals";
+import { getSplitMergeRedeemCollateral } from "@/hooks/useSelectedCollateral";
+import { splitFromRouter } from "@/hooks/useSplitPosition";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
+import { config } from "@/wagmi";
 import { PriceQuality } from "@cowprotocol/cow-sdk";
 import {
   CoWTrade,
@@ -12,9 +19,13 @@ import {
   TradeType,
   UniswapTrade,
 } from "@swapr/sdk";
-import { Address, parseUnits, zeroAddress } from "viem";
+import { sendCalls } from "@wagmi/core";
+import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { gnosis } from "viem/chains";
 import { SupportedChain } from "./chains";
-import { COLLATERAL_TOKENS } from "./config";
+import { COLLATERAL_TOKENS, getRouterAddress } from "./config";
+import { Market } from "./market";
+import { toastifyTx } from "./toastify";
 import { Token } from "./tokens";
 
 export interface QuoteTradeResult {
@@ -246,4 +257,154 @@ export const getSwaprQuote: QuoteTradeFn = async (
     sellAmount: args.sellAmount.toString(),
     swapType,
   };
+};
+
+// sell others to rebuy outcome
+export const getRebuyQuote = async (
+  chainId: number,
+  account: Address | undefined,
+  market: Market,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+) => {
+  const getTradeFn = chainId === gnosis.id ? getSwaprTrade : getUniswapTrade;
+  const sellOthers = await Promise.all(
+    market.wrappedTokens.map(async (token) => {
+      if (!isTwoStringsEqual(token, outcomeToken.address)) {
+        const args = await getTradeArgs(
+          chainId,
+          amount,
+          { address: token, symbol: "SEER_OUTCOME", decimals: 18 },
+          collateralToken,
+          "sell",
+        );
+
+        const trade = await getTradeFn(
+          args.currencyIn,
+          args.currencyOut,
+          args.currencyAmountIn,
+          args.maximumSlippage,
+          account,
+          chainId,
+        );
+
+        if (trade) {
+          return {
+            value: BigInt(trade.outputAmount.raw.toString()),
+            decimals: args.sellToken.decimals,
+            trade,
+            buyToken: args.buyToken.address,
+            sellToken: args.sellToken.address,
+            sellAmount: args.sellAmount.toString(),
+            swapType: "sell",
+          };
+        }
+      }
+    }),
+  );
+  const rebuyAmount = formatUnits(
+    sellOthers.filter((x) => x).reduce((acc, curr) => acc + BigInt(curr!.value), 0n),
+    18,
+  );
+  const args = await getTradeArgs(chainId, rebuyAmount, outcomeToken, collateralToken, "buy");
+
+  const trade = await getTradeFn(
+    args.currencyIn,
+    args.currencyOut,
+    args.currencyAmountIn,
+    args.maximumSlippage,
+    account,
+    chainId,
+  );
+
+  if (!trade) {
+    throw new Error("No route found");
+  }
+  return [
+    ...sellOthers.filter((x) => x),
+    {
+      value: BigInt(trade.outputAmount.raw.toString()),
+      decimals: args.sellToken.decimals,
+      trade,
+      buyToken: args.buyToken.address,
+      sellToken: args.sellToken.address,
+      sellAmount: args.sellAmount.toString(),
+      swapType: "buy",
+    },
+  ];
+};
+
+//mint -> sell others -> rebuy
+export const complexSwap = async (
+  account: Address,
+  market: Market,
+  selectedCollateral: Token,
+  amount: string,
+  useAltCollateral: boolean,
+  quotes: QuoteTradeResult[],
+  isBuyExactOutputNative: boolean,
+  isSellToNative: boolean,
+) => {
+  const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
+  const router = getRouterAddress(market);
+
+  //get split approvals
+  const splitApprovalConfig = {
+    tokensAddresses: selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
+    account,
+    spender: router,
+    amounts: parsedAmount,
+    chainId: market.chainId,
+  };
+  const calls: Execution[] = getApprovals7702(splitApprovalConfig);
+
+  //get trade approvals (sell -> rebuy)
+  for (const { trade } of quotes) {
+    const quoteApprovalConfig = {
+      tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+      account,
+      spender: trade.approveAddress as `0x${string}`,
+      amounts: BigInt(trade.maximumAmountIn().raw.toString()),
+      chainId: trade.chainId as SupportedChain,
+    };
+    calls.push(...getApprovals7702(quoteApprovalConfig));
+  }
+
+  // push split transaction
+  calls.push(
+    splitFromRouter(
+      getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
+      router,
+      market,
+      parsedAmount,
+    ),
+  );
+
+  // push trade transactions
+  const tradeTransactions = await Promise.all(
+    quotes.map((quote) =>
+      market.chainId === gnosis.id
+        ? buildSwaprTrade(quote.trade as SwaprV3Trade, account, isBuyExactOutputNative, isSellToNative)
+        : buildUniswapTrade(quote.trade as UniswapTrade, account),
+    ),
+  );
+  calls.push(...tradeTransactions);
+
+  const result = await toastifyTx(
+    () =>
+      sendCalls(config, {
+        calls,
+      }),
+    {
+      txSent: { title: "Minting tokens..." },
+      txSuccess: { title: "Tokens minted!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
 };

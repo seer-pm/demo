@@ -105,3 +105,61 @@ export async function multicallSellToNative(amountOut: string, swapData: string,
   }
   return result.receipt;
 }
+
+export async function buildSwaprTrade(
+  trade: SwaprV3Trade,
+  account: Address,
+  isBuyExactOutputNative: boolean,
+  isSellToNative: boolean,
+): Promise<{ to: Address; value: bigint; data: `0x${string}` }> {
+  const routerAddress = "0xffb643e73f280b97809a8b41f7232ab401a04ee1";
+
+  if (isSellToNative) {
+    // Use multicall to unwrap wrapped tokens to native tokens
+    // Recipient is zeroAddress since we want router to receive it
+    const populatedTransaction = await trade.swapTransaction({
+      recipient: zeroAddress,
+    });
+    const amountOut = `0x${trade.minimumAmountOut().raw.toString(16)}`;
+
+    const routerInterface = new ethers.utils.Interface(routerAbi);
+    const unwrapData = routerInterface.encodeFunctionData("unwrapWNativeToken", [amountOut, account]);
+    const multicallData = routerInterface.encodeFunctionData("multicall", [
+      [populatedTransaction.data!.toString(), unwrapData],
+    ]);
+
+    return {
+      to: routerAddress as Address,
+      value: BigInt(populatedTransaction.value?.toString() || 0),
+      data: multicallData as `0x${string}`,
+    };
+  }
+
+  const populatedTransaction = await trade.swapTransaction({
+    recipient: account,
+  });
+
+  if (isBuyExactOutputNative) {
+    // Use multicall to refund native token
+    const amountIn = `0x${trade.maximumAmountIn().raw.toString(16)}`;
+
+    const routerInterface = new ethers.utils.Interface(routerAbi);
+    const refundNativeTokenData = routerInterface.encodeFunctionData("refundNativeToken");
+    const multicallData = routerInterface.encodeFunctionData("multicall", [
+      [populatedTransaction.data!.toString(), refundNativeTokenData],
+    ]);
+
+    return {
+      to: routerAddress as Address,
+      value: BigInt(amountIn),
+      data: multicallData as `0x${string}`,
+    };
+  }
+
+  // Standard swap
+  return {
+    to: populatedTransaction.to! as Address,
+    value: BigInt(populatedTransaction.value?.toString() || 0),
+    data: populatedTransaction.data!.toString() as `0x${string}`,
+  };
+}
