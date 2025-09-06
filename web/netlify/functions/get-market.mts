@@ -41,7 +41,7 @@ export default async (req: Request) => {
     const id = await getMarketId(body.id, body.url);
 
     const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
-      getDatabaseMarket(id),
+      getDatabaseMarket(Number(body.chainId) as SupportedChain, id),
       getSubgraphMarket(Number(body.chainId) as SupportedChain, id),
       getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain),
     ]);

@@ -8,12 +8,10 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { getCollateralSymbol, getCollateralTokenForSwap } from "@/lib/tokens";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
-import { DAI, WXDAI } from "@swapr/sdk";
 import { Address, parseUnits } from "viem";
 
 async function fetchSwapsFromSubgraph(
@@ -81,7 +79,7 @@ async function fetchSwapsFromSubgraph(
 
 export async function getSwapEvents(
   mappings: MarketDataMapping,
-  account: string,
+  account: Address,
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
@@ -94,12 +92,7 @@ export async function getSwapEvents(
     const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));
     const tokenIn = Number(swap.amount1) < 0 ? swap.token0.id : swap.token1.id;
     const tokenOut = Number(swap.amount1) < 0 ? swap.token1.id : swap.token0.id;
-    const market =
-      tokenPairToMarketMapping[
-        tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
-          ? `${tokenOut.toLocaleLowerCase()}-${tokenIn.toLocaleLowerCase()}`
-          : `${tokenIn.toLocaleLowerCase()}-${tokenOut.toLocaleLowerCase()}`
-      ];
+    const market = tokenPairToMarketMapping[getTokensPairKey(tokenIn, tokenOut)];
     if (market) {
       acc.push({
         tokenIn,
@@ -124,36 +117,13 @@ export async function getSwapEvents(
   // get cowswap trades
   const orderBookApi = new OrderBookApi({ chainId: chainId as number });
   const trades = await orderBookApi.getTrades({ owner: account });
-  const isWXDAI = (tokenAddress: string) =>
-    isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||
-    isTwoStringsEqual(tokenAddress, DAI[chainId]?.address) ||
-    isTwoStringsEqual(tokenAddress, NATIVE_TOKEN);
-  const getWXDAISymbol = (tokenAddress: string, owner: string) => {
-    if (isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address)) {
-      if (!isTwoStringsEqual(owner, account) && chainId === gnosis.id) {
-        return "xDAI";
-      }
-      return WXDAI[chainId]?.symbol;
-    }
-    if (isTwoStringsEqual(tokenAddress, DAI[chainId]?.address)) {
-      return DAI[chainId]?.symbol;
-    }
-    if (isTwoStringsEqual(tokenAddress, NATIVE_TOKEN) && chainId === gnosis.id) {
-      return "xDAI";
-    }
-  };
-  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+
   const cowSwaps = trades.reduce((acc, trade) => {
-    const tokenIn = isWXDAI(trade.sellToken) ? sDAIAddress : trade.sellToken;
-    const tokenOut = isWXDAI(trade.buyToken) ? sDAIAddress : trade.buyToken;
-    const tokenInSymbol = getWXDAISymbol(trade.sellToken, trade.owner);
-    const tokenOutSymbol = getWXDAISymbol(trade.buyToken, trade.owner);
-    const market =
-      tokenPairToMarketMapping[
-        tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase()
-          ? `${tokenOut.toLocaleLowerCase()}-${tokenIn.toLocaleLowerCase()}`
-          : `${tokenIn.toLocaleLowerCase()}-${tokenOut.toLocaleLowerCase()}`
-      ];
+    const tokenIn = getCollateralTokenForSwap(trade.sellToken as Address, chainId);
+    const tokenOut = getCollateralTokenForSwap(trade.buyToken as Address, chainId);
+    const tokenInSymbol = getCollateralSymbol(trade.sellToken as Address, account, trade.owner as Address, chainId);
+    const tokenOutSymbol = getCollateralSymbol(trade.buyToken as Address, account, trade.owner as Address, chainId);
+    const market = tokenPairToMarketMapping[getTokensPairKey(tokenIn, tokenOut)];
     if (market) {
       acc.push({
         tokenIn,

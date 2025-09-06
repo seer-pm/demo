@@ -8,7 +8,7 @@ import {
 } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { getCollateralFromDexTx, getToken0Token1 } from "@/lib/market";
+import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Address, parseUnits } from "viem";
 
@@ -90,8 +90,7 @@ export async function getLiquidityWithdrawEvents(
   return total.reduce((acc, swap) => {
     const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));
     const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));
-    const market =
-      tokenPairToMarketMapping[`${swap.token0.id.toLocaleLowerCase()}-${swap.token1.id.toLocaleLowerCase()}`];
+    const market = tokenPairToMarketMapping[getTokensPairKey(swap.token0.id, swap.token1.id)];
     if (market) {
       acc.push({
         token0: swap.token0.id,

@@ -1,12 +1,12 @@
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
+import { SupportedChain, base, gnosis, mainnet, optimism } from "@/lib/chains";
 import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { Token } from "@/lib/tokens";
 import { Address, formatUnits } from "viem";
 import { displayScalarBound } from "./reality";
-import { getCowQuote, getSwaprQuote, getUniswapQuote } from "./trade";
+import { getSwaprQuote, getUniswapQuote } from "./trade";
 import { isTwoStringsEqual } from "./utils";
 
 const CEIL_PRICE = 1;
@@ -54,7 +54,7 @@ async function getTokenSwapResult(
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
   // call cowQuote first, if not possible then we call using rpc
-  try {
+  /*   try {
     const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
     if (cowQuote?.value && cowQuote.value > 0n) {
       const pricePerShare =
@@ -65,7 +65,7 @@ async function getTokenSwapResult(
         return cowQuote.value;
       }
     }
-  } catch (e) {}
+  } catch (e) {} */
   // we either call uniswap or swapr quote based on chainId
   if (chainId === gnosis.id) {
     try {
@@ -76,7 +76,7 @@ async function getTokenSwapResult(
     }
   }
 
-  if (chainId === mainnet.id) {
+  if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
     try {
       const uniswapQuote = await getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
       return uniswapQuote.value;

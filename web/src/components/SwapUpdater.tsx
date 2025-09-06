@@ -4,13 +4,17 @@ import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
-import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
+import { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
 const SWAP_STATUS_CHECK_INTERVAL = 3000;
 
-async function updateOrders(pendingOrders: string[], chainId: number, removePendingOrder: (orderId: string) => void) {
+async function updateOrders(
+  pendingOrders: string[],
+  chainId: SupportedChainId,
+  removePendingOrder: (orderId: string) => void,
+) {
   if (pendingOrders.length === 0) {
     return;
   }
