@@ -180,7 +180,10 @@ export function SwapTokensLimitUpto({
   );
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
-  const tradeTokens = useTrade(async () => {
+  const {
+    tradeTokens,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useTrade(account, quoteData?.trade, async () => {
     reset();
     closeConfirmSwapModal();
   });
@@ -360,10 +363,12 @@ export function SwapTokensLimitUpto({
             tradeTokens.isPending ||
             isPriceTooHigh
           }
+          missingApprovals={missingApprovals}
           isLoading={
             tradeTokens.isPending ||
             (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
-            isFetching
+            isFetching ||
+            isLoadingApprovals
           }
         />
       );

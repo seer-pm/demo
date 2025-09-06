@@ -1,18 +1,22 @@
 import { createCowOrder, executeCoWTrade } from "@/hooks/trade/executeCowTrade";
-import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
-import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
+import { executeSwaprTrade, getSwaprTradeExecution } from "@/hooks/trade/executeSwaprTrade";
+import { executeUniswapTrade, getUniswapTradeExecution } from "@/hooks/trade/executeUniswapTrade";
 import { SupportedChain } from "@/lib/chains";
 import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
+import { toastifyTx } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
 import { QuoteTradeResult, getCowQuote, getSwaprQuote, getUniswapQuote } from "@/lib/trade";
 import { getCowQuoteExactOut, getSwaprQuoteExactOut, getUniswapQuoteExactOut } from "@/lib/tradeExactOut";
+import { config } from "@/wagmi";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { sendCalls } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
 import { gnosis, mainnet } from "viem/chains";
+import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
-import { useMissingApprovals } from "../useMissingApprovals";
+import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
@@ -184,16 +188,37 @@ export function useQuoteTrade(
   return swaprResult;
 }
 
-export function useMissingTradeApproval(account: Address, trade: Trade) {
-  const { data: missingApprovals, isLoading } = useMissingApprovals({
+function useMissingTradeApproval(account: Address | undefined, trade: Trade | undefined) {
+  const { data, isLoading } = useMissingApprovals(
+    !trade
+      ? undefined
+      : {
+          tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+          account,
+          spender: trade.approveAddress as `0x${string}`,
+          amounts: BigInt(trade.maximumAmountIn().raw.toString()),
+          chainId: trade.chainId as SupportedChain,
+        },
+  );
+
+  return { data, isLoading };
+}
+
+function getTradeApprovals7702(account: Address, trade: Trade) {
+  return getApprovals7702({
     tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
     spender: trade.approveAddress as `0x${string}`,
     amounts: BigInt(trade.maximumAmountIn().raw.toString()),
     chainId: trade.chainId as SupportedChain,
   });
+}
 
-  return { missingApprovals, isLoading };
+interface TradeTokensProps {
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  account: Address;
+  isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
 }
 
 async function tradeTokens({
@@ -201,12 +226,7 @@ async function tradeTokens({
   account,
   isBuyExactOutputNative,
   isSellToNative,
-}: {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
-  account: Address;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
-}): Promise<string | TransactionReceipt> {
+}: TradeTokensProps): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }
@@ -218,22 +238,93 @@ async function tradeTokens({
   return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative);
 }
 
-export function useTrade(onSuccess: () => unknown) {
+function useTradeLegacy(account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) {
   const { addPendingOrder } = useGlobalState();
-  return useMutation({
-    mutationFn: tradeTokens,
-    onSuccess: (result: string | TransactionReceipt) => {
-      if (typeof result === "string") {
-        addPendingOrder(result);
-      }
-      queryClient.invalidateQueries({ queryKey: ["useQuote"] });
-      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-      onSuccess();
-    },
-  });
+
+  const approvals = useMissingTradeApproval(account, trade);
+
+  return {
+    approvals,
+    tradeTokens: useMutation({
+      mutationFn: tradeTokens,
+      onSuccess: (result: string | TransactionReceipt) => {
+        if (typeof result === "string") {
+          addPendingOrder(result);
+        }
+        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        onSuccess();
+      },
+    }),
+  };
 }
+
+async function tradeTokens7702(props: TradeTokensProps): Promise<string | TransactionReceipt> {
+  if (props.trade instanceof CoWTrade) {
+    return executeCoWTrade(props.trade);
+  }
+
+  const calls: Execution[] = getTradeApprovals7702(props.account, props.trade);
+
+  calls.push(
+    props.trade instanceof UniswapTrade
+      ? await getUniswapTradeExecution(props.trade, props.account)
+      : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
+  );
+
+  const result = await toastifyTx(
+    () =>
+      sendCalls(config, {
+        calls,
+      }),
+    {
+      txSent: { title: "Executing trade..." },
+      txSuccess: { title: "Trade executed!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+const useTrade7702 = (onSuccess: () => unknown) => {
+  const { addPendingOrder } = useGlobalState();
+
+  const approvals = {
+    data: [],
+    isLoading: false,
+  };
+
+  return {
+    approvals,
+    tradeTokens: useMutation({
+      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props),
+      onSuccess: (result: string | TransactionReceipt) => {
+        if (typeof result === "string") {
+          addPendingOrder(result);
+        }
+        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        onSuccess();
+      },
+    }),
+  };
+};
+
+export const useTrade = (account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) => {
+  const supports7702 = useCheck7702Support();
+  const trade7702 = useTrade7702(onSuccess);
+  const tradeLegacy = useTradeLegacy(account, trade, onSuccess);
+
+  return supports7702 ? trade7702 : tradeLegacy;
+};
 
 export function useCowLimitOrder(onSuccess: () => unknown) {
   const { addPendingOrder } = useGlobalState();

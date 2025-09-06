@@ -1,19 +1,25 @@
 import { ApproveButton } from "@/components/Form/ApproveButton";
 import Button from "@/components/Form/Button";
 import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
-import { useMissingTradeApproval } from "@/hooks/trade";
+import { UseMissingApprovalsReturn } from "@/hooks/useMissingApprovals";
 import { SupportedChain } from "@/lib/chains";
 import { Trade } from "@swapr/sdk";
 import { Address } from "viem";
 
 export default function SwapButtons({
-  account,
   trade,
   isDisabled,
   isLoading,
   isBuyExactOutputNative,
-}: { account?: Address; trade: Trade; isDisabled: boolean; isLoading: boolean; isBuyExactOutputNative: boolean }) {
-  const { missingApprovals, isLoading: isLoadingApprovals } = useMissingTradeApproval(account!, trade);
+  missingApprovals,
+}: {
+  account?: Address;
+  trade: Trade;
+  isDisabled: boolean;
+  isLoading: boolean;
+  isBuyExactOutputNative: boolean;
+  missingApprovals: UseMissingApprovalsReturn[] | undefined;
+}) {
   const isShowApproval = !isBuyExactOutputNative && missingApprovals && missingApprovals.length > 0;
   return (
     <SwitchChainButtonWrapper chainId={trade.chainId as SupportedChain}>
@@ -22,7 +28,7 @@ export default function SwapButtons({
           variant="primary"
           type="submit"
           disabled={isDisabled}
-          isLoading={isLoading || isLoadingApprovals}
+          isLoading={isLoading}
           text="Swap"
           className="w-full"
         />
