@@ -24,6 +24,7 @@ import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
+import AltCollateralDropdown from "../AltCollateralDropdown";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
@@ -216,7 +217,10 @@ export function SwapTokensMarket({
   );
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
-  const tradeTokens = useTrade(async () => {
+  const {
+    tradeTokens,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useTrade(account, quoteData?.trade, async () => {
     reset();
     closeConfirmSwapModal();
   });
@@ -258,11 +262,21 @@ export function SwapTokensMarket({
   };
 
   const renderTokenDisplay = (container: "buy" | "sell") => {
-    const imageElement = (() => {
-      const isTokenCollateral = isTwoStringsEqual(
-        container === "sell" ? sellToken.address : buyToken.address,
-        selectedCollateral.address,
+    const isTokenCollateral = isTwoStringsEqual(
+      container === "sell" ? sellToken.address : buyToken.address,
+      selectedCollateral.address,
+    );
+    if (isTokenCollateral && isUndefined(fixedCollateral)) {
+      return (
+        <AltCollateralDropdown
+          market={market}
+          isUseWrappedToken={isUseWrappedToken}
+          useAltCollateral={useAltCollateral}
+          setUseAltCollateral={(useAltCollateral) => setValue("useAltCollateral", useAltCollateral)}
+        />
       );
+    }
+    const imageElement = (() => {
       if (isTokenCollateral) {
         if (isUndefined(fixedCollateral)) {
           return (
@@ -343,10 +357,12 @@ export function SwapTokensMarket({
             tradeTokens.isPending ||
             isPriceTooHigh
           }
+          missingApprovals={missingApprovals}
           isLoading={
             tradeTokens.isPending ||
             (!isUndefined(quoteData?.value) && quoteData.value > 0n && quoteIsLoading) ||
-            isFetching
+            isFetching ||
+            isLoadingApprovals
           }
         />
       );
@@ -616,13 +632,6 @@ export function SwapTokensMarket({
         )}
 
         <div className="flex justify-between flex-wrap gap-4">
-          {market.type === "Generic" && isUndefined(fixedCollateral) && (
-            <AltCollateralSwitch
-              {...register("useAltCollateral")}
-              market={market}
-              isUseWrappedToken={isUseWrappedToken}
-            />
-          )}
           {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
           <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
             Parameters:{" "}
