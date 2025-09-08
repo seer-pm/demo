@@ -16,8 +16,12 @@ export default async () => {
     // ignore markets finalized more than two days ago
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
-    const markets = (await searchMarkets(chainIds.map((c) => c))).markets.filter((market) => {
-      return market.finalizeTs > twoDaysAgo;
+    const { markets } = await searchMarkets({
+      chainIds: chainIds.map((c) => c),
+      finalizeTs: twoDaysAgo,
+      orderBy: "oddsRunTimestamp",
+      orderDirection: "asc",
+      limit: 100,
     });
 
     console.log("markets length", markets.length);
@@ -57,6 +61,7 @@ export default async () => {
         id: market.id,
         chain_id: market.chainId,
         odds: results[index].map((x) => (Number.isNaN(x) ? null : x)),
+        odds_run_timestamp: Math.round(new Date().getTime() / 1000),
         updated_at: new Date(),
       })),
     );
@@ -69,7 +74,6 @@ export default async () => {
     //TODO: mainnet markets incentives
     console.log("fetching incentives...");
     const gnosisPools = pools.filter((x) => x.chainId === gnosis.id);
-    console.log(gnosisPools.length);
     const marketToIncentiveMapping = await getMarketsIncentive(gnosisPools);
     const { error: errorIncentive } = await supabase.from("markets").upsert(
       markets.map((market) => ({

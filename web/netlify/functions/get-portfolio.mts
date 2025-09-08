@@ -15,7 +15,7 @@ import { config } from "./utils/config";
 import { getMarketsMappings, searchMarkets } from "./utils/markets";
 
 async function fetchPositions(address: Address, chainId: SupportedChain) {
-  const { markets } = await searchMarkets([chainId]);
+  const { markets } = await searchMarkets({ chainIds: [chainId] });
 
   if (markets.length === 0) {
     return [];

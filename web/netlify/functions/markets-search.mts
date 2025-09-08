@@ -35,7 +35,7 @@ async function multiChainSearch(
           .filter((chain) => chain !== "31337")
           .map((chainId) => Number(chainId)) as SupportedChain[]);
 
-  const { markets, count } = await searchMarkets(
+  const { markets, count } = await searchMarkets({
     chainIds,
     type,
     id,
@@ -54,7 +54,7 @@ async function multiChainSearch(
     page,
     orderBy,
     orderDirection,
-  );
+  });
 
   return {
     markets: markets.map((market) => serializeMarket(market)),
