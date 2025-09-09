@@ -59,15 +59,17 @@ export function SwapTokensConfirmation({
     invertedPrice,
   } = tradeInfo;
 
-  const sDAI = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
+  const primaryCollateral = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
   const isExactInput = trade!.tradeType === 0;
   inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
   outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);
 
-  price = !isTwoStringsEqual(collateral.address, sDAI)
+  price = !isTwoStringsEqual(collateral.address, primaryCollateral)
     ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)
     : price;
-  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(2) : invertedPrice;
+  invertedPrice = !isTwoStringsEqual(collateral.address, primaryCollateral)
+    ? (1 / Number(price)).toFixed(2)
+    : invertedPrice;
 
   return (
     <div className="flex flex-col justify-center items-center">

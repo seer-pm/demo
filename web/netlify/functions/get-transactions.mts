@@ -77,7 +77,7 @@ async function getTransactions(
   endTime?: number,
   eventType?: string,
 ) {
-  const { markets } = await searchMarkets([chainId]);
+  const { markets } = await searchMarkets({ chainIds: [chainId] });
 
   if (markets.length === 0) {
     return [];

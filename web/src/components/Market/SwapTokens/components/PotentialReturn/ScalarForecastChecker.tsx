@@ -1,166 +1,17 @@
-import Input from "@/components/Form/Input";
-import MultiSelect from "@/components/Form/MultiSelect";
 import { useQuoteTrade } from "@/hooks/trade";
-import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { CloseIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
+import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { displayScalarBound } from "@/lib/reality";
-import { Token, getCollateralPerShare, getPotentialReturn } from "@/lib/tokens";
-import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { Token, getCollateralPerShare } from "@/lib/tokens";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { TradeType } from "@swapr/sdk";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
-import { Dispatch, ReactNode, SetStateAction, useRef, useState } from "react";
 import { formatUnits, zeroAddress } from "viem";
-import { PotentialReturnResult } from "./PotentialReturn";
+import { getPotentialReturn, getScalarReturnPerToken } from "./utils";
 
-function getScalarReturnPerToken(market: Market, outcomeTokenIndex: number, forecast: number) {
-  const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
-
-  if (outcomeTokenIndex === 0) {
-    // DOWN Token
-    if (forecast <= lowerBound) {
-      return 1;
-    }
-
-    if (forecast >= upperBound) {
-      return 0;
-    }
-    return (upperBound - forecast) / (upperBound - lowerBound);
-  }
-
-  // UP Token
-  if (forecast <= lowerBound) {
-    return 0;
-  }
-  if (forecast >= upperBound) {
-    return 1;
-  }
-  return (forecast - lowerBound) / (upperBound - lowerBound);
-}
-
-function getMultiCategoricalReturnPerToken(outcomeText: string, forecast: string[]) {
-  if (!forecast.includes(outcomeText)) {
-    return 0;
-  }
-  return forecast.length > 0 ? 1 / forecast.length : 1;
-}
-
-function getMultiScalarReturnPerToken(outcomeTokenIndex: number, forecast: number[]) {
-  const sum = forecast.reduce((acc, curr) => acc + (curr ?? 0), 0);
-  return sum ? (forecast[outcomeTokenIndex] ?? 0) / sum : 0;
-}
-
-function getReturnPerToken(market: Market, outcomeToken: Token, outcomeText: string, input: PotentialReturnInput) {
-  const marketType = getMarketType(market);
-  const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
-
-  if (marketType === MarketTypes.SCALAR) {
-    if (!isUndefined(input.scalar)) {
-      return getScalarReturnPerToken(market, outcomeTokenIndex, input.scalar);
-    }
-  }
-
-  if (marketType === MarketTypes.MULTI_CATEGORICAL) {
-    if (input.multiCategorical.length > 0) {
-      return getMultiCategoricalReturnPerToken(outcomeText, input.multiCategorical);
-    }
-  }
-
-  if (marketType === MarketTypes.MULTI_SCALAR) {
-    if (input.multiScalar[outcomeTokenIndex]) {
-      return getMultiScalarReturnPerToken(outcomeTokenIndex, input.multiScalar);
-    }
-  }
-
-  return 1;
-}
-
-function RenderInputByMarketType({
-  market,
-  input,
-  setInput,
-}: {
-  market: Market;
-  input: PotentialReturnInput;
-  setInput: Dispatch<SetStateAction<PotentialReturnInput>>;
-}): ReactNode {
-  const marketType = getMarketType(market);
-
-  const multiSelectRef = useRef<HTMLDivElement>(null);
-
-  if (marketType === MarketTypes.MULTI_CATEGORICAL) {
-    return (
-      <div className="space-y-1">
-        <p className="whitespace-nowrap">Market resolution:</p>
-        <MultiSelect
-          ref={multiSelectRef}
-          options={market.outcomes.slice(0, -1).map((x) => ({
-            value: x,
-            text: x,
-          }))}
-          value={input.multiCategorical ?? []}
-          onChange={(values) => setInput((state) => ({ ...state, multiCategorical: values }))}
-          placeholder="Select winning outcomes"
-        />
-      </div>
-    );
-  }
-
-  if (marketType === MarketTypes.SCALAR) {
-    return (
-      <div className="space-y-1">
-        <p className="whitespace-nowrap">Market resolution:</p>
-        <Input
-          type="number"
-          className="w-full "
-          value={input.scalar ?? ""}
-          onChange={(e) => setInput((state) => ({ ...state, scalar: Number(e.target.value) }))}
-        />
-      </div>
-    );
-  }
-
-  // MarketTypes.MULTI_SCALAR
-  return (
-    <div className="space-y-1">
-      <p className="whitespace-nowrap">Market resolution:</p>
-      {market.outcomes.slice(0, -1).map((outcome, index) => (
-        <div key={outcome} className="flex items-center justify-between gap-2">
-          <p className="text-[14px]">{outcome}</p>
-          <Input
-            type="number"
-            min="0"
-            className="h-[30px] w-[150px]"
-            onWheel={(e) => {
-              // stop scrolling
-              (e.target as HTMLInputElement).blur();
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            value={input.multiScalar[index] || ""}
-            onChange={(e) =>
-              setInput((state) => {
-                const updatedMultiScalar = [...state.multiScalar];
-                updatedMultiScalar[index] = Number(e.target.value);
-                return {
-                  ...state,
-                  multiScalar: updatedMultiScalar,
-                };
-              })
-            }
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ScalarForecastChecker({
+export default function ScalarForecastChecker({
   market,
   outcomeToken,
   forecast,
@@ -168,9 +19,9 @@ function ScalarForecastChecker({
   receivedAmount,
   collateralPerShare,
   selectedCollateral,
-  isCollateralDai,
-  daiToSDai,
-  sDaiToDai,
+  isSecondaryCollateral,
+  sharesToAssets,
+  assetsToShares,
 }: {
   market: Market;
   outcomeToken: Token;
@@ -179,10 +30,11 @@ function ScalarForecastChecker({
   receivedAmount: number;
   collateralPerShare: number;
   selectedCollateral: Token;
-  isCollateralDai: boolean;
-  daiToSDai: number;
-  sDaiToDai: number;
+  isSecondaryCollateral: boolean;
+  assetsToShares: number;
+  sharesToAssets: number;
 }) {
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
 
   const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
@@ -193,13 +45,15 @@ function ScalarForecastChecker({
         "text-right",
       )}
     >
-      {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-      {isCollateralDai ? ` (${(returnPerToken * (sDaiToDai ?? 0)).toFixed(3)} ${selectedCollateral.symbol})` : ""}
+      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
+      {isSecondaryCollateral
+        ? ` (${(returnPerToken * (sharesToAssets ?? 0)).toFixed(3)} ${selectedCollateral.symbol})`
+        : ""}
     </span>
   );
   const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
     <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {isCollateralDai ? selectedCollateral.symbol : "sDAI"} ({returnPercentage.toFixed(2)}
+      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
       %)
     </span>
   );
@@ -249,15 +103,7 @@ function ScalarForecastChecker({
   }
 
   const otherReceivedAmount = Number(formatUnits(quoteData.value, quoteData.decimals));
-  const otherCollateralPerShare = getCollateralPerShare(
-    "buy",
-    selectedCollateral,
-    quoteData,
-    amount,
-    otherReceivedAmount,
-    isCollateralDai,
-    daiToSDai,
-  );
+  const otherCollateralPerShare = getCollateralPerShare(quoteData, "buy");
 
   const inputData = [
     {
@@ -277,9 +123,10 @@ function ScalarForecastChecker({
     const { returnPercentage, potentialReturn } = getPotentialReturn(
       collateralPerShare,
       returnPerToken,
-      isCollateralDai,
+      isSecondaryCollateral,
       receivedAmount,
-      sDaiToDai,
+      sharesToAssets,
+      assetsToShares,
       false,
     );
     return {
@@ -325,9 +172,10 @@ function ScalarForecastChecker({
         const { potentialReturn } = getPotentialReturn(
           inputData[outcomeIndex].collateralPerShare,
           returnPerToken,
-          isCollateralDai,
+          isSecondaryCollateral,
           inputData[outcomeIndex].receivedAmount,
-          sDaiToDai,
+          sharesToAssets,
+          assetsToShares,
           false,
         );
         return [forecast, potentialReturn];
@@ -359,7 +207,7 @@ function ScalarForecastChecker({
         type: "none",
       },
       valueFormatter: (value: number) => {
-        return `${value.toLocaleString()} ${isCollateralDai ? "sDAI" : selectedCollateral.symbol}`;
+        return `${value.toLocaleString()} ${isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}`;
       },
     },
 
@@ -403,7 +251,7 @@ function ScalarForecastChecker({
         alignWithLabel: true,
         customValues: yAxisTicks,
       },
-      name: isCollateralDai ? "sDAI" : selectedCollateral.symbol,
+      name: isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol,
     },
     series: [
       ...[...chartData].reverse().map((x, index) => ({
@@ -550,172 +398,3 @@ function ScalarForecastChecker({
     </div>
   );
 }
-
-function getDefaultInput(market: Market, outcomeToken: Token, outcomeText: string, odds: (number | null)[]) {
-  const defaultValue = {
-    multiCategorical: [],
-    scalar: undefined,
-    multiScalar: [],
-  };
-
-  const outcomeTokenIndex = market.wrappedTokens.findIndex((x) => x === outcomeToken.address);
-
-  const marketType = getMarketType(market);
-
-  if (marketType === MarketTypes.SCALAR) {
-    if (outcomeTokenIndex === 0 || outcomeTokenIndex === 1) {
-      return {
-        ...defaultValue,
-        scalar: Number(outcomeTokenIndex === 0 ? market.lowerBound : market.upperBound),
-      };
-    }
-  }
-
-  if (marketType === MarketTypes.MULTI_CATEGORICAL) {
-    return {
-      ...defaultValue,
-      multiCategorical: [outcomeText],
-    };
-  }
-
-  if (marketType === MarketTypes.MULTI_SCALAR) {
-    const multiScalar = odds.map((odd) => {
-      const estimate = getMultiScalarEstimate(market, odd);
-
-      return estimate?.value || 0;
-    });
-
-    return {
-      ...defaultValue,
-      multiScalar,
-    };
-  }
-
-  return defaultValue;
-}
-
-type PotentialReturnInput = {
-  multiCategorical: string[];
-  scalar: number | undefined;
-  multiScalar: number[];
-};
-
-function PotentialReturnConfig({
-  market,
-  selectedCollateral,
-  outcomeToken,
-  outcomeText,
-  isCollateralDai,
-  quoteIsLoading = false,
-  isFetching = false,
-  amount,
-  receivedAmount,
-  collateralPerShare,
-}: {
-  market: Market;
-  selectedCollateral: Token;
-  outcomeToken: Token;
-  outcomeText: string;
-  isCollateralDai: boolean;
-  quoteIsLoading: boolean;
-  isFetching: boolean;
-  amount: string;
-  receivedAmount: number;
-  collateralPerShare: number;
-}) {
-  const { data: odds = [] } = useMarketOdds(market, true);
-  const [input, setInput] = useState<PotentialReturnInput>(getDefaultInput(market, outcomeToken, outcomeText, odds));
-  const { Modal, openModal, closeModal } = useModal("potential-return-config", false);
-
-  const returnPerToken = getReturnPerToken(market, outcomeToken, outcomeText, input);
-
-  const { sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
-  const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
-
-  const potentialReturnContent = (
-    <div>
-      <p>
-        Return per token:{" "}
-        <span className="font-semibold text-purple-primary">
-          {returnPerToken.toFixed(3)} {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-          {isCollateralDai ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
-        </span>
-      </p>
-      {Number(amount) === 0 && (
-        <p className="text-purple-primary text-[14px]">
-          You need to buy more than 0 shares to calculate your potential return.
-        </p>
-      )}
-      {Number(amount) > 0 && (
-        <div>
-          Potential return:{" "}
-          <PotentialReturnResult
-            quoteIsLoading={quoteIsLoading}
-            isFetching={isFetching}
-            isCollateralDai={isCollateralDai}
-            selectedCollateral={selectedCollateral}
-            receivedAmount={receivedAmount}
-            sDaiToDai={sDaiToDai ?? 0}
-            returnPerToken={returnPerToken}
-            collateralPerShare={collateralPerShare}
-            isOneOrNothingPotentialReturn={false}
-          />
-        </div>
-      )}
-    </div>
-  );
-
-  const scalarPotentialReturnContent = (
-    <ScalarForecastChecker
-      market={market}
-      outcomeToken={outcomeToken}
-      selectedCollateral={selectedCollateral}
-      forecast={input.scalar ?? 0}
-      amount={amount}
-      receivedAmount={receivedAmount}
-      collateralPerShare={collateralPerShare}
-      isCollateralDai={isCollateralDai}
-      daiToSDai={daiToSDai ?? 0}
-      sDaiToDai={sDaiToDai ?? 0}
-    />
-  );
-
-  const modalContent = (
-    <div className=" space-y-2 w-full -mt-[20px] ">
-      <div>
-        <button
-          type="button"
-          className="absolute right-[20px] top-[20px] hover:text-purple-primary"
-          onClick={closeModal}
-          aria-label="Close modal"
-        >
-          <CloseIcon fill="black" />
-        </button>
-        <p>Enter a possible market resolution to see your potential return.</p>
-        <p className="font-semibold text-purple-primary py-1.5">Current Outcome: {outcomeText}</p>
-        <div className="max-h-[200px] overflow-auto">
-          <RenderInputByMarketType market={market} input={input} setInput={setInput} />
-        </div>
-
-        <div>
-          {getMarketType(market) === MarketTypes.SCALAR ? scalarPotentialReturnContent : potentialReturnContent}
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div>
-      <button
-        type="button"
-        className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[15px]"
-        onClick={openModal}
-      >
-        Calculate your potential return
-      </button>
-      <Modal title="Potential return calculator" content={modalContent} />
-    </div>
-  );
-}
-
-export default PotentialReturnConfig;

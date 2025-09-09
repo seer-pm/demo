@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
 import { Address, formatUnits, parseUnits } from "viem";
 
-interface HandleSDAIProps {
+interface Props {
   amount: bigint;
   chainId: SupportedChain;
   owner: Address;
@@ -142,7 +142,7 @@ const ADAPTER_ABI = [
 
 export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
 
-export async function convertFromSDAI({ chainId, amount }: Omit<HandleSDAIProps, "owner">) {
+export async function convertFromSDAI({ chainId, amount }: Omit<Props, "owner">) {
   return readContract(config, {
     address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
     abi: SDAI_ABI,
@@ -152,7 +152,7 @@ export async function convertFromSDAI({ chainId, amount }: Omit<HandleSDAIProps,
   });
 }
 
-export async function convertToSDAI({ chainId, amount }: Omit<HandleSDAIProps, "owner">) {
+export async function convertToSDAI({ chainId, amount }: Omit<Props, "owner">) {
   return readContract(config, {
     address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
     abi: SDAI_ABI,
@@ -162,7 +162,7 @@ export async function convertToSDAI({ chainId, amount }: Omit<HandleSDAIProps, "
   });
 }
 
-export async function redeemFromSDAI({ chainId, amount, owner }: HandleSDAIProps) {
+export async function redeemFromSDAI({ chainId, amount, owner }: Props) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -180,7 +180,7 @@ export async function redeemFromSDAI({ chainId, amount, owner }: HandleSDAIProps
   return unwrappedResult.receipt;
 }
 
-export async function depositToSDAI({ chainId, amount, owner }: HandleSDAIProps) {
+export async function depositToSDAI({ chainId, amount, owner }: Props) {
   const wrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -198,7 +198,7 @@ export async function depositToSDAI({ chainId, amount, owner }: HandleSDAIProps)
   return wrappedResult.receipt;
 }
 
-export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleSDAIProps) {
+export async function redeemFromSDAIToNative({ chainId, amount, owner }: Props) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -216,7 +216,7 @@ export async function redeemFromSDAIToNative({ chainId, amount, owner }: HandleS
   return unwrappedResult.receipt;
 }
 
-export async function depositFromNativeToSDAI({ chainId, amount, owner }: HandleSDAIProps) {
+export async function depositFromNativeToSDAI({ chainId, amount, owner }: Props) {
   const wrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
@@ -255,12 +255,18 @@ export function useConvertToAssets(amount: bigint, chainId: SupportedChain) {
   });
 }
 
-export function useSDaiDaiRatio(chainId: SupportedChain) {
-  const { data: sDaiToDai, isFetching: isFetchingSharesToAssets } = useConvertToAssets(parseUnits("1", 18), chainId);
-  const { data: daiToSDai, isFetching: isFetchingAssetsToShares } = useConvertToShares(parseUnits("1", 18), chainId);
+export function useShareAssetRatio(chainId: SupportedChain) {
+  const { data: sharesToAssets, isFetching: isFetchingSharesToAssets } = useConvertToAssets(
+    parseUnits("1", 18),
+    chainId,
+  );
+  const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
+    parseUnits("1", 18),
+    chainId,
+  );
   return {
     isFetching: isFetchingAssetsToShares || isFetchingSharesToAssets,
-    sDaiToDai: sDaiToDai ? Number(formatUnits(sDaiToDai, 18)) : 0,
-    daiToSDai: daiToSDai ? Number(formatUnits(daiToSDai, 18)) : 0,
+    sharesToAssets: sharesToAssets ? Number(formatUnits(sharesToAssets, 18)) : 0,
+    assetsToShares: assetsToShares ? Number(formatUnits(assetsToShares, 18)) : 0,
   };
 }

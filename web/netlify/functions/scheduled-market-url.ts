@@ -11,37 +11,40 @@ type MarketData = { id: Address; marketName: string };
 
 async function processChain(chainId: SupportedChain, marketsWithoutUrl: MarketData[]) {
   for (const market of marketsWithoutUrl) {
-    // loop up to 5 times in case of duplicated market names
-    for (let i = 1; i <= 5; i++) {
-      let url = slug(market.marketName).slice(0, 80);
+    const url = slug(market.marketName).slice(0, 80);
 
-      if (i > 1) {
-        url += `-${i}`;
+    // Loop 6 times: first 5 with consecutive numbers, last one with timestamp
+    for (let i = 1; i <= 6; i++) {
+      let currentUrl = url;
+
+      if (i <= 5) {
+        // First 5 attempts: use consecutive numbers
+        if (i > 1) {
+          currentUrl += `-${i}`;
+        }
+      } else {
+        // 6th attempt: use timestamp
+        const timestamp = Date.now();
+        currentUrl = `${url}-${timestamp}`;
       }
 
       try {
         const { error } = await supabase
           .from("markets")
           .update({
-            url,
+            url: currentUrl,
           })
           .eq("id", market.id)
           .eq("chain_id", chainId)
           .is("url", null);
 
-        if (error) {
-          if (i === 5) {
-            console.error(`Error updating URL for market ${market.id}:`, error);
-          } else {
-            console.log("URL already exists, trying again...");
-          }
-          continue;
+        if (!error) {
+          const attemptType = i <= 5 ? `consecutive number ${i}` : "timestamp";
+          console.log(`Updated URL for market ${market.id} to ${currentUrl} (${attemptType})`);
+          break;
         }
 
-        console.log(`Updated URL for market ${market.id} to ${url}`);
-
-        // url succesfully updated, break the loop
-        break;
+        // console.log(`URL ${currentUrl} already exists, trying next...`);
       } catch (error) {
         console.error(`Error updating URL for market ${market.id}:`, error);
       }
@@ -54,7 +57,9 @@ export default async () => {
     .from("markets")
     .select("id,subgraph_data->marketName")
     .is("url", null)
-    .not("subgraph_data", "is", null);
+    .not("subgraph_data", "is", null)
+    .neq("subgraph_data->>marketName", "")
+    .limit(100);
 
   if (error) {
     console.error("Error fetching markets without URL:", error);

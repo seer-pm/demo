@@ -9,13 +9,13 @@ import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Address } from "viem";
-import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
@@ -164,7 +164,7 @@ function MarkeVerifyPage() {
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
               <span>Verification deposit:</span>{" "}
               <span className="text-[24px] font-semibold">
-                {displayBalance(submissionDeposit, 18)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+                {displayBalance(submissionDeposit, 18)} {COLLATERAL_TOKENS[chainId].secondary?.symbol ?? "DAI"}
               </span>
             </div>
           )}

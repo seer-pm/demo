@@ -118,7 +118,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
 }
 
 function sortMarkets(
-  orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | undefined,
+  orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | "oddsRunTimestamp" | undefined,
   orderDirection: "asc" | "desc",
 ) {
   if (!orderBy) {
@@ -139,6 +139,9 @@ function sortMarkets(
     return [{ column: "block_timestamp", ascending: orderDirection === "asc" }];
   }
 
+  if (orderBy === "oddsRunTimestamp") {
+    return [{ column: "odds_run_timestamp", ascending: orderDirection === "asc" }];
+  }
   // by opening date
   return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
 }
@@ -153,32 +156,54 @@ function escapePostgrest(str: string): string {
     .replace(/\)/g, "\\)");
 }
 
-export async function searchMarkets(
-  chainsIds: SupportedChain[],
-  type?: "Generic" | "Futarchy" | "",
-  id?: Address | "",
-  parentMarket?: Address | "",
-  marketName?: string,
-  categoryList?: string[] | undefined,
-  marketStatusList?: MarketStatus[] | undefined,
-  verificationStatusList?: VerificationStatus[] | undefined,
-  showConditionalMarkets?: boolean | undefined,
-  showMarketsWithRewards?: boolean | undefined,
-  minLiquidity?: number | undefined,
-  creator?: Address | "",
-  participant?: Address | "",
-  marketIds?: string[] | undefined,
-  limit?: number,
-  page?: number,
-  orderBy?: Market_OrderBy | "liquidityUSD" | "creationDate",
-  orderDirection?: "asc" | "desc",
-): Promise<{ markets: Market[]; count: number }> {
+type SearchMarketsProps = {
+  chainIds: SupportedChain[];
+  type?: "Generic" | "Futarchy" | "";
+  id?: Address | "";
+  parentMarket?: Address | "";
+  marketName?: string;
+  categoryList?: string[] | undefined;
+  marketStatusList?: MarketStatus[] | undefined;
+  verificationStatusList?: VerificationStatus[] | undefined;
+  showConditionalMarkets?: boolean | undefined;
+  showMarketsWithRewards?: boolean | undefined;
+  minLiquidity?: number | undefined;
+  finalizeTs?: number | undefined;
+  creator?: Address | "";
+  participant?: Address | "";
+  marketIds?: string[] | undefined;
+  limit?: number;
+  page?: number;
+  orderBy?: Market_OrderBy | "liquidityUSD" | "creationDate" | "oddsRunTimestamp";
+  orderDirection?: "asc" | "desc";
+};
+export async function searchMarkets({
+  chainIds,
+  type,
+  id,
+  parentMarket,
+  marketName,
+  categoryList,
+  marketStatusList,
+  verificationStatusList,
+  showConditionalMarkets,
+  showMarketsWithRewards,
+  minLiquidity,
+  finalizeTs,
+  creator,
+  participant,
+  marketIds,
+  limit,
+  page = 1,
+  orderBy,
+  orderDirection,
+}: SearchMarketsProps): Promise<{ markets: Market[]; count: number }> {
   let query = supabase
     .from("markets_search")
     .select(MARKET_DB_FIELDS, { count: "exact" })
     .not("subgraph_data", "is", null);
 
-  if (limit !== undefined && page !== undefined) {
+  if (limit !== undefined && page) {
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1);
   }
@@ -247,10 +272,14 @@ export async function searchMarkets(
     query = query.gt("liquidity", Number(minLiquidity));
   }
 
+  if (finalizeTs) {
+    query = query.gt("finalize_ts", Number(finalizeTs));
+  }
+
   if (participant) {
     // markets this user is a participant in (participant = creator or trader)
     const marketsWithUserPositions = (
-      await Promise.all(chainsIds.map((chainId) => fetchMarketsWithPositions(participant, chainId)))
+      await Promise.all(chainIds.map((chainId) => fetchMarketsWithPositions(participant, chainId)))
     )
       .flat()
       .map((a) => a.toLocaleLowerCase());
@@ -267,7 +296,7 @@ export async function searchMarkets(
     query = query.eq("subgraph_data->>creator", creator);
   }
 
-  query = query.in("chain_id", chainsIds);
+  query = query.in("chain_id", chainIds);
 
   for (const { column, ascending } of sortMarkets(orderBy, orderDirection || "desc")) {
     query = query.order(column, { ascending });
