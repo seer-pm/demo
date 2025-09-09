@@ -34,6 +34,14 @@ function getMarketViewAddress(network: string): string {
     return "0xAb797C4C6022A401c31543E316D3cd04c67a87fC";
   }
 
+  if (network == "optimism") {
+    return "0x1F728c2fD6a3008935c1446a965a313E657b7904";
+  }
+
+  if (network == "base") {
+    return "0x1F728c2fD6a3008935c1446a965a313E657b7904";
+  }
+
   return "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
 }
 

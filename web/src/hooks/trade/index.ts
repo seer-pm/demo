@@ -13,7 +13,7 @@ import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/s
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { sendCalls } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { gnosis, mainnet } from "viem/chains";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
 import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
 import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
@@ -134,7 +134,8 @@ function useUniswapQuote(
       isInstantSwap,
       tradeType,
     ],
-    enabled: Number(amount) > 0 && chainId === mainnet.id && enabled,
+    enabled:
+      Number(amount) > 0 && (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) && enabled,
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
@@ -182,7 +183,7 @@ export function useQuoteTrade(
     return cowResult;
   }
 
-  if (chainId === mainnet.id) {
+  if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
     return uniswapResult;
   }
   return swaprResult;

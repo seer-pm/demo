@@ -2,7 +2,7 @@ import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
@@ -312,7 +312,7 @@ export function PreviewCard({ market }: { market: Market }) {
               />
             </a>
           </div>
-          {!isUndefined(market.verification) && (
+          {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
             <Link
               className={clsx(
                 "tooltip",

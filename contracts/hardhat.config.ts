@@ -96,6 +96,28 @@ const config: HardhatUserConfig = {
         },
       },
     },
+    optimism: {
+      chainId: 10,
+      url: process.env.OPTIMISM_RPC || "https://optimism-mainnet.public.blastapi.io",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.OPTIMISM_API_KEY!,
+        },
+      },
+    },
+    base: {
+      chainId: 8453,
+      url: process.env.BASE_RPC || "https://base.llamarpc.com",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.BASE_API_KEY!,
+        },
+      },
+    },
     goerli: {
       chainId: 5,
       url: process.env.GOERLI_RPC || "https://rpc.ankr.com/eth_goerli",

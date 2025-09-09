@@ -1,11 +1,9 @@
-import { Burn, Mint } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import ethers from "ethers";
 import { Address } from "viem";
-import { mainnet } from "wagmi/chains";
-import { getSubgraphUrl } from "../subgraph";
+import { base, mainnet, optimism } from "wagmi/chains";
 import { SUBGRAPHS } from "./constants";
 
 export interface LiquidityEvent {
@@ -55,15 +53,18 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
             origin
           }
         }`;
-    const results = await fetch(chainId === mainnet.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100], {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const results = await fetch(
+      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+        }),
       },
-      body: JSON.stringify({
-        query,
-      }),
-    });
+    );
     const json = await results.json();
     if (json.errors?.length) {
       throw json.errors[0].message;
@@ -111,15 +112,18 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
             origin
           }
         }`;
-    const results = await fetch(chainId === mainnet.id ? SUBGRAPHS["uniswap"][1] : SUBGRAPHS["algebra"][100], {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const results = await fetch(
+      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+        }),
       },
-      body: JSON.stringify({
-        query,
-      }),
-    });
+    );
     const json = await results.json();
     if (json.errors?.length) {
       throw json.errors[0].message;

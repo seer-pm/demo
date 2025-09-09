@@ -399,6 +399,11 @@ export function getToken0Token1(token0: Address, token1: Address): Token0Token1 
     : { token0: token0.toLocaleLowerCase() as Address, token1: token1.toLocaleLowerCase() as Address };
 }
 
+export function getTokensPairKey(tokenA: Address | string, tokenB: Address | string): string {
+  const { token0, token1 } = getToken0Token1(tokenA as Address, tokenB as Address);
+  return `${token0}-${token1}`;
+}
+
 export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
   if (market.type === "Generic") {
     return market.collateralToken;

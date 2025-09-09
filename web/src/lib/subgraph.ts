@@ -1,5 +1,6 @@
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain, gnosis, mainnet } from "./chains";
+import { isOpStack } from "./config";
 import { getAppUrl } from "./utils";
 
 const SUBGRAPH_ENDPOINT = `${getAppUrl()}/subgraph`;
@@ -20,7 +21,7 @@ export function curateGraphQLClient(chainId: SupportedChain) {
 }
 
 export function uniswapGraphQLClient(chainId: SupportedChain) {
-  if (chainId !== mainnet.id) {
+  if (chainId !== mainnet.id && !isOpStack(chainId)) {
     return;
   }
 

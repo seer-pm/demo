@@ -3,7 +3,7 @@ import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -316,7 +316,7 @@ export function SlideCard({ market }: { market: Market }) {
                 />
               </a>
             </div>
-            {!isUndefined(market.verification) && (
+            {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
               <Link
                 className={clsx(
                   "tooltip",

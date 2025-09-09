@@ -70,7 +70,7 @@ function redeemFromRouter(
   }
 
   if (collateralToken) {
-    // redeem to the market's main collateral (sDAI)
+    // redeem to the market's main collateral
     return {
       to: router,
       value: 0n,

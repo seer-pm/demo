@@ -1,8 +1,8 @@
-import { gnosis, mainnet, sepolia } from "https://esm.sh/viem@2.17.5/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "https://esm.sh/viem@2.17.5/chains";
 
-const chainIds = [mainnet.id, sepolia.id, gnosis.id] as const;
+const chainIds = [mainnet.id, sepolia.id, gnosis.id, optimism.id, base.id] as const;
 
-export { gnosis, mainnet, sepolia };
+export { gnosis, mainnet, optimism, base, sepolia };
 
 export type SupportedChain = (typeof chainIds)[number];
 

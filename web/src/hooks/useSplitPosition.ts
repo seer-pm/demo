@@ -43,7 +43,7 @@ function splitFromRouter(
   }
 
   if (collateralToken) {
-    // split from the market's main collateral (sDAI)
+    // split from the market's main collateral
     return {
       to: router,
       value: 0n,

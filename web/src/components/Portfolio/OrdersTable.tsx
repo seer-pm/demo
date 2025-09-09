@@ -5,6 +5,7 @@ import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrad
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { SupportedChainId } from "@cowprotocol/cow-sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -22,7 +23,7 @@ import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
-export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChain }) {
+export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChainId }) {
   const renderCancelButton = (data: CowOrderData) => {
     if (data.isOnChainOrder) {
       if (data.isEthFlow) {

@@ -42,7 +42,7 @@ function mergeFromRouter(
   }
 
   if (collateralToken) {
-    // merge to the market's main collateral (sDAI)
+    // merge to the market's main collateral
     return {
       to: router,
       value: 0n,

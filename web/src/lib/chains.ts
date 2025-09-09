@@ -1,14 +1,22 @@
-import { Chain, gnosis as _gnosis, mainnet as _mainnet, hardhat, sepolia } from "wagmi/chains";
+import { Chain, gnosis as _gnosis, mainnet as _mainnet, base, hardhat, optimism, sepolia } from "wagmi/chains";
 import SEER_ENV from "./env";
 
 // override mainnet and gnosis here using defineChain() to test against a forked network
 const mainnet = _mainnet;
 const gnosis = _gnosis;
 
-export { mainnet, gnosis, hardhat, sepolia };
+export { mainnet, gnosis, optimism, base, hardhat, sepolia };
 
 export const SUPPORTED_CHAINS: Partial<
-  Record<typeof gnosis.id | typeof mainnet.id | typeof sepolia.id /*| typeof hardhat.id*/, Chain>
+  Record<
+    | typeof gnosis.id
+    | typeof mainnet.id
+    | typeof optimism.id
+    /* | typeof base.id */
+    | typeof sepolia.id,
+    /* | typeof hardhat.id */
+    Chain
+  >
 > =
   // ...((SEER_ENV.VITE_ADD_HARDHAT_NETWORK === "1" ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
   (
@@ -16,7 +24,7 @@ export const SUPPORTED_CHAINS: Partial<
       ? { [gnosis.id]: gnosis }
       : SEER_ENV.VITE_TESTNET_WEBSITE === "1"
         ? { [sepolia.id]: sepolia }
-        : { [gnosis.id]: gnosis, [mainnet.id]: mainnet }
+        : { [gnosis.id]: gnosis, [mainnet.id]: mainnet, [optimism.id]: optimism /* [base.id]: base */ }
   ) as Record<string, Chain>;
 
 export type SupportedChain = keyof typeof SUPPORTED_CHAINS;

@@ -1,13 +1,15 @@
 import type { Config } from "@netlify/edge-functions";
-import { SupportedChain, gnosis, mainnet, sepolia } from "./utils/types.ts";
+import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "./utils/types.ts";
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
 export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh" | "reality";
 export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
   seer: {
-    [gnosis.id]: "https://api.studio.thegraph.com/query/74975/seer-pm/version/latest",
+    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
+    [optimism.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmUrD13KfaaoJmnUN9CH9wja8YLVdkGXhVjRTtkdkRw5oH`,
+    [base.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmS53PLFUSFY22P4PSZ1Davk19Zhj7FTDVxbXpzK1cFMaG`,
     [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
@@ -24,6 +26,8 @@ export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, str
   },
   uniswap: {
     [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+    [optimism.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5Vg1mtJELha5ApuhkBk573K1iQKh6uUie72VotwGURy4`,
+    [base.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5vS7rrUPc4ftB2nodNBf4EoAZkdD11jPuUVw7p56bMLb`,
   },
   tokens: {
     [gnosis.id]:
@@ -59,15 +63,17 @@ export default async (req: Request) => {
       body: await req.text(),
     });
 
-    return new Response(await response.text(), {
-      status: 200,
+    const body = await response.json();
+
+    return new Response(JSON.stringify(body), {
+      status: body?.errors ? 500 : 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
       },
     });
   }
 
-  return new Response(JSON.stringify({ error: "Subgraph not found" }), { status: 404 });
+  return new Response(JSON.stringify({ error: `Subgraph not found ${subgraph} chainId ${chainId}` }), { status: 404 });
 };
 
 export const config: Config = { path: "/subgraph" };
