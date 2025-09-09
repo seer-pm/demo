@@ -23,7 +23,7 @@ export const SUPPORTED_CHAINS: Partial<
       ? { [gnosis.id]: gnosis }
       : SEER_ENV.VITE_TESTNET_WEBSITE === "1"
         ? { [sepolia.id]: sepolia }
-        : { [gnosis.id]: gnosis, [mainnet.id]: mainnet, [optimism.id]: optimism, [base.id]: base }
+        : { [gnosis.id]: gnosis, [mainnet.id]: mainnet, [optimism.id]: optimism /* [base.id]: base */ }
   ) as Record<string, Chain>;
 
 export type SupportedChain = keyof typeof SUPPORTED_CHAINS;
