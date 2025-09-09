@@ -4,7 +4,7 @@ import { ArrowDropDown } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token } from "@/lib/tokens";
-import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { isTwoStringsEqual } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address, zeroAddress } from "viem";
@@ -14,7 +14,6 @@ type CollateralDropdownProps = {
   market: Market;
   selectedCollateral: Token;
   setSelectedCollateral: (selectedCollateral: Token) => void;
-  collateralOptions?: Address[];
 };
 
 function getCollateralOptions(market: Market): Address[] {
@@ -22,24 +21,28 @@ function getCollateralOptions(market: Market): Address[] {
     return [market.collateralToken1, market.collateralToken2];
   }
 
-  const secondary = COLLATERAL_TOKENS[market.chainId].secondary;
-  if (isUndefined(secondary)) {
-    return [];
-  }
-  const options = [COLLATERAL_TOKENS[market.chainId].primary.address, secondary.address];
-  const wrapped = COLLATERAL_TOKENS[market.chainId].secondary?.wrapped;
+  const options = [COLLATERAL_TOKENS[market.chainId].primary.address];
 
-  if (wrapped) {
-    options.push(wrapped.address);
+  if (COLLATERAL_TOKENS[market.chainId].secondary) {
+    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.address!);
   }
+
+  if (COLLATERAL_TOKENS[market.chainId].secondary?.wrapped) {
+    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.wrapped!.address!);
+  }
+
+  // TODO: allow to swap using multple alternative tokens
+  /*   if (COLLATERAL_TOKENS[market.chainId].swap) {
+    options.push(...COLLATERAL_TOKENS[market.chainId].swap!.map(t => t.address));
+  } */
 
   return options;
 }
 
-export const AltCollateralDropdown = (props: CollateralDropdownProps) => {
-  const { market, selectedCollateral, setSelectedCollateral, collateralOptions } = props;
+const CollateralDropdown = (props: CollateralDropdownProps) => {
+  const { market, selectedCollateral, setSelectedCollateral } = props;
 
-  const { data: collateralTokens } = useTokensInfo(collateralOptions || getCollateralOptions(market), market.chainId);
+  const { data: collateralTokens } = useTokensInfo(getCollateralOptions(market), market.chainId);
 
   const [isOpen, setIsOpen] = useState(false);
   if (market.parentMarket.id !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
@@ -93,4 +96,4 @@ export const AltCollateralDropdown = (props: CollateralDropdownProps) => {
   );
 };
 
-export default AltCollateralDropdown;
+export default CollateralDropdown;

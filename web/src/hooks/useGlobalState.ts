@@ -12,7 +12,9 @@ type State = {
   };
   maxSlippage: string;
   isInstantSwap: boolean;
-  preferredCollateral: Token | undefined;
+  preferredCollaterals: {
+    [chainId: number]: Token | undefined;
+  };
 };
 
 type Action = {
@@ -22,7 +24,8 @@ type Action = {
   migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
   setInstantSwap: (value: boolean) => void;
-  setPreferredCollateral: (value: Token) => void;
+  setPreferredCollateral: (token: Token, chainId: number) => void;
+  getPreferredCollateral: (chainId: number) => Token | undefined;
 };
 
 const useGlobalState = create<State & Action>()(
@@ -33,7 +36,7 @@ const useGlobalState = create<State & Action>()(
       favorites: {},
       maxSlippage: "1",
       isInstantSwap: true,
-      preferredCollateral: undefined,
+      preferredCollaterals: {},
       setAccessToken: (accessToken: string) =>
         set(() => ({
           accessToken,
@@ -60,10 +63,16 @@ const useGlobalState = create<State & Action>()(
         set(() => ({
           isInstantSwap,
         })),
-      setPreferredCollateral: (preferredCollateral: Token) =>
-        set(() => ({
-          preferredCollateral,
+      setPreferredCollateral: (token: Token, chainId: number) =>
+        set((state) => ({
+          preferredCollaterals: {
+            ...state.preferredCollaterals,
+            [chainId]: token,
+          },
         })),
+      getPreferredCollateral: (chainId: number): Token | undefined => {
+        return useGlobalState.getState().preferredCollaterals[chainId];
+      },
     }),
     {
       name: "seer-storage",

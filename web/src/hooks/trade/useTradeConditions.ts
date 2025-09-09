@@ -25,8 +25,9 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
-  const preferredCollateral = useGlobalState((state) => state.preferredCollateral);
+  const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId));
   const selectedCollateral = fixedCollateral || preferredCollateral || primaryCollateral;
+
   const { address: account } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { isFetching, sharesToAssets, assetsToShares } = useShareAssetRatio(market.chainId);

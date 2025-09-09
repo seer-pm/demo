@@ -17,25 +17,45 @@ type BigIntConfigValues = {
   MIN_BOND: BigInt;
 };
 
-type CollateralTokensMap = Record<SupportedChain, { primary: Token; secondary: Token | undefined }>;
+type CollateralTokensMap = Record<SupportedChain, { primary: Token; secondary: Token | undefined; swap?: Token[] }>;
+
+export const TOKENS_BY_CHAIN = {
+  [gnosis.id]: {
+    sDAI: "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+    xDAI: "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d",
+  },
+  [mainnet.id]: {
+    sDAI: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
+    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+  },
+  [optimism.id]: {
+    sUSDS: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0",
+    USDS: "0x4f13a96ec5c4cf34e442b46bbd98a0791f20edc3",
+    USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+  },
+} as const;
 
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
-    primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[gnosis.id].sDAI, symbol: "sDAI", decimals: 18 },
     secondary: {
       address: NATIVE_TOKEN,
       symbol: "xDAI",
       decimals: 18,
-      wrapped: { address: "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d", symbol: "wxDAI", decimals: 18 },
+      wrapped: { address: TOKENS_BY_CHAIN[gnosis.id].xDAI, symbol: "wxDAI", decimals: 18 },
     },
   },
   [mainnet.id]: {
-    primary: { address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA", symbol: "sDAI", decimals: 18 },
-    secondary: { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[mainnet.id].sDAI, symbol: "sDAI", decimals: 18 },
+    secondary: { address: TOKENS_BY_CHAIN[mainnet.id].DAI, symbol: "DAI", decimals: 18 },
   },
   [optimism.id]: {
-    primary: { address: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0", symbol: "sUSDS", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[optimism.id].sUSDS, symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
+    swap: [
+      { address: TOKENS_BY_CHAIN[optimism.id].USDS, symbol: "USDS", decimals: 18 },
+      { address: TOKENS_BY_CHAIN[optimism.id].USDC, symbol: "USDC", decimals: 6 },
+    ],
   },
   /* [base.id]: {
     primary: { address: "0x5875eee11cf8398102fdad704c9e96607675467a", symbol: "sUSDS", decimals: 18 },

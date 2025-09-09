@@ -1,6 +1,7 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { Address } from "viem";
 import { SupportedChain } from "./chains";
+import { TOKENS_BY_CHAIN } from "./config";
 import { Market } from "./market";
 
 function marketPath(market: Market): string;
@@ -52,11 +53,18 @@ export const paths = {
     "https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=100&toToken=0x0000000000000000000000000000000000000000",
   tokenImage: (address: string, chainId: number) => {
     // TODO: use kleros list, add sUSDS on optimism and sDAI on mainnet
-    if (
-      (address.toLowerCase() === "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0" && chainId === 10) ||
-      (address.toLowerCase() === "0x5875eee11cf8398102fdad704c9e96607675467a" && chainId === 8453)
-    ) {
-      return "https://assets.coingecko.com/coins/images/52721/standard/sUSDS_Coin.png";
+    if (chainId === 10) {
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].sUSDS) {
+        return "https://assets.coingecko.com/coins/images/52721/standard/sUSDS_Coin.png";
+      }
+
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].USDS) {
+        return "https://assets.coingecko.com/coins/images/39926/standard/usds.webp";
+      }
+
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].USDC) {
+        return "https://assets.coingecko.com/coins/images/6319/standard/usdc.png";
+      }
     }
 
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;

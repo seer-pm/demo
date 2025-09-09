@@ -22,10 +22,10 @@ import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
-import CollateralDropdown from "../CollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { FutarchyTokenSwitch } from "./SwapTokensMarket";
+import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
@@ -189,76 +189,6 @@ export function SwapTokensLimitUpto({
     market.type === "Generic" &&
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
     swapType === "buy";
-
-  const renderTokenDisplay = (container: "buy" | "sell") => {
-    const isTokenCollateral = isTwoStringsEqual(
-      container === "sell" ? sellToken.address : buyToken.address,
-      selectedCollateral.address,
-    );
-    if (isTokenCollateral && isUndefined(fixedCollateral)) {
-      return (
-        <CollateralDropdown
-          market={market}
-          selectedCollateral={selectedCollateral}
-          setSelectedCollateral={(selectedCollateral) => setPreferredCollateral(selectedCollateral)}
-        />
-      );
-    }
-    const imageElement = (() => {
-      const isTokenCollateral = isTwoStringsEqual(
-        container === "sell" ? sellToken.address : buyToken.address,
-        selectedCollateral.address,
-      );
-      if (isTokenCollateral) {
-        if (isUndefined(fixedCollateral)) {
-          return (
-            <img
-              className="w-full h-full"
-              alt={selectedCollateral.symbol}
-              src={paths.tokenImage(selectedCollateral.address, market.chainId)}
-            />
-          );
-        }
-        if (market.type === "Futarchy") {
-          return (
-            <OutcomeImage
-              className="w-full h-full"
-              image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
-              isInvalidOutcome={false}
-              title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
-            />
-          );
-        }
-        if (!parentMarket) {
-          return <div className="w-full h-full bg-purple-primary"></div>;
-        }
-        return (
-          <OutcomeImage
-            className="w-full h-full"
-            image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
-            isInvalidOutcome={
-              parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
-            }
-            title={parentMarket.outcomes[Number(market.parentOutcome)]}
-          />
-        );
-      }
-      return (
-        <OutcomeImage
-          className="w-full h-full"
-          image={outcomeImage}
-          isInvalidOutcome={isInvalidOutcome}
-          title={outcomeText}
-        />
-      );
-    })();
-    return (
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-        <p className="font-semibold text-[16px]">{container === "sell" ? sellToken.symbol : buyToken.symbol}</p>
-      </div>
-    );
-  };
 
   const renderLimitTokenDisplay = () => {
     const imageElement = (() => {
@@ -531,7 +461,22 @@ export function SwapTokensLimitUpto({
                   errorClassName="absolute"
                 />
               </div>
-              {renderTokenDisplay("sell")}
+              <TokenSelector
+                type="sell"
+                {...{
+                  sellToken,
+                  buyToken,
+                  selectedCollateral,
+                  market,
+                  fixedCollateral,
+                  setPreferredCollateral,
+                  parentMarket,
+                  outcomeIndex,
+                  outcomeImage,
+                  isInvalidOutcome,
+                  outcomeText,
+                }}
+              />
             </div>
             <div className="flex justify-end">
               {isFetchingBalance ? (
@@ -581,7 +526,22 @@ export function SwapTokensLimitUpto({
                   useFormReturn={useFormReturn}
                 />
               </div>
-              {renderTokenDisplay("buy")}
+              <TokenSelector
+                type="buy"
+                {...{
+                  sellToken,
+                  buyToken,
+                  selectedCollateral,
+                  market,
+                  fixedCollateral,
+                  setPreferredCollateral,
+                  parentMarket,
+                  outcomeIndex,
+                  outcomeImage,
+                  isInvalidOutcome,
+                  outcomeText,
+                }}
+              />
             </div>
           </div>
         </div>
