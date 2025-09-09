@@ -18,9 +18,9 @@ export default function ScalarForecastChecker({
   receivedAmount,
   collateralPerShare,
   selectedCollateral,
-  isCollateralNative,
-  sDaiToDai,
-  daiToSDai,
+  isSecondaryCollateral,
+  sharesToAssets,
+  assetsToShares,
 }: {
   market: Market;
   outcomeToken: Token;
@@ -29,9 +29,9 @@ export default function ScalarForecastChecker({
   receivedAmount: number;
   collateralPerShare: number;
   selectedCollateral: Token;
-  isCollateralNative: boolean;
-  daiToSDai: number;
-  sDaiToDai: number;
+  isSecondaryCollateral: boolean;
+  assetsToShares: number;
+  sharesToAssets: number;
 }) {
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
 
@@ -43,13 +43,15 @@ export default function ScalarForecastChecker({
         "text-right",
       )}
     >
-      {returnPerToken.toFixed(3)} {isCollateralNative ? "sDAI" : selectedCollateral.symbol}
-      {isCollateralNative ? ` (${(returnPerToken * (sDaiToDai ?? 0)).toFixed(3)} ${selectedCollateral.symbol})` : ""}
+      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+      {isSecondaryCollateral
+        ? ` (${(returnPerToken * (sharesToAssets ?? 0)).toFixed(3)} ${selectedCollateral.symbol})`
+        : ""}
     </span>
   );
   const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
     <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {isCollateralNative ? selectedCollateral.symbol : "sDAI"} (
+      {potentialReturn.toFixed(3)} {isSecondaryCollateral ? selectedCollateral.symbol : "sDAI"} (
       {returnPercentage.toFixed(2)}
       %)
     </span>
@@ -120,10 +122,10 @@ export default function ScalarForecastChecker({
     const { returnPercentage, potentialReturn } = getPotentialReturn(
       collateralPerShare,
       returnPerToken,
-      isCollateralNative,
+      isSecondaryCollateral,
       receivedAmount,
-      sDaiToDai,
-      daiToSDai,
+      sharesToAssets,
+      assetsToShares,
       false,
     );
     return {
@@ -169,10 +171,10 @@ export default function ScalarForecastChecker({
         const { potentialReturn } = getPotentialReturn(
           inputData[outcomeIndex].collateralPerShare,
           returnPerToken,
-          isCollateralNative,
+          isSecondaryCollateral,
           inputData[outcomeIndex].receivedAmount,
-          sDaiToDai,
-          daiToSDai,
+          sharesToAssets,
+          assetsToShares,
           false,
         );
         return [forecast, potentialReturn];
@@ -204,7 +206,7 @@ export default function ScalarForecastChecker({
         type: "none",
       },
       valueFormatter: (value: number) => {
-        return `${value.toLocaleString()} ${isCollateralNative ? "sDAI" : selectedCollateral.symbol}`;
+        return `${value.toLocaleString()} ${isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}`;
       },
     },
 
@@ -248,7 +250,7 @@ export default function ScalarForecastChecker({
         alignWithLabel: true,
         customValues: yAxisTicks,
       },
-      name: isCollateralNative ? "sDAI" : selectedCollateral.symbol,
+      name: isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol,
     },
     series: [
       ...[...chartData].reverse().map((x, index) => ({

@@ -6,10 +6,10 @@ import { PotentialReturnResult } from "./PotentialReturnResult";
 
 interface PotentialReturnProps {
   swapType: "buy" | "sell";
-  isCollateralNative: boolean;
+  isSecondaryCollateral: boolean;
   selectedCollateral: Token;
-  sDaiToDai: number;
-  daiToSDai: number;
+  sharesToAssets: number;
+  assetsToShares: number;
   outcomeText: string;
   outcomeToken: Token;
   market: Market;
@@ -22,10 +22,10 @@ interface PotentialReturnProps {
 
 export function PotentialReturn({
   swapType,
-  isCollateralNative,
+  isSecondaryCollateral,
   selectedCollateral,
-  sDaiToDai,
-  daiToSDai,
+  sharesToAssets,
+  assetsToShares,
   outcomeText,
   outcomeToken,
   market,
@@ -50,7 +50,7 @@ export function PotentialReturn({
         selectedCollateral={selectedCollateral}
         outcomeToken={outcomeToken}
         outcomeText={outcomeText}
-        isCollateralNative={isCollateralNative}
+        isSecondaryCollateral={isSecondaryCollateral}
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}
         amount={amount}
@@ -66,9 +66,9 @@ export function PotentialReturn({
         Potential return{" "}
         <span className="tooltip">
           <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-            Each token can be redeemed for 1 {isCollateralNative ? "sDAI" : selectedCollateral.symbol}
-            {isCollateralNative ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the market
-            resolves to {outcomeText}.
+            Each token can be redeemed for 1 {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+            {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
+            market resolves to {outcomeText}.
           </p>
           <QuestionIcon fill="#9747FF" />
         </span>
@@ -76,11 +76,11 @@ export function PotentialReturn({
       <PotentialReturnResult
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}
-        isCollateralNative={isCollateralNative}
+        isSecondaryCollateral={isSecondaryCollateral}
         selectedCollateral={selectedCollateral}
         receivedAmount={receivedAmount}
-        sDaiToDai={sDaiToDai}
-        daiToSDai={daiToSDai}
+        sharesToAssets={sharesToAssets}
+        assetsToShares={assetsToShares}
         returnPerToken={1}
         collateralPerShare={collateralPerShare}
         isOneOrNothingPotentialReturn={isOneOrNothingPotentialReturn}

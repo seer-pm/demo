@@ -3,50 +3,45 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDropDown } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { isUndefined } from "@/lib/utils";
+import { Token } from "@/lib/tokens";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Address, zeroAddress } from "viem";
 import DropdownWrapper from "../Form/DropdownWrapper";
 
-type AltCollateralDropdownProps = {
+type CollateralDropdownProps = {
   market: Market;
-  useAltCollateral: boolean;
-  setUseAltCollateral: (useAltCollateral: boolean) => void;
-  isUseWrappedToken?: boolean;
-  collateralPair?: [Address, Address];
+  selectedCollateral: Token;
+  setSelectedCollateral: (selectedCollateral: Token) => void;
+  collateralOptions?: Address[];
 };
 
-function getCollateralPair(market: Market, isUseWrappedToken: boolean): [Address, Address] | [] {
+function getCollateralOptions(market: Market): Address[] {
   if (market.type === "Futarchy") {
     return [market.collateralToken1, market.collateralToken2];
   }
 
-  if (isUndefined(COLLATERAL_TOKENS[market.chainId].secondary)) {
+  const secondary = COLLATERAL_TOKENS[market.chainId].secondary;
+  if (isUndefined(secondary)) {
     return [];
   }
+  const options = [COLLATERAL_TOKENS[market.chainId].primary.address, secondary.address];
+  const wrapped = COLLATERAL_TOKENS[market.chainId].secondary?.wrapped;
 
-  const secondary = isUseWrappedToken
-    ? COLLATERAL_TOKENS[market.chainId].secondary?.wrapped || COLLATERAL_TOKENS[market.chainId].secondary
-    : COLLATERAL_TOKENS[market.chainId].secondary;
-
-  if (!secondary) {
-    return [];
+  if (wrapped) {
+    options.push(wrapped.address);
   }
 
-  return [COLLATERAL_TOKENS[market.chainId].primary.address, secondary.address];
+  return options;
 }
 
-export const AltCollateralDropdown = React.forwardRef<HTMLInputElement | null, AltCollateralDropdownProps>((props) => {
-  const { market, collateralPair, isUseWrappedToken = false, useAltCollateral, setUseAltCollateral } = props;
+export const AltCollateralDropdown = (props: CollateralDropdownProps) => {
+  const { market, selectedCollateral, setSelectedCollateral, collateralOptions } = props;
 
-  const { data: collateralTokens } = useTokensInfo(
-    collateralPair || getCollateralPair(market, isUseWrappedToken),
-    market.chainId,
-  );
+  const { data: collateralTokens } = useTokensInfo(collateralOptions || getCollateralOptions(market), market.chainId);
 
   const [isOpen, setIsOpen] = useState(false);
-  const selectedIndex = useAltCollateral ? 1 : 0;
   if (market.parentMarket.id !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
     return null;
   }
@@ -57,16 +52,16 @@ export const AltCollateralDropdown = React.forwardRef<HTMLInputElement | null, A
       setIsOpen={setIsOpen}
       content={
         <div className="p-2">
-          {collateralTokens.map((collateralToken, index) => (
+          {collateralTokens.map((collateralToken) => (
             <li
               key={collateralToken.address}
               onClick={() => {
-                setUseAltCollateral(index !== 0);
+                setSelectedCollateral(collateralToken);
                 setIsOpen(false);
               }}
               className={clsx(
                 "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
-                ((index !== 0 && useAltCollateral) || (index === 0 && !useAltCollateral)) &&
+                isTwoStringsEqual(collateralToken.address, selectedCollateral.address) &&
                   "active border-l-[3px] border-l-purple-primary bg-purple-medium",
               )}
             >
@@ -87,15 +82,15 @@ export const AltCollateralDropdown = React.forwardRef<HTMLInputElement | null, A
         <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
           <img
             className="w-full h-full"
-            alt={collateralTokens[selectedIndex].symbol}
-            src={paths.tokenImage(collateralTokens[selectedIndex].address, market.chainId)}
+            alt={selectedCollateral.symbol}
+            src={paths.tokenImage(selectedCollateral.address, market.chainId)}
           />
         </div>
-        <p className="font-semibold text-[16px]">{collateralTokens[selectedIndex].symbol}</p>
+        <p className="font-semibold text-[16px]">{selectedCollateral.symbol}</p>
         <ArrowDropDown />
       </div>
     </DropdownWrapper>
   );
-});
+};
 
 export default AltCollateralDropdown;

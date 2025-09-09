@@ -1,3 +1,4 @@
+import { Token } from "@/lib/tokens";
 import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -11,6 +12,7 @@ type State = {
   };
   maxSlippage: string;
   isInstantSwap: boolean;
+  preferredCollateral: Token | undefined;
 };
 
 type Action = {
@@ -20,6 +22,7 @@ type Action = {
   migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
   setInstantSwap: (value: boolean) => void;
+  setPreferredCollateral: (value: Token) => void;
 };
 
 const useGlobalState = create<State & Action>()(
@@ -30,13 +33,16 @@ const useGlobalState = create<State & Action>()(
       favorites: {},
       maxSlippage: "1",
       isInstantSwap: true,
+      preferredCollateral: undefined,
       setAccessToken: (accessToken: string) =>
         set(() => ({
           accessToken,
         })),
       addPendingOrder: (orderId: string) => set((state) => ({ pendingOrders: [...state.pendingOrders, orderId] })),
       removePendingOrder: (orderId: string) =>
-        set((state) => ({ pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId) })),
+        set((state) => ({
+          pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId),
+        })),
       migrateDeprecatedFavorites: (address: Address) =>
         set((state) => {
           if (!address) {
@@ -53,6 +59,10 @@ const useGlobalState = create<State & Action>()(
       setInstantSwap: (isInstantSwap: boolean) =>
         set(() => ({
           isInstantSwap,
+        })),
+      setPreferredCollateral: (preferredCollateral: Token) =>
+        set(() => ({
+          preferredCollateral,
         })),
     }),
     {

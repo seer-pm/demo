@@ -1,4 +1,4 @@
-import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
+import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useModal } from "@/hooks/useModal";
 import { CloseIcon } from "@/lib/icons";
@@ -16,7 +16,7 @@ function PotentialReturnConfig({
   selectedCollateral,
   outcomeToken,
   outcomeText,
-  isCollateralNative,
+  isSecondaryCollateral,
   quoteIsLoading = false,
   isFetching = false,
   amount,
@@ -27,7 +27,7 @@ function PotentialReturnConfig({
   selectedCollateral: Token;
   outcomeToken: Token;
   outcomeText: string;
-  isCollateralNative: boolean;
+  isSecondaryCollateral: boolean;
   quoteIsLoading: boolean;
   isFetching: boolean;
   amount: string;
@@ -42,16 +42,16 @@ function PotentialReturnConfig({
 
   const returnPerToken = getReturnPerToken(market, outcomeToken, outcomeText, input);
 
-  const { sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
-  const returnPerTokenDai = returnPerToken * (sDaiToDai ?? 0);
+  const { sharesToAssets, assetsToShares } = useShareAssetRatio(market.chainId);
+  const returnPerTokenDai = returnPerToken * (sharesToAssets ?? 0);
 
   const potentialReturnContent = (
     <div>
       <p>
         Return per token:{" "}
         <span className="font-semibold text-purple-primary">
-          {returnPerToken.toFixed(3)} {isCollateralNative ? "sDAI" : selectedCollateral.symbol}
-          {isCollateralNative ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
+          {returnPerToken.toFixed(3)} {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+          {isSecondaryCollateral ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
         </span>
       </p>
       {Number(amount) === 0 && (
@@ -65,11 +65,11 @@ function PotentialReturnConfig({
           <PotentialReturnResult
             quoteIsLoading={quoteIsLoading}
             isFetching={isFetching}
-            isCollateralNative={isCollateralNative}
+            isSecondaryCollateral={isSecondaryCollateral}
             selectedCollateral={selectedCollateral}
             receivedAmount={receivedAmount}
-            sDaiToDai={sDaiToDai ?? 0}
-            daiToSDai={daiToSDai ?? 0}
+            sharesToAssets={sharesToAssets ?? 0}
+            assetsToShares={assetsToShares ?? 0}
             returnPerToken={returnPerToken}
             collateralPerShare={collateralPerShare}
             isOneOrNothingPotentialReturn={false}
@@ -88,9 +88,9 @@ function PotentialReturnConfig({
       amount={amount}
       receivedAmount={receivedAmount}
       collateralPerShare={collateralPerShare}
-      isCollateralNative={isCollateralNative}
-      daiToSDai={daiToSDai ?? 0}
-      sDaiToDai={sDaiToDai ?? 0}
+      isSecondaryCollateral={isSecondaryCollateral}
+      assetsToShares={assetsToShares ?? 0}
+      sharesToAssets={sharesToAssets ?? 0}
     />
   );
 

@@ -5,6 +5,7 @@ import { decimalToFraction } from "@/hooks/liquidity/utils";
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
@@ -21,7 +22,7 @@ import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
-import AltCollateralDropdown from "../AltCollateralDropdown";
+import CollateralDropdown from "../CollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { FutarchyTokenSwitch } from "./SwapTokensMarket";
@@ -32,7 +33,6 @@ interface SwapFormValues {
   type: "buy" | "sell";
   amount: string;
   amountOut: string;
-  useAltCollateral: boolean;
   limitPrice: string;
 }
 
@@ -59,6 +59,8 @@ export function SwapTokensLimitUpto({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [isUseMax, setUseMax] = useState(false);
+  const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
+
   const { data: ticksByPool } = useTicksData(
     market,
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
@@ -71,7 +73,6 @@ export function SwapTokensLimitUpto({
       type: "buy",
       amount: "",
       amountOut: "",
-      useAltCollateral: false,
       limitPrice: "",
     },
   });
@@ -87,12 +88,7 @@ export function SwapTokensLimitUpto({
     trigger,
   } = useFormReturn;
 
-  const [amount, amountOut, limitPrice, useAltCollateral] = watch([
-    "amount",
-    "amountOut",
-    "limitPrice",
-    "useAltCollateral",
-  ]);
+  const [amount, amountOut, limitPrice] = watch(["amount", "amountOut", "limitPrice"]);
 
   const limitErrorMessage = limitPrice && errors.limitPrice?.message;
 
@@ -101,24 +97,22 @@ export function SwapTokensLimitUpto({
     isInstantSwap,
     account,
     parentMarket,
-    selectedCollateral,
     isFetching,
-    sDaiToDai,
-    daiToSDai,
+    sharesToAssets,
+    assetsToShares,
     buyToken,
     sellToken,
-    isUseWrappedToken,
     isShowXDAIBridgeLink,
-    isCollateralNative,
+    isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
     isFetchingBalance,
     balance,
+    selectedCollateral,
   } = useTradeConditions({
     market,
     fixedCollateral,
     outcomeToken,
-    useAltCollateral,
     swapType,
     tradeType,
     errors,
@@ -191,7 +185,9 @@ export function SwapTokensLimitUpto({
   const outcomeText = market.outcomes[outcomeIndex];
   // check if current token price higher than 1 collateral per token
   const isPriceTooHigh =
-    market.type === "Generic" && collateralPerShare * (isCollateralNative ? daiToSDai : 1) > 1 && swapType === "buy";
+    market.type === "Generic" &&
+    collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
+    swapType === "buy";
 
   const renderTokenDisplay = (container: "buy" | "sell") => {
     const isTokenCollateral = isTwoStringsEqual(
@@ -200,11 +196,10 @@ export function SwapTokensLimitUpto({
     );
     if (isTokenCollateral && isUndefined(fixedCollateral)) {
       return (
-        <AltCollateralDropdown
+        <CollateralDropdown
           market={market}
-          isUseWrappedToken={isUseWrappedToken}
-          useAltCollateral={useAltCollateral}
-          setUseAltCollateral={(useAltCollateral) => setValue("useAltCollateral", useAltCollateral)}
+          selectedCollateral={selectedCollateral}
+          setSelectedCollateral={(selectedCollateral) => setPreferredCollateral(selectedCollateral)}
         />
       );
     }
@@ -265,14 +260,17 @@ export function SwapTokensLimitUpto({
   };
 
   const renderLimitTokenDisplay = () => {
-    const sDAI = COLLATERAL_TOKENS[market.chainId].primary;
+    const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
     const imageElement = (() => {
       if (isUndefined(fixedCollateral)) {
         return (
           <img
             className="w-full h-full"
-            alt={isCollateralNative ? "sDAI" : selectedCollateral.symbol}
-            src={paths.tokenImage(isCollateralNative ? sDAI.address : selectedCollateral.address, market.chainId)}
+            alt={isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
+            src={paths.tokenImage(
+              isSecondaryCollateral ? primaryCollateral.address : selectedCollateral.address,
+              market.chainId,
+            )}
           />
         );
       }
@@ -303,7 +301,7 @@ export function SwapTokensLimitUpto({
     return (
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
         <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-        <p className="font-semibold text-[16px]">{isCollateralNative ? "sDAI" : selectedCollateral.symbol}</p>
+        <p className="font-semibold text-[16px]">{isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}</p>
       </div>
     );
   };
@@ -365,7 +363,7 @@ export function SwapTokensLimitUpto({
     resetField("limitPrice");
     resetField("amount");
     resetField("amountOut");
-  }, [swapType, useAltCollateral, outcomeToken.address]);
+  }, [swapType, selectedCollateral.address, outcomeToken.address]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
@@ -450,7 +448,7 @@ export function SwapTokensLimitUpto({
                       const isPriceTooHigh = Number(v) > 1;
                       if (isPriceTooHigh) {
                         return `Limit price exceeds 1 ${
-                          isCollateralNative ? "sDAI" : selectedCollateral.symbol
+                          isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol
                         } per share.`;
                       }
                       if (!poolInfo) return true;
@@ -603,9 +601,9 @@ export function SwapTokensLimitUpto({
             ) : (
               <div className="flex items-center gap-2">
                 {collateralPerShare} {selectedCollateral.symbol}
-                {isCollateralNative && (
+                {isSecondaryCollateral && (
                   <span className="tooltip">
-                    <p className="tooltiptext">{(collateralPerShare * sDaiToDai).toFixed(3)} sDAI</p>
+                    <p className="tooltiptext">{(collateralPerShare * sharesToAssets).toFixed(3)} sDAI</p>
                     <QuestionIcon fill="#9747FF" />
                   </span>
                 )}
@@ -615,10 +613,10 @@ export function SwapTokensLimitUpto({
           <PotentialReturn
             {...{
               swapType,
-              isCollateralNative,
+              isSecondaryCollateral,
               selectedCollateral,
-              sDaiToDai,
-              daiToSDai,
+              sharesToAssets,
+              assetsToShares,
               outcomeText,
               outcomeToken,
               market,
@@ -634,8 +632,8 @@ export function SwapTokensLimitUpto({
 
         {isPriceTooHigh && (
           <Alert type="warning">
-            Price exceeds 1 {isCollateralNative ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the input
-            amount.
+            Price exceeds 1 {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the
+            input amount.
           </Alert>
         )}
         {quoteError && (

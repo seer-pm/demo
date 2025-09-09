@@ -5,11 +5,11 @@ import { getPotentialReturn } from "./utils";
 interface PotentialReturnResultProps {
   quoteIsLoading: boolean;
   isFetching: boolean;
-  isCollateralNative: boolean;
+  isSecondaryCollateral: boolean;
   selectedCollateral: Token;
   receivedAmount: number;
-  sDaiToDai: number;
-  daiToSDai: number;
+  sharesToAssets: number;
+  assetsToShares: number;
   returnPerToken: number;
   collateralPerShare: number;
   isOneOrNothingPotentialReturn: boolean;
@@ -18,11 +18,11 @@ interface PotentialReturnResultProps {
 export function PotentialReturnResult({
   quoteIsLoading,
   isFetching,
-  isCollateralNative,
+  isSecondaryCollateral,
   selectedCollateral,
   receivedAmount,
-  sDaiToDai,
-  daiToSDai,
+  sharesToAssets,
+  assetsToShares,
   returnPerToken,
   collateralPerShare,
   isOneOrNothingPotentialReturn,
@@ -34,10 +34,10 @@ export function PotentialReturnResult({
   const { returnPercentage, potentialReturn } = getPotentialReturn(
     collateralPerShare,
     returnPerToken,
-    isCollateralNative,
+    isSecondaryCollateral,
     receivedAmount,
-    sDaiToDai,
-    daiToSDai,
+    sharesToAssets,
+    assetsToShares,
     isOneOrNothingPotentialReturn,
   );
 

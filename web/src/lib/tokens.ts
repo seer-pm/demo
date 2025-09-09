@@ -1,6 +1,5 @@
 import { Address, formatUnits, zeroAddress } from "viem";
 import { SupportedChain, sepolia } from "./chains";
-import { COLLATERAL_TOKENS } from "./config";
 import { QuoteTradeResult } from "./trade";
 import { isUndefined } from "./utils";
 
@@ -32,22 +31,6 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
   };
   const priceString = data.pairs?.find((x) => x.chainId === { 1: "ethereum", 100: "gnosischain" }[chainId])?.priceUsd;
   return Number(priceString);
-}
-
-export function getSelectedCollateral(
-  chainId: SupportedChain,
-  useAltCollateral: boolean,
-  isUseWrappedToken: boolean,
-): Token {
-  if (hasAltCollateral(COLLATERAL_TOKENS[chainId].secondary) && useAltCollateral) {
-    if (isUseWrappedToken && COLLATERAL_TOKENS[chainId].secondary?.wrapped) {
-      return COLLATERAL_TOKENS[chainId].secondary?.wrapped as Token;
-    }
-
-    return COLLATERAL_TOKENS[chainId].secondary as Token;
-  }
-
-  return COLLATERAL_TOKENS[chainId].primary;
 }
 
 export function getCollateralPerShare(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell") {

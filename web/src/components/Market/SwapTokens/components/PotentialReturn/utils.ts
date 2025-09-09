@@ -7,17 +7,17 @@ import { PotentialReturnInputType } from "./interfaces";
 export function getPotentialReturn(
   collateralPerShare: number,
   returnPerToken: number,
-  isCollateralNative: boolean,
+  isSecondaryCollateral: boolean,
   receivedAmount: number,
-  sDaiToDai: number,
-  daiToSDai: number,
+  sharesToAssets: number,
+  assetsToShares: number,
   isOneOrNothingPotentialReturn: boolean,
 ) {
   const returnPercentage = collateralPerShare
-    ? (returnPerToken / (collateralPerShare * (isCollateralNative ? daiToSDai : 1)) - 1) * 100
+    ? (returnPerToken / (collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1)) - 1) * 100
     : 0;
   const potentialReturn =
-    (isCollateralNative ? receivedAmount * sDaiToDai : receivedAmount) *
+    (isSecondaryCollateral ? receivedAmount * sharesToAssets : receivedAmount) *
     (isOneOrNothingPotentialReturn ? 1 : returnPerToken);
 
   return { returnPercentage, potentialReturn };

@@ -1,11 +1,11 @@
-import { useSDaiDaiRatio } from "@/hooks/trade/handleSDAI";
+import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { useWrappedToken } from "@/hooks/useWrappedToken";
 
 import { useMarket } from "@/hooks/useMarket";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market } from "@/lib/market";
-import { Token, getSelectedCollateral } from "@/lib/tokens";
+import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { TradeType } from "@swapr/sdk";
 import { FieldErrors } from "react-hook-form";
@@ -16,29 +16,20 @@ interface Props {
   market: Market;
   fixedCollateral: Token | undefined;
   outcomeToken: Token;
-  useAltCollateral: boolean;
   swapType: "buy" | "sell";
   tradeType: TradeType;
   errors: FieldErrors<{ amount: string }>;
 }
 
-export function useTradeConditions({
-  market,
-  fixedCollateral,
-  outcomeToken,
-  useAltCollateral,
-  swapType,
-  tradeType,
-  errors,
-}: Props) {
+export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, tradeType, errors }: Props) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const preferredCollateral = useGlobalState((state) => state.preferredCollateral);
+  const selectedCollateral = fixedCollateral || preferredCollateral || primaryCollateral;
   const { address: account } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const isUseWrappedToken = useWrappedToken(account, market.chainId);
-  const selectedCollateral =
-    fixedCollateral || getSelectedCollateral(market.chainId, useAltCollateral, isUseWrappedToken);
-  const { isFetching, sDaiToDai, daiToSDai } = useSDaiDaiRatio(market.chainId);
+  const { isFetching, sharesToAssets, assetsToShares } = useShareAssetRatio(market.chainId);
 
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
@@ -61,6 +52,9 @@ export function useTradeConditions({
     !isFetchingNativeBalance &&
     ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
 
+  const isSecondaryCollateral =
+    isTwoStringsEqual(selectedCollateral.address, COLLATERAL_TOKENS[market.chainId].secondary?.address) ||
+    isTwoStringsEqual(selectedCollateral.address, COLLATERAL_TOKENS[market.chainId].secondary?.wrapped?.address);
   const isCollateralNative =
     market.chainId === gnosis.id && isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN);
 
@@ -75,17 +69,16 @@ export function useTradeConditions({
     parentMarket,
     selectedCollateral,
     isFetching,
-    sDaiToDai,
-    daiToSDai,
+    sharesToAssets,
+    assetsToShares,
     buyToken,
     sellToken,
     balance,
     isFetchingBalance,
     isShowXDAIBridgeLink,
-    isCollateralNative,
+    isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
-    isUseWrappedToken,
     amountErrorMessage,
   };
 }

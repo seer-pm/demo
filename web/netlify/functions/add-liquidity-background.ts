@@ -1,4 +1,4 @@
-import { convertFromSDAI } from "@/hooks/trade/handleSDAI";
+import { convertFromSDAI } from "@/hooks/trade/useShareAssetRatio";
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { fetchMarket } from "@/lib/markets-fetch";
