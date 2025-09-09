@@ -1,15 +1,15 @@
 import { QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType } from "@/lib/market";
-import { Token, getPotentialReturn } from "@/lib/tokens";
-import clsx from "clsx";
+import { Market, MarketTypes, getMarketType } from "@/lib/market";
+import { Token } from "@/lib/tokens";
 import PotentialReturnConfig from "./PotentialReturnConfig";
+import { PotentialReturnResult } from "./PotentialReturnResult";
 
 interface PotentialReturnProps {
   swapType: "buy" | "sell";
-  isCollateralDai: boolean;
+  isCollateralNative: boolean;
   selectedCollateral: Token;
   sDaiToDai: number;
+  daiToSDai: number;
   outcomeText: string;
   outcomeToken: Token;
   market: Market;
@@ -22,9 +22,10 @@ interface PotentialReturnProps {
 
 export function PotentialReturn({
   swapType,
-  isCollateralDai,
+  isCollateralNative,
   selectedCollateral,
   sDaiToDai,
+  daiToSDai,
   outcomeText,
   outcomeToken,
   market,
@@ -49,7 +50,7 @@ export function PotentialReturn({
         selectedCollateral={selectedCollateral}
         outcomeToken={outcomeToken}
         outcomeText={outcomeText}
-        isCollateralDai={isCollateralDai}
+        isCollateralNative={isCollateralNative}
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}
         amount={amount}
@@ -65,9 +66,9 @@ export function PotentialReturn({
         Potential return{" "}
         <span className="tooltip">
           <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-            Each token can be redeemed for 1 {isCollateralDai ? "sDAI" : selectedCollateral.symbol}
-            {isCollateralDai ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the market resolves
-            to {outcomeText}.
+            Each token can be redeemed for 1 {isCollateralNative ? "sDAI" : selectedCollateral.symbol}
+            {isCollateralNative ? ` (or ${sDaiToDai.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the market
+            resolves to {outcomeText}.
           </p>
           <QuestionIcon fill="#9747FF" />
         </span>
@@ -75,58 +76,15 @@ export function PotentialReturn({
       <PotentialReturnResult
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}
-        isCollateralDai={isCollateralDai}
+        isCollateralNative={isCollateralNative}
         selectedCollateral={selectedCollateral}
         receivedAmount={receivedAmount}
         sDaiToDai={sDaiToDai}
+        daiToSDai={daiToSDai}
         returnPerToken={1}
         collateralPerShare={collateralPerShare}
         isOneOrNothingPotentialReturn={isOneOrNothingPotentialReturn}
       />
     </div>
-  );
-}
-
-interface PotentialReturnResultProps {
-  quoteIsLoading: boolean;
-  isFetching: boolean;
-  isCollateralDai: boolean;
-  selectedCollateral: Token;
-  receivedAmount: number;
-  sDaiToDai: number;
-  returnPerToken: number;
-  collateralPerShare: number;
-  isOneOrNothingPotentialReturn: boolean;
-}
-
-export function PotentialReturnResult({
-  quoteIsLoading,
-  isFetching,
-  isCollateralDai,
-  selectedCollateral,
-  receivedAmount,
-  sDaiToDai,
-  returnPerToken,
-  collateralPerShare,
-  isOneOrNothingPotentialReturn,
-}: PotentialReturnResultProps) {
-  if (quoteIsLoading || isFetching) {
-    return <div className="shimmer-container ml-2 w-[100px]" />;
-  }
-
-  const { returnPercentage, potentialReturn } = getPotentialReturn(
-    collateralPerShare,
-    returnPerToken,
-    isCollateralDai,
-    receivedAmount,
-    sDaiToDai,
-    isOneOrNothingPotentialReturn,
-  );
-
-  return (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
-      %)
-    </span>
   );
 }
