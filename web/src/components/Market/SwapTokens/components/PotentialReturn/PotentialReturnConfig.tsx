@@ -1,6 +1,7 @@
 import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useModal } from "@/hooks/useModal";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CloseIcon } from "@/lib/icons";
 import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
@@ -34,6 +35,7 @@ function PotentialReturnConfig({
   receivedAmount: number;
   collateralPerShare: number;
 }) {
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const { data: odds = [] } = useMarketOdds(market, true);
   const [input, setInput] = useState<PotentialReturnInputType>(
     getDefaultInput(market, outcomeToken, outcomeText, odds),
@@ -50,7 +52,7 @@ function PotentialReturnConfig({
       <p>
         Return per token:{" "}
         <span className="font-semibold text-purple-primary">
-          {returnPerToken.toFixed(3)} {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+          {returnPerToken.toFixed(3)} {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
           {isSecondaryCollateral ? ` (${returnPerTokenDai.toFixed(3)} ${selectedCollateral.symbol})` : ""}
         </span>
       </p>

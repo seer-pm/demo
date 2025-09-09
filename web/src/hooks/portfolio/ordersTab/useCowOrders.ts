@@ -34,16 +34,16 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
       return "xDAI";
     }
   };
+  const primaryToken = COLLATERAL_TOKENS[chainId!].primary;
   const parseSymbol = (tokenAddress?: string) => {
     if (!tokenAddress) return;
-    return isTwoStringsEqual(tokenAddress, COLLATERAL_TOKENS[chainId!].primary.address)
-      ? "sDAI"
+    return isTwoStringsEqual(tokenAddress, primaryToken.address)
+      ? primaryToken.symbol
       : tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()];
   };
-  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
   const processedOrders = orders.reduce<CowOrderData[]>((acc, curr) => {
-    const sellToken = isWXDAI(curr.sellToken) ? sDAIAddress : curr.sellToken;
-    const buyToken = isWXDAI(curr.buyToken) ? sDAIAddress : curr.buyToken;
+    const sellToken = isWXDAI(curr.sellToken) ? primaryToken.address : curr.sellToken;
+    const buyToken = isWXDAI(curr.buyToken) ? primaryToken.address : curr.buyToken;
     const sellTokenSymbol =
       getWXDAISymbol(curr.sellToken, curr.owner) ?? parseSymbol(curr.sellToken) ?? curr.sellToken.slice(0, 6);
     const buyTokenSymbol =

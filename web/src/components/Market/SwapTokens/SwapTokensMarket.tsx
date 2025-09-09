@@ -5,6 +5,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -119,7 +120,7 @@ export function SwapTokensMarket({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [focusContainer, setFocusContainer] = useState(0);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
-
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -223,7 +224,7 @@ export function SwapTokensMarket({
   const collateralPerShare = getCollateralPerShare(quoteData, swapType);
 
   const outcomeText = market.outcomes[outcomeIndex];
-  // check if current token price higher than 1 collateral per token
+  // check if current token price higher than 1 (primary) collateral per token
   const isPriceTooHigh =
     market.type === "Generic" &&
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
@@ -561,7 +562,9 @@ export function SwapTokensMarket({
                 {collateralPerShare.toFixed(3)} {selectedCollateral.symbol}
                 {isSecondaryCollateral && (
                   <span className="tooltip">
-                    <p className="tooltiptext">{(collateralPerShare * assetsToShares).toFixed(3)} sDAI</p>
+                    <p className="tooltiptext">
+                      {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
+                    </p>
                     <QuestionIcon fill="#9747FF" />
                   </span>
                 )}
@@ -590,8 +593,8 @@ export function SwapTokensMarket({
 
         {isPriceTooHigh && (
           <Alert type="warning">
-            Price exceeds 1 {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the
-            input amount.
+            Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
+            Try to reduce the input amount.
           </Alert>
         )}
         {quoteError && (

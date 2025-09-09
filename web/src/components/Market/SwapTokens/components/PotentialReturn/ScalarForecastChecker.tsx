@@ -1,5 +1,6 @@
 import { useQuoteTrade } from "@/hooks/trade";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { displayScalarBound } from "@/lib/reality";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
@@ -33,6 +34,7 @@ export default function ScalarForecastChecker({
   assetsToShares: number;
   sharesToAssets: number;
 }) {
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
 
   const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
@@ -43,7 +45,7 @@ export default function ScalarForecastChecker({
         "text-right",
       )}
     >
-      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
       {isSecondaryCollateral
         ? ` (${(returnPerToken * (sharesToAssets ?? 0)).toFixed(3)} ${selectedCollateral.symbol})`
         : ""}
@@ -51,8 +53,7 @@ export default function ScalarForecastChecker({
   );
   const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
     <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {isSecondaryCollateral ? selectedCollateral.symbol : "sDAI"} (
-      {returnPercentage.toFixed(2)}
+      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
       %)
     </span>
   );
@@ -206,7 +207,7 @@ export default function ScalarForecastChecker({
         type: "none",
       },
       valueFormatter: (value: number) => {
-        return `${value.toLocaleString()} ${isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}`;
+        return `${value.toLocaleString()} ${isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}`;
       },
     },
 
@@ -250,7 +251,7 @@ export default function ScalarForecastChecker({
         alignWithLabel: true,
         customValues: yAxisTicks,
       },
-      name: isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol,
+      name: isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol,
     },
     series: [
       ...[...chartData].reverse().map((x, index) => ({

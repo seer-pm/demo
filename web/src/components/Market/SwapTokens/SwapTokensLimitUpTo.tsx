@@ -59,6 +59,7 @@ export function SwapTokensLimitUpto({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [isUseMax, setUseMax] = useState(false);
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
 
   const { data: ticksByPool } = useTicksData(
@@ -183,7 +184,7 @@ export function SwapTokensLimitUpto({
   const collateralPerShare = getCollateralPerShare(quoteData, swapType);
 
   const outcomeText = market.outcomes[outcomeIndex];
-  // check if current token price higher than 1 collateral per token
+  // check if current token price higher than 1 (primary) collateral per token
   const isPriceTooHigh =
     market.type === "Generic" &&
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
@@ -260,7 +261,6 @@ export function SwapTokensLimitUpto({
   };
 
   const renderLimitTokenDisplay = () => {
-    const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
     const imageElement = (() => {
       if (isUndefined(fixedCollateral)) {
         return (
@@ -301,7 +301,9 @@ export function SwapTokensLimitUpto({
     return (
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
         <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-        <p className="font-semibold text-[16px]">{isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}</p>
+        <p className="font-semibold text-[16px]">
+          {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
+        </p>
       </div>
     );
   };
@@ -448,7 +450,7 @@ export function SwapTokensLimitUpto({
                       const isPriceTooHigh = Number(v) > 1;
                       if (isPriceTooHigh) {
                         return `Limit price exceeds 1 ${
-                          isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol
+                          isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol
                         } per share.`;
                       }
                       if (!poolInfo) return true;
@@ -603,7 +605,9 @@ export function SwapTokensLimitUpto({
                 {collateralPerShare} {selectedCollateral.symbol}
                 {isSecondaryCollateral && (
                   <span className="tooltip">
-                    <p className="tooltiptext">{(collateralPerShare * sharesToAssets).toFixed(3)} sDAI</p>
+                    <p className="tooltiptext">
+                      {(collateralPerShare * sharesToAssets).toFixed(3)} {primaryCollateral.symbol}
+                    </p>
                     <QuestionIcon fill="#9747FF" />
                   </span>
                 )}
@@ -632,8 +636,8 @@ export function SwapTokensLimitUpto({
 
         {isPriceTooHigh && (
           <Alert type="warning">
-            Price exceeds 1 {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol} per share. Try to reduce the
-            input amount.
+            Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
+            Try to reduce the input amount.
           </Alert>
         )}
         {quoteError && (

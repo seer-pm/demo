@@ -1,3 +1,4 @@
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { QuestionIcon } from "@/lib/icons";
 import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { Token } from "@/lib/tokens";
@@ -35,6 +36,7 @@ export function PotentialReturn({
   receivedAmount,
   collateralPerShare,
 }: PotentialReturnProps) {
+  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   if (swapType !== "buy" || market.type === "Futarchy") {
     return null;
   }
@@ -66,7 +68,8 @@ export function PotentialReturn({
         Potential return{" "}
         <span className="tooltip">
           <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-            Each token can be redeemed for 1 {isSecondaryCollateral ? "sDAI" : selectedCollateral.symbol}
+            Each token can be redeemed for 1{" "}
+            {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
             {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
             market resolves to {outcomeText}.
           </p>
