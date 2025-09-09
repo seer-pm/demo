@@ -1,6 +1,6 @@
 import { GetPoolHourDatasQuery } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain, base, mainnet, optimism } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import pLimit from "p-limit";
 import { Address } from "viem";
@@ -49,9 +49,7 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || chainId === optimism.id || chainId === base.id
-            ? SUBGRAPHS["uniswap"][chainId]
-            : SUBGRAPHS["algebra"][100],
+          chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
           {
             method: "POST",
             headers: {

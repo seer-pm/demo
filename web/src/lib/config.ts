@@ -37,10 +37,10 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     primary: { address: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0", symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
   },
-  [base.id]: {
+  /* [base.id]: {
     primary: { address: "0x5875eee11cf8398102fdad704c9e96607675467a", symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
-  },
+  }, */
   [sepolia.id]: {
     primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
     secondary: undefined,
@@ -155,7 +155,11 @@ export const getPositionUrl = (chainId: number, farmId: string) => {
 };
 
 export function isVerificationEnabled(chainId: SupportedChain) {
-  return chainId !== optimism.id && chainId !== base.id;
+  return !isOpStack(chainId);
+}
+
+export function isOpStack(chainId: SupportedChain) {
+  return chainId === optimism.id /* || chainId === base.id */;
 }
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {

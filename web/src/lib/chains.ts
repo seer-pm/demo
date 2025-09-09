@@ -12,8 +12,9 @@ export const SUPPORTED_CHAINS: Partial<
     | typeof gnosis.id
     | typeof mainnet.id
     | typeof optimism.id
-    | typeof base.id
-    | typeof sepolia.id /*| typeof hardhat.id*/,
+    /* | typeof base.id */
+    | typeof sepolia.id,
+    /* | typeof hardhat.id */
     Chain
   >
 > =

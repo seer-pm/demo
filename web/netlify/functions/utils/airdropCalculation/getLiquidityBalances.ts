@@ -1,5 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import ethers from "ethers";
 import { Address } from "viem";
@@ -54,9 +54,7 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || chainId === optimism.id || chainId === base.id
-        ? SUBGRAPHS["uniswap"][chainId]
-        : SUBGRAPHS["algebra"][100],
+      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
       {
         method: "POST",
         headers: {
@@ -115,9 +113,7 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || chainId === optimism.id || chainId === base.id
-        ? SUBGRAPHS["uniswap"][chainId]
-        : SUBGRAPHS["algebra"][100],
+      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
       {
         method: "POST",
         headers: {

@@ -1,5 +1,5 @@
 import { SupportedChain, base, mainnet, optimism } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import ethers from "ethers";
@@ -69,9 +69,7 @@ export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, t
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || chainId === optimism.id || chainId === base.id
-            ? SUBGRAPHS["uniswap"][chainId]
-            : SUBGRAPHS["algebra"][100],
+          chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
           {
             method: "POST",
             headers: {

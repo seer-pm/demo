@@ -1,7 +1,8 @@
 import { SupportedChain } from "@/lib/chains";
+import { isOpStack } from "@/lib/config";
 import SEER_ENV from "@/lib/env";
 import { GraphQLClient } from "graphql-request";
-import { base, gnosis, mainnet, optimism } from "./config";
+import { gnosis, mainnet, optimism } from "./config";
 
 export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh";
 
@@ -22,7 +23,7 @@ export function curateGraphQLClient(chainId: SupportedChain) {
 }
 
 export function uniswapGraphQLClient(chainId: SupportedChain) {
-  if (chainId !== mainnet.id && chainId !== optimism.id && chainId !== base.id) {
+  if (chainId !== mainnet.id && !isOpStack(chainId)) {
     return;
   }
 
