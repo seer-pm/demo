@@ -205,7 +205,9 @@ export default async () => {
   await triggerRebuildIfNeeded(shouldRebuild);
 
   try {
-    await fetch("https://app.seer.pm/");
+    // Ping a 404 page to bypass CDN cache and keep the function warm
+    // The 404 page is never cached, so it always executes the function
+    await fetch("https://app.seer.pm/ping");
     console.log("Pinged app.seer.pm to help prevent cold starts");
   } catch (error) {
     console.error("Error pinging app.seer.pm:", error);
