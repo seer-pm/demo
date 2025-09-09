@@ -7,9 +7,9 @@ import { chainIds } from "./utils/config.ts";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
-type MarketData = { id: Address; marketName: string };
+type MarketData = { id: Address; marketName: string; chain_id: string };
 
-async function processChain(chainId: SupportedChain, marketsWithoutUrl: MarketData[]) {
+async function processMarkets(marketsWithoutUrl: MarketData[]) {
   for (const market of marketsWithoutUrl) {
     const url = slug(market.marketName).slice(0, 80);
 
@@ -35,12 +35,14 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: MarketDa
             url: currentUrl,
           })
           .eq("id", market.id)
-          .eq("chain_id", chainId)
+          .eq("chain_id", market.chain_id)
           .is("url", null);
 
         if (!error) {
           const attemptType = i <= 5 ? `consecutive number ${i}` : "timestamp";
-          console.log(`Updated URL for market ${market.id} to ${currentUrl} (${attemptType})`);
+          console.log(
+            `Updated URL for market ${market.id} (chain ${market.chain_id}) to ${currentUrl} (${attemptType})`,
+          );
           break;
         }
 
@@ -55,7 +57,7 @@ async function processChain(chainId: SupportedChain, marketsWithoutUrl: MarketDa
 export default async () => {
   const { data: marketsWithoutUrl, error } = await supabase
     .from("markets")
-    .select("id,subgraph_data->marketName")
+    .select("id,chain_id,subgraph_data->marketName")
     .is("url", null)
     .not("subgraph_data", "is", null)
     .neq("subgraph_data->>marketName", "")
@@ -71,9 +73,7 @@ export default async () => {
     return;
   }
 
-  for (const chainId of chainIds) {
-    await processChain(chainId, marketsWithoutUrl as MarketData[]);
-  }
+  await processMarkets(marketsWithoutUrl as MarketData[]);
 };
 
 export const config: Config = {
