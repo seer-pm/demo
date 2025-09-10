@@ -145,7 +145,7 @@ export async function getTokenPrice(wrappedAddress: Address, collateralToken: To
   return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
 }
 
-export async function getMarketOdds(market: Market, hasLiquidity: boolean) {
+export async function getMarketOdds(market: Market, hasLiquidity: boolean): Promise<number[]> {
   if (!hasLiquidity || market.type === "Futarchy") {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
   }

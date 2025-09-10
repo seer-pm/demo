@@ -9,18 +9,7 @@ export const useMarketOdds = (market: Market, enabled: boolean) => {
 
   const getInitialData = () => {
     if (market.odds.length > 0) {
-      if (market.odds.every((x) => x !== null)) {
-        // all outcomes have valid odds
-        return market.odds as number[];
-      }
-
-      if (!enabled) {
-        // If some odds are null but the query is disabled, we're likely in prerendered mode (e.g., homepage)
-        // Return the existing odds data even if incomplete to avoid unnecessary loading states
-        // Since the query is disabled, it won't run to fetch updated data, so we use what we have
-        // This is especially important for components like market previews on the homepage
-        return market.odds;
-      }
+      return market.odds;
     }
 
     return undefined;
