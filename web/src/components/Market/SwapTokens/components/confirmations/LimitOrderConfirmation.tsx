@@ -3,7 +3,7 @@ import { UnsignedOrder } from "@cowprotocol/cow-sdk";
 import { format } from "date-fns";
 import { useState } from "react";
 import { formatUnits } from "viem";
-import Button from "../../Form/Button";
+import Button from "../../../../Form/Button";
 
 interface LimitOrderConfirmation {
   closeModal: () => void;

@@ -63,6 +63,13 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
 
   const isSellToNative = isCollateralNative && swapType === "sell";
 
+  const isEnableComplexSwap =
+    swapType === "buy" &&
+    tradeType === TradeType.EXACT_INPUT &&
+    (isTwoStringsEqual(selectedCollateral.address, primaryCollateral.address) ||
+      isTwoStringsEqual(selectedCollateral.address, COLLATERAL_TOKENS[market.chainId].secondary?.address));
+
+  const mintFactor = isSecondaryCollateral ? assetsToShares : 1;
   return {
     maxSlippage,
     isInstantSwap,
@@ -80,6 +87,8 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
+    isEnableComplexSwap,
+    mintFactor,
     amountErrorMessage,
   };
 }

@@ -6,9 +6,9 @@ import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import { useState } from "react";
-import { Alert } from "../../Alert";
-import Button from "../../Form/Button";
-import { Spinner } from "../../Spinner";
+import { Alert } from "../../../../Alert";
+import Button from "../../../../Form/Button";
+import { Spinner } from "../../../../Spinner";
 
 interface SwapTokensConfirmationProps {
   closeModal: () => void;

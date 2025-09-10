@@ -23,11 +23,11 @@ import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import { OutcomeImage } from "../OutcomeImage";
-import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { FutarchyTokenSwitch } from "./SwapTokensMarket";
 import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
+import { SwapTokensConfirmation } from "./components/confirmations/SwapTokensConfirmation";
 
 interface SwapFormValues {
   type: "buy" | "sell";

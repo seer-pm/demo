@@ -3,8 +3,12 @@ import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 
+import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
+import { useComplexQuote } from "@/hooks/trade/useComplexQuote";
+import { useComplexTrade } from "@/hooks/trade/useComplexTrade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
@@ -20,10 +24,11 @@ import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
-import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
+import { SwapTokensComplexConfirmation } from "./components/confirmations/SwapTokensComplexConfirmation";
+import { SwapTokensConfirmation } from "./components/confirmations/SwapTokensConfirmation";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -150,6 +155,12 @@ export function SwapTokensMarket({
   } = useModal("confirm-swap-modal");
 
   const {
+    Modal: ConfirmSwapComplexModal,
+    openModal: openConfirmSwapComplexModal,
+    closeModal: closeConfirmSwapComplexModal,
+  } = useModal("confirm-swap-complex-modal");
+
+  const {
     maxSlippage,
     isInstantSwap,
     account,
@@ -167,6 +178,8 @@ export function SwapTokensMarket({
     isFetchingBalance,
     balance,
     selectedCollateral,
+    isEnableComplexSwap,
+    mintFactor,
   } = useTradeConditions({
     market,
     fixedCollateral,
@@ -193,14 +206,34 @@ export function SwapTokensMarket({
     swapType,
     tradeType,
   );
+
+  const {
+    data: complexQuoteData,
+    isLoading: complexQuoteIsLoading,
+    error: complexQuoteError,
+  } = useComplexQuote(
+    account,
+    market,
+    (Number(debouncedAmount) * mintFactor).toString(),
+    outcomeToken,
+    selectedCollateral,
+    isEnableComplexSwap,
+  );
+
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
   } = useTrade(account, quoteData?.trade, async () => {
     reset();
     closeConfirmSwapModal();
+  });
+
+  const { tradeTokensComplex } = useComplexTrade(async () => {
+    reset();
+    closeConfirmSwapComplexModal();
   });
 
   const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
@@ -212,6 +245,16 @@ export function SwapTokensMarket({
     });
   };
 
+  const onTradeTokenComplex = async () => {
+    await tradeTokensComplex.mutateAsync({
+      account: account!,
+      market,
+      selectedCollateral,
+      amount,
+      quotes: complexQuoteData!,
+    });
+  };
+
   // calculate price per share
   const receivedAmount =
     tradeType === TradeType.EXACT_INPUT
@@ -219,6 +262,16 @@ export function SwapTokensMarket({
         ? Number(formatUnits(quoteData.value, quoteData.decimals))
         : 0
       : Number(amountOut);
+
+  const receivedAmountComplex = complexQuoteData
+    ? Number(amount) * mintFactor +
+      Number(
+        formatUnits(
+          complexQuoteData[complexQuoteData.length - 1].value,
+          complexQuoteData[complexQuoteData.length - 1].decimals,
+        ),
+      )
+    : 0;
 
   const collateralPerShare = getCollateralPerShare(quoteData, swapType);
 
@@ -320,6 +373,23 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+          />
+        }
+      />
+      <ConfirmSwapComplexModal
+        title="Confirm Complex Swap"
+        content={
+          <SwapTokensComplexConfirmation
+            quotes={complexQuoteData}
+            closeModal={closeConfirmSwapComplexModal}
+            reset={() => reset()}
+            isLoading={tradeTokensComplex.isPending}
+            onSubmit={onTradeTokenComplex}
+            market={market}
+            collateral={selectedCollateral}
+            amount={Number(amount)}
+            receivedAmount={receivedAmountComplex}
+            mintFactor={mintFactor}
           />
         }
       />
@@ -588,6 +658,19 @@ export function SwapTokensMarket({
           </div>
         </div>
         {renderButtons()}
+        {isEnableComplexSwap && (
+          <SwitchChainButtonWrapper chainId={market.chainId as SupportedChain}>
+            <Button
+              variant="primary"
+              type="button"
+              text={complexQuoteError?.message || "Complex Swap"}
+              isLoading={complexQuoteIsLoading || isFetching || tradeTokensComplex.isPending}
+              disabled={!account || !!complexQuoteError || !complexQuoteData || !receivedAmountComplex}
+              className="w-full"
+              onClick={() => openConfirmSwapComplexModal()}
+            />
+          </SwitchChainButtonWrapper>
+        )}
       </form>
     </>
   );

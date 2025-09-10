@@ -20,7 +20,7 @@ interface SplitPositionProps {
   amount: bigint;
 }
 
-function splitFromRouter(
+export function splitFromRouter(
   collateralToken: Address | undefined,
   router: Address,
   market: Market,
