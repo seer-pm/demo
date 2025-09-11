@@ -20,7 +20,7 @@ import { useGlobalState } from "../useGlobalState";
 import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
 import { UNISWAP_ROUTER_ABI } from "./abis";
 
-const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
+export const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
 function useSwaprQuote(
   chainId: number,
@@ -228,7 +228,7 @@ function useMissingTradeApproval(account: Address | undefined, trade: Trade | un
   return { data, isLoading };
 }
 
-function getTradeApprovals7702(account: Address, trade: Trade) {
+export function getTradeApprovals7702(account: Address, trade: Trade) {
   return getApprovals7702({
     tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
