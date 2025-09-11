@@ -1,5 +1,6 @@
 import { tickToPrice } from "@/hooks/liquidity/utils";
-import { OrderDirection, Pool_OrderBy, getSdk } from "@/hooks/queries/gql-generated-swapr";
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr";
+import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
@@ -118,12 +119,15 @@ async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToke
     return Number.NaN;
   }
   try {
-    const { pools } = await getSdk(subgraphClient).GetPools({
+    const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+    const { pools } = await graphQLSdk(subgraphClient).GetPools({
       where: {
         ...getToken0Token1(wrappedAddress, collateralToken.address),
       },
-      orderBy: Pool_OrderBy.Liquidity,
-      orderDirection: OrderDirection.Desc,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderBy: Pool_OrderBy.Liquidity as any,
+      // biome-ignore lint/suspicious/noExplicitAny:
+      orderDirection: OrderDirection.Desc as any,
       first: 1,
     });
     const { token0 } = getToken0Token1(wrappedAddress, collateralToken.address);
@@ -133,7 +137,8 @@ async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToke
     }
     const [price0, price1] = tickToPrice(Number(pool.tick));
     return isTwoStringsEqual(wrappedAddress, token0) ? Number(price0) : Number(price1);
-  } catch {
+  } catch (e) {
+    console.error(e);
     return Number.NaN;
   }
 }
@@ -158,7 +163,9 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
   };
 
   const prices = await Promise.all(
-    market.wrappedTokens.map((wrappedAddress) => getTokenPrice(wrappedAddress, collateralToken, market.chainId)),
+    market.wrappedTokens.map((wrappedAddress) =>
+      getTokenPriceFromSubgraph(wrappedAddress, collateralToken, market.chainId),
+    ),
   );
 
   return normalizeOdds(prices);
