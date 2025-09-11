@@ -1,51 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
-import { getChartData } from "./utils/getChartData";
-import { searchMarkets } from "./utils/markets";
-
-const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+import { fetchCachedChartData } from "./market-chart-background.mts";
 
 export function getMarketChartKeyValueHash(marketId: Address | "%", chainId: SupportedChain | "%") {
   return `market_chart_hour_data_${marketId}_${chainId}`;
-}
-
-async function fetchChartData(market: Market) {
-  const hashKey = getMarketChartKeyValueHash(market.id, market.chainId);
-
-  const { data: cachedData, error: cacheError } = await supabase
-    .from("key_value")
-    .select("value")
-    .eq("key", hashKey)
-    .single();
-
-  if (
-    cacheError?.code === "PGRST116" ||
-    (cachedData?.value && Date.now() - cachedData.value.timestamp > 5 * 60 * 1000)
-  ) {
-    // data not found or older than 5 minutes
-    const chartData = await getChartData(market);
-    const cacheData = { chartData, timestamp: Date.now(), marketId: market.id };
-
-    // store and return
-    const { error: upsertError } = await supabase.from("key_value").upsert(
-      {
-        key: hashKey,
-        value: cacheData,
-      },
-      { onConflict: "key" },
-    );
-
-    if (upsertError) {
-      console.error("Cache upsert failed:", upsertError);
-    }
-
-    return chartData;
-  }
-
-  // return cached data
-  return cachedData?.value.chartData;
 }
 
 export default async (req: Request) => {
@@ -75,19 +34,14 @@ export default async (req: Request) => {
   }
 
   try {
-    // Fetch market
-    const market = (await searchMarkets({ chainIds: [chainId], id: marketId }))?.markets?.[0];
+    // Fetch chart data (always returns cached data, generates on first request if not cached)
+    const chartData = await fetchCachedChartData(marketId, chainId, false);
 
-    if (!market) {
-      return new Response(JSON.stringify({ error: "Market not found" }), {
-        status: 404,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    }
+    // Trigger background function to update chart data if it's older than 5 minutes
+    // This ensures fresh data for future requests while maintaining fast response times
+    await fetch(`https://app.seer.pm/.netlify/functions/market-chart-background?${params.toString()}`);
 
-    return new Response(JSON.stringify(await fetchChartData(market)), {
+    return new Response(JSON.stringify(chartData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
