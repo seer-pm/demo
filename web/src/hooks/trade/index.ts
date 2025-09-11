@@ -12,11 +12,13 @@ import { config } from "@/wagmi";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { sendCalls } from "@wagmi/core";
+import { Interface } from "ethers/lib/utils";
 import { Address, TransactionReceipt } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
 import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
 import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
+import { UNISWAP_ROUTER_ABI } from "./abis";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
@@ -189,6 +191,27 @@ export function useQuoteTrade(
   return swaprResult;
 }
 
+function getMaximumAmountIn(trade: Trade) {
+  let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
+  if (trade instanceof UniswapTrade) {
+    const routerInterface = new Interface(UNISWAP_ROUTER_ABI);
+    const routerFunction = trade.tradeType === TradeType.EXACT_INPUT ? "exactInputSingle" : "exactOutputSingle";
+    const callData = trade.swapRoute.methodParameters?.calldata;
+    if (callData) {
+      try {
+        const data = routerInterface.decodeFunctionData("multicall(uint256,bytes[])", callData);
+        const decodedData = routerInterface.decodeFunctionData(routerFunction, data.data[0]);
+        const callDataAmountIn =
+          trade.tradeType === TradeType.EXACT_INPUT
+            ? BigInt(decodedData[0][4].toString()) //amountIn
+            : BigInt(decodedData[0][5].toString()); //maximumAmountIn
+        maximumAmountIn = callDataAmountIn > maximumAmountIn ? callDataAmountIn : maximumAmountIn;
+      } catch {}
+    }
+  }
+  return maximumAmountIn;
+}
+
 function useMissingTradeApproval(account: Address | undefined, trade: Trade | undefined) {
   const { data, isLoading } = useMissingApprovals(
     !trade
@@ -197,7 +220,7 @@ function useMissingTradeApproval(account: Address | undefined, trade: Trade | un
           tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
           account,
           spender: trade.approveAddress as `0x${string}`,
-          amounts: BigInt(trade.maximumAmountIn().raw.toString()),
+          amounts: getMaximumAmountIn(trade),
           chainId: trade.chainId as SupportedChain,
         },
   );
@@ -210,7 +233,7 @@ function getTradeApprovals7702(account: Address, trade: Trade) {
     tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
     account,
     spender: trade.approveAddress as `0x${string}`,
-    amounts: BigInt(trade.maximumAmountIn().raw.toString()),
+    amounts: getMaximumAmountIn(trade),
     chainId: trade.chainId as SupportedChain,
   });
 }
