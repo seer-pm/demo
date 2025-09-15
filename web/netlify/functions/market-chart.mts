@@ -37,6 +37,8 @@ export default async (req: Request) => {
     // Fetch chart data (always returns cached data, generates on first request if not cached)
     const chartData = await fetchCachedChartData(marketId, chainId, false);
 
+    console.log(`Fetching chart data for market ${marketId} on chain ${chainId}`);
+
     // Trigger background function to update chart data if it's older than 5 minutes
     // This ensures fresh data for future requests while maintaining fast response times
     await fetch(`https://app.seer.pm/.netlify/functions/market-chart-background?${params.toString()}`);

@@ -214,10 +214,35 @@ export default async () => {
   await triggerRebuildIfNeeded(shouldRebuild);
 
   try {
-    // Ping a 404 page to bypass CDN cache and keep the function warm
-    // The 404 page is never cached, so it always executes the function
-    await fetch("https://app.seer.pm/ping");
-    console.log("Pinged app.seer.pm to help prevent cold starts");
+    await Promise.all([
+      // Ping a 404 page to bypass CDN cache and keep the function warm
+      // The 404 page is never cached, so it always executes the function
+      fetch("https://app.seer.pm/ping"),
+      // ping charts
+      fetch(
+        "https://app.seer.pm/.netlify/functions/market-chart?marketId=0xa4b71ac2d0e17e1242e2d825e621acd18f0054ea&chainId=100",
+      ),
+      // ping get-market
+      fetch("https://app.seer.pm/.netlify/functions/get-market", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chainId: 100,
+          url: "will-jesus-christ-return-in-2025",
+        }),
+      }),
+      // ping markets-search
+      fetch("https://app.seer.pm/.netlify/functions/markets-search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chainsList: [100], limit: 1 }),
+      }),
+    ]);
+    console.log("Pinged endpoints to help prevent cold starts");
   } catch (error) {
     console.error("Error pinging app.seer.pm:", error);
   }
