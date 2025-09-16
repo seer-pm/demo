@@ -1,50 +1,5 @@
 import type { Config } from "@netlify/edge-functions";
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "./utils/types.ts";
-
-const api = "8b2690ffdd390bad59638b894ee8d9f6";
-
-export type SubgraphTypes = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "tokens" | "poh" | "reality";
-export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
-  seer: {
-    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
-    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
-    [optimism.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmUrD13KfaaoJmnUN9CH9wja8YLVdkGXhVjRTtkdkRw5oH`,
-    [base.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmS53PLFUSFY22P4PSZ1Davk19Zhj7FTDVxbXpzK1cFMaG`,
-    [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
-  },
-  curate: {
-    // TODO: add fallback urls? or change subgraph?
-    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
-    [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
-    [sepolia.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
-  },
-  algebra: {
-    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
-  },
-  algebrafarming: {
-    [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
-  },
-  uniswap: {
-    [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
-    [optimism.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5Vg1mtJELha5ApuhkBk573K1iQKh6uUie72VotwGURy4`,
-    [base.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5vS7rrUPc4ftB2nodNBf4EoAZkdD11jPuUVw7p56bMLb`,
-  },
-  tokens: {
-    [gnosis.id]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
-    [mainnet.id]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/D1bjzs39GBk5HDrNm5ui27TDpX6pMqp8omUCRr79CjSQ",
-  },
-  poh: {
-    [gnosis.id]:
-      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/FFx16fGNSpdq2TpQer3KqpadP8UaLELS4Jocd1LtwAmG",
-    [mainnet.id]:
-      "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/8oHw9qNXdeCT2Dt4QPZK9qHZNAhPWNVrCKnFDarYEJF5",
-  },
-  reality: {
-    [gnosis.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh`,
-  },
-};
+import { SUBGRAPHS } from "../../src/lib/subgraph-endpoints";
 
 export default async (req: Request) => {
   const subgraph = new URL(req.url).searchParams.get("_subgraph");
@@ -53,24 +8,64 @@ export default async (req: Request) => {
   // @ts-ignore
   const subgraphUrl = SUBGRAPHS[subgraph][chainId];
 
+  console.log(`Proxying request to subgraph: ${subgraph} for chain: ${chainId}`);
+
   if (subgraphUrl) {
-    // Proxy the request to the subgraph
-    const response = await fetch(subgraphUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: await req.text(),
-    });
+    try {
+      // Proxy the request to the subgraph
+      const response = await fetch(subgraphUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: await req.text(),
+      });
 
-    const body = await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textBody = await response.text();
+        console.error(`Subgraph returned non-JSON response (${contentType}):`, textBody);
 
-    return new Response(JSON.stringify(body), {
-      status: body?.errors ? 500 : 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-    });
+        return new Response(
+          JSON.stringify({
+            error: "Subgraph returned invalid response format",
+            details: `Expected JSON but received ${contentType}`,
+            status: response.status,
+          }),
+          {
+            status: 502,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      }
+
+      const body = await response.json();
+
+      return new Response(JSON.stringify(body), {
+        status: body?.errors ? 500 : 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching from subgraph:", error);
+
+      return new Response(
+        JSON.stringify({
+          error: "Failed to fetch from subgraph",
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 502,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        },
+      );
+    }
   }
 
   return new Response(JSON.stringify({ error: `Subgraph not found ${subgraph} chainId ${chainId}` }), { status: 404 });

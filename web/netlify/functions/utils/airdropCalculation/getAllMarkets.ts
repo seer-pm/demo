@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { zeroAddress } from "viem";
-import { SUBGRAPHS } from "./constants";
 
 export interface SubgraphMarket {
   id: string;

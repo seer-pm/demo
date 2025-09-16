@@ -1,6 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { getSubgraphUrl } from "../subgraph";
-import { SUBGRAPHS } from "./constants";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 
 export interface PoHRequest {
   id: string;

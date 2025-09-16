@@ -29,6 +29,8 @@ export default async (request: Request, context: Context) => {
     const match = request.url.match(/og-images\/markets\/(?<chainId>\d*)\/(?<marketId>[^/]+)/);
     const { chainId = "0", marketId = "" } = match?.groups || {};
 
+    console.log(`chainId: ${chainId}, marketId: ${marketId}`);
+
     const market = await fetchMarket(context.site.url, chainId, marketId);
 
     if (!market) {

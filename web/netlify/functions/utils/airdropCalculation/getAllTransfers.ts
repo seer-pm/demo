@@ -1,7 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import ethers, { BigNumber } from "ethers";
 import { gnosis } from "viem/chains";
-import { SUBGRAPHS } from "./constants";
 
 export interface Transfer {
   id: string;

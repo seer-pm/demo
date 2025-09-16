@@ -1,10 +1,11 @@
 import { GetPoolHourDatasQuery } from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain, base, mainnet, optimism } from "@/lib/chains";
+import { SupportedChain, mainnet } from "@/lib/chains";
 import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import pLimit from "p-limit";
 import { Address } from "viem";
-import { START_TIME, SUBGRAPHS } from "./constants";
+import { START_TIME } from "./constants";
 
 export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
   let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];

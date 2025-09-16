@@ -1,11 +1,10 @@
 import { SupportedChain, mainnet } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import ethers, { BigNumber } from "ethers";
 import pLimit from "p-limit";
 import { Address } from "viem";
-import { START_TIME, SUBGRAPHS } from "./constants";
 import { calculateBurnAmounts } from "./utils";
 
 export interface BunniToken {

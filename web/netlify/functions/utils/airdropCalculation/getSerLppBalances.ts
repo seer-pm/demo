@@ -1,7 +1,8 @@
 import { SupportedChain } from "@/lib/chains";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { isTwoStringsEqual } from "@/lib/utils";
 import ethers, { BigNumber } from "ethers";
-import { SER_LPP, SUBGRAPHS } from "./constants";
+import { SER_LPP } from "./constants";
 import { Transfer } from "./getAllTransfers";
 
 export async function getSerLppBalances(chainId: SupportedChain) {

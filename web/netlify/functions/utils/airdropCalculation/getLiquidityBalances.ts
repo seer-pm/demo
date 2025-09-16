@@ -1,10 +1,10 @@
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
+import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import ethers from "ethers";
 import { Address } from "viem";
-import { base, mainnet, optimism } from "wagmi/chains";
-import { SUBGRAPHS } from "./constants";
+import { mainnet } from "wagmi/chains";
 
 export interface LiquidityEvent {
   id: string;
