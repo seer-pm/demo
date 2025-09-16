@@ -76,6 +76,8 @@ export default async (req: Request) => {
   }
 
   try {
+    console.log("Request body:", body);
+
     const result = await multiChainSearch(body as FetchMarketParams, "");
 
     return new Response(JSON.stringify(result), {

@@ -35,6 +35,8 @@ export default async (req: Request) => {
     });
   }
 
+  console.log(`chainId: ${body.chainId}, id: ${body.id}, url: ${body.url}`);
+
   try {
     // Market URLs are stored in Supabase rather than on-chain. If a URL parameter is provided,
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
