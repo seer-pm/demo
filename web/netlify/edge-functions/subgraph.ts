@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/edge-functions";
-import { SUBGRAPHS } from "../../src/lib/subgraph-endpoints";
+import { SUBGRAPHS } from "../../src/lib/subgraph-endpoints.ts";
 
 export default async (req: Request) => {
   const subgraph = new URL(req.url).searchParams.get("_subgraph");

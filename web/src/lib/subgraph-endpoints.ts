@@ -19,11 +19,9 @@ export const CHAIN_IDS = {
   sepolia: 11155111,
 } as const;
 
-type SupportedChain = (typeof CHAIN_IDS)[keyof typeof CHAIN_IDS];
-
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export const SUBGRAPHS: Record<SubgraphTypes, Partial<Record<SupportedChain, string>>> = {
+export const SUBGRAPHS = {
   seer: {
     [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
     [CHAIN_IDS.mainnet]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,

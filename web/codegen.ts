@@ -5,27 +5,27 @@ import { SUBGRAPHS } from "./src/lib/subgraph-endpoints";
 const schemasAndDocuments = [
   {
     type: "seer",
-    schema: SUBGRAPHS.seer[gnosis.id]!,
+    schema: SUBGRAPHS.seer[gnosis.id],
     documents: "./src/queries/markets.graphql",
   },
   {
     type: "curate",
-    schema: SUBGRAPHS.curate[gnosis.id]!,
+    schema: SUBGRAPHS.curate[gnosis.id],
     documents: "./src/queries/curate.graphql",
   },
   {
     type: "swapr",
-    schema: [SUBGRAPHS.algebra[gnosis.id]!, SUBGRAPHS.algebrafarming[gnosis.id]!],
+    schema: [SUBGRAPHS.algebra[gnosis.id], SUBGRAPHS.algebrafarming[gnosis.id]],
     documents: "./src/queries/swapr.graphql",
   },
   {
     type: "uniswap",
-    schema: SUBGRAPHS.uniswap[mainnet.id]!,
+    schema: SUBGRAPHS.uniswap[mainnet.id],
     documents: "./src/queries/uniswap.graphql",
   },
   {
     type: "reality",
-    schema: SUBGRAPHS.reality[gnosis.id]!,
+    schema: SUBGRAPHS.reality[gnosis.id],
     documents: "./src/queries/reality.graphql",
   },
 ];
