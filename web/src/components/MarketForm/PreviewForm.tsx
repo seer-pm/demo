@@ -293,7 +293,7 @@ export function PreviewForm({
         // }),
         fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
       ]);
-      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId) });
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId, chainId) });
       queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
     }
   });

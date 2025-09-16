@@ -39,7 +39,7 @@ function MarketCategories({ market }: { market: Market }) {
         categories,
         chainId: market.chainId,
       });
-      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(market.id) });
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(market.id, market.chainId) });
       queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
       setEdit(false);
       // biome-ignore lint/suspicious/noExplicitAny:

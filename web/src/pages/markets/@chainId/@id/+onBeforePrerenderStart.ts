@@ -56,11 +56,11 @@ export default async function onBeforePrerenderStart() {
             dehydratedState: dehydrate(
               getQueryClient([
                 {
-                  queryKeyFn: () => getUseGraphMarketKey(market.id),
+                  queryKeyFn: () => getUseGraphMarketKey(market.id, market.chainId),
                   data: market,
                 },
                 {
-                  queryKeyFn: () => getUseGraphMarketKey(market.url),
+                  queryKeyFn: () => getUseGraphMarketKey(market.url, market.chainId),
                   data: market,
                 },
                 {
@@ -99,11 +99,11 @@ export default async function onBeforePrerenderStart() {
       .filter((market) => market.url)
       .flatMap((market) => [
         {
-          queryKeyFn: () => getUseGraphMarketKey(market.id),
+          queryKeyFn: () => getUseGraphMarketKey(market.id, market.chainId),
           data: market,
         },
         {
-          queryKeyFn: () => getUseGraphMarketKey(market.url),
+          queryKeyFn: () => getUseGraphMarketKey(market.url, market.chainId),
           data: market,
         },
         {

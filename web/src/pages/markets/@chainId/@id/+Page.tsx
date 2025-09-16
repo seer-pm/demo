@@ -88,7 +88,7 @@ function MarketPage() {
 
   useEffect(() => {
     //update latest data since onBeforeRender cached
-    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug) });
+    queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug, chainId) });
   }, []);
   useEffect(() => {
     const outcomeIndexFromSearch =

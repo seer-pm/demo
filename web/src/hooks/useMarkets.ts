@@ -87,7 +87,8 @@ export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGra
 export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
   const result = await fetchMarkets(params);
   for (const market of result.markets) {
-    queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
+    queryClient.setQueryData(getUseGraphMarketKey(market.id, market.chainId), market);
+    queryClient.setQueryData(getUseGraphMarketKey(market.url, market.chainId), market);
   }
 
   return result;

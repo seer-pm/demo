@@ -43,10 +43,11 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
   return market;
 }
 
-export const getUseGraphMarketKey = (marketIdOrSlug: string) => [
+export const getUseGraphMarketKey = (marketIdOrSlug: string, chainId: SupportedChain) => [
   "useMarket",
   "useGraphMarket",
   marketIdOrSlug.toLocaleLowerCase(),
+  chainId,
 ];
 
 export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: SupportedChain) => {
@@ -54,7 +55,10 @@ export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: Sup
 
   if (market) {
     // Cache the market data under both its ID and URL keys to enable lookups by either value
-    queryClient.setQueryData(getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url), market);
+    queryClient.setQueryData(
+      getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url, chainId),
+      market,
+    );
   }
 
   return market;
@@ -62,7 +66,7 @@ export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: Sup
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
-    queryKey: getUseGraphMarketKey(marketId),
+    queryKey: getUseGraphMarketKey(marketId, chainId),
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
       return useGraphMarketQueryFn(marketId, chainId);
