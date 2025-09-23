@@ -50,7 +50,7 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.gnosis]:
       "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
     [CHAIN_IDS.mainnet]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/D1bjzs39GBk5HDrNm5ui27TDpX6pMqp8omUCRr79CjSQ",
+      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/Gfh4bbQ8MrXa45PddVuxE1SzzfdhsdiC4BbGUjfsu8Qn",
   },
   poh: {
     [CHAIN_IDS.gnosis]:

@@ -11,10 +11,12 @@ import { getMainCollateralPriceByChainMapping } from "./utils/getMarketsLiquidit
 import { getMarketsMappings } from "./utils/markets";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
-  const transfers = await getAllTransfers(chainId);
+  const transfers = await getAllTransfers("tokens", chainId);
   const resolvedMarkets = markets.filter((market) => market.payoutReported && market.finalizeTs > 0);
   // // get all transfers
-  const predictorToWinningMarketsMapping: { [key: string]: { totalPredictionCount: number; markets: Market[] } } = {};
+  const predictorToWinningMarketsMapping: {
+    [key: string]: { totalPredictionCount: number; markets: Market[] };
+  } = {};
   for (const market of resolvedMarkets) {
     const timestamp = Number(market.finalizeTs);
     const winningTokens = market.wrappedTokens.filter((_, index) => Number(market.payoutNumerators[index]) > 0);
@@ -214,6 +216,10 @@ export default async () => {
     ]),
   ];
   await writeToSheet(
-    JSON.stringify({ predictors: predictorsToRows, predictorsMarkets: predictorsMarketsToRows, trendingMarkets }),
+    JSON.stringify({
+      predictors: predictorsToRows,
+      predictorsMarkets: predictorsMarketsToRows,
+      trendingMarkets,
+    }),
   );
 };

@@ -15,94 +15,83 @@ export interface Transfer {
   value: string;
 }
 
-export async function getAllTransfers(chainId: SupportedChain) {
-  let allTransfers: Transfer[] = [];
-  let currentTimestamp = undefined;
-  while (true) {
-    const query: string = `{
-              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}"}` : ""}) {
-                id
-                from
-                to
-                token {
-                    id
-                }
-                timestamp
-                blockNumber
-                value
-              }
-            }`;
-    const results = await fetch(SUBGRAPHS["tokens"][chainId as 1 | 100], {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-      }),
-    });
-    const json = await results.json();
-    if (json.errors?.length) {
-      throw json.errors[0].message;
-    }
-    const transfers = json?.data?.transfers ?? [];
-    allTransfers = allTransfers.concat(transfers);
-
-    if (transfers[transfers.length - 1]?.timestamp === currentTimestamp) {
-      break;
-    }
-    if (transfers.length < 1000) {
-      break; // We've fetched all
-    }
-    currentTimestamp = transfers[transfers.length - 1]?.timestamp;
+export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain) {
+  if (type === "futarchy" && chainId !== gnosis.id) {
+    return [];
   }
+  const subgraphUrl = type === "futarchy" ? SUBGRAPHS[type][100] : SUBGRAPHS[type][chainId as 1 | 100];
+  // First, get the time range
+  const timeRangeQuery = `{
+    transfers(first: 1, orderBy: timestamp, orderDirection: asc) { timestamp }
+    transfersDesc: transfers(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+  }`;
+
+  const timeRangeResult = await fetch(subgraphUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: timeRangeQuery }),
+  });
+  const timeRangeJson = await timeRangeResult.json();
+
+  const startTime = Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
+  const endTime = Number.parseInt(timeRangeJson.data.transfersDesc[0]?.timestamp || "0");
+
+  // Divide into chunks
+  const CHUNK_SIZE = 24 * 60 * 60; // 1 days in seconds
+  const chunks: Promise<Transfer[]>[] = [];
+
+  for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
+    chunks.push(fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)));
+  }
+
+  const results = await Promise.all(chunks);
+  const allTransfers = results.flat();
+
   return allTransfers;
 }
 
-export async function getAllFutarchyTransfers(chainId: SupportedChain) {
-  if (chainId !== gnosis.id) {
-    return [];
-  }
+async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: number): Promise<Transfer[]> {
   let allTransfers: Transfer[] = [];
-  let currentTimestamp = undefined;
-  while (true) {
-    const query: string = `{
-              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}"}` : ""}) {
-                id
-                from
-                to
-                token {
-                    id
-                }
-                timestamp
-                blockNumber
-                value
-              }
-            }`;
-    const results = await fetch(SUBGRAPHS["futarchy"][100], {
+  let currentTimestamp = startTime;
+
+  while (currentTimestamp < endTime) {
+    const query = `{
+      transfers(
+        first: 1000, 
+        orderBy: timestamp, 
+        orderDirection: asc,
+        where: {timestamp_gte: "${currentTimestamp}", timestamp_lt: "${endTime}"}
+      ) {
+        id
+        from
+        to
+        token {
+          id
+        }
+        timestamp
+        blockNumber
+        value
+      }
+    }`;
+
+    const result = await fetch(subgraphUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
     });
-    const json = await results.json();
+    const json = await result.json();
+
     if (json.errors?.length) {
       throw json.errors[0].message;
     }
+
     const transfers = json?.data?.transfers ?? [];
     allTransfers = allTransfers.concat(transfers);
 
-    if (transfers[transfers.length - 1]?.timestamp === currentTimestamp) {
-      break;
-    }
-    if (transfers.length < 1000) {
-      break; // We've fetched all
-    }
-    currentTimestamp = transfers[transfers.length - 1]?.timestamp;
+    if (transfers.length < 1000) break;
+    currentTimestamp = Number.parseInt(transfers[transfers.length - 1].timestamp) + 1;
   }
+
   return allTransfers;
 }
 

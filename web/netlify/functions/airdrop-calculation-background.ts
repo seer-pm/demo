@@ -4,11 +4,7 @@ import { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { fetchSubgraphMarkets } from "./utils/airdropCalculation/getAllMarkets";
 import { getAllTokens } from "./utils/airdropCalculation/getAllTokens";
-import {
-  getAllFutarchyTransfers,
-  getAllTransfers,
-  getHoldersAtTimestamp,
-} from "./utils/airdropCalculation/getAllTransfers";
+import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import {
   BunniPositionSnapshot,
   getBunniLpTokensByTokenPairs,
@@ -38,28 +34,45 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   // FETCHING DATA
   console.log("START FETCHING DATA ", { chainId, timestamp });
   // get markets
+  console.time("1");
   const markets = await fetchSubgraphMarkets(chainId);
   // get tokens
+  console.timeEnd("1");
+  console.time("2");
   const tokens = getAllTokens(markets);
   const tokensByTimestamp = getTokensByTimestamp(markets, timestamp);
   // get all transfers
-  const originalTransfers = await getAllTransfers(chainId);
-  const futarchyTransfers = await getAllFutarchyTransfers(chainId);
+  console.timeEnd("2");
+  console.time("3");
+  const originalTransfers = await getAllTransfers("tokens", chainId);
+  console.timeEnd("3");
+  console.time("4");
+  const futarchyTransfers = await getAllTransfers("futarchy", chainId);
+  console.timeEnd("4");
+  console.time("5");
   const transfers = originalTransfers
     .concat(futarchyTransfers)
     .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   // get all liquidity events
   const liquidityEvents = chainId === gnosis.id ? [] : await getAllLiquidityEvents(chainId, tokens);
   // get prices at timestamps
+  console.timeEnd("5");
+  console.time("6");
   const processedPrices = await getPrices(tokens, chainId, timestamp);
+  console.timeEnd("6");
+  console.time("7");
   let positionSnapshots: BunniPositionSnapshot[] | PositionSnapshot[];
   let bunniGauges: string[] = [];
   if (chainId === mainnet.id) {
     const { tokens: bunniTokens, gauges } = await getBunniLpTokensByTokenPairs(chainId, tokens);
     bunniGauges = gauges;
+    console.timeEnd("7");
+    console.time("8");
     positionSnapshots = await getBunniPositionSnapshots(bunniTokens);
+    console.timeEnd("8");
   } else {
     positionSnapshots = await getPositionSnapshotsByTokenPairs(chainId, tokens);
+    console.timeEnd("7");
   }
 
   console.log({
@@ -139,7 +152,11 @@ async function distributeAirdrop(timestamp: number) {
   for (const users of [usersGnosis, usersMainnet]) {
     for (const [holderAddress, holderData] of Object.entries(users)) {
       if (!userHoldingsAcrossChains[holderAddress]) {
-        userHoldingsAcrossChains[holderAddress] = { directHolding: 0, indirectHolding: 0, chainIds: new Set() };
+        userHoldingsAcrossChains[holderAddress] = {
+          directHolding: 0,
+          indirectHolding: 0,
+          chainIds: new Set(),
+        };
       }
       const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
       const isPOHUser =
