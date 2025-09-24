@@ -2,11 +2,55 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
+import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
+import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
+import { Market } from "@/lib/market";
+import { getAppUrl } from "@/lib/utils";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { Address } from "viem";
 import { navigate } from "vike/client/router";
+
+async function fetchCharts(markets: Market[]): Promise<Record<Address, PoolHourDatasSets>> {
+  const response = await fetch(
+    `${getAppUrl()}/.netlify/functions/markets-charts?ids=${markets.map((m) => m.id).join(",")}`,
+  );
+  if (!response.ok) {
+    console.log(`Failed to fetch charts: ${response.status} ${response.statusText}`);
+    return {};
+  }
+  return await response.json();
+}
+
+async function preLoadMarkets(markets: Market[], queryClient: QueryClient) {
+  if (markets.length > 0) {
+    try {
+      // Filter markets that don't have data in cache
+      const marketsToFetch = markets.filter((market) => {
+        const queryKey = getUsePoolHourDataSetsKey(market.chainId, market.id);
+        const cachedData = queryClient.getQueryData(queryKey);
+        return !cachedData;
+      });
+
+      // Only fetch if there are markets without cached data
+      if (marketsToFetch.length > 0) {
+        const chartsData = await fetchCharts(marketsToFetch);
+        // Update queryClient for each individual market
+        for (const market of marketsToFetch) {
+          const marketChartData = chartsData[market.id];
+          if (marketChartData) {
+            queryClient.setQueryData(getUsePoolHourDataSetsKey(market.chainId, market.id), marketChartData);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+}
 
 function PageContent({ params }: { params: UseMarketsProps }) {
   const results = useMarkets(params);
@@ -15,6 +59,12 @@ function PageContent({ params }: { params: UseMarketsProps }) {
     isPending,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterResults(results);
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    preLoadMarkets(data.markets, queryClient);
+  }, [data.markets, queryClient]);
 
   return (
     <div>

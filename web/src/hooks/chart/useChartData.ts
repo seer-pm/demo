@@ -14,7 +14,7 @@ export type ChartData = {
   timestamps: number[];
 };
 
-export async function fetchPoolHourDataSets(market: Market) {
+async function fetchPoolHourDataSets(market: Market) {
   const params = new URLSearchParams();
   params.append("marketId", market.id);
   params.append("chainId", market.chainId.toString());
