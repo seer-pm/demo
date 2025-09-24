@@ -4,7 +4,13 @@ import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { UseMarketsProps, useMarkets } from "@/hooks/useMarkets";
+import {
+  UseGraphMarketsParams,
+  UseMarketsProps,
+  getUseGraphMarketsKey,
+  useGraphMarketsQueryFn,
+  useMarkets,
+} from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { Market } from "@/lib/market";
@@ -52,6 +58,47 @@ async function preLoadMarkets(markets: Market[], queryClient: QueryClient) {
   }
 }
 
+function convertToGraphMarketsParams(params: UseMarketsProps): UseGraphMarketsParams {
+  return {
+    chainsList: params.chainsList || [],
+    type: params.type || "",
+    marketName: params.marketName || "",
+    categoryList: params.categoryList || [],
+    marketStatusList: params.marketStatusList || [],
+    verificationStatusList: params.verificationStatusList || [],
+    showConditionalMarkets: params.showConditionalMarkets,
+    showMarketsWithRewards: params.showMarketsWithRewards,
+    minLiquidity: params.minLiquidity,
+    creator: params.creator || "",
+    participant: params.participant || "",
+    orderBy: params.orderBy,
+    orderDirection: params.orderDirection,
+    marketIds: params.marketIds,
+    disabled: params.disabled,
+    limit: params.limit,
+    page: params.page,
+  };
+}
+
+async function preLoadNextPage(params: UseMarketsProps, queryClient: QueryClient) {
+  try {
+    const nextPageParams = convertToGraphMarketsParams({ ...params, page: (params.page || 1) + 1 });
+    const queryKey = getUseGraphMarketsKey(nextPageParams);
+
+    // Check if next page data is already cached
+    const cachedData = queryClient.getQueryData(queryKey);
+    if (!cachedData) {
+      // Prefetch next page data
+      await queryClient.prefetchQuery({
+        queryKey,
+        queryFn: () => useGraphMarketsQueryFn(nextPageParams),
+      });
+    }
+  } catch (error) {
+    console.error("Failed to prefetch next page:", error);
+  }
+}
+
 function PageContent({ params }: { params: UseMarketsProps }) {
   const results = useMarkets(params);
   const {
@@ -65,6 +112,10 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   useEffect(() => {
     preLoadMarkets(data.markets, queryClient);
   }, [data.markets, queryClient]);
+
+  useEffect(() => {
+    preLoadNextPage(params, queryClient);
+  }, [params.page, queryClient]);
 
   return (
     <div>
