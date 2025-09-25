@@ -42,6 +42,7 @@ export const TokenSelector = ({
     return (
       <CollateralDropdown
         market={market}
+        type={type}
         selectedCollateral={selectedCollateral}
         setSelectedCollateral={(selectedCollateral) => setPreferredCollateral(selectedCollateral, market.chainId)}
       />

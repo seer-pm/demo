@@ -20,6 +20,7 @@ interface SwapTokensConfirmationProps {
   originalAmount: string;
   isBuyExactOutputNative: boolean;
   isSellToNative: boolean;
+  isSeerCredits: boolean;
 }
 
 export function SwapTokensConfirmation({
@@ -30,6 +31,7 @@ export function SwapTokensConfirmation({
   collateral,
   isBuyExactOutputNative,
   isSellToNative,
+  isSeerCredits,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
@@ -76,7 +78,7 @@ export function SwapTokensConfirmation({
       <div className="min-w-[400px] min-h-[150px]">
         <div className="flex items-center justify-between mb-5 gap-2">
           <p className="text-2xl break-words">
-            {inputAmount} {inputToken}
+            {inputAmount} {isSeerCredits ? "SEER_CREDITS" : inputToken}
           </p>
           <RightArrow />
           <p className="text-2xl break-words">

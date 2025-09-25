@@ -1,3 +1,4 @@
+import { seerCreditsAddress } from "@/hooks/contracts/generated-trading-credits";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDropDown } from "@/lib/icons";
@@ -14,9 +15,10 @@ type CollateralDropdownProps = {
   market: Market;
   selectedCollateral: Token;
   setSelectedCollateral: (selectedCollateral: Token) => void;
+  type: "buy" | "sell";
 };
 
-function getCollateralOptions(market: Market): Address[] {
+function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
   if (market.type === "Futarchy") {
     return [market.collateralToken1, market.collateralToken2];
   }
@@ -31,6 +33,10 @@ function getCollateralOptions(market: Market): Address[] {
     options.push(COLLATERAL_TOKENS[market.chainId].secondary?.wrapped!.address!);
   }
 
+  if (type === "sell" && market.chainId in seerCreditsAddress) {
+    options.push(seerCreditsAddress[market.chainId as keyof typeof seerCreditsAddress]);
+  }
+
   // TODO: allow to swap using multple alternative tokens
   /*   if (COLLATERAL_TOKENS[market.chainId].swap) {
     options.push(...COLLATERAL_TOKENS[market.chainId].swap!.map(t => t.address));
@@ -42,7 +48,7 @@ function getCollateralOptions(market: Market): Address[] {
 const CollateralDropdown = (props: CollateralDropdownProps) => {
   const { market, selectedCollateral, setSelectedCollateral } = props;
 
-  const { data: collateralTokens } = useTokensInfo(getCollateralOptions(market), market.chainId);
+  const { data: collateralTokens } = useTokensInfo(getCollateralOptions(market, props.type), market.chainId);
 
   const [isOpen, setIsOpen] = useState(false);
   if (market.parentMarket.id !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
