@@ -18,14 +18,26 @@ interface Props {
   outcomeToken: Token;
   swapType: "buy" | "sell";
   tradeType: TradeType;
+  orderType: "market" | "limit";
   errors: FieldErrors<{ amount: string }>;
 }
 
-export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, tradeType, errors }: Props) {
+export function useTradeConditions({
+  market,
+  outcomeToken,
+  fixedCollateral,
+  swapType,
+  tradeType,
+  orderType,
+  errors,
+}: Props) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
-  const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId));
+  const preferredCollateral = useGlobalState((state) =>
+    state.getPreferredCollateral(market.chainId, swapType, orderType),
+  );
+
   const selectedCollateral = fixedCollateral || preferredCollateral || primaryCollateral;
 
   const { address: account } = useAccount();

@@ -5,7 +5,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -173,6 +173,7 @@ export function SwapTokensMarket({
     outcomeToken,
     swapType,
     tradeType,
+    orderType: "market",
     errors,
   });
 
@@ -209,6 +210,7 @@ export function SwapTokensMarket({
       account: account!,
       isBuyExactOutputNative,
       isSellToNative,
+      isSeerCredits: isSeerCredits(market.chainId, selectedCollateral.address),
     });
   };
 
@@ -320,6 +322,7 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            isSeerCredits={isSeerCredits(market.chainId, selectedCollateral.address)}
           />
         }
       />

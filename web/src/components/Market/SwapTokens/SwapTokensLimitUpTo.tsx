@@ -7,7 +7,7 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -116,6 +116,7 @@ export function SwapTokensLimitUpto({
     outcomeToken,
     swapType,
     tradeType,
+    orderType: "limit",
     errors,
   });
 
@@ -171,6 +172,7 @@ export function SwapTokensLimitUpto({
       account: account!,
       isBuyExactOutputNative,
       isSellToNative,
+      isSeerCredits: isSeerCredits(market.chainId, selectedCollateral.address),
     });
   };
 
@@ -348,6 +350,7 @@ export function SwapTokensLimitUpto({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            isSeerCredits={false}
           />
         }
       />
