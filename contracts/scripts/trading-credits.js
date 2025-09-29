@@ -9,7 +9,7 @@
  * Usage:
  * 1. Modify the configuration object below with your desired addresses and amounts
  * 2. Leave objects empty or strings empty to skip those actions
- * 3. Run: npx hardhat run scripts/credits-manager.js --network <network>
+ * 3. Run: npx hardhat run scripts/trading-credits.js --network <network>
  * 
  * Example networks: localhost, hardhat, gnosis, ethereum, etc.
  * 

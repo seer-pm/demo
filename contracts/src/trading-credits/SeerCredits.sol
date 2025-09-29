@@ -8,6 +8,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 contract SeerCredits is ERC20 {
     address public governor; // The address that can make governance changes to the parameters of the contract.
     address public creditsManager; // The address that can burn tokens (CreditsManager contract).
+    mapping(address => bool) public isAdmin; // Mapping to track admin addresses
 
     modifier onlyGovernor() {
         require(msg.sender == governor, "Only governor can call this function");
@@ -19,16 +20,23 @@ contract SeerCredits is ERC20 {
         _;
     }
 
+    modifier onlyAdmin() {
+        require(isAdmin[msg.sender], "Only admin can call this function");
+        _;
+    }
+
     /// @dev Constructor.
     /// @param _governor The trusted governor of the contract.
     constructor(address _governor) ERC20("Seer Credits", "SEER_CREDITS", 18) {
         governor = _governor;
         creditsManager = _governor;
+        isAdmin[_governor] = true;
     }
 
     /// @dev Change the governor of the contract.
     /// @param _governor The address of the new governor.
     function changeGovernor(address _governor) external onlyGovernor {
+        require(_governor != address(0), "Invalid governor address");
         governor = _governor;
     }
 
@@ -36,6 +44,14 @@ contract SeerCredits is ERC20 {
     /// @param _creditsManager The address of the new credits manager.
     function changeCreditsManager(address _creditsManager) external onlyGovernor {
         creditsManager = _creditsManager;
+    }
+
+    /// @dev Set admin status for an address.
+    /// @param _admin The address to set admin status for.
+    /// @param _isAdmin Boolean indicating whether the address should be an admin.
+    function setAdmin(address _admin, bool _isAdmin) external onlyGovernor {
+        require(_admin != address(0), "Invalid admin address");
+        isAdmin[_admin] = _isAdmin;
     }
 
     function mint(address to, uint256 amount) external onlyGovernor {
@@ -50,7 +66,7 @@ contract SeerCredits is ERC20 {
     /// @dev Set credits balance for multiple addresses by minting or burning as needed.
     /// @param _addresses The list of addresses to set credits balance for.
     /// @param _amounts The list of amounts corresponding to each address.
-    function setCreditsBalance(address[] memory _addresses, uint256[] memory _amounts) external onlyGovernor {
+    function setCreditsBalance(address[] memory _addresses, uint256[] memory _amounts) external onlyAdmin {
         require(_addresses.length == _amounts.length, "Arrays length mismatch");
         for (uint256 i; i < _addresses.length; ++i) {
             uint256 currentBalance = this.balanceOf(_addresses[i]);
@@ -66,6 +82,18 @@ contract SeerCredits is ERC20 {
                 _mint(_addresses[i], mintAmount);
             }
             // If currentBalance == targetBalance, do nothing
+        }
+    }
+
+    /// @dev Add credits balance to multiple addresses by minting tokens.
+    /// @param _addresses The list of addresses to add credits balance to.
+    /// @param _amounts The list of amounts to add to each address.
+    function addCreditsBalance(address[] memory _addresses, uint256[] memory _amounts) external onlyAdmin {
+        require(_addresses.length == _amounts.length, "Arrays length mismatch");
+        for (uint256 i; i < _addresses.length; ++i) {
+            if (_amounts[i] > 0) {
+                _mint(_addresses[i], _amounts[i]);
+            }
         }
     }
 }
