@@ -49,10 +49,6 @@ export const TokenSelector = ({
     );
   }
   const imageElement = (() => {
-    const isTokenCollateral = isTwoStringsEqual(
-      type === "sell" ? sellToken.address : buyToken.address,
-      selectedCollateral.address,
-    );
     if (isTokenCollateral) {
       if (isUndefined(fixedCollateral)) {
         return (

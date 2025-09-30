@@ -204,7 +204,7 @@ export function useQuoteTrade(
   return swaprResult;
 }
 
-function getMaximumAmountIn(trade: Trade) {
+export function getMaximumAmountIn(trade: Trade) {
   let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
   if (trade instanceof UniswapTrade) {
     const routerInterface = new Interface(UNISWAP_ROUTER_ABI);

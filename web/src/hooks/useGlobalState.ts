@@ -27,11 +27,7 @@ type Action = {
   setMaxSlippage: (value: string) => void;
   setInstantSwap: (value: boolean) => void;
   setPreferredCollateral: (token: Token, chainId: number) => void;
-  getPreferredCollateral: (
-    chainId: number,
-    swapType: "buy" | "sell",
-    orderType: "market" | "limit",
-  ) => Token | undefined;
+  getPreferredCollateral: (chainId: number, swapType: "buy" | "sell") => Token | undefined;
 };
 
 const useGlobalState = create<State & Action>()(
@@ -76,18 +72,13 @@ const useGlobalState = create<State & Action>()(
             [chainId]: token,
           },
         })),
-      getPreferredCollateral: (
-        chainId: number,
-        swapType: "buy" | "sell",
-        orderType: "market" | "limit",
-      ): Token | undefined => {
+      getPreferredCollateral: (chainId: number, swapType: "buy" | "sell"): Token | undefined => {
         const preferredCollateral = useGlobalState.getState().preferredCollaterals[chainId];
 
         if (
-          orderType === "limit" ||
-          (swapType === "sell" &&
-            preferredCollateral &&
-            isSeerCredits(chainId as SupportedChain, preferredCollateral.address))
+          preferredCollateral &&
+          isSeerCredits(chainId as SupportedChain, preferredCollateral.address) &&
+          swapType === "sell"
         ) {
           // SEER_CREDITS can only be used as a sell token in market orders, not as a buy token or in limit orders
           return undefined;

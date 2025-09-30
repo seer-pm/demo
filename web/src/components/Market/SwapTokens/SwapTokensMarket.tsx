@@ -173,7 +173,6 @@ export function SwapTokensMarket({
     outcomeToken,
     swapType,
     tradeType,
-    orderType: "market",
     errors,
   });
 
