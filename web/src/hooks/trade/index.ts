@@ -51,8 +51,8 @@ function useSwaprQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType)
-        : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType),
+        ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
+        : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -65,6 +65,7 @@ const getUseCowQuoteQueryKey = (
   collateralToken: Token,
   swapType: "buy" | "sell",
   tradeType: TradeType,
+  maxSlippage: string,
 ) => [
   "useQuote",
   "useCowQuote",
@@ -75,6 +76,7 @@ const getUseCowQuoteQueryKey = (
   collateralToken,
   swapType,
   tradeType,
+  maxSlippage,
 ];
 
 export function useCowQuote(
@@ -88,10 +90,16 @@ export function useCowQuote(
   tradeType: TradeType,
   maxSlippage: string,
 ) {
-  const queryKey = [
-    ...getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType, tradeType),
+  const queryKey = getUseCowQuoteQueryKey(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    tradeType,
     maxSlippage,
-  ];
+  );
   const previousData = queryClient.getQueryData(queryKey);
   const isFastQuery = previousData === undefined;
   return useQuery<QuoteTradeResult | undefined, Error>({
@@ -100,8 +108,17 @@ export function useCowQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery)
-        : getCowQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
+        ? getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, isFastQuery)
+        : getCowQuoteExactOut(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType,
+            maxSlippage,
+            isFastQuery,
+          ),
     refetchInterval: (query) =>
       query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
   });
@@ -136,8 +153,8 @@ function useUniswapQuote(
     retry: false,
     queryFn: async () =>
       tradeType === TradeType.EXACT_INPUT
-        ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType)
-        : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType),
+        ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
+        : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
