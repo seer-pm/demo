@@ -139,6 +139,9 @@ export function SwapTokensLimitUpto({
     swapType,
     tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
   );
+
+  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -158,7 +161,7 @@ export function SwapTokensLimitUpto({
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
-  } = useTrade(account, quoteData?.trade, async () => {
+  } = useTrade(account, quoteData?.trade, isSeerCreditsCollateral, async () => {
     reset();
     closeConfirmSwapModal();
   });
@@ -169,7 +172,7 @@ export function SwapTokensLimitUpto({
       account: account!,
       isBuyExactOutputNative,
       isSellToNative,
-      isSeerCredits: isSeerCredits(market.chainId, selectedCollateral.address),
+      isSeerCredits: isSeerCreditsCollateral,
     });
   };
 
@@ -299,7 +302,7 @@ export function SwapTokensLimitUpto({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
-            isSeerCredits={isSeerCredits(market.chainId, selectedCollateral.address)}
+            isSeerCredits={isSeerCreditsCollateral}
           />
         }
       />

@@ -23,6 +23,11 @@ import { UNISWAP_ROUTER_ABI } from "./abis";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
+const EMPTY_APPROVALS = {
+  data: [],
+  isLoading: false,
+};
+
 function useSwaprQuote(
   chainId: number,
   account: Address | undefined,
@@ -294,13 +299,18 @@ async function tradeTokens({
   return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
 }
 
-function useTradeLegacy(account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) {
+function useTradeLegacy(
+  account: Address | undefined,
+  trade: Trade | undefined,
+  isSeerCredits: boolean,
+  onSuccess: () => unknown,
+) {
   const { addPendingOrder } = useGlobalState();
 
   const approvals = useMissingTradeApproval(account, trade);
 
   return {
-    approvals,
+    approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
     tradeTokens: useMutation({
       mutationFn: tradeTokens,
       onSuccess: (result: string | TransactionReceipt) => {
@@ -351,13 +361,8 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
 const useTrade7702 = (onSuccess: () => unknown) => {
   const { addPendingOrder } = useGlobalState();
 
-  const approvals = {
-    data: [],
-    isLoading: false,
-  };
-
   return {
-    approvals,
+    approvals: EMPTY_APPROVALS,
     tradeTokens: useMutation({
       mutationFn: (props: TradeTokensProps) => tradeTokens7702(props),
       onSuccess: (result: string | TransactionReceipt) => {
@@ -374,10 +379,15 @@ const useTrade7702 = (onSuccess: () => unknown) => {
   };
 };
 
-export const useTrade = (account: Address | undefined, trade: Trade | undefined, onSuccess: () => unknown) => {
+export const useTrade = (
+  account: Address | undefined,
+  trade: Trade | undefined,
+  isSeerCredits: boolean,
+  onSuccess: () => unknown,
+) => {
   const supports7702 = useCheck7702Support();
   const trade7702 = useTrade7702(onSuccess);
-  const tradeLegacy = useTradeLegacy(account, trade, onSuccess);
+  const tradeLegacy = useTradeLegacy(account, trade, isSeerCredits, onSuccess);
 
   return supports7702 ? trade7702 : tradeLegacy;
 };
