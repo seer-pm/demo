@@ -1,4 +1,3 @@
-import { useGlobalState } from "@/hooks/useGlobalState";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import { PriceQuality } from "@cowprotocol/cow-sdk";
 import {
@@ -34,6 +33,7 @@ export type QuoteTradeFn = (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  maxSlippage: string,
   isFastQuery?: boolean,
 ) => Promise<QuoteTradeResult>;
 
@@ -120,6 +120,7 @@ export async function getTradeArgs(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  maxSlippage: string,
 ) {
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
@@ -128,7 +129,7 @@ export async function getTradeArgs(
 
   const { currencyIn, currencyOut, currencyAmountOut } = getCurrenciesFromTokens(chainId, buyToken, sellToken, amount);
 
-  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
+  const slippage = String(Number(maxSlippage) / 100);
   const [numerator, denominator] = parseFraction(slippage) ?? [];
   const maximumSlippage =
     Number.isInteger(numerator) && Number.isInteger(denominator)
@@ -161,9 +162,10 @@ export const getCowQuoteExactOut: QuoteTradeFn = async (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  maxSlippage: string,
   isFastQuery?: boolean,
 ) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
   const trade = await CoWTrade.bestTradeExactOut({
     currencyIn: args.currencyIn,
     currencyAmountOut: args.currencyAmountOut,
@@ -195,8 +197,9 @@ export const getUniswapQuoteExactOut: QuoteTradeFn = async (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  maxSlippage: string,
 ) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
 
   const trade = await getUniswapTradeExactOut(
     args.currencyIn,
@@ -228,8 +231,9 @@ export const getSwaprQuoteExactOut: QuoteTradeFn = async (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  maxSlippage: string,
 ) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
+  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
 
   const trade = await getSwaprTradeExactOut(
     args.currencyIn,
