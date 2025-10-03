@@ -22,6 +22,7 @@ import clsx from "clsx";
 import { useMemo } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
+import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
 import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
@@ -32,7 +33,12 @@ export function OutcomesInfo({
   market,
   outcomesCount = 0,
   marketStatus,
-}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
+}: {
+  market: Market;
+  outcomesCount?: number;
+  images?: string[];
+  marketStatus?: MarketStatus;
+}) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const marketType = getMarketType(market);
 
@@ -99,7 +105,9 @@ export function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${
+                3.2 * marketEstimate.toLocaleString().length
+              }px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -175,7 +183,13 @@ export function OutcomesInfo({
   );
 }
 
-const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Market; parentMarket: Market }) => (
+const ConditionalMarketTooltipInner = ({
+  parentMarket,
+  market,
+}: {
+  market: Market;
+  parentMarket: Market;
+}) => (
   <div className="tooltip">
     <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
       <p className="text-purple-primary">Conditional Market:</p>
@@ -275,15 +289,19 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="#511778" width="50px" />
         <div className="flex items-center gap-2">
-          <div className="tooltip">
-            {market.liquidityUSD > 0 && (
-              <div className="tooltiptext !text-left min-w-[300px] max-sm:min-w-[220px]">
-                <p className="text-purple-primary">Liquidity:</p>
-                <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
-              </div>
-            )}
+          {market.liquidityUSD > 0 ? (
+            <Popover
+              trigger={<p className="text-[12px]">${liquidityUSD}</p>}
+              content={
+                <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                  <p className="text-purple-primary">Liquidity:</p>
+                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
+                </div>
+              }
+            />
+          ) : (
             <p className="text-[12px]">${liquidityUSD}</p>
-          </div>
+          )}
           <div className="tooltip">
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}

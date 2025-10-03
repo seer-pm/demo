@@ -1,4 +1,5 @@
 import { Link } from "@/components/Link";
+import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
 import { useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
@@ -48,7 +49,12 @@ function OutcomesInfo({
   outcomesCount = 0,
   images = [],
   marketStatus,
-}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
+}: {
+  market: Market;
+  outcomesCount?: number;
+  images?: string[];
+  marketStatus?: MarketStatus;
+}) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
 
   const { data: odds = [] } = useMarketOdds(market, false);
@@ -126,7 +132,11 @@ export function PoolTokensInfo({
   market,
   marketStatus,
   type,
-}: { market: Market; marketStatus: MarketStatus; type: "default" | "preview" | "small" }) {
+}: {
+  market: Market;
+  marketStatus: MarketStatus;
+  type: "default" | "preview" | "small";
+}) {
   const { data: odds = [] } = useMarketOdds(market, type === "default");
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
@@ -284,7 +294,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(parentMarket.outcomes[Number(market.parentOutcome)])}`}
+                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(
+                  parentMarket.outcomes[Number(market.parentOutcome)],
+                )}`}
                 target="_blank"
                 className="text-purple-primary font-medium"
               >
@@ -363,12 +375,15 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <span className="ml-1">{liquidityUSD}</span>
               <USDIcon />
               {market.liquidityUSD > 0 && (
-                <div className="tooltip">
-                  <div className="tooltiptext !text-left min-w-[300px]">
-                    <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
-                  </div>
-                  <QuestionIcon fill="#9747FF" />
-                </div>
+                <Popover
+                  trigger={<QuestionIcon fill="#9747FF" />}
+                  content={
+                    <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                      <p className="text-purple-primary">Liquidity:</p>
+                      <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
+                    </div>
+                  }
+                />
               )}
             </div>
           </div>
