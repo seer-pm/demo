@@ -385,7 +385,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
                   opacity: isVisible ? 1 : 0.6,
                 }}
               />
-              <span className="truncate max-w-[120px]">{outcome.name}</span>
+              <span className="truncate max-w-[200px]">{outcome.name}</span>
               <span className="text-gray-600">{formattedValue}</span>
             </div>
           );
@@ -433,8 +433,6 @@ interface IOutcomeData {
   outcome: IOutcome;
   data: Array<{ time: UTCTimestamp; value: number }>;
 }
-
-const shortenName = (name: string) => (name.length > 16 ? `${name.slice(0, 12)}...` : name);
 
 function LightweightChart({ series }: { series: IOutcomeData[] }) {
   const outcomeNames = useMemo(() => series.map(({ outcome }) => outcome.name), [series]);
@@ -518,7 +516,7 @@ function LightweightChart({ series }: { series: IOutcomeData[] }) {
         const series = chart.addSeries(LineSeries, {
           color: CHART_COLORS?.[i],
           lineWidth: 2,
-          title: shortenName(outcomeData.outcome.name),
+          title: outcomeData.outcome.name,
         });
         series.setData(outcomeData.data);
         seriesInstances.push({ data: outcomeData, color: CHART_COLORS?.[i] });
