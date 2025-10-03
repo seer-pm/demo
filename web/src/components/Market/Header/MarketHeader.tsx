@@ -175,7 +175,7 @@ export function PoolTokensInfo({
   }, [] as PoolTokensInfo);
 
   return (
-    <ul className="list-decimal mx-4">
+    <ul className="list-decimal mx-5">
       {poolTokensInfo.map((pti) => (
         <li key={pti.outcome}>
           {pti.outcome}: {formatBigNumbers(pti.token0.balance)} {pti.token0.symbol} /{" "}
