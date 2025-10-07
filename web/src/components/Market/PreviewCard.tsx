@@ -182,6 +182,7 @@ export function OutcomesInfo({
               }}
             >
               <p
+                title={outcome}
                 className="truncate"
                 style={{
                   color,
