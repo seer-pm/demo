@@ -5,7 +5,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
@@ -179,6 +179,8 @@ export function SwapTokensMarket({
   const debouncedAmount = useDebounce(amount, 500);
   const debouncedAmountOut = useDebounce(amountOut, 500);
 
+  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -198,7 +200,7 @@ export function SwapTokensMarket({
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
-  } = useTrade(account, quoteData?.trade, async () => {
+  } = useTrade(account, quoteData?.trade, isSeerCreditsCollateral, async () => {
     reset();
     closeConfirmSwapModal();
   });
@@ -209,6 +211,7 @@ export function SwapTokensMarket({
       account: account!,
       isBuyExactOutputNative,
       isSellToNative,
+      isSeerCredits: isSeerCreditsCollateral,
     });
   };
 
@@ -320,6 +323,7 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            isSeerCredits={isSeerCreditsCollateral}
           />
         }
       />

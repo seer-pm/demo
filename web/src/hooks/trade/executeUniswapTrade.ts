@@ -4,9 +4,20 @@ import { UniswapTrade } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
 import { Execution } from "../useCheck7702Support";
+import { getWrappedSeerCreditsExecution } from "./utils";
 
-export async function executeUniswapTrade(trade: UniswapTrade, account: Address): Promise<TransactionReceipt> {
-  const result = await toastifyTx(async () => sendTransaction(config, await getUniswapTradeExecution(trade, account)), {
+export async function executeUniswapTrade(
+  trade: UniswapTrade,
+  account: Address,
+  isSeerCredits: boolean,
+): Promise<TransactionReceipt> {
+  const tradeExecution = getWrappedSeerCreditsExecution(
+    isSeerCredits,
+    trade,
+    await getUniswapTradeExecution(trade, account),
+  );
+
+  const result = await toastifyTx(async () => sendTransaction(config, tradeExecution), {
     txSent: { title: "Executing trade..." },
     txSuccess: { title: "Trade executed!" },
   });
