@@ -1,18 +1,27 @@
 import { QuestionIcon } from "@/lib/icons";
 import { MarketTypes, isOdd } from "@/lib/market";
+import Tooltip from "../Tooltip";
 
-export function DisplayOdds({ odd, marketType }: { odd: number | undefined | null; marketType: MarketTypes }) {
+export function DisplayOdds({
+  odd,
+  marketType,
+}: {
+  odd: number | undefined | null;
+  marketType: MarketTypes;
+}) {
   if (!isOdd(odd)) {
     return (
       <div className="flex space-x-2 items-center">
         <div>NA</div>
-        <div className="tooltip ml-auto">
-          <p className="tooltiptext w-[300px] !whitespace-break-spaces">
-            The odds cannot be displayed because the outcome's current price is far above 1. This typically happens when
-            there is insufficient liquidity in the market.
-          </p>
-          <QuestionIcon fill="#9747FF" />
-        </div>
+        <Tooltip
+          trigger={<QuestionIcon fill="#9747FF" />}
+          content={
+            <div>
+              The odds cannot be disdivlayed because the outcome's current price is far above 1. This typically happens
+              when there is insufficient liquidity in the market.
+            </div>
+          }
+        />
       </div>
     );
   }
