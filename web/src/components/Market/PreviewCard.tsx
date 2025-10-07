@@ -122,7 +122,7 @@ export function OutcomesInfo({
   }
   return (
     <div className="mt-5">
-      <div className="flex items-start gap-[3px] w-full rounded-[8px] overflow-hidden">
+      <div className="flex items-start space-between gap-[3px] w-full rounded-[8px] overflow-hidden">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -175,7 +175,10 @@ export function OutcomesInfo({
           return (
             <p
               title={outcome}
-              className="text-[12px] whitespace-nowrap flex items-center gap-1 flex-1 min-w-0"
+              className={clsx(
+                "text-[12px] whitespace-nowrap flex items-center gap-1 flex-1 min-w-0",
+                order === visibleIndexes.length - 1 && "justify-end",
+              )}
               key={`${outcome}_${i}`}
               style={{ color }}
             >
