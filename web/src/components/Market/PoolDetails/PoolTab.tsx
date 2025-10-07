@@ -27,8 +27,8 @@ function PoolTab({
   return (
     <div key={poolId} className="space-y-2">
       <div>
-        <p className="font-semibold">Pool Id</p>
         <div className="flex items-center gap-2">
+          <p className="font-semibold text-[14px]">Pool Id:</p>
           <Link
             to={getPoolUrl(market.chainId, poolId)}
             title={poolId}
@@ -40,21 +40,21 @@ function PoolTab({
           </Link>
           <CopyButton textToCopy={poolId} size={18} />
         </div>
-      </div>
-      <div>
-        <p className="font-semibold">Pool Balances</p>
-        {isLoading ? (
-          <div className="shimmer-container w-20 h-4"></div>
-        ) : (
-          <>
-            <p className="text-[14px]">
-              {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
-            </p>
-            <p className="text-[14px]">
-              {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
-            </p>
-          </>
-        )}
+        <div className="flex gap-2">
+          <p className="font-semibold text-[14px]">Pool Balances:</p>
+          {isLoading ? (
+            <div className="shimmer-container w-20 h-4"></div>
+          ) : (
+            <div>
+              <p className="text-[14px]">
+                {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol}
+              </p>
+              <p className="text-[14px]">
+                {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
       <LiquidityBarChart market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
     </div>

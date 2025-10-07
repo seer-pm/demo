@@ -121,7 +121,7 @@ export function OutcomesInfo({
     );
   }
   return (
-    <div>
+    <div className="mt-5">
       <div className="flex items-start gap-[3px] w-full rounded-[8px] overflow-hidden">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
@@ -152,7 +152,7 @@ export function OutcomesInfo({
           );
         })}
       </div>
-      <div className={clsx("flex items-center gap-x-3 flex-wrap", visibleOutcomesCount === 2 ? "justify-between" : "")}>
+      <div className={clsx("flex items-center gap-2", visibleOutcomesCount === 2 ? "justify-between" : "")}>
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -173,8 +173,14 @@ export function OutcomesInfo({
             return null;
           }
           return (
-            <p className={clsx("text-[12px]")} key={`${outcome}_${i}`} style={{ color }}>
-              {outcome} <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+            <p
+              title={outcome}
+              className="text-[12px] whitespace-nowrap flex items-center gap-1 flex-1 min-w-0"
+              key={`${outcome}_${i}`}
+              style={{ color }}
+            >
+              <p className="truncate">{outcome}</p>
+              <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
             </p>
           );
         })}
@@ -250,30 +256,32 @@ export function PreviewCard({ market }: { market: Market }) {
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] overflow-y-auto custom-scrollbar">
+      <div className="h-[100px] @container">
         <div className={clsx("flex space-x-3 px-4 pt-3")}>
-          <Link to={paths.market(market)}>
+          <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
               <img
                 src={market.images.market}
                 alt={market.marketName}
-                className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full"
+                className="aspect-square rounded-full @[340px]:w-[38px] @[315px]:w-[35px] w-[32px]"
               />
             ) : (
-              <div className="w-[38px] h-[38px] rounded-full bg-purple-primary"></div>
+              <div className="aspect-square rounded-full bg-purple-primary w-[38px]"></div>
             )}
           </Link>
           <div className="grow min-w-0">
-            <div className={clsx("font-semibold mb-1 text-[14px] break-words")}>
-              <Link className="hover:underline" to={paths.market(market)}>
-                {market.marketName}
-              </Link>
-            </div>
+            <Link
+              title={market.marketName}
+              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
+              to={paths.market(market)}
+            >
+              {market.marketName}
+            </Link>
           </div>
         </div>
       </div>
 
-      <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">
+      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (

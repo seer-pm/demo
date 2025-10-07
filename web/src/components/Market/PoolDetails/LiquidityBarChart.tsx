@@ -16,7 +16,11 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
-}: { market: Market; outcomeTokenIndex: number; poolInfo: PoolInfo }) {
+}: {
+  market: Market;
+  outcomeTokenIndex: number;
+  poolInfo: PoolInfo;
+}) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
   const { token0Symbol, token1Symbol, token0, tick, id } = poolInfo;
   const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
@@ -28,7 +32,7 @@ export default function LiquidityBarChart({
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
+        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
@@ -84,11 +88,15 @@ export default function LiquidityBarChart({
             }
             if (params[0] && sellLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(sellLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
+              tooltipContent += `Total Volume: ${Number(
+                sellLineData[currentLineIndex][1]!.toFixed(2),
+              ).toLocaleString()}<br>`;
             }
             if (params[1] && buyLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(buyLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
+              tooltipContent += `Total Volume: ${Number(
+                buyLineData[currentLineIndex][1]!.toFixed(2),
+              ).toLocaleString()}<br>`;
             }
             // Return the formatted tooltip content with the colored dot
             return tooltipContent;
@@ -207,7 +215,7 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <div className="font-semibold flex items-center gap-2 flex-wrap">
+      <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
         Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
         {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
         <button type="button" onClick={() => setShowToken0Price((state) => !state)}>

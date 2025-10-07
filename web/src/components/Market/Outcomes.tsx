@@ -78,7 +78,11 @@ function AddLiquidityInfo({
   chainId,
   pools,
   closeModal,
-}: { chainId: SupportedChain; pools: PoolInfo[]; closeModal: () => void }) {
+}: {
+  chainId: SupportedChain;
+  pools: PoolInfo[];
+  closeModal: () => void;
+}) {
   const { address } = useAccount();
   const { data: deposits } = usePoolsDeposits(
     chainId,
@@ -246,7 +250,13 @@ function AddLiquidityLinks({
   );
 }
 
-function RewardsDisplay({ position, totalRewardPerDay }: { position: NftPosition; totalRewardPerDay: number }) {
+function RewardsDisplay({
+  position,
+  totalRewardPerDay,
+}: {
+  position: NftPosition;
+  totalRewardPerDay: number;
+}) {
   const {
     pool: { tick },
     tickLower: { tickIdx: tickLowerIdx },
@@ -414,7 +424,9 @@ function OutcomeDetails({
 
           {market.type === "Generic" && (
             <Link
-              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
+              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
+                market.outcomes[outcomeIndex],
+              )}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setSearchParams(
@@ -436,7 +448,13 @@ function OutcomeDetails({
   );
 }
 
-function MultiScalarEstimate({ market, odds }: { market: Market; odds: number | null | undefined }) {
+function MultiScalarEstimate({
+  market,
+  odds,
+}: {
+  market: Market;
+  odds: number | null | undefined;
+}) {
   if (getMarketType(market) !== MarketTypes.MULTI_SCALAR || !isOdd(odds)) {
     return null;
   }
@@ -484,6 +502,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
     <div>
       <PoolDetailsModal
         title="Pool details"
+        titleClassName="text-[24px] font-semibold text-center"
         className="!max-w-[99vw] min-[400px]:!max-w-[80vw]"
         content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
       />

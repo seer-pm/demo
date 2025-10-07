@@ -91,37 +91,39 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
           />
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap mt-8">
-        {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
-          if (category.value === "all") {
+      <div className="flex mt-8">
+        <div className="flex items-center gap-2 flex-wrap">
+          {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
+            if (category.value === "all") {
+              return (
+                <button
+                  className={clsx(
+                    "border-2 border-white rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                    !categoryList && "!bg-purple-primary !text-white",
+                  )}
+                  key={category.value}
+                  onClick={() => setCategories(undefined)}
+                  type="button"
+                >
+                  {category.text}
+                </button>
+              );
+            }
             return (
               <button
                 className={clsx(
-                  "border-2 border-white rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
-                  !categoryList && "!bg-purple-primary !text-white",
+                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                  categoryList?.includes(category.value) && "!bg-purple-primary !text-white",
                 )}
                 key={category.value}
-                onClick={() => setCategories(undefined)}
+                onClick={() => setCategories([category.value])}
                 type="button"
               >
                 {category.text}
               </button>
             );
-          }
-          return (
-            <button
-              className={clsx(
-                "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
-                categoryList?.includes(category.value) && "!bg-purple-primary !text-white",
-              )}
-              key={category.value}
-              onClick={() => setCategories([category.value])}
-              type="button"
-            >
-              {category.text}
-            </button>
-          );
-        })}
+          })}
+        </div>
         {address && (
           <Link
             to={"/collections/default"}

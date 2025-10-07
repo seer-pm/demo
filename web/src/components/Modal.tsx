@@ -8,31 +8,34 @@ export interface ModalProps {
   id: string;
   open: boolean;
   className?: string;
+  titleClassName?: string;
 }
 
-export const Modal = forwardRef<HTMLDialogElement, ModalProps>(({ title, content, id, open, className }, ref) => {
-  return (
-    <>
-      {createPortal(
-        <dialog
-          ref={ref}
-          id={id}
-          className={clsx("modal", open && "modal-open")}
-          aria-label="Modal"
-          aria-hidden={!open}
-          open={open}
-          aria-modal={open}
-        >
-          <div className={clsx("modal-box", className)}>
-            <h3
-              className="text-[24px] font-semibold text-center mb-[32px]"
-              dangerouslySetInnerHTML={{ __html: title }}
-            ></h3>
-            <div>{content}</div>
-          </div>
-        </dialog>,
-        document.body,
-      )}
-    </>
-  );
-});
+export const Modal = forwardRef<HTMLDialogElement, ModalProps>(
+  ({ title, content, id, open, className, titleClassName }, ref) => {
+    return (
+      <>
+        {createPortal(
+          <dialog
+            ref={ref}
+            id={id}
+            className={clsx("modal", open && "modal-open")}
+            aria-label="Modal"
+            aria-hidden={!open}
+            open={open}
+            aria-modal={open}
+          >
+            <div className={clsx("modal-box", className)}>
+              <h3
+                className={clsx(titleClassName ?? "text-[24px] font-semibold text-center mb-[32px]")}
+                dangerouslySetInnerHTML={{ __html: title }}
+              ></h3>
+              <div>{content}</div>
+            </div>
+          </dialog>,
+          document.body,
+        )}
+      </>
+    );
+  },
+);
