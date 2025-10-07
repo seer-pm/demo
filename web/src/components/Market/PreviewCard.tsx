@@ -152,7 +152,7 @@ export function OutcomesInfo({
           );
         })}
       </div>
-      <div className={clsx("flex items-center gap-2", visibleOutcomesCount === 2 ? "justify-between" : "")}>
+      <div className="flex items-center gap-2 text-[12px] text-black-secondary">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -173,18 +173,24 @@ export function OutcomesInfo({
             return null;
           }
           return (
-            <p
-              title={outcome}
-              className={clsx(
-                "text-[12px] whitespace-nowrap flex items-center gap-1 flex-1 min-w-0",
-                order === visibleIndexes.length - 1 && "justify-end",
-              )}
+            <div
+              className="flex items-center gap-1 flex-1 min-w-0"
               key={`${outcome}_${i}`}
-              style={{ color }}
+              style={{
+                color,
+                justifyContent: order === visibleIndexes.length - 1 ? "end" : "initial",
+              }}
             >
-              <p className="truncate">{outcome}</p>
+              <p
+                className="truncate"
+                style={{
+                  color,
+                }}
+              >
+                {outcome}
+              </p>
               <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-            </p>
+            </div>
           );
         })}
       </div>
