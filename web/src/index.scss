@@ -489,3 +489,12 @@ body {
 .outlined-thumb:hover::-moz-range-thumb {
   border: 1px solid #9747ff; /* Consistent border on focus/hover */
 }
+
+/* HIDE SCROLLBAR */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
