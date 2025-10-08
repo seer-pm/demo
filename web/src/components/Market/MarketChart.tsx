@@ -290,15 +290,12 @@ function MarketChart({ market }: { market: Market }) {
         {isPendingChart ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
         ) : series.length > 0 ? (
-          <>
-            {/* <ReactECharts key={series[0].name} option={option} /> */}
-            <LightweightChart
-              series={series.map((serie, index) => ({
-                outcome: { name: serie.name, color: CHART_COLORS?.[index] || "#000" },
-                data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
-              }))}
-            />
-          </>
+          <LightweightChart
+            series={series.map((serie, index) => ({
+              outcome: { name: serie.name, color: CHART_COLORS?.[index] || "#000" },
+              data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
+            }))}
+          />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
@@ -511,17 +508,17 @@ function LightweightChart({ series }: { series: IOutcomeData[] }) {
     chart.timeScale().fitContent();
 
     const seriesInstances: Array<{ data: IOutcomeData; color: string }> = [];
-    Object.values(series).forEach((outcomeData, i) => {
+    for (const outcomeData of series) {
       if (visibleOutcomes.has(outcomeData.outcome.name)) {
         const series = chart.addSeries(LineSeries, {
-          color: CHART_COLORS?.[i],
+          color: outcomeData.outcome.color,
           lineWidth: 2,
           title: outcomeData.outcome.name,
         });
         series.setData(outcomeData.data);
-        seriesInstances.push({ data: outcomeData, color: CHART_COLORS?.[i] });
+        seriesInstances.push({ data: outcomeData, color: outcomeData.outcome.color });
       }
-    });
+    }
 
     // Add crosshair move event listener for tooltip
     chart.subscribeCrosshairMove((param) => {
