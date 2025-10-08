@@ -177,7 +177,7 @@ function MarketPage() {
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
             <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
             <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
