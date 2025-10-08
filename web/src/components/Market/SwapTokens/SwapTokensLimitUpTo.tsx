@@ -400,11 +400,21 @@ export function SwapTokensLimitUpto({
                           : "Limit price must be less than current price.";
                       }
                     },
+                    onChange: (e) => {
+                      setUseMax(false);
+                      const value = e.target.value;
+
+                      // All trades must be less than 1. Input field defaults to cents - when user types "86",
+                      // it automatically becomes "0.86" to represent 86 cents
+                      if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
+                        const formattedValue = `0.${value}`;
+                        setValue("limitPrice", formattedValue, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }
+                    },
                   })}
-                  onChange={(e) => {
-                    setUseMax(false);
-                    register("limitPrice").onChange(e);
-                  }}
                   ref={(el) => {
                     limitPriceRef.current = el;
                     register("limitPrice").ref(el);
@@ -449,11 +459,11 @@ export function SwapTokensLimitUpto({
 
                       return true;
                     },
+
+                    onChange: () => {
+                      setTradeType(TradeType.EXACT_INPUT);
+                    },
                   })}
-                  onChange={(e) => {
-                    setTradeType(TradeType.EXACT_INPUT);
-                    register("amount").onChange(e);
-                  }}
                   disabled
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
@@ -515,11 +525,11 @@ export function SwapTokensLimitUpto({
                   type="number"
                   step="any"
                   min="0"
-                  {...register("amountOut")}
-                  onChange={(e) => {
-                    setTradeType(TradeType.EXACT_OUTPUT);
-                    register("amountOut").onChange(e);
-                  }}
+                  {...register("amountOut", {
+                    onChange: () => {
+                      setTradeType(TradeType.EXACT_OUTPUT);
+                    },
+                  })}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   disabled
