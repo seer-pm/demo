@@ -8,7 +8,7 @@ import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { COLLATERAL_TOKENS } from "@/lib/config";
-import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
+import { Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
@@ -285,6 +285,17 @@ export function SwapTokensLimitUpto({
     return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter target price" />;
   };
 
+  const checkPriceDirection = (value: number) => {
+    if (value > 1 || Number.isNaN(value) || value <= 0 || !poolInfo) return undefined;
+    const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
+    const [num, den] = decimalToFraction(isOutcomeToken0 ? value : 1 / value);
+    const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+    const isBuy =
+      (isOutcomeToken0 && targetSqrtPriceX96 > currentSqrtPriceX96) ||
+      (!isOutcomeToken0 && targetSqrtPriceX96 < currentSqrtPriceX96);
+    return isBuy ? "buy" : "sell";
+  };
+
   // useEffects
 
   useEffect(() => {
@@ -295,7 +306,7 @@ export function SwapTokensLimitUpto({
     resetField("limitPrice");
     resetField("amount");
     resetField("amountOut");
-  }, [swapType, selectedCollateral.address, outcomeToken.address]);
+  }, [selectedCollateral.address, outcomeToken.address]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
@@ -333,6 +344,12 @@ export function SwapTokensLimitUpto({
     resetField("amountOut");
   }, [isUseMax]);
 
+  useEffect(() => {
+    const priceDirection = checkPriceDirection(Number(debounceLimitPrice));
+    if (!priceDirection) return;
+    setSwapType(priceDirection as "buy" | "sell");
+  }, [debounceLimitPrice]);
+
   return (
     <>
       <ConfirmSwapModal
@@ -355,14 +372,7 @@ export function SwapTokensLimitUpto({
         <div className="space-y-2">
           <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
-              <p className="text-[#131313a1]">{swapType === "buy" ? "Buy" : "Sell"} until the price reaches</p>
-              <button
-                type="button"
-                className="hover:opacity-70"
-                onClick={() => setSwapType((state) => (state === "buy" ? "sell" : "buy"))}
-              >
-                <ArrowSwap />
-              </button>
+              <p className="text-[#131313a1]">Target price</p>
             </div>
             <div className="flex justify-between items-start">
               <div>
@@ -376,28 +386,6 @@ export function SwapTokensLimitUpto({
                     validate: (v) => {
                       if (Number.isNaN(Number(v)) || Number(v) < 0) {
                         return "Limit price must be greater than 0.";
-                      }
-                      const isPriceTooHigh = Number(v) > 1;
-                      if (isPriceTooHigh) {
-                        return `Limit price exceeds 1 ${
-                          isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol
-                        } per share.`;
-                      }
-                      if (!poolInfo) return true;
-                      const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
-                      const [num, den] = decimalToFraction(isOutcomeToken0 ? Number(v) : 1 / Number(v));
-                      const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
-                      const movingUp =
-                        (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
-                      const isPriceNotInRange =
-                        currentSqrtPriceX96 > 0n &&
-                        (movingUp
-                          ? targetSqrtPriceX96 <= currentSqrtPriceX96
-                          : targetSqrtPriceX96 >= currentSqrtPriceX96);
-                      if (isPriceNotInRange) {
-                        return swapType === "buy"
-                          ? "Limit price must be greater than current price."
-                          : "Limit price must be less than current price.";
                       }
                     },
                     onChange: (e) => {
@@ -607,14 +595,14 @@ export function SwapTokensLimitUpto({
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
-            Try to reduce the input amount.
+            Try to reduce the input price.
           </Alert>
         )}
         {quoteError && (
           <Alert type="error">
             {quoteError.message
               ? quoteError.message === "No route found"
-                ? "Not enough liquidity. Try to reduce the input amount."
+                ? `Not enough liquidity. Try to ${swapType === "buy" ? "reduce" : "increase"} the input price.`
                 : quoteError.message
               : "Error when quoting price"}
           </Alert>
