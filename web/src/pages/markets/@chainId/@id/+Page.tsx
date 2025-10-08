@@ -4,7 +4,7 @@ import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAle
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketCategories from "@/components/Market/MarketCategories";
-import MarketChart from "@/components/Market/MarketChart";
+import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";

@@ -10,8 +10,17 @@ import { differenceInDays, format } from "date-fns";
 import { LineSeries, LineStyle, UTCTimestamp, createChart } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import slug from "slug";
-import DateRangePicker from "../Portfolio/DateRangePicker";
-import { Spinner } from "../Spinner";
+import DateRangePicker from "../../Portfolio/DateRangePicker";
+import { Spinner } from "../../Spinner";
+import Legend from "./Legend";
+
+export interface IOutcomeData {
+  outcome: {
+    name: string;
+    color: string;
+  };
+  data: Array<{ time: UTCTimestamp; value: number }>;
+}
 
 const CHART_COLORS = [
   "#f58231",
@@ -295,6 +304,7 @@ function MarketChart({ market }: { market: Market }) {
               outcome: { name: serie.name, color: CHART_COLORS?.[index] || "#000" },
               data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
             }))}
+            market={market}
           />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
@@ -304,134 +314,7 @@ function MarketChart({ market }: { market: Market }) {
   );
 }
 
-interface LegendProps {
-  outcomesData: IOutcomeData[];
-  visibleOutcomes: Set<string>;
-  onToggleOutcome: (outcomeName: string) => void;
-}
-
-const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggleOutcome }) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  if (outcomesData.length === 0) {
-    return null;
-  }
-
-  const checkScrollButtons = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
-    }
-  };
-
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const scrollAmount = container.clientWidth;
-      container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const scrollAmount = container.clientWidth;
-      container.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    }
-  };
-
-  useEffect(() => {
-    checkScrollButtons();
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", checkScrollButtons);
-      return () => container.removeEventListener("scroll", checkScrollButtons);
-    }
-  }, [outcomesData]);
-
-  return (
-    <div className="relative flex items-center pr-16">
-      {/* Scrollable container */}
-      <div
-        ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {outcomesData.map(({ outcome, data }, index) => {
-          const isVisible = visibleOutcomes.has(outcome.name);
-          const lastValue = data.slice(-1)?.[0]?.value;
-          const formattedValue = lastValue
-            ? lastValue % 1 === 0
-              ? `${lastValue}%`
-              : `${lastValue.toFixed(1)}%`
-            : "0%";
-
-          return (
-            <div
-              key={`item-${index}`}
-              onClick={() => onToggleOutcome(outcome.name)}
-              className="flex items-center justify-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs whitespace-nowrap transition-colors hover:bg-gray-50"
-            >
-              <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{
-                  backgroundColor: isVisible ? outcome.color : "#d1d5db",
-                  opacity: isVisible ? 1 : 0.6,
-                }}
-              />
-              <span className="truncate max-w-[200px]">{outcome.name}</span>
-              <span className="text-gray-600">{formattedValue}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Navigation buttons on the right */}
-      <div className="absolute right-0 flex gap-1">
-        {/* Left arrow button */}
-        <button
-          type="button"
-          onClick={scrollLeft}
-          disabled={!canScrollLeft}
-          className={clsx(
-            "w-6 h-6 flex items-center justify-center transition-opacity",
-            !canScrollLeft && "opacity-30 cursor-not-allowed",
-          )}
-        >
-          <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent border-r-gray-600" />
-        </button>
-
-        {/* Right arrow button */}
-        <button
-          type="button"
-          onClick={scrollRight}
-          disabled={!canScrollRight}
-          className={clsx(
-            "w-6 h-6 flex items-center justify-center transition-opacity",
-            !canScrollRight && "opacity-30 cursor-not-allowed",
-          )}
-        >
-          <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[8px] border-t-transparent border-b-transparent border-l-gray-600" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-interface IOutcome {
-  name: string;
-  color: string;
-}
-
-interface IOutcomeData {
-  outcome: IOutcome;
-  data: Array<{ time: UTCTimestamp; value: number }>;
-}
-
-function LightweightChart({ series }: { series: IOutcomeData[] }) {
+function LightweightChart({ series, market }: { series: IOutcomeData[]; market: Market }) {
   const outcomeNames = useMemo(() => series.map(({ outcome }) => outcome.name), [series]);
 
   const [visibleOutcomes, setVisibleOutcomes] = useState<Set<string>>(new Set(outcomeNames));
@@ -514,6 +397,11 @@ function LightweightChart({ series }: { series: IOutcomeData[] }) {
           color: outcomeData.outcome.color,
           lineWidth: 2,
           title: outcomeData.outcome.name,
+          priceFormat: {
+            type: "price",
+            precision: market.type === "Futarchy" ? 3 : 2,
+            minMove: 0.001,
+          },
         });
         series.setData(outcomeData.data);
         seriesInstances.push({ data: outcomeData, color: outcomeData.outcome.color });
@@ -573,7 +461,12 @@ function LightweightChart({ series }: { series: IOutcomeData[] }) {
 
   return (
     <div className="mt-6 flex size-full flex-col px-[10px] relative">
-      <Legend outcomesData={series} visibleOutcomes={visibleOutcomes} onToggleOutcome={handleToggleOutcome} />
+      <Legend
+        outcomesData={series}
+        visibleOutcomes={visibleOutcomes}
+        onToggleOutcome={handleToggleOutcome}
+        market={market}
+      />
       <div ref={chartContainerRef} />
       {tooltipData && (
         <div
@@ -593,7 +486,7 @@ function LightweightChart({ series }: { series: IOutcomeData[] }) {
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}:</span>
-                <span className="text-sm text-gray-700">{item.value.toFixed(2)}%</span>
+                <span className="text-sm text-gray-700">{item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%</span>
               </div>
             ))}
           </div>
