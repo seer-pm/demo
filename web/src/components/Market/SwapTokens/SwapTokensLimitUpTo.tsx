@@ -365,6 +365,7 @@ export function SwapTokensLimitUpto({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            outcomeToken={outcomeToken}
           />
         }
       />

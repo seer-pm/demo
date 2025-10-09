@@ -320,6 +320,7 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            outcomeToken={outcomeToken}
           />
         }
       />
