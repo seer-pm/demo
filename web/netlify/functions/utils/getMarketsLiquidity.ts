@@ -18,7 +18,7 @@ export async function getMainCollateralPriceByChainMapping(): Promise<MainCollat
           return 1.06;
         }
         // sDAI
-        return getDexScreenerPriceUSD(COLLATERAL_TOKENS[chainId].primary.address, chainId) || 1.13;
+        return (await getDexScreenerPriceUSD(COLLATERAL_TOKENS[chainId].primary.address, chainId)) || 1.2;
       }),
     );
   } catch (e) {
@@ -242,7 +242,6 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
   const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
 
   const futarchyCollateralsByChainMapping = await getFutarchyCollateralsByChainMapping(marketGroups.futarchyMarkets);
-
   const genericTokenToLiquidityMapping = getGenericTokenToLiquidityMapping(
     genericTokenPools,
     mainCollateralPriceByChainMapping,
