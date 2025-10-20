@@ -336,7 +336,7 @@ export function SwapTokensMarket({
               focusContainer === 0 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
             )}
           >
-            <p className="text-[#131313a1]">Sell</p>
+            <p className="text-[#131313a1]">You pay</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -450,7 +450,7 @@ export function SwapTokensMarket({
               focusContainer === 1 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
             )}
           >
-            <p className="text-[#131313a1]">Buy</p>
+            <p className="text-[#131313a1]">You will get</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input

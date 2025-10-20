@@ -69,4 +69,6 @@ export const paths = {
 
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;
   },
+  futarchy: () => "https://app.futarchy.fi/",
+  deepfund: () => "https://deep.seer.pm/",
 };
