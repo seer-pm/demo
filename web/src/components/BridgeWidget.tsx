@@ -428,7 +428,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                         <div className="flex items-center gap-1">
                           <p className="text-[14px] text-[#131313a1]">
                             Balance: {displayBalance(selectedTokenBalance, selectedToken.decimals)}{" "}
-                            {selectedToken.symbol} ({chains.find((chain) => chain.id === selectedToken.chainId)?.name})
+                            {selectedToken.symbol}
                           </p>
                           <button
                             type="button"
