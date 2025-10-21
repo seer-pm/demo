@@ -37,24 +37,25 @@ export const TOKENS_BY_CHAIN = {
 
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
   [gnosis.id]: {
-    primary: { address: TOKENS_BY_CHAIN[gnosis.id].sDAI, symbol: "sDAI", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[gnosis.id].sDAI, chainId: gnosis.id, symbol: "sDAI", decimals: 18 },
     secondary: {
       address: NATIVE_TOKEN,
+      chainId: gnosis.id,
       symbol: "xDAI",
       decimals: 18,
-      wrapped: { address: TOKENS_BY_CHAIN[gnosis.id].xDAI, symbol: "wxDAI", decimals: 18 },
+      wrapped: { address: TOKENS_BY_CHAIN[gnosis.id].xDAI, chainId: gnosis.id, symbol: "wxDAI", decimals: 18 },
     },
   },
   [mainnet.id]: {
-    primary: { address: TOKENS_BY_CHAIN[mainnet.id].sDAI, symbol: "sDAI", decimals: 18 },
-    secondary: { address: TOKENS_BY_CHAIN[mainnet.id].DAI, symbol: "DAI", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[mainnet.id].sDAI, chainId: mainnet.id, symbol: "sDAI", decimals: 18 },
+    secondary: { address: TOKENS_BY_CHAIN[mainnet.id].DAI, chainId: mainnet.id, symbol: "DAI", decimals: 18 },
   },
   [optimism.id]: {
-    primary: { address: TOKENS_BY_CHAIN[optimism.id].sUSDS, symbol: "sUSDS", decimals: 18 },
+    primary: { address: TOKENS_BY_CHAIN[optimism.id].sUSDS, chainId: optimism.id, symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
     swap: [
-      { address: TOKENS_BY_CHAIN[optimism.id].USDS, symbol: "USDS", decimals: 18 },
-      { address: TOKENS_BY_CHAIN[optimism.id].USDC, symbol: "USDC", decimals: 6 },
+      { address: TOKENS_BY_CHAIN[optimism.id].USDS, chainId: optimism.id, symbol: "USDS", decimals: 18 },
+      { address: TOKENS_BY_CHAIN[optimism.id].USDC, chainId: optimism.id, symbol: "USDC", decimals: 6 },
     ],
   },
   /* [base.id]: {
@@ -62,7 +63,12 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
     secondary: undefined,
   }, */
   [sepolia.id]: {
-    primary: { address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357", symbol: "DAI", decimals: 18 },
+    primary: {
+      address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357",
+      chainId: sepolia.id,
+      symbol: "DAI",
+      decimals: 18,
+    },
     secondary: undefined,
   },
   // [hardhat.id]: {

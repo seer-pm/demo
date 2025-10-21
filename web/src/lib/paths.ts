@@ -1,5 +1,5 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
-import { Address } from "viem";
+import { Address, getAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { TOKENS_BY_CHAIN } from "./config";
 import { Market } from "./market";
@@ -67,8 +67,24 @@ export const paths = {
       }
     }
 
+    if (chainId === 42161) {
+      // arbitrum
+      return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/assets/${getAddress(address)}/logo.png`;
+    }
+
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;
   },
   futarchy: () => "https://app.futarchy.fi/",
   deepfund: () => "https://deep.seer.pm/",
+  chainImage: (chainId: number) => {
+    const chainImages: Record<number, string> = {
+      100: "https://assets.coingecko.com/asset_platforms/images/11062/small/Aatar_green_white.png", // Gnosis
+      10: "https://assets.coingecko.com/asset_platforms/images/41/standard/optimism.png", // Optimism
+      42161: "https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png", // Arbitrum
+      8453: "https://assets.coingecko.com/asset_platforms/images/131/standard/base.png", // Base
+      1: "https://assets.coingecko.com/asset_platforms/images/279/standard/ethereum.png", // Ethereum
+    };
+
+    return chainImages[chainId] || "";
+  },
 };
