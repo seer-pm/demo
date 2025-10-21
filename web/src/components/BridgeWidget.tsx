@@ -5,7 +5,15 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CheckCircleIcon, CloseCircleOutlineIcon, ExclamationCircleIcon, InfoCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
-import { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, OPTIMISM_RPC, connectors, config as wagmiConfig } from "@/wagmi";
+import {
+  ARBITRUM_RPC,
+  BASE_RPC,
+  GNOSIS_RPC,
+  MAINNET_RPC,
+  OPTIMISM_RPC,
+  connectors,
+  config as wagmiConfig,
+} from "@/wagmi";
 import { ChainType, ExecutionStatus, Process, RouteExtended, getChains } from "@lifi/sdk";
 import { useSyncWagmiConfig } from "@lifi/wallet-management";
 import { useQuery } from "@tanstack/react-query";
@@ -13,11 +21,11 @@ import { getBalance } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { FC, PropsWithChildren, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Chain, formatUnits } from "viem";
+import { Chain, formatUnits, parseUnits } from "viem";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { http, createConfig } from "wagmi";
-import { arbitrum, base, optimism } from "wagmi/chains";
+import { arbitrum, base, mainnet, optimism } from "wagmi/chains";
 import { Alert } from "./Alert";
 import Button from "./Form/Button";
 import Input from "./Form/Input";
@@ -29,6 +37,7 @@ const chains = [arbitrum, base, optimism, gnosis];
 const bridgeConfig = createConfig({
   chains: chains as unknown as [Chain, ...Chain[]],
   transports: {
+    [mainnet.id]: http(MAINNET_RPC),
     [arbitrum.id]: http(ARBITRUM_RPC),
     [base.id]: http(BASE_RPC),
     [optimism.id]: http(OPTIMISM_RPC),
@@ -187,6 +196,15 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
     },
   });
 
+  const isAmountExceedingBalance = (amount: string, token: typeof selectedToken, balance: bigint): boolean => {
+    if (!token || !amount || Number(amount) <= 0) return false;
+    try {
+      return balance < parseUnits(amount, token.decimals);
+    } catch {
+      return true; // Consider invalid amounts as exceeding balance
+    }
+  };
+
   const {
     register,
     formState: { isValid },
@@ -331,232 +349,233 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
           {isLoading && <div className="shimmer-container w-full h-[20px]"></div>}
 
           {/* Not Connected State */}
-          {!isConnected && (
+          {!isConnected ? (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">Connect your wallet to bridge tokens</p>
               <Button variant="primary" onClick={() => open({ view: "Connect" })} text="Connect Wallet" />
             </div>
-          )}
-
-          {/* No Tokens State */}
-          {!tokensWithBalance || tokensWithBalance.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">No tokens with balance found.</p>
-              <p className="text-sm text-gray-500">
-                We were looking for stablecoins like USDT, USDC, USDe or DAI on Arbitrum, Base or Optimism.
-              </p>
-              <p>
-                To bridge another token, you can visit{" "}
-                <a
-                  href={paths.xDAIBridge()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-purple-primary hover:underline"
-                >
-                  Jumper Exchange
-                </a>
-              </p>
-            </div>
           ) : (
             <>
-              {/* Bridge Amount Input - Only show when connected and has tokens */}
-              <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d]">
-                <p className="text-[#131313a1]">Bridge Amount</p>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <Input
-                      autoComplete="off"
-                      type="number"
-                      step="any"
-                      min="0"
-                      {...register("amount", {
-                        required: "This field is required.",
-                        validate: (v) => {
-                          if (Number.isNaN(Number(v)) || Number(v) < 0) {
-                            return "Amount must be greater than 0.";
-                          }
-                          if (selectedToken && Number(v) > 0) {
-                            const amountInWei = BigInt(Math.floor(Number(v) * 10 ** selectedToken.decimals));
-                            if (amountInWei > selectedTokenBalance) {
-                              return "Amount exceeds your balance.";
-                            }
-                          }
-                          return true;
-                        },
-                      })}
-                      className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
-                      placeholder="0"
-                      useFormReturn={useFormReturn}
-                      errorClassName="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                  <div className="ml-4">
-                    {selectedToken && tokensWithBalance && tokensWithBalance.length > 0 && (
-                      <CollateralDropdown
-                        selectedCollateral={selectedToken}
-                        setSelectedCollateral={handleTokenSelection}
-                        collateralTokens={tokensWithBalance}
-                        showChainLogo={true}
-                      />
+              {/* No Tokens State */}
+              {!tokensWithBalance || tokensWithBalance.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">No tokens with balance found.</p>
+                  <p className="text-sm text-gray-500">
+                    We were looking for stablecoins like USDT, USDC, USDe or DAI on Arbitrum, Base or Optimism.
+                  </p>
+                  <p>
+                    To bridge another token, you can visit{" "}
+                    <a
+                      href={paths.xDAIBridge()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-primary hover:underline"
+                    >
+                      Jumper Exchange
+                    </a>
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Bridge Amount Input - Only show when connected and has tokens */}
+                  <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d]">
+                    <p className="text-[#131313a1]">Bridge Amount</p>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <Input
+                          autoComplete="off"
+                          type="number"
+                          step="any"
+                          min="0"
+                          {...register("amount", {
+                            required: "This field is required.",
+                            validate: (v) => {
+                              if (Number.isNaN(Number(v)) || Number(v) < 0) {
+                                return "Amount must be greater than 0.";
+                              }
+                              if (selectedToken && Number(v) > 0) {
+                                if (isAmountExceedingBalance(v, selectedToken, selectedTokenBalance)) {
+                                  return "Amount exceeds your balance.";
+                                }
+                              }
+                              return true;
+                            },
+                          })}
+                          className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                          placeholder="0"
+                          useFormReturn={useFormReturn}
+                          errorClassName="text-red-500 text-sm mt-1"
+                        />
+                      </div>
+                      <div className="ml-4">
+                        {selectedToken && tokensWithBalance && tokensWithBalance.length > 0 && (
+                          <CollateralDropdown
+                            selectedCollateral={selectedToken}
+                            setSelectedCollateral={handleTokenSelection}
+                            collateralTokens={tokensWithBalance}
+                            showChainLogo={true}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {selectedToken && (
+                      <div className="flex justify-between items-center">
+                        <div className="text-[14px] text-[#131313a1]">
+                          {bridgeQuote?.quote.estimate?.fromAmountUSD && amount && (
+                            <>≈ ${Number(bridgeQuote.quote.estimate.fromAmountUSD).toFixed(2)} USD</>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[14px] text-[#131313a1]">
+                            Balance: {displayBalance(selectedTokenBalance, selectedToken.decimals)}{" "}
+                            {selectedToken.symbol} ({chains.find((chain) => chain.id === selectedToken.chainId)?.name})
+                          </p>
+                          <button
+                            type="button"
+                            className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
+                            onClick={() => {
+                              setValue("amount", formatUnits(selectedTokenBalance, selectedToken.decimals), {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                              });
+                            }}
+                          >
+                            Max
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-                {selectedToken && (
-                  <div className="flex justify-between items-center">
-                    <div className="text-[14px] text-[#131313a1]">
-                      {bridgeQuote?.quote.estimate?.fromAmountUSD && amount && (
-                        <>≈ ${Number(bridgeQuote.quote.estimate.fromAmountUSD).toFixed(2)} USD</>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <p className="text-[14px] text-[#131313a1]">
-                        Balance: {displayBalance(selectedTokenBalance, selectedToken.decimals)} {selectedToken.symbol} (
-                        {chains.find((chain) => chain.id === selectedToken.chainId)?.name})
-                      </p>
-                      <button
-                        type="button"
-                        className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
-                        onClick={() => {
-                          setValue("amount", formatUnits(selectedTokenBalance, selectedToken.decimals), {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          });
-                        }}
-                      >
-                        Max
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Quote Information */}
-              {bridgeQuote && !isQuoteLoading && (
-                <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d] bg-gray-50">
-                  <p className="text-[#131313a1]">You will receive</p>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="text-[24px] text-[#131313]">
-                        {bridgeQuote.quote.estimate?.toAmountMin
-                          ? displayBalance(BigInt(bridgeQuote.quote.estimate.toAmountMin), destinationToken.decimals)
-                          : "0"}
-                      </div>
-                      {bridgeQuote.quote.estimate?.toAmountUSD && (
-                        <div className="text-sm text-[#131313a1]">
-                          ≈ ${Number(bridgeQuote.quote.estimate.toAmountUSD).toFixed(2)} USD
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-4 flex items-center gap-2">
-                      <TokenImage token={destinationToken} />
-                    </div>
-                  </div>
-                  <div className="flex">
-                    <div className="text-sm text-[#131313a1]">
-                      Using {bridgeQuote.quote.toolDetails?.name || "bridge"} in{" "}
-                      {bridgeQuote.quote.estimate?.executionDuration || "~"} minutes
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Quote Error */}
-              {quoteError && (
-                <Alert type="error">{quoteError.message || "Failed to get bridge quote. Please try again."}</Alert>
-              )}
-
-              {/* Bridge Execution Error */}
-              {executeBridgeMutation.error && (
-                <Alert type="error">
-                  {executeBridgeMutation.error.message || "Failed to execute bridge. Please try again."}
-                </Alert>
-              )}
-
-              {/* Execution Status */}
-              {executionStatus && (
-                <div className="rounded-[12px] p-4 space-y-3 border border-[#2222220d] bg-blue-50">
-                  {/* Process Steps */}
-                  {executionStatus.processes.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="space-y-2">
-                        {executionStatus.processes.map((process, index) => (
-                          <div key={index} className="flex items-center gap-3 p-2 rounded bg-gray-50">
-                            {/* Status Icon */}
-                            <div className="flex-shrink-0">
-                              {process.status === "DONE" ? (
-                                <div className="text-success-primary">
-                                  <CheckCircleIcon width="20" height="20" />
-                                </div>
-                              ) : process.status === "ACTION_REQUIRED" ? (
-                                <div className="text-warning-primary">
-                                  <ExclamationCircleIcon width="20" height="20" />
-                                </div>
-                              ) : process.status === "FAILED" ? (
-                                <div className="text-error-primary">
-                                  <CloseCircleOutlineIcon width="20" height="20" />
-                                </div>
-                              ) : (
-                                <div className="text-purple-primary">
-                                  <InfoCircleIcon width="20" height="20" />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Process Info */}
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">{process.message}</p>
-                            </div>
-
-                            {/* Transaction Link */}
-                            {process.txLink && (
-                              <div className="flex-shrink-0">
-                                <a
-                                  href={process.txLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline font-mono"
-                                >
-                                  View TX
-                                </a>
-                              </div>
-                            )}
+                  {/* Quote Information */}
+                  {bridgeQuote && !isQuoteLoading && (
+                    <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d] bg-gray-50">
+                      <p className="text-[#131313a1]">You will receive</p>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="text-[24px] text-[#131313]">
+                            {bridgeQuote.quote.estimate?.toAmountMin
+                              ? displayBalance(
+                                  BigInt(bridgeQuote.quote.estimate.toAmountMin),
+                                  destinationToken.decimals,
+                                )
+                              : "0"}
                           </div>
-                        ))}
+                          {bridgeQuote.quote.estimate?.toAmountUSD && (
+                            <div className="text-sm text-[#131313a1]">
+                              ≈ ${Number(bridgeQuote.quote.estimate.toAmountUSD).toFixed(2)} USD
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4 flex items-center gap-2">
+                          <TokenImage token={destinationToken} />
+                        </div>
+                      </div>
+                      <div className="flex">
+                        <div className="text-sm text-[#131313a1]">
+                          Using {bridgeQuote.quote.toolDetails?.name || "bridge"} in{" "}
+                          {bridgeQuote.quote.estimate?.executionDuration || "~"} minutes
+                        </div>
                       </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Bridge Button */}
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-full"
-                disabled={Boolean(
-                  !isValid ||
-                    !selectedToken ||
-                    !amount ||
-                    isQuoteLoading ||
-                    !!quoteError ||
-                    executeBridgeMutation.isPending ||
-                    executionStatus?.stepStatus === "ACTION_REQUIRED" ||
-                    executionStatus?.stepStatus === "PENDING" ||
-                    (selectedToken &&
-                      amount &&
-                      Number(amount) > 0 &&
-                      selectedTokenBalance < BigInt(Math.floor(Number(amount) * 10 ** selectedToken.decimals))),
-                )}
-                text={
-                  executionStatus?.stepStatus === "ACTION_REQUIRED" || executionStatus?.stepStatus === "PENDING"
-                    ? "Executing..."
-                    : executeBridgeMutation.isPending
-                      ? "Executing bridge..."
-                      : isQuoteLoading
-                        ? "Getting quote..."
-                        : "Bridge tokens"
-                }
-              />
+                  {/* Quote Error */}
+                  {quoteError && (
+                    <Alert type="error">{quoteError.message || "Failed to get bridge quote. Please try again."}</Alert>
+                  )}
+
+                  {/* Bridge Execution Error */}
+                  {executeBridgeMutation.error && (
+                    <Alert type="error">
+                      {executeBridgeMutation.error.message || "Failed to execute bridge. Please try again."}
+                    </Alert>
+                  )}
+
+                  {/* Execution Status */}
+                  {executionStatus && (
+                    <div className="rounded-[12px] p-4 space-y-3 border border-[#2222220d] bg-blue-50">
+                      {/* Process Steps */}
+                      {executionStatus.processes.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="space-y-2">
+                            {executionStatus.processes.map((process, index) => (
+                              <div key={index} className="flex items-center gap-3 p-2 rounded bg-gray-50">
+                                {/* Status Icon */}
+                                <div className="flex-shrink-0">
+                                  {process.status === "DONE" ? (
+                                    <div className="text-success-primary">
+                                      <CheckCircleIcon width="20" height="20" />
+                                    </div>
+                                  ) : process.status === "ACTION_REQUIRED" ? (
+                                    <div className="text-warning-primary">
+                                      <ExclamationCircleIcon width="20" height="20" />
+                                    </div>
+                                  ) : process.status === "FAILED" ? (
+                                    <div className="text-error-primary">
+                                      <CloseCircleOutlineIcon width="20" height="20" />
+                                    </div>
+                                  ) : (
+                                    <div className="text-purple-primary">
+                                      <InfoCircleIcon width="20" height="20" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Process Info */}
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{process.message}</p>
+                                </div>
+
+                                {/* Transaction Link */}
+                                {process.txLink && (
+                                  <div className="flex-shrink-0">
+                                    <a
+                                      href={process.txLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-600 hover:underline font-mono"
+                                    >
+                                      View TX
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Bridge Button */}
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    className="w-full"
+                    disabled={Boolean(
+                      !isValid ||
+                        !selectedToken ||
+                        !amount ||
+                        isQuoteLoading ||
+                        !!quoteError ||
+                        executeBridgeMutation.isPending ||
+                        executionStatus?.stepStatus === "ACTION_REQUIRED" ||
+                        executionStatus?.stepStatus === "PENDING" ||
+                        isAmountExceedingBalance(amount, selectedToken, selectedTokenBalance),
+                    )}
+                    text={
+                      executionStatus?.stepStatus === "ACTION_REQUIRED" || executionStatus?.stepStatus === "PENDING"
+                        ? "Executing..."
+                        : executeBridgeMutation.isPending
+                          ? "Executing bridge..."
+                          : isQuoteLoading
+                            ? "Getting quote..."
+                            : "Bridge tokens"
+                    }
+                  />
+                </>
+              )}
             </>
           )}
         </form>

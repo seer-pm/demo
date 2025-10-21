@@ -95,12 +95,19 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
       }
     >
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-[#f2f2f2] cursor-pointer">
-        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+        <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
           <img
-            className="w-full h-full"
+            className="w-full h-full rounded-full"
             alt={selectedCollateral.symbol}
             src={paths.tokenImage(selectedCollateral.address, selectedCollateral.chainId)}
           />
+          {showChainLogo && (
+            <img
+              className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-white rounded-full"
+              alt={String(selectedCollateral.chainId)}
+              src={paths.chainImage(selectedCollateral.chainId)}
+            />
+          )}
         </div>
         <p className="font-semibold text-[16px]">{selectedCollateral.symbol}</p>
         <ArrowDropDown />
