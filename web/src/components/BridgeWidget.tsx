@@ -14,7 +14,7 @@ import {
   connectors,
   config as wagmiConfig,
 } from "@/wagmi";
-import { ChainType, ExecutionStatus, Process, RouteExtended, getChains } from "@lifi/sdk";
+import { ExecutionStatus, Process, RouteExtended } from "@lifi/sdk";
 import { useSyncWagmiConfig } from "@lifi/wallet-management";
 import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
@@ -151,17 +151,17 @@ interface BridgeFormValues {
 
 export const CustomWagmiProvider: FC<PropsWithChildren> = ({ children }) => {
   // Load EVM chains from LI.FI API using getChains action from LI.FI SDK
-  const { data: chains } = useQuery({
+  /* const { data: chains } = useQuery({
     queryKey: ["chains"] as const,
     queryFn: async () => {
       const chains = await getChains({
         chainTypes: [ChainType.EVM],
       });
       // TODO: lifiConfig.setChains doesn't exist, so we are using preloadChains: true
-      //lifiConfig.setChains(chains);
+      lifiConfig.setChains(chains);
       return chains;
     },
-  });
+  }); */
 
   // Synchronize fetched chains with Wagmi config and update connectors
   useSyncWagmiConfig(wagmiConfig, connectors, chains);
