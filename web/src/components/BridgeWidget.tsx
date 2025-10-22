@@ -4,6 +4,7 @@ import { SupportedChain, gnosis } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CheckCircleIcon, CloseCircleOutlineIcon, ExclamationCircleIcon, InfoCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { Token } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
 import {
   ARBITRUM_RPC,
@@ -258,12 +259,8 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
     }
   }, [tokensWithBalance, selectedToken]);
 
-  const handleTokenSelection = (token: {
-    symbol: string;
-    address: Address;
-    decimals: number;
-  }) => {
-    const fullToken = tokensWithBalance?.find((t) => t.address === token.address && t.symbol === token.symbol);
+  const handleTokenSelection = (token: Token) => {
+    const fullToken = tokensWithBalance?.find((t) => t.address === token.address && t.chainId === token.chainId);
     if (fullToken) {
       setSelectedToken(fullToken);
     }
