@@ -29,6 +29,7 @@ import { arbitrum, base, mainnet, optimism } from "wagmi/chains";
 import { Alert } from "./Alert";
 import Button from "./Form/Button";
 import Input from "./Form/Input";
+import Toggle from "./Form/Toggle";
 import { CollateralDropdown } from "./Market/CollateralDropdown";
 import { TokenImage } from "./Market/SwapTokens/TokenSelector";
 
@@ -45,9 +46,9 @@ const bridgeConfig = createConfig({
   },
 });
 
-type SupportedBirdgeChain = 42161 | 8453 | 10 | 100;
+type SupportedBridgeChain = 42161 | 8453 | 10 | 100;
 
-const TOKENS: Record<SupportedBirdgeChain, { symbol: string; address: Address; decimals: number }[]> = {
+const TOKENS: Record<SupportedBridgeChain, { symbol: string; address: Address; decimals: number }[]> = {
   [arbitrum.id]: [
     { symbol: "USDT", address: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", decimals: 6 },
     { symbol: "USDC", address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831", decimals: 6 },
@@ -78,7 +79,7 @@ const TOKENS: Record<SupportedBirdgeChain, { symbol: string; address: Address; d
 
 function useBridgeTokenBalances(
   owner: Address | undefined,
-  tokensByChain: { chainId: SupportedBirdgeChain; tokens: Address[] }[],
+  tokensByChain: { chainId: SupportedBridgeChain; tokens: Address[] }[],
 ) {
   return useQuery<
     | Array<{
@@ -86,7 +87,7 @@ function useBridgeTokenBalances(
         address: Address;
         decimals: number;
         name: string;
-        chainId: SupportedBirdgeChain;
+        chainId: SupportedBridgeChain;
         balance: bigint;
       }>
     | undefined,
@@ -100,7 +101,7 @@ function useBridgeTokenBalances(
         address: Address;
         decimals: number;
         name: string;
-        chainId: SupportedBirdgeChain;
+        chainId: SupportedBridgeChain;
         balance: bigint;
       }> = [];
 
@@ -179,7 +180,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
     symbol: string;
     address: Address;
     decimals: number;
-    chainId: SupportedBirdgeChain;
+    chainId: SupportedBridgeChain;
   } | null>(null);
 
   const [executionStatus, setExecutionStatus] = useState<{
@@ -188,6 +189,8 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
     stepStatus: ExecutionStatus;
     processes: Process[];
   } | null>(null);
+
+  const [isFastest, setIsFastest] = useState(false);
 
   const useFormReturn = useForm<BridgeFormValues>({
     mode: "all",
@@ -217,7 +220,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
   const tokensByChain = Object.entries(TOKENS)
     .filter(([chainId]) => Number(chainId) !== toChainId)
     .map(([chainId, tokens]) => ({
-      chainId: Number(chainId) as SupportedBirdgeChain,
+      chainId: Number(chainId) as SupportedBridgeChain,
       tokens: tokens.map((token) => token.address),
     }));
 
@@ -237,6 +240,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
     toTokenAddress: destinationToken.address,
     amount: amount || "0",
     userAddress: address,
+    order: isFastest ? "FASTEST" : "CHEAPEST",
   });
 
   const executeBridgeMutation = useExecuteBridge();
@@ -480,6 +484,17 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                     </div>
                   )}
 
+                  {/* Order Selection Toggle */}
+                  <div className="flex items-center justify-center space-x-3 py-2">
+                    <span className={`text-sm ${!isFastest ? "font-medium text-gray-900" : "text-gray-600"}`}>
+                      Cheapest
+                    </span>
+                    <Toggle checked={isFastest} onChange={(e) => setIsFastest(e.target.checked)} name="bridgeOrder" />
+                    <span className={`text-sm ${isFastest ? "font-medium text-gray-900" : "text-gray-600"}`}>
+                      Fastest
+                    </span>
+                  </div>
+
                   {/* Quote Error */}
                   {quoteError && (
                     <Alert type="error">{quoteError.message || "Failed to get bridge quote. Please try again."}</Alert>
@@ -599,7 +614,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
   return (
     <>
       <CustomWagmiProvider>
-        <BridgeModal title="Bridge tokens from other networks" content={renderBridgeForm()} />
+        <BridgeModal title="" content={renderBridgeForm()} />
       </CustomWagmiProvider>
       <button type="button" onClick={openBridgeModal} className="text-purple-primary hover:underline text-[14px]">
         Low balance? Bridge tokens from other networks

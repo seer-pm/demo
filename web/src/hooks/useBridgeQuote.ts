@@ -24,6 +24,7 @@ interface BridgeQuoteParams {
   toTokenAddress: Address;
   amount: string;
   userAddress?: Address;
+  order: "FASTEST" | "CHEAPEST";
 }
 
 interface BridgeQuoteResult {
@@ -66,6 +67,7 @@ export function useBridgeQuote({
   toTokenAddress,
   amount,
   userAddress,
+  order,
 }: BridgeQuoteParams) {
   return useQuery<BridgeQuoteResult, Error>({
     queryKey: [
@@ -77,6 +79,7 @@ export function useBridgeQuote({
       toTokenAddress,
       amount,
       userAddress,
+      order,
     ],
     queryFn: async () => {
       if (!amount || Number(amount) <= 0) {
@@ -94,6 +97,7 @@ export function useBridgeQuote({
         fromAmount: parseUnits(amount, fromTokenDecimals).toString(),
         fromAddress: userAddress,
         toAddress: userAddress,
+        order,
       };
 
       try {
