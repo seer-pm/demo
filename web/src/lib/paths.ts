@@ -1,5 +1,5 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
-import { Address, getAddress as ViemGetAddress } from "viem";
+import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { TOKENS_BY_CHAIN } from "./config";
 import { Market } from "./market";
@@ -57,8 +57,8 @@ export const paths = {
     "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-gnosis/deposit-xdai",
   swapETHToDai: () =>
     "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x6B175474E89094C44Da98b954EedeAC495271d0F",
-  xDAIBridge: () =>
-    "https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=100&toToken=0x0000000000000000000000000000000000000000",
+  xDAIBridge: (toChain = 100, toToken: Address = zeroAddress) =>
+    `https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=${toChain}&toToken=${toToken}`,
   tokenImage: (address: Address, chainId: number) => {
     // TODO: use kleros list, add sUSDS on optimism and sDAI on mainnet
     if (chainId === 10) {

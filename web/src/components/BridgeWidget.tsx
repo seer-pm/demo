@@ -362,15 +362,13 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
             <>
               {/* No Tokens State */}
               {!tokensWithBalance || tokensWithBalance.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">No tokens with balance found.</p>
-                  <p className="text-sm text-gray-500">
-                    We were looking for stablecoins like USDT, USDC, USDe or DAI on Arbitrum, Base or Optimism.
-                  </p>
+                <div className="text-center py-8 space-y-4">
+                  <p>No tokens with balance found.</p>
+                  <p>We were looking for stablecoins like USDT, USDC, USDe or DAI on Arbitrum, Base or Optimism.</p>
                   <p>
                     To bridge another token, you can visit{" "}
                     <a
-                      href={paths.xDAIBridge()}
+                      href={paths.xDAIBridge(toChainId, COLLATERAL_TOKENS[toChainId].primary.address)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary hover:underline"
