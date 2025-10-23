@@ -26,10 +26,12 @@ export const Modal = forwardRef<HTMLDialogElement, ModalProps>(
             aria-modal={open}
           >
             <div className={clsx("modal-box", className)}>
-              <h3
-                className={clsx(titleClassName ?? "text-[24px] font-semibold text-center mb-[32px]")}
-                dangerouslySetInnerHTML={{ __html: title }}
-              ></h3>
+              {title && (
+                <h3
+                  className={clsx(titleClassName ?? "text-[24px] font-semibold text-center mb-[32px]")}
+                  dangerouslySetInnerHTML={{ __html: title }}
+                ></h3>
+              )}
               <div>{content}</div>
             </div>
           </dialog>,

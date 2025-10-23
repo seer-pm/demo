@@ -110,7 +110,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
                 : { right: `${window.innerWidth - dropdownPosition.right - (offset?.right ?? 0)}px` }),
             }}
             className={clsx(
-              "absolute z-50 mt-1 border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-white",
+              "absolute z-[1000] mt-1 border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-white",
               className,
             )}
           >

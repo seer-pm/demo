@@ -87,7 +87,7 @@ export const useMissingApprovals = (props: UseMissingApprovalsProps | undefined)
       const { tokensAddresses, account, spender, chainId } = props!;
       const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, spender, approvalAmounts, chainId);
       const tokensInfo = await Promise.all(
-        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId)),
+        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId, config)),
       );
 
       return missingApprovals.map((missingApproval, i) => ({

@@ -4,6 +4,7 @@ import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
+import { config } from "@/wagmi";
 import { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
@@ -30,8 +31,8 @@ async function updateOrders(
       }
 
       const [buyToken, sellToken] = await Promise.all([
-        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain),
-        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain),
+        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain, config),
+        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain, config),
       ]);
 
       if (order.status === OrderStatus.FULFILLED) {

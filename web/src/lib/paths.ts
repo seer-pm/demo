@@ -1,5 +1,5 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
-import { Address } from "viem";
+import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { TOKENS_BY_CHAIN } from "./config";
 import { Market } from "./market";
@@ -12,6 +12,14 @@ function marketPath(marketOrIdOrUrl: Market | Address | string, chainId?: number
   }
 
   return `/markets/${marketOrIdOrUrl.chainId}/${marketOrIdOrUrl.url || marketOrIdOrUrl.id}`;
+}
+
+function getAddress(address: Address) {
+  try {
+    return ViemGetAddress(address);
+  } catch {
+    return address;
+  }
 }
 
 export const paths = {
@@ -49,9 +57,9 @@ export const paths = {
     "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-gnosis/deposit-xdai",
   swapETHToDai: () =>
     "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x6B175474E89094C44Da98b954EedeAC495271d0F",
-  xDAIBridge: () =>
-    "https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=100&toToken=0x0000000000000000000000000000000000000000",
-  tokenImage: (address: string, chainId: number) => {
+  xDAIBridge: (toChain = 100, toToken: Address = zeroAddress) =>
+    `https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=${toChain}&toToken=${toToken}`,
+  tokenImage: (address: Address, chainId: number) => {
     // TODO: use kleros list, add sUSDS on optimism and sDAI on mainnet
     if (chainId === 10) {
       if (address.toLowerCase() === TOKENS_BY_CHAIN[10].sUSDS) {
@@ -67,8 +75,24 @@ export const paths = {
       }
     }
 
+    if (chainId === 42161) {
+      // arbitrum
+      return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/assets/${getAddress(address)}/logo.png`;
+    }
+
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;
   },
   futarchy: () => "https://app.futarchy.fi/",
   deepfund: () => "https://deep.seer.pm/",
+  chainImage: (chainId: number) => {
+    const chainImages: Record<number, string> = {
+      100: "https://assets.coingecko.com/asset_platforms/images/11062/small/Aatar_green_white.png", // Gnosis
+      10: "https://assets.coingecko.com/asset_platforms/images/41/standard/optimism.png", // Optimism
+      42161: "https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png", // Arbitrum
+      8453: "https://assets.coingecko.com/asset_platforms/images/131/standard/base.png", // Base
+      1: "https://assets.coingecko.com/asset_platforms/images/279/standard/ethereum.png", // Ethereum
+    };
+
+    return chainImages[chainId] || "";
+  },
 };

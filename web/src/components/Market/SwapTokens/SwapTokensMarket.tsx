@@ -8,7 +8,6 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
-import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
@@ -17,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
+import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
@@ -159,7 +159,7 @@ export function SwapTokensMarket({
     assetsToShares,
     buyToken,
     sellToken,
-    isShowXDAIBridgeLink,
+    showBridgeLink,
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
@@ -497,16 +497,7 @@ export function SwapTokensMarket({
             </div>
           </div>
         </div>
-        {isShowXDAIBridgeLink && (
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href={paths.xDAIBridge()}
-            className="text-purple-primary hover:underline text-[14px]"
-          >
-            Bridge xDAI
-          </a>
-        )}
+        {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
         <div className="space-y-1">
           <div className="flex justify-between text-[#828282] text-[14px]">
             Avg price

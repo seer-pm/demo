@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
+import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import { OutcomeImage } from "../OutcomeImage";
@@ -103,7 +104,7 @@ export function SwapTokensLimitUpto({
     assetsToShares,
     buyToken,
     sellToken,
-    isShowXDAIBridgeLink,
+    showBridgeLink,
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
@@ -544,16 +545,7 @@ export function SwapTokensLimitUpto({
             </div>
           </div>
         </div>
-        {isShowXDAIBridgeLink && (
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href={paths.xDAIBridge()}
-            className="text-purple-primary hover:underline text-[14px]"
-          >
-            Bridge xDAI
-          </a>
-        )}
+        {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
         <div className="space-y-1">
           <div className="flex justify-between text-[#828282] text-[14px]">
             Avg price

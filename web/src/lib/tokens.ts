@@ -7,6 +7,7 @@ import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "./utils";
 
 export interface Token {
   address: Address;
+  chainId: number;
   symbol: string;
   decimals: number;
   wrapped?: Token;
@@ -16,6 +17,7 @@ export const WRAPPED_OUTCOME_TOKEN_DECIMALS = 18;
 
 export const EMPTY_TOKEN = {
   address: zeroAddress,
+  chainId: 1,
   symbol: "",
   decimals: 18,
 };

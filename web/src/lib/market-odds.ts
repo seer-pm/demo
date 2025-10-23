@@ -54,7 +54,7 @@ async function getTokenSwapResult(
   amount: string,
   swapType: "buy" | "sell" = "buy",
 ): Promise<bigint> {
-  const outcomeToken = { address: wrappedAddress, symbol: "SEER_OUTCOME", decimals: 18 };
+  const outcomeToken = { address: wrappedAddress, chainId, symbol: "SEER_OUTCOME", decimals: 18 };
   // call cowQuote first, if not possible then we call using rpc
   /*   try {
     const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
@@ -157,6 +157,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
 
   const collateralToken = {
     address: market.collateralToken,
+    chainId: market.chainId,
     decimals: 18,
     name: "",
     symbol: "",
