@@ -30,7 +30,7 @@ export function uniswapGraphQLClient(chainId: SupportedChain) {
   return new GraphQLClient(getSubgraphUrl("uniswap", chainId));
 }
 
-export function swaprGraphQLClient(chainId: SupportedChain, subgraph: "algebra" | "algebrafarming") {
+export function swaprGraphQLClient(chainId: SupportedChain, subgraph: "algebra" | "algebrafarming" | "tokens") {
   if (chainId !== gnosis.id) {
     return;
   }
