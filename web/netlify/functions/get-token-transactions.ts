@@ -1,100 +1,72 @@
-import { OrderDirection, TransferFragment, Transfer_OrderBy, getSdk } from "@/hooks/queries/gql-generated-tokens";
-import { SupportedChain } from "@/lib/chains";
 import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
-import { swaprGraphQLClient } from "./utils/subgraph";
+import { TokenTransfer } from "@/lib/tokens";
+import { createClient } from "@supabase/supabase-js";
+import { Address } from "viem";
+import { Database } from "./utils/supabase";
+
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 interface Holder {
   address: string;
   balance: string;
 }
 
-async function getAllTransactionsForTokens(tokenIds: string[], chainId: SupportedChain): Promise<TransferFragment[]> {
-  const subgraphClient = swaprGraphQLClient(chainId, "tokens");
-  if (!subgraphClient) {
-    return [];
-  }
-
-  const sdk = getSdk(subgraphClient);
-
-  let allTransfers: TransferFragment[] = [];
-  let currentTimestamp: string | undefined = undefined;
-
-  // Paginate through all transfers for all tokens
-  while (true) {
-    const where = {
-      token_in: tokenIds.map((id) => id.toLowerCase()),
-      ...(currentTimestamp && { timestamp_lt: currentTimestamp }),
-    };
-
-    const result = await sdk.GetTransfers({
-      first: 1000,
-      orderBy: Transfer_OrderBy.Timestamp,
-      orderDirection: OrderDirection.Desc,
-      where,
-    });
-
-    const transfers = result.transfers;
-    allTransfers = allTransfers.concat(transfers);
-
-    if (transfers.length < 1000) {
-      break; // We've fetched all
-    }
-
-    currentTimestamp = transfers[transfers.length - 1]?.timestamp;
-  }
-
-  return allTransfers;
+async function getRecentTransactions(tokenIds: string[], limit = 100): Promise<TokenTransfer[]> {
+  const { data } = await supabase
+    .from("tokens_transfers")
+    .select()
+    .in(
+      "token",
+      tokenIds.map((id) => id.toLowerCase()),
+    )
+    .order("timestamp", { ascending: false })
+    .limit(limit);
+  return (
+    data?.map((r) => {
+      return {
+        ...r,
+        from: r.from as Address,
+        to: r.to as Address,
+        token: r.token as Address,
+        value: BigInt(r.value),
+      };
+    }) || []
+  );
 }
 
-function getTransactionsForToken(allTransfers: TransferFragment[], tokenId: string): TransferFragment[] {
-  return allTransfers.filter((transfer) => transfer.token.id.toLowerCase() === tokenId.toLowerCase());
-}
+const TOP_HOLDERS_COUNT = 5;
 
-function getRecentTransactions(allTransfers: TransferFragment[], limit = 100): TransferFragment[] {
-  return allTransfers.slice(0, limit);
-}
+async function getTopHoldersForTokens(tokenIds: string[]): Promise<{ [tokenId: string]: Holder[] }> {
+  const { data, error } = await supabase
+    .from("tokens_holdings_v")
+    .select("token, owner, balance")
+    .in(
+      "token",
+      tokenIds.map((id) => id.toLowerCase()),
+    )
+    .neq("owner", "0x0000000000000000000000000000000000000000")
+    .gt("balance", 0)
+    .order("token", { ascending: true })
+    .order("balance", { ascending: false });
 
-const TOP_HOLDERS_COUNT = 10;
-
-function getHolders(transfers: TransferFragment[]): Holder[] {
-  const tokenBalances: { [key: string]: bigint } = {};
-
-  // Process each transfer to calculate balances
-  for (const transfer of transfers) {
-    const from = transfer.from.toLowerCase();
-    const to = transfer.to.toLowerCase();
-    const value = BigInt(transfer.value);
-
-    // Subtract from sender
-    tokenBalances[from] = (tokenBalances[from] || BigInt(0)) - value;
-    // Add to receiver
-    tokenBalances[to] = (tokenBalances[to] || BigInt(0)) + value;
+  if (error) {
+    throw new Error(`Error·fetching·token·holders:·${error.message}`);
   }
 
-  // Convert to holders array, excluding zero address and non-positive balances
-  const holders: Holder[] = [];
-  for (const [address, balance] of Object.entries(tokenBalances)) {
-    // Exclude zero address and non-positive balances
-    if (address !== "0x0000000000000000000000000000000000000000" && balance > 0n) {
-      holders.push({
-        address,
-        balance: balance.toString(),
-      });
-    }
-  }
-
-  // Sort by balance descending (highest holders first) and return top holders
-  return holders.sort((a, b) => (BigInt(a.balance) > BigInt(b.balance) ? -1 : 1)).slice(0, TOP_HOLDERS_COUNT);
-}
-
-function getTopHoldersForTokens(allTransfers: TransferFragment[], tokenIds: string[]): { [tokenId: string]: Holder[] } {
   const result: { [tokenId: string]: Holder[] } = {};
 
-  // Get top holders for each token using the already fetched data
-  for (const tokenId of tokenIds) {
-    const tokenTransfers = getTransactionsForToken(allTransfers, tokenId);
-    const holders = getHolders(tokenTransfers);
-    result[tokenId.toLowerCase()] = holders;
+  if (data) {
+    for (const tokenId of tokenIds) {
+      const holders = data
+        .filter((row) => row.token!.toLowerCase() === tokenId.toLowerCase())
+        .slice(0, TOP_HOLDERS_COUNT)
+        .map((row) => ({
+          address: row.owner as string,
+          balance: BigInt(row.balance as number).toString(),
+        }));
+
+      result[tokenId!.toLowerCase()] = holders;
+    }
   }
 
   return result;
@@ -167,24 +139,24 @@ export default async (req: Request) => {
       );
     }
 
-    // Get all transactions for all tokens in a single fetch
-    const allTransfers = await getAllTransactionsForTokens(tokenIds, chainIdNum as SupportedChain);
-
     // Get top holders for each token using the fetched data
-    const topHolders = getTopHoldersForTokens(allTransfers, tokenIds);
+    const topHolders = await getTopHoldersForTokens(tokenIds);
 
     // Get last 100 transactions across all tokens
-    const recentTransactions = getRecentTransactions(allTransfers, 100);
+    const recentTransactions = await getRecentTransactions(tokenIds, 100);
 
     return new Response(
-      JSON.stringify({
-        topHolders,
-        recentTransactions,
-        totalTokens: tokenIds.length,
-        totalTransactions: recentTransactions.length,
-        tokenIds: tokenIds.map((id) => id.toLowerCase()),
-        chainId: chainIdNum,
-      }),
+      JSON.stringify(
+        {
+          topHolders,
+          recentTransactions,
+          totalTokens: tokenIds.length,
+          totalTransactions: recentTransactions.length,
+          tokenIds: tokenIds.map((id) => id.toLowerCase()),
+          chainId: chainIdNum,
+        },
+        (_, value) => (typeof value === "bigint" ? value.toString() : value),
+      ),
       {
         status: 200,
         headers: {

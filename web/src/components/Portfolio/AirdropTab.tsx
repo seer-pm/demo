@@ -2,12 +2,11 @@ import { Alert } from "@/components/Alert";
 import { isUndefined } from "@/lib/utils";
 
 import { useGetAirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
-import { useAccount } from "wagmi";
+import { Address } from "viem";
 import AirdropTable from "./AirdropTable";
 
-function AirdropTab() {
-  const { address } = useAccount();
-  const { data: airdrop, error } = useGetAirdropDataByUser(address);
+function AirdropTab({ account }: { account: Address | undefined }) {
+  const { data: airdrop, error } = useGetAirdropDataByUser(account);
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }

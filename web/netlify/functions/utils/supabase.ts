@@ -213,6 +213,7 @@ export type Database = {
           liquidity: number | null;
           metadata: Json | null;
           odds: number[] | null;
+          odds_run_timestamp: number | null;
           opening_ts: number | null;
           parent_outcome: string | null;
           payout_numerators_value: number | null;
@@ -236,6 +237,7 @@ export type Database = {
           liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
+          odds_run_timestamp?: number | null;
           opening_ts?: number | null;
           parent_outcome?: string | null;
           payout_numerators_value?: number | null;
@@ -259,6 +261,7 @@ export type Database = {
           liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
+          odds_run_timestamp?: number | null;
           opening_ts?: number | null;
           parent_outcome?: string | null;
           payout_numerators_value?: number | null;
@@ -317,6 +320,42 @@ export type Database = {
           balance?: number;
           chain_id?: number;
           id?: string;
+        };
+        Relationships: [];
+      };
+      tokens_transfers: {
+        Row: {
+          block_number: number;
+          chain_id: number;
+          from: string;
+          id: number;
+          timestamp: number;
+          to: string;
+          token: string;
+          tx_hash: string;
+          value: number;
+        };
+        Insert: {
+          block_number: number;
+          chain_id: number;
+          from: string;
+          id?: number;
+          timestamp: number;
+          to: string;
+          token: string;
+          tx_hash: string;
+          value: number;
+        };
+        Update: {
+          block_number?: number;
+          chain_id?: number;
+          from?: string;
+          id?: number;
+          timestamp?: number;
+          to?: string;
+          token?: string;
+          tx_hash?: string;
+          value?: number;
         };
         Relationships: [];
       };
@@ -388,6 +427,7 @@ export type Database = {
           collections_names: string | null;
           created_at: string | null;
           creator: string | null;
+          finalize_ts: number | null;
           id: string;
           images: Json | null;
           incentive: number | null;
@@ -397,6 +437,7 @@ export type Database = {
           market_name: string | null;
           metadata: Json | null;
           odds: number[] | null;
+          odds_run_timestamp: number | null;
           opening_ts: number | null;
           outcomes: Json | null;
           outcomes_text: string | null;
@@ -414,44 +455,23 @@ export type Database = {
         };
         Relationships: [];
       };
+      tokens_holdings_v: {
+        Row: {
+          balance: number | null;
+          chain_id: number | null;
+          owner: string | null;
+          token: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
-      gtrgm_compress: {
-        Args: { "": unknown };
-        Returns: unknown;
-      };
-      gtrgm_decompress: {
-        Args: { "": unknown };
-        Returns: unknown;
-      };
-      gtrgm_in: {
-        Args: { "": unknown };
-        Returns: unknown;
-      };
-      gtrgm_options: {
-        Args: { "": unknown };
-        Returns: undefined;
-      };
-      gtrgm_out: {
-        Args: { "": unknown };
-        Returns: unknown;
-      };
       insert_airdrop_safely: {
         Args: { new_timestamp: number; records: Json };
         Returns: undefined;
       };
-      set_limit: {
-        Args: { "": number };
-        Returns: number;
-      };
-      show_limit: {
-        Args: Record<PropertyKey, never>;
-        Returns: number;
-      };
-      show_trgm: {
-        Args: { "": string };
-        Returns: string[];
-      };
+      show_limit: { Args: never; Returns: number };
+      show_trgm: { Args: { "": string }; Returns: string[] };
     };
     Enums: {
       [_ in never]: never;

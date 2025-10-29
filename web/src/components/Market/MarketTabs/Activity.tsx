@@ -1,9 +1,11 @@
 import { Alert } from "@/components/Alert";
 import { Link } from "@/components/Link";
-import { TransferFragment } from "@/hooks/queries/gql-generated-tokens";
 import { useComputedPoolAddresses } from "@/hooks/useComputedPoolAddresses";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { ExternalLinkIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
+import { TokenTransfer } from "@/lib/tokens";
 import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Address, zeroAddress } from "viem";
@@ -12,7 +14,7 @@ interface ActivityProps {
   market: Market;
 }
 
-function getTransactionType(transaction: TransferFragment, pools: Address[]) {
+function getTransactionType(transaction: TokenTransfer, pools: Address[]) {
   const { from, to } = transaction;
 
   if (from === zeroAddress || to === zeroAddress) {
@@ -47,6 +49,8 @@ export default function Activity({ market }: ActivityProps) {
     return <Alert type="warning">No recent activity</Alert>;
   }
 
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
+
   return (
     <div className="p-4 bg-white border rounded-[3px] shadow-sm border-black-medium">
       <div className="w-full overflow-x-auto mb-6">
@@ -59,10 +63,10 @@ export default function Activity({ market }: ActivityProps) {
             {data.recentTransactions
               .map((transaction) => {
                 const tokenIndex = market.wrappedTokens.findIndex((wrappedToken) =>
-                  isTwoStringsEqual(wrappedToken, transaction.token.id),
+                  isTwoStringsEqual(wrappedToken, transaction.token),
                 );
 
-                const timeAgo = formatDistanceToNow(new Date(Number.parseInt(transaction.timestamp) * 1000), {
+                const timeAgo = formatDistanceToNow(new Date(transaction.timestamp * 1000), {
                   addSuffix: true,
                 });
 
@@ -84,11 +88,19 @@ export default function Activity({ market }: ActivityProps) {
               .map(({ transaction, tokenIndex, timeAgo, transactionType }) => (
                 <tr key={transaction.id}>
                   <td className="text-left">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900 flex items-center space-x-2">
                         <Link to={`/portfolio/${transaction.from}`} className="hover:text-purple-primary">
                           {shortenAddress(transaction.from)}
                         </Link>
+
+                        <a
+                          href={blockExplorerUrl && `${blockExplorerUrl}/address/${transaction.from}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLinkIcon />
+                        </a>
                       </span>
                       <span className={`text-sm font-medium ${transactionType.color}`}>{transactionType.type}</span>
                       <span className="text-sm font-medium text-gray-900">
@@ -97,8 +109,16 @@ export default function Activity({ market }: ActivityProps) {
                       <span className="text-sm text-gray-600">{market.outcomes[tokenIndex]}</span>
                     </div>
                   </td>
-                  <td className="text-center">
-                    <span className="text-sm text-gray-500">{timeAgo}</span>
+                  <td className="text-right">
+                    <span className="text-xs lg:text-sm text-gray-500">
+                      <a
+                        href={blockExplorerUrl && `${blockExplorerUrl}/tx/${transaction.tx_hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {timeAgo}
+                      </a>
+                    </span>
                   </td>
                 </tr>
               ))}

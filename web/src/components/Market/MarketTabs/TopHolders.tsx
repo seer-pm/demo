@@ -1,6 +1,8 @@
 import { Alert } from "@/components/Alert";
 import { Link } from "@/components/Link";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { ExternalLinkIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 
@@ -23,6 +25,8 @@ export default function TopHolders({ market }: TopHoldersProps) {
     return <Alert type="warning">No holders data available.</Alert>;
   }
 
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
+
   return (
     <div className="p-4 bg-white border rounded-[3px] shadow-sm border-black-medium">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -37,7 +41,15 @@ export default function TopHolders({ market }: TopHoldersProps) {
                   <table className="simple-table table-fixed">
                     <thead>
                       <tr>
-                        <th className="text-left">{market.outcomes[tokenIndex]}</th>
+                        <th className="text-left">
+                          <a
+                            href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[tokenIndex]}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {market.outcomes[tokenIndex]}
+                          </a>
+                        </th>
                         <th className="!text-right">Balance</th>
                       </tr>
                     </thead>
@@ -45,10 +57,18 @@ export default function TopHolders({ market }: TopHoldersProps) {
                       {holders.slice(0, 5).map((holder) => (
                         <tr key={holder.address}>
                           <td className="text-left">
-                            <span className="text-sm text-gray-900">
+                            <span className="text-sm text-gray-900 flex space-x-2 items-center">
                               <Link to={`/portfolio/${holder.address}`} className="hover:text-purple-primary">
                                 {shortenAddress(holder.address)}
                               </Link>
+
+                              <a
+                                href={blockExplorerUrl && `${blockExplorerUrl}/address/${holder.address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLinkIcon />
+                              </a>
                             </span>
                           </td>
                           <td className="text-right">

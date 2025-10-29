@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
+import { TokenTransfer } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
-import { TransferFragment } from "./queries/gql-generated-tokens";
 
 interface Holder {
   address: string;
@@ -9,7 +9,7 @@ interface Holder {
 
 interface TokenTransactionsResponse {
   topHolders: { [tokenId: string]: Holder[] };
-  recentTransactions: TransferFragment[];
+  recentTransactions: Array<TokenTransfer>;
   totalTokens: number;
   totalTransactions: number;
   tokenIds: string[];

@@ -13,6 +13,18 @@ export interface Token {
   wrapped?: Token;
 }
 
+export type TokenTransfer = {
+  id: string | number;
+  chain_id: number;
+  token: Address;
+  tx_hash: string;
+  block_number: number;
+  timestamp: number;
+  value: bigint;
+  from: Address;
+  to: Address;
+};
+
 export const WRAPPED_OUTCOME_TOKEN_DECIMALS = 18;
 
 export const EMPTY_TOKEN = {

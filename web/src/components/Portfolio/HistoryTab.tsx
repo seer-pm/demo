@@ -12,13 +12,13 @@ import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
 import HistoryTable from "./HistoryTable";
 
-function HistoryTab() {
-  const { chainId = DEFAULT_CHAIN, address } = useAccount();
+function HistoryTab({ account }: { account: Address | undefined }) {
+  const { chainId = DEFAULT_CHAIN } = useAccount();
   const currentDate = startOfDay(new Date());
   const [startDate, setStartDate] = useState<Date | undefined>(subMonths(currentDate, 1));
   const [endDate, setEndDate] = useState<Date | undefined>(currentDate);
   const { data: historyTransactions, error } = useHistoryTransactions(
-    address as Address,
+    account as Address,
     chainId as SupportedChain,
     startDate && Math.floor(startOfDay(startDate).getTime() / 1000),
     endDate && Math.floor(endOfDay(endDate).getTime() / 1000),
