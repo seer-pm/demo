@@ -6,7 +6,7 @@ import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
 
@@ -42,11 +42,12 @@ function CreateMarket() {
       unit: "",
     },
   });
-
+  const localDate = useMemo(() => new Date(), []);
+  const utcDate = new Date(localDate.getTime() + localDate.getTimezoneOffset() * 60000 + 60000);
   const useDateFormReturn = useForm<DateFormValues>({
     mode: "all",
     defaultValues: {
-      openingTime: "",
+      openingTime: utcDate.toString(),
     },
   });
 
