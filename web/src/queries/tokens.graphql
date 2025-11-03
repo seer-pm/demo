@@ -1,0 +1,33 @@
+fragment Transfer on Transfer {
+  id
+  blockNumber
+  timestamp
+  from
+  to
+  token {
+    id
+  }
+  value
+}
+
+query GetTransfers(
+  $skip: Int = 0
+  $first: Int = 1000
+  $orderBy: Transfer_orderBy
+  $orderDirection: OrderDirection
+  $where: Transfer_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  transfers(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    ...Transfer
+  }
+}

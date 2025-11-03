@@ -3,12 +3,13 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { usePositions } from "./usePortfolioPositions";
 
-function useCalculatePositionsValue() {
-  const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: positions = [], isPending, error } = usePositions(address, chainId as SupportedChain);
+function useCalculatePositionsValue(account: Address | undefined) {
+  const { chainId = DEFAULT_CHAIN } = useAccount();
+  const { data: positions = [], isPending, error } = usePositions(account, chainId as SupportedChain);
   const { data: tokenIdToTokenCurrentPrice, isLoading: isLoadingCurrentPrices } = useCurrentTokensPrices(
     positions,
     chainId as SupportedChain,
