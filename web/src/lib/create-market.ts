@@ -1,4 +1,5 @@
 import { Address } from "viem";
+import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
 import { escapeJson } from "./reality";
@@ -18,7 +19,7 @@ export interface CreateMarketProps {
   unit: string;
   category: string;
   openingTime: number;
-  chainId?: number;
+  chainId: SupportedChain;
 }
 
 export const MISC_CATEGORY = "misc";

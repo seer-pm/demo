@@ -135,6 +135,7 @@ export async function approveIfNeeded(
       amount,
       tokenAddress: tokensAddress,
       spender: spender,
+      chainId,
     });
   }
 }

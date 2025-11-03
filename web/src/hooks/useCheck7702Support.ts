@@ -6,6 +6,7 @@ export type Execution = {
   to: Address;
   value: bigint;
   data: Hex;
+  chainId: number;
 };
 
 export function useCheck7702Support(): boolean {

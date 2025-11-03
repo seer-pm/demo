@@ -27,5 +27,6 @@ export async function getUniswapTradeExecution(trade: UniswapTrade, account: Add
     to: populatedTransaction.to! as `0x${string}`,
     data: populatedTransaction.data!.toString() as `0x${string}`,
     value: BigInt(populatedTransaction.value?.toString() || 0),
+    chainId: trade.chainId,
   };
 }

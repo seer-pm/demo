@@ -36,7 +36,7 @@ export async function unwrapXDAI({ chainId, amount }: HandleXDAIProps) {
         abi: WXDAI_ABI,
         functionName: "withdraw",
         args: [amount],
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Unwrapping..." }, txSuccess: { title: "Trade executed!" } },
   );
@@ -55,7 +55,7 @@ export async function wrapXDAI({ chainId, amount }: HandleXDAIProps) {
         functionName: "deposit",
         args: [],
         value: amount,
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Wrapping..." }, txSuccess: { title: "Trade executed!" } },
   );

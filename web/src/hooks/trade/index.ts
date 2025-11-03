@@ -302,6 +302,7 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
     () =>
       sendCalls(config, {
         calls,
+        chainId: props.trade.chainId,
       }),
     {
       txSent: { title: "Executing trade..." },

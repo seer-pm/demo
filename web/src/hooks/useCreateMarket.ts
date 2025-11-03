@@ -24,6 +24,7 @@ async function createMarket(props: CreateMarketProps): Promise<TransactionReceip
     () =>
       writeMarketFactory(config, {
         functionName: MarketTypeFunction[props.marketType],
+        chainId: props.chainId,
         args: [getCreateMarketParams(props)],
       }),
     {

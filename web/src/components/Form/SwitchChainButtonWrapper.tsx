@@ -2,14 +2,16 @@ import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { checkWalletConnectCallback } from "@/lib/wallet";
 import { useEffect, useRef } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
-import Button from "./Button";
+import Button, { ButtonSize } from "./Button";
 
 export function SwitchChainButtonWrapper({
   chainId,
   children,
+  size,
 }: {
   chainId: SupportedChain;
   children: React.ReactNode;
+  size?: ButtonSize;
 }) {
   const { isPending, switchChain } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
@@ -24,6 +26,7 @@ export function SwitchChainButtonWrapper({
   return (
     <Button
       variant="primary"
+      size={size}
       type="button"
       onClick={() => {
         if (!connectedChainId) {

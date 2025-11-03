@@ -115,6 +115,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
                   tokenName={approval.name}
                   spender={approval.spender}
                   amount={approval.amount}
+                  chainId={market.chainId}
                 />
               ))}
             </div>

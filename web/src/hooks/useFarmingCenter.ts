@@ -17,6 +17,7 @@ interface FarmingProps {
   startTime: bigint;
   endTime: bigint;
   tokenId: bigint;
+  chainId: SupportedChain;
 }
 
 interface EnterFarmingProps extends FarmingProps {}
@@ -30,12 +31,14 @@ interface DepositNftProps {
   farmingCenter: Address;
   account: Address;
   tokenId: bigint;
+  chainId: SupportedChain;
 }
 
 interface WithdrawNftProps {
   farmingCenter: Address;
   account: Address;
   tokenId: bigint;
+  chainId: SupportedChain;
 }
 
 const FARMING_CENTER_ABI = [
@@ -248,7 +251,7 @@ const NON_FUNGIBLE_POSITION_MANAGER_ABI = [
   },
 ] as const;
 
-function getEnterFarmingParams(props: EnterFarmingProps) {
+function getEnterFarmingParams(props: EnterFarmingProps): Execution {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -265,6 +268,7 @@ function getEnterFarmingParams(props: EnterFarmingProps) {
       functionName: "enterFarming",
       args: [incentiveKey, props.tokenId, 0n, false],
     }),
+    chainId: props.chainId,
   };
 }
 
@@ -282,7 +286,7 @@ async function enterFarming(props: EnterFarmingProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-function getExitFarmingParams(props: ExitFarmingProps) {
+function getExitFarmingParams(props: ExitFarmingProps): Execution {
   const incentiveKey = {
     rewardToken: props.rewardToken,
     bonusRewardToken: props.bonusRewardToken,
@@ -313,6 +317,7 @@ function getExitFarmingParams(props: ExitFarmingProps) {
       functionName: "multicall",
       args: [[exitFarmingData, claimMainRewardData]],
     }),
+    chainId: props.chainId,
   };
 }
 
@@ -330,7 +335,7 @@ async function exitFarming(props: ExitFarmingProps): Promise<TransactionReceipt>
   return result.receipt;
 }
 
-function getDepositNftParams(props: DepositNftProps) {
+function getDepositNftParams(props: DepositNftProps): Execution {
   return {
     to: props.nonFungiblePositionManager,
     value: 0n,
@@ -339,6 +344,7 @@ function getDepositNftParams(props: DepositNftProps) {
       functionName: "safeTransferFrom",
       args: [props.account, props.farmingCenter, props.tokenId],
     }),
+    chainId: props.chainId,
   };
 }
 
@@ -356,7 +362,7 @@ async function depositNft(props: DepositNftProps): Promise<TransactionReceipt> {
   return result.receipt;
 }
 
-function getWithdrawNftParams(props: WithdrawNftProps) {
+function getWithdrawNftParams(props: WithdrawNftProps): Execution {
   return {
     to: props.farmingCenter,
     value: 0n,
@@ -365,6 +371,7 @@ function getWithdrawNftParams(props: WithdrawNftProps) {
       functionName: "withdrawToken",
       args: [props.tokenId, props.account, "0x0000000000000000000000000000000000000000000000000000000000000000"],
     }),
+    chainId: props.chainId,
   };
 }
 
@@ -439,6 +446,7 @@ function getFarmActions(
     farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
     account: account,
     tokenId: BigInt(tokenId),
+    chainId,
   };
 
   const enterFarmingProps: EnterFarmingProps = {
@@ -449,12 +457,14 @@ function getFarmActions(
     startTime: poolIncentive.startTime,
     endTime: poolIncentive.endTime,
     tokenId: BigInt(tokenId),
+    chainId,
   };
 
   const withdrawNftProps: WithdrawNftProps = {
     farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
     account,
     tokenId: BigInt(tokenId),
+    chainId,
   };
 
   const exitFarmingProps: ExitFarmingProps = {
@@ -466,6 +476,7 @@ function getFarmActions(
     startTime: poolIncentive.startTime,
     endTime: poolIncentive.endTime,
     tokenId: BigInt(tokenId),
+    chainId,
   };
 
   if (!deposit.onFarmingCenter && !isRewardEnded) {
@@ -525,7 +536,7 @@ export const useFarmPosition7702 = (
     actions,
     mutation: useMutation({
       mutationFn: async (farmAction: FarmAction) => {
-        const result = await toastifySendCallsTx(farmAction.calls, config, {
+        const result = await toastifySendCallsTx(farmAction.calls, chainId, config, {
           txSent: { title: farmAction.sentTitle },
           txSuccess: { title: farmAction.successTitle },
         });

@@ -11,6 +11,7 @@ import { SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG } from "@/lib/config";
 import { Address } from "viem";
 import Button from "../Form/Button";
+import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
 interface FarmingActionsProps {
   account: Address;
@@ -45,37 +46,39 @@ export function FarmingActions7702({ account, chainId, deposit, pool, isRewardEn
   }
   return (
     <div className="flex items-center gap-2 flex-wrap justify-end">
-      {actions.map((action) => {
-        if (action.text === "Enter Farming") {
+      <SwitchChainButtonWrapper chainId={chainId} size="small">
+        {actions.map((action) => {
+          if (action.text === "Enter Farming") {
+            return (
+              <div className="tooltip">
+                <Button
+                  text={action.text}
+                  key={action.text}
+                  size="small"
+                  variant="secondary"
+                  onClick={() => {
+                    mutation.mutateAsync(action);
+                  }}
+                  disabled={mutation.isPending || isRewardEnded}
+                />
+                {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
+              </div>
+            );
+          }
           return (
-            <div className="tooltip">
-              <Button
-                text={action.text}
-                key={action.text}
-                size="small"
-                variant="secondary"
-                onClick={() => {
-                  mutation.mutateAsync(action);
-                }}
-                disabled={mutation.isPending || isRewardEnded}
-              />
-              {isRewardEnded && <p className="tooltiptext min-w-[220px]">Incentive program has ended</p>}
-            </div>
+            <Button
+              text={action.text}
+              key={action.text}
+              size="small"
+              variant="secondary"
+              onClick={() => {
+                mutation.mutateAsync(action);
+              }}
+              disabled={mutation.isPending}
+            />
           );
-        }
-        return (
-          <Button
-            text={action.text}
-            key={action.text}
-            size="small"
-            variant="secondary"
-            onClick={() => {
-              mutation.mutateAsync(action);
-            }}
-            disabled={mutation.isPending}
-          />
-        );
-      })}
+        })}
+      </SwitchChainButtonWrapper>
     </div>
   );
 }
@@ -96,6 +99,7 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
         startTime: poolIncentive.startTime,
         endTime: poolIncentive.endTime,
         tokenId: BigInt(tokenId),
+        chainId,
       });
     };
   };
@@ -111,6 +115,7 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
         startTime: poolIncentive.startTime,
         endTime: poolIncentive.endTime,
         tokenId: BigInt(tokenId),
+        chainId,
       });
     };
   };
@@ -122,6 +127,7 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
         account: account!,
         tokenId: BigInt(tokenId),
+        chainId,
       });
     };
   };
@@ -132,6 +138,7 @@ export function FarmingActionsLegacy({ account, chainId, deposit, pool, isReward
         farmingCenter: SWAPR_CONFIG[chainId]?.FARMING_CENTER!,
         account: account!,
         tokenId: BigInt(tokenId),
+        chainId,
       });
     };
   };

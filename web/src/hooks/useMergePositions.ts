@@ -38,6 +38,7 @@ function mergeFromRouter(
         functionName: "mergePositions",
         args: [market.id, collateralToken, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -51,6 +52,7 @@ function mergeFromRouter(
         functionName: "mergePositions",
         args: [collateralToken, market.id, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -64,6 +66,7 @@ function mergeFromRouter(
         functionName: "mergeToDai",
         args: [market.id, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -76,6 +79,7 @@ function mergeFromRouter(
       functionName: "mergeToBase",
       args: [market.id, amount],
     }),
+    chainId: market.chainId,
   };
 }
 
@@ -120,7 +124,7 @@ async function mergePositions7702(
 
   calls.push(mergeFromRouter(props.collateralToken, props.router, props.market, props.amount));
 
-  const result = await toastifySendCallsTx(calls, config, {
+  const result = await toastifySendCallsTx(calls, props.market.chainId, config, {
     txSent: { title: "Merging tokens..." },
     txSuccess: { title: "Tokens merged!" },
   });

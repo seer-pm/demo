@@ -156,6 +156,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
               tokenName={missingApprovals[0].name}
               spender={missingApprovals[0].spender}
               amount={parsedAmount}
+              chainId={market.chainId}
             />
           )}
         </SwitchChainButtonWrapper>

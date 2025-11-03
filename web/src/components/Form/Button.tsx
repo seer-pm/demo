@@ -2,7 +2,7 @@ import { Link, LinkProps } from "@/components/Link";
 import clsx from "clsx";
 import React from "react";
 
-type ButtonSize = "small" | "large";
+export type ButtonSize = "small" | "large";
 type ButtonVariant = "primary" | "secondary" | "tertiary";
 
 type BaseProps = {

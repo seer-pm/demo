@@ -100,7 +100,7 @@ export const useMissingApprovals = (props: UseMissingApprovalsProps | undefined)
   });
 };
 
-export function getApprovals7702({ tokensAddresses, spender, amounts }: UseMissingApprovalsProps) {
+export function getApprovals7702({ tokensAddresses, spender, amounts, chainId }: UseMissingApprovalsProps) {
   const calls: Execution[] = [];
 
   if (!tokensAddresses.length) {
@@ -125,6 +125,7 @@ export function getApprovals7702({ tokensAddresses, spender, amounts }: UseMissi
         functionName: "approve",
         args: [spender, amount],
       }),
+      chainId,
     });
   }
 
