@@ -17,7 +17,6 @@ const FACTORY_ADDRESSES: Partial<Record<SupportedChain, Address>> = {
  * @param factoryAddress The Uniswap V3 factory address
  * @param tokenA The first token of the pair, irrespective of sort order
  * @param tokenB The second token of the pair, irrespective of sort order
- * @param fee The fee tier of the pool
  * @returns The pool address
  */
 export function computePoolAddress({
