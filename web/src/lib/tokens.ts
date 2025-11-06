@@ -15,7 +15,7 @@ export interface Token {
 
 export type TokenTransfer = {
   id: string | number;
-  chain_id: number;
+  chain_id: SupportedChain;
   token: Address;
   tx_hash: string;
   block_number: number;

@@ -3,21 +3,22 @@ import { Link } from "@/components/Link";
 import { useComputedPoolAddresses } from "@/hooks/useComputedPoolAddresses";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { getRouterAddress } from "@/lib/config";
 import { ExternalLinkIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { TokenTransfer } from "@/lib/tokens";
 import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { Address, zeroAddress } from "viem";
+import { Address, isAddressEqual } from "viem";
 
 interface ActivityProps {
   market: Market;
 }
 
-function getTransactionType(transaction: TokenTransfer, pools: Address[]) {
+function getTransactionType(transaction: TokenTransfer, pools: Address[], routerAddress: Address) {
   const { from, to } = transaction;
 
-  if (from === zeroAddress || to === zeroAddress) {
+  if (isAddressEqual(from, routerAddress) || isAddressEqual(to, routerAddress)) {
     // split, merge or redeem
     return null;
   }
@@ -51,6 +52,8 @@ export default function Activity({ market }: ActivityProps) {
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
+  const routerAddress = getRouterAddress(market);
+
   return (
     <div className="p-4 bg-white border rounded-[3px] shadow-sm border-black-medium">
       <div className="w-full overflow-x-auto mb-6">
@@ -70,7 +73,7 @@ export default function Activity({ market }: ActivityProps) {
                   addSuffix: true,
                 });
 
-                const transactionType = getTransactionType(transaction, poolAddresses);
+                const transactionType = getTransactionType(transaction, poolAddresses, routerAddress);
 
                 // Skip mint/burn transactions
                 if (!transactionType) {

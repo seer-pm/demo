@@ -1,13 +1,14 @@
 import { SupportedChain } from "@/lib/chains";
 import { TokenTransfer } from "@/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
+import { Address } from "viem";
 
 interface Holder {
-  address: string;
+  address: Address;
   balance: string;
 }
 
-interface TokenTransactionsResponse {
+export interface TokenTransactionsResponse {
   topHolders: { [tokenId: string]: Holder[] };
   recentTransactions: Array<TokenTransfer>;
   totalTokens: number;

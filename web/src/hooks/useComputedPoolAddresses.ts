@@ -71,7 +71,7 @@ export const useComputedPoolAddresses = (market: Market) => {
             tokenB: pair.token1,
           });
 
-          computedAddresses.push(poolAddress);
+          computedAddresses.push(poolAddress.toLowerCase() as Address);
         } catch (error) {
           console.error(`Error computing pool address for pair ${pair.token0}-${pair.token1}:`, error);
         }

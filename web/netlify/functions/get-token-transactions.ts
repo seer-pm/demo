@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { TokenTransfer } from "@/lib/tokens";
 import { createClient } from "@supabase/supabase-js";
@@ -27,6 +28,7 @@ async function getRecentTransactions(tokenIds: string[], limit = 100): Promise<T
         ...r,
         from: r.from as Address,
         to: r.to as Address,
+        chain_id: r.chain_id as SupportedChain,
         token: r.token as Address,
         value: BigInt(r.value),
       };
@@ -34,7 +36,7 @@ async function getRecentTransactions(tokenIds: string[], limit = 100): Promise<T
   );
 }
 
-const TOP_HOLDERS_COUNT = 5;
+const TOP_HOLDERS_COUNT = 10;
 
 async function getTopHoldersForTokens(tokenIds: string[]): Promise<{ [tokenId: string]: Holder[] }> {
   const { data, error } = await supabase
