@@ -94,41 +94,6 @@ export async function getMappings(initialMarkets: Market[], chainId: SupportedCh
   };
 }
 
-export async function getTokensInfo(chainId: SupportedChain, tokenAddresses: readonly Address[], account: Address) {
-  const publicClient = getPublicClientByChainId(chainId);
-
-  const [balances, names, decimals] = await Promise.all([
-    multicall(publicClient, {
-      contracts: tokenAddresses.map((wrappedAddress) => ({
-        abi: erc20Abi,
-        address: wrappedAddress,
-        functionName: "balanceOf",
-        args: [account],
-      })),
-      allowFailure: false,
-    }) as Promise<bigint[]>,
-    multicall(publicClient, {
-      contracts: tokenAddresses.map((wrappedAddress) => ({
-        abi: erc20Abi,
-        address: wrappedAddress,
-        functionName: "name",
-        args: [],
-      })),
-      allowFailure: false,
-    }) as Promise<string[]>,
-    multicall(publicClient, {
-      contracts: tokenAddresses.map((wrappedAddress) => ({
-        abi: erc20Abi,
-        address: wrappedAddress,
-        functionName: "decimals",
-        args: [],
-      })),
-      allowFailure: false,
-    }) as Promise<number[]>,
-  ]);
-  return { balances, names, decimals };
-}
-
 export function getTokenPricesMapping(
   positions: { parentMarketId?: string; tokenId: string; collateralToken?: string }[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
