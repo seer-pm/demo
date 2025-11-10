@@ -167,6 +167,7 @@ type SearchMarketsProps = {
   type?: "Generic" | "Futarchy" | "";
   id?: Address | "";
   parentMarket?: Address | "";
+  tokens?: Address[] | undefined;
   marketName?: string;
   categoryList?: string[] | undefined;
   marketStatusList?: MarketStatus[] | undefined;
@@ -188,6 +189,7 @@ export async function searchMarkets({
   type,
   id,
   parentMarket,
+  tokens,
   marketName,
   categoryList,
   marketStatusList,
@@ -245,6 +247,19 @@ export async function searchMarkets({
     query = query.in(
       "id",
       marketIds.map((id) => id.toLowerCase()),
+    );
+  }
+
+  if (tokens?.length) {
+    const { data, error } = await supabase.rpc("search_markets_any_token", {
+      tokens: tokens.map((t) => t.toLowerCase()),
+    });
+    if (error) {
+      throw error;
+    }
+    query = query.in(
+      "id",
+      data.map((d) => d.market_id),
     );
   }
 

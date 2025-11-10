@@ -3,24 +3,86 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { MarketTypes, getMarketStatus, getMarketType, getQuestionParts, getRedeemedPrice } from "@seer-pm/sdk/market";
 import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
-import { type Address, formatUnits } from "viem";
+import { createClient } from "@supabase/supabase-js";
+import { type Address, erc20Abi, formatUnits } from "viem";
+import { multicall } from "viem/actions";
+import { getPublicClientByChainId } from "./utils/config";
 import { getMarketsMappings, searchMarkets } from "./utils/markets";
-import { getTokensInfo } from "./utils/portfolio";
+import { Database } from "./utils/supabase";
+
+const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+
+async function getTokensByAccount(address: Address, chainId: SupportedChain) {
+  const { data, error } = await supabase
+    .from("tokens_holdings_v")
+    .select("token, owner, balance")
+    .eq("owner", address.toLowerCase())
+    .gt("balance", 0)
+    .eq("chain_id", chainId)
+    .order("token", { ascending: true })
+    .order("balance", { ascending: false });
+
+  if (error) {
+    throw new Error(`Error·fetching·positions:·${error.message}`);
+  }
+
+  const rows = data ?? [];
+  const tokens = rows.map((row) => row.token as Address);
+  const balances = rows.map((row) => BigInt(row.balance as number));
+
+  let names: string[] = [];
+  let decimals: number[] = [];
+
+  if (tokens.length > 0) {
+    const publicClient = getPublicClientByChainId(chainId);
+    const [namesResult, decimalsResult] = await Promise.all([
+      multicall(publicClient, {
+        contracts: tokens.map((tokenAddress) => ({
+          abi: erc20Abi,
+          address: tokenAddress,
+          functionName: "name",
+          args: [],
+        })),
+        allowFailure: false,
+      }) as Promise<string[]>,
+      multicall(publicClient, {
+        contracts: tokens.map((tokenAddress) => ({
+          abi: erc20Abi,
+          address: tokenAddress,
+          functionName: "decimals",
+          args: [],
+        })),
+        allowFailure: false,
+      }) as Promise<number[]>,
+    ]);
+    names = namesResult;
+    decimals = decimalsResult;
+  }
+
+  return { tokens, balances, names, decimals };
+}
 
 async function fetchPositions(address: Address, chainId: SupportedChain) {
-  const { markets } = await searchMarkets({ chainIds: [chainId] });
+  const {
+    tokens: allTokensIds,
+    balances,
+    names: tokenNames,
+    decimals: tokenDecimals,
+  } = await getTokensByAccount(address, chainId);
+  const { markets } = await searchMarkets({ chainIds: [chainId], tokens: allTokensIds });
 
   if (markets.length === 0) {
     return [];
   }
 
   const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
-
-  const allTokensIds = Object.keys(tokenToMarket) as Address[];
-  const { balances, names: tokenNames, decimals: tokenDecimals } = await getTokensInfo(chainId, allTokensIds, address);
-
   return balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {
+      if (!tokenToMarket[allTokensIds[index]]) {
+        console.log("Missing market for token", allTokensIds[index]);
+        return acumm;
+      }
+
       const { market, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
