@@ -159,7 +159,6 @@ export default function Header() {
         content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
       />
       <BetaWarning />
-      <GroupNotice />
 
       <nav
         ref={containerRef}
@@ -396,45 +395,6 @@ function BetaWarning() {
     <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>Note that this is a Beta version and can still be unstable</div>
       <button type="button" className="hover:opacity-80" onClick={closeWarning}>
-        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
-      </button>
-    </div>
-  );
-}
-
-function GroupNotice() {
-  const [isReady, setIsReady] = useState(false);
-  const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
-
-  useEffect(() => {
-    const isClosed = window.localStorage.getItem("group-notice-closed") === "1";
-    setGroupNoticeClosed(isClosed);
-    setIsReady(true);
-  }, []);
-
-  if (!isReady || groupNoticeClosed) {
-    return null;
-  }
-
-  const closeNotice = () => {
-    window.localStorage.setItem("group-notice-closed", "1");
-    setGroupNoticeClosed(true);
-  };
-
-  return (
-    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
-      <div>
-        Our telegram account is banned, community is moving to discord. Join the{" "}
-        <a
-          href={paths.discord()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="italic underline  hover:opacity-80"
-        >
-          Discord
-        </a>
-      </div>
-      <button type="button" className="hover:opacity-80" onClick={closeNotice}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
     </div>

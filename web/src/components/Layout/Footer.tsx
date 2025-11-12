@@ -1,4 +1,4 @@
-import { DiscordIcon, GithubIcon, SecuredByKleros, TwitterIcon } from "@/lib/icons";
+import { DiscordIcon, GithubIcon, SecuredByKleros, TelegramIcon, TwitterIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 
 export default function Footer() {
@@ -18,6 +18,9 @@ export default function Footer() {
         </a>*/}
         <a href={paths.discord()} target="_blank" rel="noopener noreferrer">
           <DiscordIcon />
+        </a>
+        <a href={paths.telegram()} target="_blank" rel="noopener noreferrer">
+          <TelegramIcon />
         </a>
         <a href={paths.twitter()} target="_blank" rel="noopener noreferrer">
           <TwitterIcon />

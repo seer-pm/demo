@@ -49,6 +49,7 @@ export const paths = {
   github: () => "https://github.com/seer-pm",
   snapshot: () => "#",
   discord: () => "https://discord.com/invite/rBEB4MYQwV",
+  telegram: () => "https://t.me/Seerpredictionmarket",
   twitter: () => "https://x.com/seer_pm",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
   depositGuideEth: () =>
