@@ -12,6 +12,7 @@ type State = {
   };
   maxSlippage: string;
   isInstantSwap: boolean;
+  useSmartAccount: boolean;
   preferredCollaterals: {
     [chainId: number]: Token | undefined;
   };
@@ -24,6 +25,7 @@ type Action = {
   migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
   setInstantSwap: (value: boolean) => void;
+  setUseSmartAccount: (value: boolean) => void;
   setPreferredCollateral: (token: Token, chainId: number) => void;
   getPreferredCollateral: (chainId: number) => Token | undefined;
 };
@@ -36,6 +38,7 @@ const useGlobalState = create<State & Action>()(
       favorites: {},
       maxSlippage: "1",
       isInstantSwap: true,
+      useSmartAccount: true,
       preferredCollaterals: {},
       setAccessToken: (accessToken: string) =>
         set(() => ({
@@ -62,6 +65,10 @@ const useGlobalState = create<State & Action>()(
       setInstantSwap: (isInstantSwap: boolean) =>
         set(() => ({
           isInstantSwap,
+        })),
+      setUseSmartAccount: (useSmartAccount: boolean) =>
+        set(() => ({
+          useSmartAccount,
         })),
       setPreferredCollateral: (token: Token, chainId: number) =>
         set((state) => ({

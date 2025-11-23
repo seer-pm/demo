@@ -1,6 +1,6 @@
 import { Address, Hex } from "viem";
-import { gnosis } from "viem/chains";
 import { useAccount, useCapabilities } from "wagmi";
+import { useGlobalState } from "./useGlobalState";
 
 export type Execution = {
   to: Address;
@@ -12,13 +12,9 @@ export type Execution = {
 export function useCheck7702Support(): boolean {
   const { chainId } = useAccount();
   const { data: capabilities } = useCapabilities();
+  const useSmartAccount = useGlobalState((state) => state.useSmartAccount);
 
-  if (!chainId || !capabilities) {
-    return false;
-  }
-
-  if (chainId === gnosis.id) {
-    // metamask doesn't work on gnosis
+  if (!chainId || !capabilities || !useSmartAccount) {
     return false;
   }
 
