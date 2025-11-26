@@ -3,12 +3,13 @@ import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 
+import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
-import { Token, getCollateralPerShare } from "@/lib/tokens";
+import { Token, getCollateralPerShare, getOutcomeTokenVolume } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
@@ -229,6 +230,12 @@ export function SwapTokensMarket({
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
     swapType === "buy";
 
+  const limitPriceFromVolume = usePriceFromVolume(
+    market,
+    outcomeToken.address,
+    swapType,
+    getOutcomeTokenVolume(quoteData, swapType),
+  );
   const resetInputs = () => {
     resetField("amount");
     resetField("amountOut");
@@ -527,6 +534,29 @@ export function SwapTokensMarket({
               </div>
             )}
           </div>
+
+          {!!limitPriceFromVolume && (
+            <div className="flex justify-between text-[#828282] text-[14px]">
+              Price after buy
+              {quoteIsLoading || isFetching ? (
+                <div className="shimmer-container ml-2 w-[100px]" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
+                  {selectedCollateral.symbol}
+                  {isSecondaryCollateral && (
+                    <span className="tooltip">
+                      <p className="tooltiptext">
+                        {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                      </p>
+                      <QuestionIcon fill="#9747FF" />
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <PotentialReturn
             {...{
               swapType,

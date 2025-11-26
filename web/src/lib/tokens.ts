@@ -53,6 +53,21 @@ export function getCollateralPerShare(quoteData: QuoteTradeResult | undefined, s
   return swapType === "buy" ? inputAmount / outputAmount : outputAmount / inputAmount;
 }
 
+export function getOutcomeTokenVolume(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell") {
+  if (!quoteData) {
+    return 0;
+  }
+  const inputAmount = Number(
+    formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
+  );
+
+  const outputAmount = Number(
+    formatUnits(BigInt(quoteData.trade.outputAmount.raw.toString()), quoteData.trade.outputAmount.currency.decimals),
+  );
+
+  return swapType === "buy" ? outputAmount : inputAmount;
+}
+
 export function getCollateralTokenForSwap(tokenAddress: Address, chainId: SupportedChain) {
   if (
     isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||

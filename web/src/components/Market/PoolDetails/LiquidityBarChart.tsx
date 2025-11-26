@@ -77,6 +77,7 @@ export default function LiquidityBarChart({
           // biome-ignore lint/suspicious/noExplicitAny:
           formatter: (params: any[]) => {
             let tooltipContent = "";
+            const currentPriceIndex = params[0].data[0] - 0.5;
             const currentLineIndex = params[0].data[0] * 2;
             for (const param of params) {
               if (!param?.data[1]) {
@@ -91,12 +92,17 @@ export default function LiquidityBarChart({
               tooltipContent += `Total Volume: ${Number(
                 sellLineData[currentLineIndex][1]!.toFixed(2),
               ).toLocaleString()}<br>`;
+              //current price
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
+              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
             }
             if (params[1] && buyLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
               tooltipContent += `Total Volume: ${Number(
                 buyLineData[currentLineIndex][1]!.toFixed(2),
               ).toLocaleString()}<br>`;
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
+              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
             }
             // Return the formatted tooltip content with the colored dot
             return tooltipContent;
