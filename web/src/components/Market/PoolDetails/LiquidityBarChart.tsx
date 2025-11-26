@@ -6,9 +6,8 @@ import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { PoolInfo } from "@/hooks/useMarketPools";
-import { SwapIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
-import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
+import { formatBigNumbers } from "@/lib/utils";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 
@@ -16,10 +15,15 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
-}: { market: Market; outcomeTokenIndex: number; poolInfo: PoolInfo }) {
+  isShowToken0Price,
+}: {
+  market: Market;
+  outcomeTokenIndex: number;
+  poolInfo: PoolInfo;
+  isShowToken0Price: boolean;
+}) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { token0Symbol, token1Symbol, token0, tick, id } = poolInfo;
-  const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
+  const { token0Symbol, token1Symbol, tick, id } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
@@ -28,7 +32,7 @@ export default function LiquidityBarChart({
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
+        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
@@ -73,6 +77,7 @@ export default function LiquidityBarChart({
           // biome-ignore lint/suspicious/noExplicitAny:
           formatter: (params: any[]) => {
             let tooltipContent = "";
+            const currentPriceIndex = params[0].data[0] - 0.5;
             const currentLineIndex = params[0].data[0] * 2;
             for (const param of params) {
               if (!param?.data[1]) {
@@ -84,11 +89,20 @@ export default function LiquidityBarChart({
             }
             if (params[0] && sellLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(sellLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
+              tooltipContent += `Total Volume: ${Number(
+                sellLineData[currentLineIndex][1]!.toFixed(2),
+              ).toLocaleString()}<br>`;
+              //current price
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
+              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
             }
             if (params[1] && buyLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(buyLineData[currentLineIndex][1]!.toFixed(2)).toLocaleString()}<br>`;
+              tooltipContent += `Total Volume: ${Number(
+                buyLineData[currentLineIndex][1]!.toFixed(2),
+              ).toLocaleString()}<br>`;
+              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
+              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
             }
             // Return the formatted tooltip content with the colored dot
             return tooltipContent;
@@ -207,12 +221,7 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <div className="font-semibold flex items-center gap-2 flex-wrap">
-        Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
-        {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
-        <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
-          <SwapIcon />
-        </button>
+      <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
         <div className="flex items-center ml-auto gap-2">
           <p className="text-[14px] whitespace-nowrap">Ticks display</p>
           <div className="min-w-[100px]">

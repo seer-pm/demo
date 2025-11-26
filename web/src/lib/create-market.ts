@@ -1,4 +1,5 @@
 import { Address } from "viem";
+import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
 import { escapeJson } from "./reality";
@@ -18,7 +19,7 @@ export interface CreateMarketProps {
   unit: string;
   category: string;
   openingTime: number;
-  chainId?: number;
+  chainId: SupportedChain;
 }
 
 export const MISC_CATEGORY = "misc";
@@ -40,6 +41,7 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
 function generateTokenName(outcome: string) {
   return outcome
     .replace(/[^\w\s]/gi, "") // remove special characters
+    .replace(/[\u00A0\u2000-\u200F\u202F\u205F\u3000]/g, " ") // replace non-breaking spaces with normal spaces
     .replaceAll("_", " ") // replace underscores with spaces
     .replace(/ {2,}/g, " ") // remove consecutive spaces
     .trim() // trim

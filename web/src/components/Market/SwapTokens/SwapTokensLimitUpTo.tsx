@@ -8,7 +8,7 @@ import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
-import { ArrowSwap, Parameter, QuestionIcon } from "@/lib/icons";
+import { Parameter, QuestionIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
+import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
@@ -101,7 +102,7 @@ export function SwapTokensLimitUpto({
     assetsToShares,
     buyToken,
     sellToken,
-    isShowXDAIBridgeLink,
+    showBridgeLink,
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
@@ -239,6 +240,17 @@ export function SwapTokensLimitUpto({
     return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter target price" />;
   };
 
+  const checkPriceDirection = (value: number) => {
+    if (value > 1 || Number.isNaN(value) || value <= 0 || !poolInfo) return undefined;
+    const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
+    const [num, den] = decimalToFraction(isOutcomeToken0 ? value : 1 / value);
+    const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+    const isBuy =
+      (isOutcomeToken0 && targetSqrtPriceX96 > currentSqrtPriceX96) ||
+      (!isOutcomeToken0 && targetSqrtPriceX96 < currentSqrtPriceX96);
+    return isBuy ? "buy" : "sell";
+  };
+
   // useEffects
 
   useEffect(() => {
@@ -249,7 +261,7 @@ export function SwapTokensLimitUpto({
     resetField("limitPrice");
     resetField("amount");
     resetField("amountOut");
-  }, [swapType, selectedCollateral.address, outcomeToken.address]);
+  }, [selectedCollateral.address, outcomeToken.address]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
@@ -287,6 +299,12 @@ export function SwapTokensLimitUpto({
     resetField("amountOut");
   }, [isUseMax]);
 
+  useEffect(() => {
+    const priceDirection = checkPriceDirection(Number(debounceLimitPrice));
+    if (!priceDirection) return;
+    setSwapType(priceDirection as "buy" | "sell");
+  }, [debounceLimitPrice]);
+
   return (
     <>
       <ConfirmSwapModal
@@ -303,6 +321,7 @@ export function SwapTokensLimitUpto({
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
             isSeerCredits={isSeerCreditsCollateral}
+            outcomeToken={outcomeToken}
           />
         }
       />
@@ -310,14 +329,7 @@ export function SwapTokensLimitUpto({
         <div className="space-y-2">
           <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
-              <p className="text-[#131313a1]">{swapType === "buy" ? "Buy" : "Sell"} until the price reaches</p>
-              <button
-                type="button"
-                className="hover:opacity-70"
-                onClick={() => setSwapType((state) => (state === "buy" ? "sell" : "buy"))}
-              >
-                <ArrowSwap />
-              </button>
+              <p className="text-[#131313a1]">Target price</p>
             </div>
             <div className="flex justify-between items-start">
               <div>
@@ -332,34 +344,22 @@ export function SwapTokensLimitUpto({
                       if (Number.isNaN(Number(v)) || Number(v) < 0) {
                         return "Limit price must be greater than 0.";
                       }
-                      const isPriceTooHigh = Number(v) > 1;
-                      if (isPriceTooHigh) {
-                        return `Limit price exceeds 1 ${
-                          isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol
-                        } per share.`;
-                      }
-                      if (!poolInfo) return true;
-                      const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
-                      const [num, den] = decimalToFraction(isOutcomeToken0 ? Number(v) : 1 / Number(v));
-                      const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
-                      const movingUp =
-                        (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
-                      const isPriceNotInRange =
-                        currentSqrtPriceX96 > 0n &&
-                        (movingUp
-                          ? targetSqrtPriceX96 <= currentSqrtPriceX96
-                          : targetSqrtPriceX96 >= currentSqrtPriceX96);
-                      if (isPriceNotInRange) {
-                        return swapType === "buy"
-                          ? "Limit price must be greater than current price."
-                          : "Limit price must be less than current price.";
+                    },
+                    onChange: (e) => {
+                      setUseMax(false);
+                      const value = e.target.value;
+
+                      // All trades must be less than 1. Input field defaults to cents - when user types "86",
+                      // it automatically becomes "0.86" to represent 86 cents
+                      if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
+                        const formattedValue = `0.${value}`;
+                        setValue("limitPrice", formattedValue, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
                       }
                     },
                   })}
-                  onChange={(e) => {
-                    setUseMax(false);
-                    register("limitPrice").onChange(e);
-                  }}
                   ref={(el) => {
                     limitPriceRef.current = el;
                     register("limitPrice").ref(el);
@@ -413,11 +413,11 @@ export function SwapTokensLimitUpto({
 
                       return true;
                     },
+
+                    onChange: () => {
+                      setTradeType(TradeType.EXACT_INPUT);
+                    },
                   })}
-                  onChange={(e) => {
-                    setTradeType(TradeType.EXACT_INPUT);
-                    register("amount").onChange(e);
-                  }}
                   disabled
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
@@ -479,11 +479,11 @@ export function SwapTokensLimitUpto({
                   type="number"
                   step="any"
                   min="0"
-                  {...register("amountOut")}
-                  onChange={(e) => {
-                    setTradeType(TradeType.EXACT_OUTPUT);
-                    register("amountOut").onChange(e);
-                  }}
+                  {...register("amountOut", {
+                    onChange: () => {
+                      setTradeType(TradeType.EXACT_OUTPUT);
+                    },
+                  })}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   disabled
@@ -509,16 +509,7 @@ export function SwapTokensLimitUpto({
             </div>
           </div>
         </div>
-        {isShowXDAIBridgeLink && (
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href={paths.xDAIBridge()}
-            className="text-purple-primary hover:underline text-[14px]"
-          >
-            Bridge xDAI
-          </a>
-        )}
+        {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
         <div className="space-y-1">
           <div className="flex justify-between text-[#828282] text-[14px]">
             Avg price
@@ -561,14 +552,14 @@ export function SwapTokensLimitUpto({
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
-            Try to reduce the input amount.
+            Try to reduce the input price.
           </Alert>
         )}
         {quoteError && (
           <Alert type="error">
             {quoteError.message
               ? quoteError.message === "No route found"
-                ? "Not enough liquidity. Try to reduce the input amount."
+                ? `Not enough liquidity. Try to ${swapType === "buy" ? "reduce" : "increase"} the input price.`
                 : quoteError.message
               : "Error when quoting price"}
           </Alert>

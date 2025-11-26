@@ -329,6 +329,7 @@ export function PreviewForm({
     if (marketReadyToVerify && verifyNow && newMarketId !== "") {
       await verifyMarket.mutateAsync({
         marketId: newMarketId,
+        chainId,
         marketImage: images.file.market,
         outcomesImages: images.file.outcomes,
         submissionDeposit: submissionDeposit!,

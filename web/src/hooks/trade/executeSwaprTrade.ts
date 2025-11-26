@@ -48,7 +48,7 @@ export async function getSwaprTradeExecution(
     });
     const amountOut = `0x${trade.minimumAmountOut().raw.toString(16)}`;
     //here we unwrap router balance
-    return multicallSellToNative(amountOut, populatedTransaction.data!.toString(), account);
+    return multicallSellToNative(amountOut, populatedTransaction.data!.toString(), account, trade.chainId);
   }
 
   const populatedTransaction = await trade.swapTransaction({
@@ -58,17 +58,18 @@ export async function getSwaprTradeExecution(
   if (isBuyExactOutputNative) {
     // use muticall here to refund native token
     const amountIn = `0x${trade.maximumAmountIn().raw.toString(16)}`;
-    return multicallBuyExactOutputNative(amountIn, populatedTransaction.data!.toString());
+    return multicallBuyExactOutputNative(amountIn, populatedTransaction.data!.toString(), trade.chainId);
   }
 
   return {
     to: populatedTransaction.to! as `0x${string}`,
     data: populatedTransaction.data!.toString() as `0x${string}`,
     value: BigInt(populatedTransaction.value?.toString() || 0),
+    chainId: trade.chainId,
   };
 }
 
-function multicallBuyExactOutputNative(amountIn: string, swapData: string): Execution {
+function multicallBuyExactOutputNative(amountIn: string, swapData: string, chainId: number): Execution {
   const refundNativeTokenData = encodeFunctionData({
     abi: routerAbi,
     functionName: "refundNativeToken",
@@ -84,10 +85,11 @@ function multicallBuyExactOutputNative(amountIn: string, swapData: string): Exec
     to: SWAPR_SWAP_ROUTER,
     value: BigInt(amountIn),
     data,
+    chainId,
   };
 }
 
-function multicallSellToNative(amountOut: string, swapData: string, recipient: string): Execution {
+function multicallSellToNative(amountOut: string, swapData: string, recipient: string, chainId: number): Execution {
   const unwrapData = encodeFunctionData({
     abi: routerAbi,
     functionName: "unwrapWNativeToken",
@@ -104,5 +106,6 @@ function multicallSellToNative(amountOut: string, swapData: string, recipient: s
     to: SWAPR_SWAP_ROUTER,
     value: 0n,
     data,
+    chainId,
   };
 }

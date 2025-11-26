@@ -170,7 +170,7 @@ export async function redeemFromSDAI({ chainId, amount, owner }: Props) {
         abi: SDAI_ABI,
         functionName: "redeem",
         args: [amount, owner, owner],
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Redeeming..." }, txSuccess: { title: "Redeemed!" } },
   );
@@ -188,7 +188,7 @@ export async function depositToSDAI({ chainId, amount, owner }: Props) {
         abi: SDAI_ABI,
         functionName: "deposit",
         args: [amount, owner],
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Depositing..." }, txSuccess: { title: "Deposited!" } },
   );
@@ -206,7 +206,7 @@ export async function redeemFromSDAIToNative({ chainId, amount, owner }: Props) 
         abi: ADAPTER_ABI,
         functionName: "redeemXDAI",
         args: [amount, owner],
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Redeeming..." }, txSuccess: { title: "Redeemed!" } },
   );
@@ -225,7 +225,7 @@ export async function depositFromNativeToSDAI({ chainId, amount, owner }: Props)
         functionName: "depositXDAI",
         args: [owner],
         value: amount,
-        chainId: chainId,
+        chainId,
       }),
     { txSent: { title: "Depositing..." }, txSuccess: { title: "Deposited!" } },
   );

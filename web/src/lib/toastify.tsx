@@ -16,6 +16,7 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
+import { SupportedChain } from "./chains";
 import SEER_ENV from "./env";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 
@@ -75,6 +76,7 @@ type ToastifyTxFn = (
 
 type ToastifySendCalls = (
   calls: Execution[],
+  chainId: SupportedChain,
   wagmiConfig: Config,
   config?: ToastifyConfig,
 ) => Promise<ToastifyTxReturn>;
@@ -188,7 +190,7 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
   }
 };
 
-export const toastifySendCallsTx: ToastifySendCalls = async (calls, wagmiConfig, config) => {
+export const toastifySendCallsTx: ToastifySendCalls = async (calls, chainId, wagmiConfig, config) => {
   const BATCH_SIZE = 10;
   const batches = [];
 
@@ -216,7 +218,7 @@ export const toastifySendCallsTx: ToastifySendCalls = async (calls, wagmiConfig,
     const isLastBatch = i === batches.length - 1;
 
     const result = await toastifyTx(
-      () => sendCalls(wagmiConfig, { calls: batch }),
+      () => sendCalls(wagmiConfig, { calls: batch, chainId }),
       isSingleBatch
         ? config
         : {

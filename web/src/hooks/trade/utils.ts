@@ -138,6 +138,7 @@ export async function approveIfNeeded(
       amount,
       tokenAddress: tokensAddress,
       spender: spender,
+      chainId,
     });
   }
 }
@@ -178,5 +179,6 @@ export function getWrappedSeerCreditsExecution(
     to: creditsManagerAddress[trade.chainId as keyof typeof creditsManagerAddress],
     data: executeData,
     value: 0n,
+    chainId: trade.chainId,
   };
 }

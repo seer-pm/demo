@@ -12,9 +12,9 @@ import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
 import OrdersTable from "./OrdersTable";
 
-function OrdersTab() {
-  const { chainId = DEFAULT_CHAIN, address } = useAccount();
-  const { data: orders, error } = useCowOrders(address as Address, chainId as SupportedChain);
+function OrdersTab({ account }: { account: Address | undefined }) {
+  const { chainId = DEFAULT_CHAIN } = useAccount();
+  const { data: orders, error } = useCowOrders(account as Address, chainId as SupportedChain);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);

@@ -5,7 +5,7 @@ import { RightArrow } from "@/lib/icons";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import { Spinner } from "../../Spinner";
@@ -21,6 +21,7 @@ interface SwapTokensConfirmationProps {
   isBuyExactOutputNative: boolean;
   isSellToNative: boolean;
   isSeerCredits: boolean;
+  outcomeToken: Token;
 }
 
 export function SwapTokensConfirmation({
@@ -32,9 +33,15 @@ export function SwapTokensConfirmation({
   isBuyExactOutputNative,
   isSellToNative,
   isSeerCredits,
+  outcomeToken,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
+  useEffect(() => {
+    if (!tradeInfo) return;
+    const isOutcomeInputToken = isTwoStringsEqual(tradeInfo.inputAddress, outcomeToken.address);
+    toggleInvertedPrice(!isOutcomeInputToken);
+  }, []);
 
   if (!tradeInfo) {
     return (

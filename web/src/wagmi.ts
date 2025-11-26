@@ -7,10 +7,11 @@ import { SUPPORTED_CHAINS, base, gnosis, hardhat, mainnet, optimism } from "./li
 import SEER_ENV from "./lib/env";
 
 const rpcEndpoint = (chain: string) => `https://lb.drpc.org/${chain}/As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE`;
-const GNOSIS_RPC = rpcEndpoint("gnosis");
-const MAINNET_RPC = rpcEndpoint("ethereum");
-const OPTIMISM_RPC = rpcEndpoint("optimism");
-const BASE_RPC = rpcEndpoint("base");
+export const GNOSIS_RPC = rpcEndpoint("gnosis");
+export const MAINNET_RPC = rpcEndpoint("ethereum");
+export const OPTIMISM_RPC = rpcEndpoint("optimism");
+export const BASE_RPC = rpcEndpoint("base");
+export const ARBITRUM_RPC = rpcEndpoint("arbitrum");
 
 if (typeof window !== "undefined") {
   import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
@@ -30,11 +31,13 @@ const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
+export const connectors = [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })];
+
 export const config = defaultWagmiConfig({
   metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
   chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
-  connectors: [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })],
+  connectors,
   enableCoinbase: false,
   transports: {
     [gnosis.id]: fallback([http(GNOSIS_RPC), http("https://rpc.gnosischain.com")]),

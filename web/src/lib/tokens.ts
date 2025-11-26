@@ -7,15 +7,29 @@ import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "./utils";
 
 export interface Token {
   address: Address;
+  chainId: number;
   symbol: string;
   decimals: number;
   wrapped?: Token;
 }
 
+export type TokenTransfer = {
+  id: string | number;
+  chain_id: SupportedChain;
+  token: Address;
+  tx_hash: string;
+  block_number: number;
+  timestamp: number;
+  value: bigint;
+  from: Address;
+  to: Address;
+};
+
 export const WRAPPED_OUTCOME_TOKEN_DECIMALS = 18;
 
 export const EMPTY_TOKEN = {
   address: zeroAddress,
+  chainId: 1,
   symbol: "",
   decimals: 18,
 };
@@ -37,6 +51,21 @@ export function getCollateralPerShare(quoteData: QuoteTradeResult | undefined, s
   );
 
   return swapType === "buy" ? inputAmount / outputAmount : outputAmount / inputAmount;
+}
+
+export function getOutcomeTokenVolume(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell") {
+  if (!quoteData) {
+    return 0;
+  }
+  const inputAmount = Number(
+    formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
+  );
+
+  const outputAmount = Number(
+    formatUnits(BigInt(quoteData.trade.outputAmount.raw.toString()), quoteData.trade.outputAmount.currency.decimals),
+  );
+
+  return swapType === "buy" ? outputAmount : inputAmount;
 }
 
 export function getCollateralTokenForSwap(tokenAddress: Address, chainId: SupportedChain) {

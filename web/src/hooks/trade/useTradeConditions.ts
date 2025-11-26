@@ -47,9 +47,8 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
   );
   const amountErrorMessage = errors?.amount?.message;
 
-  const isShowXDAIBridgeLink =
+  const showBridgeLink =
     account &&
-    market.chainId === gnosis.id &&
     !isFetchingBalance &&
     !isFetchingNativeBalance &&
     ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
@@ -77,7 +76,7 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     sellToken,
     balance,
     isFetchingBalance,
-    isShowXDAIBridgeLink,
+    showBridgeLink,
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,

@@ -1,4 +1,5 @@
 import { useApproveTokens } from "@/hooks/useApproveTokens";
+import { SupportedChain } from "@/lib/chains";
 import { Address } from "viem";
 import Button from "./Button";
 
@@ -7,11 +8,13 @@ export function ApproveButton({
   tokenName,
   spender,
   amount,
+  chainId,
 }: {
   tokenAddress: Address;
   tokenName: string;
   spender: Address;
   amount: bigint;
+  chainId: SupportedChain;
 }) {
   const approveTokens = useApproveTokens();
 
@@ -20,6 +23,7 @@ export function ApproveButton({
       tokenAddress: tokenAddress,
       spender: spender,
       amount: amount,
+      chainId,
     });
   };
 

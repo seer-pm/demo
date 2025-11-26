@@ -47,10 +47,8 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.base]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5vS7rrUPc4ftB2nodNBf4EoAZkdD11jPuUVw7p56bMLb`,
   },
   tokens: {
-    [CHAIN_IDS.gnosis]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru",
-    [CHAIN_IDS.mainnet]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/Gfh4bbQ8MrXa45PddVuxE1SzzfdhsdiC4BbGUjfsu8Qn",
+    [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru`,
+    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/Gfh4bbQ8MrXa45PddVuxE1SzzfdhsdiC4BbGUjfsu8Qn`,
   },
   poh: {
     [CHAIN_IDS.gnosis]:
@@ -63,15 +61,12 @@ export const SUBGRAPHS = {
   },
 
   bunniMainnet: {
-    [CHAIN_IDS.mainnet]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV",
+    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV`,
   },
   bunniLpPositionMainnet: {
-    [CHAIN_IDS.mainnet]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/8necVcWSBJk7mj7VHPEKjbwXoKKH3C938tJCjNjQctrp",
+    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/8necVcWSBJk7mj7VHPEKjbwXoKKH3C938tJCjNjQctrp`,
   },
   futarchy: {
-    [CHAIN_IDS.gnosis]:
-      "https://gateway.thegraph.com/api/a3d37662f27d87b20e3d8d7149e85910/subgraphs/id/H8uG6j77JyfwRv31aYfJcFby8eRfXSpbwqiuzPQfCQJD",
+    [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/H8uG6j77JyfwRv31aYfJcFby8eRfXSpbwqiuzPQfCQJD`,
   },
 } as const;

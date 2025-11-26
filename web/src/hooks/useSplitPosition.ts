@@ -39,6 +39,7 @@ function splitFromRouter(
         functionName: "splitPosition",
         args: [market.id, collateralToken, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -52,6 +53,7 @@ function splitFromRouter(
         functionName: "splitPosition",
         args: [collateralToken, market.id, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -65,6 +67,7 @@ function splitFromRouter(
         functionName: "splitFromDai",
         args: [market.id, amount],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -77,6 +80,7 @@ function splitFromRouter(
       functionName: "splitFromBase",
       args: [market.id],
     }),
+    chainId: market.chainId,
   };
 }
 
@@ -127,6 +131,7 @@ async function splitPosition7702(
     () =>
       sendCalls(config, {
         calls,
+        chainId: props.market.chainId,
       }),
     {
       txSent: { title: "Minting tokens..." },

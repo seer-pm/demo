@@ -103,6 +103,7 @@ function MarkeVerifyPage() {
     images !== false &&
       (await verifyMarket.mutateAsync({
         marketId: market.id,
+        chainId: market.chainId,
         marketImage: images.file.market,
         outcomesImages: images.file.outcomes,
         submissionDeposit: submissionDeposit!,

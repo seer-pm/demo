@@ -42,6 +42,7 @@ export default function SwapButtons({
               tokenName={approval.name}
               spender={approval.spender}
               amount={approval.amount}
+              chainId={trade.chainId as SupportedChain}
             />
           ))}
         </div>

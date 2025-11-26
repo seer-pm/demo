@@ -121,7 +121,7 @@ function ExecuteActions({
 
   const resolveHandler = async () => {
     resolveMarket.mutateAsync({
-      marketId: market.id,
+      market,
     });
   };
 
@@ -132,6 +132,7 @@ function ExecuteActions({
         question: market.questions[questionIndex],
         templateId: market.templateId,
         encodedQuestion: market.encodedQuestions[questionIndex],
+        chainId: market.chainId,
       });
     };
   };

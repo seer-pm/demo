@@ -9,6 +9,11 @@ const schemasAndDocuments = [
     documents: "./src/queries/markets.graphql",
   },
   {
+    type: "tokens",
+    schema: SUBGRAPHS.tokens[gnosis.id],
+    documents: "./src/queries/tokens.graphql",
+  },
+  {
     type: "curate",
     schema: SUBGRAPHS.curate[gnosis.id],
     documents: "./src/queries/curate.graphql",

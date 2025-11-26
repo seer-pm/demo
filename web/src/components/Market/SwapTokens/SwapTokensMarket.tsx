@@ -3,13 +3,13 @@ import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 
+import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
-import { paths } from "@/lib/paths";
-import { Token, getCollateralPerShare } from "@/lib/tokens";
+import { Token, getCollateralPerShare, getOutcomeTokenVolume } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
+import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
@@ -159,7 +160,7 @@ export function SwapTokensMarket({
     assetsToShares,
     buyToken,
     sellToken,
-    isShowXDAIBridgeLink,
+    showBridgeLink,
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
@@ -232,6 +233,12 @@ export function SwapTokensMarket({
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
     swapType === "buy";
 
+  const limitPriceFromVolume = usePriceFromVolume(
+    market,
+    outcomeToken.address,
+    swapType,
+    getOutcomeTokenVolume(quoteData, swapType),
+  );
   const resetInputs = () => {
     resetField("amount");
     resetField("amountOut");
@@ -324,6 +331,7 @@ export function SwapTokensMarket({
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
             isSeerCredits={isSeerCreditsCollateral}
+            outcomeToken={outcomeToken}
           />
         }
       />
@@ -339,7 +347,7 @@ export function SwapTokensMarket({
               focusContainer === 0 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
             )}
           >
-            <p className="text-[#131313a1]">Sell</p>
+            <p className="text-[#131313a1]">You pay</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -453,7 +461,7 @@ export function SwapTokensMarket({
               focusContainer === 1 ? "border border-[#2222220d]" : "bg-[#f9f9f9] hover:bg-[#f2f2f2]",
             )}
           >
-            <p className="text-[#131313a1]">Buy</p>
+            <p className="text-[#131313a1]">You will get</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -500,16 +508,7 @@ export function SwapTokensMarket({
             </div>
           </div>
         </div>
-        {isShowXDAIBridgeLink && (
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href={paths.xDAIBridge()}
-            className="text-purple-primary hover:underline text-[14px]"
-          >
-            Bridge xDAI
-          </a>
-        )}
+        {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
         <div className="space-y-1">
           <div className="flex justify-between text-[#828282] text-[14px]">
             Avg price
@@ -539,6 +538,29 @@ export function SwapTokensMarket({
               </div>
             )}
           </div>
+
+          {!!limitPriceFromVolume && (
+            <div className="flex justify-between text-[#828282] text-[14px]">
+              Price after buy
+              {quoteIsLoading || isFetching ? (
+                <div className="shimmer-container ml-2 w-[100px]" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
+                  {selectedCollateral.symbol}
+                  {isSecondaryCollateral && (
+                    <span className="tooltip">
+                      <p className="tooltiptext">
+                        {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                      </p>
+                      <QuestionIcon fill="#9747FF" />
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <PotentialReturn
             {...{
               swapType,

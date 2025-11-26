@@ -189,6 +189,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
                   tokenName={approval.name}
                   spender={approval.spender}
                   amount={parsedAmount}
+                  chainId={market.chainId}
                 />
               ))}
             </div>

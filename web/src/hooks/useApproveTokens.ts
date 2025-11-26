@@ -9,6 +9,7 @@ interface ApproveTokensProps {
   tokenAddress: Address;
   spender: Address;
   amount: bigint;
+  chainId: number;
 }
 
 export async function approveTokens(props: ApproveTokensProps): Promise<void> {
@@ -16,6 +17,7 @@ export async function approveTokens(props: ApproveTokensProps): Promise<void> {
     () =>
       writeContract(config, {
         address: props.tokenAddress,
+        chainId: props.chainId,
         abi: erc20Abi,
         functionName: "approve",
         args: [props.spender, props.amount],

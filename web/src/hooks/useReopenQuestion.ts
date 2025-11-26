@@ -1,3 +1,4 @@
+import { SupportedChain } from "@/lib/chains";
 import { Question } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
@@ -10,6 +11,7 @@ interface ResolveMarketProps {
   question: Question;
   templateId: bigint;
   encodedQuestion: string;
+  chainId: SupportedChain;
 }
 
 async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {
@@ -32,6 +34,7 @@ async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionRec
           props.question.min_bond,
           props.question.base_question,
         ],
+        chainId: props.chainId,
       });
     },
     {

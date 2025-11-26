@@ -4,8 +4,7 @@ import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
-import { MarketStatus } from "@/lib/market";
-import { Market, Question } from "@/lib/market";
+import { Market, MarketStatus, Question } from "@/lib/market";
 import {
   ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
@@ -19,13 +18,12 @@ import {
   getRealityLink,
   isScalarBoundInWei,
 } from "@/lib/reality";
-import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
-import { hexToNumber, parseEther } from "viem";
+import { formatUnits, hexToNumber, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -240,7 +238,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           </a>{" "}
           by depositing a bond of{" "}
           <span className="text-purple-primary font-semibold">
-            {displayBalance(currentBond, 18)} {chain?.nativeCurrency?.symbol ?? "Native Tokens"}
+            {formatUnits(currentBond, 18)} {chain?.nativeCurrency?.symbol ?? "Native Tokens"}
           </span>
           .
         </div>

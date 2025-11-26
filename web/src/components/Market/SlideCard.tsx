@@ -24,6 +24,7 @@ import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/li
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "../Link";
+import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
 import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS_LG } from "./Header/Icons";
@@ -107,9 +108,9 @@ function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${
-                6 * marketEstimate.toLocaleString().length
-              }px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${
+                3.2 * marketEstimate.toLocaleString().length
+              }px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -264,15 +265,19 @@ export function SlideCard({ market }: { market: Market }) {
             <SeerLogo fill="#511778" width="100%" height="100%" />
           </div>
           <div className="flex items-center gap-2">
-            <div className="tooltip">
-              {market.liquidityUSD > 0 && (
-                <div className="tooltiptext !text-left min-w-[300px]">
-                  <p className="text-purple-primary">Liquidity:</p>
-                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
-                </div>
-              )}
-              <p className="text-[max(12px,1.2vw)]">${liquidityUSD}</p>
-            </div>
+            {market.liquidityUSD > 0 ? (
+              <Popover
+                trigger={<p className="text-[12px]">${liquidityUSD}</p>}
+                content={
+                  <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                    <p className="text-purple-primary">Liquidity:</p>
+                    <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
+                  </div>
+                }
+              />
+            ) : (
+              <p className="text-[12px]">${liquidityUSD}</p>
+            )}
             <div className="tooltip">
               <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
               <div className="w-[1.5vw] min-w-[14px]">{MARKET_TYPES_ICONS_LG[marketType]}</div>

@@ -17,11 +17,28 @@ const MAX_SLIPPAGE_OPTIONS = [
   { value: "custom", text: "Custom" },
 ];
 
+interface FormData {
+  maxSlippage: string;
+  isInstantSwap: boolean;
+  useSmartAccount: boolean;
+}
+
 export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => void }) {
-  const initialMaxSlippage = useGlobalState((state) => state.maxSlippage);
-  const setMaxSlippage = useGlobalState((state) => state.setMaxSlippage);
-  const initialIsInstantSwap = useGlobalState((state) => state.isInstantSwap);
-  const setInstantSwap = useGlobalState((state) => state.setInstantSwap);
+  const [
+    initialMaxSlippage,
+    setMaxSlippage,
+    initialIsInstantSwap,
+    setInstantSwap,
+    initialUseSmartAccount,
+    setUseSmartAccount,
+  ] = useGlobalState((state) => [
+    state.maxSlippage,
+    state.setMaxSlippage,
+    state.isInstantSwap,
+    state.setInstantSwap,
+    state.useSmartAccount,
+    state.setUseSmartAccount,
+  ]);
   const {
     handleSubmit,
     setValue,
@@ -29,20 +46,23 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
     watch,
     trigger,
     formState: { errors },
-  } = useForm<{ maxSlippage: string; isInstantSwap: boolean }>({
+  } = useForm<FormData>({
     mode: "all",
     defaultValues: {
       maxSlippage: initialMaxSlippage,
       isInstantSwap: initialIsInstantSwap,
+      useSmartAccount: initialUseSmartAccount,
     },
   });
-  const onSubmit = ({ maxSlippage, isInstantSwap }: { maxSlippage: string; isInstantSwap: boolean }) => {
+  const onSubmit = ({ maxSlippage, isInstantSwap, useSmartAccount }: FormData) => {
     setMaxSlippage(maxSlippage);
     setInstantSwap(isInstantSwap);
+    setUseSmartAccount(useSmartAccount);
     onReturn();
   };
   const maxSlippage = watch("maxSlippage");
   const isInstantSwap = watch("isInstantSwap");
+  const useSmartAccount = watch("useSmartAccount");
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -114,6 +134,20 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           className="checked:bg-purple-primary ml-3"
           checked={isInstantSwap}
           onChange={(e) => setValue("isInstantSwap", e.target.checked)}
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <p>Use smart account</p>
+        <div className="tooltip">
+          <p className="tooltiptext w-[200px] !whitespace-break-spaces">
+            Uses the smart account for batching transactions via EIP-7702 if available
+          </p>
+          <QuestionIcon fill="#9747FF" />
+        </div>
+        <Toggle
+          className="checked:bg-purple-primary ml-3"
+          checked={useSmartAccount}
+          onChange={(e) => setValue("useSmartAccount", e.target.checked)}
         />
       </div>
       <FormError errors={errors} name="maxSlippage" />

@@ -1,20 +1,22 @@
+import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { writeContract } from "@wagmi/core";
-import { Address, TransactionReceipt } from "viem";
+import { TransactionReceipt } from "viem";
 import { marketAbi } from "./contracts/generated-market-factory";
 
 interface ResolveMarketProps {
-  marketId: Address;
+  market: Market;
 }
 
 async function resolveMarket(props: ResolveMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () =>
       writeContract(config, {
-        address: props.marketId,
+        address: props.market.id,
+        chainId: props.market.chainId,
         abi: marketAbi,
         functionName: "resolve",
       }),

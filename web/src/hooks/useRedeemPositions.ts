@@ -53,6 +53,7 @@ function redeemFromRouter(
         functionName: "redeemProposal",
         args: [market.id, amounts[0], amounts[1]],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -66,6 +67,7 @@ function redeemFromRouter(
         functionName: "redeemConditionalToCollateral",
         args: [COLLATERAL_TOKENS[market.chainId].primary.address!, market.id, outcomeIndexes, [parentOutcome], amounts],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -79,6 +81,7 @@ function redeemFromRouter(
         functionName: "redeemPositions",
         args: [collateralToken, market.id, outcomeIndexes, amounts],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -92,6 +95,7 @@ function redeemFromRouter(
         functionName: "redeemToDai",
         args: [market.id, outcomeIndexes, amounts],
       }),
+      chainId: market.chainId,
     };
   }
 
@@ -104,6 +108,7 @@ function redeemFromRouter(
       functionName: "redeemToBase",
       args: [market.id, outcomeIndexes, amounts],
     }),
+    chainId: market.chainId,
   };
 }
 
@@ -171,7 +176,7 @@ async function redeemPositions7702(
     ),
   );
 
-  const result = await toastifySendCallsTx(calls, config, {
+  const result = await toastifySendCallsTx(calls, props.market.chainId, config, {
     txSent: { title: "Redeeming tokens..." },
     txSuccess: { title: "Tokens redeemed!" },
   });

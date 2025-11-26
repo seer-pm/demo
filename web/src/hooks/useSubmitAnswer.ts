@@ -19,6 +19,7 @@ async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceip
       writeRealitySubmitAnswer(config, {
         args: [props.questionId, props.outcome, props.currentBond],
         value: props.currentBond,
+        chainId: props.chainId,
       }),
     {
       txSent: { title: "Sending answer..." },

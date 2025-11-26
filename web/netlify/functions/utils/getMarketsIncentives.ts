@@ -53,6 +53,11 @@ export async function getMarketsIncentive(pools: Pool[]) {
 
   const incentiveToPoolMapping = eternalFarmings.reduce(
     (acc, curr) => {
+      // Skip if rewardRate is zero to avoid division by zero
+      if (curr.rewardRate === "0" || BigInt(curr.rewardRate) === 0n) {
+        return acc;
+      }
+
       const rewardSeconds = BigInt(curr.reward) / BigInt(curr.rewardRate);
       let endTime = BigInt(curr.startTime) + rewardSeconds;
       endTime = BigInt(curr.endTime) > endTime ? endTime : BigInt(curr.endTime);

@@ -16,6 +16,7 @@ import {
   DiscordIcon,
   DownArrow,
   EthIcon,
+  GlobeIcon,
   Menu,
   NotificationIcon,
   PersonAdd,
@@ -158,11 +159,10 @@ export default function Header() {
         content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
       />
       <BetaWarning />
-      <GroupNotice />
 
       <nav
         ref={containerRef}
-        className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-center relative"
+        className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
       >
         <div className="absolute left-[24px] lg:left-[64px]">
           <Link className="text-white hover:opacity-85" to="/">
@@ -172,7 +172,7 @@ export default function Header() {
 
         {mobileMenuOpen && <MobileMenu topOffset={topOffset} />}
 
-        <ul className="hidden lg:menu-horizontal gap-2 text-[16px] space-x-[32px] justify-center">
+        <ul className="hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]">
           <li>
             <Link to={"/"} className="hover:opacity-85 py-3">
               Markets
@@ -208,6 +208,35 @@ export default function Header() {
               </ul>
             </div>
           </li>
+          <li>
+            <div className="dropdown dropdown-end">
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
+                <span>App</span> <DownArrow />
+              </button>
+              <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal ">
+                <li>
+                  <Link
+                    to={paths.futarchy()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <GlobeIcon /> <span>Futarchi.fi</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={paths.deepfund()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                  >
+                    <GlobeIcon /> <span>DeepFunding Round 1</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </li>
           {/* <li>
             <Link to={"/airdrop"} className="hover:opacity-85 py-3">
               Airdrop
@@ -215,7 +244,7 @@ export default function Header() {
           </li> */}
         </ul>
 
-        <ul className="hidden lg:menu-horizontal gap-2 absolute right-[64px]">
+        <ul className="hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[64px]">
           <li>
             <ConnectWallet />
           </li>
@@ -333,7 +362,7 @@ export default function Header() {
             </div>
           </li>
         </ul>
-        <div className="lg:hidden ml-auto">
+        <div className="[@media(min-width:900px)]:hidden ml-auto">
           <button type="button" onClick={toggleMenu}>
             {mobileMenuOpen ? <CloseIcon /> : <Menu />}
           </button>
@@ -366,45 +395,6 @@ function BetaWarning() {
     <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
       <div>Note that this is a Beta version and can still be unstable</div>
       <button type="button" className="hover:opacity-80" onClick={closeWarning}>
-        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
-      </button>
-    </div>
-  );
-}
-
-function GroupNotice() {
-  const [isReady, setIsReady] = useState(false);
-  const [groupNoticeClosed, setGroupNoticeClosed] = useState(false);
-
-  useEffect(() => {
-    const isClosed = window.localStorage.getItem("group-notice-closed") === "1";
-    setGroupNoticeClosed(isClosed);
-    setIsReady(true);
-  }, []);
-
-  if (!isReady || groupNoticeClosed) {
-    return null;
-  }
-
-  const closeNotice = () => {
-    window.localStorage.setItem("group-notice-closed", "1");
-    setGroupNoticeClosed(true);
-  };
-
-  return (
-    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
-      <div>
-        Our telegram account is banned, community is moving to discord. Join the{" "}
-        <a
-          href={paths.discord()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="italic underline  hover:opacity-80"
-        >
-          Discord
-        </a>
-      </div>
-      <button type="button" className="hover:opacity-80" onClick={closeNotice}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
     </div>
@@ -467,6 +457,33 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     className="flex items-center space-x-2"
                   >
                     <PolicyIcon /> <span className="hover:font-semibold">Market Rules Policy</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <div>
+              <span>App</span>
+              <ul className="z-[1] w-[248px] [&_svg]:text-purple-primary font-normal !left-0">
+                <li className="flex space-x-2 items-center px-[24px] py-[16px]">
+                  <a
+                    href={paths.futarchy()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2"
+                  >
+                    <GlobeIcon /> <span className="hover:font-semibold whitespace-nowrap">Futarchi.fi</span>
+                  </a>
+                </li>
+                <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
+                  <a
+                    href={paths.deepfund()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 whitespace-nowrap"
+                  >
+                    <GlobeIcon /> <span className="hover:font-semibold">DeepFunding Round 1</span>
                   </a>
                 </li>
               </ul>

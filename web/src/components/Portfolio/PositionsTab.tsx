@@ -3,14 +3,15 @@ import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
 import { useState } from "react";
+import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
 
-function PositionsTab() {
+function PositionsTab({ account }: { account: Address | undefined }) {
   const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { positions = [], error, isGettingPositions } = useCalculatePositionsValue();
+  const { positions = [], error, isGettingPositions } = useCalculatePositionsValue(account);
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);

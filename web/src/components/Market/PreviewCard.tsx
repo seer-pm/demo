@@ -22,6 +22,7 @@ import clsx from "clsx";
 import { useMemo } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
+import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
 import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
@@ -32,7 +33,12 @@ export function OutcomesInfo({
   market,
   outcomesCount = 0,
   marketStatus,
-}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
+}: {
+  market: Market;
+  outcomesCount?: number;
+  images?: string[];
+  marketStatus?: MarketStatus;
+}) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const marketType = getMarketType(market);
 
@@ -99,7 +105,9 @@ export function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${
+                3.2 * marketEstimate.toLocaleString().length
+              }px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -113,8 +121,8 @@ export function OutcomesInfo({
     );
   }
   return (
-    <div>
-      <div className="flex items-start gap-[3px] w-full rounded-[8px] overflow-hidden">
+    <div className="mt-5">
+      <div className="flex items-start space-between gap-[3px] w-full rounded-[8px] overflow-hidden">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -144,7 +152,7 @@ export function OutcomesInfo({
           );
         })}
       </div>
-      <div className={clsx("flex items-center gap-x-3 flex-wrap", visibleOutcomesCount === 2 ? "justify-between" : "")}>
+      <div className="flex items-center gap-2 text-[12px] text-black-secondary">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -165,9 +173,25 @@ export function OutcomesInfo({
             return null;
           }
           return (
-            <p className={clsx("text-[12px]")} key={`${outcome}_${i}`} style={{ color }}>
-              {outcome} <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-            </p>
+            <div
+              className="flex items-center gap-1 flex-1 min-w-0"
+              key={`${outcome}_${i}`}
+              style={{
+                color,
+                justifyContent: order === visibleIndexes.length - 1 ? "end" : "initial",
+              }}
+            >
+              <p
+                title={outcome}
+                className="truncate"
+                style={{
+                  color,
+                }}
+              >
+                {outcome}
+              </p>
+              <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+            </div>
           );
         })}
       </div>
@@ -175,7 +199,13 @@ export function OutcomesInfo({
   );
 }
 
-const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Market; parentMarket: Market }) => (
+const ConditionalMarketTooltipInner = ({
+  parentMarket,
+  market,
+}: {
+  market: Market;
+  parentMarket: Market;
+}) => (
   <div className="tooltip">
     <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
       <p className="text-purple-primary">Conditional Market:</p>
@@ -236,30 +266,32 @@ export function PreviewCard({ market }: { market: Market }) {
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] overflow-y-auto custom-scrollbar">
+      <div className="h-[100px] @container">
         <div className={clsx("flex space-x-3 px-4 pt-3")}>
-          <Link to={paths.market(market)}>
+          <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
               <img
                 src={market.images.market}
                 alt={market.marketName}
-                className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full"
+                className="aspect-square rounded-full @[340px]:w-[38px] @[315px]:w-[35px] w-[32px]"
               />
             ) : (
-              <div className="w-[38px] h-[38px] rounded-full bg-purple-primary"></div>
+              <div className="aspect-square rounded-full bg-purple-primary w-[38px]"></div>
             )}
           </Link>
           <div className="grow min-w-0">
-            <div className={clsx("font-semibold mb-1 text-[14px] break-words")}>
-              <Link className="hover:underline" to={paths.market(market)}>
-                {market.marketName}
-              </Link>
-            </div>
+            <Link
+              title={market.marketName}
+              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
+              to={paths.market(market)}
+            >
+              {market.marketName}
+            </Link>
           </div>
         </div>
       </div>
 
-      <div className="p-4 h-[100px] overflow-y-auto custom-scrollbar">
+      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
@@ -275,15 +307,19 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="#511778" width="50px" />
         <div className="flex items-center gap-2">
-          <div className="tooltip">
-            {market.liquidityUSD > 0 && (
-              <div className="tooltiptext !text-left min-w-[300px] max-sm:min-w-[220px]">
-                <p className="text-purple-primary">Liquidity:</p>
-                <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
-              </div>
-            )}
+          {market.liquidityUSD > 0 ? (
+            <Popover
+              trigger={<p className="text-[12px]">${liquidityUSD}</p>}
+              content={
+                <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                  <p className="text-purple-primary">Liquidity:</p>
+                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
+                </div>
+              }
+            />
+          ) : (
             <p className="text-[12px]">${liquidityUSD}</p>
-          </div>
+          )}
           <div className="tooltip">
             <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
             {MARKET_TYPES_ICONS[marketType]}
