@@ -537,7 +537,7 @@ export function SwapTokensMarket({
 
           {!!limitPriceFromVolume && (
             <div className="flex justify-between text-[#828282] text-[14px]">
-              Price after buy
+              Price after {swapType}
               {quoteIsLoading || isFetching ? (
                 <div className="shimmer-container ml-2 w-[100px]" />
               ) : (
