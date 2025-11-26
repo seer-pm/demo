@@ -6,9 +6,8 @@ import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { PoolInfo } from "@/hooks/useMarketPools";
-import { SwapIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
-import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
+import { formatBigNumbers } from "@/lib/utils";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 
@@ -16,14 +15,15 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
+  isShowToken0Price,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
+  isShowToken0Price: boolean;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { token0Symbol, token1Symbol, token0, tick, id } = poolInfo;
-  const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
+  const { token0Symbol, token1Symbol, tick, id } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
@@ -222,11 +222,6 @@ export default function LiquidityBarChart({
   return (
     <div>
       <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
-        Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
-        {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
-        <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
-          <SwapIcon />
-        </button>
         <div className="flex items-center ml-auto gap-2">
           <p className="text-[14px] whitespace-nowrap">Ticks display</p>
           <div className="min-w-[100px]">

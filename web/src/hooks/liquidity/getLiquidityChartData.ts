@@ -161,6 +161,17 @@ export function getLiquidityChartData(
   zoomCount: number,
   outcome: Address,
 ) {
+  if (!ticks.length) {
+    return {
+      priceList: [],
+      sellBarsData: [],
+      buyBarsData: [],
+      sellLineData: [],
+      buyLineData: [],
+      maxYValue: 0,
+      maxZoomCount: 0,
+    };
+  }
   const chartData = getChartDataByTicks(poolInfo, ticks, zoomCount, outcome);
   const priceList = isShowToken0Price ? chartData.price0List : [...chartData.price1List].reverse();
   const amount0List = isShowToken0Price ? chartData.amount0List : [...chartData.amount0List].reverse();
