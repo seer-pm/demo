@@ -332,7 +332,7 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
     return executeCoWTrade(props.trade);
   }
 
-  const calls: Execution[] = getTradeApprovals7702(props.account, props.trade);
+  const calls: Execution[] = props.isSeerCredits ? [] : getTradeApprovals7702(props.account, props.trade);
 
   calls.push(
     props.trade instanceof UniswapTrade
