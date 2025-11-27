@@ -22,8 +22,6 @@ export function getPriceFromVolume(
 
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
 
-  const movingUp = (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
-
   const currentPrice = Number(tickToPrice(pool.tick, 18, true)[isOutcomeToken0 ? 0 : 1]);
 
   // Search bounds
@@ -37,7 +35,7 @@ export function getPriceFromVolume(
 
     if (Math.abs(vol - targetVolume) <= tolerance) break;
 
-    if (movingUp) {
+    if (swapType === "buy") {
       if (vol < targetVolume) low = mid;
       else high = mid;
     } else {
