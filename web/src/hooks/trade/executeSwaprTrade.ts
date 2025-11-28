@@ -5,6 +5,7 @@ import { SwaprV3Trade } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData, zeroAddress } from "viem";
 import { routerAbi } from "./abis";
+import { getWrappedSeerCreditsExecution } from "./utils";
 
 const SWAPR_SWAP_ROUTER = "0xffb643e73f280b97809a8b41f7232ab401a04ee1";
 
@@ -13,15 +14,18 @@ export async function executeSwaprTrade(
   account: Address,
   isBuyExactOutputNative: boolean,
   isSellToNative: boolean,
+  isSeerCredits: boolean,
 ): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    async () =>
-      sendTransaction(config, await getSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative)),
-    {
-      txSent: { title: "Executing trade..." },
-      txSuccess: { title: "Trade executed!" },
-    },
+  const tradeExecution = getWrappedSeerCreditsExecution(
+    isSeerCredits,
+    trade,
+    await getSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative),
   );
+
+  const result = await toastifyTx(async () => sendTransaction(config, tradeExecution), {
+    txSent: { title: "Executing trade..." },
+    txSuccess: { title: "Trade executed!" },
+  });
 
   if (!result.status) {
     throw result.error;

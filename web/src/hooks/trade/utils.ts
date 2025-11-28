@@ -3,8 +3,11 @@ import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
 import { ethers, providers } from "ethers";
-import { Account, Address, Chain, Client, TransactionReceipt, Transport } from "viem";
+import { Account, Address, Chain, Client, TransactionReceipt, Transport, encodeFunctionData } from "viem";
+import { getMaximumAmountIn } from ".";
+import { creditsManagerAbi, creditsManagerAddress } from "../contracts/generated-trading-credits";
 import { approveTokens } from "../useApproveTokens";
+import { Execution } from "../useCheck7702Support";
 import { fetchNeededApprovals } from "../useMissingApprovals";
 
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
@@ -150,4 +153,32 @@ export function clientToSigner(client: Client<Transport, Chain, Account>) {
   const provider = new providers.Web3Provider(transport, network);
   const signer = provider.getSigner(account.address);
   return signer;
+}
+
+export function getWrappedSeerCreditsExecution(
+  isSeerCredits: boolean,
+  trade: SwaprV3Trade | UniswapTrade,
+  tradeExecution: Execution,
+): Execution {
+  if (!isSeerCredits) {
+    return tradeExecution;
+  }
+
+  const executeData = encodeFunctionData({
+    abi: creditsManagerAbi,
+    functionName: "execute",
+    args: [
+      tradeExecution.to,
+      tradeExecution.data,
+      getMaximumAmountIn(trade),
+      trade.outputAmount.currency.address! as Address,
+    ],
+  });
+
+  return {
+    to: creditsManagerAddress[trade.chainId as keyof typeof creditsManagerAddress],
+    data: executeData,
+    value: 0n,
+    chainId: trade.chainId,
+  };
 }

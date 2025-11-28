@@ -7,9 +7,9 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
+import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -23,9 +23,7 @@ import { Alert } from "../../Alert";
 import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
-import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
-import { FutarchyTokenSwitch } from "./SwapTokensMarket";
 import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
@@ -142,6 +140,9 @@ export function SwapTokensLimitUpto({
     swapType,
     tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
   );
+
+  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -161,7 +162,7 @@ export function SwapTokensLimitUpto({
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
-  } = useTrade(account, quoteData?.trade, async () => {
+  } = useTrade(account, quoteData?.trade, isSeerCreditsCollateral, async () => {
     reset();
     closeConfirmSwapModal();
   });
@@ -172,6 +173,7 @@ export function SwapTokensLimitUpto({
       account: account!,
       isBuyExactOutputNative,
       isSellToNative,
+      isSeerCredits: isSeerCreditsCollateral,
     });
   };
 
@@ -190,54 +192,6 @@ export function SwapTokensLimitUpto({
     market.type === "Generic" &&
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
     swapType === "buy";
-
-  const renderLimitTokenDisplay = () => {
-    const imageElement = (() => {
-      if (isUndefined(fixedCollateral)) {
-        return (
-          <img
-            className="w-full h-full"
-            alt={isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
-            src={paths.tokenImage(
-              isSecondaryCollateral ? primaryCollateral.address : selectedCollateral.address,
-              market.chainId,
-            )}
-          />
-        );
-      }
-      if (market.type === "Futarchy") {
-        return (
-          <OutcomeImage
-            className="w-full h-full"
-            image={market.images?.outcomes?.[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
-            isInvalidOutcome={false}
-            title={market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]}
-          />
-        );
-      }
-      if (!parentMarket) {
-        return <div className="w-full h-full bg-purple-primary"></div>;
-      }
-      return (
-        <OutcomeImage
-          className="w-full h-full"
-          image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
-          isInvalidOutcome={
-            parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
-          }
-          title={parentMarket.outcomes[Number(market.parentOutcome)]}
-        />
-      );
-    })();
-    return (
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-        <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-        <p className="font-semibold text-[16px]">
-          {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
-        </p>
-      </div>
-    );
-  };
 
   const renderButtons = () => {
     if (isCowFastQuote) {
@@ -366,6 +320,7 @@ export function SwapTokensLimitUpto({
             originalAmount={amount}
             isBuyExactOutputNative={isBuyExactOutputNative}
             isSellToNative={isSellToNative}
+            isSeerCredits={isSeerCreditsCollateral}
             outcomeToken={outcomeToken}
           />
         }
@@ -422,7 +377,16 @@ export function SwapTokensLimitUpto({
                   errorClassName="hidden"
                 />
               </div>
-              {renderLimitTokenDisplay()}
+              <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+                <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+                  <img
+                    className="w-full h-full"
+                    alt={primaryCollateral.symbol}
+                    src={paths.tokenImage(primaryCollateral.address, market.chainId)}
+                  />
+                </div>
+                <p className="font-semibold text-[16px]">{primaryCollateral.symbol}</p>
+              </div>
             </div>
           </div>
           <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9]")}>
@@ -602,7 +566,7 @@ export function SwapTokensLimitUpto({
         )}
 
         <div className="flex justify-between flex-wrap gap-4">
-          {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
+          {/* market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} /> */}
           <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
             Parameters:{" "}
             <div

@@ -60,17 +60,20 @@ export function SwapTokens({
             hasEnoughLiquidity === false && orderType === "market" && "grayscale opacity-40 pointer-events-none",
           )}
         >
-          <div className="flex items-center justify-between">
-            <Dropdown
-              options={[
-                { text: "Market", value: "market" },
-                { text: "Fill-to-price", value: "limit" },
-              ]}
-              value={orderType}
-              onClick={(type) => setOrderType(type)}
-              defaultLabel="Order Type"
-            />
-          </div>
+          {/* Futarchy markets only support Market orders, while Generic markets support both Market and Fill-to-price orders */}
+          {market.type === "Generic" && (
+            <div className="flex items-center justify-between">
+              <Dropdown
+                options={[
+                  { text: "Market", value: "market" },
+                  { text: "Fill-to-price", value: "limit" },
+                ]}
+                value={orderType}
+                onClick={(type) => setOrderType(type)}
+                defaultLabel="Order Type"
+              />
+            </div>
+          )}
           {orderType === "market" && (
             <SwapTokensMarket
               market={market}

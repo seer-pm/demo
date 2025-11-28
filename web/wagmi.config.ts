@@ -76,6 +76,7 @@ const getConfig = async (): Promise<Config[]> => {
     "market-view": ["MarketView"],
     router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],
     "multi-drop": ["MultiDrop", "GovernedRecipient"],
+    "trading-credits": ["SeerCredits", "CreditsManager"],
   };
 
   return Object.entries(contractsMapping).map(([key, contractNames]) => ({

@@ -1,7 +1,7 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
-import { TOKENS_BY_CHAIN } from "./config";
+import { TOKENS_BY_CHAIN, isSeerCredits } from "./config";
 import { Market } from "./market";
 
 function marketPath(market: Market): string;
@@ -74,6 +74,10 @@ export const paths = {
       if (address.toLowerCase() === TOKENS_BY_CHAIN[10].USDC) {
         return "https://assets.coingecko.com/coins/images/6319/standard/usdc.png";
       }
+    }
+
+    if (isSeerCredits(chainId as SupportedChain, address as Address)) {
+      return "/assets/android-icon-192x192.png";
     }
 
     if (chainId === 42161) {

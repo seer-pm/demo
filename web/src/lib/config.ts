@@ -4,6 +4,7 @@ import {
   mainnetRouterAddress,
   routerAddress,
 } from "@/hooks/contracts/generated-router";
+import { seerCreditsAddress } from "@/hooks/contracts/generated-trading-credits";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
@@ -186,6 +187,13 @@ export function isVerificationEnabled(chainId: SupportedChain) {
 
 export function isOpStack(chainId: SupportedChain) {
   return chainId === optimism.id /* || chainId === base.id */;
+}
+
+export function isSeerCredits(chainId: SupportedChain, tokenAddress: Address) {
+  return (
+    chainId in seerCreditsAddress &&
+    tokenAddress.toLowerCase() === seerCreditsAddress[chainId as keyof typeof seerCreditsAddress].toLowerCase()
+  );
 }
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {

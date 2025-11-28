@@ -1,6 +1,7 @@
 import { tickToPrice } from "@/hooks/liquidity/utils";
 import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
+import { useGlobalState } from "@/hooks/useGlobalState";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
@@ -52,7 +53,8 @@ async function getTokenSwapResult(
   collateralToken: Token,
   chainId: SupportedChain,
   amount: string,
-  swapType: "buy" | "sell" = "buy",
+  swapType: "buy" | "sell",
+  maxSlippage: string,
 ): Promise<bigint> {
   const outcomeToken = { address: wrappedAddress, chainId, symbol: "SEER_OUTCOME", decimals: 18 };
   // call cowQuote first, if not possible then we call using rpc
@@ -71,7 +73,15 @@ async function getTokenSwapResult(
   // we either call uniswap or swapr quote based on chainId
   if (chainId === gnosis.id) {
     try {
-      const swaprQuote = await getSwaprQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
+      const swaprQuote = await getSwaprQuote(
+        chainId,
+        undefined,
+        amount,
+        outcomeToken,
+        collateralToken,
+        swapType,
+        maxSlippage,
+      );
       return swaprQuote.value;
     } catch (e) {
       return 0n;
@@ -80,7 +90,15 @@ async function getTokenSwapResult(
 
   if (chainId === mainnet.id || isOpStack(chainId)) {
     try {
-      const uniswapQuote = await getUniswapQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
+      const uniswapQuote = await getUniswapQuote(
+        chainId,
+        undefined,
+        amount,
+        outcomeToken,
+        collateralToken,
+        swapType,
+        maxSlippage,
+      );
       return uniswapQuote.value;
     } catch (e) {
       return 0n;
@@ -95,11 +113,26 @@ async function getTokenPriceFromSwap(wrappedAddress: Address, collateralToken: T
   const SELL_AMOUNT = 3; //outcome token
 
   try {
-    const price = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT));
+    const maxSlippage = useGlobalState.getState().maxSlippage;
+    const price = await getTokenSwapResult(
+      wrappedAddress,
+      collateralToken,
+      chainId,
+      String(BUY_AMOUNT),
+      "buy",
+      maxSlippage,
+    );
     const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
     if (pricePerShare > CEIL_PRICE) {
       // low buy liquidity, try to get sell price instead
-      const sellPrice = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(SELL_AMOUNT), "sell");
+      const sellPrice = await getTokenSwapResult(
+        wrappedAddress,
+        collateralToken,
+        chainId,
+        String(SELL_AMOUNT),
+        "sell",
+        maxSlippage,
+      );
       const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
       if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
         return Number.NaN;

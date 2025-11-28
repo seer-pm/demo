@@ -42,16 +42,13 @@ export const TokenSelector = ({
     return (
       <MarketCollateralDropdown
         market={market}
+        type={type}
         selectedCollateral={selectedCollateral}
         setSelectedCollateral={(selectedCollateral) => setPreferredCollateral(selectedCollateral, market.chainId)}
       />
     );
   }
   const imageElement = (() => {
-    const isTokenCollateral = isTwoStringsEqual(
-      type === "sell" ? sellToken.address : buyToken.address,
-      selectedCollateral.address,
-    );
     if (isTokenCollateral) {
       if (isUndefined(fixedCollateral)) {
         return (
