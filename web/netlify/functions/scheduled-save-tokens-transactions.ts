@@ -10,7 +10,7 @@ export default async () => {
   const { data: maxTimestampData, error: maxTimestampError } = await supabase
     .from("tokens_transfers")
     .select("timestamp")
-    .order("timestamp", { ascending: false })
+    .order("id", { ascending: false })
     .limit(1)
     .maybeSingle();
 
