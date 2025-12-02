@@ -3,8 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { getAllTransactions } from "./utils/token-transactions";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+const IS_DISABLED = true;
 
 export default async () => {
+  if (IS_DISABLED) {
+    return;
+  }
   let initialTimestamp = "0";
 
   const { data: maxTimestampData, error: maxTimestampError } = await supabase
