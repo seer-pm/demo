@@ -15,7 +15,7 @@ export interface Transfer {
   value: string;
 }
 
-export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain) {
+export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain, initialStartTime?: number) {
   if (type === "futarchy" && chainId !== gnosis.id) {
     return [];
   }
@@ -33,7 +33,7 @@ export async function getAllTransfers(type: "futarchy" | "tokens", chainId: Supp
   });
   const timeRangeJson = await timeRangeResult.json();
 
-  const startTime = Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
+  const startTime = initialStartTime || Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
   const endTime = Number.parseInt(timeRangeJson.data.transfersDesc[0]?.timestamp || "0");
 
   // Divide into chunks
