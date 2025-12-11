@@ -20,6 +20,7 @@ import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
 import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
 import { UNISWAP_ROUTER_ABI } from "./abis";
+import { getWrappedSeerCreditsExecution } from "./utils";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
@@ -335,9 +336,13 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
   const calls: Execution[] = props.isSeerCredits ? [] : getTradeApprovals7702(props.account, props.trade);
 
   calls.push(
-    props.trade instanceof UniswapTrade
-      ? await getUniswapTradeExecution(props.trade, props.account)
-      : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
+    getWrappedSeerCreditsExecution(
+      props.isSeerCredits,
+      props.trade,
+      props.trade instanceof UniswapTrade
+        ? await getUniswapTradeExecution(props.trade, props.account)
+        : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
+    ),
   );
 
   const result = await toastifyTx(

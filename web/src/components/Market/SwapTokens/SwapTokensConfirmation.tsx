@@ -97,7 +97,7 @@ export function SwapTokensConfirmation({
           <p>
             {isInvertedPrice ? (
               <>
-                {invertedPrice} {inputToken}/{outputToken}{" "}
+                {Number.isNaN(Number(invertedPrice)) ? "≈0" : invertedPrice} {inputToken}/{outputToken}{" "}
               </>
             ) : (
               <>
