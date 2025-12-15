@@ -54,7 +54,7 @@ function getTokenNames(tokenNames: string[], outcomes: string[]) {
   // we loop over `outcomes` because it's the return value of getOutcomes(),
   // that already has the correct outcomes for scalar markets
   return outcomes.map((outcome, i) =>
-    (tokenNames[i].trim() !== "" ? tokenNames[i].trim() : generateTokenName(outcome)).slice(0, 31),
+    ((tokenNames[i] || "").trim() !== "" ? tokenNames[i].trim() : generateTokenName(outcome)).slice(0, 31),
   );
 }
 
