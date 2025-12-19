@@ -165,8 +165,9 @@ describe("TradeManager", function () {
     let [currentToken] = await market.parentWrappedOutcome();
     while (currentMarketAddress !== ZeroAddress) {
       ancestorMarkets.push({ marketId: currentMarketAddress, token: currentToken });
-      currentMarketAddress = await (await ethers.getContractAt("Market", currentMarketAddress)).parentMarket();
-      currentToken = (await market.parentWrappedOutcome())[0];
+      const currentMarket = await ethers.getContractAt("Market", currentMarketAddress);
+      currentMarketAddress = await currentMarket.parentMarket();
+      currentToken = (await currentMarket.parentWrappedOutcome())[0];
     }
     ancestorMarkets.push({
       marketId: ZeroAddress,
