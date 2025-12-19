@@ -1,23 +1,29 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
-import { Filter, PlusIcon, SearchIcon } from "@/lib/icons";
+import { useSearchParams } from "@/hooks/useSearchParams";
+import { MARKET_CATEGORIES } from "@/lib/create-market";
+import { Collections, Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
+import { Link } from "../Link";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter() {
+export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
   const { address } = useAccount();
+  const [searchParams] = useSearchParams();
   const {
     setMarketName: setMarketNameParam,
-    isShowMyMarkets,
-    toggleShowMyMarkets,
+    // showMyMarkets,
+    // toggleShowMyMarkets,
     hasFilters,
     marketName: marketNameParam,
+    categoryList,
+    setCategories,
   } = useMarketsSearchParams();
-  const [marketName, setMarketName] = useState(marketNameParam);
+  const [marketName, setMarketName] = useState(marketNameParam || "");
   useEffect(() => {
     setMarketName(marketNameParam ?? "");
   }, [marketNameParam]);
@@ -25,7 +31,7 @@ export function MarketsFilter() {
     debounce((value) => {
       setMarketNameParam(value);
     }, 300),
-    [],
+    [searchParams],
   );
   const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = (event.target as HTMLInputElement).value;
@@ -34,16 +40,26 @@ export function MarketsFilter() {
   };
 
   const [isShowFilters, setShowFilters] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   return (
     <div>
       <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
-        <div className="grow">
+        <div className="grow @container">
           <Input
-            placeholder="Search"
-            className="w-full"
-            icon={<SearchIcon />}
+            placeholder="Search by market, outcome or collection"
+            className="w-full text-[13px] @[250px]:text-[14px] @[400px]:text-[16px]"
+            icon={<SearchIcon fill="#9747ff" />}
             value={marketName}
             onChange={onChangeName}
+            isClearable
+            onClear={() => {
+              setMarketName("");
+              debounceSetMarketNameParams("");
+            }}
+            disabled={!isClient}
           />
         </div>
         <button
@@ -68,27 +84,54 @@ export function MarketsFilter() {
 
         <div>
           <LinkButton
-            to={"/create-market"}
-            text="Create New Market"
-            icon={<PlusIcon />}
+            to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
+            text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
+            icon={<PlusCircleIcon />}
             className="max-lg:w-full min-w-[256px]"
           />
         </div>
       </div>
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex mt-8">
+        <div className="flex items-center gap-2 flex-wrap">
+          {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
+            if (category.value === "all") {
+              return (
+                <button
+                  className={clsx(
+                    "border-2 border-white rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                    !categoryList && "!bg-purple-primary !text-white",
+                  )}
+                  key={category.value}
+                  onClick={() => setCategories(undefined)}
+                  type="button"
+                >
+                  {category.text}
+                </button>
+              );
+            }
+            return (
+              <button
+                className={clsx(
+                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
+                  categoryList?.includes(category.value) && "!bg-purple-primary !text-white",
+                )}
+                key={category.value}
+                onClick={() => setCategories([category.value])}
+                type="button"
+              >
+                {category.text}
+              </button>
+            );
+          })}
+        </div>
         {address && (
-          <div className="flex items-center m-1 gap-2">
-            <label className="text-purple-primary text-[14px] cursor-pointer" htmlFor="show-my-market">
-              Show only my markets
-            </label>
-            <input
-              className="cursor-pointer checkbox"
-              id="show-my-market"
-              type="checkbox"
-              checked={!!isShowMyMarkets}
-              onChange={(e) => toggleShowMyMarkets(e.target.checked)}
-            />
-          </div>
+          <Link
+            to={"/collections/default"}
+            className="whitespace-nowrap flex items-center gap-2 ml-auto hover:opacity-80"
+          >
+            <Collections />
+            <p className="text-[14px] text-purple-primary">My collections</p>
+          </Link>
         )}
       </div>
     </div>

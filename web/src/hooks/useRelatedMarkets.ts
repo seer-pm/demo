@@ -1,14 +1,23 @@
-import { SupportedChain } from "@/lib/chains";
-import { fetchMarkets } from "@/lib/markets-search";
+import { Market } from "@/lib/market";
+import { fetchMarkets } from "@/lib/markets-fetch";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
-import { Market } from "./useMarket";
+import { zeroAddress } from "viem";
 
-export const useRelatedMarkets = (chainId: SupportedChain, marketId: Address) => {
+export const useRelatedMarkets = (market: Market) => {
   return useQuery<Market[], Error>({
-    queryKey: ["useRelatedMarkets", chainId, marketId],
+    queryKey: ["useRelatedMarkets", market.chainId, market.id],
     queryFn: async () => {
-      return await fetchMarkets(chainId, { parentMarket: marketId });
+      const relatedMarkets = (await fetchMarkets({ chainsList: [market.chainId.toString()], parentMarket: market.id }))
+        .markets;
+
+      if (market.parentMarket.id !== zeroAddress) {
+        relatedMarkets.push(
+          ...(await fetchMarkets({ chainsList: [market.chainId.toString()], parentMarket: market.parentMarket.id }))
+            .markets,
+        );
+      }
+
+      return relatedMarkets;
     },
   });
 };

@@ -1,16 +1,14 @@
 import { Link } from "@/components/Link";
+import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
-import useDebounce from "@/hooks/useDebounce.ts";
-import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { Market, useMarket } from "@/hooks/useMarket";
-import { useMarketImages } from "@/hooks/useMarketImages.ts";
+import { useMarket } from "@/hooks/useMarket";
+import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { MarketStatus, getMarketStatus } from "@/hooks/useMarketStatus";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
-import { NETWORK_ICON_MAPPING } from "@/lib/config.ts";
-import { formatBigNumbers, getTimeLeft } from "@/lib/utils";
-
+import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
+import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -23,17 +21,21 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { MarketTypes, formatOdds, getMarketEstimate, getMarketType } from "@/lib/market";
+import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus, getMarketType } from "@/lib/market";
+import { getMarketEstimate } from "@/lib/market-odds.ts";
+import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, isUndefined } from "@/lib/utils";
+import { displayScalarBound } from "@/lib/reality.ts";
+import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
-import { useState } from "react";
-import { Address } from "viem";
+import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
-import { OutcomeImage } from "../OutcomeImage";
+import { DisplayOdds } from "../DisplayOdds.tsx";
+import { OutcomeImage } from "../OutcomeImage.tsx";
+import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_ICONS, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.tsx";
+import { COLORS, MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
@@ -54,24 +56,18 @@ function OutcomesInfo({
   marketStatus?: MarketStatus;
 }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
-  const { isIntersecting, ref } = useIntersectionObserver({
-    threshold: 0.5,
-  });
-  const { data: odds = [], isLoading: oddsPending, isPending, isFetching } = useMarketOdds(market, isIntersecting);
 
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
-  const { data: indexesOrderedByOdds } = useSortedOutcomes(market, marketStatus);
+  const { data: odds = [] } = useMarketOdds(market, false);
 
-  const { isPending: isPendingImages } = useMarketImages(market.id, market.chainId);
-  const isAllLoading = useDebounce(isPending || isPendingImages || isFetching, 500);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
+
   return (
-    <div ref={ref}>
-      <div
-        className={clsx("space-y-3", isAllLoading ? "market-card__outcomes__loading" : "market-card__outcomes__loaded")}
-      >
-        {market.outcomes.map((_, j) => {
+    <div>
+      <div className={clsx("space-y-3")}>
+        {(market.type === "Generic" ? market.outcomes : ["Yes", "No"]).map((futarchyOutcome, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
-          const outcome = market.outcomes[i];
+          const outcome = market.type === "Futarchy" ? futarchyOutcome : market.outcomes[i];
 
           if (j >= visibleOutcomesLimit) {
             // render the first `visibleOutcomesLimit` outcomes
@@ -89,38 +85,104 @@ function OutcomesInfo({
             <Link
               key={`${outcome}_${i}`}
               className={clsx("flex justify-between px-[24px] py-[8px] hover:bg-gray-light cursor-pointer group")}
-              to={`${paths.market(market.id, market.chainId)}?outcome=${encodeURIComponent(outcome)}`}
+              to={`${paths.market(market)}?outcome=${encodeURIComponent(outcome)}`}
             >
               <div className="flex items-center space-x-[12px]">
-                <div className="w-[65px]">
+                <div className="w-[65px] flex-shrink-0">
                   <OutcomeImage
                     image={images?.[i]}
-                    isInvalidResult={i === market.outcomes.length - 1}
+                    isInvalidOutcome={i === market.outcomes.length - 1}
                     title={outcome}
                   />
                 </div>
                 <div className="space-y-1">
                   <div className="group-hover:underline flex items-center gap-2">
-                    #{j + 1} {market.outcomes[i]}{" "}
+                    #{j + 1} {outcome}{" "}
                     {i <= 1 &&
                       getMarketType(market) === MarketTypes.SCALAR &&
-                      `[${Number(market.lowerBound)},${Number(market.upperBound)}]`}
+                      `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}
                     {winningOutcomes?.[i] === true && <CheckCircleIcon className="text-success-primary" />}
                   </div>
 
                   {/*<div className="text-[12px] text-black-secondary">xM DAI</div>*/}
                 </div>
               </div>
-              <div className="flex space-x-10 items-center">
-                <div className="text-[24px] font-semibold">
-                  {oddsPending ? <Spinner /> : odds?.[i] ? formatOdds(odds[i], getMarketType(market)) : null}
+              {market.type === "Generic" && market.id !== "0x000" && (
+                <div className="flex space-x-10 items-center">
+                  <div className="text-[24px] font-semibold">
+                    {odds.length === 0 ? <Spinner /> : <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />}
+                  </div>
                 </div>
-              </div>
+              )}
             </Link>
           );
         })}
       </div>
     </div>
+  );
+}
+
+type PoolTokensInfo = {
+  outcome: string;
+  token0: { symbol: string; balance: number };
+  token1: { symbol: string; balance: number };
+}[];
+
+export function PoolTokensInfo({
+  market,
+  marketStatus,
+  type,
+}: {
+  market: Market;
+  marketStatus: MarketStatus;
+  type: "default" | "preview" | "small";
+}) {
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
+  const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
+
+  const poolsPairs = getMarketPoolsPairs(market);
+  const poolTokensInfo: PoolTokensInfo = poolsPairs.reduce((tokensInfo, _, j) => {
+    const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
+    const tokenBalanceInfo = market.poolBalance[i];
+    if (!tokenBalanceInfo) {
+      return tokensInfo;
+    }
+    const poolPair = poolsPairs[i];
+
+    if (market.type === "Futarchy") {
+      // futarchy markets have 2 pools (YES and NO)
+      tokensInfo.push({
+        outcome: i === 0 ? "Yes" : "No",
+        ...tokenBalanceInfo,
+      });
+      return tokensInfo;
+    }
+
+    // generic markets have one pool for each outcome
+    const collateral = getCollateralByIndex(market, i);
+
+    const [token0, token1] =
+      collateral === poolPair.token0
+        ? [tokenBalanceInfo.token1, tokenBalanceInfo.token0]
+        : [tokenBalanceInfo.token0, tokenBalanceInfo.token1];
+
+    tokensInfo.push({
+      outcome: market.outcomes[i],
+      token0: token0,
+      token1: token1,
+    });
+    return tokensInfo;
+  }, [] as PoolTokensInfo);
+
+  return (
+    <ul className="list-decimal mx-5">
+      {poolTokensInfo.map((pti) => (
+        <li key={pti.outcome}>
+          {pti.outcome}: {formatBigNumbers(pti.token0.balance)} {pti.token0.symbol} /{" "}
+          {formatBigNumbers(pti.token1.balance)} {pti.token1.symbol}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -135,10 +197,14 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
-  const { data: odds = [], isLoading: isPendingOdds } = useMarketOdds(market, true);
-  const hasLiquidity = isPendingOdds ? undefined : odds.some((v) => v > 0);
+  const { data: odds = [] } = useMarketOdds(market, type === "default");
+  const hasLiquidity = useMarketHasLiquidity(market);
   const marketEstimate = getMarketEstimate(odds, market, true);
   const firstQuestion = market.questions[0];
+
+  const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
+
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   return (
     <div
@@ -166,7 +232,16 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </div>
             )}
 
-            <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+            <div className="tooltip">
+              <p className="tooltiptext">View contract on explorer</p>
+              <a
+                href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+              </a>
+            </div>
             {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
           </div>
         </div>
@@ -189,7 +264,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
           )}
           {type !== "default" && (
-            <Link to={paths.market(market.id, market.chainId)}>
+            <Link to={paths.market(market)}>
               {images?.market ? (
                 <img
                   src={images.market}
@@ -206,7 +281,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
             {type === "default" && market.marketName}
             {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market.id, market.chainId)}>
+              <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
               </Link>
             )}
@@ -214,16 +289,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           {parentMarket && type !== "default" && (
             <p className="text-[14px] my-2">
               Conditional on{" "}
-              <Link
-                to={paths.market(parentMarket.id, market.chainId)}
-                target="_blank"
-                className="text-purple-primary font-medium"
-              >
+              <Link to={paths.market(parentMarket)} target="_blank" className="text-purple-primary font-medium">
                 "{parentMarket.marketName}"
               </Link>{" "}
               being{" "}
               <Link
-                to={`${paths.market(parentMarket.id, market.chainId)}?outcome=${encodeURIComponent(
+                to={`${paths.market(parentMarket)}?outcome=${encodeURIComponent(
                   parentMarket.outcomes[Number(market.parentOutcome)],
                 )}`}
                 target="_blank"
@@ -234,7 +305,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </p>
           )}
           {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
-            <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
+            <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
           ) : (
             <>
               <div className="flex space-x-2 items-center text-[14px]">
@@ -255,15 +326,17 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
-          <MarketInfo market={market} marketStatus={marketStatus} isPreview={type === "preview"} />
+          <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
         </div>
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
         <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
-          <div className="flex items-center gap-2">Market Estimate: {isPendingOdds ? <Spinner /> : marketEstimate}</div>
-          {!isPendingOdds && (
+          <div className="flex items-center gap-2">
+            Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
+          </div>
+          {odds.length > 0 && (
             <span className="tooltip">
-              <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w[400px] ">
+              <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
               </p>
               <QuestionIcon fill="#9747FF" />
@@ -282,37 +355,53 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           />
         </div>
       )}
+
       {type !== "small" && (
         <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
             <SeerLogo fill="#511778" width="50px" height="100%" />
-            <div className="flex items-center gap-2">
-              <div className="tooltip">
-                <p className="tooltiptext @[510px]:hidden">{MARKET_TYPES_TEXTS[marketType]}</p>
-                {MARKET_TYPES_ICONS[marketType]}
+            <div className="tooltip">
+              <p className="tooltiptext !text-left min-w-[250px] !whitespace-pre-wrap">
+                {MARKET_TYPES_DESCRIPTION[marketType]}
+              </p>
+              <div className="flex items-center gap-2">
+                <div>{MARKET_TYPES_ICONS[marketType]}</div>
+                <div>{MARKET_TYPES_TEXTS[marketType]}</div>
               </div>
-              <div className="@[510px]:block hidden">{MARKET_TYPES_TEXTS[marketType]}</div>
             </div>
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>
               <span className="text-black-secondary @[510px]:inline-block hidden">Liquidity:</span>
               <span className="ml-1">{liquidityUSD}</span>
               <USDIcon />
+              {market.liquidityUSD > 0 && (
+                <Popover
+                  trigger={<QuestionIcon fill="#9747FF" />}
+                  content={
+                    <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                      <p className="text-purple-primary">Liquidity:</p>
+                      <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
+                    </div>
+                  }
+                />
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
             {market.incentive > 0 && (
               <div className="tooltip">
-                <p className="tooltiptext">Reward: {incentive} SEER/day</p>
+                <p className="tooltiptext">
+                  Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
+                </p>
                 <PresentIcon width="16px" />
               </div>
             )}
-            {!isUndefined(market.verification) && (
+            {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
               <Link
                 className={clsx(
-                  "flex items-center space-x-2",
+                  "!flex items-center space-x-2",
                   market.verification.status === "verified" && "text-success-primary",
-                  market.verification.status === "verifying" && "text-blue-primary",
+                  market.verification.status === "verifying" && "text-blue-primary tooltip",
                   market.verification.status === "challenged" && "text-warning-primary",
                   market.verification.status === "not_verified" && "text-purple-primary",
                 )}
@@ -328,25 +417,26 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 {market.verification.status === "verified" && (
                   <>
                     <CheckCircleIcon />
-                    <div className="max-lg:hidden">Verified</div>
+                    <div>Verified</div>
                   </>
                 )}
                 {market.verification.status === "verifying" && (
                   <>
                     <ClockIcon />
-                    <div className="max-lg:hidden">Verifying</div>
+                    <div>Verifying</div>
+                    {challengeRemainingTime && <p className="tooltiptext">Ends in {challengeRemainingTime}</p>}
                   </>
                 )}
                 {market.verification.status === "challenged" && (
                   <>
                     <LawBalanceIcon />
-                    <div className="max-lg:hidden">Challenged</div>
+                    <div>Challenged</div>
                   </>
                 )}
                 {market.verification.status === "not_verified" && (
                   <>
                     <ExclamationCircleIcon width="14" height="14" />
-                    <div className="max-lg:hidden">Verify it</div>
+                    <div>Verify it</div>
                   </>
                 )}
               </Link>

@@ -1,43 +1,29 @@
+import { isTwoStringsEqual } from "@/lib/utils";
 import { TickMath } from "@uniswap/v3-sdk";
-import { BigNumber } from "ethers";
-import { formatUnits } from "viem";
+import { Address, formatUnits } from "viem";
+import { tickToPrice } from "./utils";
 
-export function tickToPrice(tick: number, decimals = 18) {
-  const sqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
-  const bn = BigNumber.from(sqrtPriceX96);
-
-  const TWO_POW_96 = BigNumber.from(2).pow(96);
-
-  const price0 = bn
-    .mul(bn) // square it
-    .mul(BigNumber.from(10).pow(decimals))
-    .div(TWO_POW_96)
-    .div(TWO_POW_96)
-    .toBigInt();
-  const price1 = TWO_POW_96.mul(TWO_POW_96).mul(BigNumber.from(10).pow(decimals)).div(bn).div(bn).toBigInt();
-
-  return [Number(formatUnits(price0, 18)).toFixed(4), Number(formatUnits(price1, 18)).toFixed(4)];
-}
-
-const TICK_MAX = 92103; //soft cap at price0 = 10000, price1 = 0.0001
-const TICK_MIN = -92103; //soft cap at price0 = 0.0001, price1 = 10000
-
+const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001
+const TICK_MIN = -69077; //soft cap at price0 = 0.001, price1 = 1000
 export function getChartDataByTicks(
   pool: {
     liquidity: bigint;
     tickSpacing: number;
     tick: number;
+    token0: Address;
   },
-  ticks: { liquidityNet: string; tickIdx: string }[],
+  initialTicks: { liquidityNet: string; tickIdx: string }[],
   zoomCount: number,
+  outcome: Address,
 ) {
+  const ticks = initialTicks.filter((tick) => tick.liquidityNet !== "0");
   const processedTicks: { tickIdx: string; liquidityNet: string }[] = [];
   // add filler ticks, we don't want to use every initializable ticks making the chart hard to see
   for (let i = 0; i < ticks.length - 1; i++) {
     const currentTick = Number(ticks[i].tickIdx);
     const nextTick = Number(ticks[i + 1].tickIdx);
     processedTicks.push(ticks[i]);
-    const maxTickToDisplay = 100;
+    const maxTickToDisplay = 50;
     const interval = Math.floor(
       (Number(ticks[ticks.length - 1].tickIdx) - Number(ticks[0].tickIdx)) /
         pool.tickSpacing /
@@ -49,15 +35,18 @@ export function getChartDataByTicks(
         tickIdx: j.toString(),
         liquidityNet: "0",
       });
-      j += pool.tickSpacing * Math.max(interval, 5);
+      j += pool.tickSpacing * interval;
     }
   }
+  const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
+  const tickMax = isOutcomeToken0 ? 0 : TICK_MAX;
+  const tickMin = isOutcomeToken0 ? TICK_MIN : 0;
   processedTicks.push(ticks[ticks.length - 1]);
   const processedHigherTicks = processedTicks.filter(
-    (tick) => Number(tick.tickIdx) > pool.tick && Number(tick.tickIdx) < TICK_MAX,
+    (tick) => Number(tick.tickIdx) > pool.tick && Number(tick.tickIdx) < tickMax,
   );
   const processedLowerTicks = processedTicks.filter(
-    (tick) => Number(tick.tickIdx) < pool.tick && Number(tick.tickIdx) > TICK_MIN,
+    (tick) => Number(tick.tickIdx) < pool.tick && Number(tick.tickIdx) > tickMin,
   );
   const higherTicks = processedHigherTicks.slice(0, zoomCount);
   const lowerTicks = processedLowerTicks.slice(zoomCount * -1);
@@ -166,12 +155,25 @@ export function getLiquidityChartData(
     liquidity: bigint;
     tickSpacing: number;
     tick: number;
+    token0: Address;
   },
   ticks: { liquidityNet: string; tickIdx: string }[],
   isShowToken0Price: boolean,
   zoomCount: number,
+  outcome: Address,
 ) {
-  const chartData = getChartDataByTicks(poolInfo, ticks, zoomCount);
+  if (!ticks.length) {
+    return {
+      priceList: [],
+      sellBarsData: [],
+      buyBarsData: [],
+      sellLineData: [],
+      buyLineData: [],
+      maxYValue: 0,
+      maxZoomCount: 0,
+    };
+  }
+  const chartData = getChartDataByTicks(poolInfo, ticks, zoomCount, outcome);
   const priceList = isShowToken0Price ? chartData.price0List : [...chartData.price1List].reverse();
   const amount0List = isShowToken0Price ? chartData.amount0List : [...chartData.amount0List].reverse();
   const amount1List = isShowToken0Price ? chartData.amount1List : [...chartData.amount1List].reverse();

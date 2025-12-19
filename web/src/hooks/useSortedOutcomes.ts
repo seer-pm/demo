@@ -1,9 +1,7 @@
+import { Market } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Address } from "viem";
-import { Market } from "./useMarket";
-import { useMarketOdds } from "./useMarketOdds";
-import { MarketStatus } from "./useMarketStatus";
 import { useWinningOutcomes } from "./useWinningOutcomes";
 
 type OutcomeWithOdds = {
@@ -12,13 +10,27 @@ type OutcomeWithOdds = {
   isWinning?: boolean;
 };
 
-export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
-  const { data: odds = [], isLoading: oddsPending } = useMarketOdds(market, true);
-  const { data: winningOutcomes } = useWinningOutcomes(market.conditionId as Address, market.chainId, marketStatus);
+function sortOdds(
+  a: {
+    odd: number | null;
+    i: number;
+  },
+  b: {
+    odd: number | null;
+    i: number;
+  },
+) {
+  if (Number.isNaN(a.odd) && Number.isNaN(b.odd)) return 0;
+  if (Number.isNaN(a.odd)) return 1;
+  if (Number.isNaN(b.odd)) return -1;
+  return Number(b.odd) - Number(a.odd);
+}
 
+export function useSortedOutcomes(odds: (number | null)[], market: Market, marketStatus?: MarketStatus) {
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   return useQuery({
     queryKey: ["sortedOutcomes", odds, winningOutcomes, market.outcomes, marketStatus],
-    enabled: !oddsPending && odds.length > 0,
+    enabled: odds.length > 0 && market.type === "Generic",
     queryFn: () => {
       const invalidIndex = market.outcomes.findIndex((outcome) => outcome === INVALID_RESULT_OUTCOME_TEXT);
 
@@ -26,7 +38,7 @@ export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
         const otherIndexes = odds
           .map((odd, i) => ({ odd, i }))
           .filter(({ i }) => i !== invalidIndex)
-          .sort((a, b) => b.odd - a.odd)
+          .sort(sortOdds)
           .map((obj) => obj.i);
 
         return [invalidIndex, ...otherIndexes];
@@ -37,15 +49,14 @@ export function useSortedOutcomes(market: Market, marketStatus?: MarketStatus) {
 
       odds.forEach((odd, i) => {
         if (winningOutcomes?.[i] === true) {
-          winningIndexes.push({ odd, i });
+          winningIndexes.push({ odd: Number(odd), i });
         } else {
-          nonWinningIndexes.push({ odd, i });
+          nonWinningIndexes.push({ odd: Number(odd), i });
         }
       });
 
-      const sortedWinning = winningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-      const sortedNonWinning = nonWinningIndexes.sort((a, b) => b.odd - a.odd).map((obj) => obj.i);
-
+      const sortedWinning = winningIndexes.sort(sortOdds).map((obj) => obj.i);
+      const sortedNonWinning = nonWinningIndexes.sort(sortOdds).map((obj) => obj.i);
       return [...sortedWinning, ...sortedNonWinning];
     },
   });

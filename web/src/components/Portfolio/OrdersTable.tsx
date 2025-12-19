@@ -1,10 +1,11 @@
 import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
-import { useMarketImages } from "@/hooks/useMarketImages";
+import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { SupportedChainId } from "@cowprotocol/cow-sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -18,37 +19,62 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { Address } from "viem";
 import { CopyButton } from "../CopyButton";
+import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
-export function MarketImage({
-  marketAddress,
-  marketName,
-  chainId,
-}: {
-  marketAddress: Address;
-  marketName: string;
-  chainId: SupportedChain;
-}) {
-  const { data: images } = useMarketImages(marketAddress, chainId);
-  return (
-    <div>
-      {images?.market ? (
-        <img
-          src={images.market}
-          alt={marketName}
-          className="w-[40px] h-[40px] min-w-[40px] min-h-[40px] rounded-full"
-        />
-      ) : (
-        <div className="w-[40px] h-[40px] rounded-full bg-purple-primary"></div>
-      )}
-    </div>
-  );
-}
-
-export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChain }) {
+export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; chainId: SupportedChainId }) {
+  const renderCancelButton = (data: CowOrderData) => {
+    if (data.isOnChainOrder) {
+      if (data.isEthFlow) {
+        return (
+          <button
+            type="button"
+            className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+            onClick={() => cancelEthFlowOrder({ order: data })}
+          >
+            (Cancel Order)
+          </button>
+        );
+      }
+      return;
+    }
+    return (
+      <button
+        type="button"
+        className="text-error-primary text-[14px] whitespace-nowrap hover:underline ml-2 font-normal"
+        onClick={() => cancelCowOrder({ orderId: data.uid, chainId })}
+      >
+        (Cancel Order)
+      </button>
+    );
+  };
   const columns = React.useMemo<ColumnDef<CowOrderData>[]>(
     () => [
+      {
+        accessorKey: "status",
+        cell: (info) => {
+          const data = info.row.original;
+          return (
+            <div
+              className={clsx(
+                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
+                {
+                  fulfilled: "text-success-primary",
+                  open: "text-purple-primary",
+                  presignaturePending: "text-tint-blue-primary",
+                  cancelled: "text-black-secondary",
+                  expired: "text-warning-primary",
+                }[info.getValue<string>()],
+              )}
+            >
+              {info.getValue<string>().toUpperCase()}
+              {info.getValue<string>() === "open" && <>{renderCancelButton(data)}</>}
+            </div>
+          );
+        },
+        header: "Status",
+      },
       {
         accessorKey: "uid",
         cell: (info) => {
@@ -80,11 +106,7 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MarketImage
-                marketAddress={data.marketId as Address}
-                marketName={data.marketName}
-                chainId={chainId as SupportedChain}
-              />
+              <MarketImage marketAddress={data.marketId as Address} chainId={chainId as SupportedChain} />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={20} isUseTitle />
             </a>
           );
@@ -100,6 +122,14 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedSellAmount ?? "0"} ${order.sellTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Sell Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.buyAmount} ${order.buyTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
@@ -108,11 +138,27 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
         enableSorting: false,
       },
       {
+        accessorFn: (order) => `${order.formattedExecutedBuyAmount ?? "0"} ${order.buyTokenSymbol}`,
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Executed Buy Amount",
+        enableSorting: false,
+      },
+      {
         accessorFn: (order) => `${order.limitPrice} ${order.sellTokenSymbol}`,
         cell: (info) => {
           return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
         },
         header: "Limit Price",
+        enableSorting: false,
+      },
+      {
+        accessorFn: (order) => (order.executionPrice ? `${order.executionPrice} ${order.sellTokenSymbol}` : "-"),
+        cell: (info) => {
+          return <div className="text-[14px] whitespace-nowrap">{info.getValue<string>()}</div>;
+        },
+        header: "Execution Price",
         enableSorting: false,
       },
       {
@@ -125,28 +171,6 @@ export default function OrdersTable({ data, chainId }: { data: CowOrderData[]; c
           );
         },
         header: "Creation Date",
-      },
-      {
-        accessorKey: "status",
-        cell: (info) => {
-          return (
-            <div
-              className={clsx(
-                "text-[14px] whitespace-nowrap font-semibold text-black-secondary",
-                {
-                  fulfilled: "text-success-primary",
-                  open: "text-purple-primary",
-                  presignaturePending: "text-tint-blue-primary",
-                  cancelled: "text-black-secondary",
-                  expired: "text-warning-primary",
-                }[info.getValue<string>()],
-              )}
-            >
-              {info.getValue<string>().toUpperCase()}
-            </div>
-          );
-        },
-        header: "Status",
       },
     ],
     [],

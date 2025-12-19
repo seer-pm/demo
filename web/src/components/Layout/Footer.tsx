@@ -1,4 +1,4 @@
-import { GithubIcon, SecuredByKleros, TelegramIcon, TwitterIcon } from "@/lib/icons";
+import { DiscordIcon, GithubIcon, SecuredByKleros, TelegramIcon, TwitterIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 
 export default function Footer() {
@@ -13,20 +13,20 @@ export default function Footer() {
         {/*<a href={paths.etherscan()} target="_blank" rel="noopener noreferrer">
           <EtherscanIcon />
         </a>*/}
-        <a href={paths.github()} target="_blank" rel="noopener noreferrer">
-          <GithubIcon />
-        </a>
         {/*<a href={paths.snapshot()} target="_blank" rel="noopener noreferrer">
           <SnapshotIcon />
-        </a>
+        </a>*/}
         <a href={paths.discord()} target="_blank" rel="noopener noreferrer">
           <DiscordIcon />
-        </a>*/}
-        <a href={paths.twitter()} target="_blank" rel="noopener noreferrer">
-          <TwitterIcon />
         </a>
         <a href={paths.telegram()} target="_blank" rel="noopener noreferrer">
           <TelegramIcon />
+        </a>
+        <a href={paths.twitter()} target="_blank" rel="noopener noreferrer">
+          <TwitterIcon />
+        </a>
+        <a href={paths.github()} target="_blank" rel="noopener noreferrer">
+          <GithubIcon />
         </a>
       </div>
     </div>

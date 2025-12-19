@@ -1,11 +1,11 @@
-import { realityAddress } from "@/hooks/contracts/generated";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
+import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
+import { MarketStatus } from "./market";
+import { Market, Question } from "./market";
 
 export const REALITY_TEMPLATE_UINT = 1;
 export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
@@ -71,12 +71,27 @@ export function getMultiSelectAnswers(value: number): number[] {
   return indexes;
 }
 
+const overrideAnswerText: Record<`0x${string}`, string> = {
+  "0x279061d3049ad315f10358b579d24e44058dc3fed7387f66d6e6950c1adf4dbf": "120",
+  "0x723c67fd785dc5d653805c276b4123ded8a0e941ebbd7d0014f3554c188bd463": "208",
+  "0x261d589233f189fcd3fb6e093fffdcd135b9348836d2c2dfe23eb7c4b7441ca8": "85",
+  "0x2d5865b62af4a4a5a4e3a776e58bcc3d2cc9552ca70c954dc511e7aa03e71ba7": "0",
+  "0x0c68e62a358cd85f954ed524017c9a72c7298905ba6b2cd71ccdaea18d3544a4": "152",
+  "0x1d7dad8f80b30d8045f67b51c37f346d6bd5f798b3292af40f18dcb39a588525": "64",
+  "0x1d47e7fc07b61d441234b8770bee734c3a5aafd7d4e64750d2973d43993f3d7e": "0",
+  "0x13fc8e8fdfac473d5e9263604b36c6f203545125109976f9ffadee64b912289c": "1",
+};
+
 export function getAnswerText(
   question: Question,
-  outcomes: Market["outcomes"],
-  templateId: bigint,
+  outcomes: readonly string[],
+  template: number,
   noAnswerText = "Not answered yet",
 ): string {
+  if (overrideAnswerText[question.id] !== undefined) {
+    return overrideAnswerText[question.id];
+  }
+
   if (question.finalize_ts === 0) {
     return noAnswerText;
   }
@@ -89,19 +104,24 @@ export function getAnswerText(
     return "Answered too soon";
   }
 
-  if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return formatEther(BigInt(question.best_answer));
+  if (template === REALITY_TEMPLATE_UINT) {
+    return isScalarBoundInWei(BigInt(question.best_answer))
+      ? formatEther(BigInt(question.best_answer))
+      : BigInt(question.best_answer).toString();
   }
 
   const outcomeIndex = hexToNumber(question.best_answer);
-
-  if (Number(templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT) {
+  if (template === REALITY_TEMPLATE_MULTIPLE_SELECT) {
     return getMultiSelectAnswers(outcomeIndex)
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }
 
   return outcomes[outcomeIndex] || noAnswerText;
+}
+
+export function getAnswerTextFromMarket(question: Question, market: Market, noAnswerText = "Not answered yet"): string {
+  return getAnswerText(question, market.outcomes, Number(market.templateId), noAnswerText);
 }
 
 export function getCurrentBond(currentBond: bigint, minBond: bigint, chainId: SupportedChain) {
@@ -156,6 +176,27 @@ export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${realityAddress[chainId]}-${questionId}`;
 }
 
+export function encodeOutcomes(outcomes: string[]) {
+  return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
+}
+
+export function encodeQuestionText(
+  qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
+  txt: string,
+  outcomes: string[],
+  category: string,
+  lang?: string,
+) {
+  let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
+  const delim = "\u241f";
+  //console.log('using template_id', template_id);
+  if (qtype === "single-select" || qtype === "multiple-select") {
+    qText = qText + delim + encodeOutcomes(outcomes);
+  }
+  qText = qText + delim + category + delim + (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
+  return qText;
+}
+
 export function decodeQuestion(encodedQuestion: string): {
   question: string;
   outcomes: string[] | undefined;
@@ -188,4 +229,30 @@ export function decodeQuestion(encodedQuestion: string): {
     category,
     lang,
   };
+}
+
+export function decodeOutcomes(market: Market, question: Question) {
+  const questionIndex = market.questions.findIndex((q) => q.id === question.id);
+  return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
+}
+
+export function isScalarBoundInWei(bound: bigint) {
+  // NOTE: This is a backwards compatibility check.
+  // Going forward, all scalar bounds will be in wei (1e18) format.
+  // However, some older markets used basic units (regular integers).
+  // We detect the format based on the size of the number.
+
+  // We use 1e10 as a threshold to distinguish between regular numbers and numbers in wei (1e18) format
+  // Numbers below 1e10 are assumed to be in their basic units (like regular integers)
+  // Numbers above 1e10 are assumed to be in wei format (1e18 decimals) and need to be formatted with formatEther
+
+  return bound > BigInt(1e10);
+}
+
+export function displayScalarBound(bound: bigint): number {
+  if (isScalarBoundInWei(bound)) {
+    return Number(formatEther(bound));
+  }
+
+  return Number(bound);
 }

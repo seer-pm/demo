@@ -1,6 +1,5 @@
-import { formatUnits } from "https://esm.sh/viem@2.17.5";
-import { MarketTypes } from "./market.ts";
-import { Market } from "./types.ts";
+import { formatEther, formatUnits } from "https://esm.sh/viem@2.17.5";
+import { MarketTypes, SimpleMarket } from "./types.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny:
 export const isUndefined = (maybeObject: any): maybeObject is undefined | null => {
@@ -20,12 +19,33 @@ export function isOdd(odd: number | undefined | null) {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 
-export function getMarketEstimate(odds: (number | null)[], market: Market, convertToString?: boolean) {
+function isScalarBoundInWei(bound: bigint) {
+  // NOTE: This is a backwards compatibility check.
+  // Going forward, all scalar bounds will be in wei (1e18) format.
+  // However, some older markets used basic units (regular integers).
+  // We detect the format based on the size of the number.
+
+  // We use 1e10 as a threshold to distinguish between regular numbers and numbers in wei (1e18) format
+  // Numbers below 1e10 are assumed to be in their basic units (like regular integers)
+  // Numbers above 1e10 are assumed to be in wei format (1e18 decimals) and need to be formatted with formatEther
+
+  return bound > BigInt(1e10);
+}
+
+function displayScalarBound(bound: bigint): number {
+  if (isScalarBoundInWei(bound)) {
+    return Number(formatEther(bound));
+  }
+
+  return Number(bound);
+}
+
+export function getMarketEstimate(odds: (number | null)[], market: SimpleMarket, convertToString?: boolean) {
   const { lowerBound, upperBound, marketName } = market;
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  const estimate = ((odds[0]! * Number(lowerBound) + odds[1]! * Number(upperBound)) / 100).toFixed(0);
+  const estimate = (odds[0]! * displayScalarBound(lowerBound) + odds[1]! * displayScalarBound(upperBound)) / 100;
   if (!convertToString) {
     return estimate;
   }
@@ -81,4 +101,24 @@ export function formatOdds(odd: number | undefined | null, marketType: MarketTyp
   }
 
   return `${odd}%`;
+}
+
+//const REALITY_TEMPLATE_UINT = 1;
+const REALITY_TEMPLATE_SINGLE_SELECT = 2;
+const REALITY_TEMPLATE_MULTIPLE_SELECT = 3;
+
+export function getMarketType(market: SimpleMarket): MarketTypes {
+  if (market.templateId === String(REALITY_TEMPLATE_SINGLE_SELECT)) {
+    return MarketTypes.CATEGORICAL;
+  }
+
+  if (market.templateId === String(REALITY_TEMPLATE_MULTIPLE_SELECT)) {
+    return MarketTypes.MULTI_CATEGORICAL;
+  }
+
+  if (market.questions.length > 1) {
+    return MarketTypes.MULTI_SCALAR;
+  }
+
+  return MarketTypes.SCALAR;
 }

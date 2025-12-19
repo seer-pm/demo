@@ -1,16 +1,22 @@
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
 import { SupportedChain, mainnet } from "@/lib/chains";
+import { getTimeLeft } from "@/lib/date.ts";
 import { CheckCircleIcon, HourGlassIcon, RightArrow } from "@/lib/icons";
 import { MarketTypes } from "@/lib/market";
+import { MarketStatus } from "@/lib/market.ts";
+import { Market, Question } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import { ANSWERED_TOO_SOON, getAnswerText, getQuestionStatus, getRealityLink, isFinalized } from "@/lib/reality";
-import { getTimeLeft } from "@/lib/utils";
+import {
+  ANSWERED_TOO_SOON,
+  getAnswerTextFromMarket,
+  getQuestionStatus,
+  getRealityLink,
+  isFinalized,
+} from "@/lib/reality";
 import clsx from "clsx";
-import { COLORS } from "./index.tsx";
+import { COLORS } from "./index.ts";
 
 function AnswerColumn({
   marketStatus,
@@ -45,7 +51,7 @@ function AnswerColumn({
       {questionStatus === MarketStatus.CLOSED && marketStatus !== MarketStatus.PENDING_EXECUTION && <CheckCircleIcon />}
       {question.finalize_ts > 0 && (
         <div className="whitespace-nowrap text-ellipsis overflow-hidden">
-          Answer: {getAnswerText(question, market.outcomes, market.templateId)}
+          Answer: {getAnswerTextFromMarket(question, market)}
         </div>
       )}
     </div>
@@ -115,7 +121,7 @@ function ExecuteActions({
 
   const resolveHandler = async () => {
     resolveMarket.mutateAsync({
-      marketId: market.id,
+      market,
     });
   };
 
@@ -126,6 +132,7 @@ function ExecuteActions({
         question: market.questions[questionIndex],
         templateId: market.templateId,
         encodedQuestion: market.encodedQuestions[questionIndex],
+        chainId: market.chainId,
       });
     };
   };

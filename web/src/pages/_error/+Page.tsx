@@ -10,8 +10,8 @@ function ErrorPage() {
       </div>
       <div>
         If the error persist, let us know on{" "}
-        <a href={paths.telegram()} className="text-purple-primary hover:underline">
-          Telegram
+        <a href={paths.discord()} className="text-purple-primary hover:underline">
+          Discord
         </a>
       </div>
       <div>

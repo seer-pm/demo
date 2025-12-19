@@ -4,13 +4,14 @@ import DatePicker from "react-datepicker";
 import { Controller, UseFormReturn, get } from "react-hook-form";
 import FormError from "./FormError";
 
+import { utcToLocalTime } from "@/lib/date";
 import { CalendarHTMLInputIcon } from "@/lib/icons";
-import { localTimeToUtc } from "@/lib/utils";
 import "react-datepicker/dist/react-datepicker.css";
+import { Alert } from "../Alert";
 
 type InputProps = {
   // biome-ignore lint/suspicious/noExplicitAny:
-  useFormReturn?: UseFormReturn<any>;
+  useFormReturn: UseFormReturn<any>;
   helpText?: string;
   icon?: React.ReactNode;
 } & React.InputHTMLAttributes<HTMLInputElement>;
@@ -20,10 +21,12 @@ const FormDatePicker = (props: InputProps) => {
   const {
     formState: { errors, dirtyFields },
     control,
+    watch,
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined }, control: undefined };
 
   const hasError = !!get(errors, name);
   const isValid = !!get(dirtyFields, name) && !hasError;
+  const value = watch(name ?? "");
   return (
     <>
       <div className="relative">
@@ -33,9 +36,6 @@ const FormDatePicker = (props: InputProps) => {
           name={name ?? ""}
           rules={{
             required: "This field is required.",
-            validate: (v) => {
-              return (v && localTimeToUtc(v) > new Date()) || "Opening date must be in the future";
-            },
           }}
           render={({ field }) => (
             <DatePicker
@@ -51,10 +51,10 @@ const FormDatePicker = (props: InputProps) => {
                 hasError && "border-error-primary",
                 isValid && "border-success-primary",
               )}
-              dateFormat="YYYY-MM-dd HH:mm"
+              dateFormat="yyyy-MM-dd HH:mm"
               dateFormatCalendar="MMMM"
               timeFormat="HH:mm"
-              placeholderText="YYYY-MM-DD HH:mm"
+              placeholderText="yyyy-MM-dd HH:mm"
               calendarClassName="custom-date-picker"
               showYearDropdown
               dropdownMode="select"
@@ -69,6 +69,13 @@ const FormDatePicker = (props: InputProps) => {
         <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
       {hasError && <FormError errors={errors} name={props.name} />}
+      {value && utcToLocalTime(value) <= new Date() && (
+        <Alert type="warning" className="my-2 text-sm">
+          <p className="text-[14px]">
+            The opening date is in the past, it will be possible to try to resolve this market as soon as it is created.
+          </p>
+        </Alert>
+      )}
     </>
   );
 };

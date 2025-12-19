@@ -1,66 +1,45 @@
 import { GraphQLClient } from "graphql-request";
 import { SupportedChain, gnosis, mainnet } from "./chains";
+import { isOpStack } from "./config";
+import { getAppUrl } from "./utils";
 
-const api = "8b2690ffdd390bad59638b894ee8d9f6";
+const SUBGRAPH_ENDPOINT = `${getAppUrl()}/subgraph`;
 
-export const SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]:
-    (typeof window !== "undefined" && import.meta.env.VITE_SUBGRAPH_GNOSIS) ||
-    `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
-  [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
-};
-export const CURATE_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
-  [mainnet.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
-};
-export const SWAPR_ALGEBRA_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
-};
-export const SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [gnosis.id]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
-};
-export const UNISWAP_SUBGRAPH_URLS: Partial<Record<SupportedChain, string>> = {
-  [mainnet.id]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
-};
+export function getSubgraphUrl(
+  subgraphType: "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "reality",
+  chainId: SupportedChain,
+) {
+  return `${SUBGRAPH_ENDPOINT}?_subgraph=${subgraphType}&_chainId=${chainId}`;
+}
 
 export function graphQLClient(chainId: SupportedChain) {
-  const subgraphUrl = SUBGRAPH_URLS[chainId];
-
-  if (!subgraphUrl) {
-    return;
-  }
-
-  return new GraphQLClient(subgraphUrl);
+  return new GraphQLClient(getSubgraphUrl("seer", chainId));
 }
 
 export function curateGraphQLClient(chainId: SupportedChain) {
-  const subgraphUrl = CURATE_SUBGRAPH_URLS[chainId];
-
-  if (!subgraphUrl) {
-    return;
-  }
-
-  return new GraphQLClient(subgraphUrl);
+  return new GraphQLClient(getSubgraphUrl("curate", chainId));
 }
 
 export function uniswapGraphQLClient(chainId: SupportedChain) {
-  const subgraphUrl = UNISWAP_SUBGRAPH_URLS[chainId];
-
-  if (!subgraphUrl) {
+  if (chainId !== mainnet.id && !isOpStack(chainId)) {
     return;
   }
 
-  return new GraphQLClient(subgraphUrl);
+  return new GraphQLClient(getSubgraphUrl("uniswap", chainId));
 }
 
 export function swaprGraphQLClient(chainId: SupportedChain, subgraph: "algebra" | "algebrafarming") {
-  const subgraphUrl = { algebra: SWAPR_ALGEBRA_SUBGRAPH_URLS, algebrafarming: SWAPR_ALGEBRA_FARMING_SUBGRAPH_URLS }?.[
-    subgraph
-  ]?.[chainId];
-
-  if (!subgraphUrl) {
+  if (chainId !== gnosis.id) {
     return;
   }
 
-  return new GraphQLClient(subgraphUrl);
+  return new GraphQLClient(getSubgraphUrl(subgraph, chainId));
+}
+
+export function realityGraphQLClient(chainId: SupportedChain) {
+  if (chainId !== gnosis.id) {
+    return;
+  }
+
+  return new GraphQLClient(getSubgraphUrl("reality", chainId));
 }

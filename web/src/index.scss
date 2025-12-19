@@ -1,3 +1,4 @@
+@use "react-datepicker/dist/react-datepicker";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,11 +34,12 @@
 }
 
 .container-fluid {
-  max-width: 100%;
-  padding-left: 18px;
-  padding-right: 18px;
+  max-width: 90%;
+  margin: 0 auto;
+  padding-left: 0px;
+  padding-right: 0px;
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1600px) {
     & {
       max-width: 75%;
       margin: 0 auto;
@@ -50,6 +52,7 @@
 body {
   background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
   background-blend-mode: multiply;
+  overflow-x: hidden;
 }
 
 /* BUTTONS */
@@ -59,6 +62,7 @@ body {
   --n: var(--black-light);
   --tw-bg-opacity: 1;
   border-color: transparent;
+  color: #131313a1;
 }
 .btn.btn-primary {
   --pc: var(--white);
@@ -213,7 +217,7 @@ body {
 /* DROPDOWN */
 .dropdown {
   &.simple-dropdown {
-    div[role="button"] {
+    button {
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -224,12 +228,11 @@ body {
 
       &.dropdown-arrow::after {
         content: "";
-        margin-left: 7px;
         width: 0px;
         height: 0px;
         border-style: solid;
         border-width: 4px 4px 0 4px;
-        border-color: #9747ff transparent transparent transparent;
+        border-color: #000000 transparent transparent transparent;
         transform: rotate(0deg);
       }
     }
@@ -263,21 +266,22 @@ body {
 }
 
 /* Tooltip text */
-.tooltip .tooltiptext {
+.tooltip > .tooltiptext {
   visibility: hidden;
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #9747ff;
-  color: #fff;
+  background-color: #fff;
+  color: #333;
   text-align: center;
-  font-weight: normal;
+  font-weight: 600;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: 1px;
   position: absolute;
   z-index: 2;
-  font-size: 14px;
+  font-size: 12px;
   white-space: nowrap;
+  box-shadow: 0px 6px 12px 0px #1e0a661f;
 
   @media (max-width: 1024px) {
     /* For screens smaller than 1024px (md breakpoint) */
@@ -285,7 +289,7 @@ body {
   }
 }
 
-.tooltip .tooltiptext::after {
+.tooltip > .tooltiptext::after {
   content: " ";
   position: absolute;
   top: 100%; /* At the bottom of the tooltip */
@@ -293,11 +297,11 @@ body {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #9747ff transparent transparent transparent;
+  border-color: var(--tooltip-arrow-color, #626262) transparent transparent transparent;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
+.tooltip:hover > .tooltiptext {
   visibility: visible;
 }
 
@@ -310,7 +314,7 @@ body {
 .simple-table td,
 .simple-table th {
   border-bottom: 1px solid #e5e5e5;
-  padding: 16px 24px;
+  padding: 12px 16px;
 }
 
 .simple-table th {
@@ -412,12 +416,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    /* Light gray shimmer with some opacity */ transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), /* Light gray shimmer with some opacity */ transparent);
   animation: shimmer 1.5s infinite linear;
 }
 
@@ -462,4 +461,40 @@ body {
     background-color: #9747ff !important;
     color: white !important;
   }
+}
+
+.outlined-thumb::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 1px solid #9747ff;
+  border-radius: 50%;
+}
+
+.outlined-thumb::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 1px solid #9747ff;
+  border-radius: 50%;
+}
+
+.outlined-thumb:focus::-webkit-slider-thumb,
+.outlined-thumb:hover::-webkit-slider-thumb {
+  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+}
+
+.outlined-thumb:focus::-moz-range-thumb,
+.outlined-thumb:hover::-moz-range-thumb {
+  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+}
+
+/* HIDE SCROLLBAR */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
 }

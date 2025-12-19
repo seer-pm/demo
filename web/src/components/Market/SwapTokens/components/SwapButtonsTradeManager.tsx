@@ -1,14 +1,14 @@
 import { ApproveButton } from "@/components/Form/ApproveButton";
 import Button from "@/components/Form/Button";
 import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
-import { tradeManagerAddress } from "@/hooks/contracts/generated";
+import { tradeManagerAddress } from "@/hooks/contracts/generated-trade-manager";
 import { useMissingApprovals } from "@/hooks/useMissingApprovals";
-import { SupportedChain } from "@/lib/chains";
+import { SupportedChain, gnosis } from "@/lib/chains";
 import { Address } from "viem";
-import { gnosis } from "viem/chains";
 
 export default function SwapButtonsTradeManager({
   account,
+  chainId,
   tokenIn,
   amountIn,
   swapType,
@@ -16,6 +16,7 @@ export default function SwapButtonsTradeManager({
   isLoading,
 }: {
   account: Address | undefined;
+  chainId: SupportedChain;
   tokenIn: Address;
   amountIn: bigint;
   swapType: "buy" | "sell";
@@ -23,14 +24,18 @@ export default function SwapButtonsTradeManager({
   isLoading: boolean;
 }) {
   const { data: missingApprovals = [], isLoading: isLoadingApprovals } = useMissingApprovals(
-    [tokenIn],
-    account,
-    tradeManagerAddress[gnosis.id],
-    amountIn,
-    gnosis.id,
+    chainId === gnosis.id
+      ? {
+          tokensAddresses: [tokenIn],
+          account,
+          spender: tradeManagerAddress[chainId],
+          amounts: amountIn,
+          chainId: chainId,
+        }
+      : undefined,
   );
   return (
-    <SwitchChainButtonWrapper chainId={gnosis.id as SupportedChain}>
+    <SwitchChainButtonWrapper chainId={chainId}>
       {!missingApprovals.length && (
         <Button
           variant="primary"
@@ -49,6 +54,7 @@ export default function SwapButtonsTradeManager({
               tokenName={approval.name}
               spender={approval.spender}
               amount={approval.amount}
+              chainId={chainId}
             />
           ))}
         </div>

@@ -9,13 +9,13 @@ import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Address } from "viem";
-import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
@@ -53,12 +53,26 @@ function MarkeVerifyPage() {
     removeOutcomes();
 
     if (market) {
-      // remove the last outcome (INVALID_RESULT)
-      for (const outcome of market.outcomes.slice(0, -1)) {
+      for (let i = 0; i < market.outcomes.length; i++) {
+        const outcome = market.outcomes[i];
+        // skip INVALID_RESULT
+        if (market.type === "Generic" && i === market.outcomes.length - 1) {
+          break;
+        }
         appendOutcome({ value: outcome, token: "", image: "" });
       }
     }
   }, [market]);
+
+  if (import.meta.env.VITE_VERIFICATION_DISABLED === "true") {
+    return (
+      <div className="py-10 px-10">
+        <Alert type="error" className="mb-5">
+          Market verifications are temporarily disabled. Please try again later.
+        </Alert>
+      </div>
+    );
+  }
 
   if (isMarketError) {
     return (
@@ -89,6 +103,7 @@ function MarkeVerifyPage() {
     images !== false &&
       (await verifyMarket.mutateAsync({
         marketId: market.id,
+        chainId: market.chainId,
         marketImage: images.file.market,
         outcomesImages: images.file.outcomes,
         submissionDeposit: submissionDeposit!,
@@ -150,7 +165,7 @@ function MarkeVerifyPage() {
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
               <span>Verification deposit:</span>{" "}
               <span className="text-[24px] font-semibold">
-                {displayBalance(submissionDeposit, 18)} {chainId === gnosis.id ? "xDAI" : "DAI"}
+                {displayBalance(submissionDeposit, 18)} {COLLATERAL_TOKENS[chainId].secondary?.symbol ?? "DAI"}
               </span>
             </div>
           )}
@@ -159,6 +174,7 @@ function MarkeVerifyPage() {
             <Button
               type="submit"
               text="Verify Market"
+              className="whitespace-nowrap"
               disabled={!marketReadyToVerify || verifyMarket.isPending}
               isLoading={verifyMarket.isPending}
             />

@@ -1,13 +1,13 @@
 import { SupportedChain } from "@/lib/chains";
+import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "../contracts/generated";
+import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "../contracts/generated-multi-drop";
 import { getTokensInfo } from "../portfolio/utils";
-import { Market } from "../useMarket";
 import { useMarkets } from "../useMarkets";
 
 export interface AirdropTokenInfo {
@@ -20,7 +20,8 @@ export interface AirdropTokenInfo {
 }
 
 export const useGetListAirdropTokens = (account: Address | undefined, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data } = useMarkets({});
+  const { markets = [] } = data || {};
   const queryResult = useQuery<AirdropTokenInfo[] | undefined, Error>({
     enabled: !!account,
     queryKey: ["useGetListAirdropTokens", account],
@@ -47,7 +48,7 @@ export const useGetListAirdropTokens = (account: Address | undefined, chainId: S
           })),
           allowFailure: false,
         }),
-        getTokensInfo(tokenAddresses, account!),
+        getTokensInfo(config, chainId, tokenAddresses, account!),
       ]);
       const { names: tokenNames, decimals: tokenDecimals } = tokensInfo;
       const tokens = tokenAddresses.reduce((acumm, tokenAddress, index) => {

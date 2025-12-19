@@ -4,7 +4,7 @@ import { Address } from "viem";
 import { gnosis } from "viem/chains";
 import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
-import { getPools } from "../useMarketPools";
+import { PoolInfo, getPools } from "../useMarketPools";
 
 async function getTicks(chainId: SupportedChain, poolId: string) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -40,7 +40,7 @@ async function getTicks(chainId: SupportedChain, poolId: string) {
   return total;
 }
 
-export async function getTicksData(chainId: SupportedChain, token0: Address, token1: Address) {
+export async function getPoolAndTicksData(chainId: SupportedChain, token0: Address, token1: Address) {
   try {
     const pools = await getPools(chainId).fetch({ token0, token1 });
 
@@ -48,17 +48,24 @@ export async function getTicksData(chainId: SupportedChain, token0: Address, tok
 
     return pools.reduce(
       (acc, curr, index) => {
-        acc[curr.id] = ticksByPool[index];
+        acc[curr.id] = {
+          ticks: ticksByPool[index],
+          poolInfo: pools[index],
+        };
         return acc;
       },
       {} as {
         [key: string]: {
-          tickIdx: string;
-          liquidityNet: string;
-        }[];
+          ticks: {
+            tickIdx: string;
+            liquidityNet: string;
+          }[];
+          poolInfo: PoolInfo;
+        };
       },
     );
   } catch (e) {
-    console.log(e);
+    console.error("getTicksData", e);
+    return {};
   }
 }

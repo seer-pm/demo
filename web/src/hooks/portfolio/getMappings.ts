@@ -1,22 +1,15 @@
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market, getCollateralByIndex, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { config } from "@/wagmi";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { Market } from "../useMarket";
 
 export interface MarketDataMapping {
-  outcomeTokenToCollateral: {
-    [key: string]: Address;
-  };
+  outcomeTokenToCollateral: Map<Address, Address>;
   conditionIdToMarketMapping: {
     [key: string]: Market;
   };
-  allTokensIds: Address[];
-
-  marketIdToCollateral: {
-    [key: string]: Address;
-  };
+  allTokensIds: Set<Address>;
   tokenPairToMarketMapping: {
     [key: string]: Market;
   };
@@ -25,82 +18,39 @@ export interface MarketDataMapping {
   };
 }
 
-export async function getMappings(markets: Market[], chainId: SupportedChain) {
-  const marketAddressToMarket = markets.reduce(
-    (acc, curr) => {
-      acc[curr.id.toLocaleLowerCase()] = curr;
-      return acc;
-    },
-    {} as { [key: string]: Market },
-  );
-  const conditionIdToMarketMapping = markets.reduce(
-    (acc, curr) => {
-      acc[curr.conditionId.toLocaleLowerCase()] = curr;
-      return acc;
-    },
-    {} as { [key: string]: Market },
-  );
+export async function getMappings(initialMarkets: Market[], chainId: SupportedChain): Promise<MarketDataMapping> {
+  const markets = initialMarkets.filter((x) => x.chainId === chainId);
+  const conditionIdToMarketMapping: MarketDataMapping["conditionIdToMarketMapping"] = {};
+  const tokenPairToMarketMapping: MarketDataMapping["tokenPairToMarketMapping"] = {};
+  const outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"] = new Map();
+  const allTokensIds: MarketDataMapping["allTokensIds"] = new Set();
 
-  const tokenPairToMarketMapping = markets.reduce(
-    (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
-        : COLLATERAL_TOKENS[chainId].primary.address;
-      for (const outcomeToken of curr.wrappedTokens) {
-        const key =
-          collateral.toLocaleLowerCase() > outcomeToken.toLocaleLowerCase()
-            ? `${outcomeToken.toLocaleLowerCase()}-${collateral.toLocaleLowerCase()}`
-            : `${collateral.toLocaleLowerCase()}-${outcomeToken.toLocaleLowerCase()}`;
-        acc[key] = curr;
-      }
-      return acc;
-    },
-    {} as { [key: string]: Market },
-  );
+  for (const market of markets) {
+    conditionIdToMarketMapping[market.conditionId.toLocaleLowerCase()] = market;
 
-  const marketIdToCollateral = markets.reduce(
-    (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
-        : COLLATERAL_TOKENS[chainId].primary.address;
-      acc[curr.id.toLocaleLowerCase()] = collateral;
-      return acc;
-    },
-    {} as { [key: string]: Address },
-  );
+    market.wrappedTokens.forEach((outcomeToken, i) => {
+      const collateral = getCollateralByIndex(market, i);
+      const { token0, token1 } = getToken0Token1(collateral, outcomeToken);
+      tokenPairToMarketMapping[getTokensPairKey(token0, token1)] = market;
 
-  const outcomeTokenToCollateral = markets.reduce(
-    (acc, curr) => {
-      const collateral = marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()]
-        ? marketAddressToMarket[curr.parentMarket.id.toLocaleLowerCase()].wrappedTokens[Number(curr.parentOutcome)]
-        : COLLATERAL_TOKENS[chainId].primary.address;
-      for (const outcomeToken of curr.wrappedTokens) {
-        acc[outcomeToken.toLocaleLowerCase()] = collateral;
-      }
-      return acc;
-    },
-    {} as { [key: string]: Address },
-  );
-
-  const allTokensIds = markets.reduce((acc, market) => {
-    for (let i = 0; i < market.wrappedTokens.length; i++) {
-      const tokenId = market.wrappedTokens[i].toLocaleLowerCase() as Address;
-      acc.push(tokenId);
-    }
-    return acc;
-  }, [] as Address[]);
+      outcomeTokenToCollateral.set(outcomeToken.toLocaleLowerCase() as Address, getCollateralByIndex(market, i));
+      allTokensIds.add(market.wrappedTokens[i].toLocaleLowerCase() as Address);
+      allTokensIds.add(collateral.toLocaleLowerCase() as Address);
+    });
+  }
 
   //get token symbols
   const allTokensSymbols = (await readContracts(config, {
-    contracts: allTokensIds.map((tokenId) => ({
+    contracts: Array.from(allTokensIds.values()).map((tokenId) => ({
       abi: erc20Abi,
+      chainId,
       address: tokenId,
       functionName: "symbol",
       args: [],
     })),
     allowFailure: false,
   })) as string[];
-  const tokenIdToTokenSymbolMapping = allTokensIds.reduce(
+  const tokenIdToTokenSymbolMapping = Array.from(allTokensIds.values()).reduce(
     (acc, curr, index) => {
       acc[curr] = allTokensSymbols[index];
       return acc;
@@ -112,7 +62,6 @@ export async function getMappings(markets: Market[], chainId: SupportedChain) {
     outcomeTokenToCollateral,
     conditionIdToMarketMapping,
     allTokensIds,
-    marketIdToCollateral,
     tokenPairToMarketMapping,
     tokenIdToTokenSymbolMapping,
   };

@@ -1,13 +1,15 @@
+import { SupportedChain } from "@/lib/chains";
 import { getNewCurateItem } from "@/lib/curate";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
-import { writeLightGeneralizedTcrAddItem } from "./contracts/generated";
+import { writeLightGeneralizedTcrAddItem } from "./contracts/generated-curate";
 
 interface VerifyMarketProps {
   marketId: `0x${string}`;
+  chainId: SupportedChain;
   marketImage: File;
   outcomesImages: File[];
   submissionDeposit: bigint;
@@ -21,6 +23,7 @@ async function verifyMarket(props: VerifyMarketProps): Promise<TransactionReceip
       writeLightGeneralizedTcrAddItem(config, {
         args: [item],
         value: props.submissionDeposit,
+        chainId: props.chainId,
       }),
     {
       txSent: { title: "Submitting market to Kleros Curate..." },

@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
@@ -7,21 +8,26 @@ import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalcul
 
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { Address } from "viem";
+import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 function PortfolioPage() {
-  const { address } = useAccount();
+  const { address: connectedAccount } = useAccount();
+  const { routeParams } = usePageContext();
+  const account = (routeParams?.id || connectedAccount) as Address | undefined;
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "positions";
 
   const { isCalculating, delta, currentPortfolioValue, deltaPercent, isCalculatingDelta } =
-    useCalculatePositionsValue();
+    useCalculatePositionsValue(account);
 
-  if (!address) {
+  if (!account) {
     return (
-      <div className="container-fluid py-[24px] lg:py-[65px]">
+      <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
+        <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
           Connect your wallet to see your portfolio.
         </Alert>
@@ -68,7 +74,7 @@ function PortfolioPage() {
       <div>
         <div
           role="tablist"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-[300px] mb-6"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
         >
           <button
             type="button"
@@ -106,10 +112,23 @@ function PortfolioPage() {
           >
             History
           </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${activeTab === "airdrop" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "airdrop",
+              })
+            }
+          >
+            Airdrop
+          </button>
         </div>
-        {activeTab === "positions" && <PositionsTab />}
-        {activeTab === "orders" && <OrdersTab />}
-        {activeTab === "history" && <HistoryTab />}
+        {activeTab === "positions" && <PositionsTab account={account} />}
+        {activeTab === "orders" && <OrdersTab account={account} />}
+        {activeTab === "history" && <HistoryTab account={account} />}
+        {activeTab === "airdrop" && <AirdropTab account={account} />}
       </div>
     </div>
   );

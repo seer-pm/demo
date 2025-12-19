@@ -1,19 +1,44 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { ITEMS_PER_PAGE, searchGraphMarkets, searchOnChainMarkets, sortMarkets } from "@/lib/markets-search";
+import { VerificationStatus } from "@/lib/market";
+import { MarketStatus } from "@/lib/market";
+import { MarketsResult, fetchMarkets } from "@/lib/markets-fetch";
 import { queryClient } from "@/lib/query-client";
+import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { useAccount } from "wagmi";
+import { marketFactoryAddress } from "./contracts/generated-market-factory";
+import { readMarketViewGetMarkets } from "./contracts/generated-market-view";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { useGlobalState } from "./useGlobalState";
-import { Market, VerificationStatus, getUseGraphMarketKey } from "./useMarket";
-import { MarketStatus } from "./useMarketStatus";
-import useMarketsSearchParams from "./useMarketsSearchParams";
+import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
+
+export async function searchOnChainMarkets(chainId: SupportedChain) {
+  return (
+    await readMarketViewGetMarkets(config, {
+      args: [BigInt(50), marketFactoryAddress[chainId]],
+      chainId,
+    })
+  )
+    .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
+    .map((market) =>
+      mapOnChainMarket(market, {
+        chainId,
+        outcomesSupply: 0n,
+        liquidityUSD: 0,
+        incentive: 0,
+        hasLiquidity: false,
+        categories: ["misc"],
+        poolBalance: [],
+        odds: [],
+        url: "",
+      }),
+    );
+}
 
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
   marketName: string,
   marketStatusList: MarketStatus[] | undefined,
+  disabled?: boolean,
 ) => {
   const chainIds = (
     chainsList.length === 0
@@ -23,73 +48,124 @@ const useOnChainMarkets = (
     .filter((chain) => chain !== "31337")
     .map((chainId) => Number(chainId)) as SupportedChain[];
 
-  return useQuery<Market[] | undefined, Error>({
+  return useQuery<MarketsResult, Error>({
     queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
+    enabled: !disabled,
     queryFn: async () => {
-      return (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
+      const markets = (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
+      return {
+        markets,
+        count: markets.length,
+        pages: 1,
+      };
     },
   });
 };
 
-const useGraphMarkets = (
-  chainsList: Array<string | "all">,
-  marketName: string,
-  marketStatusList: MarketStatus[] | undefined,
-  creator: Address | "",
-  participant: Address | "",
-  orderBy: Market_OrderBy | undefined,
-) => {
-  const chainIds = (
-    chainsList.length === 0 ? Object.keys(SUPPORTED_CHAINS) : chainsList.filter((chain) => chain !== "all")
-  )
-    .filter((chain) => chain !== "31337")
-    .map((chainId) => Number(chainId)) as SupportedChain[];
+export type UseGraphMarketsParams = {
+  chainsList: Array<string | "all">;
+  type: "Generic" | "Futarchy" | "";
+  marketName: string;
+  categoryList?: string[];
+  marketStatusList: MarketStatus[] | undefined;
+  verificationStatusList: VerificationStatus[] | undefined;
+  showConditionalMarkets: boolean | undefined;
+  showMarketsWithRewards: boolean | undefined;
+  minLiquidity?: number;
+  creator: Address | "";
+  participant: Address | "";
+  orderBy: Market_OrderBy | undefined;
+  orderDirection: "asc" | "desc" | undefined;
+  marketIds: string[] | undefined;
+  disabled: boolean | undefined;
+  limit: number | undefined;
+  page: number | undefined;
+};
 
-  return useQuery<Market[], Error>({
-    queryKey: ["useGraphMarkets", chainIds, marketName, marketStatusList, creator, orderBy],
+export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
+
+export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
+  const result = await fetchMarkets(params);
+  for (const market of result.markets) {
+    queryClient.setQueryData(getUseGraphMarketKey(market.id, market.chainId), market);
+    queryClient.setQueryData(getUseGraphMarketKey(market.url, market.chainId), market);
+  }
+
+  return result;
+};
+
+function useGraphMarkets(params: UseGraphMarketsParams) {
+  return useQuery<MarketsResult, Error>({
+    enabled: !params.disabled,
+    queryKey: getUseGraphMarketsKey(params),
     queryFn: async () => {
-      const markets = (
-        await Promise.all(
-          chainIds.map((chainId) =>
-            searchGraphMarkets(chainId, marketName, marketStatusList, creator, participant, orderBy),
-          ),
-        )
-      ).flat();
-
-      // sort again because we are merging markets from multiple chains
-      markets.sort(sortMarkets(orderBy));
-
-      for (const market of markets) {
-        queryClient.setQueryData(getUseGraphMarketKey(market.id), market);
-      }
-
-      return markets;
+      return useGraphMarketsQueryFn(params);
     },
     retry: false,
   });
-};
+}
 
-interface UseMarketsProps {
+export interface UseMarketsProps {
+  type?: "Generic" | "Futarchy" | "";
   marketName?: string;
   marketStatusList?: MarketStatus[];
   verificationStatusList?: VerificationStatus[];
+  categoryList?: string[];
   chainsList?: Array<string | "all">;
   creator?: Address | "";
   participant?: Address | "";
   orderBy?: Market_OrderBy;
-  isShowMyMarkets?: boolean;
+  showMyMarkets?: boolean;
+  showConditionalMarkets?: boolean;
+  showMarketsWithRewards?: boolean;
+  showFutarchyMarkets?: boolean;
+  minLiquidity?: number;
+  orderDirection?: "asc" | "desc";
+  marketIds?: string[];
+  disabled?: boolean;
+  limit?: number;
+  page?: number;
 }
 
 export const useMarkets = ({
+  type = "",
   marketName = "",
+  categoryList = [],
   marketStatusList = [],
+  verificationStatusList = [],
+  showConditionalMarkets,
+  showMarketsWithRewards,
+  minLiquidity,
   chainsList = [],
   creator = "",
   participant = "",
   orderBy,
+  orderDirection,
+  marketIds,
+  disabled,
+  limit,
+  page,
 }: UseMarketsProps) => {
-  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList);
-  const graphMarkets = useGraphMarkets(chainsList, marketName, marketStatusList, creator, participant, orderBy);
+  const onChainMarkets = useOnChainMarkets(chainsList, marketName, marketStatusList, disabled);
+  const graphMarkets = useGraphMarkets({
+    chainsList,
+    type,
+    marketName,
+    categoryList,
+    marketStatusList,
+    verificationStatusList,
+    showConditionalMarkets,
+    showMarketsWithRewards,
+    minLiquidity,
+    creator,
+    participant,
+    orderBy,
+    orderDirection,
+    marketIds,
+    disabled,
+    limit,
+    page,
+  });
   if (marketName || marketStatusList.length > 0) {
     // we only filter using the subgraph
     return graphMarkets;
@@ -97,58 +173,4 @@ export const useMarkets = ({
 
   // if the subgraph is error we return on chain markets, otherwise we return subgraph
   return graphMarkets.isError ? onChainMarkets : graphMarkets;
-};
-
-export const useSortAndFilterMarkets = (params: UseMarketsProps) => {
-  const result = useMarkets(params);
-  const { address = "" } = useAccount();
-  const favorites = useGlobalState((state) => state.favorites);
-  const { page, setPage } = useMarketsSearchParams();
-
-  let data = result.data || [];
-
-  // filter by verification status
-  if (params.verificationStatusList) {
-    data = data.filter((market) => {
-      return params.verificationStatusList?.some((status) => market.verification?.status === status);
-    });
-  }
-
-  // filter my markets
-  if (params.isShowMyMarkets) {
-    data = data.filter((market: Market) => {
-      return address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase();
-    });
-  }
-
-  // favorite markets on top, we use reduce to keep the current sort order
-  const [favoriteMarkets, nonFavoriteMarkets] = data.reduce(
-    (total, market) => {
-      if (favorites[address]?.find((x) => x === market.id)) {
-        total[0].push(market);
-      } else {
-        total[1].push(market);
-      }
-      return total;
-    },
-    [[], []] as Market[][],
-  );
-  data = favoriteMarkets.concat(nonFavoriteMarkets);
-
-  //pagination
-  const itemOffset = (page - 1) * ITEMS_PER_PAGE;
-  const endOffset = itemOffset + ITEMS_PER_PAGE;
-
-  const currentMarkets = data.slice(itemOffset, endOffset) as Market[];
-  const pageCount = Math.ceil(data.length / ITEMS_PER_PAGE);
-
-  const handlePageClick = ({ selected }: { selected: number }) => {
-    setPage(selected + 1);
-  };
-
-  return {
-    ...result,
-    data: currentMarkets,
-    pagination: { pageCount, handlePageClick, page: Number(page ?? "") },
-  };
 };

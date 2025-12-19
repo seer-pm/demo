@@ -1,7 +1,9 @@
-import { marketFactoryAbi } from "@/hooks/contracts/generated";
-import { getOutcomes, useCreateMarket } from "@/hooks/useCreateMarket";
+import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
+import { futarchyFactoryAbi } from "@/hooks/contracts/generated-market-factory";
+import { marketFactoryAbi } from "@/hooks/contracts/generated-market-factory";
+import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market, useMarket } from "@/hooks/useMarket";
+import { getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -9,24 +11,27 @@ import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
+import { isVerificationEnabled } from "@/lib/config";
+import { MARKET_CATEGORIES, MISC_CATEGORY } from "@/lib/create-market";
+import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
+import { Market } from "@/lib/market";
+import { getMarketName, getOutcomes } from "@/lib/market";
 import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined, localTimeToUtc } from "@/lib/utils";
+import { queryClient } from "@/lib/query-client";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Address, TransactionReceipt, isAddress, zeroAddress } from "viem";
+import { Address, TransactionReceipt, isAddress, parseEther, zeroAddress, zeroHash } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
-import { useAccount } from "wagmi";
 import {
   DateFormValues,
   FormWithPrevStep,
-  MISC_CATEGORY,
   MarketTypeFormValues,
   OutcomesFormValues,
   getImagesForVerification,
-  getQuestionParts,
 } from ".";
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
@@ -230,9 +235,11 @@ export function PreviewForm({
   dateValues,
   goToPrevStep,
   chainId,
+  isFutarchyMarket,
   useOutcomesFormReturn,
 }: FormStepPreview &
   FormWithPrevStep & {
+    isFutarchyMarket: boolean;
     useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
   }) {
   const [searchParams] = useSearchParams();
@@ -243,7 +250,6 @@ export function PreviewForm({
     parentMarket?.outcomes?.findIndex((outcome) => outcome === searchParams.get("parentOutcome")) ?? -1;
   parentOutcomeIndex = Math.max(parentOutcomeIndex, 0);
 
-  const { address = "" } = useAccount();
   const [verifyNow, setVerifyNow] = useState(false);
   const [newMarketId, setNewMarketId] = useState<Address | "">("");
 
@@ -261,43 +267,57 @@ export function PreviewForm({
   const { data: submissionDeposit } = useSubmissionDeposit();
 
   const { Modal, openModal } = useModal("answer-modal");
-  const { toggleFavorite } = useGlobalState();
+  const accessToken = useGlobalState((state) => state.accessToken);
 
-  const createMarket = useCreateMarket(async (receipt: TransactionReceipt) => {
-    const marketId = parseEventLogs({
-      abi: marketFactoryAbi,
-      eventName: "NewMarket",
-      logs: receipt.logs,
-    })?.[0]?.args?.market;
+  const createMarket = useCreateMarket(isFutarchyMarket, async (receipt: TransactionReceipt) => {
+    const marketId = isFutarchyMarket
+      ? parseEventLogs({
+          abi: futarchyFactoryAbi,
+          eventName: "NewProposal",
+          logs: receipt.logs,
+        })?.[0]?.args?.proposal
+      : parseEventLogs({
+          abi: marketFactoryAbi,
+          eventName: "NewMarket",
+          logs: receipt.logs,
+        })?.[0]?.args?.market;
 
     if (marketId) {
       setNewMarketId(marketId);
-      toggleFavorite(address, marketId);
-      fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`);
+      await Promise.allSettled([
+        updateCollectionItem({ marketIds: [marketId], accessToken }),
+        // fetchAuth(accessToken, "/.netlify/functions/market-categories", "POST", {
+        //   marketId: marketId.toLowerCase(),
+        //   categories: marketTypeValues.marketCategories,
+        //   chainId
+        // }),
+        fetch(`/.netlify/functions/add-liquidity-background/${chainId}/${marketId}`),
+      ]);
+      await queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(marketId, chainId) });
+      queryClient.invalidateQueries({ queryKey: ["useGraphMarkets"] });
     }
   });
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
-  const openingTime = Math.round(localTimeToUtc(dateValues.openingTime).getTime() / 1000);
+  const openingTime = Math.round(utcToLocalTime(dateValues.openingTime).getTime() / 1000);
 
   const createMarketHandler = async () => {
-    const questionParts = getQuestionParts(outcomesValues.market, marketTypeValues.marketType);
     await createMarket.mutateAsync({
       marketType: marketTypeValues.marketType,
       marketName: outcomesValues.market,
+      collateralToken1: outcomesValues.collateralToken1,
+      collateralToken2: outcomesValues.collateralToken2,
+      isArbitraryQuestion: outcomesValues.isArbitraryQuestion || false,
       outcomes: outcomes,
       tokenNames:
         marketTypeValues.marketType === MarketTypes.SCALAR
           ? [outcomesValues.lowerBound.token, outcomesValues.upperBound.token]
           : outcomesValues.outcomes.map((o) => o.token),
-      questionStart: questionParts?.questionStart || "",
-      questionEnd: questionParts?.questionEnd || "",
-      outcomeType: questionParts?.outcomeType || "",
       parentMarket: parentMarketAddress as Address,
       parentOutcome: BigInt(parentOutcomeIndex),
-      lowerBound: outcomesValues.lowerBound.value,
-      upperBound: outcomesValues.upperBound.value,
+      lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+      upperBound: parseEther(String(outcomesValues.upperBound.value)),
       unit: outcomesValues.unit,
       category: MISC_CATEGORY,
       openingTime,
@@ -309,6 +329,7 @@ export function PreviewForm({
     if (marketReadyToVerify && verifyNow && newMarketId !== "") {
       await verifyMarket.mutateAsync({
         marketId: newMarketId,
+        chainId,
         marketImage: images.file.market,
         outcomesImages: images.file.outcomes,
         submissionDeposit: submissionDeposit!,
@@ -325,11 +346,14 @@ export function PreviewForm({
 
   const dummyMarket: Market = {
     id: "0x000",
+    type: "Generic",
+    collateralToken: zeroAddress,
+    collateralToken1: zeroAddress,
+    collateralToken2: zeroAddress,
     chainId,
-    marketName:
-      marketTypeValues.marketType === MarketTypes.SCALAR && outcomesValues.unit.trim()
-        ? `${outcomesValues.market} [${outcomesValues.unit}]`
-        : outcomesValues.market,
+    marketName: isFutarchyMarket
+      ? getProposalName(outcomesValues.market, openingTime, outcomesValues.isArbitraryQuestion || false)
+      : getMarketName(marketTypeValues.marketType, outcomesValues.market, outcomesValues.unit),
     outcomes: dummyOutcomes,
     parentMarket: {
       id: parentMarketAddress as Address,
@@ -347,8 +371,8 @@ export function PreviewForm({
     conditionId: "0x000",
     questionId: "0x000",
     templateId: BigInt(getTemplateByMarketType(marketTypeValues.marketType)),
-    lowerBound: BigInt(outcomesValues.lowerBound.value),
-    upperBound: BigInt(outcomesValues.upperBound.value),
+    lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
+    upperBound: parseEther(String(outcomesValues.upperBound.value)),
     payoutReported: true,
     payoutNumerators: [0n, 0n],
     questions: [...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys()].map(
@@ -362,9 +386,11 @@ export function PreviewForm({
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",
         bond: 0n,
         min_bond: 100000000000000000n,
+        base_question: zeroHash,
       }),
     ),
     openingTs: 0,
+    finalizeTs: 0,
     encodedQuestions: [
       ...Array(marketTypeValues.marketType === MarketTypes.MULTI_SCALAR ? outcomes.length : 1).keys(),
     ].map((_) => ""),
@@ -372,6 +398,10 @@ export function PreviewForm({
       status: marketReadyToVerify && verifyNow ? "verified" : "not_verified",
       itemID: "",
     },
+    categories: ["misc"],
+    poolBalance: [],
+    odds: [],
+    url: "",
   };
 
   const showSuccessMessage = newMarketId !== "" && (!verifyNow || verifyMarket.isSuccess);
@@ -391,6 +421,22 @@ export function PreviewForm({
           chainId={chainId}
         />
         <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
+        <div className="text-left flex items-center gap-2 flex-wrap">
+          Categories:{" "}
+          {MARKET_CATEGORIES.map((category) => {
+            if (marketTypeValues.marketCategories.includes(category.value)) {
+              return (
+                <div
+                  className="border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] text-[14px] text-center"
+                  key={category.value}
+                >
+                  {category.text}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </DashedBox>
 
       <Modal
@@ -399,7 +445,7 @@ export function PreviewForm({
           <div className="text-black-secondary text-center">
             {showSuccessMessage ? (
               <ModalContentSucessMessage isVerified={verifyNow} chainId={chainId} />
-            ) : (
+            ) : isVerificationEnabled(chainId) ? (
               <ModalContentCreateMarket
                 verifyNow={verifyNow}
                 setVerifyNow={setVerifyNow}
@@ -408,6 +454,8 @@ export function PreviewForm({
                 useOutcomesFormReturn={useOutcomesFormReturn}
                 chainId={chainId}
               />
+            ) : (
+              <p className="my-[24px]">The market will be created and available for trading immediately.</p>
             )}
 
             <div className="flex justify-center space-x-[12px]">

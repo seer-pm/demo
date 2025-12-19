@@ -1,7 +1,6 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market, getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
@@ -11,13 +10,12 @@ import { Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
+  GetPositionsQuery,
   OrderDirection,
   Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
 } from "./queries/gql-generated-swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
-import { Market, useMarket } from "./useMarket";
-import { useTokenInfo } from "./useTokenInfo";
 
 export interface PoolIncentive {
   reward: bigint;
@@ -27,6 +25,7 @@ export interface PoolIncentive {
   bonusRewardToken: Address;
   startTime: bigint;
   endTime: bigint;
+  realEndTime: bigint;
 }
 
 export interface PoolInfo {
@@ -57,6 +56,9 @@ function getPoolApr(_seerRewardPerDay: number /*, stakedTvl: number*/): number {
 }
 
 function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmings"][0]): PoolIncentive {
+  const rewardSeconds =
+    eternalFarming.rewardRate !== "0" ? BigInt(eternalFarming.reward) / BigInt(eternalFarming.rewardRate) : 0n;
+  const endTime = BigInt(eternalFarming.startTime) + rewardSeconds;
   return {
     reward: BigInt(eternalFarming.reward),
     rewardRate: BigInt(eternalFarming.rewardRate),
@@ -64,7 +66,10 @@ function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmi
     rewardToken: eternalFarming.rewardToken,
     bonusRewardToken: eternalFarming.bonusRewardToken,
     startTime: BigInt(eternalFarming.startTime),
+    // endTime is the value we need to use when interacting with the farming smart contract
     endTime: BigInt(eternalFarming.endTime),
+    // realEndTime represents the actual end date displayed in the UI, calculated as min(endTime, reward/rewardRate)
+    realEndTime: BigInt(eternalFarming.endTime) > endTime ? endTime : BigInt(eternalFarming.endTime),
   };
 }
 
@@ -105,6 +110,7 @@ async function getSwaprPools(
     },
     orderBy: SwaprPool_OrderBy.TotalValueLockedUsd,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(
@@ -146,6 +152,7 @@ async function getUniswapPools(
     },
     orderBy: UniswapPool_OrderBy.Liquidity,
     orderDirection: OrderDirection.Desc,
+    first: 1000,
   });
 
   return await Promise.all(
@@ -184,72 +191,23 @@ export const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral, isLoading } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-  const tokens = market.wrappedTokens.map((outcomeToken) => {
-    return outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
-      ? [collateralToken.address, outcomeToken]
-      : [outcomeToken, collateralToken.address];
-  });
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
-    enabled: tokens && tokens.length > 0 && !isLoading,
-    queryKey: ["useMarketPools", market.id, tokens],
+    queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(tokens.map(([token0, token1]) => getPools(market.chainId).fetch({ token0, token1 })));
+      return await Promise.all(getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId).fetch(poolPair)));
     },
   });
 };
 
-interface OutcomePool {
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  liquidity: string;
-}
-
-export const useAllOutcomePools = (chainId: SupportedChain, collateralToken: Token) => {
-  return useQuery<OutcomePool[], Error>({
-    queryKey: ["useAllOutcomePools", chainId, collateralToken.address],
-    retry: false,
-    queryFn: async () => {
-      const graphQLClient =
-        chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-      if (!graphQLClient) {
-        throw new Error("Subgraph not available");
-      }
-
-      const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-
-      const { pools } = await graphQLSdk(graphQLClient).GetPools({
-        where: {
-          or: [
-            { token0_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-            { token1_: { id: collateralToken.address.toLocaleLowerCase() as Address } },
-          ],
-        },
-      });
-      return pools;
-    },
-  });
-};
-
-type PoolsDeposits = Record<Address, GetDepositsQuery["deposits"]>;
+export type PoolDeposit = GetDepositsQuery["deposits"][0];
+type PoolsDeposits = Record<Address, PoolDeposit[]>;
 
 export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owner?: Address) => {
   return useQuery<PoolsDeposits | undefined, Error>({
     queryKey: ["usePoolsDeposits", chainId, pools, owner],
     enabled: !!owner,
+    refetchOnWindowFocus: "always",
     queryFn: async () => {
       const algebraFarmingClient = swaprGraphQLClient(chainId, "algebrafarming");
 
@@ -270,6 +228,35 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
 
         return acum;
       }, {} as PoolsDeposits);
+    },
+  });
+};
+
+export type NftPosition = GetPositionsQuery["positions"][0];
+
+export const useNftPositions = (chainId: SupportedChain, ids: string[]) => {
+  return useQuery<Record<string, NftPosition> | undefined, Error>({
+    queryKey: ["useNftPositions", chainId, ids],
+    enabled: ids.length > 0,
+    refetchOnWindowFocus: "always",
+    queryFn: async () => {
+      const algebraClient = swaprGraphQLClient(chainId, "algebra");
+
+      if (!algebraClient) {
+        throw new Error("Subgraph not available");
+      }
+
+      const { positions } = await getSwaprSdk(algebraClient).GetPositions({
+        where: { id_in: ids },
+      });
+
+      return positions.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr;
+          return acc;
+        },
+        {} as Record<string, NftPosition>,
+      );
     },
   });
 };

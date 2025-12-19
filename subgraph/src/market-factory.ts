@@ -9,6 +9,12 @@ import {
   MarketFactory,
   NewMarket as NewMarketEvent,
 } from "../generated/MarketFactory/MarketFactory";
+import {
+  FutarchyFactory,
+  NewProposal as NewProposalEvent,
+} from "../generated/FutarchyFactory/FutarchyFactory";
+import { FutarchyProposal } from "../generated/FutarchyFactory/FutarchyProposal";
+import { Reality } from "../generated/FutarchyFactory/Reality";
 import { MarketView } from "../generated/MarketFactory/MarketView";
 import {
   Condition,
@@ -19,10 +25,25 @@ import {
 } from "../generated/schema";
 import { DEFAULT_FINALIZE_TS } from "./reality";
 
-const MARKET_VIEW_ADDRESS =
-  dataSource.network() == "mainnet"
-    ? "0xAb797C4C6022A401c31543E316D3cd04c67a87fC"
-    : "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+function getMarketViewAddress(network: string): string {
+  if (network == "sepolia") {
+    return "0x03d03464BF9Eb20059Ca6eF6391E9C5d79d5E012";
+  }
+
+  if (network == "mainnet") {
+    return "0xAb797C4C6022A401c31543E316D3cd04c67a87fC";
+  }
+
+  if (network == "optimism") {
+    return "0x1F728c2fD6a3008935c1446a965a313E657b7904";
+  }
+
+  if (network == "base") {
+    return "0x1F728c2fD6a3008935c1446a965a313E657b7904";
+  }
+
+  return "0x995dC9c89B6605a1E8cc028B37cb8e568e27626f";
+}
 
 function getNextMarketIndex(): BigInt {
   let marketsCount = MarketsCount.load("markets-count");
@@ -69,7 +90,9 @@ class MarketData {
 }
 
 export function handleNewMarket(event: NewMarketEvent): void {
-  const marketView = MarketView.bind(Address.fromString(MARKET_VIEW_ADDRESS));
+  const marketView = MarketView.bind(
+    Address.fromString(getMarketViewAddress(dataSource.network()))
+  );
 
   const data = marketView.getMarket(
     event.address,
@@ -108,6 +131,59 @@ export function handleNewMarket(event: NewMarketEvent): void {
       })),
     },
     MarketFactory.bind(event.address).collateralToken()
+  );
+}
+
+export function handleNewProposal(event: NewProposalEvent): void {
+  const proposal = FutarchyProposal.bind(event.params.proposal);
+  const futarchyFactory = FutarchyFactory.bind(event.address);
+  const reality = Reality.bind(futarchyFactory.realitio());
+
+  const wrappedTokens: Address[] = [];
+  const outcomes: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const outcome = proposal.outcomes(BigInt.fromI32(i));
+    outcomes.push(outcome);
+    const result = proposal.wrappedOutcome(BigInt.fromI32(i));
+    wrappedTokens.push(result.getWrapped1155());
+  }
+
+  const question = reality.questions(event.params.questionId);
+
+  processMarket(
+    event,
+    {
+      id: event.params.proposal.toHexString(),
+      type: "Futarchy",
+      marketName: event.params.marketName,
+      outcomes: outcomes,
+      lowerBound: BigInt.fromI32(0),
+      upperBound: BigInt.fromI32(0),
+      collateralToken1: proposal.collateralToken1(),
+      collateralToken2: proposal.collateralToken2(),
+      parentCollectionId: proposal.parentCollectionId(),
+      parentOutcome: proposal.parentOutcome(),
+      parentMarket: proposal.parentMarket(),
+      wrappedTokens: wrappedTokens,
+      conditionId: event.params.conditionId,
+      questionId: event.params.questionId,
+      questionsIds: [event.params.questionId],
+      templateId: BigInt.fromI32(2),
+      encodedQuestions: [proposal.encodedQuestion()],
+      questions: [
+        {
+          opening_ts: question.getOpening_ts(),
+          arbitrator: question.getArbitrator(),
+          timeout: question.getTimeout(),
+          finalize_ts: question.getFinalize_ts(),
+          is_pending_arbitration: question.getIs_pending_arbitration(),
+          best_answer: question.getBest_answer(),
+          bond: question.getBond(),
+          min_bond: question.getMin_bond(),
+        },
+      ],
+    },
+    Address.zero()
   );
 }
 
@@ -196,6 +272,7 @@ export function processMarket(
       market.id.concat(data.questionsIds[i].toHexString()).concat(i.toString())
     );
     marketQuestion.market = market.id;
+    marketQuestion.baseQuestion = question.id;
     marketQuestion.question = question.id;
     marketQuestion.index = i;
     marketQuestion.save();

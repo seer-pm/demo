@@ -1,3 +1,4 @@
+import { tradeQuoterAbi, tradeQuoterAddress } from "@/hooks/contracts/generated-trade-manager";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -6,7 +7,7 @@ import { getAccount, simulateContract } from "@wagmi/core";
 import { ethers } from "ethers";
 import { Address, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
-import { marketAbi, tradeQuoterAbi, tradeQuoterAddress } from "../contracts/generated";
+import { marketAbi } from "../contracts/generated-market-factory";
 
 export interface TradeManagerTokenPath {
   tokenIn: Address;

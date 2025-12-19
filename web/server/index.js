@@ -11,13 +11,16 @@
 //    - You can use Bati (https://batijs.dev/) to scaffold a Vike + HatTip app. Note that Bati generates apps that use the V1 design (https://vike.dev/migration/v1-design) and Vike packages (https://vike.dev/vike-packages)
 import express from 'express'
 import compression from 'compression'
-import { renderPage } from 'vike/server'
+import { renderPage, createDevMiddleware } from 'vike/server'
 import { root } from './root.js'
 const isProduction = process.env.NODE_ENV === 'production'
+
 startServer()
 async function startServer() {
   const app = express()
   app.use(compression())
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   // Vite integration
   if (isProduction) {
     // In production, we need to serve our static assets ourselves.
@@ -28,32 +31,30 @@ async function startServer() {
     // We instantiate Vite's development server and integrate its middleware to our server.
     // ⚠️ We instantiate it only in development. (It isn't needed in production and it
     // would unnecessarily bloat our production server.)
-    const vite = await import('vite')
-    const viteDevMiddleware = (
-      await vite.createServer({
-        root,
-        server: { middlewareMode: true },
-      })
-    ).middlewares
-    app.use(viteDevMiddleware)
+    const {devMiddleware} = await createDevMiddleware({root})
+    app.use(devMiddleware)
   }
   // ...
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
   // Proxy middleware for Netlify functions
-  app.all('/.netlify/*', async (req, res) => {
+  app.all(['/.netlify/*', '/subgraph', '/all-markets-search'], async (req, res) => {
     const url = `https://app.seer.pm${req.url}`;
-
     try {
       const response = await fetch(url, {
         method: req.method,
-        headers: req.headers,
+        headers: {
+          "Content-Type": req.headers["content-type"],
+          Authorization: req.headers.authorization
+        },
         body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? JSON.stringify(req.body) : undefined
       });
 
       const data = await response.text();
+      res.set('Content-Type', response.headers.get('Content-Type'));
       res.status(response.status);
       res.send(data);
     } catch (error) {
+      console.log(error)
       res.status(500).json({ error: error.message });
     }
   });

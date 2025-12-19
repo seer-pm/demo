@@ -37,6 +37,8 @@ query GetPools(
     }
     token0Price
     token1Price
+    volumeToken0
+    volumeToken1
     volumeUSD
     txCount
     totalValueLockedToken0
@@ -124,6 +126,19 @@ query GetSwaps(
     transaction {
       id
       blockNumber
+    }
+    tick
+    pool {
+      id
+      liquidity
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
     }
   }
 }

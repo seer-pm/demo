@@ -1,5 +1,5 @@
 import { BigInt, Address } from "@graphprotocol/graph-ts";
-import { MetaEvidence as MetaEvidenceEvent } from "../generated/LightGeneralizedTCR/LightGeneralizedTCR";
+import { MetaEvidence as MetaEvidenceEvent } from "../generated/LightGeneralizedTCR/IEvidence";
 import { CurateMetadata, ArbitratorMetadata } from "../generated/schema";
 
 function getOrCreateCurateMetadata(address: Address): CurateMetadata {

@@ -1,5 +1,11 @@
-query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _SubgraphErrorPolicy_! = deny) {
-  litems(where: $where, block: $block, subgraphError: $subgraphError) {
+query GetImages(
+  $where: LItem_filter
+  $skip: Int = 0
+  $first: Int = 100
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  litems(where: $where, block: $block, skip: $skip, first: $first, subgraphError: $subgraphError) {
     itemID
     status
     registryAddress
@@ -17,5 +23,6 @@ query GetImages($where: LItem_filter, $block: Block_height, $subgraphError: _Sub
       requestType
       resolved
     }
+    latestRequestSubmissionTime
   }
 }

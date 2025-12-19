@@ -1,18 +1,17 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { Market } from "@/hooks/useMarket";
-import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { useTokenBalance, useTokenBalances } from "@/hooks/useTokenBalance";
+import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { getRouterAddress } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../Alert";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
@@ -25,12 +24,29 @@ export interface MergeFormValues {
 interface MergeFormProps {
   account?: Address;
   market: Market;
-  router: Address;
 }
 
-export function MergeForm({ account, market, router }: MergeFormProps) {
-  const { data: positions = [], isFetching: isFetchingPositions } = useMarketPositions(account, market);
+function getMergePositions(market: Market, useAltCollateral: boolean): Address[] {
+  if (market.type === "Generic") {
+    return market.wrappedTokens;
+  }
 
+  // in a futarchy market we merge the first or the last two tokens
+  return !useAltCollateral
+    ? [market.wrappedTokens[0], market.wrappedTokens[1]]
+    : [market.wrappedTokens[2], market.wrappedTokens[3]];
+}
+
+export function MergeForm({ account, market }: MergeFormProps) {
+  const router = getRouterAddress(market);
+
+  const { data: balances, isLoading: isLoadingBalances } = useTokenBalances(
+    account,
+    market.wrappedTokens,
+    market.chainId,
+  );
+  const { data: tokensInfo = [], isLoading: isLoadingInfo } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const isLoading = isLoadingBalances || isLoadingInfo;
   const useFormReturn = useForm<MergeFormValues>({
     mode: "all",
     defaultValues: {
@@ -54,38 +70,37 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals, isLoading: isLoadingApprovals } = useMissingApprovals(
-    market.wrappedTokens,
-    account,
-    router,
-    parsedAmount,
-    market.chainId,
-  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
-  const mergePositions = useMergePositions((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const {
+    mergePositions,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useMergePositions(
+    {
+      tokensAddresses: getMergePositions(market, useAltCollateral),
+      account,
+      spender: router,
+      amounts: parsedAmount,
+      chainId: market.chainId,
+    },
+    (/*receipt: TransactionReceipt*/) => {
+      reset();
+    },
+  );
 
   const onSubmit = async (/*values: MergeFormValues*/) => {
     await mergePositions.mutateAsync({
       router,
-      market: market.id,
-      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
-      outcomeSlotCount: market.outcomes.length,
+      market: market,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[market.chainId],
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
     });
   };
 
-  const maxPositionAmount = positions.reduce(
-    (min, curr) => (min < curr.balance ? min : curr.balance),
-    positions?.[0]?.balance ?? 0n,
-  );
+  const maxPositionAmount = balances?.reduce((min, curr) => (min < curr ? min : curr), balances?.[0] ?? 0n) ?? 0n;
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
@@ -108,23 +123,18 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
             Max
           </div>
         </div>
-        <div
-          className={clsx(
-            "text-[12px] text-black-secondary mb-2 flex gap-1",
-            isFetchingPositions ? "items-center" : "",
-          )}
-        >
+        <div className={clsx("text-[12px] text-black-secondary mb-2 flex gap-1", isLoading ? "items-center" : "")}>
           Balance:{" "}
           <div>
-            {isFetchingPositions ? (
+            {isLoading ? (
               <div className="shimmer-container w-[80px] h-[13px]" />
             ) : (
               <div className="max-h-[80px] overflow-y-auto custom-scrollbar">
-                {positions.length > 0
-                  ? positions.map((position) => {
+                {balances && balances.length > 0
+                  ? balances.map((balance, index) => {
                       return (
-                        <div key={position.tokenId}>
-                          {displayBalance(position.balance, Number(position.decimals))} {position.symbol}
+                        <div key={tokensInfo?.[index]?.address}>
+                          {displayBalance(balance, 18, true)} {tokensInfo?.[index]?.symbol}
                         </div>
                       );
                     })
@@ -157,9 +167,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
         />
       </div>
 
-      {market.parentMarket.id === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
-      )}
+      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>
@@ -181,6 +189,7 @@ export function MergeForm({ account, market, router }: MergeFormProps) {
                   tokenName={approval.name}
                   spender={approval.spender}
                   amount={parsedAmount}
+                  chainId={market.chainId}
                 />
               ))}
             </div>

@@ -4,9 +4,9 @@ import { DateForm } from "@/components/MarketForm/DateForm";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
+import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import clsx from "clsx";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
 
@@ -17,22 +17,6 @@ enum FormSteps {
   PREVIEW = 4,
 }
 
-function Steps({ activeStep }: { activeStep: number }) {
-  const stepsCount = 3;
-  const steps = [...Array(stepsCount).keys()].map((n) => n + 1);
-  return (
-    <ul className="steps steps-horizontal mb-[48px]">
-      {steps.map((step) => (
-        <li
-          className={clsx("step", step <= activeStep && "step-primary")}
-          data-content={step < activeStep ? "✓" : undefined}
-          key={step}
-        ></li>
-      ))}
-    </ul>
-  );
-}
-
 function CreateMarket() {
   const { chain, chainId = DEFAULT_CHAIN } = useAccount();
   const [activeStep, setActiveStep] = useState(FormSteps.MARKET_TYPE);
@@ -41,6 +25,7 @@ function CreateMarket() {
     mode: "all",
     defaultValues: {
       marketType: undefined,
+      marketCategories: ["misc"],
     },
   });
 
@@ -57,11 +42,12 @@ function CreateMarket() {
       unit: "",
     },
   });
-
+  const localDate = useMemo(() => new Date(), []);
+  const utcDate = new Date(localDate.getTime() + localDate.getTimezoneOffset() * 60000 + 60000);
   const useDateFormReturn = useForm<DateFormValues>({
     mode: "all",
     defaultValues: {
-      openingTime: "",
+      openingTime: utcDate.toString(),
     },
   });
 
@@ -98,6 +84,8 @@ function CreateMarket() {
               goToPrevStep={goToPrevStep}
               goToNextStep={goToNextStep}
               marketType={marketType}
+              isFutarchyMarket={false}
+              chainId={chainId as SupportedChain}
             />
           )}
 
@@ -112,6 +100,7 @@ function CreateMarket() {
               dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}
+              isFutarchyMarket={false}
               useOutcomesFormReturn={useOutcomesFormReturn}
             />
           )}

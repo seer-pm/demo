@@ -4,13 +4,18 @@ import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
-import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
+import { config } from "@/wagmi";
+import { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 
 const SWAP_STATUS_CHECK_INTERVAL = 3000;
 
-async function updateOrders(pendingOrders: string[], chainId: number, removePendingOrder: (orderId: string) => void) {
+async function updateOrders(
+  pendingOrders: string[],
+  chainId: SupportedChainId,
+  removePendingOrder: (orderId: string) => void,
+) {
   if (pendingOrders.length === 0) {
     return;
   }
@@ -26,8 +31,8 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       }
 
       const [buyToken, sellToken] = await Promise.all([
-        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain),
-        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain),
+        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain, config),
+        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain, config),
       ]);
 
       if (order.status === OrderStatus.FULFILLED) {
@@ -41,7 +46,12 @@ async function updateOrders(pendingOrders: string[], chainId: number, removePend
       } else if (order.status === OrderStatus.CANCELLED) {
         toastInfo({ title: "Swap cancelled" });
       }
-      queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["useCowOrders"] }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+      });
       removePendingOrder(pendingOrderId);
     }),
   );

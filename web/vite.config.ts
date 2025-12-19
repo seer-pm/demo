@@ -26,7 +26,7 @@ export default defineConfig({
     },
   },
   ssr: {
-    noExternal: ["react-easy-crop"],
+    noExternal: ["react-easy-crop", "echarts-for-react", "@bigmi/core"],
   },
   resolve: {
     alias: {

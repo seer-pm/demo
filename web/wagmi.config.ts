@@ -1,15 +1,16 @@
-import fs from "fs";
-import { join, parse } from "path";
+import fs from "node:fs";
+import { readFile, readdir } from "node:fs/promises";
+import { join, parse } from "node:path";
 import { type Config, type ContractConfig, defineConfig, loadEnv } from "@wagmi/cli";
 import { actions, react } from "@wagmi/cli/plugins";
-import { readFile, readdir } from "fs/promises";
-import { Chain } from "wagmi/chains";
+import { Chain, gnosis, mainnet, optimism, sepolia } from "wagmi/chains";
+import { FAST_TESTNET_FACTORY } from "./src/lib/constants";
 
-const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
+const readArtifacts = async (chains: Chain[]) => {
   const results: Record<string, ContractConfig> = {};
 
-  for (const chainId in SUPPORTED_CHAINS) {
-    const chainName = SUPPORTED_CHAINS[chainId].name.toLocaleLowerCase();
+  for (const chain of chains) {
+    const chainName = chain.id === optimism.id ? "optimism" : chain.name.toLocaleLowerCase();
     const directoryPath = `../contracts/deployments/${chainName}`;
 
     if (chainName === "hardhat" && !fs.existsSync(directoryPath)) {
@@ -26,7 +27,12 @@ const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
         const jsonContent = JSON.parse(fileContent);
 
         const addresses = (results[name]?.address as Record<number, `0x${string}`>) || {};
-        addresses[chainId] = jsonContent.address as `0x{string}`;
+        addresses[chain.id] = jsonContent.address as `0x{string}`;
+
+        if (process.env.VITE_IS_FAST_TESTNET === "1" && name === "MarketFactory" && chain.id === gnosis.id) {
+          addresses[chain.id] = FAST_TESTNET_FACTORY;
+        }
+
         results[name] = {
           name,
           address: addresses,
@@ -39,7 +45,7 @@ const readArtifacts = async (SUPPORTED_CHAINS: Record<string, Chain>) => {
   return results;
 };
 
-const getConfig = async (): Promise<Config> => {
+const getConfig = async (): Promise<Config[]> => {
   import.meta.env = loadEnv({
     mode: process.env.NODE_ENV,
     envDir: process.cwd(),
@@ -47,11 +53,38 @@ const getConfig = async (): Promise<Config> => {
 
   const { SUPPORTED_CHAINS } = await import("./src/lib/chains");
 
-  return {
-    out: "src/hooks/contracts/generated.ts",
-    contracts: Object.values(await readArtifacts(SUPPORTED_CHAINS)),
-    plugins: [react(), actions()],
+  const chains = Object.values(SUPPORTED_CHAINS);
+  if (!chains.some((chain) => chain.id === sepolia.id)) {
+    chains.push(sepolia);
+  }
+  if (process.env.VITE_IS_FAST_TESTNET === "1") {
+    chains.push(mainnet);
+  }
+
+  const allContracts = Object.values(await readArtifacts(chains));
+
+  const contractsMapping = {
+    curate: ["LightGeneralizedTCR"],
+    reality: ["Reality"],
+    arbitrators: [
+      "RealitioForeignArbitrationProxyWithAppeals",
+      "RealitioForeignProxyOptimism",
+      "RealitioForeignProxyBase",
+      "Realitio_v2_1_ArbitratorWithAppeals",
+    ],
+    "market-factory": ["MarketFactory", "Market", "FutarchyFactory"],
+    "market-view": ["MarketView"],
+    router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],
+    "trade-manager": ["TradeManager", "TradeQuoter"],
+    "multi-drop": ["MultiDrop", "GovernedRecipient"],
+    "trading-credits": ["SeerCredits", "CreditsManager"],
   };
+
+  return Object.entries(contractsMapping).map(([key, contractNames]) => ({
+    out: `src/hooks/contracts/generated-${key}.ts`,
+    contracts: allContracts.filter((contract) => contractNames.includes(contract.name)),
+    plugins: [react(), actions()],
+  }));
 };
 
 export default defineConfig(getConfig);

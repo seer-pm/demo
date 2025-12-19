@@ -1,305 +1,64 @@
-import { executeCoWTrade } from "@/hooks/trade/executeCowTrade";
-import { executeSwaprTrade } from "@/hooks/trade/executeSwaprTrade";
-import { executeUniswapTrade } from "@/hooks/trade/executeUniswapTrade";
+import { createCowOrder, executeCoWTrade } from "@/hooks/trade/executeCowTrade";
+import { executeSwaprTrade, getSwaprTradeExecution } from "@/hooks/trade/executeSwaprTrade";
+import { executeUniswapTrade, getUniswapTradeExecution } from "@/hooks/trade/executeUniswapTrade";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
+import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
+import { toastifyTx } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
-import { PriceQuality } from "@cowprotocol/cow-sdk";
-import {
-  CoWTrade,
-  CurrencyAmount,
-  DAI,
-  Percent,
-  Token as SwaprToken,
-  SwaprV3Trade,
-  TokenAmount,
-  Trade,
-  TradeType,
-  UniswapTrade,
-  WXDAI,
-} from "@swapr/sdk";
+import { QuoteTradeResult, getCowQuote, getSwaprQuote, getUniswapQuote } from "@/lib/trade";
+import { getCowQuoteExactOut, getSwaprQuoteExactOut, getUniswapQuoteExactOut } from "@/lib/tradeExactOut";
+import { config } from "@/wagmi";
+import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Address, TransactionReceipt, formatUnits, parseUnits, zeroAddress } from "viem";
-import { gnosis, mainnet } from "viem/chains";
+import { sendCalls } from "@wagmi/core";
+import { Interface } from "ethers/lib/utils";
+import { Address, TransactionReceipt } from "viem";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
+import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
-import { useMissingApprovals } from "../useMissingApprovals";
-import { convertToSDAI } from "./handleSDAI";
+import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
+import { UNISWAP_ROUTER_ABI } from "./abis";
+import { getWrappedSeerCreditsExecution } from "./utils";
 
-const QUOTE_REFETCH_INTERVAL = Number(import.meta.env.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
+const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
-export interface QuoteTradeResult {
-  value: bigint;
-  decimals: number;
-  buyToken: Address;
-  sellToken: Address;
-  sellAmount: string;
-  swapType: "buy" | "sell";
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
-}
-
-function getUniswapTrade(
-  _currencyIn: SwaprToken,
-  currencyOut: SwaprToken,
-  currencyAmountIn: TokenAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  _chainId: number,
-): Promise<UniswapTrade | null> {
-  return UniswapTrade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
-}
-
-function getSwaprTrade(
-  _currencyIn: SwaprToken,
-  currencyOut: SwaprToken,
-  currencyAmountIn: TokenAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  _chainId: number,
-): Promise<SwaprV3Trade | null> {
-  return SwaprV3Trade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
-}
-
-type QuoteTradeFn = (
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  isFastQuery?: boolean,
-) => Promise<QuoteTradeResult>;
-
-export const getUniswapQuote: QuoteTradeFn = async (
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
-
-  const trade = await getUniswapTrade(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountIn,
-    args.maximumSlippage,
-    account,
-    chainId,
-  );
-  if (!trade) {
-    throw new Error("No route found");
-  }
-
-  return {
-    value: BigInt(trade.outputAmount.raw.toString()),
-    decimals: args.sellToken.decimals,
-    trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.sellAmount.toString(),
-    swapType,
-  };
+const EMPTY_APPROVALS = {
+  data: [],
+  isLoading: false,
 };
 
-export const getSwaprQuote: QuoteTradeFn = async (
+function useSwaprQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-) => {
-  const args = await getTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
-
-  const trade = await getSwaprTrade(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountIn,
-    args.maximumSlippage,
-    account,
-    chainId,
-  );
-
-  if (!trade) {
-    throw new Error("No route found");
-  }
-
-  return {
-    value: BigInt(trade.outputAmount.raw.toString()),
-    decimals: args.sellToken.decimals,
-    trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.sellAmount.toString(),
-    swapType,
-  };
-};
-
-export const getCowQuote: QuoteTradeFn = async (
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  isFastQuery?: boolean,
-) => {
-  const args = await getCowTradeArgs(chainId, amount, outcomeToken, collateralToken, swapType);
-
-  const trade = await CoWTrade.bestTradeExactIn({
-    currencyAmountIn: args.currencyAmountIn,
-    currencyOut: args.currencyOut,
-    maximumSlippage: args.maximumSlippage,
-    user: account || zeroAddress,
-    receiver: account || zeroAddress,
-    priceQuality: isFastQuery ? PriceQuality.FAST : undefined,
-  });
-
-  if (!trade) {
-    throw new Error("No route found");
-  }
-
-  return {
-    value: BigInt(trade.outputAmount.raw.toString()),
-    decimals: args.sellToken.decimals,
-    trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.sellAmount.toString(),
-    swapType,
-  };
-};
-
-async function convertCollateralToShares(
-  chainId: number,
-  amount: string,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-) {
-  const sDAI = COLLATERAL_TOKENS[chainId].primary;
-  if (swapType === "sell" || (swapType === "buy" && isTwoStringsEqual(collateralToken.address, sDAI.address))) {
-    return { amount, collateralToken: sDAI };
-  }
-
-  const newAmount = await convertToSDAI({ amount: parseUnits(String(amount), collateralToken.decimals), chainId });
-  return { amount: formatUnits(newAmount, sDAI.decimals), collateralToken: sDAI };
-}
-
-export function iswxsDAI(token: Token, chainId: number) {
-  return (
-    isTwoStringsEqual(token.address, COLLATERAL_TOKENS[chainId].primary.address) || // sDAI
-    (chainId === gnosis.id && isTwoStringsEqual(token.address, NATIVE_TOKEN)) || // xDAI
-    isTwoStringsEqual(token.address, WXDAI[chainId]?.address) || // wxDAI
-    isTwoStringsEqual(token.address, DAI[chainId]?.address)
-  );
-}
-
-async function getTradeArgs(
-  chainId: number,
-  initialAmount: string,
-  outcomeToken: Token,
-  initialCollateralToken: Token,
-  swapType: "buy" | "sell",
-) {
-  // convert wxdai,xdai or dai to sDAI
-  const { amount, collateralToken } = iswxsDAI(initialCollateralToken, chainId)
-    ? await convertCollateralToShares(chainId, initialAmount, initialCollateralToken, swapType)
-    : { amount: initialAmount, collateralToken: initialCollateralToken };
-  const [buyToken, sellToken] =
-    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
-
-  const sellAmount = parseUnits(String(amount), sellToken.decimals);
-
-  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
-
-  const currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
-
-  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
-  const [numerator, denominator] = parseFraction(slippage) ?? [];
-  const maximumSlippage =
-    Number.isInteger(numerator) && Number.isInteger(denominator)
-      ? new Percent(String(numerator), String(denominator))
-      : new Percent("1", "100");
-
-  return {
-    buyToken,
-    sellToken,
-    sellAmount,
-    currencyIn,
-    currencyOut,
-    currencyAmountIn,
-    maximumSlippage,
-  };
-}
-
-async function getCowTradeArgs(
-  chainId: number,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-) {
-  const [buyToken, sellToken] =
-    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
-
-  const sellAmount = parseUnits(String(amount), sellToken.decimals);
-
-  const currencyIn = new SwaprToken(chainId, sellToken.address, sellToken.decimals, sellToken.symbol);
-  const currencyOut = new SwaprToken(chainId, buyToken.address, buyToken.decimals, buyToken.symbol);
-  let currencyAmountIn: CurrencyAmount;
-  if (isTwoStringsEqual(sellToken.address, NATIVE_TOKEN)) {
-    currencyAmountIn = CurrencyAmount.nativeCurrency(parseUnits(String(amount), currencyIn.decimals), chainId);
-  } else {
-    currencyAmountIn = new TokenAmount(currencyIn, parseUnits(String(amount), currencyIn.decimals));
-  }
-
-  const slippage = String(Number(useGlobalState.getState().maxSlippage) / 100);
-  const [numerator, denominator] = parseFraction(slippage) ?? [];
-  const maximumSlippage =
-    Number.isInteger(numerator) && Number.isInteger(denominator)
-      ? new Percent(String(numerator), String(denominator))
-      : new Percent("1", "100");
-
-  return {
-    buyToken,
-    sellToken,
-    sellAmount,
-    currencyIn,
-    currencyOut,
-    currencyAmountIn,
-    maximumSlippage,
-  };
-}
-
-export function useSwaprQuote(
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
+  enabled: boolean,
+  tradeType: TradeType,
+  maxSlippage: string,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useSwaprQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === gnosis.id,
+    queryKey: [
+      "useQuote",
+      "useSwaprQuote",
+      chainId,
+      account,
+      amount.toString(),
+      outcomeToken,
+      collateralToken,
+      swapType,
+      maxSlippage,
+      tradeType,
+    ],
+    enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
     retry: false,
-    queryFn: async () => getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    queryFn: async () =>
+      tradeType === TradeType.EXACT_INPUT
+        ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
+        : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -311,7 +70,20 @@ const getUseCowQuoteQueryKey = (
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
-) => ["useCowQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType];
+  tradeType: TradeType,
+  maxSlippage: string,
+) => [
+  "useQuote",
+  "useCowQuote",
+  chainId,
+  account,
+  amount.toString(),
+  outcomeToken,
+  collateralToken,
+  swapType,
+  tradeType,
+  maxSlippage,
+];
 
 export function useCowQuote(
   chainId: number,
@@ -320,100 +92,318 @@ export function useCowQuote(
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
+  tradeType: TradeType,
+  maxSlippage: string,
 ) {
-  const queryKey = getUseCowQuoteQueryKey(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  // Check if we have data for this quote
-  // If we don't, perform an initial fetch to give the user a fast quote
-  // it will fill the query cache, and subsequent fetches will return the verified quote
+  const queryKey = getUseCowQuoteQueryKey(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    tradeType,
+    maxSlippage,
+  );
   const previousData = queryClient.getQueryData(queryKey);
   const isFastQuery = previousData === undefined;
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: queryKey,
-    enabled: Number(amount) > 0,
+    enabled: Number(amount) > 0 && enabled,
     retry: false,
-    queryFn: async () => getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, isFastQuery),
-    // If we used a fast quote, refetch immediately to obtain the verified quote
-    refetchInterval: (query) => (query.state.dataUpdateCount <= 1 ? 1 : QUOTE_REFETCH_INTERVAL),
+    queryFn: async () =>
+      tradeType === TradeType.EXACT_INPUT
+        ? getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, isFastQuery)
+        : getCowQuoteExactOut(
+            chainId,
+            account,
+            amount,
+            outcomeToken,
+            collateralToken,
+            swapType,
+            maxSlippage,
+            isFastQuery,
+          ),
+    refetchInterval: (query) =>
+      query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
   });
 }
 
-export function useUniswapQuote(
+function useUniswapQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  enabled: boolean,
+  tradeType: TradeType,
+  maxSlippage: string,
 ) {
   return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: ["useUniswapQuote", chainId, account, amount.toString(), outcomeToken, collateralToken, swapType],
-    enabled: Number(amount) > 0 && chainId === mainnet.id,
+    queryKey: [
+      "useQuote",
+      "useUniswapQuote",
+      chainId,
+      account,
+      amount.toString(),
+      outcomeToken,
+      collateralToken,
+      swapType,
+      maxSlippage,
+      tradeType,
+    ],
+    enabled:
+      Number(amount) > 0 && (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) && enabled,
     retry: false,
-    queryFn: async () => getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType),
+    queryFn: async () =>
+      tradeType === TradeType.EXACT_INPUT
+        ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
+        : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
 
 export function useQuoteTrade(
-  chainId: number,
+  chainId: SupportedChain,
   account: Address | undefined,
   amount: string,
   outcomeToken: Token,
   collateralToken: Token,
   swapType: "buy" | "sell",
+  tradeType: TradeType,
 ) {
-  const swaprResult = useSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  const cowResult = useCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  const uniswapResult = useUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType);
-  if (cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n) {
+  const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken.address);
+
+  const realCollateralToken: Token = isSeerCreditsCollateral ? COLLATERAL_TOKENS[chainId].primary : collateralToken;
+
+  const maxSlippage = useGlobalState((state) => state.maxSlippage);
+  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
+  const shouldUseInstantSwap = isInstantSwap || isSeerCreditsCollateral;
+  const cowResult = useCowQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    realCollateralToken,
+    swapType,
+    !shouldUseInstantSwap,
+    tradeType,
+    maxSlippage,
+  );
+  const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
+
+  const swaprResult = useSwaprQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    realCollateralToken,
+    swapType,
+    true,
+    tradeType,
+    maxSlippage,
+  );
+  const uniswapResult = useUniswapQuote(
+    chainId,
+    account,
+    amount,
+    outcomeToken,
+    realCollateralToken,
+    swapType,
+    true,
+    tradeType,
+    maxSlippage,
+  );
+
+  if (isCowResultOk) {
     return cowResult;
   }
 
-  if (chainId === mainnet.id) {
+  if (chainId === mainnet.id || chainId === optimism.id) {
     return uniswapResult;
   }
   return swaprResult;
 }
 
-export function useMissingTradeApproval(account: Address, trade: Trade) {
-  const { data: missingApprovals, isLoading } = useMissingApprovals(
-    [trade.executionPrice.baseCurrency.address as `0x${string}`],
-    account,
-    trade.approveAddress as `0x${string}`,
-    BigInt(trade.inputAmount.raw.toString()),
-    trade.chainId as SupportedChain,
+export function getMaximumAmountIn(trade: Trade) {
+  let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
+  if (trade instanceof UniswapTrade) {
+    const routerInterface = new Interface(UNISWAP_ROUTER_ABI);
+    const routerFunction = trade.tradeType === TradeType.EXACT_INPUT ? "exactInputSingle" : "exactOutputSingle";
+    const callData = trade.swapRoute.methodParameters?.calldata;
+    if (callData) {
+      try {
+        const data = routerInterface.decodeFunctionData("multicall(uint256,bytes[])", callData);
+        const decodedData = routerInterface.decodeFunctionData(routerFunction, data.data[0]);
+        const callDataAmountIn =
+          trade.tradeType === TradeType.EXACT_INPUT
+            ? BigInt(decodedData[0][4].toString()) //amountIn
+            : BigInt(decodedData[0][5].toString()); //maximumAmountIn
+        maximumAmountIn = callDataAmountIn > maximumAmountIn ? callDataAmountIn : maximumAmountIn;
+      } catch {}
+    }
+  }
+  return maximumAmountIn;
+}
+
+function useMissingTradeApproval(account: Address | undefined, trade: Trade | undefined) {
+  const { data, isLoading } = useMissingApprovals(
+    !trade
+      ? undefined
+      : {
+          tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+          account,
+          spender: trade.approveAddress as `0x${string}`,
+          amounts: getMaximumAmountIn(trade),
+          chainId: trade.chainId as SupportedChain,
+        },
   );
 
-  return { missingApprovals, isLoading };
+  return { data, isLoading };
+}
+
+function getTradeApprovals7702(account: Address, trade: Trade) {
+  return getApprovals7702({
+    tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+    account,
+    spender: trade.approveAddress as `0x${string}`,
+    amounts: getMaximumAmountIn(trade),
+    chainId: trade.chainId as SupportedChain,
+  });
+}
+
+interface TradeTokensProps {
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  account: Address;
+  isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
+  isSeerCredits: boolean;
 }
 
 async function tradeTokens({
   trade,
   account,
-}: {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
-  account: Address;
-}): Promise<string | TransactionReceipt> {
+  isBuyExactOutputNative,
+  isSellToNative,
+  isSeerCredits,
+}: TradeTokensProps): Promise<string | TransactionReceipt> {
   if (trade instanceof CoWTrade) {
     return executeCoWTrade(trade);
   }
 
   if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(trade, account);
+    return executeUniswapTrade(trade, account, isSeerCredits);
   }
 
-  return executeSwaprTrade(trade, account);
+  return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
 }
 
-export function useTrade(onSuccess: () => unknown) {
+function useTradeLegacy(
+  account: Address | undefined,
+  trade: Trade | undefined,
+  isSeerCredits: boolean,
+  onSuccess: () => unknown,
+) {
+  const { addPendingOrder } = useGlobalState();
+
+  const approvals = useMissingTradeApproval(account, trade);
+
+  return {
+    approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
+    tradeTokens: useMutation({
+      mutationFn: tradeTokens,
+      onSuccess: (result: string | TransactionReceipt) => {
+        if (typeof result === "string") {
+          addPendingOrder(result);
+        }
+        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        onSuccess();
+      },
+    }),
+  };
+}
+
+async function tradeTokens7702(props: TradeTokensProps): Promise<string | TransactionReceipt> {
+  if (props.trade instanceof CoWTrade) {
+    return executeCoWTrade(props.trade);
+  }
+
+  const calls: Execution[] = props.isSeerCredits ? [] : getTradeApprovals7702(props.account, props.trade);
+
+  calls.push(
+    getWrappedSeerCreditsExecution(
+      props.isSeerCredits,
+      props.trade,
+      props.trade instanceof UniswapTrade
+        ? await getUniswapTradeExecution(props.trade, props.account)
+        : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
+    ),
+  );
+
+  const result = await toastifyTx(
+    () =>
+      sendCalls(config, {
+        calls,
+        chainId: props.trade.chainId,
+      }),
+    {
+      txSent: { title: "Executing trade..." },
+      txSuccess: { title: "Trade executed!" },
+    },
+  );
+
+  if (!result.status) {
+    throw result.error;
+  }
+
+  return result.receipt;
+}
+
+const useTrade7702 = (onSuccess: () => unknown) => {
+  const { addPendingOrder } = useGlobalState();
+
+  return {
+    approvals: EMPTY_APPROVALS,
+    tradeTokens: useMutation({
+      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props),
+      onSuccess: (result: string | TransactionReceipt) => {
+        if (typeof result === "string") {
+          addPendingOrder(result);
+        }
+        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        onSuccess();
+      },
+    }),
+  };
+};
+
+export const useTrade = (
+  account: Address | undefined,
+  trade: Trade | undefined,
+  isSeerCredits: boolean,
+  onSuccess: () => unknown,
+) => {
+  const supports7702 = useCheck7702Support();
+  const trade7702 = useTrade7702(onSuccess);
+  const tradeLegacy = useTradeLegacy(account, trade, isSeerCredits, onSuccess);
+
+  return supports7702 ? trade7702 : tradeLegacy;
+};
+
+export function useCowLimitOrder(onSuccess: () => unknown) {
   const { addPendingOrder } = useGlobalState();
   return useMutation({
-    mutationFn: tradeTokens,
-    onSuccess: (result: string | TransactionReceipt) => {
-      if (typeof result === "string") {
-        // cowswap order id
-        addPendingOrder(result);
-      }
+    mutationFn: createCowOrder,
+    onSuccess: (result: string) => {
+      addPendingOrder(result);
       queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });

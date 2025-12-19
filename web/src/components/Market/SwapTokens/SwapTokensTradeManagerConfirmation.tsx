@@ -1,13 +1,12 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { RightArrow } from "@/lib/icons";
-import { Token } from "@/lib/tokens";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
-  quoteData: { buyToken: Token; sellToken: Token; amountIn: number; amountOut: number };
+  quoteData: { buyToken: { symbol: string }; sellToken: { symbol: string }; amountIn: number; amountOut: number };
   isLoading: boolean;
   onSubmit: () => Promise<void>;
 }

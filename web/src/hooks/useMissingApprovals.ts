@@ -3,7 +3,8 @@ import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
-import { Address, erc20Abi } from "viem";
+import { Address, encodeFunctionData, erc20Abi } from "viem";
+import { Execution } from "./useCheck7702Support";
 import { getTokenInfo } from "./useTokenInfo";
 
 interface ApprovalInfo {
@@ -46,35 +47,47 @@ export async function fetchNeededApprovals(
   }, [] as ApprovalInfo[]);
 }
 
-interface UseMissingApprovalsReturn {
+export type UseMissingApprovalsProps = {
+  tokensAddresses: Address[];
+  account: Address | undefined;
+  spender: Address;
+  amounts: bigint | bigint[];
+  chainId: SupportedChain;
+};
+
+export interface UseMissingApprovalsReturn {
   address: Address;
   name: string;
   spender: Address;
   amount: bigint;
 }
 
-export const useMissingApprovals = (
-  tokensAddresses: Address[],
-  account: Address | undefined,
-  spender: Address,
-  amounts: bigint | bigint[],
-  chainId: SupportedChain,
-) => {
-  let approvalAmounts: bigint[];
-  if (typeof amounts === "bigint") {
+export const useMissingApprovals = (props: UseMissingApprovalsProps | undefined) => {
+  let approvalAmounts: bigint[] = [];
+  if (!props) {
+    // nothing
+  } else if (typeof props.amounts === "bigint") {
     // approve the same amount for every token
-    approvalAmounts = new Array(tokensAddresses.length).fill(amounts);
+    approvalAmounts = new Array(props.tokensAddresses.length).fill(props.amounts);
   } else {
-    approvalAmounts = amounts;
+    approvalAmounts = props.amounts;
   }
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
-    enabled: tokensAddresses.length > 0 && !!account,
-    queryKey: ["useMissingApprovals", tokensAddresses, account, spender, approvalAmounts.map((a) => a.toString())],
+    enabled: Boolean(props?.tokensAddresses.length && props?.account),
+    queryKey: [
+      "useMissingApprovals",
+      props?.tokensAddresses,
+      props?.account,
+      props?.spender,
+      props?.chainId,
+      approvalAmounts.map((a) => a.toString()),
+    ],
     queryFn: async () => {
+      const { tokensAddresses, account, spender, chainId } = props!;
       const missingApprovals = await fetchNeededApprovals(tokensAddresses, account!, spender, approvalAmounts, chainId);
       const tokensInfo = await Promise.all(
-        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId)),
+        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId, config)),
       );
 
       return missingApprovals.map((missingApproval, i) => ({
@@ -86,3 +99,35 @@ export const useMissingApprovals = (
     },
   });
 };
+
+export function getApprovals7702({ tokensAddresses, spender, amounts, chainId }: UseMissingApprovalsProps) {
+  const calls: Execution[] = [];
+
+  if (!tokensAddresses.length) {
+    return calls;
+  }
+
+  if (Array.isArray(amounts) && tokensAddresses.length !== amounts.length) {
+    throw new Error("Invalid tokens and amounts lengths");
+  }
+
+  for (let i = 0; i < tokensAddresses.length; i++) {
+    if (isTwoStringsEqual(tokensAddresses[i], NATIVE_TOKEN)) {
+      continue;
+    }
+
+    const amount = typeof amounts === "bigint" ? amounts : amounts[i];
+    calls.push({
+      to: tokensAddresses[i],
+      value: 0n,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender, amount],
+      }),
+      chainId,
+    });
+  }
+
+  return calls;
+}

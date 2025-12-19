@@ -4,7 +4,7 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
-import { writeRealitySubmitAnswer } from "./contracts/generated";
+import { writeRealitySubmitAnswer } from "./contracts/generated-reality";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;
@@ -19,6 +19,7 @@ async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceip
       writeRealitySubmitAnswer(config, {
         args: [props.questionId, props.outcome, props.currentBond],
         value: props.currentBond,
+        chainId: props.chainId,
       }),
     {
       txSent: { title: "Sending answer..." },

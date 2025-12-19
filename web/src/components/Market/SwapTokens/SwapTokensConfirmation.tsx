@@ -1,17 +1,14 @@
-import { iswxsDAI } from "@/hooks/trade";
-import { useConvertToAssets } from "@/hooks/trade/handleSDAI";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
-import { useState } from "react";
-import { formatUnits } from "viem";
+import { useEffect, useState } from "react";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import { Spinner } from "../../Spinner";
-import { SwapTokensConfirmationInSteps } from "./SwapTokensConfirmationInSteps";
 
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
@@ -21,23 +18,31 @@ interface SwapTokensConfirmationProps {
   onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
+  isBuyExactOutputNative: boolean;
+  isSellToNative: boolean;
+  isSeerCredits: boolean;
+  outcomeToken: Token;
 }
 
 export function SwapTokensConfirmation({
   closeModal,
-  reset,
   trade,
   isLoading,
   onSubmit,
   collateral,
-  originalAmount,
+  isBuyExactOutputNative,
+  isSellToNative,
+  isSeerCredits,
+  outcomeToken,
 }: SwapTokensConfirmationProps) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
   const tradeInfo = useGetTradeInfo(trade);
-  const { data: outputToAssets } = useConvertToAssets(
-    BigInt(trade?.outputAmount?.raw?.toString() ?? "0"),
-    trade?.chainId ?? 0,
-  );
+  useEffect(() => {
+    if (!tradeInfo) return;
+    const isOutcomeInputToken = isTwoStringsEqual(tradeInfo.inputAddress, outcomeToken.address);
+    toggleInvertedPrice(!isOutcomeInputToken);
+  }, []);
+
   if (!tradeInfo) {
     return (
       <div className="flex flex-col justify-center items-center">
@@ -58,55 +63,29 @@ export function SwapTokensConfirmation({
     outputAmount,
     price,
     minimumReceive,
+    maximumSent,
     maximumSlippage,
     invertedPrice,
-    inputAddress,
-    outputAddress,
   } = tradeInfo;
-  const sDAI = trade ? COLLATERAL_TOKENS[trade.chainId].primary.address : undefined;
 
-  const needsToConvertCollateralToShares = iswxsDAI(collateral, trade?.chainId || 0);
-  const isMultiStepsBuy =
-    isTwoStringsEqual(inputAddress, sDAI) &&
-    !isTwoStringsEqual(collateral.address, sDAI) &&
-    needsToConvertCollateralToShares;
-  const isMultiStepsSell =
-    isTwoStringsEqual(outputAddress, sDAI) &&
-    !isTwoStringsEqual(collateral.address, sDAI) &&
-    needsToConvertCollateralToShares;
+  const primaryCollateral = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
+  const isExactInput = trade!.tradeType === 0;
+  inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
+  outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);
 
-  inputAmount = isMultiStepsBuy ? Number(originalAmount).toFixed(6) : inputAmount;
-  inputToken = isMultiStepsBuy ? collateral.symbol : inputToken;
-
-  outputAmount = isMultiStepsSell
-    ? Number(formatUnits(outputToAssets ?? 0n, collateral.decimals)).toFixed(6)
-    : outputAmount;
-
-  outputToken = (isMultiStepsSell ? collateral.symbol : outputToken)?.slice(0, 31);
-
-  price = !isTwoStringsEqual(collateral.address, sDAI)
-    ? (Number(outputAmount) / Number(inputAmount)).toFixed(6)
+  price = !isTwoStringsEqual(collateral.address, primaryCollateral)
+    ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)
     : price;
-  invertedPrice = !isTwoStringsEqual(collateral.address, sDAI) ? (1 / Number(price)).toFixed(6) : invertedPrice;
+  invertedPrice = !isTwoStringsEqual(collateral.address, primaryCollateral)
+    ? (1 / Number(price)).toFixed(2)
+    : invertedPrice;
 
   return (
     <div className="flex flex-col justify-center items-center">
-      {isMultiStepsBuy && (
-        <div className="w-full mb-10 text-[14px]">
-          Your {collateral.symbol} will be converted to sDAI before buying outcome tokens. This conversion may incur
-          fees and affect the final amount you receive. You also need to approve the conversion transaction.
-        </div>
-      )}
-      {isMultiStepsSell && (
-        <div className="w-full mb-10 text-[14px]">
-          sDAI you received after selling outcome tokens will be converted to {collateral.symbol}. This conversion may
-          incur fees and affect the final amount you receive. You also need to approve the conversion transaction.
-        </div>
-      )}
       <div className="min-w-[400px] min-h-[150px]">
         <div className="flex items-center justify-between mb-5 gap-2">
           <p className="text-2xl break-words">
-            {inputAmount} {inputToken}
+            {inputAmount} {isSeerCredits ? "SEER_CREDITS" : inputToken}
           </p>
           <RightArrow />
           <p className="text-2xl break-words">
@@ -118,7 +97,7 @@ export function SwapTokensConfirmation({
           <p>
             {isInvertedPrice ? (
               <>
-                {invertedPrice} {inputToken}/{outputToken}{" "}
+                {Number.isNaN(Number(invertedPrice)) ? "≈0" : invertedPrice} {inputToken}/{outputToken}{" "}
               </>
             ) : (
               <>
@@ -144,44 +123,30 @@ export function SwapTokensConfirmation({
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <p>Minimum received</p>
+          <p>{isExactInput ? "Minimum received" : "Maximum sent"}</p>
           <p>
-            {minimumReceive} {outputToken}
+            {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
           </p>
         </div>
       </div>
       <Alert type="warning">
-        Current slippage tolerance is {maximumSlippage}%. You will receive at least{" "}
+        Current slippage tolerance is {maximumSlippage}%. You will {isExactInput ? "receive" : "sell"} at{" "}
+        {isExactInput ? "least" : "most"}{" "}
         <span className="font-bold">
-          {minimumReceive} {outputToken}
+          {isExactInput ? minimumReceive : maximumSent} {isExactInput ? outputToken : inputToken}
         </span>{" "}
         or the transaction will revert.
       </Alert>
 
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        {isMultiStepsBuy || isMultiStepsSell ? (
-          <SwapTokensConfirmationInSteps
-            trade={trade!}
-            isLoading={isLoading}
-            collateral={collateral}
-            originalAmount={originalAmount}
-            onSubmit={onSubmit}
-            swapType={isMultiStepsBuy ? "buy" : "sell"}
-            closeModalAndReset={() => {
-              closeModal();
-              reset();
-            }}
-          />
-        ) : (
-          <Button
-            variant="primary"
-            type="submit"
-            isLoading={isLoading}
-            text="Continue"
-            onClick={() => onSubmit(trade!)}
-          />
-        )}
+        <Button
+          variant="primary"
+          type="submit"
+          isLoading={isLoading}
+          text="Continue"
+          onClick={() => onSubmit(trade!)}
+        />
       </div>
     </div>
   );

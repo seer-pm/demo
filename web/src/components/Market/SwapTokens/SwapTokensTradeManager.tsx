@@ -1,23 +1,23 @@
-import { useConvertToShares } from "@/hooks/trade/handleSDAI";
+import { useConvertToShares } from "@/hooks/trade/useShareAssetRatio";
 import { useTradeManager } from "@/hooks/trade/useTradeManager";
 import { useTradeQuoter } from "@/hooks/trade/useTradeQuoter";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { Market } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Parameter } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { Token } from "@/lib/tokens";
 import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
-import { OutcomeImage } from "../OutcomeImage";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 import { SwapTokensTradeManagerConfirmation } from "./SwapTokensTradeManagerConfirmation";
 import SwapButtonsTradeManager from "./components/SwapButtonsTradeManager";
@@ -30,31 +30,19 @@ interface SwapFormValues {
 
 interface SwapTokensProps {
   market: Market;
-  account: Address | undefined;
-  chainId: SupportedChain;
-  outcomeText: string;
+  swapType: "buy" | "sell";
   outcomeToken: Token;
-  outcomeImage?: string;
-  isInvalidResult: boolean;
-  parentCollateral: Token | undefined;
   isUseTradeManager: boolean;
   setUseTradeManager: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function SwapTokensTradeManager({
   market,
-  account,
-  chainId,
-  outcomeText,
+  swapType,
   outcomeToken,
-  outcomeImage,
-  isInvalidResult,
-  parentCollateral,
   isUseTradeManager,
   setUseTradeManager,
 }: SwapTokensProps) {
-  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const tabClick = (type: "buy" | "sell") => () => setSwapType(type);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const useFormReturn = useForm<SwapFormValues>({
@@ -65,7 +53,11 @@ export function SwapTokensTradeManager({
       isUseNativeToken: false,
     },
   });
-
+  const { address: account } = useAccount();
+  const { data: parentCollateral } = useTokenInfo(
+    market.parentMarket.id !== zeroAddress ? market.collateralToken : undefined,
+    market.chainId,
+  );
   const {
     register,
     reset,
@@ -85,13 +77,13 @@ export function SwapTokensTradeManager({
 
   const selectedCollateral = isUseNativeToken
     ? { address: NATIVE_TOKEN as Address, symbol: "xDai", decimals: 18 }
-    : COLLATERAL_TOKENS[chainId].primary;
+    : COLLATERAL_TOKENS[market.chainId].primary;
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, selectedCollateral] : [selectedCollateral, outcomeToken];
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     sellToken.address,
-    chainId,
+    market.chainId,
   );
 
   useEffect(() => {
@@ -106,7 +98,7 @@ export function SwapTokensTradeManager({
 
   const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
     isUseNativeToken ? parseUnits(amount, 18) : 0n,
-    chainId,
+    market.chainId,
   );
   const amountInToSDai = isUseNativeToken ? Number(formatUnits(assetsToShares ?? 0n, 18)) : Number(amount);
 
@@ -148,13 +140,7 @@ export function SwapTokensTradeManager({
         }
       />
       {!isShowMaxSlippage && (
-        <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5 bg-white p-[24px] drop-shadow">
-          <div className="flex items-center space-x-[12px]">
-            <div>
-              <OutcomeImage image={outcomeImage} isInvalidResult={isInvalidResult} title={outcomeText} />
-            </div>
-            <div className="text-[16px]">{outcomeText}</div>
-          </div>
+        <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
           {parentCollateral && (
             <button
               className="text-purple-primary hover:underline text-[14px]"
@@ -167,25 +153,6 @@ export function SwapTokensTradeManager({
             </button>
           )}
           <div className={clsx("space-y-5")}>
-            <div role="tablist" className="tabs tabs-bordered">
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "buy" && "tab-active"}`}
-                onClick={tabClick("buy")}
-              >
-                Buy
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={`tab ${swapType === "sell" && "tab-active"}`}
-                onClick={tabClick("sell")}
-              >
-                Sell
-              </button>
-            </div>
-
             <div>
               <div className="flex justify-between items-center">
                 <div className="text-[14px]">{swapType === "buy" ? "Amount" : "Shares"}</div>
@@ -274,7 +241,7 @@ export function SwapTokensTradeManager({
             {quoteError && <Alert type="error">{quoteError.message}</Alert>}
 
             <div className="flex justify-between flex-wrap gap-4">
-              <AltCollateralSwitch {...register("isUseNativeToken")} chainId={chainId} isUseWrappedToken={false} />
+              <AltCollateralSwitch {...register("isUseNativeToken")} market={market} isUseWrappedToken={false} />
               <div className="text-[12px] text-black-secondary flex items-center gap-2">
                 Max slippage:{" "}
                 <div
@@ -290,6 +257,7 @@ export function SwapTokensTradeManager({
           <div>
             <SwapButtonsTradeManager
               account={account}
+              chainId={market.chainId}
               tokenIn={sellToken.address}
               amountIn={parseUnits(amount, 18)}
               swapType={swapType}

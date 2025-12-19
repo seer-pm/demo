@@ -3,7 +3,7 @@ import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
-import { readGovernedRecipientIsEligible } from "../contracts/generated";
+import { readGovernedRecipientIsEligible } from "../contracts/generated-multi-drop";
 
 export const useEligibleAddressForAirdrop = (account: Address | undefined, chainId: SupportedChain) => {
   return useQuery<boolean | undefined, Error>({

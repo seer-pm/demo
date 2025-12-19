@@ -1,10 +1,10 @@
+import { tradeManagerAbi, tradeManagerAddress } from "@/hooks/contracts/generated-trade-manager";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { useMutation } from "@tanstack/react-query";
 import { getAccount, simulateContract, writeContract } from "@wagmi/core";
 import { gnosis } from "viem/chains";
-import { tradeManagerAbi, tradeManagerAddress } from "../contracts/generated";
 import { TradeManagerTokenPath } from "./useTradeQuoter";
 
 interface TradeManagerProps {

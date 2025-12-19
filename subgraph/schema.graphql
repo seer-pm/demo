@@ -60,12 +60,18 @@ type Question @entity {
   bond: BigInt!
   min_bond: BigInt!
   arbitration_occurred: Boolean!
+  " MarketQuestion's that have this Question as the current question "
   marketQuestions: [MarketQuestion!]! @derivedFrom(field: "question")
+  " MarketQuestion's that have this Question as the baseQuestion "
+  baseQuestions: [MarketQuestion!]! @derivedFrom(field: "baseQuestion")
 }
 
 type MarketQuestion @entity {
   id: ID!
   market: Market!
+  " baseQuestion is the original question that was created when the market was created "
+  baseQuestion: Question!
+  " question is the latest question if the original question was reopened, otherwise it's the same as baseQuestion "
   question: Question!
   " a market can have the same question multiple times, we use the index to identify each one of them "
   index: Int!

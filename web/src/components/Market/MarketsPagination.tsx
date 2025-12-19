@@ -25,6 +25,10 @@ function MarketsPagination({
       nextClassName="w-[32px] h-[32px] border border-solid border-black-medium flex items-center justify-center rounded-[3px]"
       previousClassName="w-[32px] h-[32px] border border-solid border-black-medium flex items-center justify-center rounded-[3px]"
       disabledLinkClassName="text-black-medium"
+      pageLinkClassName="w-full h-full flex items-center justify-center"
+      previousLinkClassName="w-full h-full flex items-center justify-center"
+      nextLinkClassName="w-full h-full flex items-center justify-center"
+      breakLinkClassName="w-full h-full flex items-center justify-center"
     />
   );
 }

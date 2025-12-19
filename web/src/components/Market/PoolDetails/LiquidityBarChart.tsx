@@ -1,12 +1,13 @@
 import { Alert } from "@/components/Alert";
 import { Slider } from "@/components/Slider";
 import { Spinner } from "@/components/Spinner";
-import { getLiquidityChartData, tickToPrice } from "@/hooks/liquidity/getLiquidityChartData";
+import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
-import { Market } from "@/hooks/useMarket";
+import { tickToPrice } from "@/hooks/liquidity/utils";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { PoolInfo } from "@/hooks/useMarketPools";
-import { SwapIcon } from "@/lib/icons";
-import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
+import { Market } from "@/lib/market";
+import { formatBigNumbers } from "@/lib/utils";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 
@@ -14,30 +15,32 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
+  isShowToken0Price,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
+  isShowToken0Price: boolean;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { token0Symbol, token1Symbol, token0, tick, id } = poolInfo;
-  const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
+  const { token0Symbol, token1Symbol, tick, id } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
+  const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
-  if (!ticksByPool?.[id]?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
+  if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold flex items-center gap-2">Liquidity Distribution</p>
+        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
   }
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
-    getLiquidityChartData(poolInfo, ticksByPool?.[id], isShowToken0Price, zoomCount);
+    getLiquidityChartData(poolInfo, ticksByPool?.[id]?.ticks, isShowToken0Price, zoomCount, outcome);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
-  const maxLabelCount = 10; //max label x axis
+  const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
   const chartOption = priceList
     ? {
         xAxis: [
@@ -98,7 +101,6 @@ export default function LiquidityBarChart({
               tooltipContent += `Total Volume: ${Number(
                 buyLineData[currentLineIndex][1]!.toFixed(2),
               ).toLocaleString()}<br>`;
-
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
               tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
             }
@@ -121,8 +123,8 @@ export default function LiquidityBarChart({
           },
         ],
         grid: {
-          left: 60,
-          right: 60,
+          left: isSmallScreen ? "15%" : 60,
+          right: isSmallScreen ? "15%" : 60,
           top: "15%",
           bottom: "15%",
         },
@@ -219,12 +221,7 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <p className="font-semibold flex items-center gap-2 flex-wrap">
-        Liquidity Distribution: {isShowToken0Price ? token0Symbol : token1Symbol}/
-        {isShowToken0Price ? token1Symbol : token0Symbol}{" "}
-        <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
-          <SwapIcon />
-        </button>
+      <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
         <div className="flex items-center ml-auto gap-2">
           <p className="text-[14px] whitespace-nowrap">Ticks display</p>
           <div className="min-w-[100px]">
@@ -237,7 +234,7 @@ export default function LiquidityBarChart({
           </div>
           <span className="text-sm text-gray-600 min-w-[3ch]">{priceList.length - 1}</span>
         </div>
-      </p>
+      </div>
       <div
         className="h-[400px] flex justify-center"
         onWheel={(event) => {

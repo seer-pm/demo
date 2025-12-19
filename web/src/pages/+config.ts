@@ -20,4 +20,5 @@ export default {
       env: { server: true, client: true },
     },
   },
+  prerender: false,
 } satisfies Config;

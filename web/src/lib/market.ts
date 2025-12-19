@@ -1,15 +1,153 @@
-import { Market } from "@/hooks/useMarket";
+import { Address, zeroAddress } from "viem";
+import { SupportedChain } from "./chains";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   decodeQuestion,
+  displayScalarBound,
+  escapeJson,
   isQuestionInDispute,
   isQuestionOpen,
   isQuestionPending,
   isQuestionUnanswered,
 } from "./reality";
-import { formatDate, isUndefined } from "./utils";
+import { isTwoStringsEqual, isUndefined } from "./utils";
+
+export interface Question {
+  id: `0x${string}`;
+  arbitrator: Address;
+  opening_ts: number;
+  timeout: number;
+  finalize_ts: number;
+  is_pending_arbitration: boolean;
+  best_answer: `0x${string}`;
+  bond: bigint;
+  min_bond: bigint;
+  base_question: `0x${string}`;
+}
+
+export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
+export type VerificationResult = { status: VerificationStatus; itemID?: string; deadline?: number };
+export type MarketOffChainFields = {
+  chainId: SupportedChain;
+  factory?: Address;
+  outcomesSupply: bigint;
+  liquidityUSD: number;
+  incentive: number;
+  hasLiquidity: boolean;
+  categories: string[];
+  poolBalance: ({
+    token0: {
+      symbol: string;
+      balance: number;
+    };
+    token1: {
+      symbol: string;
+      balance: number;
+    };
+  } | null)[];
+  odds: (number | null)[];
+  creator?: string | null;
+  blockTimestamp?: number;
+  verification?: VerificationResult;
+  images?: { market: string; outcomes: string[] } | undefined;
+  index?: number;
+  url: string;
+};
+
+export enum MarketStatus {
+  NOT_OPEN = "not_open",
+  OPEN = "open",
+  ANSWER_NOT_FINAL = "answer_not_final",
+  IN_DISPUTE = "in_dispute",
+  PENDING_EXECUTION = "pending_execution",
+  CLOSED = "closed",
+}
+
+export type Market = MarketOffChainFields & {
+  id: Address;
+  type: "Generic" | "Futarchy";
+  marketName: string;
+  outcomes: readonly string[];
+  collateralToken: Address;
+  collateralToken1: Address;
+  collateralToken2: Address;
+  wrappedTokens: Address[];
+  parentMarket: {
+    id: Address;
+    conditionId: `0x${string}`;
+    payoutReported: boolean;
+    payoutNumerators: readonly bigint[];
+  };
+  parentOutcome: bigint;
+  //MarketView's outcomesSupply is buggy
+  //outcomesSupply: bigint;
+  parentCollectionId: `0x${string}`;
+  conditionId: `0x${string}`;
+  questionId: `0x${string}`;
+  templateId: bigint;
+  questions: readonly Question[];
+  openingTs: number;
+  finalizeTs: number;
+  encodedQuestions: readonly string[];
+  lowerBound: bigint;
+  upperBound: bigint;
+  payoutReported: boolean;
+  payoutNumerators: readonly bigint[];
+};
+
+export type SerializedMarket = Omit<
+  Market,
+  | "outcomesSupply"
+  | "parentOutcome"
+  | "templateId"
+  | "questions"
+  | "lowerBound"
+  | "upperBound"
+  | "payoutNumerators"
+  | "parentMarket"
+> & {
+  outcomesSupply: string;
+  parentMarket: Omit<Market["parentMarket"], "payoutNumerators"> & {
+    payoutNumerators: readonly string[];
+  };
+  parentOutcome: string;
+  templateId: string;
+  questions: Array<
+    Omit<Question, "bond" | "min_bond"> & {
+      bond: string;
+      min_bond: string;
+    }
+  >;
+  lowerBound: string;
+  upperBound: string;
+  payoutNumerators: readonly string[];
+};
+
+export const getMarketStatus = (market: Market) => {
+  if (!hasOpenQuestions(market!)) {
+    return MarketStatus.NOT_OPEN;
+  }
+
+  if (hasAllUnansweredQuestions(market!)) {
+    return MarketStatus.OPEN;
+  }
+
+  if (isInDispute(market!)) {
+    return MarketStatus.IN_DISPUTE;
+  }
+
+  if (isWaitingResults(market!)) {
+    return MarketStatus.ANSWER_NOT_FINAL;
+  }
+
+  if (!market!.payoutReported) {
+    return MarketStatus.PENDING_EXECUTION;
+  }
+
+  return MarketStatus.CLOSED;
+};
 
 export function hasOpenQuestions(market: Market) {
   // all the questions have the same opening_ts so we can use the first one to check it
@@ -26,10 +164,6 @@ export function isInDispute(market: Market) {
 
 export function isWaitingResults(market: Market) {
   return market.questions.some((question) => isQuestionPending(question));
-}
-
-export function getOpeningTime(market: Market) {
-  return `${formatDate(market.questions[0].opening_ts)} UTC`;
 }
 
 export function getClosingTime(market: Market) {
@@ -68,12 +202,88 @@ export function getMarketType(market: Market): MarketTypes {
   return MarketTypes.SCALAR;
 }
 
+export function getMarketName(marketType: MarketTypes, marketName: string, unit: string) {
+  return [MarketTypes.SCALAR, MarketTypes.MULTI_SCALAR].includes(marketType) && unit.trim()
+    ? `${escapeJson(marketName)} [${escapeJson(unit)}]`
+    : escapeJson(marketName);
+}
+
+export function getQuestionParts(
+  marketName: string,
+  marketType: MarketTypes,
+): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
+  if (marketType !== MarketTypes.MULTI_SCALAR) {
+    return { questionStart: "", questionEnd: "", outcomeType: "" };
+  }
+
+  // splits the question, for example
+  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
+  // // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election? [votes]
+  const parts = marketName.split(/\[|\]/);
+
+  if (parts.length !== 3 && parts.length !== 5) {
+    // length = 3: question without unit
+    // length = 5: question with unit
+    return;
+  }
+
+  if (parts.length === 5) {
+    // Check if the market name ends with "? [unit]" pattern using regex
+    const unitRegex = /\?\s*\[[^\]]+\]$/;
+    if (!unitRegex.test(marketName)) {
+      return;
+    }
+  }
+
+  // prevent this case ]outcome type[
+  if (marketName.indexOf("[") > marketName.indexOf("]")) {
+    return;
+  }
+
+  let [questionStart, outcomeType, questionEnd] = parts;
+  if (!questionEnd?.trim() || !outcomeType.trim()) {
+    return;
+  }
+
+  // add the unit
+  if (parts.length === 5) {
+    questionEnd += `[${parts[3]}]`;
+  }
+
+  return { questionStart, questionEnd, outcomeType };
+}
+
 export function hasOutcomes(marketType: MarketTypes) {
   return (
     marketType === MarketTypes.CATEGORICAL ||
     marketType === MarketTypes.MULTI_CATEGORICAL ||
     marketType === MarketTypes.MULTI_SCALAR
   );
+}
+
+export function isInvalidOutcome(market: Market, outcomeIndex: number) {
+  const hasInvalidOutcome = market.type === "Generic";
+  return hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
+}
+
+export function getMultiScalarEstimate(market: Market, odds: number | null): { value: number; unit: string } | null {
+  // Fixed upper bounds and units for specific market addresses
+  const UPPER_BOUNDS: Record<Address, [number, string]> = {
+    "0x1c21c59cd3b33be95a5b07bd7625b5f6d8024a76": [343, "seats"],
+    "0xabe35cf0953169d9384f5953633f02996b4802f9": [577, "seats"],
+    "0xbfea94c611fbe8a5353eddd94e025a2b3ad425d3": [128, "seats"],
+  };
+
+  const [upperBound, unit] = UPPER_BOUNDS[market.id] || [displayScalarBound(market.upperBound), getMarketUnit(market)];
+
+  if (upperBound <= 0 || unit === "") {
+    return null;
+  }
+
+  return {
+    value: Math.round((upperBound * Number(odds)) / 100),
+    unit,
+  };
 }
 
 export function isMarketReliable(market: Market) {
@@ -84,7 +294,7 @@ export function isMarketReliable(market: Market) {
 
   if (getMarketType(market) === MarketTypes.MULTI_SCALAR) {
     // check that the outcomeType wasn't manipulated
-    const result = /(?<questionStart>.*)\[(?<outcomeType>.*)\](?<questionEnd>.*)/.exec(market.marketName);
+    const result = /(?<questionStart>.*?)\[(?<outcomeType>.*?)\](?<questionEnd>.*)/.exec(market.marketName);
 
     if (result === null) {
       // the regex fails if market name doesn't include the [outcomeType]
@@ -115,40 +325,194 @@ export function isMarketReliable(market: Market) {
       return false;
     }
 
-    // -1 to exclude the INVALID outcome
-    return decodedQuestion.outcomes.length === market.outcomes.length - 1;
+    const hasInvalidOutcome = market.type === "Generic";
+
+    if (hasInvalidOutcome) {
+      // -1 to exclude the INVALID outcome
+      return decodedQuestion.outcomes.length === market.outcomes.length - 1;
+    }
+
+    // futarchy markets have 2 outcomes (Yes & No)
+    return decodedQuestion.outcomes.length === 2;
   });
 }
 
-export function formatOdds(odd: number | undefined | null, marketType: MarketTypes) {
-  if (!isOdd(odd)) {
-    return "NA";
-  }
-  if (marketType === MarketTypes.SCALAR || marketType === MarketTypes.MULTI_CATEGORICAL) {
-    return odd === 0 ? 0 : (odd! / 100).toFixed(3);
-  }
-
-  return `${odd}%`;
-}
-
-export function isOdd(odd: number | undefined | null) {
+export function isOdd(odd: number | undefined | null): odd is number {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 
-export function getMarketEstimate(odds: number[], market: Market, convertToString?: boolean) {
-  const { lowerBound, upperBound, marketName } = market;
-  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
-    return "NA";
-  }
-  const estimate = ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(0);
-  if (!convertToString) {
-    return estimate;
-  }
+export function getMarketUnit(market: Market) {
+  const marketName = market.marketName;
   if (marketName.lastIndexOf("[") > -1) {
-    return `${Number(estimate).toLocaleString()} ${marketName.slice(
-      marketName.lastIndexOf("[") + 1,
-      marketName.lastIndexOf("]"),
-    )}`;
+    return `${marketName.slice(marketName.lastIndexOf("[") + 1, marketName.lastIndexOf("]"))}`;
   }
-  return Number(estimate).toLocaleString();
+
+  return "";
+}
+
+export function getCollateralByIndex(market: Market, index: number) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+  return index < 2 ? market.collateralToken1 : market.collateralToken2;
+}
+
+export function getMarketPoolsPairs(market: Market): Token0Token1[] {
+  const pools = new Set<Token0Token1>();
+  const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
+  tokens.forEach((_, index) => {
+    pools.add(getLiquidityPair(market, index));
+  });
+  return [...pools];
+}
+
+// outcome0 pairs with outcome2
+// outcome1 pairs with outcome3
+// outcome2 pairs with outcome0
+// outcome3 pairs with outcome1
+export const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
+
+export function getLiquidityPair(market: Market, outcomeIndex: number): Token0Token1 {
+  if (market.type === "Generic") {
+    return getToken0Token1(market.wrappedTokens[outcomeIndex], market.collateralToken);
+  }
+
+  return getToken0Token1(
+    market.wrappedTokens[outcomeIndex],
+    market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]],
+  );
+}
+
+export function getLiquidityPairForToken(market: Market, outcomeIndex: number): Address {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+
+  return market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]];
+}
+
+export type Token0Token1 = { token1: Address; token0: Address };
+
+export function getToken0Token1(token0: Address, token1: Address): Token0Token1 {
+  return token0.toLocaleLowerCase() > token1.toLocaleLowerCase()
+    ? { token0: token1.toLocaleLowerCase() as Address, token1: token0.toLocaleLowerCase() as Address }
+    : { token0: token0.toLocaleLowerCase() as Address, token1: token1.toLocaleLowerCase() as Address };
+}
+
+export function getTokensPairKey(tokenA: Address | string, tokenB: Address | string): string {
+  const { token0, token1 } = getToken0Token1(tokenA as Address, tokenB as Address);
+  return `${token0}-${token1}`;
+}
+
+export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+
+  return tokenIn.toLocaleLowerCase() === market.collateralToken1.toLocaleLowerCase() ? tokenIn : tokenOut;
+}
+
+export function getOutcomeSlotCount(market: Market) {
+  if (market.type === "Generic") {
+    return market.outcomes.length;
+  }
+
+  return 2;
+}
+export function getOutcomes(outcomes: string[], marketType: MarketTypes) {
+  if (marketType === MarketTypes.SCALAR) {
+    return ["DOWN", "UP", ...outcomes.slice(2)];
+  }
+
+  return outcomes;
+}
+
+export function serializeMarket(market: Market): SerializedMarket {
+  return {
+    ...market,
+    outcomesSupply: market.outcomesSupply.toString(),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => pn.toString()),
+    },
+    parentOutcome: market.parentOutcome.toString(),
+    templateId: market.templateId.toString(),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: question.bond.toString(),
+      min_bond: question.min_bond.toString(),
+    })),
+    lowerBound: market.lowerBound.toString(),
+    upperBound: market.upperBound.toString(),
+    payoutNumerators: market.payoutNumerators.map((pn) => pn.toString()),
+  };
+}
+
+export function deserializeMarket(market: SerializedMarket): Market {
+  return {
+    ...market,
+    outcomesSupply: BigInt(market.outcomesSupply),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => BigInt(pn)),
+    },
+    parentOutcome: BigInt(market.parentOutcome),
+    templateId: BigInt(market.templateId),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: BigInt(question.bond),
+      min_bond: BigInt(question.min_bond),
+    })),
+    lowerBound: BigInt(market.lowerBound),
+    upperBound: BigInt(market.upperBound),
+    payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+  };
+}
+
+/**
+ * Calculates the redeemed price for a specific outcome
+ *
+ * The redeemed price represents the payout ratio when the market is finalized.
+ * For parent-child market relationships, this function handles the cascading payout calculations.
+ *
+ * @param market - The market containing payout information
+ * @param tokenIndex - The index of the specific outcome token
+ * @returns The redeemed price as a decimal ratio (0-1), or 0 if no payout is available
+ */
+export function getRedeemedPrice(market: Market, tokenIndex: number) {
+  // If the market hasn't reported payouts yet, return 0
+  if (!market.payoutReported) {
+    return 0;
+  }
+
+  // Calculate the total sum of all payout numerators for this market
+  const sumPayout = market.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+
+  // Check if this is a standalone market (no parent market)
+  if (isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
+    // Return the ratio of this outcome's payout to total payouts
+    return Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+  }
+
+  // For child markets, check if the parent market has reported payouts and this outcome is winning
+  const isParentPayout =
+    market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
+
+  if (isParentPayout) {
+    // Calculate total payouts for the parent market
+    const sumParentPayout = market.parentMarket.payoutNumerators.reduce((acc, curr) => acc + Number(curr), 0);
+
+    // Calculate the payout price for this specific outcome in the child market
+    const payoutPrice = Number(market.payoutNumerators[tokenIndex]) / sumPayout;
+
+    // Calculate the payout price for the parent market outcome
+    const parentPayoutPrice =
+      Number(market.parentMarket.payoutNumerators[Number(market.parentOutcome)]) / sumParentPayout;
+
+    // Return the combined payout: child market outcome price × parent market outcome price
+    return payoutPrice * parentPayoutPrice;
+  }
+
+  // If parent market hasn't reported payouts or this outcome isn't winning, return 0
+  return 0;
 }

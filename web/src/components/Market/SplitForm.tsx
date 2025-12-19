@@ -1,16 +1,15 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { Market } from "@/hooks/useMarket";
-import { useMissingApprovals } from "@/hooks/useMissingApprovals";
-import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { CHAIN_ROUTERS, COLLATERAL_TOKENS } from "@/lib/config";
+import { getRouterAddress } from "@/lib/config";
+import { Market } from "@/lib/market";
 import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
@@ -21,11 +20,12 @@ export interface SplitFormValues {
 
 interface SplitFormProps {
   account?: Address;
-  router: Address;
   market: Market;
 }
 
-export function SplitForm({ account, router, market }: SplitFormProps) {
+export function SplitForm({ account, market }: SplitFormProps) {
+  const router = getRouterAddress(market);
+
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
     defaultValues: {
@@ -54,32 +54,34 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
   );
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
-  const { data: missingApprovals = [], isLoading: isLoadingApprovals } = useMissingApprovals(
-    selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
-    account,
-    router,
-    parsedAmount,
-    market.chainId,
-  );
 
   useEffect(() => {
     dirtyFields["amount"] && trigger("amount");
   }, [balance, useAltCollateral]);
 
-  const splitPosition = useSplitPosition((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const {
+    splitPosition,
+    approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
+  } = useSplitPosition(
+    {
+      tokensAddresses: selectedCollateral.address !== NATIVE_TOKEN ? [selectedCollateral.address] : [],
+      account,
+      spender: router,
+      amounts: parsedAmount,
+      chainId: market.chainId,
+    },
+    (/*receipt: TransactionReceipt*/) => {
+      reset();
+    },
+  );
 
   const onSubmit = async (/*values: SplitFormValues*/) => {
     await splitPosition.mutateAsync({
-      account: account!,
       router: router,
-      market: market.id,
-      collateralToken: COLLATERAL_TOKENS[market.chainId].primary.address,
+      market: market,
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
-      isMainCollateral: !useAltCollateral,
-      routerType: CHAIN_ROUTERS[market.chainId],
     });
   };
 
@@ -136,9 +138,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
         />
       </div>
 
-      {market.parentMarket.id === zeroAddress && (
-        <AltCollateralSwitch {...register("useAltCollateral")} chainId={market.chainId} />
-      )}
+      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>
@@ -156,6 +156,7 @@ export function SplitForm({ account, router, market }: SplitFormProps) {
               tokenName={missingApprovals[0].name}
               spender={missingApprovals[0].spender}
               amount={parsedAmount}
+              chainId={market.chainId}
             />
           )}
         </SwitchChainButtonWrapper>

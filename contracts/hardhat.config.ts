@@ -67,7 +67,8 @@ const config: HardhatUserConfig = {
         auto: false,
         interval: 100,
       },
-      // saveDeployments: true,
+      saveDeployments: true,
+      allowUnlimitedContractSize: true,
       // gas: "auto",
     },
     localhost: {
@@ -95,6 +96,28 @@ const config: HardhatUserConfig = {
       verify: {
         etherscan: {
           apiKey: process.env.GNOSISSCAN_API_KEY!,
+        },
+      },
+    },
+    optimism: {
+      chainId: 10,
+      url: process.env.OPTIMISM_RPC || "https://optimism-mainnet.public.blastapi.io",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.OPTIMISM_API_KEY!,
+        },
+      },
+    },
+    base: {
+      chainId: 8453,
+      url: process.env.BASE_RPC || "https://base.llamarpc.com",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      verify: {
+        etherscan: {
+          apiKey: process.env.BASE_API_KEY!,
         },
       },
     },

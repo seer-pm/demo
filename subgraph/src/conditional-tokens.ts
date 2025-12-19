@@ -15,9 +15,11 @@ function createConditionalEvent(
   blockNumber: BigInt,
   collateral: Address,
   transactionHash: Bytes,
-  logIndex: BigInt,
+  logIndex: BigInt
 ): void {
-  const conditionalEvent = new ConditionalEvent(transactionHash.concatI32(logIndex.toI32()));
+  const conditionalEvent = new ConditionalEvent(
+    transactionHash.concatI32(logIndex.toI32())
+  );
   conditionalEvent.market = marketId;
   conditionalEvent.accountId = accountId;
   conditionalEvent.type = type;
@@ -50,6 +52,11 @@ const splitMethods: MethodSignature[] = [
     signature: "0xd5f82280",
     marketParamPos: 1,
   },
+  {
+    name: "splitPosition",
+    signature: "0x21816254",
+    marketParamPos: 0,
+  },
 ];
 
 const mergeMethods: MethodSignature[] = [
@@ -67,6 +74,11 @@ const mergeMethods: MethodSignature[] = [
     name: "mergePositions",
     signature: "0x7abef8d1",
     marketParamPos: 1,
+  },
+  {
+    name: "mergePositions",
+    signature: "0xaab8ff62",
+    marketParamPos: 0,
   },
 ];
 
@@ -86,12 +98,20 @@ const redeemMethods: MethodSignature[] = [
     signature: "0x865955a0",
     marketParamPos: 1,
   },
+  {
+    name: "redeemProposal",
+    signature: "0x3f325a2b",
+    marketParamPos: 0,
+  },
 ];
 
-function getMethodSignature(methods: MethodSignature[], methodId: string): MethodSignature | null {
-  for(let i = 0; i < methods.length; i++) {
+function getMethodSignature(
+  methods: MethodSignature[],
+  methodId: string
+): MethodSignature | null {
+  for (let i = 0; i < methods.length; i++) {
     if (methods[i].signature == methodId) {
-      return methods[i]
+      return methods[i];
     }
   }
   return null;
@@ -99,7 +119,7 @@ function getMethodSignature(methods: MethodSignature[], methodId: string): Metho
 
 function getMarketFromTx(
   txInput: Bytes,
-  methods: MethodSignature[],
+  methods: MethodSignature[]
 ): Market | null {
   const methodId = Bytes.fromUint8Array(txInput.slice(0, 4)).toHexString();
   const matchingMethod = getMethodSignature(methods, methodId);
@@ -107,7 +127,10 @@ function getMarketFromTx(
     return null;
   }
   const startIndex: i32 = matchingMethod.marketParamPos * 32 + 4;
-  const decodedMarket = ethereum.decode("address", Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32)));
+  const decodedMarket = ethereum.decode(
+    "address",
+    Bytes.fromUint8Array(txInput.slice(startIndex, startIndex + 32))
+  );
   if (!decodedMarket) {
     return null;
   }
@@ -118,6 +141,12 @@ function getMarketFromTx(
   }
 
   return market;
+}
+
+function getCollateralToken(market: Market, collateralToken: Address): Address {
+  // for Generic markets, market.collateralToken contains the correct value both for conditional and non-conditional markets.
+  // Futarchy markets are always non-conditional, so evt.params.collateralToken contains the correct value.
+  return market.type == "Generic" ? Address.fromBytes(market.collateralToken) : collateralToken;
 }
 
 export function handlePositionSplit(evt: PositionSplit): void {
@@ -148,9 +177,9 @@ export function handlePositionSplit(evt: PositionSplit): void {
     "split",
     evt.params.amount,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 
@@ -182,9 +211,9 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     "merge",
     evt.params.amount,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 
@@ -216,9 +245,9 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     "redeem",
     evt.params.payout,
     evt.block.number,
-    evt.params.collateralToken,
+    getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
-    evt.logIndex,
+    evt.logIndex
   );
 }
 

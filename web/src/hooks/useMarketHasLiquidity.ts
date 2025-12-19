@@ -1,24 +1,39 @@
-import { SupportedChain } from "@/lib/chains";
-import { Token } from "@/lib/tokens";
-import { bigIntMax, isTwoStringsEqual } from "@/lib/utils";
-import { useAllOutcomePools } from "./useMarketPools";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
+import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { useMarketPools } from "./useMarketPools";
 
-function useMarketHasLiquidity(chainId: SupportedChain, wrappedAddresses: `0x${string}`[], collateralToken: Token) {
-  const { data: outcomePools = [] } = useAllOutcomePools(chainId as SupportedChain, collateralToken);
-  const outcomeLiquidityMapping = outcomePools.reduce(
+function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
+  const { data: outcomePools = [], isPending } = useMarketPools(market);
+
+  if (isPending) {
+    return;
+  }
+
+  const outcomeLiquidityMapping = outcomePools.flat().reduce(
     (obj, item) => {
-      const outcomeTokenId = isTwoStringsEqual(item.token0.id, collateralToken.address)
-        ? item.token1.id
-        : item.token0.id;
-      obj[outcomeTokenId.toLowerCase()] =
-        obj[outcomeTokenId.toLowerCase()] > BigInt(item.liquidity)
-          ? obj[outcomeTokenId.toLowerCase()]
-          : BigInt(item.liquidity);
+      const outcomeTokenId = (
+        market.wrappedTokens.some((outcomeToken) => isTwoStringsEqual(item.token0, outcomeToken))
+          ? item.token0
+          : item.token1
+      ).toLowerCase();
+      obj[outcomeTokenId] = obj[outcomeTokenId] > BigInt(item.liquidity) ? obj[outcomeTokenId] : BigInt(item.liquidity);
       return obj;
     },
     {} as { [key: string]: bigint },
   );
-  return bigIntMax(...(wrappedAddresses?.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? [])) > 0n;
+
+  if (!isUndefined(outcomeIndex)) {
+    if (market.type === "Futarchy") {
+      return (
+        (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n ||
+        (outcomeLiquidityMapping[market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]] || 0n) > 0n
+      );
+    }
+    return (outcomeLiquidityMapping[market.wrappedTokens[outcomeIndex]] || 0n) > 0n;
+  }
+  return (
+    bigIntMax(...(market.wrappedTokens.map((address) => outcomeLiquidityMapping[address.toLowerCase()]) ?? [])) > 0n
+  );
 }
 
 export default useMarketHasLiquidity;

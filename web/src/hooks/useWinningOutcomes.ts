@@ -1,25 +1,24 @@
 import { RouterAbi } from "@/abi/RouterAbi";
-import { SupportedChain } from "@/lib/chains";
 import { getRouterAddress } from "@/lib/config";
+import { Market, MarketStatus } from "@/lib/market";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address } from "viem";
-import { MarketStatus } from "./useMarketStatus";
 
-export function useWinningOutcomes(conditionId: Address, chainId: SupportedChain, marketStatus?: MarketStatus) {
-  const routerAddress = getRouterAddress(chainId);
+export function useWinningOutcomes(market: Market, marketStatus?: MarketStatus) {
+  const routerAddress = getRouterAddress(market);
 
   return useQuery({
-    queryKey: ["winningOutcomes", conditionId, routerAddress],
+    queryKey: ["winningOutcomes", market.conditionId, routerAddress],
     enabled: marketStatus === MarketStatus.CLOSED && !!routerAddress,
     queryFn: async () => {
       return await readContract(config, {
         abi: RouterAbi,
         address: routerAddress as Address,
         functionName: "getWinningOutcomes",
-        args: [conditionId],
-        chainId,
+        args: [market.conditionId],
+        chainId: market.chainId,
       });
     },
   });

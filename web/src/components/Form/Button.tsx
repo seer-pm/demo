@@ -2,7 +2,7 @@ import { Link, LinkProps } from "@/components/Link";
 import clsx from "clsx";
 import React from "react";
 
-type ButtonSize = "small" | "large";
+export type ButtonSize = "small" | "large";
 type ButtonVariant = "primary" | "secondary" | "tertiary";
 
 type BaseProps = {
@@ -36,7 +36,7 @@ const Button = React.forwardRef<HTMLButtonElement, BaseProps & React.ButtonHTMLA
       <button
         {...restProps}
         type={type || "button"}
-        className={clsx("btn @container", variants[variant], sizes[size], className)}
+        className={clsx("btn", variants[variant], sizes[size], className)}
         ref={ref}
       >
         {isLoading && <span className="loading loading-spinner"></span>}

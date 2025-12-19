@@ -1,73 +1,21 @@
 import { SupportedChain } from "@/lib/chains";
-import { MarketTypes, getMarketType } from "@/lib/market";
-import { fetchMarkets } from "@/lib/markets-search";
+import { Market, MarketOffChainFields, MarketTypes, Question, getMarketType, getOutcomes } from "@/lib/market";
+import { fetchMarket } from "@/lib/markets-fetch";
+import { queryClient } from "@/lib/query-client";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { Address, zeroAddress } from "viem";
-import { marketFactoryAddress, readMarketViewGetMarket } from "./contracts/generated";
-import { getOutcomes } from "./useCreateMarket";
-
-export interface Question {
-  id: `0x${string}`;
-  arbitrator: Address;
-  opening_ts: number;
-  timeout: number;
-  finalize_ts: number;
-  is_pending_arbitration: boolean;
-  best_answer: `0x${string}`;
-  bond: bigint;
-  min_bond: bigint;
-}
-
-export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
-export type VerificationResult = { status: VerificationStatus; itemID?: string };
-
-interface MarketOffChainFields {
-  chainId: SupportedChain;
-  outcomesSupply: bigint;
-  liquidityUSD: number;
-  incentive: number;
-  hasLiquidity: boolean;
-  creator?: string | null;
-  blockTimestamp?: number;
-  verification?: VerificationResult;
-  index?: number;
-}
-
-export interface Market extends MarketOffChainFields {
-  id: Address;
-  marketName: string;
-  outcomes: readonly string[];
-  wrappedTokens: Address[];
-  parentMarket: {
-    id: Address;
-    conditionId: `0x${string}`;
-    payoutReported: boolean;
-    payoutNumerators: readonly bigint[];
-  };
-  parentOutcome: bigint;
-  //MarketView's outcomesSupply is buggy
-  //outcomesSupply: bigint;
-  parentCollectionId: `0x${string}`;
-  conditionId: `0x${string}`;
-  questionId: `0x${string}`;
-  templateId: bigint;
-  questions: readonly Question[];
-  openingTs: number;
-  encodedQuestions: readonly string[];
-  lowerBound: bigint;
-  upperBound: bigint;
-  payoutReported: boolean;
-  payoutNumerators: readonly bigint[];
-}
+import { Address, zeroAddress, zeroHash } from "viem";
+import { marketFactoryAddress } from "./contracts/generated-market-factory";
+import { readMarketViewGetMarket } from "./contracts/generated-market-view";
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 
 export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: MarketOffChainFields): Market {
   const market: Market = {
     ...onChainMarket,
+    type: onChainMarket.collateralToken1 === zeroAddress ? "Generic" : "Futarchy",
     wrappedTokens: onChainMarket.wrappedTokens.slice(),
     marketName: unescapeJson(onChainMarket.marketName),
     outcomes: onChainMarket.outcomes.map((outcome) => {
@@ -80,10 +28,12 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
       (question, i) =>
         ({
           id: onChainMarket.questionsIds[i],
+          base_question: zeroHash,
           ...question,
         }) as Question,
     ),
     openingTs: onChainMarket.questions[0].opening_ts,
+    finalizeTs: 0,
     ...offChainFields,
   };
 
@@ -93,25 +43,30 @@ export function mapOnChainMarket(onChainMarket: OnChainMarket, offChainFields: M
   return market;
 }
 
-export const getUseGraphMarketKey = (marketId: Address) => [
+export const getUseGraphMarketKey = (marketIdOrSlug: string, chainId: SupportedChain) => [
   "useMarket",
   "useGraphMarket",
-  marketId.toLocaleLowerCase(),
+  marketIdOrSlug.toLocaleLowerCase(),
+  chainId,
 ];
 
-export const useGraphMarketQueryFn = async (marketId: Address, chainId: SupportedChain) => {
-  const markets = await fetchMarkets(chainId, { id: marketId.toLocaleLowerCase() });
+export const useGraphMarketQueryFn = async (marketIdOrSlug: string, chainId: SupportedChain) => {
+  const market = await fetchMarket(chainId, marketIdOrSlug);
 
-  if (markets.length === 0) {
-    throw new Error("Market not found");
+  if (market) {
+    // Cache the market data under both its ID and URL keys to enable lookups by either value
+    queryClient.setQueryData(
+      getUseGraphMarketKey(market.url === marketIdOrSlug ? market.id : market.url, chainId),
+      market,
+    );
   }
 
-  return markets[0];
+  return market;
 };
 
 export const useGraphMarket = (marketId: Address, chainId: SupportedChain) => {
   return useQuery<Market | undefined, Error>({
-    queryKey: getUseGraphMarketKey(marketId),
+    queryKey: getUseGraphMarketKey(marketId, chainId),
     enabled: marketId !== zeroAddress,
     queryFn: async () => {
       return useGraphMarketQueryFn(marketId, chainId);
@@ -136,6 +91,10 @@ const useOnChainMarket = (marketId: Address, chainId: SupportedChain) => {
           liquidityUSD: 0,
           incentive: 0,
           hasLiquidity: false,
+          categories: ["misc"],
+          poolBalance: [],
+          odds: [],
+          url: "",
         },
       );
     },
@@ -147,4 +106,31 @@ export const useMarket = (marketId: Address, chainId: SupportedChain) => {
   const onChainMarket = useOnChainMarket(marketId, chainId);
   const graphMarket = useGraphMarket(marketId, chainId);
   return graphMarket.isError ? onChainMarket : graphMarket;
+};
+
+/**
+ * This function overrides the question object by reading the data directly from the blockchain.
+ *
+ * While the graph is the primary data source for markets, this function ensures we have the
+ * most accurate question data, particularly for:
+ * - The correct answer for each question (best_answer)
+ * - Proper status for reopened questions
+ *
+ * This is critical because the graph may not update immediately when questions are reopened
+ * or when new answers are submitted, leading to stale or incorrect data being displayed.
+ *
+ * @param market The market object that may contain stale question data from the graph
+ * @param chainId The chain ID to fetch the on-chain data from
+ * @returns The market object with updated question data from the blockchain
+ */
+export const useMarketQuestions = (market: Market | undefined, chainId: SupportedChain) => {
+  const { data: onChainMarket } = useOnChainMarket(market?.id || zeroAddress, chainId);
+
+  if (market === undefined || onChainMarket === undefined) {
+    return market;
+  }
+
+  return Object.assign(market, {
+    questions: onChainMarket.questions,
+  });
 };

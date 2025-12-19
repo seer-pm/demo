@@ -1,11 +1,10 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
+import { Market, MarketStatus, Question } from "@/lib/market";
 import {
   ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
@@ -14,17 +13,17 @@ import {
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   formatOutcome,
-  getAnswerText,
+  getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
+  isScalarBoundInWei,
 } from "@/lib/reality";
-import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
-import { hexToNumber, parseEther } from "viem";
+import { formatUnits, hexToNumber, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -43,13 +42,18 @@ interface AnswerFormProps {
   raiseDispute: () => void;
 }
 
-function getOutcome(templateId: bigint, values: AnswerFormValues) {
+// NOTE about scalarBoundInWei:
+// It's a temporary fix for backwards compatibility.
+// Some older scalar markets were created using basic units (regular integers),
+// while newer markets use wei (1e18) for scalar bounds.
+// Going forward, all new scalar markets will use wei format.
+function getOutcome(templateId: bigint, values: AnswerFormValues, scalarBoundInWei: boolean) {
   if (values.answerType === INVALID_RESULT || values.answerType === ANSWERED_TOO_SOON) {
     return values.answerType;
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return parseEther(String(values.outcome)).toString();
+    return scalarBoundInWei ? parseEther(String(values.outcome)).toString() : String(values.outcome);
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
@@ -65,12 +69,16 @@ function getOutcome(templateId: bigint, values: AnswerFormValues) {
 function getOutcomesOptions(market: Market, question: Question) {
   let options: { value: FormEventOutcomeValue; text: string }[] = [];
 
-  options = market.outcomes
+  const outcomes = market.outcomes;
+
+  options = outcomes
     // first map and then filter to keep the index of each outcome as value
     .map((outcome, i) => ({ value: i, text: outcome }));
 
-  // the last element is the Invalid Result outcome
-  options.pop();
+  if (market.type === "Generic") {
+    // the last element is the Invalid Result outcome
+    options.pop();
+  }
 
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
     options = options.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
@@ -115,7 +123,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const onSubmit = async (values: AnswerFormValues) => {
     await submitAnswer.mutateAsync({
       questionId: question.id,
-      outcome: formatOutcome(getOutcome(market.templateId, values)),
+      outcome: formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound))),
       currentBond: currentBond,
       chainId: market.chainId,
     });
@@ -137,7 +145,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   if (market.chainId !== connectedChainId) {
     return (
       <>
-        <Alert type="info">Switch to {SUPPORTED_CHAINS[market.chainId].name} to report the answer.</Alert>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS?.[market.chainId]?.name} to report the answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button
@@ -180,9 +188,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           <div>This market is already resolved.</div>
           <div>
             Final answer:{" "}
-            <span className="text-purple-primary font-semibold">
-              {getAnswerText(question, market.outcomes, market.templateId)}
-            </span>
+            <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
           </div>
         </div>
         <div className="text-center mt-[24px]">
@@ -232,15 +238,13 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           </a>{" "}
           by depositing a bond of{" "}
           <span className="text-purple-primary font-semibold">
-            {displayBalance(currentBond, 18)} {chain?.nativeCurrency?.symbol ?? "Native Tokens"}
+            {formatUnits(currentBond, 18)} {chain?.nativeCurrency?.symbol ?? "Native Tokens"}
           </span>
           .
         </div>
         <div>
           Current answer:{" "}
-          <span className="text-purple-primary font-semibold">
-            {getAnswerText(question, market.outcomes, market.templateId)}
-          </span>
+          <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
         </div>
       </div>
 

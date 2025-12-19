@@ -13,9 +13,13 @@ fragment Question on Question {
 
 fragment Market on Market {
   id
+  type
   marketName
   outcomes
   wrappedTokens
+  collateralToken
+  collateralToken1
+  collateralToken2
   parentMarket {
     id
     payoutReported
@@ -27,6 +31,8 @@ fragment Market on Market {
   conditionId
   questionId
   templateId
+  hasAnswers
+  questionsInArbitration
   questions {
     question {
       id
@@ -38,9 +44,14 @@ fragment Market on Market {
       best_answer
       bond
       min_bond
+      index
+    }
+    baseQuestion {
+      id
     }
   }
   openingTs
+  finalizeTs
   encodedQuestions
   lowerBound
   upperBound
@@ -50,6 +61,7 @@ fragment Market on Market {
   creator
   outcomesSupply
   blockTimestamp
+  transactionHash
 }
 
 query GetMarkets(

@@ -1,34 +1,26 @@
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { Market, getLiquidityPair } from "@/lib/market";
 import { useQuery } from "@tanstack/react-query";
-import { Market, useMarket } from "../useMarket";
-import { useTokenInfo } from "../useTokenInfo";
-import { getTicksData } from "./getTicksData";
+import { PoolInfo } from "../useMarketPools";
+import { getPoolAndTicksData } from "./getTicksData";
 
 export const useTicksData = (market: Market, outcomeTokenIndex: number) => {
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
-    market.chainId,
-  );
-  const collateralToken = parentCollateral || COLLATERAL_TOKENS[market.chainId].primary;
-  const outcomeToken = market.wrappedTokens[outcomeTokenIndex];
-  const tokens =
-    outcomeToken.toLocaleLowerCase() > collateralToken.address.toLocaleLowerCase()
-      ? [collateralToken.address, outcomeToken]
-      : [outcomeToken, collateralToken.address];
   return useQuery<
     | {
         [key: string]: {
-          tickIdx: string;
-          liquidityNet: string;
-        }[];
+          ticks: {
+            tickIdx: string;
+            liquidityNet: string;
+          }[];
+          poolInfo: PoolInfo;
+        };
       }
     | undefined,
     Error
   >({
     queryKey: ["useTicksData", market.id, outcomeTokenIndex],
     queryFn: async () => {
-      return await getTicksData(market.chainId, tokens[0], tokens[1]);
+      const { token0, token1 } = getLiquidityPair(market, outcomeTokenIndex);
+      return await getPoolAndTicksData(market.chainId, token0, token1);
     },
   });
 };

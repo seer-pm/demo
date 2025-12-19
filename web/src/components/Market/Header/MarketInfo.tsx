@@ -1,22 +1,27 @@
 import Button from "@/components/Form/Button";
-import { Market, Question } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import { useModal } from "@/hooks/useModal";
+import { formatDate } from "@/lib/date";
 import { CalendarIcon } from "@/lib/icons";
-import { getMarketType, getOpeningTime } from "@/lib/market";
+import { getMarketType } from "@/lib/market";
+import { MarketStatus } from "@/lib/market.ts";
+import { Market, Question } from "@/lib/market.ts";
 import { getRealityLink } from "@/lib/reality";
 import clsx from "clsx";
 import { useState } from "react";
 import { AnswerForm } from "../AnswerForm";
 import { RaiseDisputeForm } from "../RaiseDisputeForm";
 import { QuestionLine } from "./QuestionLine";
-import { COLORS } from "./index.tsx";
+import { COLORS } from "./index.ts";
 
 interface MarketInfoProps {
   market: Market;
   marketStatus: MarketStatus;
   isPreview: boolean;
   openAnswerModal: (question: Question) => void;
+}
+
+function getOpeningTime(market: Market) {
+  return `${formatDate(market.questions[0].opening_ts)} UTC`;
 }
 
 function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModal }: MarketInfoProps) {
@@ -34,7 +39,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
         {market.questions.length === 1 ? (
           <div>
             <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
-              Opening at {getOpeningTime(market)}
+              Resolution opening at {getOpeningTime(market)}
             </a>
           </div>
         ) : (
@@ -64,7 +69,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
               }
             />
             <button type="button" onClick={openQuestionsModal} className="text-left">
-              Opening at {getOpeningTime(market)}
+              Resolution opening at {getOpeningTime(market)}
             </button>
           </>
         )}
@@ -90,7 +95,11 @@ export function MarketInfo({
   market,
   marketStatus,
   isPreview,
-}: { market: Market; marketStatus?: MarketStatus; isPreview: boolean }) {
+}: {
+  market: Market;
+  marketStatus?: MarketStatus;
+  isPreview: boolean;
+}) {
   const { Modal: AnswerModal, openModal: openAnswerModal, closeModal: closeAnswerModal } = useModal("answer-modal");
   const {
     Modal: RaiseDisputeModal,
@@ -109,7 +118,7 @@ export function MarketInfo({
   }
 
   return (
-    <div className="text-[14px]">
+    <div className={clsx(isPreview ? "text-[12px]" : "text-[14px]")}>
       <MarketQuestionsStatus
         market={market}
         marketStatus={marketStatus}

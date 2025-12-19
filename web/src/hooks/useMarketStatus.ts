@@ -1,6 +1,4 @@
-import { hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
-import { useQuery } from "@tanstack/react-query";
-import { Market } from "./useMarket";
+import { Market, hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
 
 export enum MarketStatus {
   NOT_OPEN = "not_open",
@@ -35,10 +33,10 @@ export const getMarketStatus = (market: Market) => {
   return MarketStatus.CLOSED;
 };
 
-export const useMarketStatus = (market: Market) => {
+/* export const useMarketStatus = (market: Market) => {
   return useQuery<MarketStatus | undefined, Error>({
     queryKey: ["useMarketStatus", market.id],
     queryFn: async () => getMarketStatus(market),
     refetchOnWindowFocus: true,
   });
-};
+}; */

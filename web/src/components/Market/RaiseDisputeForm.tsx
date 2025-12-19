@@ -1,8 +1,8 @@
 import Button from "@/components/Form/Button";
 import { useArbitrationCost } from "@/hooks/useArbitrationCost";
-import { Question } from "@/hooks/useMarket";
 import { useRaiseDispute } from "@/hooks/useRaiseDispute";
 import { SupportedChain, mainnet } from "@/lib/chains";
+import { Question } from "@/lib/market";
 import { getCurrentBond } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
@@ -22,9 +22,9 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address, config: config, chainId: mainnet.id });
   const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
-  const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationCost } = useArbitrationCost(chainId);
+  const hasEnoughBalance = arbitrationCost && balance.value > arbitrationCost;
   const raiseDispute = useRaiseDispute((/*receipt: TransactionReceipt*/) => {});
 
   const onRaiseDispute = async () => {

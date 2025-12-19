@@ -1,60 +1,42 @@
-import { Market } from "@/hooks/useMarket";
 import { useMarkets } from "@/hooks/useMarkets";
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { SupportedChain } from "@/lib/chains";
+import { isOpStack } from "@/lib/config";
+import { Market, getTokensPairKey } from "@/lib/market";
+import { getCollateralSymbol, getCollateralTokenForSwap } from "@/lib/tokens";
+import { isUndefined } from "@/lib/utils";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
-import { DAI, WXDAI } from "@swapr/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getMappings } from "../getMappings";
 import { CowOrderData } from "./types";
 
-async function getCowOrders(initialMarkets: Market[] | undefined, account?: string, chainId?: SupportedChain) {
-  if (!chainId || !account || !initialMarkets) return [];
-  const markets = initialMarkets.filter((x) => x.chainId === chainId);
-  const mappings = await getMappings(markets, chainId);
+async function getCowOrders(initialMarkets: Market[] | undefined, account?: Address, chainId?: SupportedChain) {
+  if (!chainId || !account || !initialMarkets || isOpStack(chainId)) return [];
+  const mappings = await getMappings(initialMarkets, chainId);
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
   const orderBookApi = new OrderBookApi({ chainId });
   const orders = await orderBookApi.getOrders({ owner: account });
-  const isWXDAI = (tokenAddress: string) =>
-    isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||
-    isTwoStringsEqual(tokenAddress, DAI[chainId]?.address) ||
-    isTwoStringsEqual(tokenAddress, NATIVE_TOKEN);
-  const getWXDAISymbol = (tokenAddress: string, owner: string) => {
-    if (isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address)) {
-      if (!isTwoStringsEqual(owner, account) && chainId === gnosis.id) {
-        return "xDAI";
-      }
-      return WXDAI[chainId]?.symbol;
-    }
-    if (isTwoStringsEqual(tokenAddress, DAI[chainId]?.address)) {
-      return DAI[chainId]?.symbol;
-    }
-    if (isTwoStringsEqual(tokenAddress, NATIVE_TOKEN) && chainId === gnosis.id) {
-      return "xDAI";
-    }
-  };
-  const parseSymbol = (tokenAddress?: string) => {
-    if (!tokenAddress) return;
-    return isTwoStringsEqual(tokenAddress, COLLATERAL_TOKENS[chainId!].primary.address)
-      ? "sDAI"
-      : tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()];
-  };
-  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+
   const processedOrders = orders.reduce<CowOrderData[]>((acc, curr) => {
-    const sellToken = isWXDAI(curr.sellToken) ? sDAIAddress : curr.sellToken;
-    const buyToken = isWXDAI(curr.buyToken) ? sDAIAddress : curr.buyToken;
+    const sellToken = getCollateralTokenForSwap(curr.sellToken as Address, chainId);
+    const buyToken = getCollateralTokenForSwap(curr.buyToken as Address, chainId);
     const sellTokenSymbol =
-      getWXDAISymbol(curr.sellToken, curr.owner) ?? parseSymbol(curr.sellToken) ?? curr.sellToken.slice(0, 6);
+      getCollateralSymbol(
+        curr.sellToken as Address,
+        account,
+        curr.owner as Address,
+        chainId,
+        tokenIdToTokenSymbolMapping,
+      ) ?? curr.sellToken.slice(0, 6);
     const buyTokenSymbol =
-      getWXDAISymbol(curr.buyToken, curr.owner) ?? parseSymbol(curr.buyToken) ?? curr.buyToken.slice(0, 6);
-    const market =
-      tokenPairToMarketMapping[
-        sellToken.toLocaleLowerCase() > buyToken.toLocaleLowerCase()
-          ? `${buyToken.toLocaleLowerCase()}-${sellToken.toLocaleLowerCase()}`
-          : `${sellToken.toLocaleLowerCase()}-${buyToken.toLocaleLowerCase()}`
-      ];
+      getCollateralSymbol(
+        curr.buyToken as Address,
+        account,
+        curr.owner as Address,
+        chainId,
+        tokenIdToTokenSymbolMapping,
+      ) ?? curr.buyToken.slice(0, 6);
+    const market = tokenPairToMarketMapping[getTokensPairKey(sellToken, buyToken)];
     if (market) {
       acc.push({
         ...curr,
@@ -63,10 +45,24 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
         buyTokenSymbol,
         sellTokenSymbol,
         sellAmount: Number(formatUnits(BigInt(curr.sellAmount), 18)).toFixed(4),
+        formattedExecutedSellAmount: Number(curr.executedSellAmount)
+          ? Number(formatUnits(BigInt(curr.executedSellAmount), 18)).toFixed(4)
+          : null,
         buyAmount: Number(formatUnits(BigInt(curr.buyAmount), 18)).toFixed(4),
+        formattedExecutedBuyAmount: Number(curr.executedBuyAmount)
+          ? Number(formatUnits(BigInt(curr.executedBuyAmount), 18)).toFixed(4)
+          : null,
         limitPrice: (
           Number(formatUnits(BigInt(curr.sellAmount), 18)) / Number(formatUnits(BigInt(curr.buyAmount), 18))
         ).toFixed(4),
+        executionPrice: Number(curr.executedSellAmount)
+          ? (
+              Number(formatUnits(BigInt(curr.executedSellAmount), 18)) /
+              Number(formatUnits(BigInt(curr.executedBuyAmount), 18))
+            ).toFixed(4)
+          : null,
+        isOnChainOrder: !!curr.onchainUser,
+        isEthFlow: !!curr.ethflowData,
       });
     }
     return acc;
@@ -75,12 +71,12 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: stri
 }
 
 export const useCowOrders = (address: Address, chainId: SupportedChain) => {
-  const { data: markets } = useMarkets({});
+  const { data } = useMarkets({});
   return useQuery<CowOrderData[] | undefined, Error>({
-    enabled: !!address,
-    queryKey: ["useCowOrders", address, chainId, !!markets],
+    enabled: !!address && !isUndefined(data),
+    queryKey: ["useCowOrders", address, chainId],
     retry: false,
-    queryFn: async () => getCowOrders(markets, address, chainId),
+    queryFn: async () => getCowOrders(data!.markets, address, chainId),
     refetchOnMount: true,
   });
 };

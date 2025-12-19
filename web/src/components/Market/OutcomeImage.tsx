@@ -1,3 +1,4 @@
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import clsx from "clsx";
 import { SVGAttributes } from "react";
 
@@ -17,19 +18,28 @@ function InvalidOutcomeImage({ width = 70, height = 83, className = "" }: SVGAtt
 }
 
 const IMAGE_CLASS = "w-[48px] h-[48px] rounded-full mx-auto";
+const SMALL_IMAGE_CLASS = "w-[30px] h-[30px] rounded-full mx-auto";
 
 export function OutcomeImage({
   image,
-  isInvalidResult,
+  isInvalidOutcome,
   title,
-}: { image: string | undefined; isInvalidResult: boolean; title: string }) {
-  if (isInvalidResult) {
-    return <InvalidOutcomeImage width="20" height="24" className={clsx(IMAGE_CLASS, "bg-black-medium")} />;
+  className,
+}: {
+  image: string | undefined;
+  isInvalidOutcome: boolean;
+  title: string;
+  className?: string;
+}) {
+  const isSmallScreen = useIsSmallScreen();
+  const imageClass = className || (isSmallScreen ? SMALL_IMAGE_CLASS : IMAGE_CLASS);
+  if (isInvalidOutcome) {
+    return <InvalidOutcomeImage width="20" height="24" className={clsx(imageClass, "bg-black-medium")} />;
   }
 
   if (image) {
-    return <img src={image} alt={title} className={IMAGE_CLASS} />;
+    return <img src={image} alt={title} className={imageClass} />;
   }
 
-  return <div className={clsx(IMAGE_CLASS, "bg-purple-primary")}></div>;
+  return <div className={clsx(imageClass, "bg-purple-primary")}></div>;
 }

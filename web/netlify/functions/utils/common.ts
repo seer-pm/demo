@@ -1,72 +1,29 @@
-import { getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
-import { TransactionNotFoundError, TransactionReceiptNotFoundError, WaitForTransactionReceiptTimeoutError } from "viem";
-import { SupportedChain, config } from "./config";
+import { SupportedChain, sepolia } from "@/lib/chains";
+import { getPublicClient } from "@wagmi/core";
+import { Address } from "viem";
+import { config } from "./config";
 
-// biome-ignore lint/suspicious/noExplicitAny:
-export const isUndefined = (maybeObject: any): maybeObject is undefined | null => {
-  return typeof maybeObject === "undefined" || maybeObject === null;
+export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
+
+export const liquidityManagerAddressMapping: Partial<Record<SupportedChain, Address>> = {
+  100: "0x031778c7A1c08787aba7a2e0B5149fEb5DECabD7",
 };
 
-export function bigIntMax(...args: bigint[]): bigint {
-  if (!args.length) return 0n;
-  return args.reduce((m, e) => (e > m ? e : m));
+export const FROM_EMAIL = "gen@seer.pm";
+
+export function getPublicClientForNetwork(networkId: SupportedChain) {
+  return getPublicClient(config, { chainId: networkId });
 }
 
-export function isTwoStringsEqual(str1: string | undefined | null, str2: string | undefined | null) {
-  return str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
-}
-
-export function isOdd(odd: number | undefined | null) {
-  return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
-}
-
-export function getMarketEstimate(odds: number[], lowerBound: bigint, upperBound: bigint) {
-  if (!isOdd(odds[0]) || !isOdd(odds[1])) {
-    return "NA";
+export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain): Promise<number> {
+  if (chainId === sepolia.id) {
+    return 0;
   }
-  return ((odds[0] * Number(lowerBound) + odds[1] * Number(upperBound)) / 100).toFixed(2);
-}
-
-export function unescapeJson(txt: string) {
-  return txt.replace(/\\"/g, '"');
-}
-
-export const waitForContractWrite = async (contractWrite: () => Promise<`0x${string}`>, chainId: SupportedChain) => {
-  let hash: `0x${string}` | undefined = undefined;
-  try {
-    hash = await contractWrite();
-    const receipt = await waitForTransactionReceipt(config, {
-      hash,
-      ...(chainId && { chainId }),
-    });
-    return { status: true, receipt: receipt };
-    // biome-ignore lint/suspicious/noExplicitAny:
-  } catch (error: any) {
-    // timeout so we poll manually
-    if (
-      hash &&
-      error instanceof
-        (WaitForTransactionReceiptTimeoutError || TransactionNotFoundError || TransactionReceiptNotFoundError)
-    ) {
-      const newReceipt = await pollForTransactionReceipt(hash);
-      if (newReceipt) {
-        return { status: true, receipt: newReceipt };
-      }
-    }
-    return { status: false, error };
-  }
-};
-
-async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, initialInterval = 500) {
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      const txReceipt = await getTransactionReceipt(config, { hash });
-      if (txReceipt?.blockNumber) {
-        return txReceipt;
-      }
-    } catch (e) {}
-    const backoffTime = initialInterval * 2 ** i;
-    const jitter = Math.round(Math.random() * 1000); // Add some randomness to prevent synchronized retries
-    await new Promise((resolve) => setTimeout(resolve, backoffTime + jitter));
-  }
+  const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
+    pairs: { chainId: string; priceUsd: string }[];
+  };
+  const priceString = data.pairs?.find(
+    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
+  )?.priceUsd;
+  return priceString ? Number(priceString) : 0;
 }

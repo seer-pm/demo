@@ -1,41 +1,40 @@
-import type { HandlerContext, HandlerEvent } from "@netlify/functions";
+import { convertFromSDAI } from "@/hooks/trade/useShareAssetRatio";
+import { SupportedChain } from "@/lib/chains";
+import { COLLATERAL_TOKENS } from "@/lib/config";
+import { fetchMarket } from "@/lib/markets-fetch";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { readContract, writeContract } from "@wagmi/core";
-import { PrivateKeyAccount, erc20Abi } from "viem";
+import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
-import { isTwoStringsEqual, waitForContractWrite } from "./utils/common";
-import { COLLATERAL_TOKENS, SupportedChain, config } from "./utils/config";
-import { S_DAI_ADAPTER, liquidityManagerAddressMapping, zeroAddress } from "./utils/constants";
-import { fetchMarket } from "./utils/fetchMarkets";
-import { convertFromSDAI } from "./utils/handleSDai";
+import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/common";
+import { config } from "./utils/config";
+import { waitForContractWrite } from "./utils/waitForContractWrite";
 
-require("dotenv").config();
-
-export const handler = async (event: HandlerEvent, _context: HandlerContext) => {
-  const [chainIdString, marketId] = event.path
-    .split("/")
-    .slice(
-      event.path.split("/").indexOf("add-liquidity-background") + 1,
-      event.path.split("/").indexOf("add-liquidity-background") + 3,
-    );
-  if (chainIdString !== "100") {
-    return {};
-  }
+export default async (req: Request) => {
+  const [chainIdString, marketId] = req.url.replace(/\/$/, "").split("/").slice(-2);
   const chainId = Number(chainIdString) as SupportedChain;
-  const market = await fetchMarket(marketId, chainIdString);
-  const parentMarket = market.parentMarket.id;
-  if (parentMarket && !isTwoStringsEqual(parentMarket, zeroAddress)) {
+  if (chainId !== 100) {
+    return;
+  }
+  const market = await fetchMarket(chainId, marketId as Address);
+
+  if (!market) {
+    return;
+  }
+
+  if (!isTwoStringsEqual(market.parentMarket.id, zeroAddress)) {
     console.log("skip conditional market ", marketId);
     return;
   }
-  const sDAIAddress = COLLATERAL_TOKENS[chainId].primary.address;
+
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
   const liquidityAmount = BigInt(0.01 * 1e18);
   const totalLiquidityAmount = liquidityAmount * 2n * BigInt(market.wrappedTokens.length - 1);
   const currentSDaiBalance = await readContract(config, {
-    address: sDAIAddress,
+    address: COLLATERAL_TOKENS[chainId].primary.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [account.address],
@@ -53,7 +52,10 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
           abi: SDaiAdapterAbi,
           functionName: "depositXDAI",
           args: [account.address],
-          value: await convertFromSDAI(((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n, chainId), //convert a bit more than required to prevent slippage
+          value: await convertFromSDAI({
+            amount: ((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n,
+            chainId,
+          }), //convert a bit more than required to prevent slippage
           chainId,
         }),
       chainId,
@@ -63,13 +65,13 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
     chainId,
     COLLATERAL_TOKENS[chainId].primary.address,
     account,
-    liquidityManagerAddressMapping[chainId],
+    liquidityManagerAddressMapping[chainId]!,
     totalLiquidityAmount,
   );
   console.log("adding index liquidity");
   await writeContract(config, {
     account,
-    address: liquidityManagerAddressMapping[chainId],
+    address: liquidityManagerAddressMapping[chainId]!,
     abi: LiquidityManagerAbi,
     functionName: "addIndexLiquidityToMarket",
     args: [marketId, liquidityAmount],
@@ -79,7 +81,7 @@ export const handler = async (event: HandlerEvent, _context: HandlerContext) => 
     marketName: market.marketName,
     marketId: market.id,
   });
-  return {};
+  return;
 };
 
 async function checkAllowanceAndApprove(

@@ -1,36 +1,6 @@
 import { MarketTypes } from "@/lib/market";
 import { FieldValues, UseFormReturn } from "react-hook-form";
-
-export const MISC_CATEGORY = "misc";
-
-export function getQuestionParts(
-  marketName: string,
-  marketType: MarketTypes,
-): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
-  if (marketType !== MarketTypes.MULTI_SCALAR) {
-    return { questionStart: "", questionEnd: "", outcomeType: "" };
-  }
-
-  // splits the question, for example
-  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
-  const parts = marketName.split(/\[|\]/);
-
-  if (parts.length !== 3) {
-    return;
-  }
-
-  // prevent this case ]outcome type[
-  if (marketName.indexOf("[") > marketName.indexOf("]")) {
-    return;
-  }
-
-  const [questionStart, outcomeType, questionEnd] = parts;
-  if (!questionEnd?.trim() || !outcomeType.trim()) {
-    return;
-  }
-
-  return { questionStart, questionEnd, outcomeType };
-}
+import { Address } from "viem";
 
 interface GetImagesReturn {
   url: {
@@ -84,17 +54,21 @@ export interface FormWithNextStep {
 
 export type MarketTypeFormValues = {
   marketType: MarketTypes;
+  marketCategories: string[];
 };
 
 export type OutcomesFormValues = {
   market: string;
-  image: File;
+  image: File | "";
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
+  collateralToken1: Address | ""; // for futarchy markets
+  collateralToken2: Address | ""; // for futarchy markets
   lowerBound: { value: number; token: string }; // for scalar markets
   upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
+  isArbitraryQuestion?: boolean; // for futarchy markets
 };
 
-export interface DateFormValues {
+export type DateFormValues = {
   openingTime: string;
-}
+};

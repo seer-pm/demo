@@ -1,3 +1,4 @@
+import { CloseIcon } from "@/lib/icons";
 import clsx from "clsx";
 import React from "react";
 import { UseFormReturn, get } from "react-hook-form";
@@ -8,15 +9,18 @@ type InputProps = {
   useFormReturn?: UseFormReturn<any>;
   helpText?: string;
   icon?: React.ReactNode;
+  isClearable?: boolean;
+  onClear?: () => void;
+  errorClassName?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref) => {
-  const { className, helpText, icon, useFormReturn, ...restProps } = props;
+  const { className, helpText, icon, useFormReturn, isClearable, onClear, errorClassName, ...restProps } = props;
   const {
     formState: { errors, dirtyFields },
   } = useFormReturn || { formState: { errors: undefined, dirtyFields: undefined } };
 
-  const hasError = !!get(errors, restProps.name);
+  const hasError = !!get(dirtyFields, restProps.name) && !!get(errors, restProps.name);
   const isValid = !!get(dirtyFields, restProps.name) && !hasError;
   return (
     <>
@@ -33,12 +37,21 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
           )}
           ref={ref}
         />
+        {!!restProps.value && isClearable && (
+          <button type="button" className="absolute right-[16px] top-0 bottom-0" onClick={() => onClear?.()}>
+            <CloseIcon fill="" />
+          </button>
+        )}
       </div>
       {helpText && (
         <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
-      <FormError errors={errors} name={props.name} />
+      {hasError && (
+        <div className={errorClassName}>
+          <FormError errors={errors} name={props.name} />
+        </div>
+      )}
     </>
   );
 });

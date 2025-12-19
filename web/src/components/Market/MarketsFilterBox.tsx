@@ -1,6 +1,4 @@
 import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
-import { VerificationStatus } from "@/hooks/useMarket";
-import { MarketStatus } from "@/hooks/useMarketStatus";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
@@ -13,17 +11,22 @@ import {
   LawBalanceIcon,
   QuestionIcon,
 } from "@/lib/icons";
+import { MarketStatus } from "@/lib/market";
+import { VerificationStatus } from "@/lib/market";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import Button from "../Form/Button";
 import FormError from "../Form/FormError";
+import Input from "../Form/Input";
+import Toggle from "../Form/Toggle";
 import { STATUS_TEXTS } from "./Header";
 
 const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },
   { value: "liquidityUSD", text: "Liquidity" },
   { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
+  { value: "creationDate", text: "Creation Date" },
 ];
 
 const VERIFY_STATUS_OPTIONS = [
@@ -83,6 +86,11 @@ interface MarketFilters {
   verificationStatusList: VerificationStatus[];
   chainsList: string[];
   orderBy: Market_OrderBy | "default";
+  showConditionalMarkets: boolean;
+  showMarketsWithRewards: boolean;
+  showFutarchyMarkets: boolean;
+  orderDirection: "asc" | "desc";
+  minLiquidity: number;
 }
 
 export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFilters: boolean) => void }) {
@@ -91,15 +99,27 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     verificationStatusList: initialVerificationStatusList,
     chainsList: initialChainsList,
     orderBy: initialOrderBy,
+    showConditionalMarkets: initialShowConditionalMarkets,
+    showMarketsWithRewards: initialShowMarketsWithRewards,
+    showFutarchyMarkets: initialShowFutarchyMarkets,
+    orderDirection: initialOrderDirection,
+    minLiquidity: initialMinLiquidity,
     setMarketStatus,
     setVerificationStatus,
     setChains,
     setOrderBy,
+    toggleShowConditionalMarkets,
+    toggleShowMarketsWithRewards,
+    toggleShowFutarchyMarkets,
+    setOrderDirection,
+    setMinLiquidity,
   } = useMarketsSearchParams();
   const {
     handleSubmit,
     formState: { errors },
     control,
+    watch,
+    setValue,
   } = useForm<MarketFilters>({
     mode: "all",
     defaultValues: {
@@ -108,11 +128,26 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
         initialVerificationStatusList ?? VERIFY_STATUS_OPTIONS.slice(1).map((x) => x.value as VerificationStatus),
       chainsList: initialChainsList ?? CHAINS_OPTIONS.slice(1).map((x) => x.value),
       orderBy: initialOrderBy ?? "default",
+      showConditionalMarkets: initialShowConditionalMarkets ?? false,
+      showMarketsWithRewards: initialShowMarketsWithRewards ?? false,
+      showFutarchyMarkets: initialShowFutarchyMarkets ?? false,
+      orderDirection: initialOrderDirection ?? "desc",
+      minLiquidity: initialMinLiquidity ?? 0,
     },
   });
 
   const apply: SubmitHandler<MarketFilters> = (data) => {
-    const { marketStatusList, verificationStatusList, chainsList, orderBy } = data;
+    const {
+      marketStatusList,
+      verificationStatusList,
+      chainsList,
+      orderBy,
+      showConditionalMarkets,
+      showMarketsWithRewards,
+      showFutarchyMarkets,
+      orderDirection,
+      minLiquidity,
+    } = data;
     setMarketStatus(marketStatusList.length === MARKET_STATUS_OPTIONS.slice(1).length ? undefined : marketStatusList);
     setVerificationStatus(
       verificationStatusList.length === VERIFY_STATUS_OPTIONS.slice(1).length ? undefined : verificationStatusList,
@@ -120,13 +155,20 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
     setChains(chainsList.length === CHAINS_OPTIONS.slice(1).length ? undefined : chainsList);
     setOrderBy(orderBy);
     setShowFilters(false);
+    toggleShowConditionalMarkets(showConditionalMarkets);
+    toggleShowMarketsWithRewards(showMarketsWithRewards);
+    toggleShowFutarchyMarkets(showFutarchyMarkets);
+    if (orderBy !== "default") {
+      setOrderDirection(orderDirection);
+    }
+    setMinLiquidity(minLiquidity);
   };
-
+  const isDefaultOrder = watch("orderBy") === "default" || !watch("orderBy");
   return (
-    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-6 @container">
-      <div className="flex justify-start mb-6 flex-wrap flex-col @[620px]:flex-row ">
-        <div className=" border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 flex-shrink-0 @[620px]:border-r">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+    <div className="bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] w-full py-5 @container">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 [&>*]:border-black-medium [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Market States{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -142,7 +184,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {MARKET_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -186,8 +228,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="flex-shrink-0 border-black-medium px-10 mb-12 @[1200px]:px-20 @[920px]:mb-0 @[920px]:w-1/3 @[620px]:w-1/2 @[920px]:border-r">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Verification Status{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -203,7 +245,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {VERIFY_STATUS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -247,8 +289,8 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
-        <div className="flex-shrink-0 border-black-medium px-10 @[1200px]:px-20 @[920px]:w-1/3">
-          <div className="font-semibold flex items-center gap-2 pb-5">
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Chain{" "}
             <div className="flex-shrink-0">
               <Filter />
@@ -264,7 +306,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {CHAINS_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -308,8 +350,36 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
               </div>
             )}
           />
-          <div className="font-semibold flex items-center gap-2 pb-5 mt-12">
+        </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
             Sort By <ArrowSwap />
+            <div className="flex gap-2 ml-auto">
+              <div
+                className={clsx(
+                  "font-normal",
+                  watch("orderDirection") === "desc" && "text-purple-primary",
+                  isDefaultOrder && "!text-black-secondary",
+                )}
+              >
+                Desc
+              </div>
+              <Toggle
+                className="bg-purple-primary hover:bg-purple-primary disabled:bg-black-primary"
+                checked={watch("orderDirection") === "asc"}
+                onChange={(e) => setValue("orderDirection", e.target.checked ? "asc" : "desc")}
+                disabled={isDefaultOrder}
+              />
+              <div
+                className={clsx(
+                  "font-normal",
+                  watch("orderDirection") === "asc" && "text-purple-primary",
+                  isDefaultOrder && "!text-black-secondary",
+                )}
+              >
+                Asc
+              </div>
+            </div>
           </div>
           <Controller
             name="orderBy"
@@ -319,7 +389,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             }}
             render={({ field }) => (
               <div className="relative">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {ORDER_OPTIONS.map((option) => (
                     <Fragment key={option.value}>
                       <div className="flex items-center mx-1 gap-6">
@@ -350,8 +420,83 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
             )}
           />
         </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
+            Conditional Market{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-conditional-market"
+              type="checkbox"
+              checked={watch("showConditionalMarkets")}
+              onChange={(e) => setValue("showConditionalMarkets", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-conditional-market">
+              Show only conditional markets
+            </label>
+          </div>
+          <div className="font-semibold flex items-center gap-2 pb-3 mt-5">
+            Rewards{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-reward-market"
+              type="checkbox"
+              checked={watch("showMarketsWithRewards")}
+              onChange={(e) => setValue("showMarketsWithRewards", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-reward-market">
+              Show only markets with rewards
+            </label>
+          </div>
+        </div>
+        <div className="px-10">
+          <div className="font-semibold flex items-center gap-2 pb-3">
+            Minimum Liquidity{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <Input
+              autoComplete="off"
+              type="number"
+              step="any"
+              min="0"
+              className="w-full"
+              value={watch("minLiquidity")}
+              onChange={(e) => setValue("minLiquidity", Number(e.target.value ?? 0))}
+            />
+          </div>
+          <div className="font-semibold flex items-center gap-2 pb-3 mt-5">
+            Futarchy{" "}
+            <div className="flex-shrink-0">
+              <Filter />
+            </div>
+          </div>
+          <div className="flex items-center mx-1 gap-6">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-futarchy-markets"
+              type="checkbox"
+              checked={watch("showFutarchyMarkets")}
+              onChange={(e) => setValue("showFutarchyMarkets", e.target.checked)}
+            />
+            <label className="cursor-pointer flex items-center gap-2" htmlFor="show-futarchy-markets">
+              Show only futarchy markets
+            </label>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center justify-end px-9 gap-8">
+      <div className="flex items-center justify-end px-9 gap-8 mt-4">
         <button
           type="button"
           className="text-purple-primary hover:opacity-50 text-[14px]"

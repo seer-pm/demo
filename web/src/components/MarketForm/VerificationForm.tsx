@@ -33,13 +33,9 @@ function OutcomeImage({ outcomeIndex, outcomeName, useFormReturn, showOnlyMissin
 export function VerificationForm({
   useOutcomesFormReturn,
   showOnlyMissingImages,
-}: {
-  useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>;
-  showOnlyMissingImages: boolean;
-}) {
+}: { useOutcomesFormReturn: UseFormReturn<OutcomesFormValues>; showOnlyMissingImages: boolean }) {
   const marketImage = useOutcomesFormReturn.watch("image");
   const outcomes = useOutcomesFormReturn.watch("outcomes");
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-[24px] my-[32px] text-left">
       {(!showOnlyMissingImages || !marketImage) && (
