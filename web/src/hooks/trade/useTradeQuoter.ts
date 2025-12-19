@@ -1,13 +1,12 @@
 import { tradeQuoterAbi, tradeQuoterAddress } from "@/hooks/contracts/generated-trade-manager";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { getAccount, simulateContract } from "@wagmi/core";
-import { ethers } from "ethers";
+import { getAccount, readContracts, simulateContract } from "@wagmi/core";
 import { Address, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
 import { marketAbi } from "../contracts/generated-market-factory";
+
+const chainId = gnosis.id;
 
 export interface TradeManagerTokenPath {
   tokenIn: Address;
@@ -29,7 +28,7 @@ async function quoteSwapSingle(
   try {
     const { connector } = getAccount(config);
     const { result } = await simulateContract(config, {
-      address: tradeQuoterAddress[gnosis.id],
+      address: tradeQuoterAddress[chainId],
       abi: tradeQuoterAbi,
       functionName: "quoteSwapSingle",
       args: [
@@ -41,7 +40,7 @@ async function quoteSwapSingle(
           amountIn,
         },
       ],
-      chainId: gnosis.id,
+      chainId,
       connector,
     });
     return result[0];
@@ -62,7 +61,7 @@ async function quoteMintSingle(
   try {
     const { connector } = getAccount(config);
     const { result } = await simulateContract(config, {
-      address: tradeQuoterAddress[gnosis.id],
+      address: tradeQuoterAddress[chainId],
       abi: tradeQuoterAbi,
       functionName: "quoteMintSingle",
       args: [
@@ -74,7 +73,7 @@ async function quoteMintSingle(
           amountIn,
         },
       ],
-      chainId: gnosis.id,
+      chainId,
       connector,
     });
     return result[0];
@@ -108,29 +107,49 @@ async function quoteTradeSingleAndCompare(
   };
 }
 
+async function readMarket(marketId: Address) {
+  const [currentMarketAddress, [currentToken]] = await readContracts(config, {
+    contracts: [
+      {
+        abi: marketAbi,
+        address: marketId,
+        functionName: "parentMarket",
+        chainId,
+      },
+      {
+        abi: marketAbi,
+        address: marketId,
+        functionName: "parentWrappedOutcome",
+        chainId,
+      },
+    ],
+    allowFailure: false,
+  });
+
+  return { currentMarketAddress, currentToken };
+}
+
 async function getTradePaths(
-  marketId: string,
-  outcomeTokenAddress: string,
+  marketId: Address,
+  outcomeToken: Address,
+  mainToken: Address,
   initialAmountIn: bigint,
-  isUseXDai: boolean,
   isBuy: boolean,
 ) {
   let amountIn = initialAmountIn;
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  const market = new ethers.Contract(marketId, marketAbi, provider);
-  const ancestorMarkets: { marketId: string; token: string }[] = [
-    { marketId: market.address, token: outcomeTokenAddress },
-  ];
-  let currentMarketAddress = await market.parentMarket();
-  let [currentToken] = await market.parentWrappedOutcome();
+  const ancestorMarkets: { marketId: string; token: string }[] = [{ marketId, token: outcomeToken }];
+  let { currentMarketAddress, currentToken } = await readMarket(marketId);
+
   while (currentMarketAddress !== zeroAddress) {
     ancestorMarkets.push({ marketId: currentMarketAddress, token: currentToken });
-    currentMarketAddress = await new ethers.Contract(currentMarketAddress, marketAbi, provider).parentMarket();
-    currentToken = (await market.parentWrappedOutcome())[0];
+    const result = await readMarket(currentMarketAddress);
+
+    currentMarketAddress = result.currentMarketAddress;
+    currentToken = result.currentToken;
   }
   ancestorMarkets.push({
     marketId: zeroAddress,
-    token: isUseXDai ? NATIVE_TOKEN : COLLATERAL_TOKENS[gnosis.id].primary.address,
+    token: mainToken,
   });
   if (isBuy) {
     ancestorMarkets.reverse();
@@ -161,16 +180,16 @@ async function getTradePaths(
 }
 
 export function useTradeQuoter(
-  marketId: string,
-  outcomeTokenAddress: string,
+  marketId: Address,
+  outcomeToken: Address,
+  mainToken: Address,
   amountIn: bigint,
-  isUseXDai: boolean,
   isBuy: boolean,
 ) {
   return useQuery<{ paths: TradeManagerTokenPath[]; amountOut: bigint; amountIns: bigint[] } | undefined, Error>({
-    queryKey: ["useTradeQuoter", marketId, outcomeTokenAddress, Number(amountIn), isUseXDai, isBuy],
+    queryKey: ["useTradeQuoter", marketId, outcomeToken, String(amountIn), mainToken, isBuy],
     enabled: Number(amountIn) > 0,
     retry: false,
-    queryFn: async () => getTradePaths(marketId, outcomeTokenAddress, amountIn, isUseXDai, isBuy),
+    queryFn: async () => getTradePaths(marketId, outcomeToken, mainToken, amountIn, isBuy),
   });
 }

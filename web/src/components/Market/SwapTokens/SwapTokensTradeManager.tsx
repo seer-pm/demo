@@ -90,14 +90,19 @@ export function SwapTokensTradeManager({
     dirtyFields["amount"] && trigger("amount");
   }, [balance]);
 
+  const mainToken = isUseNativeToken
+    ? { address: NATIVE_TOKEN as Address, decimals: 18 }
+    : COLLATERAL_TOKENS[market.chainId].primary;
+  const amountIn = parseUnits(amount, swapType === "buy" ? mainToken.decimals : outcomeToken.decimals);
+
   const {
     data: quoteData,
     isPending: quoteIsPending,
     error: quoteError,
-  } = useTradeQuoter(market.id, outcomeToken.address, parseUnits(amount, 18), isUseNativeToken, swapType === "buy");
+  } = useTradeQuoter(market.id, outcomeToken.address, mainToken.address, amountIn, swapType === "buy");
 
   const { data: assetsToShares, isFetching: isFetchingAssetsToShares } = useConvertToShares(
-    isUseNativeToken ? parseUnits(amount, 18) : 0n,
+    isUseNativeToken ? amountIn : 0n,
     market.chainId,
   );
   const amountInToSDai = isUseNativeToken ? Number(formatUnits(assetsToShares ?? 0n, 18)) : Number(amount);
@@ -116,7 +121,7 @@ export function SwapTokensTradeManager({
   const onSubmit = async () => {
     await tradeTokens.mutateAsync({
       paths: quoteData?.paths ?? [],
-      amountIn: parseUnits(amount, 18),
+      amountIn,
       amountOutMinimum: parseUnits(amountOutMinimum.toString(), 18),
       isUseNativeToken,
     });
@@ -259,7 +264,7 @@ export function SwapTokensTradeManager({
               account={account}
               chainId={market.chainId}
               tokenIn={sellToken.address}
-              amountIn={parseUnits(amount, 18)}
+              amountIn={amountIn}
               swapType={swapType}
               isDisabled={!receivedAmount || !account || !isValid || tradeTokens.isPending || isPriceTooHigh}
               isLoading={tradeTokens.isPending || (receivedAmount > 0 && quoteIsPending) || isFetchingAssetsToShares}
