@@ -6,9 +6,10 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market, getFixedCollateral } from "@/lib/market";
 import { Token, getCollateralPerShare, getOutcomeTokenVolume } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
@@ -37,7 +38,6 @@ interface SwapTokensMarketProps {
   market: Market;
   outcomeIndex: number;
   outcomeToken: Token;
-  fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -111,7 +111,6 @@ export function SwapTokensMarket({
   outcomeIndex,
   outcomeToken,
   setShowMaxSlippage,
-  fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensMarketProps) {
@@ -151,6 +150,8 @@ export function SwapTokensMarket({
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
+
+  const { data: fixedCollateral } = useTokenInfo(getFixedCollateral(market, outcomeIndex), market.chainId);
 
   const {
     maxSlippage,
@@ -323,7 +324,6 @@ export function SwapTokensMarket({
         market={market}
         swapType={swapType}
         outcomeToken={outcomeToken}
-        isUseTradeManager={isUseTradeManager}
         setUseTradeManager={setUseTradeManager}
       />
     );
@@ -349,15 +349,13 @@ export function SwapTokensMarket({
           />
         }
       />
-      {market.parentMarket.id !== zeroAddress && fixedCollateral && (
+      {market.parentMarket.id !== zeroAddress && (
         <button
           className="text-purple-primary hover:underline text-[14px]"
           type="button"
           onClick={() => setUseTradeManager((state) => !state)}
         >
-          {isUseTradeManager
-            ? `${swapType === "buy" ? "Buy with" : "Sell to"} ${fixedCollateral.symbol}`
-            : `${swapType === "buy" ? "Buy with" : "Sell to"} sDai/xDai`}
+          {`${swapType === "buy" ? "Buy with" : "Sell to"} sDai/xDai`}
         </button>
       )}
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
@@ -423,7 +421,6 @@ export function SwapTokensMarket({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,
@@ -521,7 +518,6 @@ export function SwapTokensMarket({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,

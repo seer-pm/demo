@@ -32,17 +32,10 @@ interface SwapTokensProps {
   market: Market;
   swapType: "buy" | "sell";
   outcomeToken: Token;
-  isUseTradeManager: boolean;
   setUseTradeManager: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export function SwapTokensTradeManager({
-  market,
-  swapType,
-  outcomeToken,
-  isUseTradeManager,
-  setUseTradeManager,
-}: SwapTokensProps) {
+export function SwapTokensTradeManager({ market, swapType, outcomeToken, setUseTradeManager }: SwapTokensProps) {
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const useFormReturn = useForm<SwapFormValues>({
@@ -152,9 +145,7 @@ export function SwapTokensTradeManager({
               type="button"
               onClick={() => setUseTradeManager((state) => !state)}
             >
-              {isUseTradeManager
-                ? `${swapType === "buy" ? "Buy with" : "Sell to"} ${parentCollateral.symbol}`
-                : `${swapType === "buy" ? "Buy with" : "Sell to"} sDai/xDai`}
+              {`${swapType === "buy" ? "Buy with" : "Sell to"} ${parentCollateral.symbol}`}
             </button>
           )}
           <div className={clsx("space-y-5")}>

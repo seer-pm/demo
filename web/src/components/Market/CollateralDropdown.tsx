@@ -1,14 +1,10 @@
-import { seerCreditsAddress } from "@/hooks/contracts/generated-trading-credits";
-import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { GetTokenResult } from "@/hooks/useTokenInfo";
 import { ArrowDropDown } from "@/lib/icons";
-import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
 import clsx from "clsx";
 import { useState } from "react";
-import { Address, zeroAddress } from "viem";
 import DropdownWrapper from "../Form/DropdownWrapper";
 
 type CollateralDropdownProps = {
@@ -17,40 +13,6 @@ type CollateralDropdownProps = {
   collateralTokens: GetTokenResult[] | undefined;
   showChainLogo?: boolean;
 };
-
-type MarketCollateralDropdownProps = {
-  market: Market;
-  selectedCollateral: Token;
-  setSelectedCollateral: (selectedCollateral: Token) => void;
-  type: "buy" | "sell";
-};
-
-function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
-  if (market.type === "Futarchy") {
-    return [market.collateralToken1, market.collateralToken2];
-  }
-
-  const options = [COLLATERAL_TOKENS[market.chainId].primary.address];
-
-  if (COLLATERAL_TOKENS[market.chainId].secondary) {
-    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.address!);
-  }
-
-  if (COLLATERAL_TOKENS[market.chainId].secondary?.wrapped) {
-    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.wrapped!.address!);
-  }
-
-  if (type === "sell" && market.chainId in seerCreditsAddress) {
-    options.push(seerCreditsAddress[market.chainId as keyof typeof seerCreditsAddress]);
-  }
-
-  // TODO: allow to swap using multple alternative tokens
-  /*   if (COLLATERAL_TOKENS[market.chainId].swap) {
-    options.push(...COLLATERAL_TOKENS[market.chainId].swap!.map(t => t.address));
-  } */
-
-  return options;
-}
 
 export function CollateralDropdown(props: CollateralDropdownProps) {
   const { collateralTokens, selectedCollateral, setSelectedCollateral, showChainLogo = false } = props;
@@ -120,17 +82,4 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
       </div>
     </DropdownWrapper>
   );
-}
-
-export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
-  const { data: collateralTokens } = useTokensInfo(
-    getCollateralOptions(props.market, props.type),
-    props.market.chainId,
-  );
-
-  if (props.market.parentMarket.id !== zeroAddress) {
-    return null;
-  }
-
-  return <CollateralDropdown {...props} collateralTokens={collateralTokens} />;
 }

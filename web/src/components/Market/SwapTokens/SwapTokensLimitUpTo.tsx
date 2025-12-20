@@ -7,9 +7,10 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
+import { Market, getFixedCollateral } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -39,7 +40,6 @@ interface SwapTokensLimitUptoProps {
   market: Market;
   outcomeIndex: number;
   outcomeToken: Token;
-  fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -50,7 +50,6 @@ export function SwapTokensLimitUpto({
   outcomeIndex,
   outcomeToken,
   setShowMaxSlippage,
-  fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensLimitUptoProps) {
@@ -91,6 +90,8 @@ export function SwapTokensLimitUpto({
   const [amount, amountOut, limitPrice] = watch(["amount", "amountOut", "limitPrice"]);
 
   const limitErrorMessage = limitPrice && errors.limitPrice?.message;
+
+  const { data: fixedCollateral } = useTokenInfo(getFixedCollateral(market, outcomeIndex), market.chainId);
 
   const {
     maxSlippage,
@@ -432,7 +433,6 @@ export function SwapTokensLimitUpto({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,
@@ -497,7 +497,6 @@ export function SwapTokensLimitUpto({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,

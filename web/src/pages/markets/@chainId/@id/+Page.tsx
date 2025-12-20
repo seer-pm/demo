@@ -14,7 +14,7 @@ import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
+import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { isMarketReliable } from "@/lib/market";
@@ -23,7 +23,7 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
 import { useEffect, useState } from "react";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
@@ -32,16 +32,6 @@ function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeI
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
 
-  // on Futarchy markets we want to buy/sell using the associated outcome token,
-  // on child markets we want to buy/sell using parent outcomes.
-  const { data: fixedCollateral } = useTokenInfo(
-    market.type === "Futarchy"
-      ? getLiquidityPairForToken(market, outcomeIndex)
-      : market.parentMarket.id !== zeroAddress
-        ? market.collateralToken
-        : undefined,
-    market.chainId,
-  );
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
@@ -62,7 +52,6 @@ function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeI
       market={market}
       outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
-      fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
     />

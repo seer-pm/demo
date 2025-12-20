@@ -1,8 +1,12 @@
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
+import { seerCreditsAddress } from "@/hooks/contracts/generated-trading-credits";
+import { useTokensInfo } from "@/hooks/useTokenInfo";
+import { COLLATERAL_TOKENS } from "@/lib/config";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market, getFixedCollateral } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import { MarketCollateralDropdown } from "../CollateralDropdown";
+import { Address } from "viem";
+import { CollateralDropdown } from "../CollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 
 interface TokenSelectorProps {
@@ -11,7 +15,6 @@ interface TokenSelectorProps {
   buyToken: Token;
   selectedCollateral: Token;
   market: Market;
-  fixedCollateral: Token | undefined;
   setPreferredCollateral: (collateral: Token, chainId: number) => void;
   parentMarket: Market | undefined;
   outcomeIndex: number;
@@ -20,13 +23,39 @@ interface TokenSelectorProps {
   outcomeText: string;
 }
 
+function getCollateralOptions(market: Market, type: "buy" | "sell", _sellToken: Token, _buyToken: Token): Address[] {
+  if (market.type === "Futarchy") {
+    return [market.collateralToken1, market.collateralToken2];
+  }
+
+  const options = [COLLATERAL_TOKENS[market.chainId].primary.address];
+
+  if (COLLATERAL_TOKENS[market.chainId].secondary) {
+    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.address!);
+  }
+
+  if (COLLATERAL_TOKENS[market.chainId].secondary?.wrapped) {
+    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.wrapped!.address!);
+  }
+
+  if (type === "sell" && market.chainId in seerCreditsAddress) {
+    options.push(seerCreditsAddress[market.chainId as keyof typeof seerCreditsAddress]);
+  }
+
+  // TODO: allow to swap using multple alternative tokens
+  /*   if (COLLATERAL_TOKENS[market.chainId].swap) {
+    options.push(...COLLATERAL_TOKENS[market.chainId].swap!.map(t => t.address));
+  } */
+
+  return options;
+}
+
 export const TokenSelector = ({
   type,
   sellToken,
   buyToken,
   selectedCollateral,
   market,
-  fixedCollateral,
   setPreferredCollateral,
   parentMarket,
   outcomeIndex,
@@ -38,13 +67,20 @@ export const TokenSelector = ({
     type === "sell" ? sellToken.address : buyToken.address,
     selectedCollateral.address,
   );
+
+  const fixedCollateral = getFixedCollateral(market, outcomeIndex);
+
+  const { data: collateralTokens } = useTokensInfo(
+    getCollateralOptions(market, type, sellToken, buyToken),
+    market.chainId,
+  );
+
   if (isTokenCollateral && isUndefined(fixedCollateral)) {
     return (
-      <MarketCollateralDropdown
-        market={market}
-        type={type}
+      <CollateralDropdown
         selectedCollateral={selectedCollateral}
         setSelectedCollateral={(selectedCollateral) => setPreferredCollateral(selectedCollateral, market.chainId)}
+        collateralTokens={collateralTokens}
       />
     );
   }
