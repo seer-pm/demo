@@ -522,10 +522,6 @@ export function getFixedCollateral(market: Market, outcomeIndex: number): Addres
   if (market.type === "Futarchy") {
     return getLiquidityPairForToken(market, outcomeIndex);
   }
-  // on child markets we want to buy/sell using parent outcomes.
-  if (market.parentMarket.id !== zeroAddress) {
-    return market.collateralToken;
-  }
 
   return undefined;
 }

@@ -1,23 +1,49 @@
 import { GetTokenResult } from "@/hooks/useTokenInfo";
 import { ArrowDropDown } from "@/lib/icons";
+import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
 import clsx from "clsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DropdownWrapper from "../Form/DropdownWrapper";
+import { TokenImageContent } from "./SwapTokens/TokenSelector";
 
 type CollateralDropdownProps = {
   selectedCollateral: Token;
   setSelectedCollateral: (selectedCollateral: Token) => void;
   collateralTokens: GetTokenResult[] | undefined;
   showChainLogo?: boolean;
+  market?: Market;
+  parentMarket?: Market | undefined;
 };
 
 export function CollateralDropdown(props: CollateralDropdownProps) {
-  const { collateralTokens, selectedCollateral, setSelectedCollateral, showChainLogo = false } = props;
+  const {
+    collateralTokens,
+    selectedCollateral,
+    setSelectedCollateral,
+    showChainLogo = false,
+    market,
+    parentMarket,
+  } = props;
 
   const [isOpen, setIsOpen] = useState(false);
+
+  // Validate that selectedCollateral is in collateralTokens, if not, select the first one
+  useEffect(() => {
+    if (!collateralTokens || collateralTokens.length === 0) {
+      return;
+    }
+
+    const isValidCollateral = collateralTokens.some((token) =>
+      isTwoStringsEqual(token.address, selectedCollateral.address),
+    );
+
+    if (!isValidCollateral) {
+      setSelectedCollateral(collateralTokens[0]);
+    }
+  }, [collateralTokens, selectedCollateral, setSelectedCollateral]);
 
   if (!collateralTokens || collateralTokens.length === 0) {
     return null;
@@ -42,11 +68,12 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                   "active border-l-[3px] border-l-purple-primary bg-purple-medium",
               )}
             >
-              <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
-                <img
-                  className="w-full h-full rounded-full "
-                  alt={collateralToken.symbol}
-                  src={paths.tokenImage(collateralToken.address, collateralToken.chainId)}
+              <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative rounded-full">
+                <TokenImageContent
+                  token={collateralToken}
+                  market={market}
+                  parentMarket={parentMarket}
+                  className="w-full h-full rounded-full"
                 />
                 {showChainLogo && (
                   <img
@@ -63,11 +90,12 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
       }
     >
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-[#f2f2f2] cursor-pointer">
-        <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
-          <img
+        <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative rounded-full">
+          <TokenImageContent
+            token={selectedCollateral}
+            market={market}
+            parentMarket={parentMarket}
             className="w-full h-full rounded-full"
-            alt={selectedCollateral.symbol}
-            src={paths.tokenImage(selectedCollateral.address, selectedCollateral.chainId)}
           />
           {showChainLogo && (
             <img
