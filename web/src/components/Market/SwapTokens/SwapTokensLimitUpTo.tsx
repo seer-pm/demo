@@ -2,7 +2,7 @@ import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { decimalToFraction } from "@/hooks/liquidity/utils";
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { TradeManagerTrade, useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -157,6 +157,7 @@ export function SwapTokensLimitUpto({
     selectedCollateral,
     swapType,
     tradeType,
+    market,
   );
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
@@ -168,7 +169,7 @@ export function SwapTokensLimitUpto({
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,

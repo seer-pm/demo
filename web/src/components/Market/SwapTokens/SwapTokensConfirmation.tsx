@@ -1,3 +1,4 @@
+import { TradeManagerTrade } from "@/hooks/trade";
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { filterChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS } from "@/lib/config";
@@ -13,9 +14,9 @@ import { Spinner } from "../../Spinner";
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
   reset: () => void;
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade | undefined;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade | undefined;
   isLoading: boolean;
-  onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => Promise<void>;
+  onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
   isBuyExactOutputNative: boolean;

@@ -1,4 +1,4 @@
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { TradeManagerTrade, useQuoteTrade, useTrade } from "@/hooks/trade";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -16,14 +16,13 @@ import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
-import { SwapTokensTradeManager } from "./SwapTokensTradeManager";
 import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
@@ -118,7 +117,6 @@ export function SwapTokensMarket({
   const amountOutRef = useRef<HTMLInputElement | null>(null);
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const [isUseTradeManager, setUseTradeManager] = useState(false);
   const [focusContainer, setFocusContainer] = useState(0);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
   const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
@@ -198,9 +196,12 @@ export function SwapTokensMarket({
     selectedCollateral,
     swapType,
     tradeType,
+    market,
   );
+
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -209,7 +210,7 @@ export function SwapTokensMarket({
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
@@ -318,17 +319,6 @@ export function SwapTokensMarket({
     }
   }, [quoteData?.value]);
 
-  if (isUseTradeManager) {
-    return (
-      <SwapTokensTradeManager
-        market={market}
-        swapType={swapType}
-        outcomeToken={outcomeToken}
-        setUseTradeManager={setUseTradeManager}
-      />
-    );
-  }
-
   return (
     <>
       <ConfirmSwapModal
@@ -349,15 +339,6 @@ export function SwapTokensMarket({
           />
         }
       />
-      {market.parentMarket.id !== zeroAddress && (
-        <button
-          className="text-purple-primary hover:underline text-[14px]"
-          type="button"
-          onClick={() => setUseTradeManager((state) => !state)}
-        >
-          {`${swapType === "buy" ? "Buy with" : "Sell to"} sDai/xDai`}
-        </button>
-      )}
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
         <div>
           <div
