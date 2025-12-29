@@ -19,23 +19,22 @@ export function getChartDataByTicks(
   const ticks = initialTicks.filter((tick) => tick.liquidityNet !== "0");
   const processedTicks: { tickIdx: string; liquidityNet: string }[] = [];
   // add filler ticks, we don't want to use every initializable ticks making the chart hard to see
+  const maxTickToDisplay = 100;
+  const interval =
+    pool.tickSpacing *
+    Math.ceil(
+      (Number(ticks[ticks.length - 1].tickIdx) - Number(ticks[0].tickIdx)) / (pool.tickSpacing * maxTickToDisplay),
+    );
+
   for (let i = 0; i < ticks.length - 1; i++) {
     const currentTick = Number(ticks[i].tickIdx);
     const nextTick = Number(ticks[i + 1].tickIdx);
     processedTicks.push(ticks[i]);
-    const maxTickToDisplay = 50;
-    const interval = Math.floor(
-      (Number(ticks[ticks.length - 1].tickIdx) - Number(ticks[0].tickIdx)) /
-        pool.tickSpacing /
-        maxTickToDisplay /
-        pool.tickSpacing,
-    );
-    for (let j = currentTick + pool.tickSpacing; j < nextTick; j++) {
+    for (let j = currentTick + interval; j < nextTick; j += interval) {
       processedTicks.push({
         tickIdx: j.toString(),
         liquidityNet: "0",
       });
-      j += pool.tickSpacing * interval;
     }
   }
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
