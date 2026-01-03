@@ -1,7 +1,7 @@
 {
   "metadata": {
     "startTime": "2025-12-15T14:40:52.812Z",
-    "lastUpdate": "2025-12-27T05:27:42.574Z",
+    "lastUpdate": "2025-12-27T05:06:44.305Z",
     "chainId": 10,
     "chainName": "OP Mainnet",
     "openingTime": 1766558788,
@@ -13,7 +13,7 @@
     }
   },
   "parentMarket": {
-    "address": "0x2d05454C1B4387b5d8Be84bEE20D58390A01Ca64",
+    "address": "0x2563389eB6d387BceC2aeA3E42C91E0163395bBe",
     "txHash": null,
     "status": "using_existing",
     "createdAt": "2025-12-15T14:40:52.812Z"
@@ -77,40 +77,26 @@
         "facebook/winterfell",
         "burntsushi/memchr",
         "rustcrypto/macs",
-        "burntsushi/walkdir",
-        "eminence/terminal-size",
-        "rustcrypto/utils",
-        "rustcrypto/kdfs",
-        "ssheldon/rust-block",
-        "alacritty/vte",
-        "rustcrypto/aeads",
-        "rust-num/num",
-        "kokakiwi/rust-hex",
-        "xudong-huang/generator-rs",
-        "stebalien/term",
-        "rustcrypto/formats",
-        "luser/strip-ansi-escapes",
-        "rustcrypto/sponges",
-        "djc/rustc-version-rs"
+        "burntsushi/walkdir"
       ],
-      "dependenciesCount": 69,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:24:44.885Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.110Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xf88719f4a2661085c593282ba3b686de24bc1eb05caa9b2ea68593cb794a3a96",
-        "sentAt": "2025-12-27T05:24:46.241Z",
-        "minedAt": "2025-12-27T05:24:47.879Z",
+        "txHash": "0x56370e13f748ae868d5014e9f6f9b6b69898d107f202dc45211df6f92877cd09",
+        "sentAt": "2025-12-26T22:33:43.685Z",
+        "minedAt": "2025-12-26T23:47:39.110Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xa7cFa81a9B3538fd7E1351767A2e6a157E7fe232",
-        "extractedAt": "2025-12-27T05:24:47.879Z",
+        "address": "0x2848ACAB3495E21Ad7d79Db39F89F861B253B343",
+        "extractedAt": "2025-12-26T23:47:39.110Z",
         "error": null
       }
     },
@@ -206,37 +192,26 @@
         "rust-lang/cc-rs",
         "rust-bitcoin/rust-bitcoin",
         "chronotope/chrono",
-        "sigp/ethereum_hashing",
-        "rustcrypto/block-ciphers",
-        "qwandor/anes-rs",
-        "kokakiwi/rust-hex",
-        "stebalien/tempfile",
-        "sdroege/bytes-num-slice-cast",
-        "rustcrypto/formats",
-        "burntsushi/rust-snappy",
-        "rustcrypto/utils",
-        "definitelytyped/definitelytyped",
-        "dbrgn/tracing-test",
-        "rust-pretty-assertions/rust-pretty-assertions"
+        "sigp/ethereum_hashing"
       ],
-      "dependenciesCount": 66,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.042Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.201Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x68cc97e79d02393210949da990c26eeb6945e593594452e2c1a6b2fa4a3c2736",
-        "sentAt": "2025-12-27T05:25:44.563Z",
-        "minedAt": "2025-12-27T05:25:45.793Z",
+        "txHash": "0xf664c9b55994ce1c23cc264587cc4da62ddc48609668dab065bde4e6fc234b9c",
+        "sentAt": "2025-12-26T22:36:45.125Z",
+        "minedAt": "2025-12-26T23:47:39.201Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xc4DD59d768F7a3b66ba0071f77df837e33D2B325",
-        "extractedAt": "2025-12-27T05:25:45.793Z",
+        "address": "0x852399e08A80d95b5AFE46f9033905292582Ba51",
+        "extractedAt": "2025-12-26T23:47:39.201Z",
         "error": null
       }
     },
@@ -487,32 +462,26 @@
         "rustcrypto/utils",
         "rustcrypto/hashes",
         "rustcrypto/traits",
-        "rust-lang/backtrace-rs",
-        "djc/rustc-version-rs",
-        "gimli-rs/gimli",
-        "gimli-rs/object",
-        "rapidfuzz/strsim-rs",
-        "vorner/signal-hook",
-        "mitsuhiko/similar"
+        "rust-lang/backtrace-rs"
       ],
-      "dependenciesCount": 61,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
         "status": "skipped",
-        "completedAt": "2025-12-27T05:23:35.503Z",
+        "completedAt": "2025-12-26T23:47:39.011Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb87bd45690c7a023653598ed5ed0c334fd8f1aa6047e3bf106394c6c8de703ab",
-        "sentAt": "2025-12-27T05:12:18.627Z",
-        "minedAt": "2025-12-27T05:23:35.503Z",
+        "txHash": "0xb8aabbadfbacff349ff8c69db9aae6cf682dc04f768f83ba42f27e23427802cc",
+        "sentAt": "2025-12-26T22:39:46.303Z",
+        "minedAt": "2025-12-26T23:47:39.011Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF93C838E4b5DC163320cA1Bd2d23a4F59aD6E57c",
-        "extractedAt": "2025-12-27T05:23:35.503Z",
+        "address": "0x8B73851e920be612d30d6Ab7191Cdb262D536239",
+        "extractedAt": "2025-12-26T23:47:39.011Z",
         "error": null
       }
     },
@@ -651,34 +620,26 @@
         "adamgruber/mochawesome",
         "prettier/eslint-config-prettier",
         "domenic/sinon-chai",
-        "sindresorhus/open-cli",
-        "db-migrate/node-db-migrate",
-        "trentm/node-bunyan",
-        "isaacs/rimraf",
-        "definitelytyped/definitelytyped",
-        "tschaub/gh-pages",
-        "commitizen/cz-conventional-changelog",
-        "mihneadb/node-directory-tree",
-        "googlecloudplatform/cloud-sql-nodejs-connector"
+        "sindresorhus/open-cli"
       ],
-      "dependenciesCount": 63,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.120Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.122Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x865682c0b350ee7f2360178ae7b2b52036001da7fccae0f001510cebced5f018",
-        "sentAt": "2025-12-27T05:25:46.681Z",
-        "minedAt": "2025-12-27T05:25:47.909Z",
+        "txHash": "0xb378e85fb2e4f7abce7dae9264d36a8846a0d41f4dec19cd736529698813cc1f",
+        "sentAt": "2025-12-26T22:42:47.689Z",
+        "minedAt": "2025-12-26T23:47:39.122Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x0baC793a5D2fC558d767E2dd10DB22393b8F725D",
-        "extractedAt": "2025-12-27T05:25:47.909Z",
+        "address": "0x8721d35612Bd2c441be56E10dF00BFF11Fc87968",
+        "extractedAt": "2025-12-26T23:47:39.122Z",
         "error": null
       }
     },
@@ -846,41 +807,26 @@
         "mysticatea/eslint-plugin-node",
         "webpack-contrib/css-minimizer-webpack-plugin",
         "benmosher/eslint-plugin-import",
-        "malihu/malihu-custom-scrollbar-plugin",
-        "tapjs/stack-utils",
-        "fengyuanchen/viewerjs",
-        "ai/nanoid",
-        "substack/https-browserify",
-        "chainsafe/web3.js",
-        "babel/babel",
-        "coolaj86/node",
-        "cryptocoinjs/secp256k1-node",
-        "debug-js/debug",
-        "sudodoki/copy-to-clipboard",
-        "level/codec",
-        "kesla/parse-headers",
-        "poanetwork/eth-net-props",
-        "coolaj86/node-browser-compat",
-        "strml/async-limiter"
+        "malihu/malihu-custom-scrollbar-plugin"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.121Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.161Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x96a32b000ed5edc561962d60b7f89779541f498733baaafd8ec4a5388e878074",
-        "sentAt": "2025-12-27T05:25:49.248Z",
-        "minedAt": "2025-12-27T05:25:51.784Z",
+        "txHash": "0xe1d9eea638dcfc7761651a0b86e0e00baa54609dc98cb9bffb9ea119baa71ef1",
+        "sentAt": "2025-12-26T22:45:48.836Z",
+        "minedAt": "2025-12-26T23:47:39.161Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x5dc9eFA5a100916625aE76a4Ceba1cd4c4495e53",
-        "extractedAt": "2025-12-27T05:25:51.784Z",
+        "address": "0x2912857BBeB7494dfB1FC18df21Ac52235D17270",
+        "extractedAt": "2025-12-26T23:47:39.161Z",
         "error": null
       }
     },
@@ -942,37 +888,26 @@
         "rustcrypto/hashes",
         "tov/feature-probe-rs",
         "microsoft/windows-rs",
-        "rust-random/rngs",
-        "solana-program/libraries",
-        "rustcrypto/block-modes",
-        "rustcrypto/utils",
-        "anza-xyz/agave",
-        "rapidfuzz/strsim-rs",
-        "rustcrypto/sponges",
-        "solana-labs/solana-program-library",
-        "rustcrypto/macs",
-        "rustcrypto/aeads",
-        "marshallpierce/rust-base64",
-        "paritytech/parity-common"
+        "rust-random/rngs"
       ],
-      "dependenciesCount": 66,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.107Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.185Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x5558d8ede5a2dd48b1a8c007fe2c96bc7072d55a6867c6f716dec6c9d7ef2227",
-        "sentAt": "2025-12-27T05:25:52.534Z",
-        "minedAt": "2025-12-27T05:25:53.831Z",
+        "txHash": "0x7adadcc5514e2f1fe09e3e2cc2476a29f69455391b45de5930ee7adaea86c8e9",
+        "sentAt": "2025-12-26T22:48:50.697Z",
+        "minedAt": "2025-12-26T23:47:39.185Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x19ECa77ffB46070098B5dFD9C5ea7A334EAEBD23",
-        "extractedAt": "2025-12-27T05:25:53.831Z",
+        "address": "0x1fa6FAD79d7E0A7bC7ff3A12c6FDdDA7a33Cd2a9",
+        "extractedAt": "2025-12-26T23:47:39.185Z",
         "error": null
       }
     },
@@ -1087,41 +1022,26 @@
         "vitejs/vite",
         "mysticatea/npm-run-all",
         "winstonjs/winston-transport",
-        "motdotla/dotenv",
-        "winstonjs/winston-daily-rotate-file",
-        "davidmyersdev/vite-plugin-node-polyfills",
-        "fastify/fastify-swagger-ui",
-        "ladjs/supertest",
-        "tmpvar/jsdom",
-        "thekashey/rewiremock",
-        "isaacs/rimraf",
-        "chainsafe/biomejs-config",
-        "chainsafe/benchmark",
-        "browserify/path-browserify",
-        "evanw/node-source-map-support",
-        "winstonjs/triple-beam",
-        "dwmkerr/wait-port",
-        "bbc/typescript-docs-verifier",
-        "facebook/react"
+        "motdotla/dotenv"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.132Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:38.993Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x95736020af3932454b236c6c619d8da894c9b43fe1e7530d8990d642b88c5d98",
-        "sentAt": "2025-12-27T05:25:54.737Z",
-        "minedAt": "2025-12-27T05:26:03.146Z",
+        "txHash": "0x7bb773da7442eb7772e995e3e3f0e46bda68d124fb2abe60c6234e178a739f05",
+        "sentAt": "2025-12-26T22:51:52.000Z",
+        "minedAt": "2025-12-26T23:47:38.993Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x6D931dCb61eA8bE387311b35addCa487c8c98175",
-        "extractedAt": "2025-12-27T05:26:03.146Z",
+        "address": "0xf22559017dF4e2F9603ee159a552d2c3e314541a",
+        "extractedAt": "2025-12-26T23:47:38.993Z",
         "error": null
       }
     },
@@ -1351,41 +1271,26 @@
         "rustcrypto/signatures",
         "nvzqz/static-assertions-rs",
         "whatisinternet/inflector",
-        "vitiral/build_const",
-        "rustcrypto/utils",
-        "cargo-bins/cargo-binstall",
-        "octplane/fsevent-rust",
-        "seanmonstar/want",
-        "rustcrypto/formats",
-        "kornelski/rust-security-framework",
-        "myrrlyn/tap",
-        "rust-lang/cc-rs",
-        "hyperium/http",
-        "rustcrypto/traits",
-        "wvwwvwwv/scalable-delayed-dealloc",
-        "recmo/uint",
-        "bkchr/impl-trait-for-tuples",
-        "rust-windowing/android-ndk-rs",
-        "rustcrypto/macs"
+        "vitiral/build_const"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.138Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x6b3ab0767b2e1334d63b48f548587002333a68097ecf5efbf264c7c0a5176b7f",
-        "sentAt": "2025-12-27T05:26:03.883Z",
-        "minedAt": "2025-12-27T05:26:05.801Z",
+        "txHash": "0x3128f7b88e67bde01767b915c74d29b12036445efad4aebba8a06acb8d535eaf",
+        "sentAt": "2025-12-26T22:54:53.418Z",
+        "minedAt": "2025-12-26T23:47:39.138Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xa113F4Bf19E6b8C3Dff9167A9913a6a2B09D896e",
-        "extractedAt": "2025-12-27T05:26:05.801Z",
+        "address": "0x428BC4b79e4d8E9EFECE0370ae98c57247989Fa3",
+        "extractedAt": "2025-12-26T23:47:39.138Z",
         "error": null
       }
     },
@@ -1671,41 +1576,26 @@
         "fitzgen/bumpalo",
         "arkworks-rs/snark",
         "rodrimati1992/const_format_crates",
-        "marshallpierce/rust-base64",
-        "rustcrypto/signatures",
-        "dimakudosh/difflib",
-        "hyperium/http-body",
-        "dylanede/cassowary-rs",
-        "arkworks-rs/r1cs-std",
-        "yaahc/displaydoc",
-        "mikedilger/float-cmp",
-        "tkaitchuck/ahash",
-        "emk/cesu8-rs",
-        "vorot93/fastrlp",
-        "sagebind/castaway",
-        "eira-fransham/crunchy",
-        "zkcrypto/ff",
-        "dtolnay/anyhow",
-        "bikeshedder/deadpool"
+        "marshallpierce/rust-base64"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.131Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T23:47:39.147Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xfb7ede9ee1d36e7651e7594cb8b00c6dc97903f5ba6b416db7b4dfa85bcc8ab7",
-        "sentAt": "2025-12-27T05:26:06.672Z",
-        "minedAt": "2025-12-27T05:26:09.779Z",
+        "txHash": "0x1873c72b32a50d08433f130af15ca49d05f0f1ff67ef3476be3282db5ef80e62",
+        "sentAt": "2025-12-26T22:57:54.818Z",
+        "minedAt": "2025-12-26T23:47:39.147Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3F7f03b24be9Fc40563C223Ceb89aA4D986C20C3",
-        "extractedAt": "2025-12-27T05:26:09.779Z",
+        "address": "0xF5609C2A40369737DF200A28De7ED5CA8751Aa3e",
+        "extractedAt": "2025-12-26T23:47:39.147Z",
         "error": null
       }
     },
@@ -1767,41 +1657,26 @@
         "quic-go/quic-go",
         "urfave/cli",
         "ugorji/go",
-        "holiman/bloomfilter",
-        "spaolacci/murmur3",
-        "google/cel-go",
-        "spf13/cobra",
-        "cenkalti/backoff",
-        "prometheus/client_model",
-        "klauspost/cpuid",
-        "alecthomas/kong",
-        "jedib0t/go-pretty",
-        "rs/dnscache",
-        "roaringbitmap/roaring",
-        "erigontech/erigon-lib",
-        "pion/transport",
-        "vektah/gqlparser",
-        "anacrolix/log",
-        "stretchr/testify"
+        "holiman/bloomfilter"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:29.914Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x93a373bc29f9db6081cb0f79263d407a11e7ab75677f9c640550feee09884291",
-        "sentAt": "2025-12-27T05:26:10.541Z",
-        "minedAt": "2025-12-27T05:26:12.027Z",
+        "txHash": "0x333a09619ee66a666439e1b0b0ca57a5d6e209d11667af33843747f9a2c4e034",
+        "sentAt": "2025-12-26T23:00:56.223Z",
+        "minedAt": "2025-12-27T03:04:29.914Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xfC55632c29667105A8414F201050457e13fe9Ba5",
-        "extractedAt": "2025-12-27T05:26:12.027Z",
+        "address": "0x2701d15B1A4f04a2b4DC6C77757131476F4001D2",
+        "extractedAt": "2025-12-27T03:04:29.914Z",
         "error": null
       }
     },
@@ -1998,41 +1873,26 @@
         "raszi/node-tmp",
         "syntax-tree/mdast-util-mdx-expression",
         "browserify/resolve",
-        "mjackson/value-equal",
-        "felixge/node-require-like",
-        "pvorb/node-clone",
-        "flet/github-slugger",
-        "faye/websocket-extensions-node",
-        "npm/abbrev-js",
-        "dominictarr/jsonstream",
-        "npm/fs",
-        "pierrec/node-eval",
-        "csstree/csstree",
-        "blakeembrey/change-case",
-        "jshttp/cookie",
-        "babel/babel-polyfills",
-        "indutny/node-ip",
-        "dcodeio/long.js",
-        "node-modules/address"
+        "mjackson/value-equal"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.173Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:29.969Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x22aad0f19e50973881dced7aed8726d4bbf12b1819523b827168aeca068b217f",
-        "sentAt": "2025-12-27T05:26:12.806Z",
-        "minedAt": "2025-12-27T05:26:15.889Z",
+        "txHash": "0x9fbd04d603c0bc7a578d36fbbde8303a826fbf89bb310d75b3fba3126a4f1701",
+        "sentAt": "2025-12-26T23:03:57.331Z",
+        "minedAt": "2025-12-27T03:04:29.969Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xE68Cd707cf225059bE2Ec7C14de3805CCd004506",
-        "extractedAt": "2025-12-27T05:26:15.889Z",
+        "address": "0xEdBB65f3fE987b5f44F0593367856aF477f1D70C",
+        "extractedAt": "2025-12-27T03:04:29.969Z",
         "error": null
       }
     },
@@ -2233,38 +2093,26 @@
         "cpuguy83/go-md2man",
         "cespare/xxhash",
         "stretchr/testify",
-        "status-im/keycard-go",
-        "influxdata/influxdb1-client",
-        "consensys/bavard",
-        "olekukonko/tablewriter",
-        "azure/azure-sdk-for-go",
-        "pion/dtls",
-        "davecgh/go-spew",
-        "mattn/go-isatty",
-        "pion/transport",
-        "datadog/zstd",
-        "fatih/color",
-        "mmcloughlin/addchain",
-        "russross/blackfriday"
+        "status-im/keycard-go"
       ],
-      "dependenciesCount": 67,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.121Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:29.942Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x98efca0e5fb3326a422a9f9a953e0f593ce64bf3fe8725e9ac12c467502b2eb1",
-        "sentAt": "2025-12-27T05:26:16.642Z",
-        "minedAt": "2025-12-27T05:26:17.863Z",
+        "txHash": "0xd07065d34de34c96cb46d43f53dee3c26d2d5d9c90416afbed21977b191e51d6",
+        "sentAt": "2025-12-26T23:06:59.910Z",
+        "minedAt": "2025-12-27T03:04:29.942Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x17Ed3C4f107dC1ac27723f0bFf277acE5d082Af3",
-        "extractedAt": "2025-12-27T05:26:17.863Z",
+        "address": "0x75212Cd2fc94A9F98B0863A18541C5CB6482C183",
+        "extractedAt": "2025-12-27T03:04:29.942Z",
         "error": null
       }
     },
@@ -2326,41 +2174,26 @@
         "mysticatea/npm-run-all",
         "webpack/schema-utils",
         "sindresorhus/resolve-cwd",
-        "nodeca/pako",
-        "nodejs/string_decoder",
-        "definitelytyped/definitelytyped",
-        "zertosh/htmlescape",
-        "gozala/events",
-        "jonschlinkert/shallow-clone",
-        "facebook/react",
-        "rich-harris/is-reference",
-        "shtylman/node-process",
-        "substack/node-parents",
-        "thlorenz/inline-source-map",
-        "davidmarkclements/fast-safe-stringify",
-        "substack/node-syntax-error",
-        "crypto-browserify/ripemd160",
-        "calvinmetcalf/minimalistic-assert",
-        "parcel-bundler/lightningcss"
+        "nodeca/pako"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:30.003Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x667b8e2d9e5b6211c9614c43a6e53673aea76db71462262bf7831f1f3d7a4a4f",
-        "sentAt": "2025-12-27T05:26:18.686Z",
-        "minedAt": "2025-12-27T05:26:21.870Z",
+        "txHash": "0x82b2ac82890283d32b0e2facd14b4c4bd1142eb98d506cae9b8f6b5a07d9dece",
+        "sentAt": "2025-12-26T23:10:01.682Z",
+        "minedAt": "2025-12-27T03:04:30.003Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x5ACC96B58c49608899b44Da71cf99B499046624A",
-        "extractedAt": "2025-12-27T05:26:21.870Z",
+        "address": "0xE1f3d244aA2167070227ed932b9b20bEac711787",
+        "extractedAt": "2025-12-27T03:04:30.003Z",
         "error": null
       }
     },
@@ -2711,30 +2544,26 @@
         "ferrilab/ferrilab",
         "myrrlyn/tap",
         "seanmonstar/want",
-        "rustcrypto/macs",
-        "zkcrypto/group",
-        "rutrum/convert-case",
-        "r-efi/r-efi",
-        "hermit-os/hermit-rs"
+        "rustcrypto/macs"
       ],
-      "dependenciesCount": 59,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.152Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:30.029Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x9e225d4d0e6e38197a91a7901921556f53f1f3a93c9860575da87dd3cfd7ed7e",
-        "sentAt": "2025-12-27T05:26:22.661Z",
-        "minedAt": "2025-12-27T05:26:23.969Z",
+        "txHash": "0xdb4dd7b6ee6a626b06b3270a7401fa6aea61db2b4af4c6cb19173629cdf18732",
+        "sentAt": "2025-12-26T23:13:02.888Z",
+        "minedAt": "2025-12-27T03:04:30.029Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x64C7BB481364bEB5442c3E9C4f0bad771771168F",
-        "extractedAt": "2025-12-27T05:26:23.969Z",
+        "address": "0x2E8e0c0A6A16cc15D597a58A967104C4eAa4a7D5",
+        "extractedAt": "2025-12-27T03:04:30.029Z",
         "error": null
       }
     },
@@ -2898,41 +2727,26 @@
         "garro95/priority-queue",
         "yoshuawuyts/exponential-backoff",
         "bluss/arrayvec",
-        "rust-random/rand",
-        "clap-rs/clap",
-        "kornelski/rust-security-framework",
-        "redis-rs/redis-rs",
-        "dtolnay/async-trait",
-        "snapview/tokio-tungstenite",
-        "dermesser/integer-encoding-rs",
-        "dtolnay/syn",
-        "rust-lang/rustc-hash",
-        "proptest-rs/proptest",
-        "tikv/rust-prometheus",
-        "rustcrypto/macs",
-        "mexus/futures-retry",
-        "tokio-rs/tracing",
-        "rust-lang-nursery/lazy-static.rs",
-        "ijackson/rust-shellexpand"
+        "rust-random/rand"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.133Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:29.955Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xe6612a74dc5dc96db6cc3bffb16832e0b8475cf4569a44b4690a88959e6f4519",
-        "sentAt": "2025-12-27T05:26:24.764Z",
-        "minedAt": "2025-12-27T05:26:27.937Z",
+        "txHash": "0x7850ea5511ffc7949f93ff80d2388eb44e7fca6d9b05362137a2dd5d12ece377",
+        "sentAt": "2025-12-26T23:16:04.185Z",
+        "minedAt": "2025-12-27T03:04:29.955Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x8AB6848681a4Be430dF6bC9F27D11Eb0C325f685",
-        "extractedAt": "2025-12-27T05:26:27.937Z",
+        "address": "0xD3a7A13a99F6bfC68791Db308609232009D6e825",
+        "extractedAt": "2025-12-27T03:04:29.955Z",
         "error": null
       }
     },
@@ -2994,41 +2808,26 @@
         "mitsuhiko/similar",
         "watchexec/clearscreen",
         "amanieu/atomic-rs",
-        "alexcrichton/bzip2-rs",
-        "rustcrypto/signatures",
-        "arkworks-rs/algebra",
-        "rapidfuzz/strsim-rs",
-        "rustcrypto/utils",
-        "yoshuawuyts/fd-lock",
-        "arkworks-rs/snark",
-        "diwic/dbus-rs",
-        "rust-lang/rust-bindgen",
-        "anatawa12/deflate64-rs",
-        "jethrogb/rust-cexpr",
-        "gresau/schemars",
-        "seeker14491/opener",
-        "rustcrypto/formats",
-        "sdroege/bytes-num-slice-cast",
-        "burntsushi/ripgrep"
+        "alexcrichton/bzip2-rs"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.161Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:25:07.202Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x23134ca3b6ef1911be739989fd5d3d5295734f650ef8ea560954c117cdb99f18",
-        "sentAt": "2025-12-27T05:26:28.671Z",
-        "minedAt": "2025-12-27T05:26:31.827Z",
+        "txHash": "0xa6d57ea56028a8639ec5d1a636e694781914dbc8ee074f43854aff762ba111cd",
+        "sentAt": "2025-12-27T03:04:31.065Z",
+        "minedAt": "2025-12-27T03:25:07.202Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x7c85C8992B7201DFf406611707D3De52769E7A7D",
-        "extractedAt": "2025-12-27T05:26:31.827Z",
+        "address": "0x78C93Fcd8b411653547310bbAf14a9380C44fd6c",
+        "extractedAt": "2025-12-27T03:25:07.202Z",
         "error": null
       }
     },
@@ -3090,41 +2889,26 @@
         "burntsushi/bstr",
         "keruspe/async-global-executor",
         "smol-rs/async-executor",
-        "whentze/drain_filter_polyfill",
-        "paritytech/parity-common",
-        "magiclen/educe",
-        "rustcrypto/aeads",
-        "danielkeep/rust-custom-derive",
-        "async-rs/async-std",
-        "smol-rs/blocking",
-        "rustcrypto/block-modes",
-        "smol-rs/async-task",
-        "ia0/data-encoding",
-        "paritytech/exit-future",
-        "rustcrypto/block-ciphers",
-        "rustcrypto/formats",
-        "smol-rs/async-process",
-        "fitzgen/bumpalo",
-        "cad97/pointer-utils"
+        "whentze/drain_filter_polyfill"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.173Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.730Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb40fea646d3a320cd43ac847773d3029ea404099f91bd7014a3921da02f04042",
-        "sentAt": "2025-12-27T05:26:32.603Z",
-        "minedAt": "2025-12-27T05:26:33.854Z",
+        "txHash": "0xec893c61f677bf38d2420efdca840fef2a88aa53333c77a679a8a839c7f5b7fe",
+        "sentAt": "2025-12-27T03:07:32.540Z",
+        "minedAt": "2025-12-27T04:15:46.730Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x643fEc6504b17348847a147F713a4D478F7d2a06",
-        "extractedAt": "2025-12-27T05:26:33.854Z",
+        "address": "0xC2C6506f934ac0D1b21dd760d615e236EB9E662A",
+        "extractedAt": "2025-12-27T04:15:46.730Z",
         "error": null
       }
     },
@@ -3359,41 +3143,26 @@
         "alpinejs/alpine",
         "isaacs/rimraf",
         "themesberg/flowbite-react",
-        "expressjs/cors",
-        "lukeed/clsx",
-        "discordjs/discord.js",
-        "evanw/node-source-map-support",
-        "sindresorhus/strip-json-comments",
-        "koajs/etag",
-        "yisibl/resvg-js",
-        "pacocoursey/next-themes",
-        "chalk/chalk",
-        "sinonjs/fake-timers",
-        "gpbl/react-day-picker",
-        "react-syntax-highlighter/react-syntax-highlighter",
-        "swagger-api/swagger-ui",
-        "merencia/node-cron",
-        "koajs/compress",
-        "vercel/satori"
+        "expressjs/cors"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.180Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.913Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x8e6fd5463e068f825e37f32d6db18c4eef95e1a961eb36b818e3464cf5152d4f",
-        "sentAt": "2025-12-27T05:26:34.655Z",
-        "minedAt": "2025-12-27T05:26:35.984Z",
+        "txHash": "0x8bc4293629dbe27c3526c77581605f1d1fa0d3babfd78def797771b648ac9736",
+        "sentAt": "2025-12-27T03:10:33.886Z",
+        "minedAt": "2025-12-27T04:15:46.913Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x4b1F41198859b82Cf1b75fdE904f63560FA4C6D7",
-        "extractedAt": "2025-12-27T05:26:35.984Z",
+        "address": "0x596130372328Fd7aCF7403eA0dCA1ce009CD6683",
+        "extractedAt": "2025-12-27T04:15:46.913Z",
         "error": null
       }
     },
@@ -3455,41 +3224,26 @@
         "encode/httpcore",
         "keats/jsonwebtoken",
         "rust-lang/log",
-        "jonasbb/serde_with",
-        "rust-lang/rustc-hash",
-        "magiclen/enum-ordinalize",
-        "rkyv/rkyv",
-        "python/tzdata",
-        "burntsushi/walkdir",
-        "jeromefroe/lru-rs",
-        "jeltef/derive_more",
-        "bheisler/criterion.rs",
-        "hyperium/headers",
-        "sp1-patches/bls12_381",
-        "peternator7/strum",
-        "stub42/pytz",
-        "rustcrypto/sponges",
-        "xampprocky/tokei",
-        "dtolnay/thiserror"
+        "jonasbb/serde_with"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.181Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.890Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x28e18ac49c30a4f96738a7647c028b49a371ab1a088bfb9acabd161c425fd2bd",
-        "sentAt": "2025-12-27T05:26:36.732Z",
-        "minedAt": "2025-12-27T05:26:39.810Z",
+        "txHash": "0x925ef27d3c65064c835f316a0cd21bc1e3725425d3ae1217f56d4f5ad9b69600",
+        "sentAt": "2025-12-27T03:13:35.303Z",
+        "minedAt": "2025-12-27T04:15:46.890Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x6d73A032dFB9F138264906E492125DE7e2e1Cbf1",
-        "extractedAt": "2025-12-27T05:26:39.810Z",
+        "address": "0x93943886ab1f1a745E909D4270003A8e0847681A",
+        "extractedAt": "2025-12-27T04:15:46.890Z",
         "error": null
       }
     },
@@ -3780,41 +3534,26 @@
         "dtolnay/indoc",
         "davecgh/go-spew",
         "uber/mock",
-        "paritytech/parity-common",
-        "cespare/xxhash",
-        "alecthomas/participle",
-        "pion/dtls",
-        "raduberinde/axisds",
-        "lokathor/tinyvec",
-        "cryptocorrosion/cryptocorrosion",
-        "rust-lang-nursery/lazy-static.rs",
-        "open-telemetry/opentelemetry-go-instrumentation",
-        "pion/ice",
-        "soveu/tinyvec_macros",
-        "microsoft/go-winio",
-        "rustcrypto/traits",
-        "starkware-libs/sequencer",
-        "hsivonen/write16",
-        "starkware-libs/starknet-api"
+        "paritytech/parity-common"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.183Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.846Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x93afa1d3878e13d4525c75eb4fe67194fde0a97b26e0843f71f723e2e65cc129",
-        "sentAt": "2025-12-27T05:26:40.571Z",
-        "minedAt": "2025-12-27T05:26:45.513Z",
+        "txHash": "0x7bccf630c44c73a22ee55bd1688dfbc53a1057d93c58e15ace18840e7065d9d9",
+        "sentAt": "2025-12-27T03:16:36.675Z",
+        "minedAt": "2025-12-27T04:15:46.846Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x71996a7A2fE21eC7a49c827d0e8c71604Ca3b743",
-        "extractedAt": "2025-12-27T05:26:45.513Z",
+        "address": "0xa3395Dc036AAfd1e86a28A51717Daca65F834652",
+        "extractedAt": "2025-12-27T04:15:46.846Z",
         "error": null
       }
     },
@@ -3949,41 +3688,26 @@
         "vitejs/vite-plugin-react",
         "richardtallent/vite-plugin-singlefile",
         "ndjson/ndjson.js",
-        "ethereumjs/ethereumjs-monorepo",
-        "nomicfoundation/hardhat",
-        "shelljs/shelljs",
-        "lodash/lodash",
-        "reacttooltip/react-tooltip",
-        "sindresorhus/ora",
-        "pnpm/tabtab",
-        "sindresorhus/boxen",
-        "protofire/solhint",
-        "sindresorhus/get-port",
-        "merklejerk/solpp",
-        "immutable-js/immutable-js",
-        "dcousens/ordinal",
-        "eslint-community/eslint-plugin-n",
-        "eslint-community/eslint-plugin-eslint-plugin",
-        "definitelytyped/definitelytyped"
+        "ethereumjs/ethereumjs-monorepo"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.178Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.881Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x8bfb3004808ec1ec328223074eb03c639d9b6d9e0279c4a400dd34afefdc47f9",
-        "sentAt": "2025-12-27T05:26:46.289Z",
-        "minedAt": "2025-12-27T05:26:48.281Z",
+        "txHash": "0x98c20006a6c2cb7ac407c2510b5acab0abbdcade7c83242ddcc91c1b74a51b0d",
+        "sentAt": "2025-12-27T03:19:37.458Z",
+        "minedAt": "2025-12-27T04:15:46.881Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF19b4C84A87D83936Fb814bB85C7F5412635C543",
-        "extractedAt": "2025-12-27T05:26:48.281Z",
+        "address": "0x649021D4150DBeA02ea99A1B76AFCD46e7377036",
+        "extractedAt": "2025-12-27T04:15:46.881Z",
         "error": null
       }
     },
@@ -4045,41 +3769,26 @@
         "mariusvanderwijden/fuzzyvm",
         "ghodss/yaml",
         "rs/cors",
-        "pborman/uuid",
-        "mariusvanderwijden/tx-fuzz",
-        "pion/srtp",
-        "pion/transport",
-        "burntsushi/toml",
-        "wealdtech/go-eth2-types",
-        "coreos/go-systemd",
-        "prysmaticlabs/prombbolt",
-        "prometheus/prom2json",
-        "prometheus/common",
-        "prysmaticlabs/protoc-gen-go-cast",
-        "uudashr/gocognit",
-        "stretchr/testify",
-        "onsi/ginkgo",
-        "deckarep/golang-set",
-        "golang/gddo"
+        "pborman/uuid"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.183Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:30.079Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xbd6ff1ae546df338ce53ddf73f887a6f0d61cc71aa24fce7e1865e9d15e83bd6",
-        "sentAt": "2025-12-27T05:26:49.020Z",
-        "minedAt": "2025-12-27T05:26:49.852Z",
+        "txHash": "0x8aff8e3d5507c9a15e9cfee233c26ed666e3d49049e4dd2209af548331847e0b",
+        "sentAt": "2025-12-26T23:47:55.337Z",
+        "minedAt": "2025-12-27T03:04:30.078Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3C1378C71Ccb8Bcb932df4FC90D339Fbbb15D972",
-        "extractedAt": "2025-12-27T05:26:49.852Z",
+        "address": "0xB42cbcbf57dB106Cf5da0c7dc32997F5FEE6565B",
+        "extractedAt": "2025-12-27T03:04:30.079Z",
         "error": null
       }
     },
@@ -4141,41 +3850,26 @@
         "fereidani/rclite",
         "rust-pretty-assertions/rust-pretty-assertions",
         "paritytech/parity-common",
-        "rustcrypto/hashes",
-        "rust-lang/glob",
-        "alacritty/vte",
-        "rustcrypto/traits",
-        "rustcrypto/formats",
-        "rustcrypto/utils",
-        "rodrimati1992/const_format_crates",
-        "rustcrypto/stream-ciphers",
-        "bytecodealliance/target-lexicon",
-        "thomcc/rust-more-asserts",
-        "ferrilab/ferrilab",
-        "fereidani/branches",
-        "rustcrypto/password-hashes",
-        "rustcrypto/macs",
-        "rustcrypto/sponges",
-        "rustcrypto/block-ciphers"
+        "rustcrypto/hashes"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.178Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:30.134Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x71157464998b91df6508e7b2089aa2c075bca9b0628d4cb6b56a743fc5820b78",
-        "sentAt": "2025-12-27T05:26:50.720Z",
-        "minedAt": "2025-12-27T05:26:56.987Z",
+        "txHash": "0xefff16fbf9dce2017b41d57b65d95236ed0ad2660561fa211b71def357fed9fd",
+        "sentAt": "2025-12-26T23:50:56.575Z",
+        "minedAt": "2025-12-27T03:04:30.134Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x51DD36916e9B3A71adb3a213e3cda5fdD556c551",
-        "extractedAt": "2025-12-27T05:26:56.987Z",
+        "address": "0xB0603aD2505605d93624C2b35afD97628f2813B4",
+        "extractedAt": "2025-12-27T03:04:30.134Z",
         "error": null
       }
     },
@@ -4295,41 +3989,26 @@
         "bruce/node-temp",
         "arekinath/node-getpass",
         "slevithan/regex",
-        "simonhaenisch/prettier-plugin-organize-imports",
-        "inexorabletash/text-encoding",
-        "mde/ejs",
-        "raszi/node-tmp",
-        "qix-/color",
-        "vitejs/vite-plugin-react",
-        "websockets/ws",
-        "daaku/nodejs-walker",
-        "coolaj86/node-browser-compat",
-        "gruntjs/node-exit-x",
-        "staylor/react-helmet-async",
-        "motiondivision/motion",
-        "npm/node-which",
-        "shtylman/node-process",
-        "kevva/executable",
-        "dominictarr/through"
+        "simonhaenisch/prettier-plugin-organize-imports"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.204Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T03:04:30.151Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x6d9154151898f142ae96e88727f01824217b87bfaffc0ad88e91f0d362eda478",
-        "sentAt": "2025-12-27T05:26:57.774Z",
-        "minedAt": "2025-12-27T05:27:02.087Z",
+        "txHash": "0xb42f59020ac87d5e2682082539fb2f862a8c8ec2454974dc428894213f11e230",
+        "sentAt": "2025-12-26T23:53:57.823Z",
+        "minedAt": "2025-12-27T03:04:30.151Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x51C1a6FA3964E897262DBA50c0020A5129F0f9D3",
-        "extractedAt": "2025-12-27T05:27:02.087Z",
+        "address": "0x889B96852E1f74b46f33f0cD1bee0435B039C7a2",
+        "extractedAt": "2025-12-27T03:04:30.151Z",
         "error": null
       }
     },
@@ -4391,32 +4070,26 @@
         "rustcrypto/block-ciphers",
         "rustcrypto/traits",
         "marwes/combine",
-        "rustcrypto/kdfs",
-        "rutrum/convert-case",
-        "rodrimati1992/const_format_crates",
-        "marshallpierce/rust-base64",
-        "tkaitchuck/ahash",
-        "cesarb/constant_time_eq",
-        "rumovz/android-tzdata"
+        "rustcrypto/kdfs"
       ],
-      "dependenciesCount": 61,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.185Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:15:46.900Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x4c192b265c8f09af31fc2fc85ec39239bbeaf9e1c8e76cdc31188c14f80b277f",
-        "sentAt": "2025-12-27T05:27:02.814Z",
-        "minedAt": "2025-12-27T05:27:04.160Z",
+        "txHash": "0xc4f053fd34d406e511aeb7032fecd1316a036eccc6dfb80b5cdd6d3118c54e5a",
+        "sentAt": "2025-12-27T03:26:37.209Z",
+        "minedAt": "2025-12-27T04:15:46.900Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3DBcb10c9d52DC7B3DBe14B9e776CC518188b561",
-        "extractedAt": "2025-12-27T05:27:04.160Z",
+        "address": "0x7fCd027132d8115970B52EAFE5A48066508F433D",
+        "extractedAt": "2025-12-27T04:15:46.900Z",
         "error": null
       }
     },
@@ -4650,41 +4323,26 @@
         "webpack-contrib/node-loader",
         "babel/babel-eslint",
         "redux-saga/redux-saga",
-        "borisirota/webworkify-webpack",
-        "octokit/octokit.js",
-        "indutny/bn.js",
-        "expressjs/body-parser",
-        "expressjs/express",
-        "metamask/eth-sig-util",
-        "inspect-js/node-deep-equal",
-        "jedwatson/react-select",
-        "lerna/lerna",
-        "jryans/timers-browserify",
-        "benmosher/eslint-plugin-import",
-        "react-bootstrap/react-bootstrap",
-        "npm/node-semver",
-        "ethworks/waffle",
-        "tj/commander.js",
-        "protofire/solhint"
+        "borisirota/webworkify-webpack"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:32:24.478Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb66eaa5c059a606509d75c49e6e491d32793d39805532f26c10caa7f164165f8",
-        "sentAt": "2025-12-27T05:27:04.889Z",
-        "minedAt": "2025-12-27T05:27:07.849Z",
+        "txHash": "0xb1fe239ecb6bb69f5c23a73a5016fee8ec2c08b2552c340c24d2f9462aaae626",
+        "sentAt": "2025-12-27T03:29:38.573Z",
+        "minedAt": "2025-12-27T04:32:24.478Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x38c981FBA7E1d3D0138983672124dD2e96bf6e57",
-        "extractedAt": "2025-12-27T05:27:07.849Z",
+        "address": "0x6BA5368c1781096013Eb29f949b023568F44EAD6",
+        "extractedAt": "2025-12-27T04:32:24.478Z",
         "error": null
       }
     },
@@ -4746,41 +4404,26 @@
         "myrrlyn/tap",
         "debris/rustc-hex",
         "dalek-cryptography/subtle",
-        "rust-random/getrandom",
-        "alexcrichton/wait-timeout",
-        "lambda-fairy/rust-errno",
-        "dtolnay/itoa",
-        "fizyk20/generic-array",
-        "nvzqz/static-assertions-rs",
-        "rust-threadpool/rust-threadpool",
-        "paritytech/bn",
-        "paholg/typenum",
-        "sunfishcode/linux-raw-sys",
-        "taiki-e/pin-project-lite",
-        "sdroege/bytes-num-slice-cast",
-        "rustcrypto/formats",
-        "burntsushi/ucd-generate",
-        "microsoft/windows-rs",
-        "dtolnay/dyn-clone"
+        "rust-random/getrandom"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.214Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:32:24.546Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xa1a05c344ed31ec73a66ee907ddd92190fba053dd22312246ca7730e36892f3f",
-        "sentAt": "2025-12-27T05:27:08.583Z",
-        "minedAt": "2025-12-27T05:27:10.029Z",
+        "txHash": "0xa5fbc2013360cbb1baa741a5f8c6c0eeda35a46feb29a0050d5b20eea06fea41",
+        "sentAt": "2025-12-27T03:32:39.901Z",
+        "minedAt": "2025-12-27T04:32:24.546Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xD03c0FFD97028BA93d03E2975fbE1CF6D4c0Cc41",
-        "extractedAt": "2025-12-27T05:27:10.029Z",
+        "address": "0xB13262df1781E78c3731F2Db32EE495172d05B51",
+        "extractedAt": "2025-12-27T04:32:24.546Z",
         "error": null
       }
     },
@@ -5005,41 +4648,26 @@
         "eminence/procfs",
         "tafia/quick-protobuf",
         "arkworks-rs/algebra",
-        "unicode-rs/unicode-normalization",
-        "time-rs/time",
-        "vorner/arc-swap",
-        "rayon-rs/either",
-        "picohz/mediatype",
-        "rust-lang/flate2-rs",
-        "museun/mock_instant",
-        "jeltef/derive_more",
-        "bheisler/criterion.rs",
-        "rust-lang/backtrace-rs",
-        "trailofbits/windows-acl",
-        "retep998/winapi-rs",
-        "conradkleinespel/rpassword",
-        "ethiraric/yaml-rust2",
-        "alloy-rs/core",
-        "slog-rs/scope"
+        "unicode-rs/unicode-normalization"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:40:25.575Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb762d9b6066f636d817637cc115d128d981ba0a269ba38f580362416c8d5353a",
-        "sentAt": "2025-12-27T05:27:10.757Z",
-        "minedAt": "2025-12-27T05:27:12.278Z",
+        "txHash": "0x537bd68e36ff178d4f151a61f6273be2e2c672b5d81f3923346584ec9cb61780",
+        "sentAt": "2025-12-27T04:15:48.865Z",
+        "minedAt": "2025-12-27T04:40:25.575Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xC6c306AEcc1d8650e24c2985FF98c1db0207Ae7C",
-        "extractedAt": "2025-12-27T05:27:12.278Z",
+        "address": "0x0Cd884D08a81E6e70C41C0eA0B09EaaF5Dc82957",
+        "extractedAt": "2025-12-27T04:40:25.575Z",
         "error": null
       }
     },
@@ -5204,41 +4832,26 @@
         "dotenv-rs/dotenv",
         "bincode-org/bincode",
         "rayon-rs/rayon",
-        "hyperium/http",
-        "influxdata/influxdb-client-go",
-        "paritytech/parity-common",
-        "gz/rust-cpuid",
-        "bcmyers/num-format",
-        "tokio-rs/tracing-opentelemetry",
-        "marshallpierce/rust-base64",
-        "seanmonstar/reqwest",
-        "thomaseizinger/rust-futures-bounded",
-        "ethereum-optimism/superchain-registry",
-        "klauspost/cpuid",
-        "dropbox/rust-alloc-no-stdlib",
-        "rusticata/x509-parser",
-        "servo/rust-url",
-        "etcd-io/bbolt",
-        "rust-num/num"
+        "hyperium/http"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T04:40:25.596Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x5a825e9d0dbfc15a907de2de1463d53ef4fcca9eb138879408df688d2ba004c5",
-        "sentAt": "2025-12-27T05:27:13.048Z",
-        "minedAt": "2025-12-27T05:27:16.059Z",
+        "txHash": "0x3b5e1f616fc62fe8e69f3c30ecfbdecff1e89f420be75fb436893cf2cc7e1775",
+        "sentAt": "2025-12-27T04:18:49.678Z",
+        "minedAt": "2025-12-27T04:40:25.596Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x06bbD280258D37BDBfe7e2b50404504b3F84DC8e",
-        "extractedAt": "2025-12-27T05:27:16.059Z",
+        "address": "0x3D07e86D6E39aB00f6161849c0a484A3952ec5A2",
+        "extractedAt": "2025-12-27T04:40:25.596Z",
         "error": null
       }
     },
@@ -5300,41 +4913,26 @@
         "paritytech/parity-common",
         "inosion/madato",
         "pacman82/atoi-rs",
-        "hyperium/http",
-        "nugine/simd",
-        "dtolnay/semver",
-        "cryptocorrosion/cryptocorrosion",
-        "rust-random/rand",
-        "marshallpierce/rust-base64",
-        "nvzqz/static-assertions-rs",
-        "wvwwvwwv/scalable-concurrent-containers",
-        "rust-lang/glob",
-        "frewsxcv/rust-gcd",
-        "myrrlyn/tap",
-        "ferrilab/ferrilab",
-        "rustcrypto/kdfs",
-        "rustcrypto/utils",
-        "eyre-rs/eyre",
-        "simonsapin/rust-utf8"
+        "hyperium/http"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.221Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T05:04:24.236Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x071c45fe255ca31e1d31d397d59c4a963432ca0dd7205d560b4a6d15a77624b5",
-        "sentAt": "2025-12-27T05:27:16.825Z",
-        "minedAt": "2025-12-27T05:27:19.827Z",
+        "txHash": "0xe33a8bf2b100904b00fbf9255815773eac110d43bd9e890c479a123d6871c6a5",
+        "sentAt": "2025-12-27T04:21:50.998Z",
+        "minedAt": "2025-12-27T05:04:24.236Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xCc1Abb7589a4160A5b2D770F5A3dAAC6869f9C23",
-        "extractedAt": "2025-12-27T05:27:19.827Z",
+        "address": "0xD7A1032602B91394BA2918b7c8A22469E6E9f6d1",
+        "extractedAt": "2025-12-27T05:04:24.236Z",
         "error": null
       }
     },
@@ -5396,41 +4994,26 @@
         "ihrwein/backoff",
         "rust-lang/hashbrown",
         "oli-obk/cargo_metadata",
-        "rustcrypto/rsa",
-        "awslabs/aws-sdk-rust",
-        "dtolnay/async-trait",
-        "snowfork/incubator-milagro-crypto-rust",
-        "iqlusioninc/crates",
-        "rustcrypto/utils",
-        "rust-lang-nursery/failure",
-        "seanmonstar/reqwest",
-        "nvzqz/static-assertions-rs",
-        "orlp/foldhash",
-        "daxpedda/web-time",
-        "gregac/rrs",
-        "jeromefroe/lru-rs",
-        "rust-lang-nursery/lazy-static.rs",
-        "rust-lang/cfg-if",
-        "manishearth/pathdiff"
+        "rustcrypto/rsa"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.234Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T05:04:24.286Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x573d6485a3bf9dd6500240750c1baad464e0f68cc9975c01891117204475ae41",
-        "sentAt": "2025-12-27T05:27:20.551Z",
-        "minedAt": "2025-12-27T05:27:21.948Z",
+        "txHash": "0xca12a3b6a3f4c95cf586a16b8c1714839c44fc44aa7214a8159ffd5a9f5e02b4",
+        "sentAt": "2025-12-27T04:32:26.981Z",
+        "minedAt": "2025-12-27T05:04:24.286Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF185fc564087c19fB8B2B33196c3aE5AB2dd6735",
-        "extractedAt": "2025-12-27T05:27:21.948Z",
+        "address": "0x96fC8AFd65AFCdfBD0D74ee8C12facaa619f730D",
+        "extractedAt": "2025-12-27T05:04:24.286Z",
         "error": null
       }
     },
@@ -5526,42 +5109,27 @@
         "anza-xyz/kit",
         "npm/node-which",
         "definitelytyped/definitelytyped",
-        "eslint/js",
-        "kaelzhang/node-ignore",
-        "graffle-js/graffle",
-        "pvorb/node-md5",
-        "cryptocoinjs/bs58",
-        "motiondivision/motion",
-        "mikeal/request",
-        "dmnd/dedent",
-        "shtylman/node-process",
-        "pldespaigne/content-hash",
-        "websockets/ws",
-        "tritondatacenter/node-http-signature",
-        "soldair/node-qrcode",
-        "peterolson/biginteger.js",
-        "jshttp/etag",
-        "jshttp/methods"
+        "eslint/js"
       ],
-      "dependenciesCount": 70,
-      "status": "completed",
+      "dependenciesCount": 55,
+      "status": "address_extraction_failed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.222Z",
+        "status": "skipped",
+        "completedAt": "2025-12-27T05:04:24.367Z",
         "error": null
       },
       "transaction": {
-        "status": "mined",
-        "txHash": "0xb7ad59c6491c002ab3f1be576b28c4076e49f950e488f6cd3366cdfbf2de55c6",
-        "sentAt": "2025-12-27T05:27:22.731Z",
-        "minedAt": "2025-12-27T05:27:38.600Z",
+        "status": "sent",
+        "txHash": "0x980924df9346957b231238531e19aa36c9ea432d1321881eb87c7251c0e77027",
+        "sentAt": "2025-12-27T04:35:28.316Z",
+        "minedAt": null,
         "error": null
       },
       "marketAddress": {
-        "status": "extracted",
-        "address": "0xDdA8F33284e8D3d897dA43587a6d987cA926b010",
-        "extractedAt": "2025-12-27T05:27:38.600Z",
-        "error": null
+        "status": "failed",
+        "address": null,
+        "extractedAt": "2025-12-27T04:38:28.316Z",
+        "error": "Timed out while waiting for transaction with hash \"0x980924df9346957b231238531e19aa36c9ea432d1321881eb87c7251c0e77027\" to be confirmed.\n\nVersion: viem@2.38.3"
       }
     },
     {
@@ -5622,41 +5190,26 @@
         "hsivonen/write16",
         "ratatui/ratatui",
         "rustcrypto/elliptic-curves",
-        "kyren/hashlink",
-        "unicode-org/icu4x",
-        "dtolnay/thiserror",
-        "protonmail/go-crypto",
-        "openzeppelin/event-scanner",
-        "go-gorm/gorm",
-        "go-git/go-git",
-        "labstack/echo-jwt",
-        "labstack/gommon",
-        "palfrey/serial_test",
-        "tokio-rs/tracing",
-        "shopspring/decimal",
-        "modern-go/reflect2",
-        "rabbitmq/amqp091-go",
-        "urfave/cli",
-        "paritytech/libsecp256k1"
+        "kyren/hashlink"
       ],
-      "dependenciesCount": 70,
+      "dependenciesCount": 55,
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.222Z",
+        "completedAt": "2025-12-27T05:04:24.172Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x754ce2dbc9fd7e533733759c88bb715cf87be8aea03c1e6289b765ad0d2696e7",
-        "sentAt": "2025-12-27T05:27:39.377Z",
-        "minedAt": "2025-12-27T05:27:42.552Z",
+        "txHash": "0xf002563ca530169d819b7862ee8b1437e5eccd5f307dd5d019b37439b4a120e1",
+        "sentAt": "2025-12-27T05:04:26.065Z",
+        "minedAt": "2025-12-27T05:06:44.285Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xb7215d9614D5D6Bd5a48A85981ea0047609f5C10",
-        "extractedAt": "2025-12-27T05:27:42.552Z",
+        "address": "0xeb43A943Ac77729BfaD07d8FB8Ad7A200C4FCC1a",
+        "extractedAt": "2025-12-27T05:06:44.285Z",
         "error": null
       }
     },
@@ -5954,20 +5507,20 @@
     "totalMarkets": 98,
     "skipped": 15,
     "simulated": {
-      "success": 55,
+      "success": 24,
       "failed": 0
     },
     "transactions": {
       "sent": 83,
-      "mined": 83,
+      "mined": 82,
       "failed": 0
     },
     "addresses": {
-      "extracted": 83,
-      "failed": 0
+      "extracted": 82,
+      "failed": 1
     },
-    "completed": 83,
+    "completed": 82,
     "inProgress": 0,
-    "failed": 0
+    "failed": 1
   }
 }

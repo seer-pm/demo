@@ -1,7 +1,7 @@
 {
   "metadata": {
     "startTime": "2025-12-15T14:40:52.812Z",
-    "lastUpdate": "2025-12-27T05:27:42.574Z",
+    "lastUpdate": "2025-12-26T20:40:16.141Z",
     "chainId": 10,
     "chainName": "OP Mainnet",
     "openingTime": 1766558788,
@@ -96,21 +96,21 @@
       "dependenciesCount": 69,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:24:44.885Z",
+        "status": "skipped",
+        "completedAt": "2025-12-24T19:12:52.618Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xf88719f4a2661085c593282ba3b686de24bc1eb05caa9b2ea68593cb794a3a96",
-        "sentAt": "2025-12-27T05:24:46.241Z",
-        "minedAt": "2025-12-27T05:24:47.879Z",
+        "txHash": "0xcee0f3f193bec1b72dee8daa03708bddc3b516d8b44217864a9f45fd538de5d4",
+        "sentAt": "2025-12-24T19:03:15.549Z",
+        "minedAt": "2025-12-24T19:12:52.617Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xa7cFa81a9B3538fd7E1351767A2e6a157E7fe232",
-        "extractedAt": "2025-12-27T05:24:47.879Z",
+        "address": "0x4Df660E1d61EA68a7D4125626aBf5Aae70d2CBBC",
+        "extractedAt": "2025-12-24T19:12:52.618Z",
         "error": null
       }
     },
@@ -222,21 +222,21 @@
       "dependenciesCount": 66,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.042Z",
+        "status": "skipped",
+        "completedAt": "2025-12-25T00:27:15.426Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x68cc97e79d02393210949da990c26eeb6945e593594452e2c1a6b2fa4a3c2736",
-        "sentAt": "2025-12-27T05:25:44.563Z",
-        "minedAt": "2025-12-27T05:25:45.793Z",
+        "txHash": "0xe34bd5bdbb76aa1b2c237d3139964e2f82c15f514febe97029a051cd36e8caf2",
+        "sentAt": "2025-12-24T19:19:07.706Z",
+        "minedAt": "2025-12-25T00:27:15.424Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xc4DD59d768F7a3b66ba0071f77df837e33D2B325",
-        "extractedAt": "2025-12-27T05:25:45.793Z",
+        "address": "0xb5f20E7bd95547388Bb0c1646A9f8D568b440D90",
+        "extractedAt": "2025-12-25T00:27:15.426Z",
         "error": null
       }
     },
@@ -290,20 +290,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-26T21:32:52.414Z",
+        "completedAt": "2025-12-25T00:27:55.086Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x17d814e4b97bee701952a922f02087c4f7611e36e65db75f51c36e94ed70a5a1",
-        "sentAt": "2025-12-26T21:32:54.414Z",
-        "minedAt": "2025-12-26T21:33:25.349Z",
+        "txHash": "0x7d9b98b99faa8415439d7528744d1fdb3ea2008904c7658dd10e0b2a03c82cd6",
+        "sentAt": "2025-12-25T00:27:55.901Z",
+        "minedAt": "2025-12-25T05:00:46.671Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x2DEA76C54193880C5765C9F87153cb13668DC276",
-        "extractedAt": "2025-12-26T21:33:25.349Z",
+        "address": "0x9C8c443e09F0beCCD0FE64457c5AaeeE917b2d35",
+        "extractedAt": "2025-12-25T05:00:46.673Z",
         "error": null
       }
     },
@@ -499,20 +499,20 @@
       "status": "completed",
       "simulation": {
         "status": "skipped",
-        "completedAt": "2025-12-27T05:23:35.503Z",
+        "completedAt": "2025-12-26T00:23:00.182Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb87bd45690c7a023653598ed5ed0c334fd8f1aa6047e3bf106394c6c8de703ab",
-        "sentAt": "2025-12-27T05:12:18.627Z",
-        "minedAt": "2025-12-27T05:23:35.503Z",
+        "txHash": "0x149a7c27c3722877fa34d0436b9e6121822dc6bca03a96fcf45a1166c821be37",
+        "sentAt": "2025-12-26T00:14:30.937Z",
+        "minedAt": "2025-12-26T00:23:00.182Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF93C838E4b5DC163320cA1Bd2d23a4F59aD6E57c",
-        "extractedAt": "2025-12-27T05:23:35.503Z",
+        "address": "0xc8994E936a067CBa269e063E03916C5Fb2102865",
+        "extractedAt": "2025-12-26T00:23:00.182Z",
         "error": null
       }
     },
@@ -664,21 +664,21 @@
       "dependenciesCount": 63,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.120Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.775Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x865682c0b350ee7f2360178ae7b2b52036001da7fccae0f001510cebced5f018",
-        "sentAt": "2025-12-27T05:25:46.681Z",
-        "minedAt": "2025-12-27T05:25:47.909Z",
+        "txHash": "0xa8de63ef957f114b2f8f20cb03d1b4bf3c6c5b3c91183398ce2630151654709e",
+        "sentAt": "2025-12-26T00:23:01.155Z",
+        "minedAt": "2025-12-26T14:11:59.775Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x0baC793a5D2fC558d767E2dd10DB22393b8F725D",
-        "extractedAt": "2025-12-27T05:25:47.909Z",
+        "address": "0x0c1811A6C28236845931D64431038E934eE49813",
+        "extractedAt": "2025-12-26T14:11:59.775Z",
         "error": null
       }
     },
@@ -771,20 +771,20 @@
       "status": "completed",
       "simulation": {
         "status": "skipped",
-        "completedAt": "2025-12-26T21:51:03.671Z",
+        "completedAt": "2025-12-26T14:11:59.781Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x9ad4753ab6f9a4c34c0114d3e4cafe96fe6f6dbfc63460e4997402935a13c3aa",
-        "sentAt": "2025-12-26T21:33:27.352Z",
-        "minedAt": "2025-12-26T21:51:03.671Z",
+        "txHash": "0x9d63c0e8d0e0c36241c056ccc07249f70856c878b4bb21a7c72c1a18b8e15e11",
+        "sentAt": "2025-12-26T00:26:02.161Z",
+        "minedAt": "2025-12-26T14:11:59.781Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x0a0431ee25e4E7f1F2273F5D0aA9B412E2CE6f73",
-        "extractedAt": "2025-12-26T21:51:03.671Z",
+        "address": "0x087Cee06373481cCFB0FC228572dE6Ec34e3742B",
+        "extractedAt": "2025-12-26T14:11:59.781Z",
         "error": null
       }
     },
@@ -866,21 +866,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.121Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.481Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x96a32b000ed5edc561962d60b7f89779541f498733baaafd8ec4a5388e878074",
-        "sentAt": "2025-12-27T05:25:49.248Z",
-        "minedAt": "2025-12-27T05:25:51.784Z",
+        "txHash": "0x64c36313aad948681c8dff33fe1fc905788365f3fa92e9f390ee191f66f0a99e",
+        "sentAt": "2025-12-26T17:14:55.905Z",
+        "minedAt": "2025-12-26T18:22:03.481Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x5dc9eFA5a100916625aE76a4Ceba1cd4c4495e53",
-        "extractedAt": "2025-12-27T05:25:51.784Z",
+        "address": "0x9Dd6eC2852E1e6750bAAec7763F729423F6d541a",
+        "extractedAt": "2025-12-26T18:22:03.481Z",
         "error": null
       }
     },
@@ -959,20 +959,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.107Z",
+        "completedAt": "2025-12-26T19:20:49.547Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x5558d8ede5a2dd48b1a8c007fe2c96bc7072d55a6867c6f716dec6c9d7ef2227",
-        "sentAt": "2025-12-27T05:25:52.534Z",
-        "minedAt": "2025-12-27T05:25:53.831Z",
+        "txHash": "0x925d30a41fdc744baa33a6f1a3129ccaf857a410cc1d99ab4e036d5db4772b42",
+        "sentAt": "2025-12-26T19:20:51.308Z",
+        "minedAt": "2025-12-26T19:20:56.354Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x19ECa77ffB46070098B5dFD9C5ea7A334EAEBD23",
-        "extractedAt": "2025-12-27T05:25:53.831Z",
+        "address": "0x73c07C98658733D1A4609fd5B0f19C08f2202010",
+        "extractedAt": "2025-12-26T19:20:56.354Z",
         "error": null
       }
     },
@@ -1107,21 +1107,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.132Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.502Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x95736020af3932454b236c6c619d8da894c9b43fe1e7530d8990d642b88c5d98",
-        "sentAt": "2025-12-27T05:25:54.737Z",
-        "minedAt": "2025-12-27T05:26:03.146Z",
+        "txHash": "0x42b38affd99150d2bcb51542e056e2f05f8355f251282a4a015315e4f3d06128",
+        "sentAt": "2025-12-26T17:19:17.372Z",
+        "minedAt": "2025-12-26T18:22:03.502Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x6D931dCb61eA8bE387311b35addCa487c8c98175",
-        "extractedAt": "2025-12-27T05:26:03.146Z",
+        "address": "0xBf0035f39443B324A0218B4432dA95fB4c06E471",
+        "extractedAt": "2025-12-26T18:22:03.502Z",
         "error": null
       }
     },
@@ -1170,21 +1170,21 @@
       "dependenciesCount": 37,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.415Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.766Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x8bb4abede7974cb30420657b8ba71f5dafa7ecd68f38e9c5fdfac8359959938c",
-        "sentAt": "2025-12-26T21:36:28.566Z",
-        "minedAt": "2025-12-26T21:38:19.622Z",
+        "txHash": "0x995263370ea07e2c0e5656dd67866373de28c05fd1f921501e4698ac043e5093",
+        "sentAt": "2025-12-26T00:29:03.216Z",
+        "minedAt": "2025-12-26T14:11:59.766Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x6d4c3438fB691f0DBbB39Bc4207316bECaD62a2A",
-        "extractedAt": "2025-12-26T21:38:19.622Z",
+        "address": "0x5E201A68BD576750676CC9De07714e5adFb59E74",
+        "extractedAt": "2025-12-26T14:11:59.766Z",
         "error": null
       }
     },
@@ -1371,21 +1371,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.448Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x6b3ab0767b2e1334d63b48f548587002333a68097ecf5efbf264c7c0a5176b7f",
-        "sentAt": "2025-12-27T05:26:03.883Z",
-        "minedAt": "2025-12-27T05:26:05.801Z",
+        "txHash": "0x13101defdc3f90cae8ff9e3385d905a53f6eb5d93b25e5c69a1de7702085797f",
+        "sentAt": "2025-12-26T17:22:19.820Z",
+        "minedAt": "2025-12-26T18:22:03.447Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xa113F4Bf19E6b8C3Dff9167A9913a6a2B09D896e",
-        "extractedAt": "2025-12-27T05:26:05.801Z",
+        "address": "0x2aD7726e30aD4D28DEE9333BbD80182Ad3b9712A",
+        "extractedAt": "2025-12-26T18:22:03.448Z",
         "error": null
       }
     },
@@ -1531,21 +1531,21 @@
       "dependenciesCount": 44,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.417Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.796Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xd38afdb98edfd7d1ec58b497e50e087c1b7115d9bff1a1bb5bcda1c597d80d92",
-        "sentAt": "2025-12-26T21:38:21.019Z",
-        "minedAt": "2025-12-26T21:38:38.214Z",
+        "txHash": "0xd990a161eb9c076da0e7f6e5cd6e7c42094e6d40ff4aebd1704aa4af9c3e3337",
+        "sentAt": "2025-12-26T00:32:04.126Z",
+        "minedAt": "2025-12-26T14:11:59.796Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x24Bf3c6F3971FF4649343C288BC0253B10288D33",
-        "extractedAt": "2025-12-26T21:38:38.214Z",
+        "address": "0x7027F72b941c834368595a606355DB17a1302605",
+        "extractedAt": "2025-12-26T14:11:59.796Z",
         "error": null
       }
     },
@@ -1596,20 +1596,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-26T21:32:52.420Z",
+        "completedAt": "2025-12-26T00:22:59.914Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x11c36e42daca154ed0792df60cbd7245beed0fb55da40d95f8d153d0efa86e75",
-        "sentAt": "2025-12-26T21:38:39.622Z",
-        "minedAt": "2025-12-26T21:38:42.039Z",
+        "txHash": "0xac2becee31378ba1bf4cd74b3427d97d43bfafbd63a209c74272378ccfe366d3",
+        "sentAt": "2025-12-26T00:35:05.078Z",
+        "minedAt": "2025-12-26T03:38:06.420Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xd50d6a88E1a9a306520f9CA031935A9e28576418",
-        "extractedAt": "2025-12-26T21:38:42.039Z",
+        "address": "0xfd46A024FCb7238B42f1116C58b8deAc95B3f94A",
+        "extractedAt": "2025-12-26T03:38:06.420Z",
         "error": null
       }
     },
@@ -1691,21 +1691,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.131Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.997Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xfb7ede9ee1d36e7651e7594cb8b00c6dc97903f5ba6b416db7b4dfa85bcc8ab7",
-        "sentAt": "2025-12-27T05:26:06.672Z",
-        "minedAt": "2025-12-27T05:26:09.779Z",
+        "txHash": "0xc505f2445a4ad3ab59ffbfcac5fde935e226f902b1ce114d76a5eada4ff572d9",
+        "sentAt": "2025-12-26T17:25:22.589Z",
+        "minedAt": "2025-12-26T18:22:03.997Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3F7f03b24be9Fc40563C223Ceb89aA4D986C20C3",
-        "extractedAt": "2025-12-27T05:26:09.779Z",
+        "address": "0xEFcC9A8292289101aBDAB15b18A8e1C014a16872",
+        "extractedAt": "2025-12-26T18:22:03.997Z",
         "error": null
       }
     },
@@ -1787,21 +1787,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.504Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x93a373bc29f9db6081cb0f79263d407a11e7ab75677f9c640550feee09884291",
-        "sentAt": "2025-12-27T05:26:10.541Z",
-        "minedAt": "2025-12-27T05:26:12.027Z",
+        "txHash": "0xeac4fb11a39c569e254c54b33be8fc17aa164aa27c84a2a4a6b92b321a299381",
+        "sentAt": "2025-12-26T17:28:24.056Z",
+        "minedAt": "2025-12-26T18:22:03.504Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xfC55632c29667105A8414F201050457e13fe9Ba5",
-        "extractedAt": "2025-12-27T05:26:12.027Z",
+        "address": "0x9db6e6d76bff94C545CA354cE062b439eeC08884",
+        "extractedAt": "2025-12-26T18:22:03.504Z",
         "error": null
       }
     },
@@ -2018,21 +2018,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.173Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.484Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x22aad0f19e50973881dced7aed8726d4bbf12b1819523b827168aeca068b217f",
-        "sentAt": "2025-12-27T05:26:12.806Z",
-        "minedAt": "2025-12-27T05:26:15.889Z",
+        "txHash": "0x20218917a588340ef60224cc1237f39985ca4615cda1d2f2cf2e45e35cc97d02",
+        "sentAt": "2025-12-26T17:31:25.634Z",
+        "minedAt": "2025-12-26T18:22:03.484Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xE68Cd707cf225059bE2Ec7C14de3805CCd004506",
-        "extractedAt": "2025-12-27T05:26:15.889Z",
+        "address": "0x94A8fb3aCb6f7be3Ad59A881C609B52F16AeC1dA",
+        "extractedAt": "2025-12-26T18:22:03.484Z",
         "error": null
       }
     },
@@ -2250,21 +2250,21 @@
       "dependenciesCount": 67,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.121Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.713Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x98efca0e5fb3326a422a9f9a953e0f593ce64bf3fe8725e9ac12c467502b2eb1",
-        "sentAt": "2025-12-27T05:26:16.642Z",
-        "minedAt": "2025-12-27T05:26:17.863Z",
+        "txHash": "0x8ac8dc6878f9f402bcf59b9b63f519c6653eb835e07c57384dbf04d42efd7cdc",
+        "sentAt": "2025-12-26T17:34:27.949Z",
+        "minedAt": "2025-12-26T18:22:03.713Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x17Ed3C4f107dC1ac27723f0bFf277acE5d082Af3",
-        "extractedAt": "2025-12-27T05:26:17.863Z",
+        "address": "0x9527Fb2Aa227218CD8953Afa2ba889cA08029af0",
+        "extractedAt": "2025-12-26T18:22:03.713Z",
         "error": null
       }
     },
@@ -2346,21 +2346,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.122Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.555Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x667b8e2d9e5b6211c9614c43a6e53673aea76db71462262bf7831f1f3d7a4a4f",
-        "sentAt": "2025-12-27T05:26:18.686Z",
-        "minedAt": "2025-12-27T05:26:21.870Z",
+        "txHash": "0x57684b70332ce03128c82c8dceddc8e86ae6a4a8740615d5c06a15d59ecb3f5a",
+        "sentAt": "2025-12-26T17:37:29.952Z",
+        "minedAt": "2025-12-26T18:22:03.555Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x5ACC96B58c49608899b44Da71cf99B499046624A",
-        "extractedAt": "2025-12-27T05:26:21.870Z",
+        "address": "0xcf4D4735F82AaAf0AA4C339fD10A7914884Cc70e",
+        "extractedAt": "2025-12-26T18:22:03.555Z",
         "error": null
       }
     },
@@ -2502,20 +2502,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-26T21:32:53.136Z",
+        "completedAt": "2025-12-26T00:22:59.807Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x20e6280e8dcc286dba41f35a0952cb5d80832b5bed38c8644568bf823f2011df",
-        "sentAt": "2025-12-26T21:38:43.178Z",
-        "minedAt": "2025-12-26T21:38:46.272Z",
+        "txHash": "0xf546e7da59dde3061f709b4c6d8464b2f10cc441d19406d16e7bf10028918885",
+        "sentAt": "2025-12-26T03:38:07.276Z",
+        "minedAt": "2025-12-26T12:41:17.534Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF82B0f686D1aC809dFFc03Ce94F0d06589aBA33E",
-        "extractedAt": "2025-12-26T21:38:46.272Z",
+        "address": "0x9b2532C0c68DDd135451967b8a91f4Bc549580F0",
+        "extractedAt": "2025-12-26T12:41:17.534Z",
         "error": null
       }
     },
@@ -2721,20 +2721,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.152Z",
+        "completedAt": "2025-12-26T00:22:59.967Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x9e225d4d0e6e38197a91a7901921556f53f1f3a93c9860575da87dd3cfd7ed7e",
-        "sentAt": "2025-12-27T05:26:22.661Z",
-        "minedAt": "2025-12-27T05:26:23.969Z",
+        "txHash": "0x04bee872032052e2c4947d2065a6d56011faf5cf84a9efaf588b5f07c5f922e9",
+        "sentAt": "2025-12-26T12:41:18.608Z",
+        "minedAt": "2025-12-26T12:43:30.247Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x64C7BB481364bEB5442c3E9C4f0bad771771168F",
-        "extractedAt": "2025-12-27T05:26:23.969Z",
+        "address": "0x06896fa4E70bf7A77e2057E021ec860F67fB6B7b",
+        "extractedAt": "2025-12-26T12:43:30.247Z",
         "error": null
       }
     },
@@ -2822,21 +2822,21 @@
       "dependenciesCount": 33,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.516Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.787Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x6edf613c0d1751b7fd4b15731743e2820a6da922ddd0b4865e6b36f0d3da0d77",
-        "sentAt": "2025-12-26T21:38:47.471Z",
-        "minedAt": "2025-12-26T21:38:56.307Z",
+        "txHash": "0x27b97fbe97bc9e705031c5e32ae54a14582261347332a99260556df9acf75523",
+        "sentAt": "2025-12-26T12:43:31.148Z",
+        "minedAt": "2025-12-26T14:11:59.787Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xe535d4C32991294B0BA462dF8d53a3aa3fe128f9",
-        "extractedAt": "2025-12-26T21:38:56.307Z",
+        "address": "0x27267E2824B3004af84FB68B385d25406d297e6e",
+        "extractedAt": "2025-12-26T14:11:59.787Z",
         "error": null
       }
     },
@@ -2918,21 +2918,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.133Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:22:03.453Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xe6612a74dc5dc96db6cc3bffb16832e0b8475cf4569a44b4690a88959e6f4519",
-        "sentAt": "2025-12-27T05:26:24.764Z",
-        "minedAt": "2025-12-27T05:26:27.937Z",
+        "txHash": "0xacbaa2723440d8d280b480078cce5ce44c5479e14db7d6321d2c77412825139c",
+        "sentAt": "2025-12-26T17:40:31.481Z",
+        "minedAt": "2025-12-26T18:22:03.453Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x8AB6848681a4Be430dF6bC9F27D11Eb0C325f685",
-        "extractedAt": "2025-12-27T05:26:27.937Z",
+        "address": "0x127144127c7ccb19B1b432e29F30575ebf0CDC82",
+        "extractedAt": "2025-12-26T18:22:03.453Z",
         "error": null
       }
     },
@@ -3014,21 +3014,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.161Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:44:46.872Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x23134ca3b6ef1911be739989fd5d3d5295734f650ef8ea560954c117cdb99f18",
-        "sentAt": "2025-12-27T05:26:28.671Z",
-        "minedAt": "2025-12-27T05:26:31.827Z",
+        "txHash": "0xe531efc4faa9a63414ca6ae8e932cd3e95b788066dfec12cbd3377bfe7b23a21",
+        "sentAt": "2025-12-26T17:43:33.228Z",
+        "minedAt": "2025-12-26T18:44:46.872Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x7c85C8992B7201DFf406611707D3De52769E7A7D",
-        "extractedAt": "2025-12-27T05:26:31.827Z",
+        "address": "0x6Da661720f03e6DE1Ff42512c5A4f394f5F5869D",
+        "extractedAt": "2025-12-26T18:44:46.872Z",
         "error": null
       }
     },
@@ -3110,21 +3110,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.173Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:44:46.894Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb40fea646d3a320cd43ac847773d3029ea404099f91bd7014a3921da02f04042",
-        "sentAt": "2025-12-27T05:26:32.603Z",
-        "minedAt": "2025-12-27T05:26:33.854Z",
+        "txHash": "0x64236eb581e824ac478f74c54ae243154cda9126f4d3171fd3f225c2684ad9ad",
+        "sentAt": "2025-12-26T17:46:34.729Z",
+        "minedAt": "2025-12-26T18:44:46.894Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x643fEc6504b17348847a147F713a4D478F7d2a06",
-        "extractedAt": "2025-12-27T05:26:33.854Z",
+        "address": "0x3918c5e02b1ab14D5e01745eF7caC0ED016D9AA9",
+        "extractedAt": "2025-12-26T18:44:46.894Z",
         "error": null
       }
     },
@@ -3379,21 +3379,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.180Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:44:46.891Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x8e6fd5463e068f825e37f32d6db18c4eef95e1a961eb36b818e3464cf5152d4f",
-        "sentAt": "2025-12-27T05:26:34.655Z",
-        "minedAt": "2025-12-27T05:26:35.984Z",
+        "txHash": "0x47cb05da95b854797a99e7dfaa86e42a919a308822027dbcddcfa25480396046",
+        "sentAt": "2025-12-26T17:49:36.635Z",
+        "minedAt": "2025-12-26T18:44:46.891Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x4b1F41198859b82Cf1b75fdE904f63560FA4C6D7",
-        "extractedAt": "2025-12-27T05:26:35.984Z",
+        "address": "0xc20190D9e140Ef73Af92cf48e39602b5a520793E",
+        "extractedAt": "2025-12-26T18:44:46.891Z",
         "error": null
       }
     },
@@ -3475,21 +3475,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.181Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T18:57:23.763Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x28e18ac49c30a4f96738a7647c028b49a371ab1a088bfb9acabd161c425fd2bd",
-        "sentAt": "2025-12-27T05:26:36.732Z",
-        "minedAt": "2025-12-27T05:26:39.810Z",
+        "txHash": "0xd4c7f1b524c83bd49bb1b8d833d5435e7ae7b4114805b95b134cacd8946d5427",
+        "sentAt": "2025-12-26T17:52:40.028Z",
+        "minedAt": "2025-12-26T18:57:23.762Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x6d73A032dFB9F138264906E492125DE7e2e1Cbf1",
-        "extractedAt": "2025-12-27T05:26:39.810Z",
+        "address": "0x15A7A672d62fd63354D053b77425E316c98179e9",
+        "extractedAt": "2025-12-26T18:57:23.763Z",
         "error": null
       }
     },
@@ -3549,20 +3549,20 @@
       "status": "completed",
       "simulation": {
         "status": "skipped",
-        "completedAt": "2025-12-26T21:51:03.862Z",
+        "completedAt": "2025-12-26T14:11:59.842Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xa8766ca265b05687726bc65f2739dc607bccc169d81993d666a9fd7efa6cb581",
-        "sentAt": "2025-12-26T21:38:57.702Z",
-        "minedAt": "2025-12-26T21:51:03.862Z",
+        "txHash": "0x894be53ad23b5347bbe8aabbb5ac0e23a68287727ee8beafc689a266b2f1c407",
+        "sentAt": "2025-12-26T12:46:32.143Z",
+        "minedAt": "2025-12-26T14:11:59.842Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xAa48a1a1eD967222202c3EBC7A849A909FCcE29A",
-        "extractedAt": "2025-12-26T21:51:03.862Z",
+        "address": "0x920143e9a1759935bcD6e61694AA66D2f07Ca1D9",
+        "extractedAt": "2025-12-26T14:11:59.842Z",
         "error": null
       }
     },
@@ -3800,21 +3800,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.183Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T19:19:06.069Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x93afa1d3878e13d4525c75eb4fe67194fde0a97b26e0843f71f723e2e65cc129",
-        "sentAt": "2025-12-27T05:26:40.571Z",
-        "minedAt": "2025-12-27T05:26:45.513Z",
+        "txHash": "0xafc08ff70578601bb8781c8e94c9dcbb05a4c4852b6a4882903fa0cd2f01228b",
+        "sentAt": "2025-12-26T17:55:42.105Z",
+        "minedAt": "2025-12-26T19:19:06.068Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x71996a7A2fE21eC7a49c827d0e8c71604Ca3b743",
-        "extractedAt": "2025-12-27T05:26:45.513Z",
+        "address": "0x6D0afc77a0DC641D56dd685a89AadC5acfB65B17",
+        "extractedAt": "2025-12-26T19:19:06.069Z",
         "error": null
       }
     },
@@ -3969,21 +3969,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.178Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T19:19:06.074Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x8bfb3004808ec1ec328223074eb03c639d9b6d9e0279c4a400dd34afefdc47f9",
-        "sentAt": "2025-12-27T05:26:46.289Z",
-        "minedAt": "2025-12-27T05:26:48.281Z",
+        "txHash": "0x615075b29bd03ec7848a88feb02a0cd8b68b1a9ba0360e365a015fed10ef3e42",
+        "sentAt": "2025-12-26T17:58:44.179Z",
+        "minedAt": "2025-12-26T19:19:06.074Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF19b4C84A87D83936Fb814bB85C7F5412635C543",
-        "extractedAt": "2025-12-27T05:26:48.281Z",
+        "address": "0x776245687f09322A3790820e389272818dD30Da6",
+        "extractedAt": "2025-12-26T19:19:06.074Z",
         "error": null
       }
     },
@@ -4065,21 +4065,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.183Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T19:49:18.706Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xbd6ff1ae546df338ce53ddf73f887a6f0d61cc71aa24fce7e1865e9d15e83bd6",
-        "sentAt": "2025-12-27T05:26:49.020Z",
-        "minedAt": "2025-12-27T05:26:49.852Z",
+        "txHash": "0x19057ecd282d97d7727d9c940fecc3a3a5e0a6d18f077555ac1508dd4bf6ced6",
+        "sentAt": "2025-12-26T18:01:45.685Z",
+        "minedAt": "2025-12-26T19:49:18.706Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3C1378C71Ccb8Bcb932df4FC90D339Fbbb15D972",
-        "extractedAt": "2025-12-27T05:26:49.852Z",
+        "address": "0x422400132BcbB397FF7d5D950554353f5B73a431",
+        "extractedAt": "2025-12-26T19:49:18.706Z",
         "error": null
       }
     },
@@ -4162,20 +4162,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.178Z",
+        "completedAt": "2025-12-26T19:20:49.572Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x71157464998b91df6508e7b2089aa2c075bca9b0628d4cb6b56a743fc5820b78",
-        "sentAt": "2025-12-27T05:26:50.720Z",
-        "minedAt": "2025-12-27T05:26:56.987Z",
+        "txHash": "0x934341e9ff76a730d58efbb1a20dea4109e44e0e4ed281935047e96adda2a9ef",
+        "sentAt": "2025-12-26T19:20:58.161Z",
+        "minedAt": "2025-12-26T19:21:21.897Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x51DD36916e9B3A71adb3a213e3cda5fdD556c551",
-        "extractedAt": "2025-12-27T05:26:56.987Z",
+        "address": "0x23dEbc58B1e0AE9be8699252B8e63617e0840107",
+        "extractedAt": "2025-12-26T19:21:21.897Z",
         "error": null
       }
     },
@@ -4316,20 +4316,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.204Z",
+        "completedAt": "2025-12-26T19:20:49.572Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x6d9154151898f142ae96e88727f01824217b87bfaffc0ad88e91f0d362eda478",
-        "sentAt": "2025-12-27T05:26:57.774Z",
-        "minedAt": "2025-12-27T05:27:02.087Z",
+        "txHash": "0x0595c4ae9752f1fa9d8a340a9d5f656b6d60ba7f417b8f634cb57ceb41dbc91c",
+        "sentAt": "2025-12-26T19:21:23.202Z",
+        "minedAt": "2025-12-26T19:21:31.794Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x51C1a6FA3964E897262DBA50c0020A5129F0f9D3",
-        "extractedAt": "2025-12-27T05:27:02.087Z",
+        "address": "0x2F1b94c5ECDf0047660f86A719E31be1d578E1fd",
+        "extractedAt": "2025-12-26T19:21:31.794Z",
         "error": null
       }
     },
@@ -4402,21 +4402,21 @@
       "dependenciesCount": 61,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.185Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.837Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x4c192b265c8f09af31fc2fc85ec39239bbeaf9e1c8e76cdc31188c14f80b277f",
-        "sentAt": "2025-12-27T05:27:02.814Z",
-        "minedAt": "2025-12-27T05:27:04.160Z",
+        "txHash": "0x7f3ddfb8c8d39ac6a8883acca0e97c820d1abb6246ff7c7fd9c1ba9551eb7e57",
+        "sentAt": "2025-12-26T12:49:33.128Z",
+        "minedAt": "2025-12-26T14:11:59.837Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3DBcb10c9d52DC7B3DBe14B9e776CC518188b561",
-        "extractedAt": "2025-12-27T05:27:04.160Z",
+        "address": "0x3A77676E34aC4cAC63746BB70FC9F74f70056081",
+        "extractedAt": "2025-12-26T14:11:59.837Z",
         "error": null
       }
     },
@@ -4574,21 +4574,21 @@
       "dependenciesCount": 39,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.664Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.826Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xfac63716f7737d0f6d8c353d34e462068e6385d9b6a236bd549d22f89003919f",
-        "sentAt": "2025-12-26T21:41:58.996Z",
-        "minedAt": "2025-12-26T21:42:48.334Z",
+        "txHash": "0x1243dabbe2e6beb592db0f4cd4fb88c91775c07adc6970f0aff7dbf0fe5a082d",
+        "sentAt": "2025-12-26T12:55:35.747Z",
+        "minedAt": "2025-12-26T14:11:59.826Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x362a114832EE0Fd39Ed5d35d5b5dc927687dcac9",
-        "extractedAt": "2025-12-26T21:42:48.334Z",
+        "address": "0xa9b5880Ee0DFF1aa9901f24E05bD6C547CE16576",
+        "extractedAt": "2025-12-26T14:11:59.826Z",
         "error": null
       }
     },
@@ -4670,21 +4670,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T19:49:53.563Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb66eaa5c059a606509d75c49e6e491d32793d39805532f26c10caa7f164165f8",
-        "sentAt": "2025-12-27T05:27:04.889Z",
-        "minedAt": "2025-12-27T05:27:07.849Z",
+        "txHash": "0x7da278189933603ef4d7e7afd0213ec661eab5237fe15b447b8f80de4609167b",
+        "sentAt": "2025-12-26T19:45:32.176Z",
+        "minedAt": "2025-12-26T19:49:53.563Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x38c981FBA7E1d3D0138983672124dD2e96bf6e57",
-        "extractedAt": "2025-12-27T05:27:07.849Z",
+        "address": "0x47bCB2EF12DD59Bd045DCb0b3245a806279fA5c5",
+        "extractedAt": "2025-12-26T19:49:53.563Z",
         "error": null
       }
     },
@@ -4767,20 +4767,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.214Z",
+        "completedAt": "2025-12-26T19:49:53.377Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xa1a05c344ed31ec73a66ee907ddd92190fba053dd22312246ca7730e36892f3f",
-        "sentAt": "2025-12-27T05:27:08.583Z",
-        "minedAt": "2025-12-27T05:27:10.029Z",
+        "txHash": "0x96a2d36c7f887adeae9f6ae31ec9a7e8d0fefd9773eefccd6c6097880aa0c776",
+        "sentAt": "2025-12-26T19:49:54.465Z",
+        "minedAt": "2025-12-26T19:50:31.822Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xD03c0FFD97028BA93d03E2975fbE1CF6D4c0Cc41",
-        "extractedAt": "2025-12-27T05:27:10.029Z",
+        "address": "0xE0f2c9230D4AdfB9ED68Ec2f758c0Fc25fC49F8E",
+        "extractedAt": "2025-12-26T19:50:31.822Z",
         "error": null
       }
     },
@@ -4929,21 +4929,21 @@
       "dependenciesCount": 17,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.647Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:11:59.845Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x97be7bdbeea565e6cd941f862dbdd10d4c3992801b95b687fb2439845912ec64",
-        "sentAt": "2025-12-26T21:42:50.775Z",
-        "minedAt": "2025-12-26T21:42:52.089Z",
+        "txHash": "0x2c0a31a7119d3a1ca1dc961594dc4b403de26f5acd6ce392c5d8552e12aae274",
+        "sentAt": "2025-12-26T12:58:36.543Z",
+        "minedAt": "2025-12-26T14:11:59.845Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xB8997c2b670a5939d920b5c5f22A4E63Da835Ecd",
-        "extractedAt": "2025-12-26T21:42:52.089Z",
+        "address": "0x44849D2ad85E19E030e62565637d5D4e4D8e2315",
+        "extractedAt": "2025-12-26T14:11:59.845Z",
         "error": null
       }
     },
@@ -5026,20 +5026,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "completedAt": "2025-12-26T19:49:53.375Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb762d9b6066f636d817637cc115d128d981ba0a269ba38f580362416c8d5353a",
-        "sentAt": "2025-12-27T05:27:10.757Z",
-        "minedAt": "2025-12-27T05:27:12.278Z",
+        "txHash": "0x8772f9d124e1f0885420fd7b4750029d4b6e490c24a7b1ab9e4d76fad9222abc",
+        "sentAt": "2025-12-26T19:50:32.722Z",
+        "minedAt": "2025-12-26T19:50:37.770Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xC6c306AEcc1d8650e24c2985FF98c1db0207Ae7C",
-        "extractedAt": "2025-12-27T05:27:12.278Z",
+        "address": "0xf5A35b30fB4C1D57bfe64A1c5fFCF9573Af5bCc8",
+        "extractedAt": "2025-12-26T19:50:37.770Z",
         "error": null
       }
     },
@@ -5224,21 +5224,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.211Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T20:40:16.108Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x5a825e9d0dbfc15a907de2de1463d53ef4fcca9eb138879408df688d2ba004c5",
-        "sentAt": "2025-12-27T05:27:13.048Z",
-        "minedAt": "2025-12-27T05:27:16.059Z",
+        "txHash": "0x498ff6d20db5828c2fa7885d362b52fbd46ae12e177b89f7be5ec69c27de1c1f",
+        "sentAt": "2025-12-26T19:50:38.664Z",
+        "minedAt": "2025-12-26T20:40:16.107Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x06bbD280258D37BDBfe7e2b50404504b3F84DC8e",
-        "extractedAt": "2025-12-27T05:27:16.059Z",
+        "address": "0x50d8FfF0df1672eF0f29de1C88bfcAe71D28Dc12",
+        "extractedAt": "2025-12-26T20:40:16.108Z",
         "error": null
       }
     },
@@ -5321,20 +5321,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.221Z",
+        "completedAt": "2025-12-26T20:37:10.133Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x071c45fe255ca31e1d31d397d59c4a963432ca0dd7205d560b4a6d15a77624b5",
-        "sentAt": "2025-12-27T05:27:16.825Z",
-        "minedAt": "2025-12-27T05:27:19.827Z",
+        "txHash": "0xca6dbe830b165ba626c16497bf76e700323281d15432cca0c9c458ca4d1bd5ce",
+        "sentAt": "2025-12-26T20:37:11.459Z",
+        "minedAt": "2025-12-26T20:37:44.778Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xCc1Abb7589a4160A5b2D770F5A3dAAC6869f9C23",
-        "extractedAt": "2025-12-27T05:27:19.827Z",
+        "address": "0x28607e47667EEd5929AB819E4351392df060e6C6",
+        "extractedAt": "2025-12-26T20:37:44.778Z",
         "error": null
       }
     },
@@ -5417,20 +5417,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.234Z",
+        "completedAt": "2025-12-26T20:38:09.002Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x573d6485a3bf9dd6500240750c1baad464e0f68cc9975c01891117204475ae41",
-        "sentAt": "2025-12-27T05:27:20.551Z",
-        "minedAt": "2025-12-27T05:27:21.948Z",
+        "txHash": "0x0445c7c11f224615e7ecad4eb485e7ed40ec908909aed25cc7abc00996d1bf78",
+        "sentAt": "2025-12-26T20:38:09.939Z",
+        "minedAt": "2025-12-26T20:38:11.845Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xF185fc564087c19fB8B2B33196c3aE5AB2dd6735",
-        "extractedAt": "2025-12-27T05:27:21.948Z",
+        "address": "0x26a05F3Bec58cbe01611e40A030Cb61338446e68",
+        "extractedAt": "2025-12-26T20:38:11.845Z",
         "error": null
       }
     },
@@ -5547,20 +5547,20 @@
       "status": "completed",
       "simulation": {
         "status": "success",
-        "completedAt": "2025-12-27T05:25:43.222Z",
+        "completedAt": "2025-12-26T20:38:45.056Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0xb7ad59c6491c002ab3f1be576b28c4076e49f950e488f6cd3366cdfbf2de55c6",
-        "sentAt": "2025-12-27T05:27:22.731Z",
-        "minedAt": "2025-12-27T05:27:38.600Z",
+        "txHash": "0x3ce66c7a258a8e4e0db71072b68439f8e5b4aca0594e3b6e8e90242612766f76",
+        "sentAt": "2025-12-26T20:38:46.021Z",
+        "minedAt": "2025-12-26T20:38:51.022Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xDdA8F33284e8D3d897dA43587a6d987cA926b010",
-        "extractedAt": "2025-12-27T05:27:38.600Z",
+        "address": "0x227De50eB4e09925C532eCB2d5003cC00e64E5Ec",
+        "extractedAt": "2025-12-26T20:38:51.022Z",
         "error": null
       }
     },
@@ -5642,21 +5642,21 @@
       "dependenciesCount": 70,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-27T05:25:43.222Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T19:49:18.802Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x754ce2dbc9fd7e533733759c88bb715cf87be8aea03c1e6289b765ad0d2696e7",
-        "sentAt": "2025-12-27T05:27:39.377Z",
-        "minedAt": "2025-12-27T05:27:42.552Z",
+        "txHash": "0x57c5aec05745067faa57d0bf03db1d12bc255a994f2d5d43bb0aa31c19c961be",
+        "sentAt": "2025-12-26T18:58:34.253Z",
+        "minedAt": "2025-12-26T19:49:18.802Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xb7215d9614D5D6Bd5a48A85981ea0047609f5C10",
-        "extractedAt": "2025-12-27T05:27:42.552Z",
+        "address": "0x475251De5A69b05cA943e1C408906198d048Ad2e",
+        "extractedAt": "2025-12-26T19:49:18.802Z",
         "error": null
       }
     },
@@ -5833,21 +5833,21 @@
       "dependenciesCount": 26,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.705Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:36:26.358Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x1a92ea4d8cc9f858077da286b2a4ab562452fb98d65649c0b83640f74e0199c8",
-        "sentAt": "2025-12-26T21:42:53.432Z",
-        "minedAt": "2025-12-26T21:42:57.215Z",
+        "txHash": "0x91a196a2f9a13697227ca577c611bf3fa8e0ba91b1a64af8d1a2686ffb8d44eb",
+        "sentAt": "2025-12-26T13:01:37.357Z",
+        "minedAt": "2025-12-26T14:36:26.358Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0x3dBC308bD09a861Cb2c0beEEA16058613F0e6430",
-        "extractedAt": "2025-12-26T21:42:57.215Z",
+        "address": "0x0f61e70dC41E416744D3456695D4df9e516f868f",
+        "extractedAt": "2025-12-26T14:36:26.358Z",
         "error": null
       }
     },
@@ -5931,21 +5931,21 @@
       "dependenciesCount": 20,
       "status": "completed",
       "simulation": {
-        "status": "success",
-        "completedAt": "2025-12-26T21:32:52.686Z",
+        "status": "skipped",
+        "completedAt": "2025-12-26T14:36:26.366Z",
         "error": null
       },
       "transaction": {
         "status": "mined",
-        "txHash": "0x7802a4d77adebe07f39f6ee9470d4137ad28e6149f9e4726ecc1a4cd5282a057",
-        "sentAt": "2025-12-26T21:42:58.129Z",
-        "minedAt": "2025-12-26T21:43:00.228Z",
+        "txHash": "0x7c3c1843bea5eadb6698b7a7e80b15b7c188c99e73320a1eed383932e5abafad",
+        "sentAt": "2025-12-26T13:04:38.080Z",
+        "minedAt": "2025-12-26T14:36:26.366Z",
         "error": null
       },
       "marketAddress": {
         "status": "extracted",
-        "address": "0xd6392eEFe9Ed0500E0AA0182656cD6D465707165",
-        "extractedAt": "2025-12-26T21:43:00.228Z",
+        "address": "0xD8390a6548916A77817564aBc66698A11748102e",
+        "extractedAt": "2025-12-26T14:36:26.366Z",
         "error": null
       }
     }
@@ -5954,7 +5954,7 @@
     "totalMarkets": 98,
     "skipped": 15,
     "simulated": {
-      "success": 55,
+      "success": 25,
       "failed": 0
     },
     "transactions": {

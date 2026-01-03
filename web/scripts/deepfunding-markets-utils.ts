@@ -1,15 +1,19 @@
-export const SEED_REPOS_URL =
+const SEED_REPOS_URL =
   "https://raw.githubusercontent.com/deepfunding/dependency-graph/main/datasets/gg24-phase2/seedRepos.json";
 
-export const SEED_REPOS_WITH_DEPS_URL =
+const SEED_REPOS_WITH_DEPS_URL =
   "https://raw.githubusercontent.com/deepfunding/dependency-graph/main/datasets/gg24-phase2/seedReposWithDependencies.json";
+
+const SEED_REPOS_WITH_DEPS_WEIGHTS_URL =
+  "https://raw.githubusercontent.com/aniemerg/dependency-graph/refs/heads/gg24-deps-filtering/datasets/gg24-phase2/seedReposWithDependenciesAndWeights.json";
 
 export type SeedRepos = string[];
 export type SeedReposWithDependencies = Record<string, string[]>;
+export type SeedReposWithDependenciesWeights = Record<string, Record<string, number>>;
 
 export type DependencyFilter = "all" | "within_limit" | "exceeds_limit";
 
-export const MAX_DEPENDENCIES = 60; // Limit number of dependencies (outcomes) per market
+export const MAX_DEPENDENCIES = 70; // Limit number of dependencies (outcomes) per market
 export const DEPENDENCY_FILTER: DependencyFilter = "within_limit";
 export const DEPENDENCIES_IGNORE: string[] = [];
 
@@ -31,11 +35,31 @@ export async function fetchSeedRepos(): Promise<SeedRepos> {
   return response.json();
 }
 
+const USE_WEIGHTS = true;
+
 export async function fetchSeedReposWithDependencies(): Promise<SeedReposWithDependencies> {
-  const response = await fetch(SEED_REPOS_WITH_DEPS_URL);
+  const url = USE_WEIGHTS ? SEED_REPOS_WITH_DEPS_WEIGHTS_URL : SEED_REPOS_WITH_DEPS_URL;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch seed repos with dependencies: ${response.statusText}`);
   }
+
+  if (USE_WEIGHTS) {
+    const data: SeedReposWithDependenciesWeights = await response.json();
+    // Convert weights format to dependencies format
+    // Sort by weight descending and take first MAX_DEPENDENCIES
+    const result: SeedReposWithDependencies = {};
+    for (const [repoUrl, dependencies] of Object.entries(data)) {
+      // Sort dependencies by weight descending
+      const sortedDependencies = Object.entries(dependencies)
+        .sort(([, weightA], [, weightB]) => weightB - weightA)
+        .slice(0, MAX_DEPENDENCIES)
+        .map(([dependency]) => dependency);
+      result[repoUrl] = sortedDependencies;
+    }
+    return result;
+  }
+
   return response.json();
 }
 

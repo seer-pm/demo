@@ -4,7 +4,16 @@ import { marketFactoryAbi, marketFactoryAddress } from "@/hooks/contracts/genera
 import { SupportedChain } from "@/lib/chains.ts";
 import { MISC_CATEGORY, getCreateMarketParams } from "@/lib/create-market.ts";
 import { MarketTypes } from "@/lib/market.ts";
-import { http, Hex, PrivateKeyAccount, createPublicClient, createWalletClient, parseEther, zeroAddress } from "viem";
+import {
+  http,
+  Hex,
+  PrivateKeyAccount,
+  createPublicClient,
+  createWalletClient,
+  parseEther,
+  parseGwei,
+  zeroAddress,
+} from "viem";
 import type { PublicClient, TransactionReceipt, WalletClient } from "viem";
 import { Address, nonceManager, privateKeyToAccount } from "viem/accounts";
 import { optimism as activeChain } from "viem/chains";
@@ -23,19 +32,66 @@ import {
 
 const RPC_URL = "https://lb.drpc.org/optimism/As_mVw7_50IPk85yNYubcezE_O23TT8R8JDnrqRhf0fE";
 
-// IMPORTANT: Rename this file locally if you want to run the script. Do NOT deploy this function to Netlify.
-
 // =================================================================== //
 // =================================================================== //
 
-const GAS_LIMIT = 30_100_000n; // Optional manual gas limit; currently not sent to viem, which will estimate gas itself.
-const GAS_PRICE_MULTIPLIER = 4n; // Multiplier over suggested gas fees to make txs more competitive
-const DRY_RUN = true; // When true, only simulate transactions without sending them. NOTE: it only simulates the createMultiScalarMarket tx's
+const GAS_LIMIT: bigint | undefined = undefined /* 50_000_000n */; // Optional manual gas limit; currently not sent to viem, which will estimate gas itself.
+const GAS_PRICE_MULTIPLIER = 4n; // Base multiplier over suggested gas fees to make txs more competitive
+const MIN_MAX_FEE_PER_GAS = parseGwei("0.01"); // Minimum maxFeePerGas: 0.1 gwei (as recommended by Optimism docs)
+const BASE_FEE_MULTIPLIER_THRESHOLD = parseGwei("0.05"); // 0.05 gwei - if base fee is above this, use higher multiplier
+const HIGH_BASE_FEE_MULTIPLIER = 8n; // Higher multiplier when base fee is high (to account for 77% growth potential)
+const DRY_RUN = false; // When true, only simulate transactions without sending them. NOTE: it only simulates the createMultiScalarMarket tx's
 // If defined, use this address as the parent market instead of creating a new one
-const DEFAULT_PARENT_MARKET: Address | undefined = "0x2d05454C1B4387b5d8Be84bEE20D58390A01Ca64";
+const DEFAULT_PARENT_MARKET: Address | undefined = "0x2d05454C1B4387b5d8Be84bEE20D58390A01Ca64"; // "0x2563389eB6d387BceC2aeA3E42C91E0163395bBe";
 // When true, checks if pending transactions (status: "sent") were finally mined before sending new ones
 // When false, always sends new transactions even if a previous one exists
 const RESUME_PENDING_TRANSACTIONS = true;
+// Maximum number of markets to create per execution. Set to undefined or 0 to create all markets.
+const MAX_MARKETS_PER_EXECUTION: number | undefined = 0;
+// When true, only creates questions and/or deploys the wrapped ERC20s using MarketPreDeployHelper, without creating markets.
+// When false, creates the markets.
+const PRE_DEPLOY_MARKETS_ONLY = false;
+
+// MarketPreDeployHelper contract address on Optimism
+//const MARKET_PRE_DEPLOY_HELPER_ADDRESS: Address = "0x03d03464BF9Eb20059Ca6eF6391E9C5d79d5E012"; // new factory
+const MARKET_PRE_DEPLOY_HELPER_ADDRESS: Address = "0xdEB5dC052e55bf81C6d75CD47C961e0b280B3791"; // old factory
+
+// MarketPreDeployHelper ABI - extracted from deployment JSON
+const MARKET_PRE_DEPLOY_HELPER_ABI = [
+  {
+    inputs: [
+      {
+        components: [
+          { internalType: "string", name: "marketName", type: "string" },
+          { internalType: "string[]", name: "outcomes", type: "string[]" },
+          { internalType: "string", name: "questionStart", type: "string" },
+          { internalType: "string", name: "questionEnd", type: "string" },
+          { internalType: "string", name: "outcomeType", type: "string" },
+          { internalType: "uint256", name: "parentOutcome", type: "uint256" },
+          { internalType: "address", name: "parentMarket", type: "address" },
+          { internalType: "string", name: "category", type: "string" },
+          { internalType: "string", name: "lang", type: "string" },
+          { internalType: "uint256", name: "lowerBound", type: "uint256" },
+          { internalType: "uint256", name: "upperBound", type: "uint256" },
+          { internalType: "uint256", name: "minBond", type: "uint256" },
+          { internalType: "uint32", name: "openingTime", type: "uint32" },
+          { internalType: "string[]", name: "tokenNames", type: "string[]" },
+        ],
+        internalType: "struct MarketPreDeployHelper.CreateMarketParams",
+        name: "params",
+        type: "tuple",
+      },
+      { internalType: "uint256", name: "from", type: "uint256" },
+      { internalType: "uint256", name: "to", type: "uint256" },
+      { internalType: "bool", name: "createQuestions", type: "bool" },
+      { internalType: "bool", name: "deployERC20", type: "bool" },
+    ],
+    name: "createMultiScalarMarket",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 // =================================================================== //
 // =================================================================== //
@@ -389,6 +445,61 @@ async function createMulticategoricalMarket(
   return txHash;
 }
 
+/**
+ * Calculates optimal gas fees for Optimism based on current base fee.
+ * Implements Optimism recommendations:
+ * - Uses minimum maxFeePerGas of 0.1 gwei to prevent stuck transactions
+ * - Applies dynamic multiplier (4x or 8x) based on current base fee
+ * - Accounts for Optimism's 77% base fee growth potential (vs 12.5% on L1)
+ * @param publicClient The public client to query blockchain data
+ * @returns Object containing maxFeePerGas and maxPriorityFeePerGas
+ */
+async function calculateOptimalGasFees(publicClient: PublicClient): Promise<{
+  maxFeePerGas: bigint;
+  maxPriorityFeePerGas: bigint;
+}> {
+  // Get current base fee from the latest block (recommended by Optimism docs)
+  const latestBlock = await publicClient.getBlock({ blockTag: "latest" });
+  const currentBaseFee = latestBlock.baseFeePerGas ?? 0n;
+
+  console.log("Current base fee (wei):", currentBaseFee.toString());
+
+  // Calculate dynamic multiplier based on current base fee
+  // Optimism base fee can grow up to 77% vs 12.5% on L1, so use higher multiplier when base fee is high
+  const dynamicMultiplier =
+    currentBaseFee > BASE_FEE_MULTIPLIER_THRESHOLD ? HIGH_BASE_FEE_MULTIPLIER : GAS_PRICE_MULTIPLIER;
+
+  console.log(`Using dynamic multiplier: ${dynamicMultiplier}x (base fee: ${currentBaseFee.toString()} wei)`);
+
+  // Estimate competitive gas fees once and reuse them
+  const estimatedFees = await publicClient.estimateFeesPerGas();
+  const baseMaxFeePerGas = estimatedFees.maxFeePerGas ?? estimatedFees.gasPrice!;
+  const baseMaxPriorityFeePerGas =
+    estimatedFees.maxPriorityFeePerGas ?? estimatedFees.gasPrice ?? estimatedFees.maxFeePerGas ?? baseMaxFeePerGas / 2n;
+
+  // Apply dynamic multiplier and ensure minimum maxFeePerGas (0.1 gwei as per Optimism recommendation)
+  let maxFeePerGas = baseMaxFeePerGas * dynamicMultiplier;
+  if (maxFeePerGas < MIN_MAX_FEE_PER_GAS) {
+    maxFeePerGas = MIN_MAX_FEE_PER_GAS;
+    console.log(`Applied minimum maxFeePerGas: ${MIN_MAX_FEE_PER_GAS.toString()} wei (0.1 gwei)`);
+  }
+
+  const maxPriorityFeePerGas = baseMaxPriorityFeePerGas * dynamicMultiplier;
+
+  console.log("Using gas fees (wei):", {
+    baseFee: currentBaseFee.toString(),
+    baseMaxFeePerGas: baseMaxFeePerGas.toString(),
+    maxFeePerGas: maxFeePerGas.toString(),
+    maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+    multiplier: dynamicMultiplier.toString(),
+  });
+
+  return {
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+  };
+}
+
 async function getMarketAddressFromTxHash(txHash: `0x${string}`, publicClient: PublicClient): Promise<Address> {
   // Wait for transaction to be mined
   const receipt = await publicClient.waitForTransactionReceipt({
@@ -474,22 +585,11 @@ async function checkPendingTransaction(
     account,
   });
 
-  // Estimate competitive gas fees once and reuse them
-  const estimatedFees = await publicClient.estimateFeesPerGas();
-  const baseMaxFeePerGas = estimatedFees.maxFeePerGas ?? estimatedFees.gasPrice!;
-  const baseMaxPriorityFeePerGas =
-    estimatedFees.maxPriorityFeePerGas ?? estimatedFees.gasPrice ?? estimatedFees.maxFeePerGas ?? baseMaxFeePerGas / 2n;
-
-  const maxFeePerGas = baseMaxFeePerGas * GAS_PRICE_MULTIPLIER;
-  const maxPriorityFeePerGas = baseMaxPriorityFeePerGas * GAS_PRICE_MULTIPLIER;
-
-  console.log("Using gas fees (wei):", {
-    maxFeePerGas: maxFeePerGas.toString(),
-    maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
-  });
+  // Calculate optimal gas fees based on current base fee and Optimism recommendations
+  const { maxFeePerGas, maxPriorityFeePerGas } = await calculateOptimalGasFees(publicClient);
 
   // Set opening time to now (markets open immediately)
-  const openingTime = Math.round(Date.now() / 1000);
+  const openingTime = 1766558788;
 
   try {
     console.log("Fetching seed repos data...");
@@ -527,7 +627,7 @@ async function checkPendingTransaction(
 
     // Step 2: Create conditional multiscalar markets for each seed repo
     // Prepare all market creation tasks using shared utility
-    const marketCreationTasks: MarketCreationTask[] = buildMarketCreationTasks(seedRepos, seedReposWithDeps, {
+    let marketCreationTasks: MarketCreationTask[] = buildMarketCreationTasks(seedRepos, seedReposWithDeps, {
       dependencyFilter: DEPENDENCY_FILTER,
       maxDependencies: MAX_DEPENDENCIES,
       dependenciesIgnore: DEPENDENCIES_IGNORE,
@@ -562,6 +662,83 @@ async function checkPendingTransaction(
       state.metadata.openingTime = openingTime;
     }
 
+    // First, update state with current task dependencies and skipReason (re-evaluate based on current config)
+    // This allows markets that were previously skipped to be re-enabled if configuration changed
+    // This MUST happen BEFORE filtering by MAX_MARKETS_PER_EXECUTION
+    for (const task of marketCreationTasks) {
+      const marketState = state!.markets.find((m) => m.seedRepo === task.seedRepo && m.index === task.index);
+      if (marketState) {
+        const wasSkipped = marketState.status === "skipped";
+        const shouldBeSkipped = task.skipReason || task.dependencies.length === 0;
+
+        // Update dependencies and skipReason from current task
+        marketState.dependencies = task.dependencies;
+        marketState.dependenciesCount = task.dependencies.length;
+        marketState.skipReason = task.skipReason;
+
+        // If market was previously skipped but should no longer be skipped, reset status
+        if (wasSkipped && !shouldBeSkipped) {
+          console.log(
+            `[${task.seedRepo}] Previously skipped (${marketState.skipReason || "unknown reason"}), but now has ${task.dependencies.length} dependencies - re-enabling for processing`,
+          );
+          marketState.status = "simulation_failed"; // Reset to allow processing
+          marketState.simulation.status = "skipped"; // Will be updated during simulation
+        } else if (!wasSkipped && shouldBeSkipped) {
+          // If market was not skipped but should now be skipped, update status
+          marketState.status = "skipped";
+          marketState.skipReason = task.skipReason || "no_dependencies";
+          marketState.simulation.status = "skipped";
+        }
+      }
+    }
+
+    // Filter out already completed markets before applying MAX_MARKETS_PER_EXECUTION limit
+    // This ensures we process the next pending market even if previous ones are completed
+    // Now we use the UPDATED state (after re-evaluation)
+    const pendingTasks = marketCreationTasks.filter((task) => {
+      const marketState = state!.markets.find((m) => m.seedRepo === task.seedRepo && m.index === task.index);
+      // Include if not completed and not skipped (after re-evaluation)
+      if (!marketState) return true;
+      if (marketState.status === "completed" && marketState.marketAddress.status === "extracted") return false;
+      if (marketState.status === "skipped") return false; // Exclude markets that are still skipped after re-evaluation
+
+      // When MAX_MARKETS_PER_EXECUTION > 0 and RESUME_PENDING_TRANSACTIONS is true,
+      // exclude markets with pending transactions (status: "sent") because they will be skipped anyway.
+      // This ensures we always find markets that can actually be processed.
+      if (
+        MAX_MARKETS_PER_EXECUTION !== undefined &&
+        MAX_MARKETS_PER_EXECUTION > 0 &&
+        RESUME_PENDING_TRANSACTIONS &&
+        marketState.transaction.status === "sent"
+      ) {
+        return false; // Exclude markets with pending transactions when we need to find processable markets
+      }
+
+      return true;
+    });
+
+    // Limit number of markets to create if MAX_MARKETS_PER_EXECUTION is set
+    // Apply limit only to pending (non-completed, non-skipped) markets
+    if (MAX_MARKETS_PER_EXECUTION !== undefined && MAX_MARKETS_PER_EXECUTION > 0) {
+      const originalCount = marketCreationTasks.length;
+      const pendingCount = pendingTasks.length;
+      const limitedPendingTasks = pendingTasks.slice(0, MAX_MARKETS_PER_EXECUTION);
+
+      // Create a set of limited pending task keys for quick lookup
+      const limitedTaskKeys = new Set(limitedPendingTasks.map((t) => `${t.seedRepo}-${t.index}`));
+
+      // Filter marketCreationTasks to include only tasks in the limited pending set
+      // (completed tasks will be skipped during processing anyway)
+      marketCreationTasks = marketCreationTasks.filter((task) => {
+        const key = `${task.seedRepo}-${task.index}`;
+        return limitedTaskKeys.has(key);
+      });
+
+      console.log(
+        `Limiting to ${MAX_MARKETS_PER_EXECUTION} pending markets per execution (${pendingCount} pending, ${originalCount} total markets)`,
+      );
+    }
+
     // Update parent market info
     state.parentMarket = {
       address: parentMarketAddress,
@@ -589,6 +766,12 @@ async function checkPendingTransaction(
             marketAddress: { status: "skipped" as AddressStatus },
           };
           state!.markets.push(marketState);
+        } else {
+          // State was already updated before the simulation loop (see above)
+          // Just ensure consistency here
+          marketState.dependencies = dependencies;
+          marketState.dependenciesCount = dependencies.length;
+          marketState.skipReason = skipReason;
         }
 
         // Skip if already completed - no need to simulate or process further
@@ -597,7 +780,7 @@ async function checkPendingTransaction(
           return { seedRepo, index, simulation: null, error: null, marketState };
         }
 
-        // Skip if already skipped
+        // Skip if current task should be skipped (re-evaluate based on current dependencies)
         if (skipReason || dependencies.length === 0) {
           marketState.status = "skipped";
           marketState.skipReason = skipReason || "no_dependencies";
@@ -676,32 +859,77 @@ async function checkPendingTransaction(
           // This format is required for getQuestionParts to extract questionStart and questionEnd
           const marketName = `${questionStart}[${outcomeType}]${questionEnd}`;
 
+          // Step 1: Create questions and ERC20s first using MarketPreDeployHelper
+          const createMarketParams = getCreateMarketParams({
+            marketType: MarketTypes.MULTI_SCALAR,
+            marketName,
+            outcomes: dependencies,
+            tokenNames: [],
+            parentMarket: parentMarketAddress,
+            parentOutcome: BigInt(index),
+            lowerBound: BigInt(0),
+            upperBound: parseEther("1"),
+            unit: "weight",
+            category: MISC_CATEGORY,
+            openingTime,
+            chainId,
+            collateralToken1: "",
+            collateralToken2: "",
+            isArbitraryQuestion: false,
+          });
+
+          // Create questions only if CREATE_QUESTIONS_ONLY is true (and not in DRY_RUN)
+          if (PRE_DEPLOY_MARKETS_ONLY && !DRY_RUN) {
+            console.log(`[${seedRepo}] Creating questions...`);
+            const questionsSimulation = await publicClient.simulateContract({
+              account,
+              address: MARKET_PRE_DEPLOY_HELPER_ADDRESS,
+              functionName: "createMultiScalarMarket",
+              abi: MARKET_PRE_DEPLOY_HELPER_ABI,
+              args: [
+                createMarketParams, // params
+                0n, // from
+                BigInt(dependencies.length), // to
+                false, // createQuestions
+                true, // deployERC20
+              ],
+              maxFeePerGas,
+              maxPriorityFeePerGas,
+              gas: GAS_LIMIT,
+            });
+
+            const questionsTxHash = await walletClient.writeContract({
+              ...questionsSimulation.request,
+              gas: undefined, // Let viem estimate
+            });
+
+            console.log(`[${seedRepo}] Questions transaction sent, tx hash: ${questionsTxHash}`);
+            await publicClient.waitForTransactionReceipt({ hash: questionsTxHash });
+            console.log(`[${seedRepo}] Questions created successfully`);
+          }
+
+          // If CREATE_QUESTIONS_ONLY is true, skip market creation
+          if (PRE_DEPLOY_MARKETS_ONLY) {
+            // Update state - questions created (or simulated), market skipped
+            marketState.simulation = {
+              status: "skipped",
+              completedAt: new Date().toISOString(),
+              error: null,
+            };
+            marketState.status = DRY_RUN ? "completed" : "completed";
+            return { seedRepo, index, simulation: null, error: null, marketState };
+          }
+
+          // Step 2: Create market using MarketFactory (will reuse existing questions)
           const simulation = await publicClient.simulateContract({
             account,
             address: marketFactoryAddress[chainId],
             functionName: "createMultiScalarMarket",
             abi: marketFactoryAbi,
-            args: [
-              getCreateMarketParams({
-                marketType: MarketTypes.MULTI_SCALAR,
-                marketName,
-                outcomes: dependencies,
-                tokenNames: [],
-                parentMarket: parentMarketAddress,
-                parentOutcome: BigInt(index),
-                lowerBound: BigInt(0),
-                upperBound: parseEther("1"),
-                unit: "weight",
-                category: MISC_CATEGORY,
-                openingTime,
-                chainId,
-                collateralToken1: "",
-                collateralToken2: "",
-                isArbitraryQuestion: false,
-              }),
-            ],
+            args: [createMarketParams],
             maxFeePerGas,
             maxPriorityFeePerGas,
+            gas: GAS_LIMIT,
           });
 
           // Update state
@@ -729,7 +957,7 @@ async function checkPendingTransaction(
       }),
     );
 
-    if (DRY_RUN) {
+    if (DRY_RUN || PRE_DEPLOY_MARKETS_ONLY) {
       // Log simulation results
       // Exclude skipped markets from failed simulations count
       const successfulSimulations = simulations.filter((result) => result.simulation !== null && result.error === null);
@@ -738,20 +966,33 @@ async function checkPendingTransaction(
       );
       const skippedSimulations = simulations.filter((result) => result.marketState?.status === "skipped");
 
-      console.log("\n=== Simulation Results ===");
-      console.log(`Successfully simulated ${successfulSimulations.length} markets`);
-      if (skippedSimulations.length > 0) {
-        console.log(`Skipped ${skippedSimulations.length} markets (not simulated)`);
-      }
-      if (failedSimulations.length > 0) {
-        console.error(`Failed to simulate ${failedSimulations.length} markets:`);
-        for (const result of failedSimulations) {
-          console.error(`  - ${result.seedRepo}: ${result.error?.message || "Unknown error"}`);
+      console.log("\n=== Results ===");
+      if (PRE_DEPLOY_MARKETS_ONLY) {
+        console.log(`Questions created for ${successfulSimulations.length} markets`);
+        if (skippedSimulations.length > 0) {
+          console.log(`Skipped ${skippedSimulations.length} markets (not processed)`);
         }
+        if (failedSimulations.length > 0) {
+          console.error(`Failed to create questions for ${failedSimulations.length} markets:`);
+          for (const result of failedSimulations) {
+            console.error(`  - ${result.seedRepo}: ${result.error?.message || "Unknown error"}`);
+          }
+        }
+        console.log("CREATE_QUESTIONS_ONLY enabled: skipping market creation.");
+      } else {
+        console.log(`Successfully simulated ${successfulSimulations.length} markets`);
+        if (skippedSimulations.length > 0) {
+          console.log(`Skipped ${skippedSimulations.length} markets (not simulated)`);
+        }
+        if (failedSimulations.length > 0) {
+          console.error(`Failed to simulate ${failedSimulations.length} markets:`);
+          for (const result of failedSimulations) {
+            console.error(`  - ${result.seedRepo}: ${result.error?.message || "Unknown error"}`);
+          }
+        }
+        console.log("DRY_RUN enabled: skipping transaction sending and address extraction.");
       }
       console.log("========================\n");
-
-      console.log("DRY_RUN enabled: skipping transaction sending and address extraction.");
 
       // Save final state and print summary
       if (state) {
@@ -763,12 +1004,30 @@ async function checkPendingTransaction(
 
     // Step 2b: Send transactions, wait for confirmation, and extract market addresses sequentially
     const totalTransactions = simulations.length;
-    console.log(`Processing ${totalTransactions} transactions sequentially (send -> wait -> extract)...`);
+
+    // Count how many markets will actually be processed (not skipped or already completed)
+    const marketsToProcess = simulations.filter(({ marketState, error, simulation }) => {
+      if (marketState?.status === "skipped") return false;
+      if (marketState?.status === "completed" && marketState.marketAddress.status === "extracted") return false;
+      if ((error || !simulation) && !marketState?.transaction.txHash) return false;
+      return true;
+    }).length;
+
+    const alreadyCompleted = simulations.filter(
+      ({ marketState }) => marketState?.status === "completed" && marketState.marketAddress.status === "extracted",
+    ).length;
+
+    const skipped = simulations.filter(({ marketState }) => marketState?.status === "skipped").length;
+
+    console.log(
+      `Processing ${marketsToProcess} markets sequentially (${totalTransactions} total: ${marketsToProcess} to process, ${alreadyCompleted} already completed, ${skipped} skipped)...`,
+    );
     const successful: Array<{
       seedRepo: string;
       txHash: `0x${string}`;
       marketAddress: Address | null;
       marketState: MarketState;
+      wasAlreadyCompleted?: boolean;
     }> = [];
     const failed: Array<{ seedRepo: string; error: Error; marketState: MarketState }> = [];
 
@@ -778,6 +1037,7 @@ async function checkPendingTransaction(
 
       // Skip if market was intentionally skipped (e.g., exceeds limit, in ignore list, etc.)
       if (marketState?.status === "skipped") {
+        console.log(`[${txNumber}/${totalTransactions}] Skipping ${seedRepo}: ${marketState.skipReason || "skipped"}`);
         continue;
       }
 
@@ -791,6 +1051,7 @@ async function checkPendingTransaction(
           txHash: marketState.transaction.txHash as `0x${string}`,
           marketAddress: marketState.marketAddress.address as Address,
           marketState,
+          wasAlreadyCompleted: true,
         });
         continue;
       }
@@ -934,7 +1195,7 @@ async function checkPendingTransaction(
         };
         marketState.status = "completed";
 
-        successful.push({ seedRepo, txHash, marketAddress, marketState });
+        successful.push({ seedRepo, txHash, marketAddress, marketState, wasAlreadyCompleted: false });
         // Persist state after successfully processing this market
         if (state) {
           await saveState(state);
@@ -975,7 +1236,11 @@ async function checkPendingTransaction(
     }
 
     // Print results summary
-    console.log(`\nSuccessfully processed ${successful.length} markets`);
+    const newlyProcessed = successful.filter((s) => !s.wasAlreadyCompleted).length;
+    const alreadyCompletedCount = successful.filter((s) => s.wasAlreadyCompleted).length;
+    console.log(
+      `\nSuccessfully processed ${newlyProcessed} new markets${alreadyCompletedCount > 0 ? ` (${alreadyCompletedCount} were already completed)` : ""}`,
+    );
     if (failed.length > 0) {
       console.error(`Failed to process ${failed.length} markets:`);
       for (const { seedRepo, error } of failed) {
