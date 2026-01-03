@@ -168,6 +168,9 @@ async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToke
     if (!pool) {
       return Number.NaN;
     }
+    if (pool.tick === null || pool.tick === undefined) {
+      return Number.NaN;
+    }
     const [price0, price1] = tickToPrice(Number(pool.tick));
     return isTwoStringsEqual(wrappedAddress, token0) ? Number(price0) : Number(price1);
   } catch (e) {
