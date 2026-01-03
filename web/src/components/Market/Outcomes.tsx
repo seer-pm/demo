@@ -17,15 +17,11 @@ import { Market } from "@/lib/market";
 import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
-import { toastError } from "@/lib/toastify";
 import { displayBalance, isUndefined } from "@/lib/utils";
-import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
 import { useEffect, useState } from "react";
-import { Address, RpcError, formatUnits } from "viem";
-import { watchAsset } from "viem/actions";
+import { Address, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
@@ -318,25 +314,6 @@ function OutcomeDetails({
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
-  const addToWallet = (i: number) => {
-    return async () => {
-      const walletClient = await getConnectorClient(config);
-      try {
-        await watchAsset(walletClient, {
-          type: "ERC20",
-          options: {
-            address: market.wrappedTokens[i],
-            decimals: 18,
-            symbol: tokensInfo[i].symbol,
-          },
-        });
-      } catch (e) {
-        const error = e as RpcError;
-        toastError({ title: error.details || error.message });
-      }
-    };
-  };
-
   const getTooltipContent = (market: Market, outcomeIndex: number) => {
     const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
     if (outcomeIndex === 1) {
@@ -395,11 +372,6 @@ function OutcomeDetails({
           )}
         </div>
         <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-col justify-start min-[400px]:flex-row min-[400px]:items-center">
-          {balances && balances[outcomeIndex] > 0n && (
-            <button className="text-purple-primary hover:underline" type="button" onClick={addToWallet(outcomeIndex)}>
-              Add token to wallet
-            </button>
-          )}
           <a
             href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
             target="_blank"
