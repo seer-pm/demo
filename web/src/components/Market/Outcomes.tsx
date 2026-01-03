@@ -329,7 +329,7 @@ function OutcomeDetails({
 
   return (
     <div className="flex items-center space-x-[12px]">
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 max-lg:hidden">
         <OutcomeImage
           image={images?.[outcomeIndex]}
           isInvalidOutcome={_isInvalidOutcome}
@@ -489,7 +489,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
               key={market.wrappedTokens[i]}
               onClick={outcomeClick(i)}
               className={clsx(
-                "bg-white flex justify-between p-[24px] border rounded-[3px] shadow-sm cursor-pointer flex-wrap",
+                "bg-white flex justify-between p-[12px] lg:p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
                 activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
                   ? "border-purple-primary"
                   : "border-black-medium",
@@ -551,7 +551,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
                 <input
                   type="radio"
                   name="outcome"
-                  className="radio"
+                  className="radio max-lg:hidden"
                   onChange={outcomeClick(i)}
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />

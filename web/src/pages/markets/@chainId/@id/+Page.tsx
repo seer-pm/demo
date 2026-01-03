@@ -1,14 +1,17 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketCategories from "@/components/Market/MarketCategories";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
+import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -22,7 +25,7 @@ import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -79,6 +82,10 @@ function MarketPage() {
   const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
+  const isMobile = useIsSmallScreen(640);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
+  const prevOutcomeIndexRef = useRef<number>(-1);
 
   let {
     data: market,
@@ -96,8 +103,22 @@ function MarketPage() {
   useEffect(() => {
     const outcomeIndexFromSearch =
       market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
-    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
-  }, [searchParams, market?.id]);
+    const newIndex = Math.max(outcomeIndexFromSearch, 0);
+    const prevIndex = prevOutcomeIndexRef.current;
+
+    // Only open drawer if outcome actually changed (not on initial load) and we're on mobile
+    if (isMobile && market && newIndex >= 0 && prevIndex >= 0 && prevIndex !== newIndex) {
+      setDrawerOpen(true);
+    }
+
+    // Close drawer if switching to desktop
+    if (!isMobile && drawerOpen) {
+      setDrawerOpen(false);
+    }
+
+    setOutcomeIndex(newIndex);
+    prevOutcomeIndexRef.current = newIndex;
+  }, [searchParams, market?.id, isMobile, market, drawerOpen]);
 
   if (isMarketError) {
     return (
@@ -180,7 +201,8 @@ function MarketPage() {
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
             <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+          {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
+          <div className="hidden [@media(min-width:1200px)]:block col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
             <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
@@ -188,6 +210,39 @@ function MarketPage() {
             <MarketTabs market={market} />
           </div>
         </div>
+        {/* Mobile Drawer */}
+        {isMobile && (
+          <>
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} tabs={drawerTabs}>
+              <MobileMarketActions
+                account={account}
+                market={market}
+                outcomeIndex={outcomeIndex}
+                swapWidget={
+                  <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+                }
+                onTabsChange={setDrawerTabs}
+              />
+            </Drawer>
+            {/* Floating Action Button to open drawer */}
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="fixed bottom-6 right-6 z-[99] bg-purple-primary text-white rounded-full p-4 shadow-lg hover:bg-purple-secondary transition-colors flex items-center justify-center w-14 h-14"
+              aria-label="Open trade drawer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="M280-160 80-360l200-200 56 57-103 103h287v80H233l103 103-56 57Zm400-240-56-57 103-103H440v-80h287L624-743l56-57 200 200-200 200Z" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
