@@ -371,7 +371,7 @@ function OutcomeDetails({
             </div>
           )}
         </div>
-        <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-col justify-start min-[400px]:flex-row min-[400px]:items-center">
+        <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-row justify-start">
           <a
             href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
             target="_blank"

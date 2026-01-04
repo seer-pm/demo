@@ -121,7 +121,8 @@ function MarketPage() {
     if (!isMobile && drawerOpen) {
       setDrawerOpen(false);
     }
-  }, [isMobile, drawerOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
 
   if (isMarketError) {
     return (
@@ -226,23 +227,25 @@ function MarketPage() {
                 onTabsChange={setDrawerTabs}
               />
             </Drawer>
-            {/* Floating Action Button to open drawer */}
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="fixed bottom-6 right-6 z-[99] bg-purple-primary text-white rounded-full p-4 shadow-lg hover:bg-purple-secondary transition-colors flex items-center justify-center w-14 h-14"
-              aria-label="Open trade drawer"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                height="24px"
-                viewBox="0 -960 960 960"
-                width="24px"
-                fill="currentColor"
+            {/* Floating Action Button to open drawer - only show when drawer is closed */}
+            {!drawerOpen && (
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="fixed bottom-6 right-6 z-[99] bg-purple-primary text-white rounded-full p-4 shadow-lg hover:bg-purple-secondary transition-colors flex items-center justify-center w-14 h-14"
+                aria-label="Open trade drawer"
               >
-                <path d="M280-160 80-360l200-200 56 57-103 103h287v80H233l103 103-56 57Zm400-240-56-57 103-103H440v-80h287L624-743l56-57 200 200-200 200Z" />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="24px"
+                  viewBox="0 -960 960 960"
+                  width="24px"
+                  fill="currentColor"
+                >
+                  <path d="M280-160 80-360l200-200 56 57-103 103h287v80H233l103 103-56 57Zm400-240-56-57 103-103H440v-80h287L624-743l56-57 200 200-200 200Z" />
+                </svg>
+              </button>
+            )}
           </>
         )}
       </div>
