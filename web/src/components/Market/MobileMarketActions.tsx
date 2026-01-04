@@ -2,7 +2,7 @@ import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import React, { useMemo } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
@@ -27,6 +27,12 @@ export function MobileMarketActions({
   const [activeTab, setActiveTab] = useState<"trade" | "mint" | "merge" | "redeem">("trade");
   const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   const marketStatus = getMarketStatus(market);
+  const onTabsChangeRef = useRef(onTabsChange);
+
+  // Update ref when onTabsChange changes
+  useEffect(() => {
+    onTabsChangeRef.current = onTabsChange;
+  }, [onTabsChange]);
 
   const renderMintTab = () => {
     return (
@@ -95,11 +101,11 @@ export function MobileMarketActions({
     [activeTab],
   );
 
-  React.useEffect(() => {
-    if (onTabsChange) {
-      onTabsChange(tabs);
+  useEffect(() => {
+    if (onTabsChangeRef.current) {
+      onTabsChangeRef.current(tabs);
     }
-  }, [tabs, onTabsChange]);
+  }, [tabs]);
 
   if (marketStatus === MarketStatus.CLOSED && isPending) {
     return <div className="shimmer-container w-full h-[400px]"></div>;

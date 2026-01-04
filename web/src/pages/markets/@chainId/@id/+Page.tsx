@@ -100,6 +100,7 @@ function MarketPage() {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug, chainId) });
   }, []);
+  // Effect for syncing outcomeIndex and opening drawer on mobile when outcome changes
   useEffect(() => {
     const outcomeIndexFromSearch =
       market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
@@ -111,14 +112,16 @@ function MarketPage() {
       setDrawerOpen(true);
     }
 
-    // Close drawer if switching to desktop
+    setOutcomeIndex(newIndex);
+    prevOutcomeIndexRef.current = newIndex;
+  }, [searchParams, market?.id, isMobile, market]);
+
+  // Effect for closing drawer when switching to desktop
+  useEffect(() => {
     if (!isMobile && drawerOpen) {
       setDrawerOpen(false);
     }
-
-    setOutcomeIndex(newIndex);
-    prevOutcomeIndexRef.current = newIndex;
-  }, [searchParams, market?.id, isMobile, market, drawerOpen]);
+  }, [isMobile, drawerOpen]);
 
   if (isMarketError) {
     return (

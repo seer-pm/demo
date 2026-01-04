@@ -13,7 +13,7 @@ export interface DrawerProps {
 
 export function Drawer({ open, onClose, children, title, tabs, className }: DrawerProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDialogElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [startY, setStartY] = useState<number | null>(null);
   const [currentY, setCurrentY] = useState<number | null>(null);
@@ -77,10 +77,10 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
         aria-hidden={!open}
       />
       {/* Drawer */}
-      <div
+      <dialog
         ref={drawerRef}
         className={clsx(
-          "fixed bottom-0 left-0 right-0 bg-white rounded-t-[16px] z-[101] shadow-lg max-h-[90vh] flex flex-col",
+          "fixed bottom-0 left-0 right-0 bg-white rounded-t-[16px] z-[101] shadow-lg max-h-[90vh] flex flex-col w-full",
           !isDragging && "transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-full",
           className,
@@ -135,7 +135,7 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
-      </div>
+      </dialog>
     </>,
     document.body,
   );
