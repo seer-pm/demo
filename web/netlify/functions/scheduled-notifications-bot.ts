@@ -36,10 +36,12 @@ async function sendTelegramMessage(botToken: string, chatId: string, message: st
 
 async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, string>) {
   try {
-    const { data, error } = await supabase
-      .from("markets")
-      .select("id, url, subgraph_data")
-      .not("subgraph_data->questions", "is", null);
+    const questionIds = Object.keys(questionIdToAnswerMap);
+    if (questionIds.length === 0) {
+      return new Map();
+    }
+
+    const { data, error } = await supabase.rpc("markets_by_question_ids", { ids: questionIds });
 
     if (error) {
       console.error("Error fetching markets from Supabase:", error);
@@ -139,12 +141,14 @@ Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
 <a href="https://app.seer.pm/markets/${chainId}/${data.url}">Check on Seer</a>`;
       });
 
-      // Send messages with a 2-second delay between each one
-      for (const message of messages) {
-        await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, message);
+      // Send messages in batches of 20, with a 1.5-second delay between batches
+      for (let i = 0; i < messages.length; i++) {
+        await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, messages[i]);
 
-        // Wait for 2 seconds before sending the next message
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Wait for 1.5 seconds after every 20 messages (but not after the last message)
+        if ((i + 1) % 20 === 0 && i + 1 < messages.length) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
       }
     }
   } catch (error) {
