@@ -25,7 +25,7 @@ import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus
 import { getMarketEstimate } from "@/lib/market-odds.ts";
 import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import { displayScalarBound } from "@/lib/reality.ts";
+import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
@@ -193,7 +193,13 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
 
-  const [showMarketInfo, setShowMarketInfo] = useState(type === "default");
+  const [showMarketInfo, setShowMarketInfo] = useState(
+    type === "default" &&
+      market.questions.some((question) => {
+        const questionStatus = getQuestionStatus(question);
+        return questionStatus !== MarketStatus.NOT_OPEN && questionStatus !== MarketStatus.OPEN;
+      }),
+  );
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
 
