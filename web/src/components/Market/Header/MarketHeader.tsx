@@ -423,26 +423,26 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 {market.verification.status === "verified" && (
                   <>
                     <CheckCircleIcon />
-                    <div>Verified</div>
+                    <div className="@[510px]:inline-block hidden">Verified</div>
                   </>
                 )}
                 {market.verification.status === "verifying" && (
                   <>
                     <ClockIcon />
-                    <div>Verifying</div>
+                    <div className="@[510px]:inline-block hidden">Verifying</div>
                     {challengeRemainingTime && <p className="tooltiptext">Ends in {challengeRemainingTime}</p>}
                   </>
                 )}
                 {market.verification.status === "challenged" && (
                   <>
                     <LawBalanceIcon />
-                    <div>Challenged</div>
+                    <div className="@[510px]:inline-block hidden">Challenged</div>
                   </>
                 )}
                 {market.verification.status === "not_verified" && (
                   <>
                     <ExclamationCircleIcon width="14" height="14" />
-                    <div>Verify it</div>
+                    <div className="@[510px]:inline-block hidden">Verify it</div>
                   </>
                 )}
               </Link>
