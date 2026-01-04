@@ -1,4 +1,5 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
+import { queryClient } from "@/lib/query-client";
 import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config as wagmiConfig } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -51,12 +52,26 @@ export async function getTokenInfo(address: Address, chainId: SupportedChain, co
   return { address, chainId, decimals, name, symbol };
 }
 
+export function getUseTokenQueryKey(token: Address | undefined, chainId: SupportedChain) {
+  return ["useToken", token, chainId] as const;
+}
+
 export const useTokensInfo = (tokens: Address[] | undefined, chainId: SupportedChain) => {
   return useQuery<GetTokenResult[] | undefined, Error>({
     enabled: !isUndefined(tokens) && tokens.length > 0,
     queryKey: ["useTokens", tokens, chainId],
     queryFn: async () => {
-      return await Promise.all(tokens!.map((token) => getTokenInfo(token, chainId, wagmiConfig)));
+      const tokensInfo = await Promise.all(tokens!.map((token) => getTokenInfo(token, chainId, wagmiConfig)));
+
+      // Store preloaded tokens in individual cache entries for useTokenInfo
+      for (const tokenInfo of tokensInfo) {
+        queryClient.setQueryData(
+          getUseTokenQueryKey(tokenInfo.address, tokenInfo.chainId as SupportedChain),
+          tokenInfo,
+        );
+      }
+
+      return tokensInfo;
     },
   });
 };
@@ -64,7 +79,7 @@ export const useTokensInfo = (tokens: Address[] | undefined, chainId: SupportedC
 export const useTokenInfo = (token: Address | undefined, chainId: SupportedChain) => {
   return useQuery<GetTokenResult | undefined, Error>({
     enabled: !isUndefined(token),
-    queryKey: ["useToken", token, chainId],
+    queryKey: getUseTokenQueryKey(token, chainId),
     queryFn: async () => {
       return await getTokenInfo(token!, chainId, wagmiConfig);
     },

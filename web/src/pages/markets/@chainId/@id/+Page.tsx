@@ -12,7 +12,7 @@ import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory
 import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { useTokenInfo } from "@/hooks/useTokenInfo";
+import { useTokenInfo, useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
@@ -28,6 +28,9 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeIndex: number; images?: string[] }) {
+  // Preload all outcome tokens to populate cache and avoid flicker while loading
+  useTokensInfo(market.wrappedTokens, market.chainId);
+
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
