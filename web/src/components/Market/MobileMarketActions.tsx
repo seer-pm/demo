@@ -1,4 +1,3 @@
-import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
@@ -12,20 +11,12 @@ import { SplitForm } from "./SplitForm";
 interface MobileMarketActionsProps {
   account?: Address;
   market: Market;
-  outcomeIndex: number;
   swapWidget: React.ReactNode;
   onTabsChange?: (tabs: React.ReactNode) => void;
 }
 
-export function MobileMarketActions({
-  account,
-  market,
-  outcomeIndex,
-  swapWidget,
-  onTabsChange,
-}: MobileMarketActionsProps) {
+export function MobileMarketActions({ account, market, swapWidget, onTabsChange }: MobileMarketActionsProps) {
   const [activeTab, setActiveTab] = useState<"trade" | "mint" | "merge" | "redeem">("trade");
-  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   const marketStatus = getMarketStatus(market);
   const onTabsChangeRef = useRef(onTabsChange);
 
@@ -106,14 +97,6 @@ export function MobileMarketActions({
       onTabsChangeRef.current(tabs);
     }
   }, [tabs]);
-
-  if (marketStatus === MarketStatus.CLOSED && isPending) {
-    return <div className="shimmer-container w-full h-[400px]"></div>;
-  }
-
-  if (marketStatus !== MarketStatus.CLOSED && !outcomeToken) {
-    return null;
-  }
 
   return (
     <>

@@ -220,7 +220,6 @@ function MarketPage() {
               <MobileMarketActions
                 account={account}
                 market={market}
-                outcomeIndex={outcomeIndex}
                 swapWidget={
                   <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
                 }
