@@ -82,7 +82,7 @@ function MarketPage() {
   const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
-  const isMobile = useIsSmallScreen(640);
+  const isMobile = useIsSmallScreen(1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
   const prevOutcomeIndexRef = useRef<number>(-1);
