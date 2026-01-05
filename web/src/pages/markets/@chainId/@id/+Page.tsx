@@ -24,7 +24,7 @@ import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -149,12 +149,15 @@ function MarketPage() {
   const marketStatus = getMarketStatus(market);
   const reliableMarket = isMarketReliable(market);
 
-  const onOutcomeChange = (i: number, isClick: boolean) => {
-    setOutcomeIndex(i);
-    if (isClick && isMobile) {
-      setDrawerOpen(true);
-    }
-  };
+  const onOutcomeChange = useCallback(
+    (i: number, isClick: boolean) => {
+      setOutcomeIndex(i);
+      if (isClick && isMobile) {
+        setDrawerOpen(true);
+      }
+    },
+    [isMobile],
+  );
 
   return (
     <div className="container-fluid py-10">
