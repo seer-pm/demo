@@ -2,7 +2,6 @@ import { Link } from "@/components/Link";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { NftPosition, PoolInfo, useMarketPools, useNftPositions, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
@@ -20,7 +19,7 @@ import { displayScalarBound } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Address, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -31,10 +30,11 @@ import { FarmingActions } from "./FarmingActions";
 import { OutcomeImage } from "./OutcomeImage";
 import PoolDetails from "./PoolDetails/PoolDetails";
 
-interface PositionsProps {
+interface OutcomesProps {
   market: Market;
   images?: string[];
   activeOutcome: number;
+  onOutcomeChange: (i: number, isClick: boolean) => void;
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -310,7 +310,6 @@ function OutcomeDetails({
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
-  const [, setSearchParams] = useSearchParams();
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -399,15 +398,6 @@ function OutcomeDetails({
               to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
                 market.outcomes[outcomeIndex],
               )}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSearchParams(
-                  {
-                    outcome: market.outcomes[outcomeIndex],
-                  },
-                  { overwriteLastHistoryEntry: true },
-                );
-              }}
               className="text-purple-primary hover:underline"
             >
               New conditional market
@@ -444,9 +434,7 @@ function MultiScalarEstimate({
   );
 }
 
-export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
+export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: OutcomesProps) {
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
@@ -458,17 +446,15 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
     closeModal: closePoolDetailsModal,
   } = useModal("pool-details-modal", true);
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!searchParams.get("outcome") && indexesOrderedByOdds) {
+    if (indexesOrderedByOdds && !hasInitializedRef.current) {
       const i = indexesOrderedByOdds[0];
-      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true });
+      onOutcomeChange(i, false);
+      hasInitializedRef.current = true;
     }
-  }, [indexesOrderedByOdds]);
-  const outcomeClick = (i: number) => {
-    return () => {
-      setSearchParams({ outcome: market.outcomes[i] }, { overwriteLastHistoryEntry: true, keepScrollPosition: true });
-    };
-  };
+  }, [indexesOrderedByOdds, onOutcomeChange]);
 
   return (
     <div>
@@ -487,7 +473,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
           return (
             <div
               key={market.wrappedTokens[i]}
-              onClick={outcomeClick(i)}
+              onClick={() => onOutcomeChange(i, true)}
               className={clsx(
                 "bg-white flex justify-between p-[12px] lg:p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
                 activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
@@ -552,7 +538,7 @@ export function Outcomes({ market, images, activeOutcome }: PositionsProps) {
                   type="radio"
                   name="outcome"
                   className="radio max-lg:hidden"
-                  onChange={outcomeClick(i)}
+                  onChange={() => onOutcomeChange(i, true)}
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>

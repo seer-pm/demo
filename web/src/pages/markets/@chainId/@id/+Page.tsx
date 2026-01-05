@@ -14,7 +14,6 @@ import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo, useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
@@ -25,15 +24,24 @@ import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
-function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeIndex: number; images?: string[] }) {
+function SwapWidget({
+  market,
+  outcomeIndex,
+  images,
+  onOutcomeChange,
+}: {
+  market: Market;
+  outcomeIndex: number;
+  images?: string[];
+  onOutcomeChange: (i: number, isClick: boolean) => void;
+}) {
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);
-
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
@@ -71,6 +79,7 @@ function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeI
       fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
+      onOutcomeChange={onOutcomeChange}
     />
   );
 }
@@ -79,13 +88,11 @@ function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
   const [outcomeIndex, setOutcomeIndex] = useState(0);
-  const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const isMobile = useIsSmallScreen(1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
-  const prevOutcomeIndexRef = useRef<number>(-1);
 
   let {
     data: market,
@@ -100,21 +107,6 @@ function MarketPage() {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug, chainId) });
   }, []);
-  // Effect for syncing outcomeIndex and opening drawer on mobile when outcome changes
-  useEffect(() => {
-    const outcomeIndexFromSearch =
-      market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
-    const newIndex = Math.max(outcomeIndexFromSearch, 0);
-    const prevIndex = prevOutcomeIndexRef.current;
-
-    // Only open drawer if outcome actually changed (not on initial load) and we're on mobile
-    if (isMobile && market && newIndex >= 0 && prevIndex >= 0 && prevIndex !== newIndex) {
-      setDrawerOpen(true);
-    }
-
-    setOutcomeIndex(newIndex);
-    prevOutcomeIndexRef.current = newIndex;
-  }, [searchParams, market?.id, isMobile, market]);
 
   // Effect for closing drawer when switching to desktop
   useEffect(() => {
@@ -156,6 +148,14 @@ function MarketPage() {
 
   const marketStatus = getMarketStatus(market);
   const reliableMarket = isMarketReliable(market);
+
+  const onOutcomeChange = (i: number, isClick: boolean) => {
+    setOutcomeIndex(i);
+    if (isClick && isMobile) {
+      setDrawerOpen(true);
+    }
+  };
+
   return (
     <div className="container-fluid py-10">
       <div className="space-y-5">
@@ -203,11 +203,21 @@ function MarketPage() {
         <MarketChart market={market} />
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
-            <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
+            <Outcomes
+              market={market}
+              images={market?.images?.outcomes}
+              activeOutcome={outcomeIndex}
+              onOutcomeChange={onOutcomeChange}
+            />
           </div>
           {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
           <div className="hidden [@media(min-width:1200px)]:block col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
-            <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+            <SwapWidget
+              market={market}
+              outcomeIndex={outcomeIndex}
+              images={market?.images?.outcomes}
+              onOutcomeChange={onOutcomeChange}
+            />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
@@ -222,7 +232,12 @@ function MarketPage() {
                 account={account}
                 market={market}
                 swapWidget={
-                  <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+                  <SwapWidget
+                    market={market}
+                    outcomeIndex={outcomeIndex}
+                    images={market?.images?.outcomes}
+                    onOutcomeChange={onOutcomeChange}
+                  />
                 }
                 onTabsChange={setDrawerTabs}
               />

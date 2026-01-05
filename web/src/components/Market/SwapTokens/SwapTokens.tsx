@@ -17,6 +17,7 @@ interface SwapTokensProps {
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
   fixedCollateral: Token | undefined;
+  onOutcomeChange: (i: number, isClick: boolean) => void;
 }
 
 export function SwapTokens({
@@ -26,6 +27,7 @@ export function SwapTokens({
   hasEnoughLiquidity,
   outcomeImage,
   fixedCollateral,
+  onOutcomeChange,
 }: SwapTokensProps) {
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
@@ -83,6 +85,7 @@ export function SwapTokens({
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
               isInvalidOutcome={isInvalidOutcome}
+              onOutcomeChange={onOutcomeChange}
             />
           )}
           {orderType === "limit" && (

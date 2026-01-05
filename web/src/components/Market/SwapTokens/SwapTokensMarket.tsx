@@ -1,7 +1,6 @@
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
-import { useSearchParams } from "@/hooks/useSearchParams";
 
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
@@ -40,17 +39,18 @@ interface SwapTokensMarketProps {
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
+  onOutcomeChange: (i: number, isClick: boolean) => void;
 }
 
 export function FutarchyTokenSwitch({
   market,
   outcomeIndex,
+  onOutcomeChange,
 }: {
   market: Market;
   outcomeIndex: number;
+  onOutcomeChange: (i: number, isClick: boolean) => void;
 }) {
-  const [, setSearchParams] = useSearchParams();
-
   const collateralPair = [outcomeIndex, FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]]
     .sort()
     .map((collateralIndex) => market.wrappedTokens[collateralIndex]) as [Address, Address];
@@ -58,12 +58,7 @@ export function FutarchyTokenSwitch({
   return (
     <AltCollateralSwitch
       key={collateralPair.join("-")}
-      onChange={() =>
-        setSearchParams(
-          { outcome: market.outcomes[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]] },
-          { overwriteLastHistoryEntry: true, keepScrollPosition: true },
-        )
-      }
+      onChange={() => onOutcomeChange(FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex], true)}
       collateralPair={collateralPair}
       market={market}
     />
@@ -113,6 +108,7 @@ export function SwapTokensMarket({
   fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
+  onOutcomeChange,
 }: SwapTokensMarketProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const amountOutRef = useRef<HTMLInputElement | null>(null);
@@ -598,7 +594,9 @@ export function SwapTokensMarket({
         )}
 
         <div className="flex justify-between flex-wrap gap-4">
-          {market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} />}
+          {market.type === "Futarchy" && (
+            <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} onOutcomeChange={onOutcomeChange} />
+          )}
           <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
             Parameters:{" "}
             <div
