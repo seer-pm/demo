@@ -4,7 +4,7 @@ import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
 import { ethers, providers } from "ethers";
 import { Account, Address, Chain, Client, TransactionReceipt, Transport, encodeFunctionData } from "viem";
-import { getMaximumAmountIn } from ".";
+import { TradeManagerTrade, getMaximumAmountIn } from ".";
 import { creditsManagerAbi, creditsManagerAddress } from "../contracts/generated-trading-credits";
 import { approveTokens } from "../useApproveTokens";
 import { Execution } from "../useCheck7702Support";
@@ -157,9 +157,14 @@ export function clientToSigner(client: Client<Transport, Chain, Account>) {
 
 export function getWrappedSeerCreditsExecution(
   isSeerCredits: boolean,
-  trade: SwaprV3Trade | UniswapTrade,
+  trade: SwaprV3Trade | UniswapTrade | TradeManagerTrade,
   tradeExecution: Execution,
 ): Execution {
+  // TradeManagerTrade does not support SeerCredits
+  if (trade instanceof TradeManagerTrade) {
+    return tradeExecution;
+  }
+
   if (!isSeerCredits) {
     return tradeExecution;
   }

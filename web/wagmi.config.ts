@@ -75,6 +75,7 @@ const getConfig = async (): Promise<Config[]> => {
     "market-factory": ["MarketFactory", "Market", "FutarchyFactory"],
     "market-view": ["MarketView"],
     router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],
+    "trade-manager": ["TradeManager", "TradeQuoter"],
     "multi-drop": ["MultiDrop", "GovernedRecipient"],
     "trading-credits": ["SeerCredits", "CreditsManager"],
   };

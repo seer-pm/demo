@@ -1,3 +1,4 @@
+import { TradeManagerTrade } from "@/hooks/trade/TradeManagerTrade";
 import { NATIVE_TOKEN, isTwoStringsEqual, parseFraction } from "@/lib/utils";
 import { PriceQuality } from "@cowprotocol/cow-sdk";
 import {
@@ -23,7 +24,7 @@ export interface QuoteTradeResult {
   sellToken: Address;
   sellAmount: string;
   swapType: "buy" | "sell";
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade;
 }
 
 export type QuoteTradeFn = (

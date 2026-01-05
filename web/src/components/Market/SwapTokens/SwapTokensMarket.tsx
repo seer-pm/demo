@@ -1,4 +1,4 @@
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { TradeManagerTrade, useQuoteTrade, useTrade } from "@/hooks/trade";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
@@ -6,9 +6,10 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market, getFixedCollateral } from "@/lib/market";
 import { Token, getCollateralPerShare, getOutcomeTokenVolume } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
@@ -36,7 +37,6 @@ interface SwapTokensMarketProps {
   market: Market;
   outcomeIndex: number;
   outcomeToken: Token;
-  fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -110,7 +110,6 @@ export function SwapTokensMarket({
   outcomeIndex,
   outcomeToken,
   setShowMaxSlippage,
-  fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensMarketProps) {
@@ -149,6 +148,8 @@ export function SwapTokensMarket({
     openModal: openConfirmSwapModal,
     closeModal: closeConfirmSwapModal,
   } = useModal("confirm-swap-modal");
+
+  const { data: fixedCollateral } = useTokenInfo(getFixedCollateral(market, outcomeIndex), market.chainId);
 
   const {
     maxSlippage,
@@ -195,9 +196,12 @@ export function SwapTokensMarket({
     selectedCollateral,
     swapType,
     tradeType,
+    market,
   );
+
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -206,7 +210,7 @@ export function SwapTokensMarket({
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
@@ -398,7 +402,6 @@ export function SwapTokensMarket({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,
@@ -496,7 +499,6 @@ export function SwapTokensMarket({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,

@@ -11,9 +11,69 @@ import ReactECharts from "echarts-for-react";
 import { formatUnits, zeroAddress } from "viem";
 import { getPotentialReturn, getScalarReturnPerToken } from "./utils";
 
-export default function ScalarForecastChecker({
+interface ReturnPerTokenProps {
+  returnPercentage: number;
+  returnPerToken: number;
+  isSecondaryCollateral: boolean;
+  primaryCollateralSymbol: string;
+  selectedCollateralSymbol: string;
+  sharesToAssets: number;
+}
+
+function ReturnPerToken({
+  returnPercentage,
+  returnPerToken,
+  isSecondaryCollateral,
+  primaryCollateralSymbol,
+  selectedCollateralSymbol,
+  sharesToAssets,
+}: ReturnPerTokenProps) {
+  return (
+    <span
+      className={clsx(
+        returnPercentage !== 0 && (returnPercentage > 0 ? "text-success-primary" : "text-error-primary"),
+        "text-right",
+      )}
+    >
+      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? primaryCollateralSymbol : selectedCollateralSymbol}
+      {isSecondaryCollateral
+        ? ` (${(returnPerToken * (sharesToAssets ?? 0)).toFixed(3)} ${selectedCollateralSymbol})`
+        : ""}
+    </span>
+  );
+}
+
+interface PotentialReturnProps {
+  returnPercentage: number;
+  potentialReturn: number;
+  selectedCollateralSymbol: string;
+}
+
+function PotentialReturn({ returnPercentage, potentialReturn, selectedCollateralSymbol }: PotentialReturnProps) {
+  return (
+    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
+      {potentialReturn.toFixed(3)} {selectedCollateralSymbol} ({returnPercentage.toFixed(2)}%)
+    </span>
+  );
+}
+
+interface ScalarForecastCheckerContentProps {
+  market: Market;
+  otherOutcomeToken: Token;
+  forecast: number;
+  amount: string;
+  receivedAmount: number;
+  collateralPerShare: number;
+  selectedCollateral: Token;
+  isSecondaryCollateral: boolean;
+  sharesToAssets: number;
+  assetsToShares: number;
+  outcomeTokens: Token[];
+}
+
+function ScalarForecastCheckerContent({
   market,
-  outcomeToken,
+  otherOutcomeToken,
   forecast,
   amount,
   receivedAmount,
@@ -22,41 +82,9 @@ export default function ScalarForecastChecker({
   isSecondaryCollateral,
   sharesToAssets,
   assetsToShares,
-}: {
-  market: Market;
-  outcomeToken: Token;
-  forecast: number;
-  amount: string;
-  receivedAmount: number;
-  collateralPerShare: number;
-  selectedCollateral: Token;
-  isSecondaryCollateral: boolean;
-  assetsToShares: number;
-  sharesToAssets: number;
-}) {
+  outcomeTokens,
+}: ScalarForecastCheckerContentProps) {
   const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
-  const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
-
-  const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
-  const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (
-    <span
-      className={clsx(
-        returnPercentage !== 0 && (returnPercentage > 0 ? "text-success-primary" : "text-error-primary"),
-        "text-right",
-      )}
-    >
-      {returnPerToken.toFixed(3)} {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
-      {isSecondaryCollateral
-        ? ` (${(returnPerToken * (sharesToAssets ?? 0)).toFixed(3)} ${selectedCollateral.symbol})`
-        : ""}
-    </span>
-  );
-  const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
-      %)
-    </span>
-  );
   const {
     data: quoteData,
     isLoading: quoteIsLoading,
@@ -70,14 +98,13 @@ export default function ScalarForecastChecker({
     selectedCollateral,
     "buy",
     TradeType.EXACT_INPUT,
+    market,
   );
 
   const otherTokenIndex = outcomeTokens.findIndex((token) =>
     isTwoStringsEqual(token.address, otherOutcomeToken.address),
   );
-  if (getMarketType(market) !== MarketTypes.SCALAR) {
-    return null;
-  }
+
   if (!quoteData) {
     return (
       <div className="text-[14px] space-y-6">
@@ -90,10 +117,24 @@ export default function ScalarForecastChecker({
           <div className="flex items-center py-3 border-b border-black-secondary">
             <p className="w-[30%] font-semibold">Return per token:</p>
             <p className="w-[35%] text-right">
-              {renderReturnPerToken(0, getScalarReturnPerToken(market, 1, forecast))}
+              <ReturnPerToken
+                returnPercentage={0}
+                returnPerToken={getScalarReturnPerToken(market, 1, forecast)}
+                isSecondaryCollateral={isSecondaryCollateral}
+                primaryCollateralSymbol={primaryCollateral.symbol}
+                selectedCollateralSymbol={selectedCollateral.symbol}
+                sharesToAssets={sharesToAssets}
+              />
             </p>
             <p className="w-[35%] text-right">
-              {renderReturnPerToken(0, getScalarReturnPerToken(market, 0, forecast))}
+              <ReturnPerToken
+                returnPercentage={0}
+                returnPerToken={getScalarReturnPerToken(market, 0, forecast)}
+                isSecondaryCollateral={isSecondaryCollateral}
+                primaryCollateralSymbol={primaryCollateral.symbol}
+                selectedCollateralSymbol={selectedCollateral.symbol}
+                sharesToAssets={sharesToAssets}
+              />
             </p>
           </div>
         </div>
@@ -374,16 +415,42 @@ export default function ScalarForecastChecker({
         </div>
         <div className="flex items-center py-1 border-b border-black-secondary">
           <p className="w-[30%] font-semibold">Return per token:</p>
-          <p className="w-[35%] text-right">{renderReturnPerToken(data[1].returnPercentage, data[1].returnPerToken)}</p>
-          <p className="w-[35%] text-right">{renderReturnPerToken(data[0].returnPercentage, data[0].returnPerToken)}</p>
+          <p className="w-[35%] text-right">
+            <ReturnPerToken
+              returnPercentage={data[1].returnPercentage}
+              returnPerToken={data[1].returnPerToken}
+              isSecondaryCollateral={isSecondaryCollateral}
+              primaryCollateralSymbol={primaryCollateral.symbol}
+              selectedCollateralSymbol={selectedCollateral.symbol}
+              sharesToAssets={sharesToAssets}
+            />
+          </p>
+          <p className="w-[35%] text-right">
+            <ReturnPerToken
+              returnPercentage={data[0].returnPercentage}
+              returnPerToken={data[0].returnPerToken}
+              isSecondaryCollateral={isSecondaryCollateral}
+              primaryCollateralSymbol={primaryCollateral.symbol}
+              selectedCollateralSymbol={selectedCollateral.symbol}
+              sharesToAssets={sharesToAssets}
+            />
+          </p>
         </div>
         <div className="flex items-center py-1 border-b border-black-secondary">
           <p className="w-[30%] font-semibold">Potential return:</p>
           <p className="w-[35%] text-right">
-            {renderPotentialReturn(data[1].returnPercentage, data[1].potentialReturn)}
+            <PotentialReturn
+              returnPercentage={data[1].returnPercentage}
+              potentialReturn={data[1].potentialReturn}
+              selectedCollateralSymbol={selectedCollateral.symbol}
+            />
           </p>
           <p className="w-[35%] text-right">
-            {renderPotentialReturn(data[0].returnPercentage, data[0].potentialReturn)}
+            <PotentialReturn
+              returnPercentage={data[0].returnPercentage}
+              potentialReturn={data[0].potentialReturn}
+              selectedCollateralSymbol={selectedCollateral.symbol}
+            />
           </p>
         </div>
       </div>
@@ -392,9 +459,64 @@ export default function ScalarForecastChecker({
         <p className="font-semibold mb-2">Best return for your forecast</p>
         <p className="text-success-primary">
           Buy {market.outcomes[bestReturnIndex]}{" "}
-          {renderPotentialReturn(data[bestReturnIndex].returnPercentage, data[bestReturnIndex].potentialReturn)}
+          <PotentialReturn
+            returnPercentage={data[bestReturnIndex].returnPercentage}
+            potentialReturn={data[bestReturnIndex].potentialReturn}
+            selectedCollateralSymbol={selectedCollateral.symbol}
+          />
         </p>
       </div>
     </div>
+  );
+}
+
+export default function ScalarForecastChecker({
+  market,
+  outcomeToken,
+  forecast,
+  amount,
+  receivedAmount,
+  collateralPerShare,
+  selectedCollateral,
+  isSecondaryCollateral,
+  sharesToAssets,
+  assetsToShares,
+}: {
+  market: Market;
+  outcomeToken: Token;
+  forecast: number;
+  amount: string;
+  receivedAmount: number;
+  collateralPerShare: number;
+  selectedCollateral: Token;
+  isSecondaryCollateral: boolean;
+  assetsToShares: number;
+  sharesToAssets: number;
+}) {
+  if (getMarketType(market) !== MarketTypes.SCALAR) {
+    return null;
+  }
+
+  const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address);
+
+  if (!otherOutcomeToken) {
+    return null;
+  }
+
+  return (
+    <ScalarForecastCheckerContent
+      market={market}
+      otherOutcomeToken={otherOutcomeToken}
+      forecast={forecast}
+      amount={amount}
+      receivedAmount={receivedAmount}
+      collateralPerShare={collateralPerShare}
+      selectedCollateral={selectedCollateral}
+      isSecondaryCollateral={isSecondaryCollateral}
+      sharesToAssets={sharesToAssets}
+      assetsToShares={assetsToShares}
+      outcomeTokens={outcomeTokens}
+    />
   );
 }

@@ -516,3 +516,12 @@ export function getRedeemedPrice(market: Market, tokenIndex: number) {
   // If parent market hasn't reported payouts or this outcome isn't winning, return 0
   return 0;
 }
+
+export function getFixedCollateral(market: Market, outcomeIndex: number): Address | undefined {
+  // on Futarchy markets we want to buy/sell using the associated outcome token,
+  if (market.type === "Futarchy") {
+    return getLiquidityPairForToken(market, outcomeIndex);
+  }
+
+  return undefined;
+}

@@ -54,9 +54,12 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+
   networks: {
     hardhat: {
       chainId: 31337,
+      allowUnlimitedContractSize: true,
+
       // forking: {
       //   url: "https://rpc.gnosischain.com",
       // },

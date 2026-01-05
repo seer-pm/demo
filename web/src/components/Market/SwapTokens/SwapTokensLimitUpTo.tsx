@@ -2,14 +2,15 @@ import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { decimalToFraction } from "@/hooks/liquidity/utils";
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { TradeManagerTrade, useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
+import { Market, getFixedCollateral } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { Token, getCollateralPerShare } from "@/lib/tokens";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -39,7 +40,6 @@ interface SwapTokensLimitUptoProps {
   market: Market;
   outcomeIndex: number;
   outcomeToken: Token;
-  fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -50,7 +50,6 @@ export function SwapTokensLimitUpto({
   outcomeIndex,
   outcomeToken,
   setShowMaxSlippage,
-  fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
 }: SwapTokensLimitUptoProps) {
@@ -91,6 +90,8 @@ export function SwapTokensLimitUpto({
   const [amount, amountOut, limitPrice] = watch(["amount", "amountOut", "limitPrice"]);
 
   const limitErrorMessage = limitPrice && errors.limitPrice?.message;
+
+  const { data: fixedCollateral } = useTokenInfo(getFixedCollateral(market, outcomeIndex), market.chainId);
 
   const {
     maxSlippage,
@@ -156,6 +157,7 @@ export function SwapTokensLimitUpto({
     selectedCollateral,
     swapType,
     tradeType,
+    market,
   );
   const isCowFastQuote =
     quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
@@ -167,7 +169,7 @@ export function SwapTokensLimitUpto({
     closeConfirmSwapModal();
   });
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
@@ -432,7 +434,6 @@ export function SwapTokensLimitUpto({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,
@@ -497,7 +498,6 @@ export function SwapTokensLimitUpto({
                   buyToken,
                   selectedCollateral,
                   market,
-                  fixedCollateral,
                   setPreferredCollateral,
                   parentMarket,
                   outcomeIndex,

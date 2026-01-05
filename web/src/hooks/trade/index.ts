@@ -1,20 +1,27 @@
+import { TradeManagerTrade } from "@/hooks/trade/TradeManagerTrade";
 import { createCowOrder, executeCoWTrade } from "@/hooks/trade/executeCowTrade";
 import { executeSwaprTrade, getSwaprTradeExecution } from "@/hooks/trade/executeSwaprTrade";
+import { executeTradeManagerTrade, getTradeManagerTradeExecution } from "@/hooks/trade/executeTradeManagerTrade";
 import { executeUniswapTrade, getUniswapTradeExecution } from "@/hooks/trade/executeUniswapTrade";
+import { useTradeQuoter } from "@/hooks/trade/useTradeQuoter";
+
+export { TradeManagerTrade };
 import { SupportedChain } from "@/lib/chains";
 import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import SEER_ENV from "@/lib/env";
+import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { Token } from "@/lib/tokens";
 import { QuoteTradeResult, getCowQuote, getSwaprQuote, getUniswapQuote } from "@/lib/trade";
 import { getCowQuoteExactOut, getSwaprQuoteExactOut, getUniswapQuoteExactOut } from "@/lib/tradeExactOut";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { sendCalls } from "@wagmi/core";
 import { Interface } from "ethers/lib/utils";
-import { Address, TransactionReceipt } from "viem";
+import { Address, TransactionReceipt, zeroAddress } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
 import { Execution, useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
@@ -173,12 +180,30 @@ export function useQuoteTrade(
   collateralToken: Token,
   swapType: "buy" | "sell",
   tradeType: TradeType,
-) {
+  market: Market,
+): ReturnType<typeof useQuery<QuoteTradeResult | undefined, Error>> {
   const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken.address);
-
   const realCollateralToken: Token = isSeerCreditsCollateral ? COLLATERAL_TOKENS[chainId].primary : collateralToken;
 
+  // Check if this is an advanced conditional trade (has parentMarket and collateralToken is not the parent token)
+  const isAdvancedConditionalTrade =
+    !!market &&
+    market.parentMarket.id !== zeroAddress &&
+    !isTwoStringsEqual(market.collateralToken, collateralToken.address);
+
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
+
+  // Always call useTradeQuoter, but enable it only for advanced conditional trades
+  const tradeQuoterResult = useTradeQuoter(
+    market?.id || zeroAddress,
+    outcomeToken,
+    collateralToken,
+    isAdvancedConditionalTrade,
+    chainId,
+    swapType,
+    amount,
+    maxSlippage,
+  );
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const shouldUseInstantSwap = isInstantSwap || isSeerCreditsCollateral;
   const cowResult = useCowQuote(
@@ -188,7 +213,7 @@ export function useQuoteTrade(
     outcomeToken,
     realCollateralToken,
     swapType,
-    !shouldUseInstantSwap,
+    !shouldUseInstantSwap && !isAdvancedConditionalTrade,
     tradeType,
     maxSlippage,
   );
@@ -201,7 +226,7 @@ export function useQuoteTrade(
     outcomeToken,
     realCollateralToken,
     swapType,
-    true,
+    !isAdvancedConditionalTrade,
     tradeType,
     maxSlippage,
   );
@@ -212,10 +237,14 @@ export function useQuoteTrade(
     outcomeToken,
     realCollateralToken,
     swapType,
-    true,
+    !isAdvancedConditionalTrade,
     tradeType,
     maxSlippage,
   );
+
+  if (tradeQuoterResult.data) {
+    return tradeQuoterResult;
+  }
 
   if (isCowResultOk) {
     return cowResult;
@@ -275,7 +304,7 @@ function getTradeApprovals7702(account: Address, trade: Trade) {
 }
 
 interface TradeTokensProps {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  trade: CoWTrade | SwaprV3Trade | UniswapTrade | TradeManagerTrade;
   account: Address;
   isBuyExactOutputNative: boolean;
   isSellToNative: boolean;
@@ -295,6 +324,10 @@ async function tradeTokens({
 
   if (trade instanceof UniswapTrade) {
     return executeUniswapTrade(trade, account, isSeerCredits);
+  }
+
+  if (trade instanceof TradeManagerTrade) {
+    return executeTradeManagerTrade(trade, account);
   }
 
   return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
@@ -335,15 +368,21 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
 
   const calls: Execution[] = props.isSeerCredits ? [] : getTradeApprovals7702(props.account, props.trade);
 
-  calls.push(
-    getWrappedSeerCreditsExecution(
-      props.isSeerCredits,
+  let tradeExecution: Execution;
+  if (props.trade instanceof UniswapTrade) {
+    tradeExecution = await getUniswapTradeExecution(props.trade, props.account);
+  } else if (props.trade instanceof TradeManagerTrade) {
+    tradeExecution = await getTradeManagerTradeExecution(props.trade, props.account);
+  } else {
+    tradeExecution = await getSwaprTradeExecution(
       props.trade,
-      props.trade instanceof UniswapTrade
-        ? await getUniswapTradeExecution(props.trade, props.account)
-        : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
-    ),
-  );
+      props.account,
+      props.isBuyExactOutputNative,
+      props.isSellToNative,
+    );
+  }
+
+  calls.push(getWrappedSeerCreditsExecution(props.isSeerCredits, props.trade, tradeExecution));
 
   const result = await toastifyTx(
     () =>
