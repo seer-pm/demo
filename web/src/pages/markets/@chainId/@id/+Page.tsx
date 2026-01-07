@@ -1,17 +1,19 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MarketCategories from "@/components/Market/MarketCategories";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
+import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { useTokenInfo, useTokensInfo } from "@/hooks/useTokenInfo";
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
 import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
@@ -22,15 +24,24 @@ import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
-function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeIndex: number; images?: string[] }) {
+function SwapWidget({
+  market,
+  outcomeIndex,
+  images,
+  onOutcomeChange,
+}: {
+  market: Market;
+  outcomeIndex: number;
+  images?: string[];
+  onOutcomeChange: (i: number, isClick: boolean) => void;
+}) {
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);
-
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
@@ -68,6 +79,7 @@ function SwapWidget({ market, outcomeIndex, images }: { market: Market; outcomeI
       fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
+      onOutcomeChange={onOutcomeChange}
     />
   );
 }
@@ -76,9 +88,11 @@ function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
   const [outcomeIndex, setOutcomeIndex] = useState(0);
-  const [searchParams] = useSearchParams();
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
+  const isMobile = useIsSmallScreen(1200);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
 
   let {
     data: market,
@@ -93,11 +107,24 @@ function MarketPage() {
     //update latest data since onBeforeRender cached
     queryClient.invalidateQueries({ queryKey: getUseGraphMarketKey(idOrSlug, chainId) });
   }, []);
+
+  // Effect for closing drawer when switching to desktop
   useEffect(() => {
-    const outcomeIndexFromSearch =
-      market?.outcomes?.findIndex((outcome) => outcome === searchParams.get("outcome")) ?? -1;
-    setOutcomeIndex(Math.max(outcomeIndexFromSearch, 0));
-  }, [searchParams, market?.id]);
+    if (!isMobile && drawerOpen) {
+      setDrawerOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
+
+  const onOutcomeChange = useCallback(
+    (i: number, isClick: boolean) => {
+      setOutcomeIndex(i);
+      if (isClick && isMobile) {
+        setDrawerOpen(true);
+      }
+    },
+    [isMobile],
+  );
 
   if (isMarketError) {
     return (
@@ -131,6 +158,7 @@ function MarketPage() {
 
   const marketStatus = getMarketStatus(market);
   const reliableMarket = isMarketReliable(market);
+
   return (
     <div className="container-fluid py-10">
       <div className="space-y-5">
@@ -178,16 +206,67 @@ function MarketPage() {
         <MarketChart market={market} />
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
-            <Outcomes market={market} images={market?.images?.outcomes} activeOutcome={outcomeIndex} />
+            <Outcomes
+              market={market}
+              images={market?.images?.outcomes}
+              activeOutcome={outcomeIndex}
+              onOutcomeChange={onOutcomeChange}
+            />
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
-            <SwapWidget market={market} outcomeIndex={outcomeIndex} images={market?.images?.outcomes} />
+          {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
+          <div className="hidden [@media(min-width:1200px)]:block col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+            <SwapWidget
+              market={market}
+              outcomeIndex={outcomeIndex}
+              images={market?.images?.outcomes}
+              onOutcomeChange={onOutcomeChange}
+            />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
             <MarketTabs market={market} />
           </div>
         </div>
+        {/* Mobile Drawer */}
+        {isMobile && (
+          <>
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} tabs={drawerTabs}>
+              <MobileMarketActions
+                account={account}
+                market={market}
+                swapWidget={
+                  <SwapWidget
+                    market={market}
+                    outcomeIndex={outcomeIndex}
+                    images={market?.images?.outcomes}
+                    onOutcomeChange={onOutcomeChange}
+                  />
+                }
+                onTabsChange={setDrawerTabs}
+                drawerOpen={drawerOpen}
+              />
+            </Drawer>
+            {/* Floating Action Button to open drawer - only show when drawer is closed */}
+            {!drawerOpen && (
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="fixed bottom-6 right-6 z-[99] bg-purple-primary text-white rounded-full p-4 shadow-lg hover:bg-purple-secondary transition-colors flex items-center justify-center w-14 h-14"
+                aria-label="Open trade drawer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="24px"
+                  viewBox="0 -960 960 960"
+                  width="24px"
+                  fill="currentColor"
+                >
+                  <path d="M280-160 80-360l200-200 56 57-103 103h287v80H233l103 103-56 57Zm400-240-56-57 103-103H440v-80h287L624-743l56-57 200 200-200 200Z" />
+                </svg>
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <SwapUpdater />
           <ToastContainer />
           <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
-          <ReactQueryDevtools initialIsOpen={false} />
+          <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
         </QueryClientProvider>
       </WagmiProvider>
     </React.StrictMode>
