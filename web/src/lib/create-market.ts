@@ -38,7 +38,7 @@ export const MARKET_CATEGORIES: { value: string; text: string }[] = [
   { value: WEATHER_CATEGORY, text: "Weather" },
 ];
 
-function generateTokenName(outcome: string) {
+export function generateTokenName(outcome: string) {
   return outcome
     .replace(/[^\w\s]/gi, "") // remove special characters
     .replace(/[\u00A0\u2000-\u200F\u202F\u205F\u3000]/g, " ") // replace non-breaking spaces with normal spaces

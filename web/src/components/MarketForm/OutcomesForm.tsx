@@ -2,6 +2,7 @@ import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { SupportedChain } from "@/lib/chains";
+import { generateTokenName } from "@/lib/create-market";
 import { PlusCircleIcon, PolicyIcon } from "@/lib/icons";
 import { MarketTypes, getMarketName, getQuestionParts, hasOutcomes } from "@/lib/market";
 import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -14,6 +15,51 @@ import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 import { SearchToken, TokenListItem } from "./SearchToken";
+
+function getActualTokenName(field: FieldPath<OutcomesFormValues>, formValues: OutcomesFormValues): string {
+  if (field.includes("outcomes")) {
+    const idx = Number(field.split(".")[1]);
+    if (!Number.isNaN(idx) && formValues.outcomes[idx]) {
+      return formValues.outcomes[idx].token?.trim() || generateTokenName(formValues.outcomes[idx].value);
+    }
+  }
+  if (field === "lowerBound.token") {
+    return formValues.lowerBound.token?.trim() || generateTokenName("DOWN");
+  }
+  if (field === "upperBound.token") {
+    return formValues.upperBound.token?.trim() || generateTokenName("UP");
+  }
+  return "";
+}
+
+function hasDuplicateOutcomeTokenName(outcomeIndex: number, formValues: OutcomesFormValues): boolean {
+  const currentTokenName = getActualTokenName(
+    `outcomes.${outcomeIndex}.token` as FieldPath<OutcomesFormValues>,
+    formValues,
+  );
+
+  return formValues.outcomes.some((_outcome, index) => {
+    if (index === outcomeIndex) return false;
+    const otherTokenName = getActualTokenName(`outcomes.${index}.token` as FieldPath<OutcomesFormValues>, formValues);
+    return isTwoStringsEqual(currentTokenName, otherTokenName);
+  });
+}
+
+function triggerOutcomeValidations(
+  useFormReturn: UseFormReturn<OutcomesFormValues>,
+  outcomes: OutcomesFormValues["outcomes"],
+) {
+  const fields = outcomes.flatMap((outcome, index) => {
+    const fields: (`outcomes.${number}.value` | `outcomes.${number}.token`)[] = [
+      `outcomes.${index}.token` as `outcomes.${number}.token`,
+    ];
+    if (outcome.value) {
+      fields.push(`outcomes.${index}.value` as `outcomes.${number}.value`);
+    }
+    return fields;
+  });
+  useFormReturn.trigger(fields);
+}
 
 interface OutcomeFieldsProps {
   outcomeIndex: number;
@@ -33,13 +79,9 @@ function OutcomeField({
   useFormReturn,
 }: OutcomeFieldsProps) {
   const outcomeName = outcomes[outcomeIndex].value;
+
   useEffect(() => {
-    // trigger validate duplicate outcome names
-    if (!outcomeName) return;
-    const toTriggerFields = outcomes
-      .filter((outcome) => !!outcome.value)
-      .map((_, index) => `outcomes.${index}.value`) as `outcomes.${number}.value`[];
-    useFormReturn.trigger(toTriggerFields);
+    triggerOutcomeValidations(useFormReturn, outcomes);
   }, [outcomeName]);
   return (
     <div className="text-left">
@@ -49,13 +91,18 @@ function OutcomeField({
           autoComplete="off"
           {...useFormReturn.register(`outcomes.${outcomeIndex}.value`, {
             required: "This field is required.",
-            validate: (v) => {
+            validate: (v, formValues) => {
               if (isTwoStringsEqual(v, INVALID_RESULT_OUTCOME_TEXT)) {
                 return "Invalid Outcome.";
               }
               if (outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value))) {
                 return "Duplicated outcome.";
               }
+
+              if (hasDuplicateOutcomeTokenName(outcomeIndex, formValues)) {
+                return "Duplicated token name.";
+              }
+
               return true;
             },
           })}
@@ -159,7 +206,8 @@ function TokenNameField({
 }) {
   const [showCustomToken, setShowCustomToken] = useState(!!useFormReturn.getValues(fieldName));
   const token = useFormReturn.watch(fieldName);
-  const outcomes = useFormReturn.getValues("outcomes");
+  const outcomes = useFormReturn.watch("outcomes");
+
   useEffect(() => {
     if (!showCustomToken) {
       useFormReturn.setValue(fieldName, "", {
@@ -168,14 +216,12 @@ function TokenNameField({
       });
     }
   }, [showCustomToken]);
+
   useEffect(() => {
-    // trigger validate duplicate token names
-    if (!token) return;
+    // When outcomes or token value change, we need to revalidate all token fields because auto-generated names depend on outcome values
+    // We always trigger validation (even if token is empty) to clear any existing errors
     if (fieldName.includes("outcomes")) {
-      const toTriggerFields = outcomes
-        .filter((outcome) => !!outcome.token)
-        .map((_, index) => `outcomes.${index}.token`) as `outcomes.${number}.token`[];
-      useFormReturn.trigger(toTriggerFields);
+      triggerOutcomeValidations(useFormReturn, outcomes);
       return;
     }
     if (fieldName === "upperBound.token") {
@@ -186,7 +232,8 @@ function TokenNameField({
       useFormReturn.trigger("upperBound.token");
       return;
     }
-  }, [token]);
+  }, [token, outcomes, fieldName]);
+
   return (
     <div>
       {showCustomToken && (
@@ -202,23 +249,33 @@ function TokenNameField({
                 if ((v as string).length > 11) {
                   return "Maximum 11 characters.";
                 }
+
+                const currentTokenName = getActualTokenName(fieldName, formValues);
+
+                // Compare lowerBound.token and upperBound.token between each other
                 if (
-                  (fieldName === "lowerBound.token" && isTwoStringsEqual(v as string, formValues.upperBound.token)) ||
-                  (fieldName === "upperBound.token" && isTwoStringsEqual(v as string, formValues.lowerBound.token))
+                  (fieldName === "lowerBound.token" &&
+                    isTwoStringsEqual(
+                      currentTokenName,
+                      getActualTokenName("upperBound.token" as FieldPath<OutcomesFormValues>, formValues),
+                    )) ||
+                  (fieldName === "upperBound.token" &&
+                    isTwoStringsEqual(
+                      currentTokenName,
+                      getActualTokenName("lowerBound.token" as FieldPath<OutcomesFormValues>, formValues),
+                    ))
                 ) {
                   return "Duplicated token name.";
                 }
+
+                // Check for duplicates with outcomes
                 if (fieldName.includes("outcomes")) {
                   const outcomeIndex = Number(fieldName.split(".")[1]);
-                  if (
-                    !Number.isNaN(outcomeIndex) &&
-                    formValues.outcomes.some(
-                      (outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v as string, outcome.token),
-                    )
-                  ) {
+                  if (!Number.isNaN(outcomeIndex) && hasDuplicateOutcomeTokenName(outcomeIndex, formValues)) {
                     return "Duplicated token name.";
                   }
                 }
+
                 return true;
               },
             })}

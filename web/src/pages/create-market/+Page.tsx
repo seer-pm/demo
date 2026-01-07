@@ -6,7 +6,8 @@ import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { useMemo, useState } from "react";
+import { MarketTypes } from "@/lib/market";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
 
@@ -52,6 +53,40 @@ function CreateMarket() {
   });
 
   const marketType = useMarketTypeFormReturn.watch("marketType");
+  const prevMarketTypeRef = useRef(marketType);
+
+  const resetFormOptions = {
+    shouldValidate: true,
+  };
+
+  // Reset outcomes and token names when changing to/from SCALAR (not MULTI_SCALAR)
+  useEffect(() => {
+    if (prevMarketTypeRef.current !== undefined && prevMarketTypeRef.current !== marketType && marketType) {
+      const prevIsScalar = prevMarketTypeRef.current === MarketTypes.SCALAR;
+      const currentIsScalar = marketType === MarketTypes.SCALAR;
+
+      if (prevIsScalar || currentIsScalar) {
+        // Reset outcomes to default (2 empty outcomes)
+        useOutcomesFormReturn.setValue(
+          "outcomes",
+          [
+            { value: "", token: "", image: "" },
+            { value: "", token: "", image: "" },
+          ],
+          resetFormOptions,
+        );
+        // Reset token names for scalar markets
+        useOutcomesFormReturn.setValue("lowerBound.token", "", resetFormOptions);
+        useOutcomesFormReturn.setValue("upperBound.token", "", resetFormOptions);
+        // Reset scalar values
+        useOutcomesFormReturn.setValue("lowerBound.value", 0, resetFormOptions);
+        useOutcomesFormReturn.setValue("upperBound.value", 0, resetFormOptions);
+        // Reset unit
+        useOutcomesFormReturn.setValue("unit", "", resetFormOptions);
+      }
+    }
+    prevMarketTypeRef.current = marketType;
+  }, [marketType, useOutcomesFormReturn]);
 
   const goToPrevStep = () => {
     if (activeStep > 1) {
