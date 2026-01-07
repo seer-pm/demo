@@ -41,8 +41,6 @@ function hasDuplicateOutcomeTokenName(outcomeIndex: number, formValues: Outcomes
   return formValues.outcomes.some((_outcome, index) => {
     if (index === outcomeIndex) return false;
     const otherTokenName = getActualTokenName(`outcomes.${index}.token` as FieldPath<OutcomesFormValues>, formValues);
-    if (isTwoStringsEqual(currentTokenName, otherTokenName))
-      console.log("outcomeIndex", outcomeIndex, "index", index, currentTokenName, otherTokenName);
     return isTwoStringsEqual(currentTokenName, otherTokenName);
   });
 }
@@ -60,7 +58,6 @@ function triggerOutcomeValidations(
     }
     return fields;
   });
-  console.log("trigger fields", fields);
   useFormReturn.trigger(fields);
 }
 
