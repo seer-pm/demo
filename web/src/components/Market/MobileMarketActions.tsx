@@ -1,8 +1,5 @@
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { useEffect, useState } from "react";
-import React, { useMemo } from "react";
+import { Market, MarketStatus, getMarketStatus } from "@/lib/market";
+import React, { useMemo, useEffect, useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
