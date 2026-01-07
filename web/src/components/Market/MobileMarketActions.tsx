@@ -1,7 +1,7 @@
 import { getMarketStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
 import { Market } from "@/lib/market";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import React, { useMemo } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
@@ -13,17 +13,28 @@ interface MobileMarketActionsProps {
   market: Market;
   swapWidget: React.ReactNode;
   onTabsChange?: (tabs: React.ReactNode) => void;
+  drawerOpen: boolean;
 }
 
-export function MobileMarketActions({ account, market, swapWidget, onTabsChange }: MobileMarketActionsProps) {
+export function MobileMarketActions({
+  account,
+  market,
+  swapWidget,
+  onTabsChange,
+  drawerOpen,
+}: MobileMarketActionsProps) {
   const [activeTab, setActiveTab] = useState<"trade" | "mint" | "merge" | "redeem">("trade");
   const marketStatus = getMarketStatus(market);
-  const onTabsChangeRef = useRef(onTabsChange);
+  const prevDrawerOpenRef = React.useRef<boolean | undefined>(drawerOpen);
 
-  // Update ref when onTabsChange changes
+  // Reset to "trade" tab whenever drawer opens
   useEffect(() => {
-    onTabsChangeRef.current = onTabsChange;
-  }, [onTabsChange]);
+    if (drawerOpen && prevDrawerOpenRef.current === false) {
+      // Drawer just opened (transitioned from closed to open)
+      setActiveTab("trade");
+    }
+    prevDrawerOpenRef.current = drawerOpen;
+  }, [drawerOpen]);
 
   const renderMintTab = () => {
     return (
@@ -93,10 +104,10 @@ export function MobileMarketActions({ account, market, swapWidget, onTabsChange 
   );
 
   useEffect(() => {
-    if (onTabsChangeRef.current) {
-      onTabsChangeRef.current(tabs);
+    if (onTabsChange) {
+      onTabsChange(tabs);
     }
-  }, [tabs]);
+  }, [tabs, onTabsChange]);
 
   return (
     <>

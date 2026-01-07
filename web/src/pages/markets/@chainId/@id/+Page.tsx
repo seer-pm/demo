@@ -116,6 +116,16 @@ function MarketPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
+  const onOutcomeChange = useCallback(
+    (i: number, isClick: boolean) => {
+      setOutcomeIndex(i);
+      if (isClick && isMobile) {
+        setDrawerOpen(true);
+      }
+    },
+    [isMobile],
+  );
+
   if (isMarketError) {
     return (
       <div className="container py-10">
@@ -148,16 +158,6 @@ function MarketPage() {
 
   const marketStatus = getMarketStatus(market);
   const reliableMarket = isMarketReliable(market);
-
-  const onOutcomeChange = useCallback(
-    (i: number, isClick: boolean) => {
-      setOutcomeIndex(i);
-      if (isClick && isMobile) {
-        setDrawerOpen(true);
-      }
-    },
-    [isMobile],
-  );
 
   return (
     <div className="container-fluid py-10">
@@ -243,6 +243,7 @@ function MarketPage() {
                   />
                 }
                 onTabsChange={setDrawerTabs}
+                drawerOpen={drawerOpen}
               />
             </Drawer>
             {/* Floating Action Button to open drawer - only show when drawer is closed */}
