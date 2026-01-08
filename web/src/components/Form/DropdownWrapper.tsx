@@ -50,8 +50,8 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
         setActualDirection(newDirection);
 
         setDropdownPosition({
-          top: triggerRect.bottom + window.scrollY,
-          left: triggerRect.left + window.scrollX,
+          top: triggerRect.bottom,
+          left: triggerRect.left,
           right: triggerRect.right,
         });
         setIsPositioned(true);
@@ -107,10 +107,12 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
               top: `${dropdownPosition.top + (offset?.top ?? 0)}px`,
               ...(actualDirection === "left"
                 ? { left: `${dropdownPosition.left + (offset?.left ?? 0)}px` }
-                : { right: `${window.innerWidth - dropdownPosition.right - (offset?.right ?? 0)}px` }),
+                : {
+                    right: `${window.innerWidth - dropdownPosition.right - (offset?.right ?? 0)}px`,
+                  }),
             }}
             className={clsx(
-              "absolute z-[1000] mt-1 border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-white",
+              "fixed z-[1000] mt-1 border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-white",
               className,
             )}
           >
