@@ -92,10 +92,20 @@ export const TokenSelector = ({
       />
     );
   })();
+
+  // Determine if current token is from parent market
+  const currentToken = type === "sell" ? sellToken : buyToken;
+  const hasSameSymbol = sellToken.symbol === buyToken.symbol;
+  const isParentToken =
+    isTokenCollateral && parentMarket && !isUndefined(fixedCollateral) && market.type !== "Futarchy" && hasSameSymbol;
+
   return (
     <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
       <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-      <p className="font-semibold text-[16px]">{type === "sell" ? sellToken.symbol : buyToken.symbol}</p>
+      <p className="font-semibold text-[16px]">
+        {currentToken.symbol}
+        {isParentToken && <span className="text-[12px] italic text-[#131313a1] font-normal ml-1">(parent)</span>}
+      </p>
     </div>
   );
 };
