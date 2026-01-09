@@ -92,11 +92,10 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
               }
             }}
             className={clsx(
-              "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
-              option.value !== "custom" && maxSlippage === option.value && "!border-purple-primary",
-              option.value === "custom" &&
-                !MAX_SLIPPAGE_OPTIONS.map((x) => x.value).includes(maxSlippage) &&
-                "!border-purple-primary",
+              "pill-button",
+              ((option.value !== "custom" && maxSlippage === option.value) ||
+                (option.value === "custom" && !MAX_SLIPPAGE_OPTIONS.map((x) => x.value).includes(maxSlippage))) &&
+                "pill-button-active",
             )}
           >
             {option.text}

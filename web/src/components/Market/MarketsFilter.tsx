@@ -65,7 +65,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <button
           type="button"
           className={clsx(
-            "select select-bordered bg-white lg:w-[210px] flex items-center gap-2 w-full",
+            "select select-bordered bg-base-100 lg:w-[210px] flex items-center gap-2 w-full",
             isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
           )}
           onClick={() => setShowFilters((state) => !state)}
@@ -97,10 +97,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
             if (category.value === "all") {
               return (
                 <button
-                  className={clsx(
-                    "border-2 border-white rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
-                    !categoryList && "!bg-purple-primary !text-white",
-                  )}
+                  className={clsx("pill-button", !categoryList && "pill-button-active")}
                   key={category.value}
                   onClick={() => setCategories(undefined)}
                   type="button"
@@ -111,10 +108,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
             }
             return (
               <button
-                className={clsx(
-                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
-                  categoryList?.includes(category.value) && "!bg-purple-primary !text-white",
-                )}
+                className={clsx("pill-button", categoryList?.includes(category.value) && "pill-button-active")}
                 key={category.value}
                 onClick={() => setCategories([category.value])}
                 type="button"

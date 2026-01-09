@@ -9,7 +9,7 @@ const MarkdownRenderer: DocRenderer = ({ mainState: { currentDocument } }) => {
   return (
     <div id="md-renderer" className="p-4">
       <ReactMarkdown
-        className="bg-white"
+        className="bg-base-100"
         components={{
           a: ({ node, ...props }) => <a className="text-base" {...props} />,
           code: ({ node, ...props }) => <code className="text-secondary" {...props} />,

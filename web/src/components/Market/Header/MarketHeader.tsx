@@ -215,7 +215,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   return (
     <div
       className={clsx(
-        "bg-white rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "card shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
@@ -262,10 +262,10 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <img
                   src={images.market}
                   alt={market.marketName}
-                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
+                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full dark:bg-neutral"
                 />
               ) : (
-                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary dark:bg-neutral"></div>
               )}
             </div>
           )}
@@ -275,10 +275,10 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <img
                   src={images.market}
                   alt={market.marketName}
-                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full"
+                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full dark:bg-neutral"
                 />
               ) : (
-                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary"></div>
+                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary dark:bg-neutral"></div>
               )}
             </Link>
           )}
@@ -336,7 +336,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
       )}
       {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
-        <div className="border-t border-black-medium py-[16px] px-[24px] font-semibold flex items-center gap-2">
+        <div className="border-t border-separator-100 py-[16px] px-[24px] font-semibold flex items-center gap-2">
           <div className="flex items-center gap-2">
             Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
           </div>
@@ -352,7 +352,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
 
       {type === "preview" && (
-        <div className="border-t border-black-medium py-[16px]">
+        <div className="border-t border-separator-100 py-[16px]">
           <OutcomesInfo
             market={market}
             outcomesCount={outcomesCount}
@@ -363,9 +363,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
 
       {type !== "small" && (
-        <div className="border-t border-black-medium px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
+        <div className="border-t border-separator-100 px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
-            <SeerLogo fill="#511778" width="50px" height="100%" />
+            <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" height="100%" />
             <div className="tooltip">
               <p className="tooltiptext !text-left min-w-[250px] !whitespace-pre-wrap">
                 {MARKET_TYPES_DESCRIPTION[marketType]}
@@ -377,7 +377,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             </div>
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>
-              <span className="text-black-secondary @[510px]:inline-block hidden">Liquidity:</span>
+              <span className="text-base-content/70 @[510px]:inline-block hidden">Liquidity:</span>
               <span className="ml-1">{liquidityUSD}</span>
               <USDIcon />
               {market.liquidityUSD > 0 && (

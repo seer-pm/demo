@@ -43,37 +43,37 @@ export type ColorConfig = {
 export const COLORS: Record<MarketStatus, ColorConfig> = {
   [MarketStatus.NOT_OPEN]: {
     border: "border-t-[#25cdfe]",
-    bg: "bg-black-light",
+    bg: "bg-black-light dark:bg-base-200",
     text: "text-[#25cdfe]",
     dot: "bg-[#25cdfe]",
   },
   [MarketStatus.OPEN]: {
     border: "border-t-purple-primary",
-    bg: "bg-purple-medium",
+    bg: "bg-purple-medium dark:bg-base-200",
     text: "text-purple-primary",
     dot: "bg-purple-primary",
   },
   [MarketStatus.ANSWER_NOT_FINAL]: {
     border: "border-t-warning-primary",
-    bg: "bg-warning-light",
+    bg: "bg-warning-light dark:bg-base-200",
     text: "text-warning-primary",
     dot: "bg-warning-primary",
   },
   [MarketStatus.IN_DISPUTE]: {
     border: "border-t-blue-secondary",
-    bg: "bg-blue-light",
+    bg: "bg-blue-light dark:bg-base-200",
     text: "text-blue-secondary",
     dot: "bg-blue-secondary",
   },
   [MarketStatus.PENDING_EXECUTION]: {
     border: "border-t-tint-blue-primary",
-    bg: "bg-tint-blue-light",
+    bg: "bg-tint-blue-light dark:bg-base-200",
     text: "text-tint-blue-primary",
     dot: "bg-tint-blue-primary",
   },
   [MarketStatus.CLOSED]: {
     border: "border-t-success-primary",
-    bg: "bg-success-light",
+    bg: "bg-success-light dark:bg-base-200",
     text: "text-success-primary",
     dot: "bg-success-primary",
   },

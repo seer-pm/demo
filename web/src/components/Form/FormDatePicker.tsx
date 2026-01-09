@@ -45,7 +45,7 @@ const FormDatePicker = (props: InputProps) => {
               onChange={(date) => field.onChange(date)}
               selected={field.value ? new Date(field.value) : null}
               className={clsx(
-                "input input-bordered bg-white focus:outline-purple-primary",
+                "input input-bordered bg-base-100 focus:outline-purple-primary",
                 className,
                 icon && "pl-[40px]",
                 hasError && "border-error-primary",

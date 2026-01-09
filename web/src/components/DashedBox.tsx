@@ -4,7 +4,10 @@ const svg = `data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='htt
 
 export function DashedBox({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={clsx("bg-purple-medium rounded-[3px]", className)} style={{ backgroundImage: `url("${svg}")` }}>
+    <div
+      className={clsx("bg-purple-medium dark:bg-base-200 rounded-[3px]", className)}
+      style={{ backgroundImage: `url("${svg}")` }}
+    >
       {children}
     </div>
   );

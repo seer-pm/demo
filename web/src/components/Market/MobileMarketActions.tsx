@@ -35,7 +35,7 @@ export function MobileMarketActions({
 
   const renderMintTab = () => {
     return (
-      <div className="bg-white p-[24px] shadow-md">
+      <div className="bg-base-100 p-[24px] shadow-md">
         <SplitForm account={account} market={market} />
       </div>
     );
@@ -43,7 +43,7 @@ export function MobileMarketActions({
 
   const renderMergeTab = () => {
     return (
-      <div className="bg-white p-[24px] shadow-md">
+      <div className="bg-base-100 p-[24px] shadow-md">
         <MergeForm account={account} market={market} />
       </div>
     );
@@ -52,12 +52,12 @@ export function MobileMarketActions({
   const renderRedeemTab = () => {
     if (marketStatus === MarketStatus.CLOSED) {
       return (
-        <div className="bg-white p-[24px] shadow-md">
+        <div className="bg-base-100 p-[24px] shadow-md">
           <RedeemForm account={account} market={market} />
         </div>
       );
     }
-    return <div className="bg-white p-[24px] shadow-md">Redemptions are not available yet.</div>;
+    return <div className="bg-base-100 p-[24px] shadow-md">Redemptions are not available yet.</div>;
   };
 
   const tabs = useMemo(

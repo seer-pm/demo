@@ -52,7 +52,7 @@ export default function PoolDetails({
   if (!poolDataPerToken?.length) return null;
   return (
     <>
-      <div className="space-y-3 bg-white max-h-[600px] overflow-y-auto">
+      <div className="space-y-3 bg-base-100 max-h-[600px] overflow-y-auto">
         {poolDataPerToken.length > 1 && (
           <div role="tablist" className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 flex">
             {poolDataPerToken.map((pool, index) => (

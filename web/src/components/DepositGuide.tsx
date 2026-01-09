@@ -37,7 +37,7 @@ function DepositGuide({
         onClick={closeModal}
         aria-label="Close modal"
       >
-        <CloseIcon fill="black" />
+        <CloseIcon fill="currentColor" />
       </button>
       <p>
         Current balance: <span className="text-purple-primary font-semibold">{displayBalance(balance, 18, true)}</span>{" "}

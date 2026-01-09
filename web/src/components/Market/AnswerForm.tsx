@@ -260,7 +260,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           value={Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT ? "multi" : "single"}
           className="radio"
         />
-        <span className="label-text text-[16px] text-black-primary">
+        <span className="label-text text-[16px] text-base-content">
           {Number(market.templateId) === REALITY_TEMPLATE_UINT ? "Type an answer" : "Choose an answer"}
         </span>
       </label>
@@ -305,7 +305,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
                       className="checkbox"
                       onClick={onMultiSelectClick(i, outcome.value)}
                     />
-                    <span className="label-text text-[16px] text-black-primary">{outcome.text}</span>
+                    <span className="label-text text-[16px] text-base-content">{outcome.text}</span>
                   </label>
                 </div>
               ))}
@@ -317,14 +317,14 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       {question.best_answer !== INVALID_RESULT && (
         <label className="label cursor-pointer justify-start space-x-2">
           <input type="radio" {...register("answerType")} value={INVALID_RESULT} className="radio" />
-          <span className="label-text text-[16px] text-black-primary">Mark this question invalid</span>
+          <span className="label-text text-[16px] text-base-content">Mark this question invalid</span>
         </label>
       )}
 
       {question.finalize_ts > 0 && question.best_answer !== ANSWERED_TOO_SOON && (
         <label className="label cursor-pointer justify-start space-x-2">
           <input type="radio" {...register("answerType")} value={ANSWERED_TOO_SOON} className="radio" />
-          <span className="label-text text-[16px] text-black-primary">Mark this question answered too soon</span>
+          <span className="label-text text-[16px] text-base-content">Mark this question answered too soon</span>
         </label>
       )}
 

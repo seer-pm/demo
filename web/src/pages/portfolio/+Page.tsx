@@ -38,7 +38,7 @@ function PortfolioPage() {
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
-      <div className="mt-8 bg-white border border-black-medium rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] h-[162px] pl-6 pt-[38px] flex gap-4">
+      <div className="mt-8 bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] h-[162px] pl-6 pt-[38px] flex gap-4">
         <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
           <Union />
         </div>
@@ -47,7 +47,7 @@ function PortfolioPage() {
           {isCalculating ? (
             <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
           ) : (
-            <p className="text-[32px] text-[#333333] font-semibold">
+            <p className="text-[32px] text-base-content font-semibold">
               {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
             </p>
           )}

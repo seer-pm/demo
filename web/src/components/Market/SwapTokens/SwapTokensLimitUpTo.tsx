@@ -329,7 +329,7 @@ export function SwapTokensLimitUpto({
         <div className="space-y-2">
           <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
-              <p className="text-[#131313a1]">Target price</p>
+              <p className="text-base-content/70">Target price</p>
             </div>
             <div className="flex justify-between items-start">
               <div>
@@ -389,8 +389,8 @@ export function SwapTokensLimitUpto({
               </div>
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9]")}>
-            <p className="text-[#131313a1]">You will sell</p>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
+            <p className="text-base-content/70">You will sell</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -447,13 +447,13 @@ export function SwapTokensLimitUpto({
                 <div className="shimmer-container w-[80px] h-[13px]" />
               ) : (
                 <div className="flex items-center gap-1">
-                  <p className="text-[12px] font-semibold text-[#131313a1]">
+                  <p className="text-[12px] font-semibold text-base-content/70">
                     {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
                   </p>
                   {balance > 0 && (
                     <button
                       type="button"
-                      className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
+                      className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-[#f2f2f2]"
                       onClick={() => {
                         setUseMax(true);
                         setTradeType(TradeType.EXACT_INPUT);
@@ -470,8 +470,8 @@ export function SwapTokensLimitUpto({
               )}
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-[#f9f9f9]")}>
-            <p className="text-[#131313a1]">To receive</p>
+          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
+            <p className="text-base-content/70">To receive</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input

@@ -37,6 +37,7 @@ export default {
     "./index.html",
     "./src/**/*.{html,tsx,ts}",
   ],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
@@ -53,6 +54,24 @@ export default {
   },
   plugins: [require("daisyui"), require('@tailwindcss/container-queries'),],
   daisyui: {
-    themes: ['light'],
+    themes: [
+      {
+        light: {
+          ...require("daisyui/src/theming/themes")["light"],
+          // Custom CSS variables for light theme
+          "--card-bg": "#ffffff",
+          "--separator-100": "#e5e5e5",
+        },
+      },
+      {
+        dark: {
+          ...require("daisyui/src/theming/themes")["dark"],
+          "--bc": "100% 0 0", // white in oklch format
+          // Custom CSS variables for dark theme
+          "--card-bg": "#1e2329",
+          "--separator-100": "#323942",
+        },
+      },
+    ],
   },
 };

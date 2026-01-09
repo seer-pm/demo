@@ -23,7 +23,7 @@ const Select = React.forwardRef<HTMLSelectElement | null, SelectProps>((props, r
       <select
         {...restProps}
         className={clsx(
-          "select select-bordered bg-white focus:outline-purple-primary",
+          "select select-bordered bg-base-100 focus:outline-purple-primary",
           className,
           hasError && "border-error-primary",
           isValid && "border-success-primary",

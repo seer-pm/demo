@@ -21,9 +21,9 @@ function MarketsPagination({
       renderOnZeroPageCount={null}
       className="flex gap-2 items-center justify-center"
       activeClassName="!border-purple-primary text-purple-primary"
-      pageClassName="w-[32px] h-[32px] border border-solid border-black-medium flex items-center justify-center rounded-[3px]"
-      nextClassName="w-[32px] h-[32px] border border-solid border-black-medium flex items-center justify-center rounded-[3px]"
-      previousClassName="w-[32px] h-[32px] border border-solid border-black-medium flex items-center justify-center rounded-[3px]"
+      pageClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
+      nextClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
+      previousClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
       disabledLinkClassName="text-black-medium"
       pageLinkClassName="w-full h-full flex items-center justify-center"
       previousLinkClassName="w-full h-full flex items-center justify-center"

@@ -50,19 +50,58 @@
 }
 
 body {
-  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
   background-blend-mode: multiply;
   overflow-x: hidden;
 }
+
+/* Light mode gradient (default) */
+body {
+  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
+}
+
+/* Dark mode gradient */
+body[data-theme="dark"] {
+  background: linear-gradient(247.18deg, #0b0e11 0%, #1a1f26 100%);
+}
+
+.border-separator-100 {
+  border-color: var(--separator-100);
+}
+
+/* Card background utility class */
+.bg-card {
+  background-color: var(--card-bg);
+}
+
+/* Card component classes */
+.card {
+  @apply bg-base-100 border rounded-[3px] border-separator-100;
+}
+
+.card-active {
+  border-color: oklch(var(--purple-primary));
+}
+
+/* Pill component classes */
+.pill {
+  @apply border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
+}
+
+.pill-button {
+  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+
+  &.pill-button-active {
+    @apply bg-purple-primary text-white;
+  }
+}
+
 
 /* BUTTONS */
 .btn.btn-disabled,
 .btn[disabled],
 .btn:disabled {
-  --n: var(--black-light);
-  --tw-bg-opacity: 1;
+  @apply bg-base-200/70 text-base-content/70;
   border-color: transparent;
-  color: #131313a1;
 }
 .btn.btn-primary {
   --pc: var(--white);
@@ -127,6 +166,7 @@ body {
 
 /* ALERT */
 .alert {
+  @apply text-base-content;
   --rounded-box: 3px;
   --alert-bg: transparent;
 
@@ -170,7 +210,7 @@ body {
   font-size: 12px;
 
   .step:after {
-    --b3: var(--white);
+    --b3: var(--b1);
     --bc: var(--black-medium);
     width: 24px;
     height: 24px;
@@ -246,7 +286,7 @@ body {
 }
 
 .dropdown-content {
-  @apply shadow bg-white rounded-[3px] text-black text-[16px];
+  @apply shadow bg-base-100 rounded-[3px] text-base-content text-[16px];
 }
 
 /* CHECKBOX */
@@ -267,12 +307,11 @@ body {
 
 /* Tooltip text */
 .tooltip > .tooltiptext {
+  @apply bg-base-100 text-base-content;
   visibility: hidden;
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #fff;
-  color: #333;
   text-align: center;
   font-weight: 600;
   padding: 5px 10px;
@@ -313,7 +352,7 @@ body {
 
 .simple-table td,
 .simple-table th {
-  border-bottom: 1px solid #e5e5e5;
+  @apply border-b border-base-300;
   padding: 12px 16px;
 }
 
@@ -326,6 +365,7 @@ body {
 
 /* CUSTOM DATE PICKER */
 .custom-date-picker {
+  @apply text-base-content;
   position: relative;
   &::before {
     content: "";
@@ -338,12 +378,17 @@ body {
     z-index: 1;
   }
   & .react-datepicker__header {
-    background-color: white;
+    @apply bg-base-100 text-base-content;
     padding: 20px 24px 2px 24px;
     border: none;
     &--time {
       padding: 20px 24px 20px 24px;
     }
+  }
+  & .react-datepicker__current-month,
+  & .react-datepicker-time__header,
+  & .react-datepicker__day-name {
+    @apply text-base-content;
   }
   & .react-datepicker__navigation {
     top: 15px;
@@ -369,6 +414,12 @@ body {
       color: white;
       border-radius: 50%;
     }
+  }
+  .react-datepicker__month-container {
+    @apply bg-base-100;
+  }
+  .react-datepicker__time-container .react-datepicker__time {
+    @apply bg-base-100;
   }
   & .react-datepicker__time-list-item--selected {
     background-color: #9747ff !important;
@@ -404,9 +455,9 @@ body {
 
 /* SHIMMER */
 .shimmer-container {
+  @apply bg-base-200;
   position: relative;
   overflow: hidden;
-  background: #c8c8c8; /* Medium gray background */
 }
 
 .shimmer-container::before {
@@ -416,7 +467,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), /* Light gray shimmer with some opacity */ transparent);
+  background: linear-gradient(90deg, transparent, hsl(var(--b3)), transparent);
   animation: shimmer 1.5s infinite linear;
 }
 

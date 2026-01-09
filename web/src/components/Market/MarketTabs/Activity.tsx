@@ -55,7 +55,7 @@ export default function Activity({ market }: ActivityProps) {
   const routerAddress = getRouterAddress(market);
 
   return (
-    <div className="p-4 bg-white border rounded-[3px] shadow-sm border-black-medium">
+    <div className="p-4 card shadow-sm border-separator-100">
       <div className="w-full overflow-x-auto mb-6">
         <table className="simple-table table-fixed">
           <colgroup>

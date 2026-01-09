@@ -94,7 +94,7 @@ export function OutcomesInfo({
               w-full
               h-[6px]
               appearance-none
-              bg-gray-200
+              bg-gray-200 dark:bg-base-200
               rounded-lg
               outlined-thumb
             "
@@ -262,7 +262,7 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "bg-white rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "bg-base-100 rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
@@ -304,8 +304,8 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="border-t border-black-medium px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="#511778" width="50px" />
+      <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
+        <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
         <div className="flex items-center gap-2">
           {market.liquidityUSD > 0 ? (
             <Popover

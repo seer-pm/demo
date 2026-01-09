@@ -18,7 +18,7 @@ function OutcomeImage({ outcomeIndex, outcomeName, useFormReturn, showOnlyMissin
 
   return (
     <div>
-      <div className="text-[14px] mb-[10px] text-black-primary line-clamp-1">{outcomeName}</div>
+      <div className="text-[14px] mb-[10px] text-base-content line-clamp-1">{outcomeName}</div>
       <ImageUpload
         name={`outcomes.${outcomeIndex}.image`}
         setFile={(file) => useFormReturn.setValue(`outcomes.${outcomeIndex}.image`, file, { shouldValidate: true })}
@@ -40,7 +40,7 @@ export function VerificationForm({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-[24px] my-[32px] text-left">
       {(!showOnlyMissingImages || !marketImage) && (
         <div>
-          <div className="text-[14px] mb-[10px] text-black-primary">Market</div>
+          <div className="text-[14px] mb-[10px] text-base-content">Market</div>
           <ImageUpload
             name="image"
             setFile={(file) => useOutcomesFormReturn.setValue("image", file, { shouldValidate: true })}

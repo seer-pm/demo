@@ -177,8 +177,8 @@ function ModalContentCreateMarket({
         badge.
       </p>
 
-      <div className="border border-black-medium flex justify-between items-center py-[10px] px-[30px] my-[24px]">
-        <div className="text-[16px] font-semibold text-black-primary">Verify it Now</div>
+      <div className="border border-separator-100 flex justify-between items-center py-[10px] px-[30px] my-[24px]">
+        <div className="text-[16px] font-semibold text-base-content">Verify it Now</div>
         <Toggle
           onChange={(event) => setVerifyNow(event.target.checked)}
           name="verify-now"
@@ -426,10 +426,7 @@ export function PreviewForm({
           {MARKET_CATEGORIES.map((category) => {
             if (marketTypeValues.marketCategories.includes(category.value)) {
               return (
-                <div
-                  className="border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] text-[14px] text-center"
-                  key={category.value}
-                >
+                <div className="pill" key={category.value}>
                   {category.text}
                 </div>
               );
