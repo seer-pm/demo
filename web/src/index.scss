@@ -88,7 +88,7 @@ body[data-theme="dark"] {
 }
 
 .pill-button {
-  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-[#9747FF] text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
 
   &.pill-button-active {
     @apply bg-purple-primary text-white;
@@ -291,9 +291,9 @@ body[data-theme="dark"] {
 
 /* CHECKBOX */
 .checkbox {
+  @apply border-purple-primary;
   width: 16px;
   height: 16px;
-  border-color: #9747ff;
   &:checked {
     --bc: var(--purple-primary);
   }
@@ -357,10 +357,10 @@ body[data-theme="dark"] {
 }
 
 .simple-table th {
+  @apply text-purple-primary;
   text-align: left;
   font-size: 14px;
   font-weight: normal;
-  color: #9747ff;
 }
 
 /* CUSTOM DATE PICKER */
@@ -393,7 +393,7 @@ body[data-theme="dark"] {
   & .react-datepicker__navigation {
     top: 15px;
     &-icon::before {
-      border-color: #9747ff;
+      @apply border-purple-primary;
     }
   }
   & .react-datepicker__day-names {
@@ -406,11 +406,11 @@ body[data-theme="dark"] {
     font-weight: 600;
 
     &--today {
+      @apply text-purple-primary;
       background-color: transparent;
-      color: #9747ff;
     }
     &--selected {
-      background-color: #9747ff;
+      @apply bg-purple-primary;
       color: white;
       border-radius: 50%;
     }
@@ -422,7 +422,7 @@ body[data-theme="dark"] {
     @apply bg-base-100;
   }
   & .react-datepicker__time-list-item--selected {
-    background-color: #9747ff !important;
+    @apply bg-purple-primary #{!important};
   }
 
   & .react-datepicker__day--in-range,
@@ -433,17 +433,17 @@ body[data-theme="dark"] {
 
   & .react-datepicker__day--range-end,
   .react-datepicker__day--selecting-range-end {
+    @apply bg-purple-primary;
     border-radius: 4.8px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
-    background-color: #9747ff;
   }
   & .react-datepicker__day--range-start,
   .react-datepicker__day--selecting-range-start {
+    @apply bg-purple-primary;
     border-radius: 4.8px;
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
-    background-color: #9747ff;
   }
   & .react-datepicker__day--range-start.react-datepicker__day--range-end {
     border-radius: 4.8px;
@@ -509,36 +509,36 @@ body[data-theme="dark"] {
   & ._WjB9N > button,
   & ._I1aJ0 > button,
   & ._1jNTa {
-    background-color: #9747ff !important;
+    @apply bg-purple-primary #{!important};
     color: white !important;
   }
 }
 
 .outlined-thumb::-webkit-slider-thumb {
+  @apply border border-purple-primary;
   appearance: none;
   width: 12px;
   height: 12px;
   background: white;
-  border: 1px solid #9747ff;
   border-radius: 50%;
 }
 
 .outlined-thumb::-moz-range-thumb {
+  @apply border border-purple-primary;
   width: 12px;
   height: 12px;
   background: white;
-  border: 1px solid #9747ff;
   border-radius: 50%;
 }
 
 .outlined-thumb:focus::-webkit-slider-thumb,
 .outlined-thumb:hover::-webkit-slider-thumb {
-  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+  @apply border border-purple-primary; /* Consistent border on focus/hover */
 }
 
 .outlined-thumb:focus::-moz-range-thumb,
 .outlined-thumb:hover::-moz-range-thumb {
-  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+  @apply border border-purple-primary; /* Consistent border on focus/hover */
 }
 
 /* HIDE SCROLLBAR */
