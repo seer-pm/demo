@@ -11,7 +11,7 @@ type ThemeState = {
 
 const updateDocumentTheme = (theme: Theme) => {
   if (typeof document !== "undefined") {
-    document.body.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }
 };
 

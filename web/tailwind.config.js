@@ -1,36 +1,3 @@
-const COLORS = {
-  'blue-primary': '#24CDFE',
-  'blue-secondary': '#200FB9',
-  'blue-medium': '#EAF1FF',
-  'blue-light': '#F8FAFF',
-
-  'purple-primary': '#9747FF',
-  'purple-secondary': '#B38FFF',
-  'purple-medium': '#FBF8FF',
-  'purple-light': '#FDFBFF',
-  'purple-dark': '#59097E',
-
-  'black': '#000000',
-  'black-primary': '#333333',
-  'black-secondary': '#999999',
-  'black-medium': '#e5e5e5',
-  'black-light': '#FBFBFB',
-
-  'success-primary': '#00C42B',
-  'success-light': '#F0FBF2',
-
-  'warning-primary': '#FF9900',
-  'warning-light': '#FFF9F0',
-
-  'error-primary': '#F60C36',
-  'error-light': '#FEF0F3',
-
-  'tint-blue-primary': '#13C0CB',
-  'tint-blue-light': '#E5FDFF',
-
-  'gray-light': '#F0F0F0'
-}
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -49,7 +16,28 @@ export default {
       current: 'currentColor',
       white: '#fff',
       black: '#000',
-      ...COLORS,
+      'blue-primary': 'oklch(var(--blue-primary) / <alpha-value>)',
+      'blue-secondary': 'oklch(var(--blue-secondary) / <alpha-value>)',
+      'blue-medium': 'oklch(var(--blue-medium) / <alpha-value>)',
+      'blue-light': 'oklch(var(--blue-light) / <alpha-value>)',
+      'purple-primary': 'oklch(var(--purple-primary) / <alpha-value>)',
+      'purple-secondary': 'oklch(var(--purple-secondary) / <alpha-value>)',
+      'purple-medium': 'oklch(var(--purple-medium) / <alpha-value>)',
+      'purple-light': 'oklch(var(--purple-light) / <alpha-value>)',
+      'purple-dark': 'oklch(var(--purple-dark) / <alpha-value>)',
+      'black-primary': 'oklch(var(--black-primary) / <alpha-value>)',
+      'black-secondary': 'oklch(var(--black-secondary) / <alpha-value>)',
+      'black-medium': 'oklch(var(--black-medium) / <alpha-value>)',
+      'black-light': 'oklch(var(--black-light) / <alpha-value>)',
+      'success-primary': 'oklch(var(--success-primary) / <alpha-value>)',
+      'success-light': 'oklch(var(--success-light) / <alpha-value>)',
+      'warning-primary': 'oklch(var(--warning-primary) / <alpha-value>)',
+      'warning-light': 'oklch(var(--warning-light) / <alpha-value>)',
+      'error-primary': 'oklch(var(--error-primary) / <alpha-value>)',
+      'error-light': 'oklch(var(--error-light) / <alpha-value>)',
+      'tint-blue-primary': 'oklch(var(--tint-blue-primary) / <alpha-value>)',
+      'tint-blue-light': 'oklch(var(--tint-blue-light) / <alpha-value>)',
+      'gray-light': 'oklch(var(--gray-light) / <alpha-value>)',
     },
   },
   plugins: [require("daisyui"), require('@tailwindcss/container-queries'),],

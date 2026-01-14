@@ -12,7 +12,6 @@ export default {
   image: "https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg",
   bodyAttributes: {
     class: "min-h-screen bg-blend-multiply",
-    "data-theme": "light",
   },
   meta: {
     onBeforeRender: {
