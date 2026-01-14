@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import { useTheme } from "@/hooks/useTheme";
 import { HydrationBoundary, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
@@ -18,6 +19,13 @@ globalThis.Buffer = Buffer;
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();
   const { dehydratedState } = pageContext;
+
+  if (!useTheme?.persist?.hasHydrated()) {
+    // Wait for theme store to hydrate from localStorage before rendering
+    // This prevents the flash of incorrect theme (light mode) when user has dark mode saved
+    return null;
+  }
+
   return (
     <React.StrictMode>
       <WagmiProvider config={config}>

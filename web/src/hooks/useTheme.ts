@@ -43,18 +43,3 @@ export const useTheme = create<ThemeState>()(
     },
   ),
 );
-
-// Initialize theme on module load (for SSR compatibility)
-if (typeof document !== "undefined") {
-  const stored = localStorage.getItem("theme-storage");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed?.state?.theme) {
-        updateDocumentTheme(parsed.state.theme);
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  }
-}
