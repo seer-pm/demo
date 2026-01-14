@@ -15,11 +15,16 @@ const darkTheme = {
   ...defaultTheme,
   bg: { ...defaultTheme.bg },
   border: { ...defaultTheme.border },
+  color: { ...defaultTheme.color },
+  badges: { ...defaultTheme.badges },
 };
 // Configure darkTheme
 darkTheme.bg.main = "oklch(var(--b1)/var(--tw-bg-opacity, 1))";
 darkTheme.border.main = "var(--separator-100)";
 darkTheme.border.secondary = "var(--separator-100)";
+darkTheme.color.main = "oklch(var(--bc))";
+darkTheme.badges.main.bg = "var(--separator-100)";
+darkTheme.badges.main.color = "oklch(var(--b2))";
 
 function Comments({ market }: { market: Market }) {
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});

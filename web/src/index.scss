@@ -525,6 +525,10 @@ body {
   display: none;
 }
 
+:root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
+  fill: oklch(var(--b2));
+}
+
 ._MBDTd {
   & ._1be8d,
   & ._WjB9N > button,
