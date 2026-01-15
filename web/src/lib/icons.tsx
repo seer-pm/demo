@@ -539,10 +539,10 @@ export const PolicyIcon = () => (
     />
   </svg>
 );
-export const ExternalLinkIcon = () => (
+export const ExternalLinkIcon = ({ fill = "#3992dd" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width={17} height={16} viewBox="0,0,256,256">
     <g
-      fill="#3992dd"
+      fill={fill}
       fillRule="nonzero"
       stroke="none"
       strokeWidth="1"
