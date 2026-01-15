@@ -138,7 +138,7 @@ export function RelatedMarkets({ market }: RelatedMarketsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 mb-4">
-        <label htmlFor="outcome-search" className="text-sm font-medium text-content-base">
+        <label htmlFor="outcome-search" className="text-sm font-medium text-base-content">
           Search by outcome:
         </label>
         <input

@@ -104,7 +104,7 @@ export default function LiquidityBarChartVertical({
   }
   return (
     <div className="overflow-hidden">
-      <div className="py-3 border-t border-b border-black-secondary grid grid-cols-12 gap-0 bg-gray-50 text-xs font-medium text-gray-600 pr-4">
+      <div className="py-3 border-t border-b border-black-secondary grid grid-cols-12 gap-0 bg-gray-50 text-xs font-medium text-base-content pr-4">
         <div className="col-span-6"></div>
         <div className="col-span-3 text-center text-black-secondary font-semibold">SHARES</div>
         <div className="col-span-3 text-center text-black-secondary font-semibold">TOTAL</div>

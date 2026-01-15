@@ -84,7 +84,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
                 }}
               />
               <span className="truncate max-w-[200px]">{outcome.name}</span>
-              <span className="text-gray-600">{formattedValue}</span>
+              <span className="text-base-content">{formattedValue}</span>
             </div>
           );
         })}

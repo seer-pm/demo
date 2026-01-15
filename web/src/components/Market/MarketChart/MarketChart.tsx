@@ -472,7 +472,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
           }}
         >
-          <div className="text-sm text-gray-600 mb-2">
+          <div className="text-sm text-base-content mb-2">
             {format(new Date(tooltipData.time * 1000), "MMM d, yyyy HH:mm")}
           </div>
           <div className="space-y-1">

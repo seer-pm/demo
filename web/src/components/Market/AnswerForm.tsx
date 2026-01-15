@@ -184,7 +184,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   if (marketStatus === MarketStatus.PENDING_EXECUTION || marketStatus === MarketStatus.CLOSED) {
     return (
       <>
-        <div className="text-black-secondary text-[16px] space-y-[15px] text-center">
+        <div className="text-base-content text-[16px] space-y-[15px] text-center">
           <div>This market is already resolved.</div>
           <div>
             Final answer:{" "}
@@ -225,7 +225,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   //marketStatus === MarketStatus.OPEN || marketStatus === MarketStatus.ANSWER_NOT_FINAL;
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="text-black-secondary text-[16px] space-y-[15px] text-center mb-[48px]">
+      <div className="text-base-content text-[16px] space-y-[15px] text-center mb-[48px]">
         <div>
           This market is not resolved yet. You can provide an answer to the{" "}
           <a

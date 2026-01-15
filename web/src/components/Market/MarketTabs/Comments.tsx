@@ -24,7 +24,7 @@ darkTheme.border.main = "var(--separator-100)";
 darkTheme.border.secondary = "var(--separator-100)";
 darkTheme.color.main = "oklch(var(--bc))";
 darkTheme.badges.main.bg = "var(--separator-100)";
-darkTheme.badges.main.color = "oklch(var(--b2))";
+darkTheme.badges.main.color = "oklch(var(--bc))";
 
 function Comments({ market }: { market: Market }) {
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});

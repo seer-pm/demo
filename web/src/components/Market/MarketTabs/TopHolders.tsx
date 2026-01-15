@@ -88,7 +88,7 @@ export default function TopHolders({ market }: TopHoldersProps) {
                         holders.slice(0, 5).map((holder) => (
                           <tr key={holder.address}>
                             <td className="text-left">
-                              <span className="text-sm text-gray-900 flex space-x-2 items-center">
+                              <span className="text-sm text-base-content/90 flex space-x-2 items-center">
                                 <Link to={`/portfolio/${holder.address}`} className="hover:text-purple-primary">
                                   {shortenAddress(holder.address)}
                                 </Link>
@@ -103,7 +103,7 @@ export default function TopHolders({ market }: TopHoldersProps) {
                               </span>
                             </td>
                             <td className="text-right">
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-base-content/90">
                                 {displayBalance(BigInt(holder.balance), 18, true)}
                               </span>
                             </td>

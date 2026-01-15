@@ -20,7 +20,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();
   const { dehydratedState } = pageContext;
 
-  if (!useTheme?.persist?.hasHydrated()) {
+  if (!useTheme.persist?.hasHydrated()) {
     // Wait for theme store to hydrate from localStorage before rendering
     // This prevents the flash of incorrect theme (light mode) when user has dark mode saved
     return null;

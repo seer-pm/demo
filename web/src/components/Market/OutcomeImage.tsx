@@ -18,7 +18,7 @@ function InvalidOutcomeImage({ width = 70, height = 83, className = "" }: SVGAtt
 }
 
 const IMAGE_CLASS = "w-[48px] h-[48px] rounded-full mx-auto dark:bg-neutral";
-const SMALL_IMAGE_CLASS = "w-[30px] h-[30px] rounded-full mx-auto";
+const SMALL_IMAGE_CLASS = "w-[30px] h-[30px] rounded-full mx-auto dark:bg-neutral";
 
 export function OutcomeImage({
   image,

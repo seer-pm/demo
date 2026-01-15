@@ -4,7 +4,6 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
-import { useTheme } from "@/hooks/useTheme";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { SupportedChain, filterChain } from "@/lib/chains";
@@ -19,13 +18,11 @@ import {
   EthIcon,
   GlobeIcon,
   Menu,
-  MoonIcon,
   NotificationIcon,
   PersonAdd,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
-  SunIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
@@ -36,6 +33,7 @@ import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 
 function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const { isConnected, address, chainId } = useAccount();
@@ -95,7 +93,6 @@ export default function Header() {
   const chainId = filterChain(_chainId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [topOffset, setTopOffset] = useState<number>(0);
-  const { theme, toggleTheme } = useTheme();
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
     COLLATERAL_TOKENS?.[chainId].secondary?.address,
@@ -364,19 +361,11 @@ export default function Header() {
                 </li> */}
               </ul>
             </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
+            <ThemeToggleButton
+              iconFill="white"
+              iconSize="20"
               className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
-              aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-              title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            >
-              {theme === "light" ? (
-                <MoonIcon fill="white" width="20" height="20" />
-              ) : (
-                <SunIcon fill="white" width="20" height="20" />
-              )}
-            </button>
+            />
           </li>
         </ul>
         <div className="[@media(min-width:900px)]:hidden ml-auto">
@@ -421,7 +410,6 @@ function BetaWarning() {
 function MobileMenu({ topOffset }: { topOffset: number }) {
   const { chainId: _chainId, address, isConnected } = useAccount();
   const chainId = filterChain(_chainId);
-  const { theme, toggleTheme } = useTheme();
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(
     address,
     COLLATERAL_TOKENS[chainId].secondary?.address,
@@ -595,20 +583,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
           </ul>
         </div>
         <div className="mt-6">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex items-center gap-2 hover:font-semibold"
-            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-          >
-            {theme === "light" ? (
-              <MoonIcon fill="#9747FF" width="17" height="17" />
-            ) : (
-              <SunIcon fill="#9747FF" width="17" height="17" />
-            )}
-            <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
-          </button>
+          <ThemeToggleButton iconFill="#9747FF" iconSize="17" showLabel />
         </div>
       </div>
     </div>

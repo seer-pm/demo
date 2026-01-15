@@ -135,12 +135,9 @@ body {
 }
 .btn.btn-secondary {
   --sc: var(--purple-primary);
-  --btn-color: var(--white);
+  --btn-color: var(--b1);
   border-color: oklch(var(--purple-primary));
-
-  &:hover {
-    background-color: #fbf8ff;
-  }
+  @apply hover:bg-purple-medium dark:hover:bg-base-200;
 }
 .btn.btn-accent {
   --ac: var(--white);
@@ -357,7 +354,7 @@ body {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: var(--tooltip-arrow-color, #626262) transparent transparent transparent;
+  border-color: var(--tooltip-arrow-color, oklch(var(--b1))) transparent transparent transparent;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
@@ -407,6 +404,7 @@ body {
     }
   }
   & .react-datepicker__current-month,
+  & .react-datepicker__time,
   & .react-datepicker-time__header,
   & .react-datepicker__day-name {
     @apply text-base-content;
@@ -423,15 +421,15 @@ body {
     font-size: 14px;
   }
   & .react-datepicker__day {
-    color: #999999;
+    @apply text-base-content/60;
     font-weight: 600;
 
     &--today {
       @apply text-purple-primary;
       background-color: transparent;
     }
-    &--selected {
-      @apply bg-purple-primary;
+    &--selected, &:hover {
+      @apply bg-purple-primary #{!important};
       color: white;
       border-radius: 50%;
     }
@@ -441,6 +439,9 @@ body {
   }
   .react-datepicker__time-container .react-datepicker__time {
     @apply bg-base-100;
+  }
+  & .react-datepicker__time-list-item:hover {
+    @apply bg-purple-primary #{!important};
   }
   & .react-datepicker__time-list-item--selected {
     @apply bg-purple-primary #{!important};
@@ -488,7 +489,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, hsl(var(--b3)), transparent);
+  background: linear-gradient(90deg, transparent, oklch(var(--b3)), transparent);
   animation: shimmer 1.5s infinite linear;
 }
 
@@ -527,6 +528,10 @@ body {
 
 :root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
   fill: oklch(var(--b2));
+}
+
+._lajK0 {
+  --tw-prose-links: oklch(var(--bc));
 }
 
 ._MBDTd {

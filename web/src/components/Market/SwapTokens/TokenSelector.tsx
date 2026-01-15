@@ -112,7 +112,7 @@ export const TokenSelector = ({
 
 export function TokenImage({ token }: { token: Token }) {
   return (
-    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
+    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
       <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
         <img className="w-full h-full" alt={token.symbol} src={paths.tokenImage(token.address, token.chainId)} />
       </div>

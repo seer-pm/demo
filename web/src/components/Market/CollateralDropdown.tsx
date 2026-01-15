@@ -100,7 +100,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
         </div>
       }
     >
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-[#f2f2f2] dark:hover:bg-base-200 cursor-pointer">
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
         <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
           <img
             className="w-full h-full rounded-full"

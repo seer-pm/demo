@@ -453,7 +453,7 @@ export function SwapTokensLimitUpto({
                   {balance > 0 && (
                     <button
                       type="button"
-                      className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-[#f2f2f2]"
+                      className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
                       onClick={() => {
                         setUseMax(true);
                         setTradeType(TradeType.EXACT_INPUT);

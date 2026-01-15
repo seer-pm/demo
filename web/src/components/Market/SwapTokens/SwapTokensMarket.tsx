@@ -340,7 +340,7 @@ export function SwapTokensMarket({
             }}
             className={clsx(
               "rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
-              focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-[#f2f2f2]",
+              focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
             )}
           >
             <p className="text-base-content/70">You pay</p>
@@ -414,7 +414,7 @@ export function SwapTokensMarket({
                   </p>
                   <button
                     type="button"
-                    className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-[#f2f2f2]"
+                    className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
                     onClick={() => {
                       setTradeType(TradeType.EXACT_INPUT);
                       setValue("amount", formatUnits(balance, sellToken.decimals), {

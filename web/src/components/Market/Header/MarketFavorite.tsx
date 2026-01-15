@@ -80,7 +80,6 @@ function MarketFavorite({
         direction="auto"
         isOpen={isOpen}
         setIsOpen={setIsOpen}
-        className="w[300px]"
         content={
           // biome-ignore lint/complexity/noUselessFragments:
           <>

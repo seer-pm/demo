@@ -92,7 +92,7 @@ export default function Activity({ market }: ActivityProps) {
                 <tr key={transaction.id}>
                   <td className="text-left">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                      <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
                         <Link to={`/portfolio/${transaction.from}`} className="hover:text-purple-primary">
                           {shortenAddress(transaction.from)}
                         </Link>
@@ -106,10 +106,10 @@ export default function Activity({ market }: ActivityProps) {
                         </a>
                       </span>
                       <span className={`text-sm font-medium ${transactionType.color}`}>{transactionType.type}</span>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-base-content/90">
                         {displayBalance(BigInt(transaction.value), 18, true)}
                       </span>
-                      <span className="text-sm text-gray-600">{market.outcomes[tokenIndex]}</span>
+                      <span className="text-sm text-base-content">{market.outcomes[tokenIndex]}</span>
                     </div>
                   </td>
                   <td className="text-right">
