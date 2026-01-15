@@ -7,18 +7,39 @@
 :root:root {
   --rounded-btn: 3px;
 
+  /* Color variables in OKLCH format for alpha support */
+  --blue-primary: 78.99% 0.143 224.17; /* #24CDFE */
+  --blue-secondary: 37.3% 0.234 269.89; /* #200FB9 */
+  --blue-medium: 95.5% 0.012 255.5; /* #EAF1FF */
+  --blue-light: 98.5% 0.006 255.5; /* #F8FAFF */
+
+  --purple-primary: 59.81% 0.254 298.01; /* #9747FF */
+  --purple-secondary: 72.91% 0.161 297.06; /* #B38FFF */
+  --purple-medium: 98.34% 0.01 305.41; /* #FBF8FF */
+  --purple-light: 99.5% 0.005 305.41; /* #FDFBFF */
+  --purple-dark: 32.5% 0.18 305; /* #59097E */
+
+  --black: 0% 0 0; /* #000000 */
+  --black-primary: 23.5% 0 0; /* #333333 */
+  --black-secondary: 66% 0 0; /* #999999 */
+  --black-medium: 92.19% 0 0; /* #E5E5E5 */
+  --black-light: 98.81% 0 0; /* #FBFBFB */
+
+  --success-primary: 71.22% 0.23 144.12; /* #00C42B */
+  --success-light: 96.5% 0.03 144.12; /* #F0FBF2 */
+
+  --warning-primary: 77.2% 0.174 64.55; /* #FF9900 */
+  --warning-light: 98.5% 0.03 64.55; /* #FFF9F0 */
+
+  --error-primary: 61.65% 0.245 22.93; /* #F60C36 */
+  --error-light: 97.5% 0.03 22.93; /* #FEF0F3 */
+
+  --tint-blue-primary: 72.5% 0.095 210; /* #13C0CB */
+  --tint-blue-light: 98% 0.025 210; /* #E5FDFF */
+
+  --gray-light: 95.5% 0 0; /* #F0F0F0 */
+
   --white: 100% 0 0;
-  --black: 0% 0 0;
-  --purple-primary: 59.81% 0.254 298.01;
-  --purple-secondary: 72.91% 0.16070787426161062 297.0607660474308;
-  --purple-medium: 98.34% 0.009742998103222622 305.4082217121586;
-  --blue-primary: 78.99% 0.143 224.17;
-  --blue-secondary: 37.3% 0.234 269.89;
-  --black-medium: 92.19% 0 0;
-  --black-light: 98.81% 0 0;
-  --warning-primary: 77.2% 0.17381536485188528 64.55196581322063;
-  --success-primary: 71.22% 0.23 144.12;
-  --error-primary: 61.65% 0.245 22.93;
 
   --toastify-toast-width: 422px;
   --toastify-color-light: oklch(var(--purple-primary));
@@ -50,19 +71,58 @@
 }
 
 body {
-  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
   background-blend-mode: multiply;
   overflow-x: hidden;
 }
+
+/* Light mode gradient (default) */
+body {
+  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
+}
+
+/* Dark mode gradient */
+:root[data-theme="dark"] body {
+  background: linear-gradient(247.18deg, #0b0e11 0%, #1a1f26 100%);
+}
+
+.border-separator-100 {
+  border-color: var(--separator-100);
+}
+
+/* Card background utility class */
+.bg-card {
+  background-color: var(--card-bg);
+}
+
+/* Card component classes */
+.card {
+  @apply bg-base-100 border rounded-[3px] border-separator-100;
+}
+
+.card-active {
+  border-color: oklch(var(--purple-primary));
+}
+
+/* Pill component classes */
+.pill {
+  @apply border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
+}
+
+.pill-button {
+  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+
+  &.pill-button-active {
+    @apply bg-purple-primary text-white;
+  }
+}
+
 
 /* BUTTONS */
 .btn.btn-disabled,
 .btn[disabled],
 .btn:disabled {
-  --n: var(--black-light);
-  --tw-bg-opacity: 1;
+  @apply bg-base-200/70 text-base-content/70;
   border-color: transparent;
-  color: #131313a1;
 }
 .btn.btn-primary {
   --pc: var(--white);
@@ -75,12 +135,9 @@ body {
 }
 .btn.btn-secondary {
   --sc: var(--purple-primary);
-  --btn-color: var(--white);
+  --btn-color: var(--b1);
   border-color: oklch(var(--purple-primary));
-
-  &:hover {
-    background-color: #fbf8ff;
-  }
+  @apply hover:bg-purple-medium dark:hover:bg-base-200;
 }
 .btn.btn-accent {
   --ac: var(--white);
@@ -127,6 +184,7 @@ body {
 
 /* ALERT */
 .alert {
+  @apply text-base-content;
   --rounded-box: 3px;
   --alert-bg: transparent;
 
@@ -170,7 +228,7 @@ body {
   font-size: 12px;
 
   .step:after {
-    --b3: var(--white);
+    --b3: var(--b1);
     --bc: var(--black-medium);
     width: 24px;
     height: 24px;
@@ -246,14 +304,14 @@ body {
 }
 
 .dropdown-content {
-  @apply shadow bg-white rounded-[3px] text-black text-[16px];
+  @apply shadow bg-base-100 rounded-[3px] text-base-content text-[16px];
 }
 
 /* CHECKBOX */
 .checkbox {
+  @apply border-purple-primary;
   width: 16px;
   height: 16px;
-  border-color: #9747ff;
   &:checked {
     --bc: var(--purple-primary);
   }
@@ -267,12 +325,11 @@ body {
 
 /* Tooltip text */
 .tooltip > .tooltiptext {
+  @apply bg-base-100 text-base-content;
   visibility: hidden;
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #fff;
-  color: #333;
   text-align: center;
   font-weight: 600;
   padding: 5px 10px;
@@ -297,7 +354,7 @@ body {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: var(--tooltip-arrow-color, #626262) transparent transparent transparent;
+  border-color: var(--tooltip-arrow-color, oklch(var(--b1))) transparent transparent transparent;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
@@ -313,19 +370,20 @@ body {
 
 .simple-table td,
 .simple-table th {
-  border-bottom: 1px solid #e5e5e5;
+  @apply border-b border-base-300;
   padding: 12px 16px;
 }
 
 .simple-table th {
+  @apply text-purple-primary;
   text-align: left;
   font-size: 14px;
   font-weight: normal;
-  color: #9747ff;
 }
 
 /* CUSTOM DATE PICKER */
 .custom-date-picker {
+  @apply text-base-content;
   position: relative;
   &::before {
     content: "";
@@ -338,17 +396,23 @@ body {
     z-index: 1;
   }
   & .react-datepicker__header {
-    background-color: white;
+    @apply bg-base-100 text-base-content;
     padding: 20px 24px 2px 24px;
     border: none;
     &--time {
       padding: 20px 24px 20px 24px;
     }
   }
+  & .react-datepicker__current-month,
+  & .react-datepicker__time,
+  & .react-datepicker-time__header,
+  & .react-datepicker__day-name {
+    @apply text-base-content;
+  }
   & .react-datepicker__navigation {
     top: 15px;
     &-icon::before {
-      border-color: #9747ff;
+      @apply border-purple-primary;
     }
   }
   & .react-datepicker__day-names {
@@ -357,21 +421,30 @@ body {
     font-size: 14px;
   }
   & .react-datepicker__day {
-    color: #999999;
+    @apply text-base-content/60;
     font-weight: 600;
 
     &--today {
+      @apply text-purple-primary;
       background-color: transparent;
-      color: #9747ff;
     }
-    &--selected {
-      background-color: #9747ff;
+    &--selected, &:hover {
+      @apply bg-purple-primary #{!important};
       color: white;
       border-radius: 50%;
     }
   }
+  .react-datepicker__month-container {
+    @apply bg-base-100;
+  }
+  .react-datepicker__time-container .react-datepicker__time {
+    @apply bg-base-100;
+  }
+  & .react-datepicker__time-list-item:hover {
+    @apply bg-purple-primary #{!important};
+  }
   & .react-datepicker__time-list-item--selected {
-    background-color: #9747ff !important;
+    @apply bg-purple-primary #{!important};
   }
 
   & .react-datepicker__day--in-range,
@@ -382,17 +455,17 @@ body {
 
   & .react-datepicker__day--range-end,
   .react-datepicker__day--selecting-range-end {
+    @apply bg-purple-primary;
     border-radius: 4.8px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
-    background-color: #9747ff;
   }
   & .react-datepicker__day--range-start,
   .react-datepicker__day--selecting-range-start {
+    @apply bg-purple-primary;
     border-radius: 4.8px;
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
-    background-color: #9747ff;
   }
   & .react-datepicker__day--range-start.react-datepicker__day--range-end {
     border-radius: 4.8px;
@@ -404,9 +477,9 @@ body {
 
 /* SHIMMER */
 .shimmer-container {
+  @apply bg-base-200;
   position: relative;
   overflow: hidden;
-  background: #c8c8c8; /* Medium gray background */
 }
 
 .shimmer-container::before {
@@ -416,7 +489,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), /* Light gray shimmer with some opacity */ transparent);
+  background: linear-gradient(90deg, transparent, oklch(var(--b3)), transparent);
   animation: shimmer 1.5s infinite linear;
 }
 
@@ -453,41 +526,49 @@ body {
   display: none;
 }
 
+:root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
+  fill: oklch(var(--b2));
+}
+
+._lajK0 {
+  --tw-prose-links: oklch(var(--bc)) !important;
+}
+
 ._MBDTd {
   & ._1be8d,
   & ._WjB9N > button,
   & ._I1aJ0 > button,
   & ._1jNTa {
-    background-color: #9747ff !important;
+    @apply bg-purple-primary #{!important};
     color: white !important;
   }
 }
 
 .outlined-thumb::-webkit-slider-thumb {
+  @apply border border-purple-primary;
   appearance: none;
   width: 12px;
   height: 12px;
   background: white;
-  border: 1px solid #9747ff;
   border-radius: 50%;
 }
 
 .outlined-thumb::-moz-range-thumb {
+  @apply border border-purple-primary;
   width: 12px;
   height: 12px;
   background: white;
-  border: 1px solid #9747ff;
   border-radius: 50%;
 }
 
 .outlined-thumb:focus::-webkit-slider-thumb,
 .outlined-thumb:hover::-webkit-slider-thumb {
-  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+  @apply border border-purple-primary; /* Consistent border on focus/hover */
 }
 
 .outlined-thumb:focus::-moz-range-thumb,
 .outlined-thumb:hover::-moz-range-thumb {
-  border: 1px solid #9747ff; /* Consistent border on focus/hover */
+  @apply border border-purple-primary; /* Consistent border on focus/hover */
 }
 
 /* HIDE SCROLLBAR */

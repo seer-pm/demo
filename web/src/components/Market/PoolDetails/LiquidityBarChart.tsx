@@ -232,7 +232,7 @@ export default function LiquidityBarChart({
               onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
             />
           </div>
-          <span className="text-sm text-gray-600 min-w-[3ch]">{priceList.length - 1}</span>
+          <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
         </div>
       </div>
       <div

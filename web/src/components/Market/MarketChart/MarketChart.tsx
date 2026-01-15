@@ -237,7 +237,7 @@ function MarketChart({ market }: { market: Market }) {
 
   return (
     <>
-      <div className="w-full bg-white p-5 text-[12px] drop-shadow">
+      <div className="w-full bg-base-100 p-5 text-[12px] drop-shadow">
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {Object.keys(CHART_OPTION_PERIODS).map((option) => (
             <div
@@ -247,10 +247,7 @@ function MarketChart({ market }: { market: Market }) {
                 setStartDate(undefined);
                 setEndDate(undefined);
               }}
-              className={clsx(
-                "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
-                !startDate && !endDate && period === option && "!border-purple-primary",
-              )}
+              className={clsx("pill-button", !startDate && !endDate && period === option && "pill-button-active")}
             >
               {option}
             </div>
@@ -259,10 +256,7 @@ function MarketChart({ market }: { market: Market }) {
             <button
               type="button"
               onClick={() => setShowDateRangePicker((state) => !state)}
-              className={clsx(
-                "border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-purple-medium text-purple-primary text-[14px] hover:border-purple-primary text-center cursor-pointer",
-                (startDate || endDate) && "!border-purple-primary",
-              )}
+              className={clsx("pill-button", (startDate || endDate) && "pill-button-active")}
             >
               {!startDate && !endDate
                 ? "Custom"
@@ -470,7 +464,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
       <div ref={chartContainerRef} />
       {tooltipData && (
         <div
-          className="absolute bg-white rounded-lg shadow-lg p-3 z-10 pointer-events-none"
+          className="absolute bg-base-100 rounded-lg shadow-lg p-3 z-10 pointer-events-none"
           style={{
             left: `${tooltipData.x + 10}px`,
             top: `${tooltipData.y - 10}px`,
@@ -478,7 +472,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
           }}
         >
-          <div className="text-sm text-gray-600 mb-2">
+          <div className="text-sm text-base-content mb-2">
             {format(new Date(tooltipData.time * 1000), "MMM d, yyyy HH:mm")}
           </div>
           <div className="space-y-1">

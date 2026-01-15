@@ -29,8 +29,9 @@ export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProp
                 setIsOpen(false);
               }}
               className={clsx(
-                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
-                option.value === value && "active border-l-[3px] border-l-purple-primary bg-purple-medium",
+                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
+                option.value === value &&
+                  "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
               )}
             >
               {option.icon}

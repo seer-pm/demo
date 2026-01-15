@@ -49,7 +49,7 @@ export default function TopHolders({ market }: TopHoldersProps) {
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   return (
-    <div className="p-4 bg-white border rounded-[3px] shadow-sm border-black-medium">
+    <div className="p-4 card shadow-sm border-separator-100">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {Object.entries(topHolders)
           .slice(0, 5)
@@ -59,32 +59,36 @@ export default function TopHolders({ market }: TopHoldersProps) {
             );
             return (
               <div key={tokenId}>
-                {holders.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No holders</p>
-                ) : (
-                  <div className="w-full overflow-x-auto mb-6">
-                    <table className="simple-table table-fixed">
-                      <thead>
+                <div className="w-full overflow-x-auto mb-6">
+                  <table className="simple-table table-fixed">
+                    <thead>
+                      <tr>
+                        <th className="text-left" style={{ width: "70%" }}>
+                          <a
+                            href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[tokenIndex]}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {market.outcomes[tokenIndex]}
+                          </a>
+                        </th>
+                        <th className="!text-right" style={{ width: "30%" }}>
+                          Balance
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {holders.length === 0 ? (
                         <tr>
-                          <th className="text-left">
-                            <a
-                              href={
-                                blockExplorerUrl && `${blockExplorerUrl}/address/${market.wrappedTokens[tokenIndex]}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {market.outcomes[tokenIndex]}
-                            </a>
-                          </th>
-                          <th className="!text-right">Balance</th>
+                          <td colSpan={2}>
+                            <p className="text-gray-500 text-sm">No holders</p>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {holders.slice(0, 5).map((holder) => (
+                      ) : (
+                        holders.slice(0, 5).map((holder) => (
                           <tr key={holder.address}>
                             <td className="text-left">
-                              <span className="text-sm text-gray-900 flex space-x-2 items-center">
+                              <span className="text-sm text-base-content/90 flex space-x-2 items-center">
                                 <Link to={`/portfolio/${holder.address}`} className="hover:text-purple-primary">
                                   {shortenAddress(holder.address)}
                                 </Link>
@@ -99,16 +103,16 @@ export default function TopHolders({ market }: TopHoldersProps) {
                               </span>
                             </td>
                             <td className="text-right">
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-base-content/90">
                                 {displayBalance(BigInt(holder.balance), 18, true)}
                               </span>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           })}

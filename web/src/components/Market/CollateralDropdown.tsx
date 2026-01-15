@@ -75,9 +75,9 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                 setIsOpen(false);
               }}
               className={clsx(
-                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
+                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
                 isTwoStringsEqual(collateralToken.address, selectedCollateral.address) &&
-                  "active border-l-[3px] border-l-purple-primary bg-purple-medium",
+                  "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
               )}
             >
               <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
@@ -88,7 +88,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                 />
                 {showChainLogo && (
                   <img
-                    className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-white rounded-full"
+                    className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
                     alt={String(collateralToken.chainId)}
                     src={paths.chainImage(collateralToken.chainId)}
                   />
@@ -100,7 +100,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
         </div>
       }
     >
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-[#f2f2f2] cursor-pointer">
+      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
         <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
           <img
             className="w-full h-full rounded-full"
@@ -109,7 +109,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
           />
           {showChainLogo && (
             <img
-              className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-white rounded-full"
+              className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
               alt={String(selectedCollateral.chainId)}
               src={paths.chainImage(selectedCollateral.chainId)}
             />

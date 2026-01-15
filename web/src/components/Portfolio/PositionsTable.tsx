@@ -238,7 +238,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                 onClick={() => closeModal()}
                 aria-label="Close modal"
               >
-                <CloseIcon fill="black" />
+                <CloseIcon fill="currentColor" />
               </button>
               <RedeemModalContent
                 account={account}

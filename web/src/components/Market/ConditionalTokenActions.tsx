@@ -27,7 +27,7 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
   const marketStatus = getMarketStatus(market);
   const [isShow, setShow] = useState(false);
   const renderActionBox = () => (
-    <div className="bg-white p-[24px] shadow-md">
+    <div className="card p-[24px] shadow-md">
       <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
@@ -81,14 +81,16 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={() => setShow((state) => !state)}
-        className="w-full bg-white p-2 shadow-md flex items-center justify-center gap-2"
-      >
-        <p className="font-semibold">More</p>
-        <div>{isShow ? <ArrowDropUp /> : <ArrowDropDown />}</div>
-      </button>
+      <div className="card shadow-md">
+        <button
+          type="button"
+          onClick={() => setShow((state) => !state)}
+          className="w-full p-2 flex items-center justify-center gap-2"
+        >
+          <p className="font-semibold">More</p>
+          <div>{isShow ? <ArrowDropUp /> : <ArrowDropDown />}</div>
+        </button>
+      </div>
       <div
         className={`transition-all duration-300 ease-in-out overflow-hidden ${
           isShow ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"

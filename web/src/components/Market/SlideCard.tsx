@@ -218,7 +218,7 @@ export function SlideCard({ market }: { market: Market }) {
     <div
       ref={cardRef}
       className={clsx(
-        "bg-white rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex h-full justify-between",
+        "bg-base-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex h-full justify-between",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >

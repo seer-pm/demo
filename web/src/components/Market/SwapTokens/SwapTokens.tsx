@@ -35,7 +35,7 @@ export function SwapTokens({
   const outcomeText = market.outcomes[outcomeIndex];
   const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
   return (
-    <div className="space-y-5 bg-white p-[24px] shadow-md">
+    <div className="space-y-5 bg-base-100 p-[24px] shadow-md">
       <div className="flex items-center space-x-[12px]">
         <div className="flex-shrink-0">
           <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />

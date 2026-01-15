@@ -108,10 +108,7 @@ function MarketCategories({ market }: { market: Market }) {
         MARKET_CATEGORIES.map((category) => {
           if (market.categories?.includes(category.value)) {
             return (
-              <div
-                className="border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] text-[14px] text-center"
-                key={category.value}
-              >
+              <div className="pill" key={category.value}>
                 {category.text}
               </div>
             );

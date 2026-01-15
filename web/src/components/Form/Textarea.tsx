@@ -23,7 +23,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement | null, TextareaProps>((pr
         <textarea
           {...restProps}
           className={clsx(
-            "textarea textarea-bordered bg-white focus:outline-purple-primary",
+            "textarea textarea-bordered bg-base-100 focus:outline-purple-primary",
             className,
             hasError && "border-error-primary",
             isValid && "border-success-primary",

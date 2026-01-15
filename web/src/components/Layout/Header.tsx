@@ -33,6 +33,7 @@ import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 
 function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const { isConnected, address, chainId } = useAccount();
@@ -192,7 +193,7 @@ export default function Header() {
                 <li>
                   <Link
                     to={"/policy/verified"}
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <PolicyIcon /> <span> Verified Market Policy </span>
                   </Link>
@@ -200,7 +201,7 @@ export default function Header() {
                 <li>
                   <Link
                     to={"/policy/rules"}
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <PolicyIcon /> <span>Market Rules Policy</span>
                   </Link>
@@ -219,7 +220,7 @@ export default function Header() {
                     to={paths.futarchy()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <GlobeIcon /> <span>Futarchi.fi</span>
                   </Link>
@@ -229,7 +230,7 @@ export default function Header() {
                     to={paths.deepfund()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <GlobeIcon /> <span>DeepFunding Round 1</span>
                   </Link>
@@ -263,7 +264,7 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={openModal}
-                    className="w-full flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="w-full flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     Deposit
                   </button>
@@ -271,7 +272,7 @@ export default function Header() {
                 <li>
                   <Link
                     to={"/portfolio"}
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     Portfolio
                   </Link>
@@ -279,7 +280,7 @@ export default function Header() {
                 <li>
                   <Link
                     to={"/collections/default"}
-                    className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     Market Collections
                   </Link>
@@ -308,7 +309,7 @@ export default function Header() {
                     to={paths.getHelp()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <DiscordIcon />
                     Get Help
@@ -319,7 +320,7 @@ export default function Header() {
                     to={paths.bugReport()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <BugIcon />
                     Report a Bug
@@ -330,7 +331,7 @@ export default function Header() {
                     to={paths.dappGuide()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <BookIcon />
                     DApp Guide
@@ -341,7 +342,7 @@ export default function Header() {
                     to={paths.beginnerGuide()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <EthIcon />
                     Crypto Beginner's Guide
@@ -352,7 +353,7 @@ export default function Header() {
                     to={paths.faq()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     <QuestionIcon />
                     FAQ
@@ -360,6 +361,11 @@ export default function Header() {
                 </li> */}
               </ul>
             </div>
+            <ThemeToggleButton
+              iconFill="white"
+              iconSize="20"
+              className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
+            />
           </li>
         </ul>
         <div className="[@media(min-width:900px)]:hidden ml-auto">
@@ -415,7 +421,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
   return (
     <div
       style={{ top: `${topOffset}px` }}
-      className="bg-white text-black fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
+      className="bg-base-100 text-base-content fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
     >
       <Modal
         title="Deposit"
@@ -535,7 +541,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                 to={paths.getHelp()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
               >
                 <DiscordIcon />
                 Get Help
@@ -546,7 +552,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                 to={paths.bugReport()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
               >
                 <BugIcon />
                 Report a Bug
@@ -557,7 +563,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                 to={paths.dappGuide()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
               >
                 <BookIcon />
                 DApp Guide
@@ -568,13 +574,16 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                 to={paths.beginnerGuide()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary"
+                className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
               >
                 <EthIcon />
                 Crypto Beginner's Guide
               </Link>
             </li>
           </ul>
+        </div>
+        <div className="mt-6">
+          <ThemeToggleButton iconFill="#9747FF" iconSize="17" showLabel />
         </div>
       </div>
     </div>

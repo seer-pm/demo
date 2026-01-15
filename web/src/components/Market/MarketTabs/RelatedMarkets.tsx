@@ -138,7 +138,7 @@ export function RelatedMarkets({ market }: RelatedMarketsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 mb-4">
-        <label htmlFor="outcome-search" className="text-sm font-medium text-black-primary">
+        <label htmlFor="outcome-search" className="text-sm font-medium text-base-content">
           Search by outcome:
         </label>
         <input
@@ -147,7 +147,7 @@ export function RelatedMarkets({ market }: RelatedMarketsProps) {
           placeholder="Type outcome name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="input input-bordered bg-white focus:outline-purple-primary flex-1 max-w-md"
+          className="input input-bordered bg-base-100 focus:outline-purple-primary flex-1 max-w-md"
         />
       </div>
 

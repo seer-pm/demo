@@ -108,7 +108,7 @@ function AddLiquidityInfo({
             ? Number(pool.incentives[0].realEndTime) * 1000 < new Date().getTime()
             : true;
           return (
-            <div className="border border-black-medium p-[24px] text-[14px]" key={pool.id}>
+            <div className="border border-separator-100 p-[24px] text-[14px]" key={pool.id}>
               <div className="flex justify-between items-center">
                 <div>{poolRewardsInfo(pool)}</div>
                 <div>
@@ -475,10 +475,8 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
               key={market.wrappedTokens[i]}
               onClick={() => onOutcomeChange(i, true)}
               className={clsx(
-                "bg-white flex justify-between p-[12px] lg:p-[24px] border rounded-[3px] shadow-sm cursor-pointer",
-                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
-                  ? "border-purple-primary"
-                  : "border-black-medium",
+                "card flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
+                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2) ? "card-active" : "",
                 market.type === "Futarchy" && "max-md:space-y-[12px]",
               )}
             >

@@ -105,7 +105,7 @@ function PotentialReturnConfig({
           onClick={closeModal}
           aria-label="Close modal"
         >
-          <CloseIcon fill="black" />
+          <CloseIcon fill="currentColor" />
         </button>
         <p>Enter a possible market resolution to see your potential return.</p>
         <p className="font-semibold text-purple-primary py-1.5">Current Outcome: {outcomeText}</p>

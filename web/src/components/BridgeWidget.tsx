@@ -352,7 +352,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
           {/* Not Connected State */}
           {!isConnected ? (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">Connect your wallet to bridge tokens</p>
+              <p className="text-base-content/60 mb-4">Connect your wallet to bridge tokens</p>
               <Button variant="primary" onClick={() => open({ view: "Connect" })} text="Connect Wallet" />
             </div>
           ) : (
@@ -378,7 +378,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                 <>
                   {/* Bridge Amount Input - Only show when connected and has tokens */}
                   <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d]">
-                    <p className="text-[#131313a1]">Bridge Amount</p>
+                    <p className="text-base-content/70">Bridge Amount</p>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <Input
@@ -419,19 +419,19 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                     </div>
                     {selectedToken && (
                       <div className="flex justify-between items-center">
-                        <div className="text-[14px] text-[#131313a1]">
+                        <div className="text-[14px] text-base-content/70">
                           {bridgeQuote?.quote.estimate?.fromAmountUSD && amount && (
                             <>≈ ${Number(bridgeQuote.quote.estimate.fromAmountUSD).toFixed(2)} USD</>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
-                          <p className="text-[14px] text-[#131313a1]">
+                          <p className="text-[14px] text-base-content/70">
                             Balance: {displayBalance(selectedTokenBalance, selectedToken.decimals)}{" "}
                             {selectedToken.symbol}
                           </p>
                           <button
                             type="button"
-                            className="text-[14px] font-semibold text-[#131313a1] rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-[#f9f9f9] hover:bg-[#f2f2f2]"
+                            className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60 dark:hover:bg-[var(--card-bg)]"
                             onClick={() => {
                               setValue("amount", formatUnits(selectedTokenBalance, selectedToken.decimals), {
                                 shouldValidate: true,
@@ -448,11 +448,11 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
                   {/* Quote Information */}
                   {bridgeQuote && !isQuoteLoading && (
-                    <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d] bg-gray-50">
-                      <p className="text-[#131313a1]">You will receive</p>
+                    <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d] bg-base-200/50">
+                      <p className="text-base-content/70">You will receive</p>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="text-[24px] text-[#131313]">
+                          <div className="text-[24px] text-base-content">
                             {bridgeQuote.quote.estimate?.toAmountMin
                               ? displayBalance(
                                   BigInt(bridgeQuote.quote.estimate.toAmountMin),
@@ -461,7 +461,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                               : "0"}
                           </div>
                           {bridgeQuote.quote.estimate?.toAmountUSD && (
-                            <div className="text-sm text-[#131313a1]">
+                            <div className="text-sm text-base-content/70">
                               ≈ ${Number(bridgeQuote.quote.estimate.toAmountUSD).toFixed(2)} USD
                             </div>
                           )}
@@ -471,7 +471,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                         </div>
                       </div>
                       <div className="flex">
-                        <div className="text-sm text-[#131313a1]">
+                        <div className="text-sm text-base-content/70">
                           Using {bridgeQuote.quote.toolDetails?.name || "bridge"} in{" "}
                           {bridgeQuote.quote.estimate?.executionDuration || "~"} minutes
                         </div>
@@ -481,11 +481,15 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
                   {/* Order Selection Toggle */}
                   <div className="flex items-center justify-center space-x-3 py-2">
-                    <span className={`text-sm ${!isFastest ? "font-medium text-gray-900" : "text-gray-600"}`}>
+                    <span
+                      className={`text-sm ${!isFastest ? "font-medium text-base-content/90" : "text-base-content/60"}`}
+                    >
                       Cheapest
                     </span>
                     <Toggle checked={isFastest} onChange={(e) => setIsFastest(e.target.checked)} name="bridgeOrder" />
-                    <span className={`text-sm ${isFastest ? "font-medium text-gray-900" : "text-gray-600"}`}>
+                    <span
+                      className={`text-sm ${isFastest ? "font-medium text-base-content/90" : "text-base-content/60"}`}
+                    >
                       Fastest
                     </span>
                   </div>
@@ -534,7 +538,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
                                 {/* Process Info */}
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">{process.message}</p>
+                                  <p className="text-sm font-medium text-base-content/90">{process.message}</p>
                                 </div>
 
                                 {/* Transaction Link */}

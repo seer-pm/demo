@@ -80,7 +80,7 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
       <dialog
         ref={drawerRef}
         className={clsx(
-          "fixed bottom-0 left-0 right-0 bg-white rounded-t-[16px] z-[101] shadow-lg max-h-[90vh] flex flex-col w-full",
+          "fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-[16px] z-[101] shadow-lg max-h-[90vh] flex flex-col w-full",
           !isDragging && "transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-full",
           className,
@@ -103,7 +103,7 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
 
         {/* Tabs or Title */}
         {tabs ? (
-          <div className="px-6 pt-2 pb-4 border-b border-black-medium">
+          <div className="px-6 pt-2 pb-4 border-b border-separator-100">
             <div className="flex items-center justify-between mb-2">
               <div className="flex-1" />
               <button
@@ -118,7 +118,7 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
             {tabs}
           </div>
         ) : title ? (
-          <div className="px-6 pb-4 border-b border-black-medium">
+          <div className="px-6 pb-4 border-b border-separator-100">
             <div className="flex items-center justify-between">
               <h3 className="text-[20px] font-semibold">{title}</h3>
               <button

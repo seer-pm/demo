@@ -16,13 +16,21 @@ const FileViewer: React.FC<{ url: string }> = ({ url }) => {
           rel="noopener noreferrer"
           className="hover:opacity-65 text-purple-primary flex items-center p-2 space-x-2"
         >
-          Open PDF in new tab <ExternalLinkIcon />
+          Open PDF in new tab <ExternalLinkIcon fill="currentColor" />
         </a>
       </div>
       <div className="text-primaryText  justify-center items-center mx-auto">
         <DocViewer
           documents={docs}
           pluginRenderers={[...DocViewerRenderers, MarkdownRenderer]}
+          theme={{
+            primary: "oklch(var(--purple-primary))",
+            secondary: "oklch(var(--purple-secondary))",
+            tertiary: "oklch(var(--b1))",
+            textPrimary: "oklch(var(--bc))",
+            textSecondary: "oklch(var(--bc))",
+            textTertiary: "oklch(var(--bc))",
+          }}
           config={{
             header: {
               disableHeader: true,
@@ -34,7 +42,7 @@ const FileViewer: React.FC<{ url: string }> = ({ url }) => {
             },
             pdfVerticalScrollByDefault: true,
           }}
-          className="bg-primaryBackground"
+          className="!bg-base-100"
         />
       </div>
     </div>

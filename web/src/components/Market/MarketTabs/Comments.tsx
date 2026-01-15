@@ -2,17 +2,35 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useIsAccountConnected } from "@/hooks/useIsConnectedAndSignedIn";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
+import { useTheme } from "@/hooks/useTheme";
 import SEER_ENV from "@/lib/env";
 import { Market } from "@/lib/market";
-import { Discussion } from "@orbisclub/components";
+import { Discussion, defaultTheme } from "@orbisclub/components";
 import "@orbisclub/components/dist/index.modern.css";
 import { Orbis } from "@orbisclub/orbis-sdk";
 import { useEffect, useState } from "react";
+
+// Create a copy of defaultTheme for darkTheme, with deep copies of objects we'll modify
+const darkTheme = {
+  ...defaultTheme,
+  bg: { ...defaultTheme.bg },
+  border: { ...defaultTheme.border },
+  color: { ...defaultTheme.color },
+  badges: { ...defaultTheme.badges },
+};
+// Configure darkTheme
+darkTheme.bg.main = "oklch(var(--b1)/var(--tw-bg-opacity, 1))";
+darkTheme.border.main = "var(--separator-100)";
+darkTheme.border.secondary = "var(--separator-100)";
+darkTheme.color.main = "oklch(var(--bc))";
+darkTheme.badges.main.bg = "var(--separator-100)";
+darkTheme.badges.main.color = "oklch(var(--bc))";
 
 function Comments({ market }: { market: Market }) {
   const ceramicSession = useLocalStorageKey("ceramic-session", () => {});
   const [isLoading, setLoading] = useState(false);
   const isConnected = useIsAccountConnected();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (ceramicSession && !isConnected) {
@@ -48,7 +66,11 @@ function Comments({ market }: { market: Market }) {
         />
       )}
       <ErrorBoundary fallback={<p>Something went wrong.</p>}>
-        <Discussion key={ceramicSession} context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`} />
+        <Discussion
+          theme={theme === "dark" ? darkTheme : defaultTheme}
+          key={ceramicSession}
+          context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`}
+        />
       </ErrorBoundary>
     </>
   );
