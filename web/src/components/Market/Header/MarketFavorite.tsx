@@ -91,7 +91,7 @@ function MarketFavorite({
                     <button
                       key={collection.id}
                       type="button"
-                      className="text-[14px] w-full gap-2 flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                      className="text-[14px] w-full gap-2 flex items-center justify-between rounded-[8px] p-2 hover:bg-[#ededed] hover:text-black transition-all"
                       onClick={() => {
                         updateCollectionItem.mutateAsync({
                           marketIds: [market.id],
@@ -112,7 +112,7 @@ function MarketFavorite({
                         .includes(market.id) ? (
                         <CheckIcon />
                       ) : (
-                        <PlusIcon />
+                        <PlusIcon fill="currentColor" />
                       )}
                     </button>
                   ))}

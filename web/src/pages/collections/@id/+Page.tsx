@@ -174,10 +174,7 @@ function CollectionsPage() {
           {collections.map((collection) => {
             return (
               <button
-                className={clsx(
-                  "border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-black-medium text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all",
-                  id === collection.id && "bg-purple-primary text-white",
-                )}
+                className={clsx("pill-button", id === collection.id && "pill-button-active")}
                 key={collection.id}
                 onClick={() => navigate(paths.collection(collection.url ?? collection.id))}
                 type="button"

@@ -64,7 +64,6 @@ export default function Popover({ trigger, content }: PopoverProps) {
               top: position.top,
               left: position.left,
               transform: "translateY(-100%)",
-              background: "white",
               border: "1px solid #ddd",
               borderRadius: 8,
               padding: 12,
@@ -73,6 +72,7 @@ export default function Popover({ trigger, content }: PopoverProps) {
               minWidth: 150,
               animation: "fadeIn 0.2s ease-out",
             }}
+            className="bg-base-100"
           >
             {content}
           </div>,
