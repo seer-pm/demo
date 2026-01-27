@@ -154,6 +154,8 @@ export const getPoolUrl = (chainId: number, poolId: string) => {
       return `https://v3.swapr.eth.limo/#/info/pools/${poolId}`;
     case mainnet.id:
       return `https://bunni.pro/pools/ethereum/${poolId}`;
+    case optimism.id:
+      return `https://app.uniswap.org/explore/pools/optimism/${poolId}`;
     default:
       return "#";
   }
