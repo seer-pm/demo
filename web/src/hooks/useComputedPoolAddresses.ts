@@ -6,8 +6,8 @@ import { Address, encodeAbiParameters, getCreate2Address, keccak256 } from "viem
 // same init hash for uniswap and algebra
 const UNISWAP_V3_POOL_INIT_CODE_HASH = "0xbce37a54eab2fcd71913a0d40723e04238970e7fc1159bfd58ad5b79531697e7";
 
-const FACTORY_ADDRESSES: Partial<Record<SupportedChain, Address>> = {
-  // algebra deployer
+export const POOL_FACTORY_ADDRESSES: Partial<Record<SupportedChain, Address>> = {
+  // Algebra deployer (Gnosis)
   100: "0xC1b576AC6Ec749d5Ace1787bF9Ec6340908ddB47",
   // TODO: add uniswap deployers
 };
@@ -55,7 +55,7 @@ export const useComputedPoolAddresses = (market: Market) => {
       }
 
       // Get factory address for the chain
-      const factoryAddress = FACTORY_ADDRESSES[market.chainId];
+      const factoryAddress = POOL_FACTORY_ADDRESSES[market.chainId];
       if (!factoryAddress) {
         console.error(`Factory address not configured for chain ${market.chainId}`);
         return [];
