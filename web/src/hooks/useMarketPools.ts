@@ -7,10 +7,10 @@ import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
-import { readContracts } from "@wagmi/core";
+import { getPublicClient, readContracts } from "@wagmi/core";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
-import { Address, formatUnits } from "viem";
+import { AbiEvent, Address, formatUnits } from "viem";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -167,7 +167,7 @@ async function getSwaprPoolOnChain(
       token1Symbol: "",
       totalValueLockedToken0: 0,
       totalValueLockedToken1: 0,
-      incentives: [],
+      incentives: await getEternalFarmingsOnChain(chainId, poolAddress),
       liquidity,
       tick: tickNumber,
       tickSpacing,
@@ -175,10 +175,153 @@ async function getSwaprPoolOnChain(
   ];
 }
 
+const EternalFarmingCreatedEvent = {
+  anonymous: false,
+  inputs: [
+    {
+      indexed: true,
+      internalType: "contract IERC20Minimal",
+      name: "rewardToken",
+      type: "address",
+    },
+    {
+      indexed: true,
+      internalType: "contract IERC20Minimal",
+      name: "bonusRewardToken",
+      type: "address",
+    },
+    {
+      indexed: true,
+      internalType: "contract IAlgebraPool",
+      name: "pool",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "address",
+      name: "virtualPool",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "startTime",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "endTime",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "reward",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "bonusReward",
+      type: "uint256",
+    },
+    {
+      components: [
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier1",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier2",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier3",
+          type: "uint256",
+        },
+        {
+          internalType: "uint32",
+          name: "tier1Multiplier",
+          type: "uint32",
+        },
+        {
+          internalType: "uint32",
+          name: "tier2Multiplier",
+          type: "uint32",
+        },
+        {
+          internalType: "uint32",
+          name: "tier3Multiplier",
+          type: "uint32",
+        },
+      ],
+      indexed: false,
+      internalType: "struct IAlgebraFarming.Tiers",
+      name: "tiers",
+      type: "tuple",
+    },
+    {
+      indexed: false,
+      internalType: "address",
+      name: "multiplierToken",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "uint24",
+      name: "minimalAllowedPositionWidth",
+      type: "uint24",
+    },
+  ],
+  name: "EternalFarmingCreated",
+  type: "event",
+} as AbiEvent;
+
+export async function getEternalFarmingsOnChain(chainId: SupportedChain, pool: Address) {
+  if (chainId !== gnosis.id) return [];
+  const publicClient = getPublicClient(config, { chainId });
+  if (!publicClient) return [];
+  try {
+    const logs = await publicClient.getLogs({
+      address: "0x607BbfD4CEbd869AaD04331F8a2AD0C3C396674b",
+      event: EternalFarmingCreatedEvent,
+      fromBlock: 36404701n,
+      toBlock: "latest",
+      args: {
+        pool,
+      },
+    });
+    const eventData = {
+      ...logs[0].args,
+      rewardRate: "0",
+    } as GetEternalFarmingsQuery["eternalFarmings"][0];
+    const eternalFarming = mapEternalFarming(eventData);
+    return [eternalFarming];
+  } catch {
+    return [];
+  }
+}
+
+async function getEternalFarmingsWithFallback(chainId: SupportedChain, pool: Address) {
+  try {
+    return (await eternalFarming(chainId).fetch(pool as Address)).map((eternalFarming) =>
+      mapEternalFarming(eternalFarming),
+    );
+  } catch {
+    return getEternalFarmingsOnChain(chainId, pool);
+  }
+}
+
 async function getSwaprPools(
   chainId: SupportedChain,
   tokens: { token0: Address; token1: Address }[],
 ): Promise<PoolInfo[]> {
+  await getEternalFarmingsOnChain(100, "0x85286729ceFbd646373d9bEeCF27feC4178f661a");
+
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!algebraClient) {
@@ -188,7 +331,10 @@ async function getSwaprPools(
   try {
     const { pools } = await getSwaprSdk(algebraClient).GetPools({
       where: {
-        or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
+        or: tokens.map((t) => ({
+          token0: t.token0.toLocaleLowerCase(),
+          token1: t.token1.toLocaleLowerCase(),
+        })),
       },
       orderBy: SwaprPool_OrderBy.TotalValueLockedUsd,
       orderDirection: OrderDirection.Desc,
@@ -211,9 +357,7 @@ async function getSwaprPools(
         token1Symbol: pool.token1.symbol,
         totalValueLockedToken0: Number(pool.totalValueLockedToken0),
         totalValueLockedToken1: Number(pool.totalValueLockedToken1),
-        incentives: (await eternalFarming(chainId).fetch(pool.id as Address)).map((eternalFarming) =>
-          mapEternalFarming(eternalFarming),
-        ),
+        incentives: await getEternalFarmingsWithFallback(chainId, pool.id as Address),
       })),
     );
   } catch {
@@ -235,7 +379,10 @@ async function getUniswapPools(
 
   const { pools } = await getUniswapSdk(uniswapClient).GetPools({
     where: {
-      or: tokens.map((t) => ({ token0: t.token0.toLocaleLowerCase(), token1: t.token1.toLocaleLowerCase() })),
+      or: tokens.map((t) => ({
+        token0: t.token0.toLocaleLowerCase(),
+        token1: t.token1.toLocaleLowerCase(),
+      })),
     },
     orderBy: UniswapPool_OrderBy.Liquidity,
     orderDirection: OrderDirection.Desc,
