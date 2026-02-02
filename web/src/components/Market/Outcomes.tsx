@@ -220,7 +220,8 @@ function AddLiquidityLinks({
       {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
         <button
           type="button"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             openLiquidityModal();
           }}
           className="text-purple-primary hover:underline text-left"
@@ -233,12 +234,20 @@ function AddLiquidityLinks({
           target="_blank"
           rel="noopener noreferrer"
           className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
+          onClick={(e) => e.stopPropagation()}
         >
           Add Liquidity
         </a>
       )}
       {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
-        <button className="text-purple-primary hover:underline text-left" type="button" onClick={openPoolDetailsModal}>
+        <button
+          className="text-purple-primary hover:underline text-left"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openPoolDetailsModal();
+          }}
+        >
           View pool details
         </button>
       )}
@@ -376,6 +385,7 @@ function OutcomeDetails({
             target="_blank"
             rel="noopener noreferrer"
             className="text-purple-primary tooltip"
+            onClick={(e) => e.stopPropagation()}
           >
             <p className="tooltiptext">
               View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
@@ -399,6 +409,7 @@ function OutcomeDetails({
                 market.outcomes[outcomeIndex],
               )}`}
               className="text-purple-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
             >
               New conditional market
             </Link>
