@@ -320,8 +320,6 @@ async function getSwaprPools(
   chainId: SupportedChain,
   tokens: { token0: Address; token1: Address }[],
 ): Promise<PoolInfo[]> {
-  await getEternalFarmingsOnChain(100, "0x85286729ceFbd646373d9bEeCF27feC4178f661a");
-
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
 
   if (!algebraClient) {
