@@ -1,7 +1,7 @@
 import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
-import { Hex, formatEther, hexToNumber, numberToHex, parseEther } from "viem";
+import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
 import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
 import { MarketStatus } from "./market";
@@ -55,7 +55,7 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
     return outcome as Hex;
   }
 
-  return numberToHex(parseEther(String(outcome)), { size: 32 });
+  return numberToHex(BigInt(outcome), { size: 32 });
 }
 
 export function getMultiSelectAnswers(value: number): number[] {
