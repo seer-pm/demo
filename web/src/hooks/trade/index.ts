@@ -221,7 +221,7 @@ export function useQuoteTrade(
     return cowResult;
   }
 
-  if (chainId === mainnet.id || chainId === optimism.id) {
+  if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
     return uniswapResult;
   }
   return swaprResult;

@@ -1,4 +1,4 @@
-import { SupportedChain, optimism } from "@/lib/chains.ts";
+import { SupportedChain, base, optimism } from "@/lib/chains.ts";
 import { COLLATERAL_TOKENS } from "@/lib/config.ts";
 import { Market, getCollateralByIndex, getMarketPoolsPairs } from "@/lib/market.ts";
 import { Address, zeroAddress } from "viem";
@@ -13,7 +13,7 @@ export async function getMainCollateralPriceByChainMapping(): Promise<MainCollat
   try {
     collateralPriceByChain = await Promise.all(
       chainIds.map(async (chainId) => {
-        if (chainId === optimism.id) {
+        if (chainId === optimism.id || chainId === base.id) {
           // TODO: dexscreener doesn't have the sUSDS price
           return 1.06;
         }

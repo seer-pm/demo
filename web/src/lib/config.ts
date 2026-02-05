@@ -34,6 +34,11 @@ export const TOKENS_BY_CHAIN = {
     USDS: "0x4f13a96ec5c4cf34e442b46bbd98a0791f20edc3",
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
   },
+  [base.id]: {
+    sUSDS: "0x5875eee11cf8398102fdad704c9e96607675467a",
+    USDS: "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
+    USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  },
 } as const;
 
 export const COLLATERAL_TOKENS: CollateralTokensMap = {
@@ -59,10 +64,14 @@ export const COLLATERAL_TOKENS: CollateralTokensMap = {
       { address: TOKENS_BY_CHAIN[optimism.id].USDC, chainId: optimism.id, symbol: "USDC", decimals: 6 },
     ],
   },
-  /* [base.id]: {
-    primary: { address: "0x5875eee11cf8398102fdad704c9e96607675467a", symbol: "sUSDS", decimals: 18 },
+  [base.id]: {
+    primary: { address: TOKENS_BY_CHAIN[base.id].sUSDS, chainId: base.id, symbol: "sUSDS", decimals: 18 },
     secondary: undefined,
-  }, */
+    swap: [
+      { address: TOKENS_BY_CHAIN[base.id].USDS, chainId: base.id, symbol: "USDS", decimals: 18 },
+      { address: TOKENS_BY_CHAIN[base.id].USDC, chainId: base.id, symbol: "USDC", decimals: 6 },
+    ],
+  },
   [sepolia.id]: {
     primary: {
       address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357",
@@ -156,6 +165,8 @@ export const getPoolUrl = (chainId: number, poolId: string) => {
       return `https://bunni.pro/pools/ethereum/${poolId}`;
     case optimism.id:
       return `https://app.uniswap.org/explore/pools/optimism/${poolId}`;
+    case base.id:
+      return `https://app.uniswap.org/explore/pools/base/${poolId}`;
     default:
       return "#";
   }
@@ -188,7 +199,7 @@ export function isVerificationEnabled(chainId: SupportedChain) {
 }
 
 export function isOpStack(chainId: SupportedChain) {
-  return chainId === optimism.id /* || chainId === base.id */;
+  return chainId === optimism.id || chainId === base.id;
 }
 
 export function isSeerCredits(chainId: SupportedChain, tokenAddress: Address) {

@@ -44,6 +44,26 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 - [RealityProxy](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E)
 - [Wrapped1155Factory](https://etherscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f)
 
+### Optimism
+
+- [ConditionalRouter](https://optimistic.etherscan.io/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73)
+- [Market](https://optimistic.etherscan.io/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC)
+- [MarketFactory](https://optimistic.etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6)
+- [MarketView](https://optimistic.etherscan.io/address/0x44921b4c7510Fb306d8E58cF3894fA2bc8a79F00)
+- [RealityProxy](https://optimistic.etherscan.io/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2)
+- [Router](https://optimistic.etherscan.io/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD)
+- [Wrapped1155Factory](https://optimistic.etherscan.io/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f)
+
+### Base
+
+- [ConditionalRouter](https://basescan.org/address/0xF5ccbf74121edBa492725F325D55356D517723B9)
+- [Market](https://basescan.org/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E)
+- [MarketFactory](https://basescan.org/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6)
+- [MarketView](https://basescan.org/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD)
+- [RealityProxy](https://basescan.org/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2)
+- [Router](https://basescan.org/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73)
+- [Wrapped1155Factory](https://basescan.org/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f)
+
 ## Installation
 
 ### Prerequisites

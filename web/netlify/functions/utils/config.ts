@@ -28,4 +28,4 @@ export const config = createConfig({
   },
 });
 
-export const chainIds = [mainnet.id, gnosis.id, optimism.id /*, base.id */, sepolia.id] as const;
+export const chainIds = [mainnet.id, gnosis.id, optimism.id, base.id, sepolia.id] as const;

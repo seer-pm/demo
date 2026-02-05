@@ -33,3 +33,11 @@ generate "$SCRIPT_DIR/../deployments/gnosis" "https://gnosisscan.io/address/"
 echo "### Ethereum"
 echo
 generate "$SCRIPT_DIR/../deployments/ethereum" "https://etherscan.io/address/"
+
+echo "### Optimism"
+echo
+generate "$SCRIPT_DIR/../deployments/optimism" "https://optimistic.etherscan.io/address/"
+
+echo "### Base"
+echo
+generate "$SCRIPT_DIR/../deployments/base" "https://basescan.org/address/"
