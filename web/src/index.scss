@@ -55,10 +55,10 @@
 }
 
 .container-fluid {
-  max-width: 90%;
+  max-width: 1400px;
   margin: 0 auto;
-  padding-left: 0px;
-  padding-right: 0px;
+  padding-left: 12px;
+  padding-right: 12px;
 
   @media (min-width: 1600px) {
     & {

@@ -46,7 +46,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[chainId]?.blockExplorers?.default?.url;
 
   return (
-    <div className="container-fluid w-[924px] py-[65px] text-center space-y-[24px]">
+    <div className="w-[924px] max-w-[90%] mx-auto py-[65px] text-center space-y-[24px]">
       <div>
         <div className="text-[24px] font-semibold mb-[16px]">Market Name</div>
         <div>{market.marketName}</div>
@@ -156,7 +156,7 @@ function VerificationCheckPage() {
   };
 
   return (
-    <div className="container-fluid w-[924px] py-[65px] text-center">
+    <div className="w-[924px] max-w-[90%] mx-auto py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
       {chain && (

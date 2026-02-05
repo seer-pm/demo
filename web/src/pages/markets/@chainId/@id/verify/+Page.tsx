@@ -111,7 +111,7 @@ function MarkeVerifyPage() {
   };
 
   return (
-    <div className="container-fluid w-[924px] py-[65px] text-center">
+    <div className="w-[924px] max-w-[90%] mx-auto py-[65px] text-center">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
       {(market.verification?.status === "verifying" || market.verification?.status === "verified") && (

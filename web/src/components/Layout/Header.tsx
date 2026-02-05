@@ -153,7 +153,7 @@ export default function Header() {
   }, []);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
   return (
-    <header id="header">
+    <header id="header" className="bg-purple-dark">
       <Modal
         title="Deposit"
         className="w-[500px]"
@@ -163,9 +163,9 @@ export default function Header() {
 
       <nav
         ref={containerRef}
-        className="navbar bg-purple-dark px-[24px] text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
+        className="navbar container-fluid text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
       >
-        <div className="absolute left-[24px] lg:left-[64px]">
+        <div className="absolute left-[24px] lg:left-[12px]">
           <Link className="text-white hover:opacity-85" to="/">
             <SeerLogo width={`${141.73 * 0.7}px`} height={`${65.76 * 0.7}px`} />
           </Link>
@@ -245,7 +245,7 @@ export default function Header() {
           </li> */}
         </ul>
 
-        <ul className="hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[64px]">
+        <ul className="hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[12px]">
           <li>
             <ConnectWallet />
           </li>
