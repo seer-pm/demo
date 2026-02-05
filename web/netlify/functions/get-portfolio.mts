@@ -35,7 +35,8 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
       const { market, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
-      const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
+      const isInvalidOutcome =
+        market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
       const marketType = getMarketType(market);
       const marketStatus = getMarketStatus(market);
 
@@ -57,6 +58,11 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
         marketType === MarketTypes.MULTI_SCALAR && parts
           ? `${parts?.questionStart} ${market.outcomes[outcomeIndex]} ${parts?.questionEnd}`.trim()
           : market.marketName;
+      const tokenBalance = Number(formatUnits(balance, Number(tokenDecimals[index])));
+      // hide too small positions
+      if (tokenBalance < 0.00001) {
+        return acumm;
+      }
       acumm.push({
         marketId: market.id,
         tokenIndex,
@@ -70,7 +76,9 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
         collateralToken: getCollateralByIndex(market, tokenIndex),
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
-        parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
+        parentOutcome: parentMarket
+          ? parentMarket.outcomes[Number(market.parentOutcome)]
+          : undefined,
         redeemedPrice: getRedeemedPrice(market, tokenIndex),
         outcomeImage: market.images?.outcomes?.[outcomeIndex],
         isInvalidOutcome,

@@ -39,7 +39,12 @@ function RedeemModalContent({
   marketId,
   chainId,
   closeModal,
-}: { account?: Address; marketId: Address; chainId: SupportedChain; closeModal: () => void }) {
+}: {
+  account?: Address;
+  marketId: Address;
+  chainId: SupportedChain;
+  closeModal: () => void;
+}) {
   const { data: market, isPending: isMarketPending } = useMarket(marketId, chainId);
   if (isMarketPending) {
     return <div className="shimmer-container w-full h-10"></div>;
@@ -55,11 +60,25 @@ function RedeemModalContent({
   );
 }
 
-export default function PositionsTable({ data, chainId }: { data: PortfolioPosition[]; chainId: SupportedChain }) {
+export default function PositionsTable({
+  data,
+  chainId,
+}: {
+  data: PortfolioPosition[];
+  chainId: SupportedChain;
+}) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const { address: account } = useAccount();
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
+  function formatSmallNumber(n: number | undefined) {
+    if (typeof n !== "number") return "-";
+    if (n === 0) return "0";
+    if (Math.abs(n) < 0.01) {
+      return n.toFixed(6).replace(/\.?0+$/, "");
+    }
 
+    return n.toFixed(2);
+  }
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
     () => [
       {
@@ -82,7 +101,10 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline text-purple-primary cursor-pointer hover:underline"
-                        href={`${paths.market(position.parentMarketId!, chainId)}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
+                        href={`${paths.market(
+                          position.parentMarketId!,
+                          chainId,
+                        )}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
                       >
                         "{position.parentMarketName}"
                       </a>{" "}
@@ -114,7 +136,9 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
                     className="w-[24px] h-[24px] rounded-full"
                   />
                   <p className="text-[13px] truncate">
-                    <span className="text-purple-primary font-semibold">{position.tokenBalance.toFixed(2)} </span>
+                    <span className="text-purple-primary font-semibold">
+                      {formatSmallNumber(position.tokenBalance)}{" "}
+                    </span>
                     <span title={position.outcome}>{position.outcome}</span>
                   </p>
                 </div>
@@ -132,7 +156,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           if (position.redeemedPrice) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
-                <p>{position.redeemedPrice.toFixed(2)}</p>
+                <p>{formatSmallNumber(position.redeemedPrice)}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
                   <QuestionIcon fill="#9747FF" />
@@ -143,7 +167,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
           if (position.parentMarketId) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
-                <p>{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+                <p>{formatSmallNumber(info.getValue<number>())}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                     = relative price to parent outcome &times; parent's sDAI price
@@ -153,7 +177,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
               </div>
             );
           }
-          return <p className="font-semibold text-[14px] text-center">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>;
+          return <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>;
         },
         header: "Price (sDAI)",
       },
@@ -161,7 +185,7 @@ export default function PositionsTable({ data, chainId }: { data: PortfolioPosit
       {
         accessorKey: "tokenValue",
         cell: (info) => (
-          <p className="font-semibold text-[14px] text-center">{info.getValue<number>()?.toFixed(2) ?? "-"}</p>
+          <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>
         ),
         header: "Value (sDAI)",
       },
