@@ -1,8 +1,9 @@
 import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
+import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
+import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
@@ -17,7 +18,7 @@ import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOd
 import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { clientOnly } from "vike-react/clientOnly";
@@ -255,6 +256,10 @@ export function PreviewCard({ market }: { market: Market }) {
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
@@ -314,6 +319,11 @@ export function PreviewCard({ market }: { market: Market }) {
                 <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                   <p className="text-purple-primary">Liquidity:</p>
                   <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
+                  <p className="text-purple-primary">Open interest:</p>
+                  <p className="mx-1">
+                    {displayBalance(market.outcomesSupply, 18, true)}{" "}
+                    {parentMarket ? (parentCollateral?.symbol ?? "") : COLLATERAL_TOKENS[market.chainId].primary.symbol}
+                  </p>
                 </div>
               }
             />

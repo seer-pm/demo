@@ -142,6 +142,10 @@ function sortMarkets(
   if (orderBy === "oddsRunTimestamp") {
     return [{ column: "odds_run_timestamp", ascending: orderDirection === "asc" }];
   }
+
+  if (orderBy === "outcomesSupply") {
+    return [{ column: "outcomes_supply", ascending: orderDirection === "asc" }];
+  }
   // by opening date
   return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
 }
@@ -303,7 +307,6 @@ export async function searchMarkets({
   }
 
   const { data, count, error } = await query;
-
   if (error) {
     // If the error is PGRST103 (Requested range not satisfiable), return empty results
     if (error.code === "PGRST103") {
