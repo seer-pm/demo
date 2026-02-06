@@ -117,9 +117,9 @@ function MarketPage() {
   }, [isMobile]);
 
   const onOutcomeChange = useCallback(
-    (i: number, isClick: boolean) => {
+    (i: number, openDrawer: boolean) => {
       setOutcomeIndex(i);
-      if (isClick && isMobile) {
+      if (openDrawer && isMobile) {
         setDrawerOpen(true);
       }
     },

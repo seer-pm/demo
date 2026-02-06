@@ -539,7 +539,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   type="radio"
                   name="outcome"
                   className="radio max-lg:hidden"
-                  onChange={() => onOutcomeChange(i, true)}
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>
