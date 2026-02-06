@@ -38,7 +38,7 @@ function SwapWidget({
   market: Market;
   outcomeIndex: number;
   images?: string[];
-  onOutcomeChange: (i: number, isClick: boolean) => void;
+  onOutcomeChange: (i: number, openDrawer: boolean) => void;
 }) {
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);
@@ -117,9 +117,9 @@ function MarketPage() {
   }, [isMobile]);
 
   const onOutcomeChange = useCallback(
-    (i: number, isClick: boolean) => {
+    (i: number, openDrawer: boolean) => {
       setOutcomeIndex(i);
-      if (isClick && isMobile) {
+      if (openDrawer && isMobile) {
         setDrawerOpen(true);
       }
     },

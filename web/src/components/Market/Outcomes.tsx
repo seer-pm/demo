@@ -34,7 +34,7 @@ interface OutcomesProps {
   market: Market;
   images?: string[];
   activeOutcome: number;
-  onOutcomeChange: (i: number, isClick: boolean) => void;
+  onOutcomeChange: (i: number, openDrawer: boolean) => void;
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -220,8 +220,7 @@ function AddLiquidityLinks({
       {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             openLiquidityModal();
           }}
           className="text-purple-primary hover:underline text-left"
@@ -234,20 +233,12 @@ function AddLiquidityLinks({
           target="_blank"
           rel="noopener noreferrer"
           className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
-          onClick={(e) => e.stopPropagation()}
         >
           Add Liquidity
         </a>
       )}
       {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
-        <button
-          className="text-purple-primary hover:underline text-left"
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openPoolDetailsModal();
-          }}
-        >
+        <button className="text-purple-primary hover:underline text-left" type="button" onClick={openPoolDetailsModal}>
           View pool details
         </button>
       )}
@@ -385,7 +376,6 @@ function OutcomeDetails({
             target="_blank"
             rel="noopener noreferrer"
             className="text-purple-primary tooltip"
-            onClick={(e) => e.stopPropagation()}
           >
             <p className="tooltiptext">
               View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
@@ -409,7 +399,6 @@ function OutcomeDetails({
                 market.outcomes[outcomeIndex],
               )}`}
               className="text-purple-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
             >
               New conditional market
             </Link>
@@ -484,7 +473,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
           return (
             <div
               key={market.wrappedTokens[i]}
-              onClick={() => onOutcomeChange(i, true)}
+              onClick={(e) => {
+                const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
+                onOutcomeChange(i, !isClickOnLinkOrButton);
+              }}
               className={clsx(
                 "card flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
                 activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2) ? "card-active" : "",
@@ -547,7 +539,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   type="radio"
                   name="outcome"
                   className="radio max-lg:hidden"
-                  onChange={() => onOutcomeChange(i, true)}
+                  readOnly
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>
