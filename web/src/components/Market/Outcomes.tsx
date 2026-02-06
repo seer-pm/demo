@@ -473,7 +473,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
           return (
             <div
               key={market.wrappedTokens[i]}
-              onClick={() => onOutcomeChange(i, true)}
+              onClick={(e) => {
+                const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
+                onOutcomeChange(i, !isClickOnLinkOrButton);
+              }}
               className={clsx(
                 "card flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
                 activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2) ? "card-active" : "",
