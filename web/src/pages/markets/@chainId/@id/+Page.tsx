@@ -38,7 +38,7 @@ function SwapWidget({
   market: Market;
   outcomeIndex: number;
   images?: string[];
-  onOutcomeChange: (i: number, isClick: boolean) => void;
+  onOutcomeChange: (i: number, openDrawer: boolean) => void;
 }) {
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);

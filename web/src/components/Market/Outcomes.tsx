@@ -34,7 +34,7 @@ interface OutcomesProps {
   market: Market;
   images?: string[];
   activeOutcome: number;
-  onOutcomeChange: (i: number, isClick: boolean) => void;
+  onOutcomeChange: (i: number, openDrawer: boolean) => void;
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -539,6 +539,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   type="radio"
                   name="outcome"
                   className="radio max-lg:hidden"
+                  readOnly
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>
