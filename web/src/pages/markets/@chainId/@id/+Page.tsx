@@ -24,10 +24,10 @@ import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { switchChain } from "@wagmi/core";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 
 function SwapWidget({
   market,
@@ -87,12 +87,26 @@ function SwapWidget({
 function MarketPage() {
   const { routeParams } = usePageContext();
   const { address: account, chainId: connectedChainId } = useAccount();
+  const { isPending: isSwitchPending } = useSwitchChain();
+  // Guard: only one auto-switch attempt per market (per chainId). Never reset when on correct chain
+  // so that if the wallet flips back to the wrong chain we don't re-enter a loop.
+  const lastAutoSwitchChainIdRef = useRef<number | null>(null);
   const [outcomeIndex, setOutcomeIndex] = useState(0);
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const isMobile = useIsSmallScreen(1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
+
+  // Auto-switch to the market's chain when the wallet is connected but on a different chain.
+  // Only once per market view: if we already requested switch to this chainId, do not request again.
+  useEffect(() => {
+    if (connectedChainId == null || !SUPPORTED_CHAINS?.[chainId]) return;
+    if (chainId === connectedChainId) return;
+    if (lastAutoSwitchChainIdRef.current === chainId) return;
+    lastAutoSwitchChainIdRef.current = chainId;
+    switchChain(config, { chainId });
+  }, [chainId, connectedChainId]);
 
   let {
     data: market,
@@ -171,14 +185,20 @@ function MarketPage() {
           )}
         {chainId && connectedChainId && chainId !== connectedChainId && (
           <Alert type="warning">
-            This market does not exist on the selected network. Switch to{" "}
-            <span
-              className="font-semibold cursor-pointer text-purple-primary"
-              onClick={() => switchChain(config, { chainId })}
-            >
-              {SUPPORTED_CHAINS?.[chainId]?.name}
-            </span>
-            .
+            {isSwitchPending ? (
+              <>Switching to {SUPPORTED_CHAINS?.[chainId]?.name}…</>
+            ) : (
+              <>
+                This market does not exist on the selected network. Switch to{" "}
+                <span
+                  className="font-semibold cursor-pointer text-purple-primary"
+                  onClick={() => switchChain(config, { chainId })}
+                >
+                  {SUPPORTED_CHAINS?.[chainId]?.name}
+                </span>
+                .
+              </>
+            )}
           </Alert>
         )}
         {market.verification?.status === "not_verified" && (
