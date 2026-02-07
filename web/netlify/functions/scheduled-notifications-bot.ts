@@ -1,7 +1,7 @@
 import { realityAddress } from "@/hooks/contracts/generated-reality";
 import { SupportedChain, sepolia } from "@/lib/chains.ts";
 import { Question } from "@/lib/market";
-import { decodeQuestion, getAnswerText, getRealityLink } from "@/lib/reality.ts";
+import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@/lib/reality.ts";
 import { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
@@ -62,6 +62,11 @@ async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, str
     >();
 
     for (const market of data) {
+      const upperBound = BigInt(market.subgraph_data?.upperBound || 0);
+      if (upperBound > 0n && !isScalarBoundInWei(upperBound)) {
+        // ignore legacy markets
+        continue;
+      }
       const questions = (market.subgraph_data?.questions || []) as { question: Question }[];
       for (let i = 0; i < questions.length; i++) {
         const question = questions[i];
