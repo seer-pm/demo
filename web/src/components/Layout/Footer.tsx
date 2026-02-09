@@ -3,7 +3,7 @@ import { paths } from "@/lib/paths";
 
 export default function Footer() {
   return (
-    <div className="bg-purple-dark ">
+    <div className="bg-purple-dark mt-auto">
       <div className="container-fluid flex flex-col lg:flex-row justify-between min-h-[64px] items-center max-lg:py-[24px] max-lg:space-y-[24px] text-white mt-auto">
         <div>
           <a href="https://kleros.io/" target="_blank" rel="noopener noreferrer">
