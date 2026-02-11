@@ -222,7 +222,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
-                    <GlobeIcon /> <span>Futarchi.fi</span>
+                    <GlobeIcon /> <span>Futarchy.fi</span>
                   </Link>
                 </li>
                 <li>
@@ -232,7 +232,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
-                    <GlobeIcon /> <span>DeepFunding Round 1</span>
+                    <GlobeIcon /> <span>Deepfunding</span>
                   </Link>
                 </li>
               </ul>
@@ -479,7 +479,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"
                   >
-                    <GlobeIcon /> <span className="hover:font-semibold whitespace-nowrap">Futarchi.fi</span>
+                    <GlobeIcon /> <span className="hover:font-semibold whitespace-nowrap">Futarchy.fi</span>
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
@@ -489,7 +489,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2 whitespace-nowrap"
                   >
-                    <GlobeIcon /> <span className="hover:font-semibold">DeepFunding Round 1</span>
+                    <GlobeIcon /> <span className="hover:font-semibold">Deepfunding</span>
                   </a>
                 </li>
               </ul>

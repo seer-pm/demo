@@ -35,12 +35,7 @@ function OutcomesInfo({
   market,
   outcomesCount = 0,
   marketStatus,
-}: {
-  market: Market;
-  outcomesCount?: number;
-  images?: string[];
-  marketStatus?: MarketStatus;
-}) {
+}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
 
   const { data: odds = [] } = useMarketOdds(market, false);
@@ -108,9 +103,7 @@ function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${
-                3.2 * marketEstimate.toLocaleString().length
-              }px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -286,9 +279,9 @@ export function SlideCard({ market }: { market: Market }) {
               <div className="tooltip">
                 <div className="tooltiptext !text-left w-[300px] !whitespace-pre-wrap">
                   <p className="text-purple-primary">Conditional Market:</p>
-                  <p className="text-black-secondary">
-                    Conditional on <span className="text-black-primary">"{parentMarket.marketName}"</span> being{" "}
-                    <span className="text-black-primary">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                  <p className="text-base-content/70">
+                    Conditional on <span className="text-base-content">"{parentMarket.marketName}"</span> being{" "}
+                    <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
                   </p>
                 </div>
                 <div className="w-[1.5vw] min-w-[14px]">

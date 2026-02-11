@@ -95,7 +95,7 @@ export default function PositionsTable({
                     </div>
                   }
                   content={
-                    <p className="text-black-secondary text-[14px]">
+                    <p className="text-base-content/70 text-[14px]">
                       Conditional on{" "}
                       <a
                         target="_blank"
@@ -108,7 +108,7 @@ export default function PositionsTable({
                       >
                         "{position.parentMarketName}"
                       </a>{" "}
-                      being <span className="text-black-primary">"{position.parentOutcome}"</span>
+                      being <span className="text-base-content">"{position.parentOutcome}"</span>
                     </p>
                   }
                 />
