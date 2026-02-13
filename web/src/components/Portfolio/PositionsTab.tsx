@@ -23,15 +23,20 @@ function PositionsTab({ account }: { account: Address | undefined }) {
       const isMatchOutcome = isTextInString(filterMarketName, position.outcome);
       return isMatchName || isMatchOutcome;
     }) ?? [];
+  const renderTable = () => {
+    if (isGettingPositions) {
+      return <div className="shimmer-container w-full h-[200px]" />;
+    }
+    return !filteredPositions.length ? (
+      <Alert type="warning">No positions found.</Alert>
+    ) : (
+      <PositionsTable chainId={chainId as SupportedChain} data={filteredPositions} />
+    );
+  };
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
-  if (isGettingPositions) {
-    return <div className="shimmer-container w-full h-[200px]" />;
-  }
-  if (!filteredPositions.length) {
-    return <Alert type="warning">No positions found.</Alert>;
-  }
+
   return (
     <div>
       <div className="grow mb-6">
@@ -42,7 +47,7 @@ function PositionsTab({ account }: { account: Address | undefined }) {
           onKeyUp={marketNameCallback}
         />
       </div>
-      <PositionsTable chainId={chainId as SupportedChain} data={filteredPositions} />
+      {renderTable()}
     </div>
   );
 }

@@ -37,15 +37,20 @@ function OrdersTab({ account }: { account: Address | undefined }) {
       const endDateFilter = endDate ? new Date(order.creationDate).getTime() <= endOfDay(endDate).getTime() : true;
       return nameFilter && startDateFilter && endDateFilter;
     }) ?? [];
+  const renderTable = () => {
+    if (isUndefined(orders)) {
+      return <div className="shimmer-container w-full h-[200px]" />;
+    }
+    return !filteredOrders.length ? (
+      <Alert type="warning">No orders found.</Alert>
+    ) : (
+      <OrdersTable chainId={chainId} data={filteredOrders} />
+    );
+  };
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
-  if (isUndefined(orders)) {
-    return <div className="shimmer-container w-full h-[200px]" />;
-  }
-  if (!filteredOrders.length) {
-    return <Alert type="warning">No orders found.</Alert>;
-  }
+
   return (
     <>
       <div>
@@ -83,7 +88,7 @@ function OrdersTab({ account }: { account: Address | undefined }) {
             )}
           </div>
         </div>
-        <OrdersTable chainId={chainId} data={filteredOrders} />
+        {renderTable()}
       </div>
     </>
   );

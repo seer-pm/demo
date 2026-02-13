@@ -42,15 +42,20 @@ function HistoryTab({ account }: { account: Address | undefined }) {
       const endDateFilter = endDate ? tx.timestamp <= Math.floor(endOfDay(endDate).getTime() / 1000) : true;
       return nameFilter && startDateFilter && endDateFilter;
     }) ?? [];
+  const renderTable = () => {
+    if (isUndefined(historyTransactions)) {
+      return <div className="shimmer-container w-full h-[200px]" />;
+    }
+    return !filteredTransactions.length ? (
+      <Alert type="warning">No transactions found.</Alert>
+    ) : (
+      <HistoryTable chainId={chainId as SupportedChain} data={filteredTransactions} />
+    );
+  };
   if (error) {
     return <Alert type="error">{error.message}</Alert>;
   }
-  if (isUndefined(historyTransactions)) {
-    return <div className="shimmer-container w-full h-[200px]" />;
-  }
-  if (!filteredTransactions.length) {
-    return <Alert type="warning">No transactions found.</Alert>;
-  }
+
   return (
     <div>
       <div className="flex items-center gap-2 mb-6">
@@ -87,7 +92,7 @@ function HistoryTab({ account }: { account: Address | undefined }) {
           )}
         </div>
       </div>
-      <HistoryTable chainId={chainId as SupportedChain} data={filteredTransactions} />
+      {renderTable()}
     </div>
   );
 }
