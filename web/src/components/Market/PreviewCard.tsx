@@ -21,6 +21,7 @@ import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo } from "react";
+import { formatUnits } from "viem";
 import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import Popover from "../Popover";
@@ -34,7 +35,12 @@ export function OutcomesInfo({
   market,
   outcomesCount = 0,
   marketStatus,
-}: { market: Market; outcomesCount?: number; images?: string[]; marketStatus?: MarketStatus }) {
+}: {
+  market: Market;
+  outcomesCount?: number;
+  images?: string[];
+  marketStatus?: MarketStatus;
+}) {
   const visibleOutcomesLimit = outcomesCount && outcomesCount > 0 ? outcomesCount : market.outcomes.length - 1;
   const marketType = getMarketType(market);
 
@@ -101,7 +107,9 @@ export function OutcomesInfo({
           <p
             className="absolute top-[-16px]"
             style={{
-              left: `calc(max(0px, min(${percentage}% - ${3.2 * marketEstimate.toLocaleString().length}px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
+              left: `calc(max(0px, min(${percentage}% - ${
+                3.2 * marketEstimate.toLocaleString().length
+              }px, 100% - ${6 * marketEstimate.toLocaleString().length}px)))`,
             }}
           >
             {marketEstimate.toLocaleString()}
@@ -193,7 +201,13 @@ export function OutcomesInfo({
   );
 }
 
-const ConditionalMarketTooltipInner = ({ parentMarket, market }: { market: Market; parentMarket: Market }) => (
+const ConditionalMarketTooltipInner = ({
+  parentMarket,
+  market,
+}: {
+  market: Market;
+  parentMarket: Market;
+}) => (
   <div className="tooltip">
     <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
       <p className="text-purple-primary">Conditional Market:</p>
@@ -251,6 +265,9 @@ export function PreviewCard({ market }: { market: Market }) {
   const colors = marketStatus && COLORS[marketStatus];
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
+  const hasBalance = market.poolBalance.some(
+    (pool) => (pool?.token0?.balance ?? 0) > 0.01 || (pool?.token1.balance ?? 0) > 0.01,
+  );
   return (
     <div
       className={clsx(
@@ -299,9 +316,11 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
         <div className="flex items-center gap-2">
-          {market.liquidityUSD > 0 ? (
+          {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
-              trigger={<p className="text-[12px]">${liquidityUSD}</p>}
+              trigger={
+                <p className="text-[12px]">${market.liquidityUSD > 0 ? liquidityUSD : hasBalance ? "?" : "0"}</p>
+              }
               content={
                 <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                   <p className="text-purple-primary">Liquidity:</p>

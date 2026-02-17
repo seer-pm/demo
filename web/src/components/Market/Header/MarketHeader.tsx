@@ -5,9 +5,10 @@ import { useMarket } from "@/hooks/useMarket";
 import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
+import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
-import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
+import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
 import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
@@ -26,9 +27,10 @@ import { getMarketEstimate } from "@/lib/market-odds.ts";
 import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
+import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
@@ -189,6 +191,10 @@ export function PoolTokensInfo({
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: parentCollateral } = useTokenInfo(
+    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+    market.chainId,
+  );
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
@@ -211,7 +217,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
-
+  const hasBalance = market.poolBalance.some(
+    (pool) => (pool?.token0?.balance ?? 0) > 0.01 || (pool?.token1.balance ?? 0) > 0.01,
+  );
   return (
     <div
       className={clsx(
@@ -378,15 +386,22 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>
               <span className="text-base-content/70 @[510px]:inline-block hidden">Liquidity:</span>
-              <span className="ml-1">{liquidityUSD}</span>
+              <span className="ml-1">{market.liquidityUSD > 0 ? liquidityUSD : hasBalance ? "?" : "0"}</span>
               <USDIcon />
-              {market.liquidityUSD > 0 && (
+              {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01) && (
                 <Popover
                   trigger={<QuestionIcon fill="#9747FF" />}
                   content={
                     <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                       <p className="text-purple-primary">Liquidity:</p>
                       <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
+                      <p className="text-purple-primary">Open interest:</p>
+                      <p className="mx-1">
+                        {displayBalance(market.outcomesSupply, 18, true)}{" "}
+                        {parentMarket
+                          ? (parentCollateral?.symbol ?? "")
+                          : COLLATERAL_TOKENS[market.chainId].primary.symbol}
+                      </p>
                     </div>
                   }
                 />
