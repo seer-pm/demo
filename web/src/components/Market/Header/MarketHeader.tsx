@@ -386,15 +386,19 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <div className="!flex items-center tooltip">
               <p className="tooltiptext @[510px]:hidden">Liquidity</p>
               <span className="text-base-content/70 @[510px]:inline-block hidden">Liquidity:</span>
-              <span className="ml-1">{market.liquidityUSD > 0 ? liquidityUSD : hasBalance ? "?" : "0"}</span>
+              <span className="ml-1">
+                {market.liquidityUSD > 0
+                  ? liquidityUSD
+                  : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
+                    ? "?"
+                    : "0.00"}
+              </span>
               <USDIcon />
               {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01) && (
                 <Popover
                   trigger={<QuestionIcon fill="#9747FF" />}
                   content={
                     <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
-                      <p className="text-purple-primary">Liquidity:</p>
-                      <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                       <p className="text-purple-primary">Open interest:</p>
                       <p className="mx-1">
                         {displayBalance(market.outcomesSupply, 18, true)}{" "}
@@ -402,6 +406,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                           ? (parentCollateral?.symbol ?? "")
                           : COLLATERAL_TOKENS[market.chainId].primary.symbol}
                       </p>
+                      <p className="text-purple-primary">Liquidity:</p>
+                      <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                     </div>
                   }
                 />

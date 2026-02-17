@@ -319,17 +319,24 @@ export function PreviewCard({ market }: { market: Market }) {
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
               trigger={
-                <p className="text-[12px]">${market.liquidityUSD > 0 ? liquidityUSD : hasBalance ? "?" : "0"}</p>
+                <p className="text-[12px]">
+                  $
+                  {market.liquidityUSD > 0
+                    ? liquidityUSD
+                    : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
+                      ? "?"
+                      : "0.00"}
+                </p>
               }
               content={
                 <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
-                  <p className="text-purple-primary">Liquidity:</p>
-                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
                   <p className="text-purple-primary">Open interest:</p>
                   <p className="mx-1">
                     {displayBalance(market.outcomesSupply, 18, true)}{" "}
                     {parentMarket ? (parentCollateral?.symbol ?? "") : COLLATERAL_TOKENS[market.chainId].primary.symbol}
                   </p>
+                  <p className="text-purple-primary">Liquidity:</p>
+                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
                 </div>
               }
             />
