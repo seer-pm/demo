@@ -133,7 +133,7 @@ function getConditionalTokenToLiquidityMapping(
     const relativeTokenPrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
     const collateralPriceInMainCollateral =
       genericTokenToLiquidityMapping[(curr.isToken0Collateral ? curr.token0.id : curr.token1.id) as Address]
-        ?.tokenPriceInMainCollateral || 1 / curr.outcomesCountWithoutInvalid;
+        ?.tokenPriceInMainCollateral || 0;
     const [balanceToken, balanceCollateral] = curr.isToken0Collateral
       ? [curr.balance1, curr.balance0]
       : [curr.balance0, curr.balance1];
