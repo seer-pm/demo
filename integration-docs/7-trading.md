@@ -31,7 +31,7 @@ See also `COLLATERAL_TOKENS` / `TOKENS_BY_CHAIN` in the app’s [config](../../w
 | Chain     | DEX     | Swap router address |
 |----------|---------|----------------------|
 | Gnosis   | Swapr   | `0xffb643e73f280b97809a8b41f7232ab401a04ee1` |
-| Ethereum | Uniswap V3 | `0xE592427A0AEce92De3Edee1F18E0157C05861564` |
+| Ethereum | Uniswap V3 | `0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45` |
 | Base     | Uniswap V3 | `0x2626664c2603336E57B271c5C0b26F421741e481` |
 | Optimism | Uniswap V3 | `0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45` |
 
@@ -83,7 +83,7 @@ To show the user how much they will receive or spend, call a **Quoter** contract
 | Chain     | DEX     | Quoter address |
 |----------|---------|----------------|
 | Gnosis (100) | Swapr   | `0xcBaD9FDf0D2814659Eb26f600EFDeAF005Eda0F7` |
-| Ethereum (1)  | Uniswap V3 | `0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6` (Quoter) |
+| Ethereum (1)  | Uniswap V3 | `0x61fFE014bA17989E743c5F6cB21bF9697530B21e` (QuoterV2) |
 | Base (8453)   | Uniswap V3 | `0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a` (QuoterV2) |
 | Optimism (10) | Uniswap V3 | `0x61fFE014bA17989E743c5F6cB21bF9697530B21e` (QuoterV2) |
 
@@ -113,31 +113,37 @@ function quoteExactOutputSingle(
 - Use `limitSqrtPrice = 0` for no price limit.
 - Use the returned `fee` when calling the SwapRouter for the actual swap.
 
-### Uniswap V3 Quoter ABI (single-pool)
+### Uniswap V3 QuoterV2 ABI (single-pool)
 
-Uniswap Quoter / QuoterV2 use this parameter layout:
+Uniswap **QuoterV2** (used on Ethereum, Base, Optimism) takes a single **struct** per function and returns four values; the first is the amount. Use `sqrtPriceLimitX96 = 0` for no limit.
 
 ```solidity
+struct QuoteExactInputSingleParams {
+    address tokenIn;
+    address tokenOut;
+    uint256 amountIn;
+    uint24 fee;
+    uint160 sqrtPriceLimitX96;
+}
+
+struct QuoteExactOutputSingleParams {
+    address tokenIn;
+    address tokenOut;
+    uint256 amount;   // exact amount of tokenOut to receive
+    uint24 fee;
+    uint160 sqrtPriceLimitX96;
+}
+
 // Exact in: how much tokenOut for amountIn of tokenIn?
-function quoteExactInputSingle(
-    address tokenIn,
-    address tokenOut,
-    uint24 fee,
-    uint256 amountIn,
-    uint160 sqrtPriceLimitX96
-) external returns (uint256 amountOut);
+function quoteExactInputSingle(QuoteExactInputSingleParams calldata params)
+    external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
 
 // Exact out: how much tokenIn for amountOut of tokenOut?
-function quoteExactOutputSingle(
-    address tokenIn,
-    address tokenOut,
-    uint24 fee,
-    uint256 amountOut,
-    uint160 sqrtPriceLimitX96
-) external returns (uint256 amountIn);
+function quoteExactOutputSingle(QuoteExactOutputSingleParams calldata params)
+    external returns (uint256 amountIn, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
 ```
 
-QuoterV2’s `quoteExactInputSingle` returns extra fields (e.g. `sqrtPriceX96After`, `gasEstimate`); the first return value is still `amountOut`. Use `sqrtPriceLimitX96 = 0` for no limit.
+The first return value is `amountOut` (or `amountIn` for quoteExactOutputSingle); the other three are sqrtPriceX96After, initializedTicksCrossed, and gasEstimate.
 
 ### Getting the quote (viem)
 
@@ -147,43 +153,68 @@ Quoter functions are not `view`: they simulate the swap and revert with the resu
 
 ```typescript
 import { decodeFunctionResult, encodeFunctionData, parseUnits } from "viem";
-import { getPublicClient } from "./viem-clients";
-import { gnosis } from "viem/chains";
+import { getPublicClient } from "./viem-setup";
+import { mainnet } from "viem/chains";
 
-const chain = gnosis;
+const chain = mainnet;
 const publicClient = getPublicClient(chain);
 
+// QuoterV2: params are structs; returns (amount, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
 const QUOTER_ABI = [
   {
     inputs: [
-      { internalType: "address", name: "tokenIn", type: "address" },
-      { internalType: "address", name: "tokenOut", type: "address" },
-      { internalType: "uint24", name: "fee", type: "uint24" },
-      { internalType: "uint256", name: "amountIn", type: "uint256" },
-      { internalType: "uint160", name: "sqrtPriceLimitX96", type: "uint160" },
+      {
+        components: [
+          { internalType: "address", name: "tokenIn", type: "address" },
+          { internalType: "address", name: "tokenOut", type: "address" },
+          { internalType: "uint256", name: "amountIn", type: "uint256" },
+          { internalType: "uint24", name: "fee", type: "uint24" },
+          { internalType: "uint160", name: "sqrtPriceLimitX96", type: "uint160" },
+        ],
+        internalType: "struct IQuoterV2.QuoteExactInputSingleParams",
+        name: "params",
+        type: "tuple",
+      },
     ],
     name: "quoteExactInputSingle",
-    outputs: [{ internalType: "uint256", name: "amountOut", type: "uint256" }],
+    outputs: [
+      { internalType: "uint256", name: "amountOut", type: "uint256" },
+      { internalType: "uint160", name: "sqrtPriceX96After", type: "uint160" },
+      { internalType: "uint32", name: "initializedTicksCrossed", type: "uint32" },
+      { internalType: "uint256", name: "gasEstimate", type: "uint256" },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },
   {
     inputs: [
-      { internalType: "address", name: "tokenIn", type: "address" },
-      { internalType: "address", name: "tokenOut", type: "address" },
-      { internalType: "uint24", name: "fee", type: "uint24" },
-      { internalType: "uint256", name: "amountOut", type: "uint256" },
-      { internalType: "uint160", name: "sqrtPriceLimitX96", type: "uint160" },
+      {
+        components: [
+          { internalType: "address", name: "tokenIn", type: "address" },
+          { internalType: "address", name: "tokenOut", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+          { internalType: "uint24", name: "fee", type: "uint24" },
+          { internalType: "uint160", name: "sqrtPriceLimitX96", type: "uint160" },
+        ],
+        internalType: "struct IQuoterV2.QuoteExactOutputSingleParams",
+        name: "params",
+        type: "tuple",
+      },
     ],
     name: "quoteExactOutputSingle",
-    outputs: [{ internalType: "uint256", name: "amountIn", type: "uint256" }],
+    outputs: [
+      { internalType: "uint256", name: "amountIn", type: "uint256" },
+      { internalType: "uint160", name: "sqrtPriceX96After", type: "uint160" },
+      { internalType: "uint32", name: "initializedTicksCrossed", type: "uint32" },
+      { internalType: "uint256", name: "gasEstimate", type: "uint256" },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;
 
 const QUOTER_ADDRESSES: Record<number, `0x${string}`> = {
-  1: "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
+  1: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
   8453: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
   10: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
 };
@@ -201,7 +232,7 @@ async function quoteExactInput(
   const data = encodeFunctionData({
     abi: QUOTER_ABI,
     functionName: "quoteExactInputSingle",
-    args: [tokenIn, tokenOut, fee, amountIn, 0n],
+    args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],
   });
 
   const result = await publicClient.call({
@@ -211,7 +242,8 @@ async function quoteExactInput(
   });
 
   if (result.data === undefined) throw new Error("Quoter reverted");
-  return decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactInputSingle", data: result.data });
+  const [amountOut] = decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactInputSingle", data: result.data });
+  return amountOut;
 }
 
 async function quoteExactOutput(
@@ -227,7 +259,7 @@ async function quoteExactOutput(
   const data = encodeFunctionData({
     abi: QUOTER_ABI,
     functionName: "quoteExactOutputSingle",
-    args: [tokenIn, tokenOut, fee, amountOut, 0n],
+    args: [{ tokenIn, tokenOut, amount: amountOut, fee, sqrtPriceLimitX96: 0n }],
   });
 
   const result = await publicClient.call({
@@ -237,12 +269,13 @@ async function quoteExactOutput(
   });
 
   if (result.data === undefined) throw new Error("Quoter reverted");
-  return decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactOutputSingle", data: result.data });
+  const [amountIn] = decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactOutputSingle", data: result.data });
+  return amountIn;
 }
 
 // Example: quote 10 DAI → outcome tokens (Ethereum, 0.3% pool)
 const amountOut = await quoteExactInput(
-  publicClient.chain.id,
+  chain.id,
   "0x6B175474E89094C44Da98b954EedeAC495271d0F", // DAI
   "0x...", // outcome token
   3000,
@@ -289,19 +322,42 @@ const [amountOut, fee] = decodeFunctionResult({ abi: SWAPR_QUOTER_ABI, functionN
 
 ---
 
+## Shared: ROUTERS and COLLATERAL
+
+Define these once; the examples below use them as if already in scope.
+
+```typescript
+const ROUTERS: Record<number, `0x${string}`> = {
+  100: "0xffb643e73f280b97809a8b41f7232ab401a04ee1",   // Swapr (Gnosis)
+  1: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",    // Uniswap V3 (Ethereum)
+  8453: "0x2626664c2603336E57B271c5C0b26F421741e481",  // Uniswap V3 (Base)
+  10: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",   // Uniswap V3 (Optimism)
+};
+
+const COLLATERAL: Record<number, `0x${string}`> = {
+  100: "0xaf204776c7245bf4147c2612bf6e5972ee483701",   // sDAI (Gnosis)
+  1: "0x6B175474E89094C44Da98b954EedeAC495271d0F",    // DAI (Ethereum)
+  8453: "0x5875eee11cf8398102fdad704c9e96607675467a", // sUSDS (Base)
+  10: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0",   // sUSDS (Optimism)
+};
+```
+
+---
+
 ## Example: buy outcome tokens (collateral → outcome)
 
 User spends **collateral** to receive **outcome tokens**. Use `exactInputSingle`: `tokenIn = collateral`, `tokenOut = outcomeToken`.
 
 ```typescript
 import { encodeFunctionData, parseUnits } from "viem";
-import { getPublicClient, getWalletClient } from "./viem-clients"; // from 1-viem-setup.md
+import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains";
 
 const chain = gnosis;
 const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const account = walletClient.account!;
+const chainId = chain.id;
 
 const SWAP_ROUTER_ABI = [
   {
@@ -328,25 +384,6 @@ const SWAP_ROUTER_ABI = [
   },
 ] as const;
 
-const chainId = publicClient.chain.id;
-
-// Router and tokens (example: Gnosis)
-const ROUTERS: Record<number, `0x${string}`> = {
-  100: "0xffb643e73f280b97809a8b41f7232ab401a04ee1",   // Swapr (Gnosis)
-  1: "0xE592427A0AEce92De3Edee1F18E0157C05861564",    // Uniswap V3 (Ethereum)
-  8453: "0x2626664c2603336E57B271c5C0b26F421741e481",  // Uniswap V3 (Base)
-  10: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",   // Uniswap V3 (Optimism)
-};
-
-const COLLATERAL: Record<number, `0x${string}`> = {
-  100: "0xaf204776c7245bf4147c2612bf6e5972ee483701",   // sDAI (Gnosis)
-  1: "0x6B175474E89094C44Da98b954EedeAC495271d0F",    // DAI (Ethereum)
-  8453: "0x5875eee11cf8398102fdad704c9e96607675467a", // sUSDS (Base)
-  10: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0",   // sUSDS (Optimism)
-};
-
-const router = ROUTERS[chainId];
-const collateral = COLLATERAL[chainId];
 const outcomeToken = "0x..."; // outcome token address (e.g. from market.wrappedTokens[i])
 const feeTier = 3000; // 0.3% – must match the pool
 const amountIn = parseUnits("10", 18); // 10 units of collateral
@@ -354,31 +391,20 @@ const amountOutMinimum = 0n; // in production: quote off-chain and apply slippag
 
 // 1. Approve router to spend collateral
 await walletClient.writeContract({
-  address: collateral,
-  abi: [
-    {
-      inputs: [
-        { name: "spender", type: "address" },
-        { name: "amount", type: "uint256" },
-      ],
-      name: "approve",
-      outputs: [{ type: "bool" }],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-  ],
+  address: COLLATERAL[chainId],
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [router, amountIn],
+  args: [ROUTERS[chainId], amountIn],
 });
 
 // 2. Swap collateral → outcome token
 const hash = await walletClient.writeContract({
-  address: router,
+  address: ROUTERS[chainId],
   abi: SWAP_ROUTER_ABI,
   functionName: "exactInputSingle",
   args: [
     {
-      tokenIn: collateral,
+      tokenIn: COLLATERAL[chainId],
       tokenOut: outcomeToken,
       fee: feeTier,
       recipient: account.address,
@@ -399,40 +425,63 @@ await publicClient.waitForTransactionReceipt({ hash });
 User sells **outcome tokens** for **collateral**. Use `exactInputSingle`: `tokenIn = outcomeToken`, `tokenOut = collateral`.
 
 ```typescript
-// Same ROUTERS, COLLATERAL, SWAP_ROUTER_ABI as above
+import { parseUnits } from "viem";
+import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
+import { gnosis } from "viem/chains";
+
+const chain = gnosis;
+const publicClient = getPublicClient(chain);
+const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
+const account = walletClient.account!;
+const chainId = chain.id;
+
+const SWAP_ROUTER_ABI = [
+  {
+    inputs: [
+      {
+        components: [
+          { internalType: "address", name: "tokenIn", type: "address" },
+          { internalType: "address", name: "tokenOut", type: "address" },
+          { internalType: "uint24", name: "fee", type: "uint24" },
+          { internalType: "address", name: "recipient", type: "address" },
+          { internalType: "uint256", name: "amountIn", type: "uint256" },
+          { internalType: "uint256", name: "amountOutMinimum", type: "uint256" },
+          { internalType: "uint160", name: "sqrtPriceLimitX96", type: "uint160" },
+        ],
+        internalType: "struct IV3SwapRouter.ExactInputSingleParams",
+        name: "params",
+        type: "tuple",
+      },
+    ],
+    name: "exactInputSingle",
+    outputs: [{ internalType: "uint256", name: "amountOut", type: "uint256" }],
+    stateMutability: "payable",
+    type: "function",
+  },
+] as const;
 
 const outcomeToken = "0x...";
+const feeTier = 3000;
 const amountIn = parseUnits("100", 18); // 100 outcome tokens
 const amountOutMinimum = 0n; // in production: set from quote with slippage
 
 // 1. Approve router to spend outcome tokens
 await walletClient.writeContract({
   address: outcomeToken,
-  abi: [
-    {
-      inputs: [
-        { name: "spender", type: "address" },
-        { name: "amount", type: "uint256" },
-      ],
-      name: "approve",
-      outputs: [{ type: "bool" }],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-  ],
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [router, amountIn],
+  args: [ROUTERS[chainId], amountIn],
 });
 
 // 2. Swap outcome token → collateral
 const hash = await walletClient.writeContract({
-  address: router,
+  address: ROUTERS[chainId],
   abi: SWAP_ROUTER_ABI,
   functionName: "exactInputSingle",
   args: [
     {
       tokenIn: outcomeToken,
-      tokenOut: collateral,
+      tokenOut: COLLATERAL[chainId],
       fee: feeTier,
       recipient: account.address,
       amountIn,
@@ -452,6 +501,19 @@ await publicClient.waitForTransactionReceipt({ hash });
 When you want to receive **exactly** N outcome tokens and spend at most X collateral, use `exactOutputSingle`:
 
 ```typescript
+import { parseUnits } from "viem";
+import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
+import { gnosis } from "viem/chains";
+
+const chain = gnosis;
+const publicClient = getPublicClient(chain);
+const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
+const account = walletClient.account!;
+const chainId = chain.id;
+
+const outcomeToken = "0x...";
+const feeTier = 3000;
+
 const EXACT_OUTPUT_ABI = [
   {
     inputs: [
@@ -480,13 +542,22 @@ const EXACT_OUTPUT_ABI = [
 const amountOut = parseUnits("50", 18);   // exactly 50 outcome tokens
 const amountInMaximum = parseUnits("100", 18); // willing to spend up to 100 collateral (slippage)
 
+// 1. Approve router to spend up to amountInMaximum of collateral
+await walletClient.writeContract({
+  address: COLLATERAL[chainId],
+  abi: ERC20_APPROVE_ABI,
+  functionName: "approve",
+  args: [ROUTERS[chainId], amountInMaximum],
+});
+
+// 2. Swap: receive exactly amountOut of outcome token, spend at most amountInMaximum of collateral
 const hash = await walletClient.writeContract({
-  address: router,
+  address: ROUTERS[chainId],
   abi: EXACT_OUTPUT_ABI,
   functionName: "exactOutputSingle",
   args: [
     {
-      tokenIn: collateral,
+      tokenIn: COLLATERAL[chainId],
       tokenOut: outcomeToken,
       fee: feeTier,
       recipient: account.address,
@@ -496,6 +567,8 @@ const hash = await walletClient.writeContract({
     },
   ],
 });
+
+await publicClient.waitForTransactionReceipt({ hash });
 ```
 
 ---

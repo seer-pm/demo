@@ -108,7 +108,7 @@ We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalle
 ### Shared: addresses
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-clients"; // or your module from 1-viem-setup.md
+import { getPublicClient, getWalletClient, SEER_CONTRACTS, ERC20_APPROVE_ABI, MARKET_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
@@ -124,10 +124,10 @@ const marketAddress = "0x..."; // Market contract address (the market instance)
 
 ### 1. splitPosition / mergePositions / redeemPositions (any router)
 
-The functions `splitPosition`, `mergePositions`, and `redeemPositions` exist on the base **Router** and are also available on **GnosisRouter** and **MainnetRouter** (they extend Router). Use the router address for your chain (`addresses.Router`, `addresses.GnosisRouter`, or `addresses.MainnetRouter`) and pass the **collateral token** address (e.g. USDC, or the parent outcome token for conditional markets) and the **market** address.
+The functions `splitPosition`, `mergePositions`, and `redeemPositions` exist on the base **Router** and are also available on **GnosisRouter** and **MainnetRouter** (they extend Router). Use the router address for your chain (`addresses.Router`, `addresses.GnosisRouter`, or `addresses.MainnetRouter`) and pass the **collateral token** address (e.g. sDAI or sUSDS, or the parent outcome token for conditional markets) and the **market** address.
 
 ```typescript
-const COLLATERAL_TOKEN = "0x..."; // ERC20 collateral (e.g. USDC)
+const COLLATERAL_TOKEN = "0x..."; // ERC20 collateral (e.g. sDAI or sUSDS)
 const routerAddress = addresses.Router ?? addresses.GnosisRouter ?? addresses.MainnetRouter; // router for current chain
 
 const routerAbi = [
@@ -171,8 +171,17 @@ const routerAbi = [
 **Split:**
 
 ```typescript
-const amount = 1000000n; // 1e6 units of collateral (e.g. 1 USDC if 6 decimals)
+const amount = 1000000000000000000n; // 1e18 (1 unit; sDAI and sUSDS use 18 decimals)
 
+// 1. Approve router to spend collateral
+await walletClient.writeContract({
+  address: COLLATERAL_TOKEN,
+  abi: ERC20_APPROVE_ABI,
+  functionName: "approve",
+  args: [routerAddress, amount],
+});
+
+// 2. Split
 const hash = await walletClient.writeContract({
   address: routerAddress,
   abi: routerAbi,
@@ -185,8 +194,31 @@ const receipt = await publicClient.waitForTransactionReceipt({ hash });
 **Merge:**
 
 ```typescript
-const amount = 1000000n; // equal amount per outcome (same value for each)
+const amount = 1000000000000000000n; // equal amount per outcome (same decimals as collateral)
 
+// 1. Approve router to spend `amount` of each outcome token. Get addresses via market.wrappedOutcome(i).
+const numOutcomes = await publicClient.readContract({
+  address: marketAddress,
+  abi: MARKET_ABI,
+  functionName: "numOutcomes",
+  args: [],
+});
+for (let i = 0n; i < numOutcomes; i++) {
+  const [wrappedToken] = await publicClient.readContract({
+    address: marketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [i],
+  });
+  await walletClient.writeContract({
+    address: wrappedToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [routerAddress, amount],
+  });
+}
+
+// 2. Merge
 const hash = await walletClient.writeContract({
   address: routerAddress,
   abi: routerAbi,
@@ -199,8 +231,25 @@ const hash = await walletClient.writeContract({
 
 ```typescript
 const outcomeIndexes = [0n];   // e.g. first outcome won
-const amounts = [500000n];     // amount of that outcome to redeem
+const amounts = [500000000000000000n]; // amount to redeem (same decimals as collateral, e.g. 0.5e18 for sDAI/sUSDS)
 
+// 1. Approve router to spend each winning outcome token. Get addresses via market.wrappedOutcome(outcomeIndexes[i]).
+for (let i = 0; i < outcomeIndexes.length; i++) {
+  const [winningOutcomeToken] = await publicClient.readContract({
+    address: marketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [outcomeIndexes[i]],
+  });
+  await walletClient.writeContract({
+    address: winningOutcomeToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [routerAddress, amounts[i]],
+  });
+}
+
+// 2. Redeem
 const hash = await walletClient.writeContract({
   address: routerAddress,
   abi: routerAbi,
@@ -269,6 +318,29 @@ const hash = await walletClient.writeContract({
 ```typescript
 const amount = 1000000000000000000n; // 1e18 (per-outcome amount; router redeems sDAI to xDAI)
 
+// 1. Approve GnosisRouter to spend `amount` of each outcome token. Same loop as generic Router merge (use MARKET_ABI).
+const numOutcomes = await publicClient.readContract({
+  address: marketAddress,
+  abi: MARKET_ABI,
+  functionName: "numOutcomes",
+  args: [],
+});
+for (let i = 0n; i < numOutcomes; i++) {
+  const [wrappedToken] = await publicClient.readContract({
+    address: marketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [i],
+  });
+  await walletClient.writeContract({
+    address: wrappedToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [addresses.GnosisRouter, amount],
+  });
+}
+
+// 2. Merge
 const hash = await walletClient.writeContract({
   address: addresses.GnosisRouter,
   abi: gnosisRouterAbi,
@@ -283,6 +355,23 @@ const hash = await walletClient.writeContract({
 const outcomeIndexes = [0n];
 const amounts = [500000000000000000n];
 
+// 1. Approve GnosisRouter to spend each winning outcome token.
+for (let i = 0; i < outcomeIndexes.length; i++) {
+  const [winningOutcomeToken] = await publicClient.readContract({
+    address: marketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [outcomeIndexes[i]],
+  });
+  await walletClient.writeContract({
+    address: winningOutcomeToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [addresses.GnosisRouter, amounts[i]],
+  });
+}
+
+// 2. Redeem
 const hash = await walletClient.writeContract({
   address: addresses.GnosisRouter,
   abi: gnosisRouterAbi,
@@ -336,24 +425,15 @@ const mainnetRouterAbi = [
 **Split** (approve DAI; router converts to sDAI internally):
 
 ```typescript
+import { parseEther } from "viem";
+
 const daiAddress = "0x6B175474E89094C44Da98b954EedeAC495271d0F" as const;
 const amount = parseEther("100"); // 100 DAI
 
-// 1. Approve DAI to MainnetRouter (it will convert to sDAI for the split)
+// 1. Approve DAI to MainnetRouter (it will convert to sDAI for the split). Use ERC20_APPROVE_ABI from shared import.
 await walletClient.writeContract({
   address: daiAddress,
-  abi: [
-    {
-      inputs: [
-        { name: "spender", type: "address" },
-        { name: "amount", type: "uint256" },
-      ],
-      name: "approve",
-      outputs: [{ type: "bool" }],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-  ],
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [addresses.MainnetRouter, amount],
 });
@@ -367,7 +447,7 @@ const hash = await walletClient.writeContract({
 });
 ```
 
-**Merge / Redeem:** same pattern as GnosisRouter but with `mergeToDai` and `redeemToDai` (router converts sDAI back to DAI).
+**Merge / Redeem:** Same pattern as GnosisRouter but with `mergeToDai` and `redeemToDai` (router converts sDAI back to DAI). You must **approve the MainnetRouter to spend outcome tokens** before calling merge or redeem: for **merge**, approve `amount` of each outcome token (get addresses via `market.wrappedOutcome(i)`); for **redeem**, approve each winning outcome token for the corresponding amount in `amounts`. Use the same ERC20 `approve(spender, amount)` pattern as in the GnosisRouter examples above.
 
 ---
 

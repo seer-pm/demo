@@ -98,7 +98,7 @@ We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalle
 ### Shared: addresses
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-clients"; // or your module from 1-viem-setup.md
+import { getPublicClient, getWalletClient, SEER_CONTRACTS, ERC20_APPROVE_ABI, MARKET_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
@@ -172,19 +172,9 @@ Choose one of the two collateral tokens, approve it, then call `splitPosition(pr
 ```typescript
 const amount = 1000000000000000000n; // 1e18
 
-const erc20Abi = [
-  {
-    inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
-    name: "approve",
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
 await walletClient.writeContract({
   address: GNO_ADDRESS,
-  abi: erc20Abi,
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [addresses.FutarchyRouter, amount],
 });
@@ -197,6 +187,39 @@ const futarchyRouterAbi = [
       { name: "amount", type: "uint256" },
     ],
     name: "splitPosition",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "proposal", type: "address" },
+      { name: "collateralToken", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "mergePositions",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "proposal", type: "address" },
+      { name: "collateralToken", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "redeemPositions",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "proposal", type: "address" },
+      { name: "amount1", type: "uint256" },
+      { name: "amount2", type: "uint256" },
+    ],
+    name: "redeemProposal",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -217,27 +240,39 @@ To get outcome tokens for the second collateral as well, repeat with `wstETH_ADD
 
 ### 3. Merge (one collateral)
 
-Hold equal amounts of Yes-Token and No-Token for **one** collateral. Approve both outcome tokens to the router, then call `mergePositions(proposal, collateralToken, amount)`.
+Hold equal amounts of Yes-Token and No-Token for **one** collateral. **Approve both outcome tokens** (Yes and No for that collateral) to the FutarchyRouter, then call `mergePositions(proposal, collateralToken, amount)`.
 
 ```typescript
-const futarchyRouterAbiMerge = [
-  ...futarchyRouterAbi,
-  {
-    inputs: [
-      { name: "proposal", type: "address" },
-      { name: "collateralToken", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "mergePositions",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-];
+// 1. Approve FutarchyRouter to spend `amount` of each outcome token. Get addresses via proposal.wrappedOutcome(0) and wrappedOutcome(1) (Yes/No).
+const [yesToken] = await publicClient.readContract({
+  address: proposalAddress,
+  abi: MARKET_ABI,
+  functionName: "wrappedOutcome",
+  args: [0n],
+});
+const [noToken] = await publicClient.readContract({
+  address: proposalAddress,
+  abi: MARKET_ABI,
+  functionName: "wrappedOutcome",
+  args: [1n],
+});
+await walletClient.writeContract({
+  address: yesToken,
+  abi: ERC20_APPROVE_ABI,
+  functionName: "approve",
+  args: [addresses.FutarchyRouter, amount],
+});
+await walletClient.writeContract({
+  address: noToken,
+  abi: ERC20_APPROVE_ABI,
+  functionName: "approve",
+  args: [addresses.FutarchyRouter, amount],
+});
 
+// 2. Merge
 const hash = await walletClient.writeContract({
   address: addresses.FutarchyRouter,
-  abi: futarchyRouterAbiMerge,
+  abi: futarchyRouterAbi,
   functionName: "mergePositions",
   args: [proposalAddress, GNO_ADDRESS, amount],
 });
@@ -255,24 +290,14 @@ const winningOutcomeToken = "0x...";
 
 await walletClient.writeContract({
   address: winningOutcomeToken,
-  abi: erc20Abi,
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [addresses.FutarchyRouter, amount],
 });
 
 const hash = await walletClient.writeContract({
   address: addresses.FutarchyRouter,
-  abi: [...futarchyRouterAbiMerge, {
-    inputs: [
-      { name: "proposal", type: "address" },
-      { name: "collateralToken", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "redeemPositions",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  }],
+  abi: futarchyRouterAbi,
   functionName: "redeemPositions",
   args: [proposalAddress, GNO_ADDRESS, amount],
 });
@@ -292,30 +317,20 @@ const amount2 = 1000000000000000000n; // wstETH to receive
 // e.g. Yes-GNO and Yes-wstETH if proposal was accepted
 await walletClient.writeContract({
   address: yesGnoOutcomeAddress,
-  abi: erc20Abi,
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [addresses.FutarchyRouter, amount1],
 });
 await walletClient.writeContract({
   address: yesWstEthOutcomeAddress,
-  abi: erc20Abi,
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [addresses.FutarchyRouter, amount2],
 });
 
 const hash = await walletClient.writeContract({
   address: addresses.FutarchyRouter,
-  abi: [...futarchyRouterAbiMerge, {
-    inputs: [
-      { name: "proposal", type: "address" },
-      { name: "amount1", type: "uint256" },
-      { name: "amount2", type: "uint256" },
-    ],
-    name: "redeemProposal",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  }],
+  abi: futarchyRouterAbi,
   functionName: "redeemProposal",
   args: [proposalAddress, amount1, amount2],
 });

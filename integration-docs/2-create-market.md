@@ -68,7 +68,7 @@ We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalle
 ### Shared: ABI and addresses
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-clients"; // or your module from 1-viem-setup.md
+import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-setup";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
@@ -253,6 +253,8 @@ function createMarketParams(params: {
 ### 1. Create Categorical market (viem)
 
 ```typescript
+import { parseEventLogs } from "viem/utils";
+
 const params = createMarketParams({
   marketName: "Who will win the election?",
   outcomes: ["Alice", "Bob", "Carol"],
@@ -270,7 +272,13 @@ const hash = await walletClient.writeContract({
 });
 
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
-const newMarketAddress = receipt.logs?.[0]?.address; // or parse NewMarket event
+
+const newMarketAddress = parseEventLogs({
+  abi: marketFactoryAbi,
+  eventName: "NewMarket",
+  logs: receipt.logs,
+})?.[0]?.args?.market;
+if (!newMarketAddress) throw new Error("NewMarket event not found in receipt");
 ```
 
 ### 2. Create Multi Categorical market (viem)

@@ -38,6 +38,62 @@ export function getWalletClient(chain: Chain, privateKey: `0x${string}`) {
     account,
   });
 }
+
+/** ERC20 `approve(spender, amount)` ABI. Use for collateral and outcome token approvals (split, merge, redeem, swaps). */
+export const ERC20_APPROVE_ABI = [
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
+/** Market contract ABI: resolve, wrappedOutcome(index), parentMarket, parentOutcome, numOutcomes. Use for resolve and for reading outcome token addresses. numOutcomes() returns the count without INVALID_RESULT; use numOutcomes() + 1 if you need to include it. */
+export const MARKET_ABI = [
+  {
+    inputs: [],
+    name: "resolve",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "index", type: "uint256" }],
+    name: "wrappedOutcome",
+    outputs: [
+      { name: "wrapped1155", type: "address" },
+      { name: "data", type: "bytes" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "parentMarket",
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "parentOutcome",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "numOutcomes",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 ```
 
 **Usage (any chain):**
@@ -123,4 +179,4 @@ export const SEER_CONTRACTS = {
 
 ## Using in the integration docs
 
-In the rest of the integration docs we obtain clients with `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY!)`, and use `SEER_CONTRACTS[chain.id]` for addresses. Choose any chain from `viem/chains` (e.g. `gnosis`, `mainnet`, `base`); the examples are the same for all networks.
+In the rest of the integration docs we obtain clients with `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY!)`, use `SEER_CONTRACTS[chain.id]` for addresses, and import `ERC20_APPROVE_ABI` and `MARKET_ABI` from the same setup module (approve calls and market reads such as `wrappedOutcome`, `resolve`). Choose any chain from `viem/chains` (e.g. `gnosis`, `mainnet`, `base`); the examples are the same for all networks.

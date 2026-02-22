@@ -19,7 +19,7 @@ Use any of the four market-creation functions on the MarketFactory and pass a **
 
 The same <mark style="color:red;">`Router`</mark> (or <mark style="color:red;">`GnosisRouter`</mark> / <mark style="color:red;">`MainnetRouter`</mark>) is used. The important difference is the **collateral token**:
 
-- **Root market**: collateral token = base collateral (e.g. sDAI on Gnosis, or the ERC20 you use on that chain).
+- **Root market**: collateral token = base collateral (e.g. sDAI or sUSDS, or the yield-bearing ERC20 you use on that chain).
 - **Conditional market**: collateral token = **parent’s wrapped outcome token** (the ERC20 for the parent outcome at index `parentOutcome`).
 
 So for a conditional market you do **not** use `splitFromBase` (Gnosis) or `splitFromDai` (Mainnet); you use `splitPosition(collateralToken, market, amount)` where `collateralToken` is the parent outcome ERC20.
@@ -88,7 +88,7 @@ We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalle
 Use the same `createMarketParams` helper and MarketFactory ABI as in [Create a market](2-create-market.md), and set `parentMarket` and `parentOutcome`:
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-clients"; // or your module from 1-viem-setup.md
+import { getPublicClient, getWalletClient, SEER_CONTRACTS, ERC20_APPROVE_ABI, MARKET_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
@@ -125,32 +125,20 @@ const conditionalMarketAddress = "0x..."; // from event
 The “collateral” token for the **conditional** market in Router calls is the parent’s wrapped outcome ERC20. You can read it from the **child** market (if the contract exposes it) or from the parent:
 
 ```typescript
-const marketAbi = [
-  { inputs: [], name: "parentMarket", outputs: [{ type: "address" }], stateMutability: "view", type: "function" },
-  { inputs: [], name: "parentOutcome", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" },
-  {
-    inputs: [{ name: "index", type: "uint256" }],
-    name: "wrappedOutcome",
-    outputs: [{ name: "wrapped1155", type: "address" }, { name: "data", type: "bytes" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
 const parentMarket = await publicClient.readContract({
   address: conditionalMarketAddress,
-  abi: marketAbi,
+  abi: MARKET_ABI,
   functionName: "parentMarket",
 });
 const parentOutcome = await publicClient.readContract({
   address: conditionalMarketAddress,
-  abi: marketAbi,
+  abi: MARKET_ABI,
   functionName: "parentOutcome",
 });
 
 const [parentWrappedOutcomeToken] = await publicClient.readContract({
   address: parentMarket,
-  abi: marketAbi,
+  abi: MARKET_ABI,
   functionName: "wrappedOutcome",
   args: [parentOutcome],
 });
@@ -165,19 +153,9 @@ Approve the parent outcome token to the Router, then call `splitPosition` with t
 const routerAddress = addresses.Router ?? addresses.GnosisRouter ?? addresses.MainnetRouter;
 const amount = 1000000000000000000n; // 1e18
 
-const erc20Abi = [
-  {
-    inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
-    name: "approve",
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
 await walletClient.writeContract({
   address: parentWrappedOutcomeToken,
-  abi: erc20Abi,
+  abi: ERC20_APPROVE_ABI,
   functionName: "approve",
   args: [routerAddress, amount],
 });
@@ -194,6 +172,29 @@ const routerAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [
+      { name: "collateralToken", type: "address" },
+      { name: "market", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "mergePositions",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "collateralToken", type: "address" },
+      { name: "market", type: "address" },
+      { name: "outcomeIndexes", type: "uint256[]" },
+      { name: "amounts", type: "uint256[]" },
+    ],
+    name: "redeemPositions",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 const hash = await walletClient.writeContract({
@@ -206,9 +207,32 @@ const hash = await walletClient.writeContract({
 
 ### 4. Merge on a conditional market
 
-You need a full set of child outcome tokens (equal amount of each outcome). Same Router and “collateral” token (parent wrapped outcome):
+You need a full set of child outcome tokens (equal amount of each outcome). Same Router and “collateral” token (parent wrapped outcome). **Approve the router to spend `amount` of each child outcome token** before calling merge:
 
 ```typescript
+// 1. Approve router to spend `amount` of each child outcome token.
+const numOutcomes = await publicClient.readContract({
+  address: conditionalMarketAddress,
+  abi: MARKET_ABI,
+  functionName: "numOutcomes",
+  args: [],
+});
+for (let i = 0n; i < numOutcomes; i++) {
+  const [childWrappedToken] = await publicClient.readContract({
+    address: conditionalMarketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [i],
+  });
+  await walletClient.writeContract({
+    address: childWrappedToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [routerAddress, amount],
+  });
+}
+
+// 2. Merge
 const hash = await walletClient.writeContract({
   address: routerAddress,
   abi: routerAbi,
@@ -219,15 +243,32 @@ const hash = await walletClient.writeContract({
 
 ### 5. Redeem (child resolved) → parent outcome tokens
 
-After the **child** market is resolved, redeem winning child outcome(s). You receive **parent** outcome tokens. Use a Router ABI that includes `redeemPositions(collateralToken, market, outcomeIndexes, amounts)` (see [Split, merge and redeem](4-split-merge-and-redeem.md)):
+After the **child** market is resolved, redeem winning child outcome(s). You receive **parent** outcome tokens. **Approve the router to spend each winning child outcome token** for the corresponding amount before calling redeem. Use a Router ABI that includes `redeemPositions(collateralToken, market, outcomeIndexes, amounts)` (see [Split, merge and redeem](4-split-merge-and-redeem.md)):
 
 ```typescript
 const outcomeIndexes = [0n];   // e.g. first outcome won
 const amounts = [500000000000000000n];
 
+// 1. Approve router to spend each winning child outcome token.
+for (let i = 0; i < outcomeIndexes.length; i++) {
+  const [winningChildToken] = await publicClient.readContract({
+    address: conditionalMarketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [outcomeIndexes[i]],
+  });
+  await walletClient.writeContract({
+    address: winningChildToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [routerAddress, amounts[i]],
+  });
+}
+
+// 2. Redeem
 const hash = await walletClient.writeContract({
   address: routerAddress,
-  abi: routerAbi, // must include redeemPositions
+  abi: routerAbi,
   functionName: "redeemPositions",
   args: [parentWrappedOutcomeToken, conditionalMarketAddress, outcomeIndexes, amounts],
 });
@@ -235,10 +276,10 @@ const hash = await walletClient.writeContract({
 
 ### 6. Redeem to base collateral in one tx (ConditionalRouter)
 
-If the **parent** is a root market and is already resolved, you can use ConditionalRouter to redeem child winning positions and get **collateral** in one call. Use `addresses.ConditionalRouter`.
+If the **parent** is a root market and is already resolved, you can use ConditionalRouter to redeem child winning positions and get **collateral** in one call. Use `addresses.ConditionalRouter`. **Approve the ConditionalRouter to spend each winning child outcome token** for the corresponding amount before calling.
 
 ```typescript
-const collateralToken = "0x..."; // base collateral (e.g. sDAI on Gnosis)
+const collateralToken = "0x..."; // base collateral (e.g. sDAI or sUSDS)
 
 const conditionalRouterAbi = [
   {
@@ -260,6 +301,23 @@ const outcomeIndexes = [0n];
 const parentOutcomeIndexes = [0n]; // parent outcome that won (e.g. Yes = 0)
 const amounts = [500000000000000000n];
 
+// 1. Approve ConditionalRouter to spend each winning child outcome token.
+for (let i = 0; i < outcomeIndexes.length; i++) {
+  const [winningChildToken] = await publicClient.readContract({
+    address: conditionalMarketAddress,
+    abi: MARKET_ABI,
+    functionName: "wrappedOutcome",
+    args: [outcomeIndexes[i]],
+  });
+  await walletClient.writeContract({
+    address: winningChildToken,
+    abi: ERC20_APPROVE_ABI,
+    functionName: "approve",
+    args: [addresses.ConditionalRouter, amounts[i]],
+  });
+}
+
+// 2. Redeem to collateral
 const hash = await walletClient.writeContract({
   address: addresses.ConditionalRouter,
   abi: conditionalRouterAbi,

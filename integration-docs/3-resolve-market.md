@@ -29,7 +29,7 @@ We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalle
 ### Shared: ABI and address
 
 ```typescript
-import { getPublicClient, getWalletClient } from "./viem-clients"; // or your module from 1-viem-setup.md
+import { getPublicClient, getWalletClient, MARKET_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
@@ -38,16 +38,6 @@ const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${str
 const account = walletClient.account!;
 
 const marketAddress = "0x..."; // Market contract address
-
-const marketAbi = [
-  {
-    inputs: [],
-    name: "resolve",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
 ```
 
 ### Resolve the market
@@ -57,7 +47,7 @@ Call `resolve()` on the Market contract:
 ```typescript
 const hash = await walletClient.writeContract({
   address: marketAddress,
-  abi: marketAbi,
+  abi: MARKET_ABI,
   functionName: "resolve",
   args: [],
 });
@@ -73,7 +63,7 @@ To avoid reverts (e.g. question not yet settled), simulate first:
 const { request } = await publicClient.simulateContract({
   account: account.address,
   address: marketAddress,
-  abi: marketAbi,
+  abi: MARKET_ABI,
   functionName: "resolve",
   args: [],
 });
