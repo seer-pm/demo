@@ -147,19 +147,19 @@ The first return value is `amountOut` (or `amountIn` for quoteExactOutputSingle)
 
 ### Getting the quote (viem)
 
-Quoter functions are not `view`: they simulate the swap and revert with the result. Use `eth_call` and decode the revert data to get the amount.
+Quoter functions are not `view`: they simulate the swap and **revert with the result**. So you must simulate the call and decode the **revert data** to get the amount (do not rely on `result.data` from a successful `eth_call`, because the contract reverts by design and some RPCs return a failed call).
 
 **Quote exact input (e.g. “I spend 10 collateral → how many outcome tokens?”):**
 
 ```typescript
-import { decodeFunctionResult, encodeFunctionData, parseUnits } from "viem";
+import { decodeAbiParameters, parseUnits } from "viem";
 import { getPublicClient } from "./viem-setup";
 import { mainnet } from "viem/chains";
 
 const chain = mainnet;
 const publicClient = getPublicClient(chain);
 
-// QuoterV2: params are structs; returns (amount, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
+// QuoterV2: params are structs; reverts with (amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
 const QUOTER_ABI = [
   {
     inputs: [
@@ -213,11 +213,26 @@ const QUOTER_ABI = [
   },
 ] as const;
 
+// QuoterV2 reverts with ABI-encoded (uint256, uint160, uint32, uint256)
+const QUOTER_REVERT_TYPES = [
+  { type: "uint256" },
+  { type: "uint160" },
+  { type: "uint32" },
+  { type: "uint256" },
+] as const;
+
 const QUOTER_ADDRESSES: Record<number, `0x${string}`> = {
   1: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
   8453: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
   10: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
 };
+
+/** Get revert data from viem call/simulate errors (e.g. CallExecutionError.cause.data). */
+function getRevertData(err: unknown): `0x${string}` | undefined {
+  const e = err as { cause?: { data?: `0x${string}` }; data?: `0x${string}` };
+  const data = e.cause?.data ?? e.data;
+  return data && typeof data === "string" && data.startsWith("0x") ? data : undefined;
+}
 
 async function quoteExactInput(
   chainId: number,
@@ -229,21 +244,21 @@ async function quoteExactInput(
   const quoter = QUOTER_ADDRESSES[chainId];
   if (!quoter) throw new Error(`No quoter for chain ${chainId}`);
 
-  const data = encodeFunctionData({
-    abi: QUOTER_ABI,
-    functionName: "quoteExactInputSingle",
-    args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],
-  });
-
-  const result = await publicClient.call({
-    to: quoter,
-    data,
-    account: "0x0000000000000000000000000000000000000000",
-  });
-
-  if (result.data === undefined) throw new Error("Quoter reverted");
-  const [amountOut] = decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactInputSingle", data: result.data });
-  return amountOut;
+  try {
+    const result = await publicClient.simulateContract({
+      address: quoter,
+      abi: QUOTER_ABI,
+      functionName: "quoteExactInputSingle",
+      args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],
+      account: "0x0000000000000000000000000000000000000000",
+    });
+    return result.result[0];
+  } catch (err) {
+    const revertData = getRevertData(err);
+    if (!revertData) throw err;
+    const [amountOut] = decodeAbiParameters(QUOTER_REVERT_TYPES, revertData);
+    return amountOut;
+  }
 }
 
 async function quoteExactOutput(
@@ -256,21 +271,21 @@ async function quoteExactOutput(
   const quoter = QUOTER_ADDRESSES[chainId];
   if (!quoter) throw new Error(`No quoter for chain ${chainId}`);
 
-  const data = encodeFunctionData({
-    abi: QUOTER_ABI,
-    functionName: "quoteExactOutputSingle",
-    args: [{ tokenIn, tokenOut, amount: amountOut, fee, sqrtPriceLimitX96: 0n }],
-  });
-
-  const result = await publicClient.call({
-    to: quoter,
-    data,
-    account: "0x0000000000000000000000000000000000000000",
-  });
-
-  if (result.data === undefined) throw new Error("Quoter reverted");
-  const [amountIn] = decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactOutputSingle", data: result.data });
-  return amountIn;
+  try {
+    const result = await publicClient.simulateContract({
+      address: quoter,
+      abi: QUOTER_ABI,
+      functionName: "quoteExactOutputSingle",
+      args: [{ tokenIn, tokenOut, amount: amountOut, fee, sqrtPriceLimitX96: 0n }],
+      account: "0x0000000000000000000000000000000000000000",
+    });
+    return result.result[0];
+  } catch (err) {
+    const revertData = getRevertData(err);
+    if (!revertData) throw err;
+    const [amountIn] = decodeAbiParameters(QUOTER_REVERT_TYPES, revertData);
+    return amountIn;
+  }
 }
 
 // Example: quote 10 DAI → outcome tokens (Ethereum, 0.3% pool)
@@ -307,18 +322,27 @@ const SWAPR_QUOTER_ABI = [
   },
 ] as const;
 
-const data = encodeFunctionData({
-  abi: SWAPR_QUOTER_ABI,
-  functionName: "quoteExactInputSingle",
-  args: [collateral, outcomeToken, amountIn, 0n],
-});
-const result = await publicClient.call({ to: SWAPR_QUOTER, data, account: "0x0000000000000000000000000000000000000000" });
-if (result.data === undefined) throw new Error("Quoter reverted");
-const [amountOut, fee] = decodeFunctionResult({ abi: SWAPR_QUOTER_ABI, functionName: "quoteExactInputSingle", data: result.data });
-// Use amountOut for amountOutMinimum (with slippage) and fee in the router's exactInputSingle params
+// Swapr Quoter also reverts with the result; reuse getRevertData from the Uniswap example above.
+// Revert payload: (uint256 amountOut, uint16 fee)
+try {
+  const result = await publicClient.simulateContract({
+    address: SWAPR_QUOTER,
+    abi: SWAPR_QUOTER_ABI,
+    functionName: "quoteExactInputSingle",
+    args: [collateral, outcomeToken, amountIn, 0n],
+    account: "0x0000000000000000000000000000000000000000",
+  });
+  const [amountOut, fee] = result.result;
+  // use amountOut, fee
+} catch (err) {
+  const revertData = getRevertData(err);
+  if (!revertData) throw err;
+  const [amountOut, fee] = decodeAbiParameters([{ type: "uint256" }, { type: "uint16" }], revertData);
+  // Use amountOut for amountOutMinimum (with slippage) and fee in the router's exactInputSingle params
+}
 ```
 
-**Note:** Some RPC nodes return failed `eth_call` when the contract reverts, so `result.data` may be undefined even though the revert payload contains the amount. In that case you need to catch the error, read the revert `data` from the error object, and decode it (e.g. with `decodeAbiParameters([{ type: "uint256" }], data)` if the Quoter reverts with a single `uint256`). The pattern above works when the node returns the “success” payload in `result.data`.
+Use the same simulate-and-decode-revert pattern as for Uniswap QuoterV2 so behaviour is consistent across RPCs.
 
 ---
 

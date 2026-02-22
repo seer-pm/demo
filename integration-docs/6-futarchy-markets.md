@@ -115,6 +115,8 @@ const addresses = SEER_CONTRACTS[chain.id];
 Build the params tuple and call `createProposal`. The factory derives outcomes and token names from the collateral symbols.
 
 ```typescript
+import { parseEventLogs } from "viem/utils";
+
 const GNO_ADDRESS = "0x...";   // collateral 1
 const wstETH_ADDRESS = "0x..."; // collateral 2
 
@@ -140,6 +142,16 @@ const futarchyFactoryAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    type: "event",
+    name: "NewProposal",
+    inputs: [
+      { name: "proposal", type: "address", indexed: true },
+      { name: "marketName", type: "string", indexed: false },
+      { name: "conditionId", type: "bytes32", indexed: false },
+      { name: "questionId", type: "bytes32", indexed: false },
+    ],
+  },
 ] as const;
 
 const params = {
@@ -159,8 +171,14 @@ const hash = await walletClient.writeContract({
   args: [params],
 });
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
-// Parse NewProposal event to get proposal address
-const proposalAddress = "0x..."; // from logs
+
+const parsedLogs = parseEventLogs({
+  abi: futarchyFactoryAbi,
+  eventName: "NewProposal",
+  logs: receipt.logs,
+});
+const proposalAddress = parsedLogs[0]?.args?.proposal;
+if (!proposalAddress) throw new Error("NewProposal event not found in receipt");
 ```
 
 ---
@@ -313,8 +331,21 @@ Approve the winning outcome tokens for **both** collaterals. Then call `redeemPr
 const amount1 = 1000000000000000000n; // GNO to receive
 const amount2 = 1000000000000000000n; // wstETH to receive
 
-// Approve winning Yes/No outcome token for token1 and token2
-// e.g. Yes-GNO and Yes-wstETH if proposal was accepted
+// Resolve outcome token addresses: wrappedOutcome(0)=Yes-token1, (1)=No-token1, (2)=Yes-token2, (3)=No-token2
+const [yesGnoOutcomeAddress] = await publicClient.readContract({
+  address: proposalAddress,
+  abi: MARKET_ABI,
+  functionName: "wrappedOutcome",
+  args: [0n],
+});
+const [yesWstEthOutcomeAddress] = await publicClient.readContract({
+  address: proposalAddress,
+  abi: MARKET_ABI,
+  functionName: "wrappedOutcome",
+  args: [2n],
+});
+
+// Approve winning Yes outcome tokens for token1 and token2 (e.g. Yes-GNO and Yes-wstETH if proposal was accepted)
 await walletClient.writeContract({
   address: yesGnoOutcomeAddress,
   abi: ERC20_APPROVE_ABI,
