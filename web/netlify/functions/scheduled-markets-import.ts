@@ -132,18 +132,46 @@ function getLiquidityAccount() {
   return privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
 }
 
-async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<boolean> {
+const MARKETS_PAGE_SIZE = 1000;
+
+type MarketsResult = Awaited<ReturnType<ReturnType<typeof getSeerSdk>["GetMarkets"]>>["markets"];
+
+async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<MarketsResult> {
   const client = graphQLClient(chainId);
-  const { markets } = await getSeerSdk(client).GetMarkets({
-    first: 1000,
-    orderBy: Market_OrderBy.BlockNumber,
-    orderDirection: OrderDirection.Desc,
-  });
+  const allMarkets: MarketsResult = [];
+  let skip = 0;
+
+  while (true) {
+    const { markets } = await getSeerSdk(client).GetMarkets({
+      first: MARKETS_PAGE_SIZE,
+      skip,
+      orderBy: Market_OrderBy.BlockNumber,
+      orderDirection: OrderDirection.Desc,
+    });
+
+    if (markets.length === 0) {
+      break;
+    }
+
+    allMarkets.push(...markets);
+    if (markets.length < MARKETS_PAGE_SIZE) {
+      break;
+    }
+    skip += MARKETS_PAGE_SIZE;
+  }
+
+  return allMarkets;
+}
+
+async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<boolean> {
+  const markets = await fetchAllSubgraphMarkets(chainId);
 
   if (markets.length === 0) {
     console.log(`No markets found for chain ${chainId}`);
     return false;
   }
+
+  console.log(`Chain ${chainId}: fetched ${markets.length} markets`);
 
   await fetchAndStoreMetadata(supabase, chainId);
 
