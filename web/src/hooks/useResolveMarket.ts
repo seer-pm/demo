@@ -2,29 +2,22 @@ import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { getResolveMarketExecution } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
-import { writeContract } from "@wagmi/core";
+import { sendTransaction } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
-import { marketAbi } from "./contracts/generated-market-factory";
 
 interface ResolveMarketProps {
   market: Market;
 }
 
 async function resolveMarket(props: ResolveMarketProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.market.id,
-        chainId: props.market.chainId,
-        abi: marketAbi,
-        functionName: "resolve",
-      }),
-    {
-      txSent: { title: "Resolving market..." },
-      txSuccess: { title: "Market resolved!" },
-    },
-  );
+  const execution = getResolveMarketExecution(props.market.id, props.market.chainId);
+
+  const result = await toastifyTx(() => sendTransaction(config, execution), {
+    txSent: { title: "Resolving market..." },
+    txSuccess: { title: "Market resolved!" },
+  });
 
   if (!result.status) {
     throw result.error;

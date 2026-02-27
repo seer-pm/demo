@@ -1,8 +1,9 @@
-import { marketFactoryAbi, marketFactoryAddress } from "@/hooks/contracts/generated-market-factory.ts";
 import { SupportedChain } from "@/lib/chains.ts";
-import { WEATHER_CATEGORY, getCreateMarketParams } from "@/lib/create-market.ts";
+import { getConfigNumber } from "@/lib/config.ts";
 import { MarketTypes } from "@/lib/market.ts";
 import { Config } from "@netlify/functions";
+import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk";
+import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, parseEther, zeroAddress } from "viem";
@@ -130,6 +131,7 @@ async function createMarketForCity(
         collateralToken1: "",
         collateralToken2: "",
         isArbitraryQuestion: false,
+        minBond: getConfigNumber("MIN_BOND", chainId),
       }),
     ],
   });

@@ -9,7 +9,8 @@
   "workspaces": [
     "contracts",
     "web",
-    "subgraph"
+    "subgraph",
+    "packages/*"
   ],
   "devDependencies": {
     "husky": "^9.0.11"

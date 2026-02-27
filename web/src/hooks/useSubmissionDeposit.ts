@@ -1,12 +1,12 @@
 import { ArbitratorAbi } from "@/abi/ArbitratorAbi";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import {
   readLightGeneralizedTcrArbitrator,
   readLightGeneralizedTcrArbitratorExtraData,
   readLightGeneralizedTcrSubmissionBaseDeposit,
-} from "./contracts/generated-curate";
+} from "@seer-pm/sdk/contracts/curate";
+import { useQuery } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
 
 export async function getSubmissionDeposit(): Promise<bigint> {
   const [arbitrator, arbitratorExtraData, submissionBaseDeposit] = await Promise.all([

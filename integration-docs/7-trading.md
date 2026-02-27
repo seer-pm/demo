@@ -22,7 +22,7 @@ Pools are quoted against the main collateral. Use these token addresses when bui
 | Base (8453)    | sUSDS | `0x5875eee11cf8398102fdad704c9e96607675467a` |
 | Optimism (10)  | sUSDS | `0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0` |
 
-See also `COLLATERAL_TOKENS` / `TOKENS_BY_CHAIN` in the app’s [config](../../web/src/lib/config.ts).
+Use **@seer-pm/sdk**: `getPrimaryCollateralAddress(chainId)` or `COLLATERAL_TOKENS[chainId].primary.address`. See also the app [config](../../web/src/lib/config.ts).
 
 ---
 
@@ -35,7 +35,7 @@ See also `COLLATERAL_TOKENS` / `TOKENS_BY_CHAIN` in the app’s [config](../../w
 | Base     | Uniswap V3 | `0x2626664c2603336E57B271c5C0b26F421741e481` |
 | Optimism | Uniswap V3 | `0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45` |
 
-Use the same router ABI (Uniswap V3–compatible) for Swapr and Uniswap V3.
+Use **@seer-pm/sdk**: `getSwapRouterAddress(chainId)` to get the router for the chain. Same router ABI (Uniswap V3–compatible) for Swapr and Uniswap V3.
 
 ---
 
@@ -346,24 +346,16 @@ Use the same simulate-and-decode-revert pattern as for Uniswap QuoterV2 so behav
 
 ---
 
-## Shared: ROUTERS and COLLATERAL
+## Shared: router and collateral from SDK
 
-Define these once; the examples below use them as if already in scope.
+Import from **@seer-pm/sdk** and use the chain id:
 
 ```typescript
-const ROUTERS: Record<number, `0x${string}`> = {
-  100: "0xffb643e73f280b97809a8b41f7232ab401a04ee1",   // Swapr (Gnosis)
-  1: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",    // Uniswap V3 (Ethereum)
-  8453: "0x2626664c2603336E57B271c5C0b26F421741e481",  // Uniswap V3 (Base)
-  10: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",   // Uniswap V3 (Optimism)
-};
+import { getSwapRouterAddress, getPrimaryCollateralAddress } from "@seer-pm/sdk";
 
-const COLLATERAL: Record<number, `0x${string}`> = {
-  100: "0xaf204776c7245bf4147c2612bf6e5972ee483701",   // sDAI (Gnosis)
-  1: "0x6B175474E89094C44Da98b954EedeAC495271d0F",    // DAI (Ethereum)
-  8453: "0x5875eee11cf8398102fdad704c9e96607675467a", // sUSDS (Base)
-  10: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0",   // sUSDS (Optimism)
-};
+// In your swap logic:
+// const routerAddress = getSwapRouterAddress(chainId);
+// const collateralAddress = getPrimaryCollateralAddress(chainId);
 ```
 
 ---
@@ -373,7 +365,8 @@ const COLLATERAL: Record<number, `0x${string}`> = {
 User spends **collateral** to receive **outcome tokens**. Use `exactInputSingle`: `tokenIn = collateral`, `tokenOut = outcomeToken`.
 
 ```typescript
-import { encodeFunctionData, parseUnits } from "viem";
+import { getSwapRouterAddress, getPrimaryCollateralAddress } from "@seer-pm/sdk";
+import { parseUnits } from "viem";
 import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains";
 
@@ -382,6 +375,8 @@ const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const account = walletClient.account!;
 const chainId = chain.id;
+const routerAddress = getSwapRouterAddress(chainId);
+const collateralAddress = getPrimaryCollateralAddress(chainId);
 
 const SWAP_ROUTER_ABI = [
   {
@@ -415,20 +410,20 @@ const amountOutMinimum = 0n; // in production: quote off-chain and apply slippag
 
 // 1. Approve router to spend collateral
 await walletClient.writeContract({
-  address: COLLATERAL[chainId],
+  address: collateralAddress,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [ROUTERS[chainId], amountIn],
+  args: [routerAddress, amountIn],
 });
 
 // 2. Swap collateral → outcome token
 const hash = await walletClient.writeContract({
-  address: ROUTERS[chainId],
+  address: routerAddress,
   abi: SWAP_ROUTER_ABI,
   functionName: "exactInputSingle",
   args: [
     {
-      tokenIn: COLLATERAL[chainId],
+      tokenIn: collateralAddress,
       tokenOut: outcomeToken,
       fee: feeTier,
       recipient: account.address,
@@ -449,6 +444,7 @@ await publicClient.waitForTransactionReceipt({ hash });
 User sells **outcome tokens** for **collateral**. Use `exactInputSingle`: `tokenIn = outcomeToken`, `tokenOut = collateral`.
 
 ```typescript
+import { getSwapRouterAddress, getPrimaryCollateralAddress } from "@seer-pm/sdk";
 import { parseUnits } from "viem";
 import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains";
@@ -458,6 +454,8 @@ const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const account = walletClient.account!;
 const chainId = chain.id;
+const routerAddress = getSwapRouterAddress(chainId);
+const collateralAddress = getPrimaryCollateralAddress(chainId);
 
 const SWAP_ROUTER_ABI = [
   {
@@ -494,18 +492,18 @@ await walletClient.writeContract({
   address: outcomeToken,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [ROUTERS[chainId], amountIn],
+  args: [routerAddress, amountIn],
 });
 
 // 2. Swap outcome token → collateral
 const hash = await walletClient.writeContract({
-  address: ROUTERS[chainId],
+  address: routerAddress,
   abi: SWAP_ROUTER_ABI,
   functionName: "exactInputSingle",
   args: [
     {
       tokenIn: outcomeToken,
-      tokenOut: COLLATERAL[chainId],
+      tokenOut: collateralAddress,
       fee: feeTier,
       recipient: account.address,
       amountIn,
@@ -525,6 +523,7 @@ await publicClient.waitForTransactionReceipt({ hash });
 When you want to receive **exactly** N outcome tokens and spend at most X collateral, use `exactOutputSingle`:
 
 ```typescript
+import { getSwapRouterAddress, getPrimaryCollateralAddress } from "@seer-pm/sdk";
 import { parseUnits } from "viem";
 import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains";
@@ -534,6 +533,8 @@ const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const account = walletClient.account!;
 const chainId = chain.id;
+const routerAddress = getSwapRouterAddress(chainId);
+const collateralAddress = getPrimaryCollateralAddress(chainId);
 
 const outcomeToken = "0x...";
 const feeTier = 3000;
@@ -568,20 +569,20 @@ const amountInMaximum = parseUnits("100", 18); // willing to spend up to 100 col
 
 // 1. Approve router to spend up to amountInMaximum of collateral
 await walletClient.writeContract({
-  address: COLLATERAL[chainId],
+  address: collateralAddress,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [ROUTERS[chainId], amountInMaximum],
+  args: [routerAddress, amountInMaximum],
 });
 
 // 2. Swap: receive exactly amountOut of outcome token, spend at most amountInMaximum of collateral
 const hash = await walletClient.writeContract({
-  address: ROUTERS[chainId],
+  address: routerAddress,
   abi: EXACT_OUTPUT_ABI,
   functionName: "exactOutputSingle",
   args: [
     {
-      tokenIn: COLLATERAL[chainId],
+      tokenIn: collateralAddress,
       tokenOut: outcomeToken,
       fee: feeTier,
       recipient: account.address,

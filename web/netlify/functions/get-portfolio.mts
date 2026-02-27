@@ -7,9 +7,9 @@ import {
   getCollateralByIndex,
   getMarketStatus,
   getMarketType,
-  getQuestionParts,
   getRedeemedPrice,
 } from "@/lib/market";
+import { getQuestionParts } from "@seer-pm/sdk";
 import { Address, formatUnits } from "viem";
 import { config } from "./utils/config";
 import { getMarketsMappings, searchMarkets } from "./utils/markets";
@@ -35,8 +35,7 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
       const { market, tokenIndex } = tokenToMarket[allTokensIds[index]];
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const outcomeIndex = market.wrappedTokens.indexOf(allTokensIds[index]);
-      const isInvalidOutcome =
-        market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
+      const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
       const marketType = getMarketType(market);
       const marketStatus = getMarketStatus(market);
 
@@ -76,9 +75,7 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
         collateralToken: getCollateralByIndex(market, tokenIndex),
         parentMarketName: parentMarket?.marketName,
         parentMarketId: parentMarket?.id,
-        parentOutcome: parentMarket
-          ? parentMarket.outcomes[Number(market.parentOutcome)]
-          : undefined,
+        parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
         redeemedPrice: getRedeemedPrice(market, tokenIndex),
         outcomeImage: market.images?.outcomes?.[outcomeIndex],
         isInvalidOutcome,

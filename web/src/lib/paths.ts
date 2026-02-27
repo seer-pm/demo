@@ -1,4 +1,4 @@
-import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
+import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import { TOKENS_BY_CHAIN, isSeerCredits } from "./config";

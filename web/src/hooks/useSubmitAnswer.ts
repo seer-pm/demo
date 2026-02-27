@@ -2,9 +2,9 @@ import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { writeRealitySubmitAnswer } from "@seer-pm/sdk/contracts/reality";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
-import { writeRealitySubmitAnswer } from "./contracts/generated-reality";
 
 interface SubmitAnswerProps {
   questionId: `0x${string}`;

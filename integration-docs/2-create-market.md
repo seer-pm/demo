@@ -61,298 +61,98 @@ struct CreateMarketParams {
 
 ---
 
-## Viem examples
+## Using @seer-pm/sdk (recommended)
 
-We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY)`. You need the **MarketFactory ABI** (create functions + `CreateMarketParams` tuple + `NewMarket` event). Addresses come from `SEER_CONTRACTS[chain.id]`.
+The **@seer-pm/sdk** provides `getCreateMarketParams`, `getCreateMarketExecution`, and `MarketTypes`. Use your viem clients to send the transaction. See [Viem setup](1-viem-setup.md#dependencies) for installation.
 
-### Shared: ABI and addresses
+### SDK: create categorical market
+
+Only required: `marketType`, `marketName`, `outcomes`, `openingTime`, `minBond`, `chainId`. Other fields have defaults (e.g. `tokenNames` are derived from `outcomes`, `category` defaults to `"misc"`).
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS } from "./viem-setup";
-import { gnosis } from "viem/chains"; // or mainnet, base, etc.
+import { getPublicClient, getWalletClient } from "./viem-setup";
+import { gnosis } from "viem/chains";
+import { getCreateMarketExecution, getNewMarketFromLogs, MarketTypes } from "@seer-pm/sdk";
 
 const chain = gnosis;
 const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const chainId = chain.id;
-const addresses = SEER_CONTRACTS[chainId];
 
-const marketFactoryAbi = [
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "market", type: "address" },
-      { indexed: false, internalType: "string", name: "marketName", type: "string" },
-      { indexed: false, internalType: "address", name: "parentMarket", type: "address" },
-      { indexed: false, internalType: "bytes32", name: "conditionId", type: "bytes32" },
-      { indexed: false, internalType: "bytes32", name: "questionId", type: "bytes32" },
-      { indexed: false, internalType: "bytes32[]", name: "questionsIds", type: "bytes32[]" },
-    ],
-    name: "NewMarket",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "string", name: "marketName", type: "string" },
-          { internalType: "string[]", name: "outcomes", type: "string[]" },
-          { internalType: "string", name: "questionStart", type: "string" },
-          { internalType: "string", name: "questionEnd", type: "string" },
-          { internalType: "string", name: "outcomeType", type: "string" },
-          { internalType: "uint256", name: "parentOutcome", type: "uint256" },
-          { internalType: "address", name: "parentMarket", type: "address" },
-          { internalType: "string", name: "category", type: "string" },
-          { internalType: "string", name: "lang", type: "string" },
-          { internalType: "uint256", name: "lowerBound", type: "uint256" },
-          { internalType: "uint256", name: "upperBound", type: "uint256" },
-          { internalType: "uint256", name: "minBond", type: "uint256" },
-          { internalType: "uint32", name: "openingTime", type: "uint32" },
-          { internalType: "string[]", name: "tokenNames", type: "string[]" },
-        ],
-        internalType: "struct MarketFactory.CreateMarketParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "createCategoricalMarket",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "string", name: "marketName", type: "string" },
-          { internalType: "string[]", name: "outcomes", type: "string[]" },
-          { internalType: "string", name: "questionStart", type: "string" },
-          { internalType: "string", name: "questionEnd", type: "string" },
-          { internalType: "string", name: "outcomeType", type: "string" },
-          { internalType: "uint256", name: "parentOutcome", type: "uint256" },
-          { internalType: "address", name: "parentMarket", type: "address" },
-          { internalType: "string", name: "category", type: "string" },
-          { internalType: "string", name: "lang", type: "string" },
-          { internalType: "uint256", name: "lowerBound", type: "uint256" },
-          { internalType: "uint256", name: "upperBound", type: "uint256" },
-          { internalType: "uint256", name: "minBond", type: "uint256" },
-          { internalType: "uint32", name: "openingTime", type: "uint32" },
-          { internalType: "string[]", name: "tokenNames", type: "string[]" },
-        ],
-        internalType: "struct MarketFactory.CreateMarketParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "createMultiCategoricalMarket",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "string", name: "marketName", type: "string" },
-          { internalType: "string[]", name: "outcomes", type: "string[]" },
-          { internalType: "string", name: "questionStart", type: "string" },
-          { internalType: "string", name: "questionEnd", type: "string" },
-          { internalType: "string", name: "outcomeType", type: "string" },
-          { internalType: "uint256", name: "parentOutcome", type: "uint256" },
-          { internalType: "address", name: "parentMarket", type: "address" },
-          { internalType: "string", name: "category", type: "string" },
-          { internalType: "string", name: "lang", type: "string" },
-          { internalType: "uint256", name: "lowerBound", type: "uint256" },
-          { internalType: "uint256", name: "upperBound", type: "uint256" },
-          { internalType: "uint256", name: "minBond", type: "uint256" },
-          { internalType: "uint32", name: "openingTime", type: "uint32" },
-          { internalType: "string[]", name: "tokenNames", type: "string[]" },
-        ],
-        internalType: "struct MarketFactory.CreateMarketParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "createMultiScalarMarket",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "string", name: "marketName", type: "string" },
-          { internalType: "string[]", name: "outcomes", type: "string[]" },
-          { internalType: "string", name: "questionStart", type: "string" },
-          { internalType: "string", name: "questionEnd", type: "string" },
-          { internalType: "string", name: "outcomeType", type: "string" },
-          { internalType: "uint256", name: "parentOutcome", type: "uint256" },
-          { internalType: "address", name: "parentMarket", type: "address" },
-          { internalType: "string", name: "category", type: "string" },
-          { internalType: "string", name: "lang", type: "string" },
-          { internalType: "uint256", name: "lowerBound", type: "uint256" },
-          { internalType: "uint256", name: "upperBound", type: "uint256" },
-          { internalType: "uint256", name: "minBond", type: "uint256" },
-          { internalType: "uint32", name: "openingTime", type: "uint32" },
-          { internalType: "string[]", name: "tokenNames", type: "string[]" },
-        ],
-        internalType: "struct MarketFactory.CreateMarketParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "createScalarMarket",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-```
-
-### Helper: build `CreateMarketParams` (tuple for viem)
-
-```typescript
-import type { Address } from "viem";
-
-function createMarketParams(params: {
-  marketName: string;
-  outcomes: string[];
-  questionStart?: string;
-  questionEnd?: string;
-  outcomeType?: string;
-  parentMarket?: Address;
-  parentOutcome?: bigint;
-  category?: string;
-  lang?: string;
-  lowerBound?: bigint;
-  upperBound?: bigint;
-  minBond?: bigint;
-  openingTime?: number;
-  tokenNames: string[];
-}) {
-  return {
-    marketName: params.marketName,
-    outcomes: params.outcomes,
-    questionStart: params.questionStart ?? "",
-    questionEnd: params.questionEnd ?? "",
-    outcomeType: params.outcomeType ?? "",
-    parentOutcome: params.parentOutcome ?? 0n,
-    parentMarket: params.parentMarket ?? "0x0000000000000000000000000000000000000000",
-    category: params.category ?? "misc",
-    lang: params.lang ?? "en_US",
-    lowerBound: params.lowerBound ?? 0n,
-    upperBound: params.upperBound ?? 0n,
-    minBond: params.minBond ?? 0n,
-    openingTime: params.openingTime ?? 0,
-    tokenNames: params.tokenNames,
-  };
-}
-```
-
-### 1. Create Categorical market (viem)
-
-```typescript
-import { parseEventLogs } from "viem/utils";
-
-const params = createMarketParams({
+const execution = getCreateMarketExecution({
+  marketType: MarketTypes.CATEGORICAL,
   marketName: "Who will win the election?",
   outcomes: ["Alice", "Bob", "Carol"],
-  category: "politics",
   openingTime: Math.floor(Date.now() / 1000),
-  minBond: 10000000000000000n, // 0.01 ETH in wei, adjust per chain
-  tokenNames: ["ALICE", "BOB", "CAROL"],
+  minBond: 10000000000000000n,
+  chainId,
+  category: "politics", // optional; default "misc"
 });
 
-const hash = await walletClient.writeContract({
-  address: addresses.MarketFactory,
-  abi: marketFactoryAbi,
-  functionName: "createCategoricalMarket",
-  args: [params],
-});
-
+const hash = await walletClient.sendTransaction(execution);
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-const newMarketAddress = parseEventLogs({
-  abi: marketFactoryAbi,
-  eventName: "NewMarket",
-  logs: receipt.logs,
-})?.[0]?.args?.market;
+const newMarketAddress = getNewMarketFromLogs(receipt.logs);
 if (!newMarketAddress) throw new Error("NewMarket event not found in receipt");
 ```
 
-### 2. Create Multi Categorical market (viem)
+### SDK: create multi categorical market
 
 ```typescript
-const params = createMarketParams({
+const execution = getCreateMarketExecution({
+  marketType: MarketTypes.MULTI_CATEGORICAL,
   marketName: "Which teams will qualify? (select all that apply)",
   outcomes: ["Team A", "Team B", "Team C"],
-  category: "sports",
   openingTime: Math.floor(Date.now() / 1000),
   minBond: 10000000000000000n,
-  tokenNames: ["TEAM_A", "TEAM_B", "TEAM_C"],
+  chainId,
+  category: "sports",
 });
 
-const hash = await walletClient.writeContract({
-  address: addresses.MarketFactory,
-  abi: marketFactoryAbi,
-  functionName: "createMultiCategoricalMarket",
-  args: [params],
-});
+const hash = await walletClient.sendTransaction(execution);
 ```
 
-### 3. Create Scalar market (viem)
+### SDK: create scalar market
 
-Scalar bounds must be in **wei** (1e18 units). Use `parseEther` from viem to convert human-readable numbers (e.g. 0 and 50 for a 0–50 °C range):
+For scalar, **`lowerBound`**, **`upperBound`** and **`unit`** are also required. Bounds are in wei (1e18); use viem's `parseEther` (e.g. 0 and 50 for a 0–50 °C range):
 
 ```typescript
 import { parseEther } from "viem";
+import { getCreateMarketExecution, MarketTypes } from "@seer-pm/sdk";
 
-const params = createMarketParams({
+const execution = getCreateMarketExecution({
+  marketType: MarketTypes.SCALAR,
   marketName: "What will be the temperature in °C on 2025-03-01?",
-  outcomes: ["Lower", "Higher"], // two outcomes for scalar
-  category: "weather",
-  // Bounds in wei (1e18): parseEther("50") = 50 * 10^18
+  outcomes: ["Lower", "Higher"],
   lowerBound: parseEther("0"),
   upperBound: parseEther("50"),
+  unit: "°C",
   openingTime: Math.floor(Date.now() / 1000),
   minBond: 10000000000000000n,
-  tokenNames: ["LOWER", "HIGHER"],
+  chainId,
+  category: "weather",
 });
 
-const hash = await walletClient.writeContract({
-  address: addresses.MarketFactory,
-  abi: marketFactoryAbi,
-  functionName: "createScalarMarket",
-  args: [params],
-});
+const hash = await walletClient.sendTransaction(execution);
 ```
 
-### 4. Create Multi Scalar market (viem)
+### SDK: create multi scalar market
 
-Each outcome becomes part of a Reality question: `questionStart + outcomes[i] + questionEnd`. The market name is `questionStart + "[" + outcomeType + "]" + questionEnd`.
+For multi scalar, the name must include the `[outcomeType]` placeholder (e.g. `[City]`) so the SDK can build `questionStart` / `questionEnd` / `outcomeType` via `getQuestionParts`. **`unit`** is required for the question suffix.
 
 ```typescript
-const params = createMarketParams({
-  marketName: "", // ignored; built from questionStart/outcomeType/questionEnd
-  questionStart: "What will be the max temperature in °C on 2025-03-01 in ",
-  questionEnd: "?",
-  outcomeType: "City",
+const execution = getCreateMarketExecution({
+  marketType: MarketTypes.MULTI_SCALAR,
+  marketName: "What will be the max temperature in °C on 2025-03-01 in [City]?",
   outcomes: ["Berlin", "Madrid", "Paris"],
-  category: "weather",
+  unit: "°C",
   openingTime: Math.floor(Date.now() / 1000),
   minBond: 10000000000000000n,
-  tokenNames: ["BERLIN", "MADRID", "PARIS"],
-});
-
-const hash = await walletClient.writeContract({
-  address: addresses.MarketFactory,
-  abi: marketFactoryAbi,
-  functionName: "createMultiScalarMarket",
-  args: [params],
+  chainId,
+  category: "weather",
 });
 ```
 
-{% hint style="info" %}
-For multi scalar markets, **marketName** is set to `questionStart + "[" + outcomeType + "]" + questionEnd`.
-{% endhint %}
+You can use `getCreateMarketParams(props)` if you only need the params struct (with all fields filled) for a custom flow.
+
+---

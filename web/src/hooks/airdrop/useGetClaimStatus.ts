@@ -1,9 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
+import { readMultiDropClaimed } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
-import { readMultiDropClaimed } from "../contracts/generated-multi-drop";
 
 export const useGetClaimStatus = (account: Address | undefined, chainId: SupportedChain) => {
   return useQuery<boolean | undefined, Error>({

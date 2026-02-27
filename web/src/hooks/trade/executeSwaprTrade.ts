@@ -1,13 +1,12 @@
 import { Execution } from "@/hooks/useCheck7702Support";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { getSwapRouterAddress } from "@seer-pm/sdk";
 import { SwaprV3Trade } from "@swapr/sdk";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData, zeroAddress } from "viem";
 import { routerAbi } from "./abis";
 import { getWrappedSeerCreditsExecution } from "./utils";
-
-const SWAPR_SWAP_ROUTER = "0xffb643e73f280b97809a8b41f7232ab401a04ee1";
 
 export async function executeSwaprTrade(
   trade: SwaprV3Trade,
@@ -82,7 +81,7 @@ function multicallBuyExactOutputNative(amountIn: string, swapData: string, chain
   });
 
   return {
-    to: SWAPR_SWAP_ROUTER,
+    to: getSwapRouterAddress(chainId),
     value: BigInt(amountIn),
     data,
     chainId,
@@ -103,7 +102,7 @@ function multicallSellToNative(amountOut: string, swapData: string, recipient: s
   });
 
   return {
-    to: SWAPR_SWAP_ROUTER,
+    to: getSwapRouterAddress(chainId),
     value: 0n,
     data,
     chainId,

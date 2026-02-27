@@ -1,14 +1,15 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market, MarketOffChainFields, MarketTypes, Question, getMarketType, getOutcomes } from "@/lib/market";
+import { Market, MarketOffChainFields, MarketTypes, Question, getMarketType } from "@/lib/market";
 import { fetchMarket } from "@/lib/markets-fetch";
 import { queryClient } from "@/lib/query-client";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { getOutcomes } from "@seer-pm/sdk";
+import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
+import { readMarketViewGetMarket } from "@seer-pm/sdk/contracts/market-view";
 import { useQuery } from "@tanstack/react-query";
 import { Address, zeroAddress, zeroHash } from "viem";
-import { marketFactoryAddress } from "./contracts/generated-market-factory";
-import { readMarketViewGetMarket } from "./contracts/generated-market-view";
 
 export type OnChainMarket = Awaited<ReturnType<typeof readMarketViewGetMarket>>;
 

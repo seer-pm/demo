@@ -1,6 +1,6 @@
 # Integration docs – Overview
 
-This folder contains step-by-step guides for **integrating with** the Seer prediction market protocol: how to call the contracts, which parameters to pass, and concrete examples. The docs use [viem](https://viem.sh) for blockchain interaction and cover **MarketFactory**, **Market**, **Router**, and related contracts from an integrator’s perspective (no internal implementation details).
+This folder contains step-by-step guides for **integrating with** the Seer prediction market protocol: how to call the contracts, which parameters to pass, and concrete examples. The docs use [viem](https://viem.sh) for blockchain interaction and cover **MarketFactory**, **Market**, **Router**, and related contracts from an integrator’s perspective (no internal implementation details). Where applicable, examples show both **@seer-pm/sdk** (recommended) and low-level viem calls.
 
 ---
 

@@ -1,14 +1,11 @@
-import { RouterAbi } from "@/abi/RouterAbi";
-import { CHAIN_ROUTERS } from "@/lib/config";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { getMergeExecution } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
-import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
-import { futarchyRouterAbi } from "./contracts/generated-router";
+import { Address, TransactionReceipt } from "viem";
 import { Execution, useCheck7702Support } from "./useCheck7702Support";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
@@ -19,78 +16,23 @@ interface MergePositionProps {
   collateralToken: Address | undefined;
 }
 
-function mergeFromRouter(
-  collateralToken: Address | undefined,
-  router: Address,
-  market: Market,
-  amount: bigint,
-): Execution {
-  if (market.type === "Futarchy") {
-    // futarchy markets have two collateral tokens
-    if (!collateralToken) {
-      throw new Error("Missing collateral token to merge");
-    }
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: futarchyRouterAbi,
-        functionName: "mergePositions",
-        args: [market.id, collateralToken, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  if (collateralToken) {
-    // merge to the market's main collateral
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: RouterAbi,
-        functionName: "mergePositions",
-        args: [collateralToken, market.id, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
-    // merge to DAI on mainnet
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: mainnetRouterAbi,
-        functionName: "mergeToDai",
-        args: [market.id, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  // merge to xDAI on gnosis
-  return {
-    to: router,
-    value: 0n,
-    data: encodeFunctionData({
-      abi: gnosisRouterAbi,
-      functionName: "mergeToBase",
-      args: [market.id, amount],
-    }),
-    chainId: market.chainId,
-  };
-}
-
 async function mergePositions(props: MergePositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () => sendTransaction(config, mergeFromRouter(props.collateralToken, props.router, props.market, props.amount)),
+    () =>
+      sendTransaction(
+        config,
+        getMergeExecution({
+          router: props.router,
+          market: props.market,
+          collateralToken: props.collateralToken,
+          amount: props.amount,
+        }),
+      ),
     { txSent: { title: "Merging tokens..." }, txSuccess: { title: "Tokens merged!" } },
   );
 
   if (!result.status) {
-    throw result.status;
+    throw result.error;
   }
 
   return result.receipt;
@@ -122,7 +64,14 @@ async function mergePositions7702(
 ): Promise<TransactionReceipt> {
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
-  calls.push(mergeFromRouter(props.collateralToken, props.router, props.market, props.amount));
+  calls.push(
+    getMergeExecution({
+      router: props.router,
+      market: props.market,
+      collateralToken: props.collateralToken,
+      amount: props.amount,
+    }),
+  );
 
   const result = await toastifySendCallsTx(calls, props.market.chainId, config, {
     txSent: { title: "Merging tokens..." },
@@ -130,7 +79,7 @@ async function mergePositions7702(
   });
 
   if (!result.status) {
-    throw result.status;
+    throw result.error;
   }
 
   return result.receipt;

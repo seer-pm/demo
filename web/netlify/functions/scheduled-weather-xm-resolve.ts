@@ -1,6 +1,6 @@
-import { realityAbi, realityAddress } from "@/hooks/contracts/generated-reality.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { Config } from "@netlify/functions";
+import { realityAbi, realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, numberToHex, parseEther } from "viem";

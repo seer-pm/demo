@@ -1,3 +1,4 @@
+import { MarketTypes } from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import {
@@ -6,13 +7,14 @@ import {
   REALITY_TEMPLATE_UINT,
   decodeQuestion,
   displayScalarBound,
-  escapeJson,
   isQuestionInDispute,
   isQuestionOpen,
   isQuestionPending,
   isQuestionUnanswered,
 } from "./reality";
 import { isTwoStringsEqual, isUndefined } from "./utils";
+
+export { MarketTypes };
 
 export interface Question {
   id: `0x${string}`;
@@ -170,13 +172,6 @@ export function getClosingTime(market: Market) {
   return new Date(market.questions[0].opening_ts * 1000).toUTCString();
 }
 
-export enum MarketTypes {
-  CATEGORICAL = "categorical",
-  SCALAR = "scalar",
-  MULTI_CATEGORICAL = "multi_categorical",
-  MULTI_SCALAR = "multi_scalar",
-}
-
 export function getTemplateByMarketType(marketType: MarketTypes) {
   return {
     [MarketTypes.CATEGORICAL]: REALITY_TEMPLATE_SINGLE_SELECT,
@@ -200,57 +195,6 @@ export function getMarketType(market: Market): MarketTypes {
   }
 
   return MarketTypes.SCALAR;
-}
-
-export function getMarketName(marketType: MarketTypes, marketName: string, unit: string) {
-  return [MarketTypes.SCALAR, MarketTypes.MULTI_SCALAR].includes(marketType) && unit.trim()
-    ? `${escapeJson(marketName)} [${escapeJson(unit)}]`
-    : escapeJson(marketName);
-}
-
-export function getQuestionParts(
-  marketName: string,
-  marketType: MarketTypes,
-): { questionStart: string; questionEnd: string; outcomeType: string } | undefined {
-  if (marketType !== MarketTypes.MULTI_SCALAR) {
-    return { questionStart: "", questionEnd: "", outcomeType: "" };
-  }
-
-  // splits the question, for example
-  // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election?
-  // // How many electoral votes will the [party name] win in the 2024 U.S. Presidential Election? [votes]
-  const parts = marketName.split(/\[|\]/);
-
-  if (parts.length !== 3 && parts.length !== 5) {
-    // length = 3: question without unit
-    // length = 5: question with unit
-    return;
-  }
-
-  if (parts.length === 5) {
-    // Check if the market name ends with "? [unit]" pattern using regex
-    const unitRegex = /\?\s*\[[^\]]+\]$/;
-    if (!unitRegex.test(marketName)) {
-      return;
-    }
-  }
-
-  // prevent this case ]outcome type[
-  if (marketName.indexOf("[") > marketName.indexOf("]")) {
-    return;
-  }
-
-  let [questionStart, outcomeType, questionEnd] = parts;
-  if (!questionEnd?.trim() || !outcomeType.trim()) {
-    return;
-  }
-
-  // add the unit
-  if (parts.length === 5) {
-    questionEnd += `[${parts[3]}]`;
-  }
-
-  return { questionStart, questionEnd, outcomeType };
 }
 
 export function hasOutcomes(marketType: MarketTypes) {
@@ -418,13 +362,6 @@ export function getOutcomeSlotCount(market: Market) {
   }
 
   return 2;
-}
-export function getOutcomes(outcomes: string[], marketType: MarketTypes) {
-  if (marketType === MarketTypes.SCALAR) {
-    return ["DOWN", "UP", ...outcomes.slice(2)];
-  }
-
-  return outcomes;
 }
 
 export function serializeMarket(market: Market): SerializedMarket {

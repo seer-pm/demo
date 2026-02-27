@@ -93,19 +93,26 @@ After resolution, YES (outcome 0) or NO (outcome 1) is the winning side; only th
 
 ## Viem examples
 
-We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY)`. Addresses come from `SEER_CONTRACTS[chain.id]`. Futarchy contracts are deployed on **Gnosis** (chain 100); on that chain use `addresses.FutarchyFactory` and `addresses.FutarchyRouter`.
+We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY)`. Use **@seer-pm/sdk** for addresses: `getFutarchyFactoryAddress(chainId)`, `getRouterAddress({ id: proposalAddress, type: "Futarchy", chainId })`. Futarchy contracts are deployed on **Gnosis** (chain 100).
 
 ### Shared: addresses
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS, ERC20_APPROVE_ABI, MARKET_ABI } from "./viem-setup";
+import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
+import { getFutarchyFactoryAddress, getRouterAddress, marketAbi } from "@seer-pm/sdk";
 import { gnosis } from "viem/chains"; // or mainnet, base, etc.
 
 const chain = gnosis;
 const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
 const account = walletClient.account!;
-const addresses = SEER_CONTRACTS[chain.id];
+const chainId = chain.id;
+const futarchyFactoryAddress = getFutarchyFactoryAddress(chainId);
+const futarchyRouterAddress = getRouterAddress({
+  id: "0x0000000000000000000000000000000000000000",
+  type: "Futarchy",
+  chainId,
+});
 ```
 
 ---
@@ -165,7 +172,7 @@ const params = {
 };
 
 const hash = await walletClient.writeContract({
-  address: addresses.FutarchyFactory,
+  address: futarchyFactoryAddress,
   abi: futarchyFactoryAbi,
   functionName: "createProposal",
   args: [params],
@@ -194,7 +201,7 @@ await walletClient.writeContract({
   address: GNO_ADDRESS,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount],
+  args: [futarchyRouterAddress, amount],
 });
 
 const futarchyRouterAbi = [
@@ -245,7 +252,7 @@ const futarchyRouterAbi = [
 ] as const;
 
 const hash = await walletClient.writeContract({
-  address: addresses.FutarchyRouter,
+  address: futarchyRouterAddress,
   abi: futarchyRouterAbi,
   functionName: "splitPosition",
   args: [proposalAddress, GNO_ADDRESS, amount],
@@ -264,13 +271,13 @@ Hold equal amounts of Yes-Token and No-Token for **one** collateral. **Approve b
 // 1. Approve FutarchyRouter to spend `amount` of each outcome token. Get addresses via proposal.wrappedOutcome(0) and wrappedOutcome(1) (Yes/No).
 const [yesToken] = await publicClient.readContract({
   address: proposalAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "wrappedOutcome",
   args: [0n],
 });
 const [noToken] = await publicClient.readContract({
   address: proposalAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "wrappedOutcome",
   args: [1n],
 });
@@ -278,18 +285,18 @@ await walletClient.writeContract({
   address: yesToken,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount],
+  args: [futarchyRouterAddress, amount],
 });
 await walletClient.writeContract({
   address: noToken,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount],
+  args: [futarchyRouterAddress, amount],
 });
 
 // 2. Merge
 const hash = await walletClient.writeContract({
-  address: addresses.FutarchyRouter,
+  address: futarchyRouterAddress,
   abi: futarchyRouterAbi,
   functionName: "mergePositions",
   args: [proposalAddress, GNO_ADDRESS, amount],
@@ -310,11 +317,11 @@ await walletClient.writeContract({
   address: winningOutcomeToken,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount],
+  args: [futarchyRouterAddress, amount],
 });
 
 const hash = await walletClient.writeContract({
-  address: addresses.FutarchyRouter,
+  address: futarchyRouterAddress,
   abi: futarchyRouterAbi,
   functionName: "redeemPositions",
   args: [proposalAddress, GNO_ADDRESS, amount],
@@ -334,13 +341,13 @@ const amount2 = 1000000000000000000n; // wstETH to receive
 // Resolve outcome token addresses: wrappedOutcome(0)=Yes-token1, (1)=No-token1, (2)=Yes-token2, (3)=No-token2
 const [yesGnoOutcomeAddress] = await publicClient.readContract({
   address: proposalAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "wrappedOutcome",
   args: [0n],
 });
 const [yesWstEthOutcomeAddress] = await publicClient.readContract({
   address: proposalAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "wrappedOutcome",
   args: [2n],
 });
@@ -350,17 +357,17 @@ await walletClient.writeContract({
   address: yesGnoOutcomeAddress,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount1],
+  args: [futarchyRouterAddress, amount1],
 });
 await walletClient.writeContract({
   address: yesWstEthOutcomeAddress,
   abi: ERC20_APPROVE_ABI,
   functionName: "approve",
-  args: [addresses.FutarchyRouter, amount2],
+  args: [futarchyRouterAddress, amount2],
 });
 
 const hash = await walletClient.writeContract({
-  address: addresses.FutarchyRouter,
+  address: futarchyRouterAddress,
   abi: futarchyRouterAbi,
   functionName: "redeemProposal",
   args: [proposalAddress, amount1, amount2],
@@ -401,7 +408,7 @@ To avoid reverts (e.g. insufficient allowance or balance):
 ```typescript
 const { request } = await publicClient.simulateContract({
   account: account.address,
-  address: addresses.FutarchyRouter,
+  address: futarchyRouterAddress,
   abi: futarchyRouterAbi,
   functionName: "splitPosition",
   args: [proposalAddress, GNO_ADDRESS, amount],

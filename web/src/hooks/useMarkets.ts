@@ -4,10 +4,10 @@ import { MarketStatus } from "@/lib/market";
 import { MarketsResult, fetchMarkets } from "@/lib/markets-fetch";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
+import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
+import { readMarketViewGetMarkets } from "@seer-pm/sdk/contracts/market-view";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { marketFactoryAddress } from "./contracts/generated-market-factory";
-import { readMarketViewGetMarkets } from "./contracts/generated-market-view";
 import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
 

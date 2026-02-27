@@ -1,7 +1,8 @@
+import { getQuestionParts } from "@seer-pm/sdk";
 import { zeroAddress, zeroHash } from "viem";
 import { describe, expect, it } from "vitest";
 import { Market, Question } from "./market";
-import { MarketTypes, getMarketType, getQuestionParts, isMarketReliable } from "./market";
+import { MarketTypes, getMarketType, isMarketReliable } from "./market";
 import {
   REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,

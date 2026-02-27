@@ -23,7 +23,7 @@ When helping with Seer (prediction markets, MarketFactory, Router, trading, or t
 
 ## Flow
 
-1. **Setup** – viem public + wallet clients: [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md). Use contract addresses from the codebase (e.g. `SEER_CONTRACTS`, config).
+1. **Setup** – viem public + wallet clients: [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md). Contract addresses from **@seer-pm/sdk** (`getMarketFactoryAddress`, `getRouterAddress`, etc.).
 2. **Create or fetch market** – contracts: [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md); app data: [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) (`get-market`, `markets-search`).
 3. **Positions** – split/merge/redeem via Router: [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
 4. **Trading** – Swapr (Gnosis) / Uniswap V3 (other chains): [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md).

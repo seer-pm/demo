@@ -1,4 +1,4 @@
-import { realityAddress } from "@/hooks/contracts/generated-reality";
+import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
@@ -17,10 +17,6 @@ export const ANSWERED_TOO_SOON = "0xffffffffffffffffffffffffffffffffffffffffffff
 export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string;
-
-export function escapeJson(txt: string) {
-  return JSON.stringify(txt).replace(/^"|"$/g, "");
-}
 
 export function unescapeJson(txt: string) {
   return txt.replace(/\\"/g, '"');

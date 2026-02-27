@@ -1,0 +1,50 @@
+{
+  "name": "@seer-pm/sdk",
+  "version": "0.0.1",
+  "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-sdk"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./contracts/curate": "./generated/generated-curate.ts",
+    "./contracts/reality": "./generated/generated-reality.ts",
+    "./contracts/arbitrators": "./generated/generated-arbitrators.ts",
+    "./contracts/market-factory": "./generated/generated-market-factory.ts",
+    "./contracts/market-view": "./generated/generated-market-view.ts",
+    "./contracts/router": "./generated/generated-router.ts",
+    "./contracts/multi-drop": "./generated/generated-multi-drop.ts",
+    "./contracts/trading-credits": "./generated/generated-trading-credits.ts"
+  },
+  "files": ["dist", "generated", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "generate": "wagmi generate",
+    "prepublishOnly": "yarn generate"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0",
+    "wagmi": ">=2.0.0"
+  },
+  "devDependencies": {
+    "@wagmi/cli": "^2.1.22",
+    "viem": "^2.38.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

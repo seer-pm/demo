@@ -44,7 +44,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
         )}
       </div>
       {helpText && (
-        <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
+        <p className="text-base-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
       {hasError && (

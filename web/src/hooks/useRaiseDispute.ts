@@ -2,14 +2,14 @@ import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
-import { useMutation } from "@tanstack/react-query";
-import { TransactionReceipt } from "viem";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
   writeRealitioForeignProxyBaseRequestArbitration,
   writeRealitioForeignProxyOptimismRequestArbitration,
   writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
-} from "./contracts/generated-arbitrators";
+} from "@seer-pm/sdk/contracts/arbitrators";
+import { useMutation } from "@tanstack/react-query";
+import { TransactionReceipt } from "viem";
 
 interface RaiseDisputeProps {
   questionId: `0x${string}`;

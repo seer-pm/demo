@@ -1,15 +1,12 @@
-import { RouterAbi } from "@/abi/RouterAbi";
-import { Execution, useCheck7702Support } from "@/hooks/useCheck7702Support";
-import { CHAIN_ROUTERS } from "@/lib/config";
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { type Execution, getSplitExecution } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendCalls, sendTransaction } from "@wagmi/core";
-import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import { gnosisRouterAbi, mainnetRouterAbi } from "./contracts/generated-router";
-import { futarchyRouterAbi } from "./contracts/generated-router";
+import { Address, TransactionReceipt } from "viem";
 import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface SplitPositionProps {
@@ -20,73 +17,18 @@ interface SplitPositionProps {
   amount: bigint;
 }
 
-function splitFromRouter(
-  collateralToken: Address | undefined,
-  router: Address,
-  market: Market,
-  amount: bigint,
-): Execution {
-  if (market.type === "Futarchy") {
-    // futarchy markets have two collateral tokens
-    if (!collateralToken) {
-      throw new Error("Missing collateral token to split");
-    }
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: futarchyRouterAbi,
-        functionName: "splitPosition",
-        args: [market.id, collateralToken, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  if (collateralToken) {
-    // split from the market's main collateral
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: RouterAbi,
-        functionName: "splitPosition",
-        args: [collateralToken, market.id, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  if (CHAIN_ROUTERS[market.chainId] === "mainnet") {
-    // split from DAI on mainnet
-    return {
-      to: router,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: mainnetRouterAbi,
-        functionName: "splitFromDai",
-        args: [market.id, amount],
-      }),
-      chainId: market.chainId,
-    };
-  }
-
-  // split from xDAI on gnosis
-  return {
-    to: router,
-    value: amount,
-    data: encodeFunctionData({
-      abi: gnosisRouterAbi,
-      functionName: "splitFromBase",
-      args: [market.id],
-    }),
-    chainId: market.chainId,
-  };
-}
-
 async function splitPosition(props: SplitPositionProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () => sendTransaction(config, splitFromRouter(props.collateralToken, props.router, props.market, props.amount)),
+    () =>
+      sendTransaction(
+        config,
+        getSplitExecution({
+          router: props.router,
+          market: props.market,
+          collateralToken: props.collateralToken,
+          amount: props.amount,
+        }),
+      ),
     { txSent: { title: "Minting tokens..." }, txSuccess: { title: "Tokens minted!" } },
   );
 
@@ -125,7 +67,14 @@ async function splitPosition7702(
 ): Promise<TransactionReceipt> {
   const calls: Execution[] = getApprovals7702(approvalsConfig);
 
-  calls.push(splitFromRouter(props.collateralToken, props.router, props.market, props.amount));
+  calls.push(
+    getSplitExecution({
+      router: props.router,
+      market: props.market,
+      collateralToken: props.collateralToken,
+      amount: props.amount,
+    }),
+  );
 
   const result = await toastifyTx(
     () =>

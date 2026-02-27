@@ -1,7 +1,7 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { MARKET_CATEGORIES } from "@/lib/create-market";
 import { Collections, Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
+import { MARKET_CATEGORIES } from "@seer-pm/sdk";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useState } from "react";

@@ -7,9 +7,8 @@
     "dev": "yarn server:dev",
     "prod": "yarn build && yarn server:prod",
     "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
-    "lint": "biome check --write ./src ./netlify",
-    "generate": "yarn generate:hooks && yarn generate:gql",
-    "generate:hooks": "wagmi generate",
+    "lint": "biome check --write ./src ./netlify ../packages",
+    "generate": "yarn generate:gql",
     "generate:gql": "graphql-codegen",
     "server:dev": "node ./server",
     "server:prod": "cross-env NODE_ENV=production node ./server",
@@ -19,6 +18,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@seer-pm/sdk": "link:../packages/seer-sdk",
     "@bigmi/react": "^0.6.0",
     "@biomejs/biome": "1.9.3",
     "@cowprotocol/cow-sdk": "^5.3.2",
