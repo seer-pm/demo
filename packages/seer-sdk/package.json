@@ -29,7 +29,7 @@
   },
   "files": ["dist", "generated", "README.md"],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "generate": "wagmi generate",
     "prepublishOnly": "yarn generate"
