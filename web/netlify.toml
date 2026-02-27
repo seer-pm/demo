@@ -1,8 +1,7 @@
 [build]
   base = "/"
-  package = "/web"
   publish = "/web/dist/client/"
-  command = "NODE_ENV=production yarn workspace @seer-pm/web build"
+  command = "yarn workspace @seer-pm/sdk build && NODE_ENV=production yarn workspace @seer-pm/web build"
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]
