@@ -18,7 +18,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@seer-pm/sdk": "link:../packages/seer-sdk",
+    "@seer-pm/sdk": "*",
     "@bigmi/react": "^0.6.0",
     "@biomejs/biome": "1.9.3",
     "@cowprotocol/cow-sdk": "^5.3.2",

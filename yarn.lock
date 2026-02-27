@@ -6356,11 +6356,6 @@
     "@noble/hashes" "~1.8.0"
     "@scure/base" "~1.2.5"
 
-"@seer-pm/sdk@link:packages/seer-sdk":
-  version "0.0.1"
-  dependencies:
-    viem "^2.38.0"
-
 "@sentry/core@5.30.0":
   version "5.30.0"
   resolved "https://registry.yarnpkg.com/@sentry/core/-/core-5.30.0.tgz#6b203664f69e75106ee8b5a2fe1d717379b331f3"
