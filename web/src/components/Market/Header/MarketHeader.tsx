@@ -8,7 +8,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
-import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
 import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
@@ -28,6 +28,7 @@ import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { formatUnits } from "viem";

@@ -1,7 +1,8 @@
+import { TOKENS_BY_CHAIN } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
-import { TOKENS_BY_CHAIN, isSeerCredits } from "./config";
+import { isSeerCredits } from "./config";
 import { Market } from "./market";
 
 function marketPath(market: Market): string;

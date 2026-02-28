@@ -1,10 +1,10 @@
 import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useModal } from "@/hooks/useModal";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CloseIcon } from "@/lib/icons";
 import { Market, MarketTypes, getMarketType } from "@/lib/market";
-import { Token } from "@/lib/tokens";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { useState } from "react";
 import PotentialReturnInput from "./PotentialReturnInput";
 import { PotentialReturnResult } from "./PotentialReturnResult";

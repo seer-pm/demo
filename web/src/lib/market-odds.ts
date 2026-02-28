@@ -5,11 +5,11 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
 import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Token } from "@/lib/tokens";
+import type { Token } from "@seer-pm/sdk";
+import { getSwaprQuote, getUniswapQuote } from "@seer-pm/sdk";
 import { Address, formatUnits } from "viem";
 import { isOpStack } from "./config";
 import { displayScalarBound } from "./reality";
-import { getSwaprQuote, getUniswapQuote } from "./trade";
 import { isTwoStringsEqual } from "./utils";
 
 const CEIL_PRICE = 1;

@@ -7,7 +7,6 @@ import { useSignIn } from "@/hooks/useSignIn";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { SupportedChain, filterChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import {
   BookIcon,
   BugIcon,
@@ -26,6 +25,7 @@ import {
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";

@@ -5,8 +5,8 @@ import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/us
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { Market } from "@/lib/market";
-import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
-import { getRouterAddress } from "@seer-pm/sdk";
+import { displayBalance } from "@/lib/utils";
+import { NATIVE_TOKEN, getRouterAddress } from "@seer-pm/sdk";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";

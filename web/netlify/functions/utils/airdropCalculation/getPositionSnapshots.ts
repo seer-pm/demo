@@ -1,8 +1,9 @@
 import { SupportedChain, mainnet } from "@/lib/chains";
-import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
+import { isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import pLimit from "p-limit";
 import { Address, zeroAddress } from "viem";
 import { START_TIME } from "./constants";

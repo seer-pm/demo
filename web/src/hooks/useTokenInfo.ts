@@ -1,7 +1,8 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
-import { NATIVE_TOKEN, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { config as wagmiConfig } from "@/wagmi";
+import { NATIVE_TOKEN } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Config, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";

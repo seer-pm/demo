@@ -1,7 +1,7 @@
 import { SupportedChain, mainnet } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import ethers, { BigNumber } from "ethers";
 import pLimit from "p-limit";
 import { Address } from "viem";

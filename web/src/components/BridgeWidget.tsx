@@ -1,10 +1,8 @@
 import { useBridgeQuote, useExecuteBridge } from "@/hooks/useBridgeQuote";
 import { useModal } from "@/hooks/useModal";
 import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { CheckCircleIcon, CloseCircleOutlineIcon, ExclamationCircleIcon, InfoCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { Token } from "@/lib/tokens";
 import { displayBalance } from "@/lib/utils";
 import {
   ARBITRUM_RPC,
@@ -17,6 +15,8 @@ import {
 } from "@/wagmi";
 import { ExecutionStatus, Process, RouteExtended } from "@lifi/sdk";
 import { useSyncWagmiConfig } from "@lifi/wallet-management";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";

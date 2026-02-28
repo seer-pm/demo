@@ -1,14 +1,14 @@
 import { queryClient } from "@/lib/query-client";
 import { toastify } from "@/lib/toastify";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { EnrichedOrder, OrderBookApi, OrderSigningUtils, SupportedChainId, UnsignedOrder } from "@cowprotocol/cow-sdk";
+import { NATIVE_TOKEN, clientToSigner } from "@seer-pm/sdk";
 import { CoWTrade } from "@swapr/sdk";
 import { getConnectorClient } from "@wagmi/core";
 import { Contract } from "ethers";
 import { parseUnits } from "viem";
 import { ethFlowAbi } from "./abis";
-import { clientToSigner } from "./utils";
 
 export const ethFlowAddress = "0xba3cb449bd2b4adddbc894d8697f5170800eadec";
 

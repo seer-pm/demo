@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
-import { NATIVE_TOKEN } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { NATIVE_TOKEN } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
 import { Address } from "viem";

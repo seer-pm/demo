@@ -1,4 +1,4 @@
-import { Token } from "@/lib/tokens";
+import type { Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { getPotentialReturn } from "./utils";
 

@@ -10,8 +10,8 @@ import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { getCollateralSymbol, getCollateralTokenForSwap } from "@/lib/tokens";
 import { OrderBookApi } from "@cowprotocol/cow-sdk";
+import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { Address, parseUnits } from "viem";
 
 async function fetchSwapsFromSubgraph(

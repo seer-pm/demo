@@ -1,26 +1,31 @@
-import { createCowOrder, executeCoWTrade } from "@/hooks/trade/executeCowTrade";
-import { executeSwaprTrade, getSwaprTradeExecution } from "@/hooks/trade/executeSwaprTrade";
-import { executeUniswapTrade, getUniswapTradeExecution } from "@/hooks/trade/executeUniswapTrade";
+import { createCowOrder } from "@/hooks/trade/executeCowTrade";
 import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
+import { isSeerCredits } from "@/lib/config";
 import SEER_ENV from "@/lib/env";
 import { queryClient } from "@/lib/query-client";
-import { toastifyTx } from "@/lib/toastify";
-import { Token } from "@/lib/tokens";
-import { QuoteTradeResult, getCowQuote, getSwaprQuote, getUniswapQuote } from "@/lib/trade";
-import { getCowQuoteExactOut, getSwaprQuoteExactOut, getUniswapQuoteExactOut } from "@/lib/tradeExactOut";
+import { toastify, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import type { Token } from "@seer-pm/sdk";
+import {
+  COLLATERAL_TOKENS,
+  QuoteTradeResult,
+  buildTradeCalls7702,
+  clientToSigner,
+  fetchCowQuote,
+  fetchSwaprQuote,
+  fetchUniswapQuote,
+  getMaximumAmountIn,
+  tradeTokens as sdkTradeTokens,
+} from "@seer-pm/sdk";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { getConnectorClient } from "@wagmi/core";
 import { sendCalls } from "@wagmi/core";
-import { Interface } from "ethers/lib/utils";
 import { Address, TransactionReceipt } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
-import { Execution, useCheck7702Support } from "../useCheck7702Support";
+import { useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
-import { getApprovals7702, useMissingApprovals } from "../useMissingApprovals";
-import { UNISWAP_ROUTER_ABI } from "./abis";
-import { getWrappedSeerCreditsExecution } from "./utils";
+import { useMissingApprovals } from "../useMissingApprovals";
 
 const QUOTE_REFETCH_INTERVAL = Number(SEER_ENV.VITE_QUOTE_REFETCH_INTERVAL) || 30_000;
 
@@ -56,9 +61,7 @@ function useSwaprQuote(
     enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
     retry: false,
     queryFn: async () =>
-      tradeType === TradeType.EXACT_INPUT
-        ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
-        : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
+      fetchSwaprQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -113,18 +116,17 @@ export function useCowQuote(
     enabled: Number(amount) > 0 && enabled,
     retry: false,
     queryFn: async () =>
-      tradeType === TradeType.EXACT_INPUT
-        ? getCowQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, isFastQuery)
-        : getCowQuoteExactOut(
-            chainId,
-            account,
-            amount,
-            outcomeToken,
-            collateralToken,
-            swapType,
-            maxSlippage,
-            isFastQuery,
-          ),
+      fetchCowQuote(
+        tradeType,
+        chainId,
+        account,
+        amount,
+        outcomeToken,
+        collateralToken,
+        swapType,
+        maxSlippage,
+        isFastQuery,
+      ),
     refetchInterval: (query) =>
       query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
   });
@@ -158,9 +160,7 @@ function useUniswapQuote(
       Number(amount) > 0 && (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) && enabled,
     retry: false,
     queryFn: async () =>
-      tradeType === TradeType.EXACT_INPUT
-        ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
-        : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
+      fetchUniswapQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -227,26 +227,7 @@ export function useQuoteTrade(
   return swaprResult;
 }
 
-export function getMaximumAmountIn(trade: Trade) {
-  let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
-  if (trade instanceof UniswapTrade) {
-    const routerInterface = new Interface(UNISWAP_ROUTER_ABI);
-    const routerFunction = trade.tradeType === TradeType.EXACT_INPUT ? "exactInputSingle" : "exactOutputSingle";
-    const callData = trade.swapRoute.methodParameters?.calldata;
-    if (callData) {
-      try {
-        const data = routerInterface.decodeFunctionData("multicall(uint256,bytes[])", callData);
-        const decodedData = routerInterface.decodeFunctionData(routerFunction, data.data[0]);
-        const callDataAmountIn =
-          trade.tradeType === TradeType.EXACT_INPUT
-            ? BigInt(decodedData[0][4].toString()) //amountIn
-            : BigInt(decodedData[0][5].toString()); //maximumAmountIn
-        maximumAmountIn = callDataAmountIn > maximumAmountIn ? callDataAmountIn : maximumAmountIn;
-      } catch {}
-    }
-  }
-  return maximumAmountIn;
-}
+export { getMaximumAmountIn };
 
 function useMissingTradeApproval(account: Address | undefined, trade: Trade | undefined) {
   const { data, isLoading } = useMissingApprovals(
@@ -264,16 +245,6 @@ function useMissingTradeApproval(account: Address | undefined, trade: Trade | un
   return { data, isLoading };
 }
 
-function getTradeApprovals7702(account: Address, trade: Trade) {
-  return getApprovals7702({
-    tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
-    account,
-    spender: trade.approveAddress as `0x${string}`,
-    amounts: getMaximumAmountIn(trade),
-    chainId: trade.chainId as SupportedChain,
-  });
-}
-
 interface TradeTokensProps {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
   account: Address;
@@ -282,22 +253,31 @@ interface TradeTokensProps {
   isSeerCredits: boolean;
 }
 
-async function tradeTokens({
-  trade,
-  account,
-  isBuyExactOutputNative,
-  isSellToNative,
-  isSeerCredits,
-}: TradeTokensProps): Promise<string | TransactionReceipt> {
-  if (trade instanceof CoWTrade) {
-    return executeCoWTrade(trade);
+async function tradeTokens(props: TradeTokensProps): Promise<string | TransactionReceipt> {
+  const adapters = {
+    config,
+    getSigner: async () => {
+      const client = await getConnectorClient(config);
+      if (!client) throw new Error("No wallet connected");
+      return clientToSigner(client);
+    },
+  };
+
+  if (props.trade instanceof CoWTrade) {
+    const result = await toastify(() => sdkTradeTokens(props, adapters), {
+      txSent: { title: "Confirm order..." },
+      txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
+    });
+    if (!result.status) throw result.error;
+    return result.data;
   }
 
-  if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(trade, account, isSeerCredits);
-  }
-
-  return executeSwaprTrade(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  const result = await toastifyTx(() => sdkTradeTokens(props, adapters) as Promise<`0x${string}`>, {
+    txSent: { title: "Executing trade..." },
+    txSuccess: { title: "Trade executed!" },
+  });
+  if (!result.status) throw result.error;
+  return result.receipt;
 }
 
 function useTradeLegacy(
@@ -330,20 +310,10 @@ function useTradeLegacy(
 
 async function tradeTokens7702(props: TradeTokensProps): Promise<string | TransactionReceipt> {
   if (props.trade instanceof CoWTrade) {
-    return executeCoWTrade(props.trade);
+    return tradeTokens(props);
   }
 
-  const calls: Execution[] = props.isSeerCredits ? [] : getTradeApprovals7702(props.account, props.trade);
-
-  calls.push(
-    getWrappedSeerCreditsExecution(
-      props.isSeerCredits,
-      props.trade,
-      props.trade instanceof UniswapTrade
-        ? await getUniswapTradeExecution(props.trade, props.account)
-        : await getSwaprTradeExecution(props.trade, props.account, props.isBuyExactOutputNative, props.isSellToNative),
-    ),
-  );
+  const calls = await buildTradeCalls7702(props);
 
   const result = await toastifyTx(
     () =>

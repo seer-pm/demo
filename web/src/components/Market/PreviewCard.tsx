@@ -3,7 +3,7 @@ import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
@@ -19,6 +19,7 @@ import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";

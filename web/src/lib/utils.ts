@@ -1,8 +1,6 @@
 import { formatUnits, getAddress } from "viem";
 import SEER_ENV from "./env";
 
-export const NATIVE_TOKEN = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-
 // outcome get from MarketView
 export const INVALID_RESULT_OUTCOME = "Invalid result";
 

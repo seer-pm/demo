@@ -4,8 +4,6 @@ import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
 import { Market, getLiquidityPair } from "./market";
 
-export { COLLATERAL_TOKENS, TOKENS_BY_CHAIN } from "@seer-pm/sdk";
-
 type BigInt = Record<number, bigint>;
 
 type BigIntConfigValues = {

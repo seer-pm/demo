@@ -1,6 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { NATIVE_TOKEN } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, encodeFunctionData, erc20Abi } from "viem";

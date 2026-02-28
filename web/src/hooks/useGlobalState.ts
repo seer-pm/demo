@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { isSeerCredits } from "@/lib/config";
-import { Token } from "@/lib/tokens";
+import type { Token } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";

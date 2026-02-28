@@ -1,10 +1,10 @@
 import { useQuoteTrade } from "@/hooks/trade";
 import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market, MarketTypes, getMarketType } from "@/lib/market";
 import { displayScalarBound } from "@/lib/reality";
-import { Token, getCollateralPerShare } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { TradeType } from "@swapr/sdk";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";

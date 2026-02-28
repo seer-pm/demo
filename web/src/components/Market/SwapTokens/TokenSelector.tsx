@@ -1,7 +1,7 @@
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import type { Token } from "@seer-pm/sdk";
 import { MarketCollateralDropdown } from "../CollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 

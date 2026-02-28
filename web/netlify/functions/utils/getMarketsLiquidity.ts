@@ -1,6 +1,6 @@
 import { SupportedChain, base, optimism } from "@/lib/chains.ts";
-import { COLLATERAL_TOKENS } from "@/lib/config.ts";
 import { Market, getCollateralByIndex, getMarketPoolsPairs } from "@/lib/market.ts";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 import { getDexScreenerPriceUSD } from "./common.ts";
 import { chainIds } from "./config.ts";

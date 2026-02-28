@@ -1,12 +1,9 @@
 import { filterChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { OrderBookApi, OrderStatus } from "@cowprotocol/cow-sdk";
-import { creditsManagerAbi, creditsManagerAddress } from "@seer-pm/sdk/contracts/trading-credits";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { CoWTrade, Token as SwaprToken, SwaprV3Trade, TokenAmount, UniswapTrade } from "@swapr/sdk";
-import { ethers, providers } from "ethers";
-import { Account, Address, Chain, Client, TransactionReceipt, Transport, encodeFunctionData } from "viem";
-import { getMaximumAmountIn } from ".";
-import { Execution } from "../useCheck7702Support";
+import { ethers } from "ethers";
+import type { TransactionReceipt } from "viem";
 
 export function setSwaprTradeLimit(trade: SwaprV3Trade, newInputValue: bigint) {
   const primaryCollateralAddress = COLLATERAL_TOKENS[filterChain(trade.chainId)].primary.address;
@@ -120,45 +117,5 @@ export async function pollForOrder(orderId: string, chainId: number, maxAttempts
   }
   return {
     error: "Get order timeout",
-  };
-}
-
-export function clientToSigner(client: Client<Transport, Chain, Account>) {
-  const { account, chain, transport } = client;
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-    ensAddress: chain.contracts?.ensRegistry?.address,
-  };
-  const provider = new providers.Web3Provider(transport, network);
-  const signer = provider.getSigner(account.address);
-  return signer;
-}
-
-export function getWrappedSeerCreditsExecution(
-  isSeerCredits: boolean,
-  trade: SwaprV3Trade | UniswapTrade,
-  tradeExecution: Execution,
-): Execution {
-  if (!isSeerCredits) {
-    return tradeExecution;
-  }
-
-  const executeData = encodeFunctionData({
-    abi: creditsManagerAbi,
-    functionName: "execute",
-    args: [
-      tradeExecution.to,
-      tradeExecution.data,
-      getMaximumAmountIn(trade),
-      trade.outputAmount.currency.address! as Address,
-    ],
-  });
-
-  return {
-    to: creditsManagerAddress[trade.chainId as keyof typeof creditsManagerAddress],
-    data: executeData,
-    value: 0n,
-    chainId: trade.chainId,
   };
 }

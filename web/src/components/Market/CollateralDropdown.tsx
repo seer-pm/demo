@@ -1,10 +1,10 @@
 import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { ArrowDropDown } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import clsx from "clsx";
 import { useState } from "react";

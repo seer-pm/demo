@@ -3,10 +3,10 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 import { useMarket } from "@/hooks/useMarket";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { Market } from "@/lib/market";
-import { Token } from "@/lib/tokens";
-import { NATIVE_TOKEN, isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual } from "@/lib/utils";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, NATIVE_TOKEN } from "@seer-pm/sdk";
 import { TradeType } from "@swapr/sdk";
 import { FieldErrors } from "react-hook-form";
 import { gnosis } from "viem/chains";
