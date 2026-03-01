@@ -1,5 +1,5 @@
 import { RightArrow } from "@/lib/icons";
-import { UnsignedOrder } from "@cowprotocol/cow-sdk";
+import type { UnsignedOrder } from "@seer-pm/sdk";
 import { format } from "date-fns";
 import { useState } from "react";
 import { formatUnits } from "viem";

@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
-import ethers, { BigNumber } from "ethers";
+import { SUBGRAPHS } from "@seer-pm/subgraph";
+import { formatUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
 
 export interface Transfer {
@@ -97,14 +97,14 @@ async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: n
 
 export function getHoldersAtTimestamp(allTransfers: Transfer[], timestamp: number) {
   const records = allTransfers.filter((transfer) => Number(transfer.timestamp) <= timestamp);
-  const tokenBalances: { [key: string]: { [key: string]: BigNumber } } = {};
+  const tokenBalances: { [key: string]: { [key: string]: bigint } } = {};
 
   // Process each transfer
   for (const transfer of records) {
     const tokenId = transfer.token.id.toLowerCase();
     const from = transfer.from.toLowerCase();
     const to = transfer.to.toLowerCase();
-    const value = ethers.BigNumber.from(transfer.value);
+    const value = BigInt(transfer.value);
 
     // Initialize token balances if not exists
     if (!tokenBalances[from]) {
@@ -114,18 +114,18 @@ export function getHoldersAtTimestamp(allTransfers: Transfer[], timestamp: numbe
       tokenBalances[to] = {};
     }
 
-    tokenBalances[from][tokenId] = (tokenBalances[from][tokenId] || ethers.BigNumber.from(0)).sub(value);
-    tokenBalances[to][tokenId] = (tokenBalances[to][tokenId] || ethers.BigNumber.from(0)).add(value);
+    tokenBalances[from][tokenId] = (tokenBalances[from][tokenId] ?? 0n) - value;
+    tokenBalances[to][tokenId] = (tokenBalances[to][tokenId] ?? 0n) + value;
   }
 
   const formattedBalances: { [key: string]: { [key: string]: number } } = {};
   for (const [user, balances] of Object.entries(tokenBalances)) {
     // Exclude zero address and non-positive balances
-    if (user !== ethers.constants.AddressZero) {
+    if (user !== zeroAddress) {
       formattedBalances[user] = {};
       for (const [tokenId, balance] of Object.entries(balances)) {
-        if (balance.gt(0)) {
-          formattedBalances[user][tokenId] = Number(ethers.utils.formatUnits(balance, 18));
+        if (balance > 0n) {
+          formattedBalances[user][tokenId] = Number(formatUnits(balance, 18));
         }
       }
     }

@@ -3,7 +3,7 @@ import { SupportedChain } from "@/lib/chains";
 import { isOpStack } from "@/lib/config";
 import { Market, getTokensPairKey } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
-import { OrderBookApi } from "@cowprotocol/cow-sdk";
+import { OrderBookApi } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
@@ -14,7 +14,7 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: Addr
   if (!chainId || !account || !initialMarkets || isOpStack(chainId)) return [];
   const mappings = await getMappings(initialMarkets, chainId);
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
-  const orderBookApi = new OrderBookApi({ chainId });
+  const orderBookApi = new OrderBookApi({ chainId: chainId as number });
   const orders = await orderBookApi.getOrders({ owner: account });
 
   const processedOrders = orders.reduce<CowOrderData[]>((acc, curr) => {

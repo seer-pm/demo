@@ -1,4 +1,7 @@
 {
+  "files": {
+    "ignore": ["**/generated"]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

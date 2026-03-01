@@ -1,8 +1,8 @@
-import { GetPoolHourDatasQuery } from "@/hooks/queries/gql-generated-swapr";
 import { SupportedChain } from "@/lib/chains";
 import { getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { GetPoolHourDatasQuery } from "@seer-pm/subgraph/swapr";
 import { Address } from "viem";
 import { getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
 

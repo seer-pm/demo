@@ -2,12 +2,12 @@ import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
+import { Status, getSdk } from "@seer-pm/subgraph/curate";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { Status, getSdk } from "./queries/gql-generated-curate";
 
 export const getMarketImages = memoize((chainId: SupportedChain) => {
   return batshit.create({

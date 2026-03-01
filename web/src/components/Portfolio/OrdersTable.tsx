@@ -5,7 +5,7 @@ import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrad
 import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { SupportedChainId } from "@cowprotocol/cow-sdk";
+import { type SupportedChainId } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,

@@ -297,6 +297,7 @@ function useTradeLegacy(
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
           addPendingOrder(result);
+          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
         }
         queryClient.invalidateQueries({ queryKey: ["useQuote"] });
         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
@@ -344,6 +345,7 @@ const useTrade7702 = (onSuccess: () => unknown) => {
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
           addPendingOrder(result);
+          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
         }
         queryClient.invalidateQueries({ queryKey: ["useQuote"] });
         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });

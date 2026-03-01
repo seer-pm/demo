@@ -1,3 +1,6 @@
+import { SupportedChain } from "@/lib/chains";
+import { getToken0Token1 } from "@/lib/market";
+import { swaprGraphQLClient } from "@/lib/subgraph";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
@@ -6,10 +9,7 @@ import {
   PoolHourData_OrderBy,
   Pool_OrderBy,
   getSdk,
-} from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain } from "@/lib/chains";
-import { getToken0Token1 } from "@/lib/market";
-import { swaprGraphQLClient } from "@/lib/subgraph";
+} from "@seer-pm/subgraph/swapr";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
 import { PortfolioPosition } from "./usePortfolioPositions";

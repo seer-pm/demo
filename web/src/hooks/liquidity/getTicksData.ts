@@ -1,9 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
-import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "../queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "../queries/gql-generated-uniswap";
 import { PoolInfo, getPools } from "../useMarketPools";
 
 async function getTicks(chainId: SupportedChain, poolId: string) {

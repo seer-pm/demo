@@ -70,3 +70,13 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/H8uG6j77JyfwRv31aYfJcFby8eRfXSpbwqiuzPQfCQJD`,
   },
 } as const;
+
+/**
+ * Returns the subgraph URL for a given subgraph name and chain ID.
+ * Returns undefined if the combination is not configured.
+ */
+export function getSubgraphUrl(name: SubgraphTypes, chainId: number): string | undefined {
+  const subgraph = SUBGRAPHS[name];
+  if (!subgraph) return undefined;
+  return (subgraph as Record<number, string>)[chainId];
+}

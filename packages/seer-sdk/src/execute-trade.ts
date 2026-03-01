@@ -2,13 +2,20 @@
  * Trade execution: build transaction data and execute swaps.
  */
 
+import {
+  EnrichedOrder,
+  OrderBookApi,
+  OrderSigningUtils,
+  type SupportedChainId,
+  type UnsignedOrder,
+} from "@cowprotocol/cow-sdk";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import type { Config } from "@wagmi/core";
 import { sendTransaction } from "@wagmi/core";
 import { Contract, providers } from "ethers";
 import type { Signer } from "ethers";
 import type { Address, Hex } from "viem";
-import { decodeFunctionData, encodeFunctionData, zeroAddress } from "viem";
+import { decodeFunctionData, encodeFunctionData, parseUnits, zeroAddress } from "viem";
 import { creditsManagerAbi, creditsManagerAddress } from "../generated/generated-trading-credits";
 import { NATIVE_TOKEN } from "./collateral";
 import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI, UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
@@ -16,7 +23,7 @@ import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
 import { getSwapRouterAddress } from "./trading";
 
-const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
+export const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
 
 export interface TradeTokensProps {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
@@ -242,6 +249,61 @@ export async function executeCoWTrade(signer: Signer, trade: CoWTrade): Promise<
   await trade.signOrder(signer);
   const orderId = await trade.submitOrder();
   return orderId;
+}
+
+/**
+ * Create and submit a CoW limit order (sign + send). Returns order ID.
+ * Wrap with toastify in the app for UI feedback.
+ */
+export async function createCowOrder(
+  signer: Signer,
+  params: { order: UnsignedOrder; chainId: SupportedChainId },
+): Promise<string> {
+  const { order, chainId } = params;
+  const orderBookApi = new OrderBookApi({ chainId });
+  // biome-ignore lint/suspicious/noExplicitAny:
+  const orderSigningResult: any = await OrderSigningUtils.signOrder(order, chainId, signer);
+  const orderId = await orderBookApi.sendOrder({ ...order, ...orderSigningResult });
+  return orderId;
+}
+
+/**
+ * Cancel a CoW order by order ID. Wrap with toastify in the app for UI feedback.
+ */
+export async function cancelCowOrder(
+  signer: Signer,
+  params: { orderId: string; chainId: SupportedChainId },
+): Promise<string> {
+  const { orderId, chainId } = params;
+  const orderBookApi = new OrderBookApi({ chainId });
+  const orderCancellationSigningResult = await OrderSigningUtils.signOrderCancellations([orderId], chainId, signer);
+  await orderBookApi.sendSignedOrderCancellations({
+    ...orderCancellationSigningResult,
+    orderUids: [orderId],
+  });
+  return orderId;
+}
+
+/**
+ * Invalidate an EthFlow order on-chain. Returns order uid.
+ * Wrap with toastify in the app for UI feedback.
+ */
+export async function cancelEthFlowOrder(signer: Signer, params: { order: EnrichedOrder }): Promise<string> {
+  const { order } = params;
+  const ethFlowContract = new Contract(ETH_FLOW_ADDRESS, ETH_FLOW_ABI, signer);
+  const contractOrder = {
+    buyToken: order.buyToken,
+    receiver: order.receiver,
+    sellAmount: parseUnits(order.sellAmount, 18),
+    buyAmount: parseUnits(order.buyAmount, 18),
+    appData: order.appData,
+    feeAmount: order.feeAmount,
+    validTo: order.validTo,
+    partiallyFillable: order.partiallyFillable,
+    quoteId: order.quoteId ?? 0,
+  };
+  await ethFlowContract.invalidateOrder(contractOrder, { gasLimit: 200000 });
+  return order.uid;
 }
 
 /**

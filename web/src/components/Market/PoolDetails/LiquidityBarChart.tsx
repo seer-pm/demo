@@ -3,11 +3,11 @@ import { Slider } from "@/components/Slider";
 import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
-import { tickToPrice } from "@/hooks/liquidity/utils";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { PoolInfo } from "@/hooks/useMarketPools";
 import { Market } from "@/lib/market";
 import { formatBigNumbers } from "@/lib/utils";
+import { tickToPrice } from "@seer-pm/sdk";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 

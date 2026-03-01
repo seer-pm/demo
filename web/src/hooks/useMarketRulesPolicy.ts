@@ -1,4 +1,3 @@
-import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { graphQLClient } from "@/lib/subgraph";
 import {
@@ -7,6 +6,7 @@ import {
   realitioForeignProxyOptimismAddress,
   realitioV2_1ArbitratorWithAppealsAddress,
 } from "@seer-pm/sdk/contracts/arbitrators";
+import { getSdk as getSeerSdk } from "@seer-pm/subgraph/seer";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 

@@ -1,4 +1,21 @@
-import { MarketTypes } from "@seer-pm/sdk";
+import {
+  FUTARCHY_LP_PAIRS_MAPPING,
+  type Market as MarketBase,
+  type MarketOffChainFields as MarketOffChainFieldsBase,
+  MarketStatus,
+  MarketTypes,
+  type Question,
+  type SerializedMarket as SerializedMarketBase,
+  type Token0Token1,
+  type VerificationResult,
+  type VerificationStatus,
+  getCollateralByIndex,
+  getLiquidityPair,
+  getLiquidityPairForToken,
+  getMarketPoolsPairs,
+  getToken0Token1,
+  getTokensPairKey,
+} from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
 import {
@@ -14,118 +31,26 @@ import {
 } from "./reality";
 import { isTwoStringsEqual, isUndefined } from "./utils";
 
-export { MarketTypes };
-
-export interface Question {
-  id: `0x${string}`;
-  arbitrator: Address;
-  opening_ts: number;
-  timeout: number;
-  finalize_ts: number;
-  is_pending_arbitration: boolean;
-  best_answer: `0x${string}`;
-  bond: bigint;
-  min_bond: bigint;
-  base_question: `0x${string}`;
-}
-
-export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
-export type VerificationResult = { status: VerificationStatus; itemID?: string; deadline?: number };
-export type MarketOffChainFields = {
-  chainId: SupportedChain;
-  factory?: Address;
-  outcomesSupply: bigint;
-  liquidityUSD: number;
-  incentive: number;
-  hasLiquidity: boolean;
-  categories: string[];
-  poolBalance: ({
-    token0: {
-      symbol: string;
-      balance: number;
-    };
-    token1: {
-      symbol: string;
-      balance: number;
-    };
-  } | null)[];
-  odds: (number | null)[];
-  creator?: string | null;
-  blockTimestamp?: number;
-  verification?: VerificationResult;
-  images?: { market: string; outcomes: string[] } | undefined;
-  index?: number;
-  url: string;
+export {
+  FUTARCHY_LP_PAIRS_MAPPING,
+  MarketTypes,
+  MarketStatus,
+  getCollateralByIndex,
+  getLiquidityPair,
+  getLiquidityPairForToken,
+  getMarketPoolsPairs,
+  getToken0Token1,
+  getTokensPairKey,
 };
+export type { Question, Token0Token1, VerificationStatus, VerificationResult };
 
-export enum MarketStatus {
-  NOT_OPEN = "not_open",
-  OPEN = "open",
-  ANSWER_NOT_FINAL = "answer_not_final",
-  IN_DISPUTE = "in_dispute",
-  PENDING_EXECUTION = "pending_execution",
-  CLOSED = "closed",
-}
+/** MarketOffChainFields with chainId as SupportedChain (web-specific). */
+export type MarketOffChainFields = MarketOffChainFieldsBase<SupportedChain>;
 
-export type Market = MarketOffChainFields & {
-  id: Address;
-  type: "Generic" | "Futarchy";
-  marketName: string;
-  outcomes: readonly string[];
-  collateralToken: Address;
-  collateralToken1: Address;
-  collateralToken2: Address;
-  wrappedTokens: Address[];
-  parentMarket: {
-    id: Address;
-    conditionId: `0x${string}`;
-    payoutReported: boolean;
-    payoutNumerators: readonly bigint[];
-  };
-  parentOutcome: bigint;
-  //MarketView's outcomesSupply is buggy
-  //outcomesSupply: bigint;
-  parentCollectionId: `0x${string}`;
-  conditionId: `0x${string}`;
-  questionId: `0x${string}`;
-  templateId: bigint;
-  questions: readonly Question[];
-  openingTs: number;
-  finalizeTs: number;
-  encodedQuestions: readonly string[];
-  lowerBound: bigint;
-  upperBound: bigint;
-  payoutReported: boolean;
-  payoutNumerators: readonly bigint[];
-};
-
-export type SerializedMarket = Omit<
-  Market,
-  | "outcomesSupply"
-  | "parentOutcome"
-  | "templateId"
-  | "questions"
-  | "lowerBound"
-  | "upperBound"
-  | "payoutNumerators"
-  | "parentMarket"
-> & {
-  outcomesSupply: string;
-  parentMarket: Omit<Market["parentMarket"], "payoutNumerators"> & {
-    payoutNumerators: readonly string[];
-  };
-  parentOutcome: string;
-  templateId: string;
-  questions: Array<
-    Omit<Question, "bond" | "min_bond"> & {
-      bond: string;
-      min_bond: string;
-    }
-  >;
-  lowerBound: string;
-  upperBound: string;
-  payoutNumerators: readonly string[];
-};
+/** Market type with chainId as SupportedChain (web-specific). */
+export type Market = MarketBase<SupportedChain>;
+/** SerializedMarket with chainId as SupportedChain (web-specific). */
+export type SerializedMarket = SerializedMarketBase<SupportedChain>;
 
 export const getMarketStatus = (market: Market) => {
   if (!hasOpenQuestions(market!)) {
@@ -292,60 +217,6 @@ export function getMarketUnit(market: Market) {
   }
 
   return "";
-}
-
-export function getCollateralByIndex(market: Market, index: number) {
-  if (market.type === "Generic") {
-    return market.collateralToken;
-  }
-  return index < 2 ? market.collateralToken1 : market.collateralToken2;
-}
-
-export function getMarketPoolsPairs(market: Market): Token0Token1[] {
-  const pools = new Set<Token0Token1>();
-  const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
-  tokens.forEach((_, index) => {
-    pools.add(getLiquidityPair(market, index));
-  });
-  return [...pools];
-}
-
-// outcome0 pairs with outcome2
-// outcome1 pairs with outcome3
-// outcome2 pairs with outcome0
-// outcome3 pairs with outcome1
-export const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
-
-export function getLiquidityPair(market: Market, outcomeIndex: number): Token0Token1 {
-  if (market.type === "Generic") {
-    return getToken0Token1(market.wrappedTokens[outcomeIndex], market.collateralToken);
-  }
-
-  return getToken0Token1(
-    market.wrappedTokens[outcomeIndex],
-    market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]],
-  );
-}
-
-export function getLiquidityPairForToken(market: Market, outcomeIndex: number): Address {
-  if (market.type === "Generic") {
-    return market.collateralToken;
-  }
-
-  return market.wrappedTokens[FUTARCHY_LP_PAIRS_MAPPING[outcomeIndex]];
-}
-
-export type Token0Token1 = { token1: Address; token0: Address };
-
-export function getToken0Token1(token0: Address, token1: Address): Token0Token1 {
-  return token0.toLocaleLowerCase() > token1.toLocaleLowerCase()
-    ? { token0: token1.toLocaleLowerCase() as Address, token1: token0.toLocaleLowerCase() as Address }
-    : { token0: token0.toLocaleLowerCase() as Address, token1: token1.toLocaleLowerCase() as Address };
-}
-
-export function getTokensPairKey(tokenA: Address | string, tokenB: Address | string): string {
-  const { token0, token1 } = getToken0Token1(tokenA as Address, tokenB as Address);
-  return `${token0}-${token1}`;
 }
 
 export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {

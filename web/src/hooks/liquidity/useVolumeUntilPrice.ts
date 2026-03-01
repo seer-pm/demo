@@ -1,9 +1,9 @@
 import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { decimalToFraction, tickToPrice } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";
 import { useTicksData } from "./useTicksData";
-import { decimalToFraction, tickToPrice } from "./utils";
 
 function getVolumeWithinRange(
   currentSqrtPriceX96: bigint,

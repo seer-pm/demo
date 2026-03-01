@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
+import { OrderBookApi, OrderStatus, type SupportedChainId } from "@seer-pm/sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 

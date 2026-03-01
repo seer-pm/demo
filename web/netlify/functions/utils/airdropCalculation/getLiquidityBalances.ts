@@ -1,10 +1,9 @@
 import { SupportedChain } from "@/lib/chains";
 import { isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import ethers from "ethers";
-import { Address } from "viem";
+import { getSubgraphUrl } from "@seer-pm/subgraph";
+import { Address, zeroAddress } from "viem";
 import { mainnet } from "wagmi/chains";
 
 export interface LiquidityEvent {
@@ -55,7 +54,10 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+      getSubgraphUrl(
+        chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
+        chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
+      )!,
       {
         method: "POST",
         headers: {
@@ -114,7 +116,10 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
           }
         }`;
     const results = await fetch(
-      chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+      getSubgraphUrl(
+        chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
+        chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
+      )!,
       {
         method: "POST",
         headers: {
@@ -184,7 +189,7 @@ export function getLiquidityBalancesAtTimestamp(events: LiquidityEvent[], timest
   const formattedBalances: { [key: string]: { [key: string]: number } } = {};
   for (const [user, balances] of Object.entries(tokenBalances)) {
     // Exclude zero address and non-positive balances
-    if (user !== ethers.constants.AddressZero) {
+    if (user !== zeroAddress) {
       formattedBalances[user] = {};
       for (const [tokenId, balance] of Object.entries(balances)) {
         if (balance > 0) {

@@ -5,6 +5,15 @@
 export const SDK_VERSION = "0.0.1";
 
 export type { Execution } from "./execution";
+export type {
+  Question,
+  VerificationStatus,
+  VerificationResult,
+  MarketOffChainFields,
+  Market,
+  SerializedMarket,
+} from "./market-types";
+export { MarketStatus } from "./market-types";
 export {
   getCreateMarketExecution,
   getCreateProposalExecution,
@@ -19,6 +28,16 @@ export {
 } from "./create-market";
 export type { CreateMarketProps, CreateMarketParams } from "./create-market";
 export { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
+export {
+  FUTARCHY_LP_PAIRS_MAPPING,
+  getCollateralByIndex,
+  getLiquidityPair,
+  getLiquidityPairForToken,
+  getMarketPoolsPairs,
+  getToken0Token1,
+  getTokensPairKey,
+} from "./market-pools";
+export type { Token0Token1 } from "./market-pools";
 export { escapeJson } from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
 export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
@@ -63,6 +82,11 @@ export {
 } from "./quote";
 export type { QuoteTradeResult, QuoteTradeFn } from "./quote";
 export {
+  cancelCowOrder,
+  cancelEthFlowOrder,
+  clientToSigner,
+  createCowOrder,
+  ETH_FLOW_ADDRESS,
   executeCoWTrade,
   executeSwaprTrade,
   executeUniswapTrade,
@@ -75,7 +99,6 @@ export {
   getSwaprTradeExecution,
   getUniswapTradeExecution,
   getWrappedSeerCreditsExecution,
-  clientToSigner,
 } from "./execute-trade";
 export type {
   TradeTokensProps,
@@ -83,3 +106,10 @@ export type {
 } from "./execute-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/generated-market-factory";
+export { isOpStack } from "./chains";
+export { getTokenSwapResult, getTokenPriceFromSwap } from "./token-price";
+export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+
+// Re-export CoW Protocol SDK for web consumers (single dependency)
+export { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
+export type { EnrichedOrder, UnsignedOrder } from "@cowprotocol/cow-sdk";

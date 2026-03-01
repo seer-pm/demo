@@ -6,9 +6,9 @@ import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { readMarketViewGetMarkets } from "@seer-pm/sdk/contracts/market-view";
+import { Market_OrderBy } from "@seer-pm/subgraph/seer";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { Market_OrderBy } from "./queries/gql-generated-seer";
 import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
 
 export async function searchOnChainMarkets(chainId: SupportedChain) {

@@ -1,16 +1,10 @@
 import { AlgebraPoolAbi } from "@/abi/AlgebraPoolAbi";
-import { sqrtPriceX96ToPrice } from "@/hooks/liquidity/utils";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { Market, getMarketPoolsPairs } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
-import { getPublicClient, readContracts } from "@wagmi/core";
-import * as batshit from "@yornaath/batshit";
-import memoize from "micro-memoize";
-import { AbiEvent, Address, formatUnits } from "viem";
+import { sqrtPriceX96ToPrice } from "@seer-pm/sdk";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -18,8 +12,14 @@ import {
   OrderDirection,
   Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
-} from "./queries/gql-generated-swapr";
-import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "./queries/gql-generated-uniswap";
+} from "@seer-pm/subgraph/swapr";
+import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { useQuery } from "@tanstack/react-query";
+import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
+import { getPublicClient, readContracts } from "@wagmi/core";
+import * as batshit from "@yornaath/batshit";
+import memoize from "micro-memoize";
+import { AbiEvent, Address, formatUnits } from "viem";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "./useComputedPoolAddresses";
 
 export interface PoolIncentive {

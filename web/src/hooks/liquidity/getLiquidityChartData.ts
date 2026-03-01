@@ -1,7 +1,7 @@
 import { isTwoStringsEqual } from "@/lib/utils";
+import { tickToPrice } from "@seer-pm/sdk";
 import { TickMath } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";
-import { tickToPrice } from "./utils";
 
 const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001
 const TICK_MIN = -69077; //soft cap at price0 = 0.001, price1 = 1000

@@ -1,16 +1,11 @@
-import { tickToPrice } from "@/hooks/liquidity/utils";
-import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { useGlobalState } from "@/hooks/useGlobalState";
-import { SupportedChain, gnosis, mainnet } from "@/lib/chains";
-import { Market, getMarketUnit, getToken0Token1, isOdd } from "@/lib/market";
+import { SupportedChain, gnosis } from "@/lib/chains";
+import { Market, getMarketUnit, isOdd } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import type { Token } from "@seer-pm/sdk";
-import { getSwaprQuote, getUniswapQuote } from "@seer-pm/sdk";
-import { Address, formatUnits } from "viem";
-import { isOpStack } from "./config";
+import { getTokenPriceFromSwap } from "@seer-pm/sdk";
+import { getTokenPriceFromSubgraph } from "@seer-pm/subgraph";
+import { Address } from "viem";
 import { displayScalarBound } from "./reality";
-import { isTwoStringsEqual } from "./utils";
 
 const CEIL_PRICE = 1;
 
@@ -48,140 +43,21 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
-async function getTokenSwapResult(
+async function getTokenPriceFromSubgraphWithClient(
   wrappedAddress: Address,
   collateralToken: Token,
   chainId: SupportedChain,
-  amount: string,
-  swapType: "buy" | "sell",
-  maxSlippage: string,
-): Promise<bigint> {
-  const outcomeToken = { address: wrappedAddress, chainId, symbol: "SEER_OUTCOME", decimals: 18 };
-  // call cowQuote first, if not possible then we call using rpc
-  /*   try {
-    const cowQuote = await getCowQuote(chainId, undefined, amount, outcomeToken, collateralToken, swapType);
-    if (cowQuote?.value && cowQuote.value > 0n) {
-      const pricePerShare =
-        swapType === "buy"
-          ? Number(amount) / Number(formatUnits(cowQuote.value, 18))
-          : Number(formatUnits(cowQuote.value, 18)) / Number(amount);
-      if (pricePerShare <= CEIL_PRICE) {
-        return cowQuote.value;
-      }
-    }
-  } catch (e) {} */
-  // we either call uniswap or swapr quote based on chainId
-  if (chainId === gnosis.id) {
-    try {
-      const swaprQuote = await getSwaprQuote(
-        chainId,
-        undefined,
-        amount,
-        outcomeToken,
-        collateralToken,
-        swapType,
-        maxSlippage,
-      );
-      return swaprQuote.value;
-    } catch (e) {
-      return 0n;
-    }
-  }
-
-  if (chainId === mainnet.id || isOpStack(chainId)) {
-    try {
-      const uniswapQuote = await getUniswapQuote(
-        chainId,
-        undefined,
-        amount,
-        outcomeToken,
-        collateralToken,
-        swapType,
-        maxSlippage,
-      );
-      return uniswapQuote.value;
-    } catch (e) {
-      return 0n;
-    }
-  }
-
-  return 0n;
-}
-
-async function getTokenPriceFromSwap(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
-  const BUY_AMOUNT = 3; //collateral token
-  const SELL_AMOUNT = 3; //outcome token
-
-  try {
-    const maxSlippage = useGlobalState.getState().maxSlippage;
-    const price = await getTokenSwapResult(
-      wrappedAddress,
-      collateralToken,
-      chainId,
-      String(BUY_AMOUNT),
-      "buy",
-      maxSlippage,
-    );
-    const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
-    if (pricePerShare > CEIL_PRICE) {
-      // low buy liquidity, try to get sell price instead
-      const sellPrice = await getTokenSwapResult(
-        wrappedAddress,
-        collateralToken,
-        chainId,
-        String(SELL_AMOUNT),
-        "sell",
-        maxSlippage,
-      );
-      const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
-      if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
-        return Number.NaN;
-      }
-      return sellPricePerShare;
-    }
-
-    return pricePerShare;
-  } catch {
-    return Number.NaN;
-  }
-}
-
-async function getTokenPriceFromSubgraph(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
+) {
   const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
     return Number.NaN;
   }
-  try {
-    const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-    const { pools } = await graphQLSdk(subgraphClient).GetPools({
-      where: {
-        ...getToken0Token1(wrappedAddress, collateralToken.address),
-      },
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderBy: Pool_OrderBy.Liquidity as any,
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderDirection: OrderDirection.Desc as any,
-      first: 1,
-    });
-    const { token0 } = getToken0Token1(wrappedAddress, collateralToken.address);
-    const pool = pools[0];
-    if (!pool) {
-      return Number.NaN;
-    }
-    if (pool.tick === null || pool.tick === undefined) {
-      return Number.NaN;
-    }
-    const [price0, price1] = tickToPrice(Number(pool.tick));
-    return isTwoStringsEqual(wrappedAddress, token0) ? Number(price0) : Number(price1);
-  } catch (e) {
-    console.error(e);
-    return Number.NaN;
-  }
+  return getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId, subgraphClient);
 }
 
 export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
   if (chainId === gnosis.id) {
-    return await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
+    return await getTokenPriceFromSubgraphWithClient(wrappedAddress, collateralToken, chainId);
   }
   return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
 }
@@ -201,7 +77,9 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
 
   const prices = await Promise.all(
     market.wrappedTokens.map((wrappedAddress) =>
-      getTokenPriceFromSubgraph(wrappedAddress, collateralToken, market.chainId),
+      market.chainId === gnosis.id
+        ? getTokenPriceFromSubgraphWithClient(wrappedAddress, collateralToken, market.chainId)
+        : getTokenPriceFromSwap(wrappedAddress, collateralToken, market.chainId),
     ),
   );
 

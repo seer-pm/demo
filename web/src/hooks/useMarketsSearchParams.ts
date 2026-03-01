@@ -1,7 +1,7 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { VerificationStatus } from "@/lib/market";
 import { MarketStatus } from "@/lib/market";
-import { Market_OrderBy } from "./queries/gql-generated-seer";
+import { Market_OrderBy } from "@seer-pm/subgraph/seer";
 import { UseGraphMarketsParams } from "./useMarkets";
 
 function useMarketsSearchParams() {

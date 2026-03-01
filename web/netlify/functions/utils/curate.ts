@@ -1,4 +1,3 @@
-import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { VerificationResult } from "@/lib/market";
@@ -8,6 +7,7 @@ import {
   lightGeneralizedTcrAddress,
   readLightGeneralizedTcrChallengePeriodDuration,
 } from "@seer-pm/sdk/contracts/curate";
+import { Status, getSdk as getCurateSdk } from "@seer-pm/subgraph/curate";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { Address, parseAbiItem } from "viem";

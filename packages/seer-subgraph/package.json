@@ -1,0 +1,46 @@
+{
+  "name": "@seer-pm/subgraph",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Subgraph endpoints, GraphQL queries and codegen for Seer",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./seer": "./src/generated/gql-generated-seer.ts",
+    "./tokens": "./src/generated/gql-generated-tokens.ts",
+    "./curate": "./src/generated/gql-generated-curate.ts",
+    "./swapr": "./src/generated/gql-generated-swapr.ts",
+    "./uniswap": "./src/generated/gql-generated-uniswap.ts",
+    "./reality": "./src/generated/gql-generated-reality.ts"
+  },
+  "files": ["dist", "src/generated", "queries"],
+  "scripts": {
+    "generate:gql": "graphql-codegen",
+    "build": "yarn generate:gql && tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": { "@seer-pm/sdk": "*" },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
+    "@graphql-codegen/typescript-operations": "^4.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2",
+    "viem": "^2.38.0"
+  },
+  "peerDependencies": {
+    "graphql-request": ">=5.0.0",
+    "graphql-tag": ">=2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

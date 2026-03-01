@@ -48,6 +48,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@uniswap/v3-sdk": "^3.19.0",
     "@cowprotocol/cow-sdk": "^5.3.2",
     "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#4fc1e9ce71f76612aa6f468b5b381083d4c52b86",
     "ethers": "^5.7.2"

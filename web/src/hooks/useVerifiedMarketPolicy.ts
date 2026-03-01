@@ -1,7 +1,7 @@
-import { getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
 import { SupportedChain } from "@/lib/chains";
 import { graphQLClient } from "@/lib/subgraph";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
+import { getSdk as getSeerSdk } from "@seer-pm/subgraph/seer";
 import { useQuery } from "@tanstack/react-query";
 
 export const useVerifiedMarketPolicy = (chainId: SupportedChain | undefined) => {

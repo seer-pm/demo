@@ -1,4 +1,4 @@
-import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@/hooks/queries/gql-generated-swapr.ts";
+import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@seer-pm/subgraph/swapr";
 import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { Pool } from "./fetchPools.ts";

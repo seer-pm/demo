@@ -1,7 +1,6 @@
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
-import { decimalToFraction } from "@/hooks/liquidity/utils";
 import { useQuoteTrade, useTrade } from "@/hooks/trade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
@@ -12,6 +11,7 @@ import { Parameter, QuestionIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";

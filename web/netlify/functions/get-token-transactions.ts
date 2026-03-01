@@ -1,6 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import type { TokenTransfer } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
 import { Database } from "./utils/supabase";
