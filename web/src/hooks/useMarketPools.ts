@@ -1,4 +1,5 @@
 import { AlgebraPoolAbi } from "@/abi/AlgebraPoolAbi";
+import { EternalFarmingAbi } from "@/abi/EternalFarmingAbi";
 import { sqrtPriceX96ToPrice } from "@/hooks/liquidity/utils";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { Market, getMarketPoolsPairs } from "@/lib/market";
@@ -91,6 +92,31 @@ const eternalFarming = memoize((chainId: SupportedChain) => {
       const { eternalFarmings } = await getSwaprSdk(algebraFarmingClient).GetEternalFarmings({
         where: { pool_in: ids },
       });
+      try {
+        const results = await readContracts(config, {
+          allowFailure: true,
+          contracts: eternalFarmings.map((farming) => {
+            return {
+              address: ETERNAL_FARMING_ADDRESS,
+              abi: EternalFarmingAbi,
+              functionName: "incentives",
+              args: [farming.id],
+              chainId,
+            };
+          }),
+        });
+        return eternalFarmings.map((farming, index) => {
+          if (results[index].error) {
+            return farming;
+          }
+          // biome-ignore lint/suspicious/noExplicitAny:
+          const realReward = (results[index].result as any)[0];
+          return {
+            ...farming,
+            reward: realReward.toString(),
+          };
+        });
+      } catch {}
 
       return eternalFarmings;
     },
@@ -174,7 +200,7 @@ async function getSwaprPoolOnChain(
     },
   ];
 }
-
+const ETERNAL_FARMING_ADDRESS = "0x607BbfD4CEbd869AaD04331F8a2AD0C3C396674b";
 const EternalFarmingCreatedEvent = {
   anonymous: false,
   inputs: [
@@ -287,7 +313,7 @@ export async function getEternalFarmingsOnChain(chainId: SupportedChain, pool: A
   if (!publicClient) return [];
   try {
     const logs = await publicClient.getLogs({
-      address: "0x607BbfD4CEbd869AaD04331F8a2AD0C3C396674b",
+      address: ETERNAL_FARMING_ADDRESS,
       event: EternalFarmingCreatedEvent,
       fromBlock: 36404701n,
       toBlock: "latest",
