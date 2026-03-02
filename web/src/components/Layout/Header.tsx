@@ -285,6 +285,14 @@ export default function Header() {
                     Market Collections
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to={paths.tradeCollateral()}
+                    className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
+                  >
+                    Trade Collateral
+                  </Link>
+                </li>
               </ul>
             </div>
           )}
@@ -508,6 +516,11 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
           <li>
             <Link to={"/collections/default"} className="hover:font-semibold">
               Market Collections
+            </Link>
+          </li>
+          <li>
+            <Link to={paths.tradeCollateral()} className="hover:font-semibold">
+              Trade Collateral
             </Link>
           </li>
         </ul>
