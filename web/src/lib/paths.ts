@@ -1,6 +1,6 @@
 import { lightGeneralizedTcrAddress } from "@/hooks/contracts/generated-curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
-import { SupportedChain } from "./chains";
+import { SupportedChain, base, optimism } from "./chains";
 import { TOKENS_BY_CHAIN, isSeerCredits } from "./config";
 import { Market } from "./market";
 
@@ -27,6 +27,7 @@ export const paths = {
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   collection: (collectionId: string) => `/collections/${collectionId}`,
+  tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
     `https://resolve.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
   farmingProgram: () => "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",
@@ -62,16 +63,16 @@ export const paths = {
     `https://jumper.exchange/?fromChain=1&fromToken=0x6B175474E89094C44Da98b954EedeAC495271d0F&toChain=${toChain}&toToken=${toToken}`,
   tokenImage: (address: Address, chainId: number) => {
     // TODO: use kleros list, add sUSDS on optimism and sDAI on mainnet
-    if (chainId === 10) {
-      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].sUSDS) {
+    if (chainId === base.id || chainId === optimism.id) {
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[chainId].sUSDS) {
         return "https://assets.coingecko.com/coins/images/52721/standard/sUSDS_Coin.png";
       }
 
-      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].USDS) {
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[chainId].USDS) {
         return "https://assets.coingecko.com/coins/images/39926/standard/usds.webp";
       }
 
-      if (address.toLowerCase() === TOKENS_BY_CHAIN[10].USDC) {
+      if (address.toLowerCase() === TOKENS_BY_CHAIN[chainId].USDC) {
         return "https://assets.coingecko.com/coins/images/6319/standard/usdc.png";
       }
     }
