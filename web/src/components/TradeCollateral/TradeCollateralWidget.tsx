@@ -67,8 +67,8 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
   }, [amountStr, payToken]);
 
   const setPayToken = (token: Token) => {
-    const i = collateralTokens?.findIndex((t) => t.address === token.address) ?? 0;
-    setPayIndex(i);
+    const i = collateralTokens?.findIndex((t) => t.address === token.address) ?? -1;
+    setPayIndex(i >= 0 ? i : 0);
     setGetAddress(undefined);
   };
 
@@ -229,7 +229,6 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
           disabled={
             !address ||
             !amountInBigInt ||
-            amountInBigInt === 0n ||
             !previewAmountOut ||
             !payToken ||
             !getToken ||

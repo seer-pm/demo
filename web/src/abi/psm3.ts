@@ -20,7 +20,7 @@ export const PSM3_ABI = [
       { name: "referralCode", type: "uint256" },
     ],
     name: "swapExactIn",
-    outputs: [],
+    outputs: [{ name: "amountOut", type: "uint256" }],
     stateMutability: "nonpayable",
     type: "function",
   },
