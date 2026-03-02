@@ -1,4 +1,8 @@
 {
+  "files": {
+    "include": ["src/**", "netlify/**"],
+    "ignore": ["src/hooks/queries/**"]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
