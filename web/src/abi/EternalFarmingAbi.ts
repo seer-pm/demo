@@ -1,3 +1,122 @@
+import { AbiEvent } from "viem";
+
+export const EternalFarmingCreatedEvent = {
+  anonymous: false,
+  inputs: [
+    {
+      indexed: true,
+      internalType: "contract IERC20Minimal",
+      name: "rewardToken",
+      type: "address",
+    },
+    {
+      indexed: true,
+      internalType: "contract IERC20Minimal",
+      name: "bonusRewardToken",
+      type: "address",
+    },
+    {
+      indexed: true,
+      internalType: "contract IAlgebraPool",
+      name: "pool",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "address",
+      name: "virtualPool",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "startTime",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "endTime",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "reward",
+      type: "uint256",
+    },
+    {
+      indexed: false,
+      internalType: "uint256",
+      name: "bonusReward",
+      type: "uint256",
+    },
+    {
+      components: [
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier1",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier2",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "tokenAmountForTier3",
+          type: "uint256",
+        },
+        {
+          internalType: "uint32",
+          name: "tier1Multiplier",
+          type: "uint32",
+        },
+        {
+          internalType: "uint32",
+          name: "tier2Multiplier",
+          type: "uint32",
+        },
+        {
+          internalType: "uint32",
+          name: "tier3Multiplier",
+          type: "uint32",
+        },
+      ],
+      indexed: false,
+      internalType: "struct IAlgebraFarming.Tiers",
+      name: "tiers",
+      type: "tuple",
+    },
+    {
+      indexed: false,
+      internalType: "address",
+      name: "multiplierToken",
+      type: "address",
+    },
+    {
+      indexed: false,
+      internalType: "uint24",
+      name: "minimalAllowedPositionWidth",
+      type: "uint24",
+    },
+  ],
+  name: "EternalFarmingCreated",
+  type: "event",
+} as AbiEvent;
+
+export const EternalFarmingRewardsRatesChangedEvent = {
+  anonymous: false,
+  inputs: [
+    { indexed: false, internalType: "uint128", name: "rewardRate", type: "uint128" },
+    { indexed: false, internalType: "uint128", name: "bonusRewardRate", type: "uint128" },
+    { indexed: false, internalType: "bytes32", name: "incentiveId", type: "bytes32" },
+  ],
+  name: "RewardsRatesChanged",
+  type: "event",
+} as AbiEvent;
+
 export const EternalFarmingAbi = [
   {
     inputs: [
