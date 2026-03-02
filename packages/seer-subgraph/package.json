@@ -23,7 +23,7 @@
   "files": ["dist", "src/generated", "queries"],
   "scripts": {
     "generate:gql": "graphql-codegen",
-    "build": "yarn generate:gql && tsup",
+    "build": "tsup",
     "dev": "tsup --watch"
   },
   "dependencies": { "@seer-pm/sdk": "*" },
