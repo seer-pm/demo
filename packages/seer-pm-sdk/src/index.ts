@@ -27,7 +27,7 @@ export {
   MARKET_CATEGORIES,
 } from "./create-market";
 export type { CreateMarketProps, CreateMarketParams } from "./create-market";
-export { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
+export { MarketTypes, getMarketName, getOutcomes, getQuestionParts, getMarketUnit } from "./market";
 export {
   FUTARCHY_LP_PAIRS_MAPPING,
   getCollateralByIndex,
@@ -38,7 +38,7 @@ export {
   getTokensPairKey,
 } from "./market-pools";
 export type { Token0Token1 } from "./market-pools";
-export { escapeJson } from "./reality";
+export { escapeJson, isScalarBoundInWei, displayScalarBound } from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
 export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
 export type { MarketLike, RouterAddressMap, RouterTypes } from "./router-addresses";
@@ -107,7 +107,14 @@ export type {
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/generated-market-factory";
 export { isOpStack } from "./chains";
-export { getTokenSwapResult, getTokenPriceFromSwap } from "./token-price";
+export { getTokenSwapResult, getTokenPriceFromSwap, getTokenPrice } from "./token-price";
+export {
+  isOdd,
+  rescaleOdds,
+  normalizeOdds,
+  getMarketOdds,
+  getMarketEstimate,
+} from "./market-odds";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
 
 // Markets fetch (search + get by id/slug)

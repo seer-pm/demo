@@ -1,6 +1,6 @@
 import { Market } from "@/lib/market";
-import { getMarketOdds } from "@/lib/market-odds";
 import { isUndefined } from "@/lib/utils";
+import { getMarketOdds } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 

@@ -23,11 +23,11 @@ import {
   USDIcon,
 } from "@/lib/icons";
 import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus, getMarketType } from "@/lib/market";
-import { getMarketEstimate } from "@/lib/market-odds.ts";
 import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
 import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
 import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { getMarketEstimate } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";

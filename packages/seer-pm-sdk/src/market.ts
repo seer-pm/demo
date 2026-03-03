@@ -1,3 +1,4 @@
+import type { Market } from "./market-types";
 import { escapeJson } from "./reality";
 
 export enum MarketTypes {
@@ -55,4 +56,12 @@ export function getOutcomes(outcomes: string[], marketType: MarketTypes): string
     return ["DOWN", "UP", ...outcomes.slice(2)];
   }
   return outcomes;
+}
+
+export function getMarketUnit(market: Market): string {
+  const marketName = market.marketName;
+  if (marketName.lastIndexOf("[") > -1) {
+    return `${marketName.slice(marketName.lastIndexOf("[") + 1, marketName.lastIndexOf("]"))}`;
+  }
+  return "";
 }

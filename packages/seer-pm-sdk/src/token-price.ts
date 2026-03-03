@@ -7,7 +7,15 @@ import { formatUnits } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { isOpStack } from "./chains";
 import { getSwaprQuote, getUniswapQuote } from "./quote";
+import { getTokenPriceFromSubgraph } from "./subgraph";
 import type { Token } from "./tokens";
+
+export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: number): Promise<number> {
+  if (chainId === gnosis.id) {
+    return getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
+  }
+  return getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
+}
 
 const CEIL_PRICE = 1;
 const BUY_AMOUNT = 3; // collateral token

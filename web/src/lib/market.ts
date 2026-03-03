@@ -16,8 +16,10 @@ import {
   getLiquidityPair,
   getLiquidityPairForToken,
   getMarketPoolsPairs,
+  getMarketUnit,
   getToken0Token1,
   getTokensPairKey,
+  isOdd,
 } from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 import { SupportedChain } from "./chains";
@@ -42,8 +44,10 @@ export {
   getLiquidityPair,
   getLiquidityPairForToken,
   getMarketPoolsPairs,
+  getMarketUnit,
   getToken0Token1,
   getTokensPairKey,
+  isOdd,
 };
 export type { Question, Token0Token1, VerificationStatus, VerificationResult };
 
@@ -222,19 +226,6 @@ export function isMarketReliable(market: Market) {
     // futarchy markets have 2 outcomes (Yes & No)
     return decodedQuestion.outcomes.length === 2;
   });
-}
-
-export function isOdd(odd: number | undefined | null): odd is number {
-  return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
-}
-
-export function getMarketUnit(market: Market) {
-  const marketName = market.marketName;
-  if (marketName.lastIndexOf("[") > -1) {
-    return `${marketName.slice(marketName.lastIndexOf("[") + 1, marketName.lastIndexOf("]"))}`;
-  }
-
-  return "";
 }
 
 export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {

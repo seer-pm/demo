@@ -1,3 +1,4 @@
+import { isScalarBoundInWei } from "@seer-pm/sdk";
 import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
@@ -232,23 +233,4 @@ export function decodeOutcomes(market: Market, question: Question) {
   return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
 }
 
-export function isScalarBoundInWei(bound: bigint) {
-  // NOTE: This is a backwards compatibility check.
-  // Going forward, all scalar bounds will be in wei (1e18) format.
-  // However, some older markets used basic units (regular integers).
-  // We detect the format based on the size of the number.
-
-  // We use 1e10 as a threshold to distinguish between regular numbers and numbers in wei (1e18) format
-  // Numbers below 1e10 are assumed to be in their basic units (like regular integers)
-  // Numbers above 1e10 are assumed to be in wei format (1e18 decimals) and need to be formatted with formatEther
-
-  return bound > BigInt(1e10);
-}
-
-export function displayScalarBound(bound: bigint): number {
-  if (isScalarBoundInWei(bound)) {
-    return Number(formatEther(bound));
-  }
-
-  return Number(bound);
-}
+export { displayScalarBound, isScalarBoundInWei } from "@seer-pm/sdk";
