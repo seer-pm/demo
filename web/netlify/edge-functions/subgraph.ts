@@ -1,7 +1,20 @@
 import type { Config } from "@netlify/edge-functions";
 import { SUBGRAPHS } from "../../src/lib/subgraph-endpoints.ts";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
   const subgraph = new URL(req.url).searchParams.get("_subgraph");
   const chainId = Number.parseInt(new URL(req.url).searchParams.get("_chainId") || "");
 
@@ -37,6 +50,7 @@ export default async (req: Request) => {
             status: 502,
             headers: {
               "Content-Type": "application/json; charset=utf-8",
+              ...corsHeaders,
             },
           },
         );
@@ -48,6 +62,7 @@ export default async (req: Request) => {
         status: body?.errors ? 500 : 200,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
+          ...corsHeaders,
         },
       });
     } catch (error) {
@@ -62,13 +77,20 @@ export default async (req: Request) => {
           status: 502,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
+            ...corsHeaders,
           },
         },
       );
     }
   }
 
-  return new Response(JSON.stringify({ error: `Subgraph not found ${subgraph} chainId ${chainId}` }), { status: 404 });
+  return new Response(JSON.stringify({ error: `Subgraph not found ${subgraph} chainId ${chainId}` }), {
+    status: 404,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...corsHeaders,
+    },
+  });
 };
 
 export const config: Config = { path: "/subgraph" };
