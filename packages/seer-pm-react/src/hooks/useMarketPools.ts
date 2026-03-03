@@ -1,15 +1,10 @@
-import { AlgebraPoolAbi } from "@/abi/AlgebraPoolAbi";
+import { type Market as BaseMarket, getMarketPoolsPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import {
   EternalFarmingAbi,
   EternalFarmingCreatedEvent,
   EternalFarmingRewardsRatesChangedEvent,
-} from "@/abi/EternalFarmingAbi";
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { Market, getMarketPoolsPairs } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { isUndefined } from "@/lib/utils";
-import { config } from "@/wagmi";
-import { sqrtPriceX96ToPrice } from "@seer-pm/sdk";
+} from "@seer-pm/sdk/abis/eternal-farming";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -21,11 +16,17 @@ import {
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import { useQuery } from "@tanstack/react-query";
 import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
-import { getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";
+import { type Config, getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
 import { Address, decodeEventLog, formatUnits } from "viem";
+import { useConfig } from "wagmi";
+import { gnosis } from "wagmi/chains";
+import { AlgebraPoolAbi } from "../abi/AlgebraPoolAbi";
+import { isUndefined } from "../utils";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "./useComputedPoolAddresses";
+
+export type Market = BaseMarket<number>;
 
 export interface PoolIncentive {
   reward: bigint;
@@ -83,7 +84,7 @@ function mapEternalFarming(eternalFarming: GetEternalFarmingsQuery["eternalFarmi
   };
 }
 
-const eternalFarming = memoize((chainId: SupportedChain) => {
+const eternalFarming = memoize((chainId: number, wagmiConfig: Config) => {
   return batshit.create({
     name: "eternalFarmings",
     fetcher: async (ids: Address[]) => {
@@ -97,7 +98,7 @@ const eternalFarming = memoize((chainId: SupportedChain) => {
         where: { pool_in: ids },
       });
       try {
-        const results = await readContracts(config, {
+        const results = await readContracts(wagmiConfig, {
           allowFailure: true,
           contracts: eternalFarmings.map((farming) => {
             return {
@@ -133,7 +134,8 @@ const eternalFarming = memoize((chainId: SupportedChain) => {
  * Fetches a single Swapr (Algebra) pool on-chain
  */
 async function getSwaprPoolOnChain(
-  chainId: SupportedChain,
+  chainId: number,
+  config: Config,
   pair: { token0: Address; token1: Address },
 ): Promise<PoolInfo[]> {
   const factoryAddress = POOL_FACTORY_ADDRESSES[chainId];
@@ -197,7 +199,7 @@ async function getSwaprPoolOnChain(
       token1Symbol: "",
       totalValueLockedToken0: 0,
       totalValueLockedToken1: 0,
-      incentives: await getEternalFarmingsOnChain(chainId, poolAddress),
+      incentives: await getEternalFarmingsOnChain(chainId, config, poolAddress),
       liquidity,
       tick: tickNumber,
       tickSpacing,
@@ -206,8 +208,9 @@ async function getSwaprPoolOnChain(
 }
 const ETERNAL_FARMING_ADDRESS = "0x607BbfD4CEbd869AaD04331F8a2AD0C3C396674b";
 
-export async function getEternalFarmingsOnChain(chainId: SupportedChain, pool: Address) {
+export async function getEternalFarmingsOnChain(chainId: number, config: Config, pool: Address) {
   if (chainId !== gnosis.id) return [];
+
   const publicClient = getPublicClient(config, { chainId });
   if (!publicClient) return [];
   try {
@@ -248,18 +251,19 @@ export async function getEternalFarmingsOnChain(chainId: SupportedChain, pool: A
   }
 }
 
-async function getEternalFarmingsWithFallback(chainId: SupportedChain, pool: Address) {
+async function getEternalFarmingsWithFallback(chainId: number, config: Config, pool: Address) {
   try {
-    return (await eternalFarming(chainId).fetch(pool as Address)).map((eternalFarming) =>
+    return (await eternalFarming(chainId, config).fetch(pool as Address)).map((eternalFarming) =>
       mapEternalFarming(eternalFarming),
     );
   } catch {
-    return getEternalFarmingsOnChain(chainId, pool);
+    return getEternalFarmingsOnChain(chainId, config, pool);
   }
 }
 
 async function getSwaprPools(
-  chainId: SupportedChain,
+  chainId: number,
+  config: Config,
   tokens: { token0: Address; token1: Address }[],
 ): Promise<PoolInfo[]> {
   const algebraClient = swaprGraphQLClient(chainId, "algebra");
@@ -297,20 +301,17 @@ async function getSwaprPools(
         token1Symbol: pool.token1.symbol,
         totalValueLockedToken0: Number(pool.totalValueLockedToken0),
         totalValueLockedToken1: Number(pool.totalValueLockedToken1),
-        incentives: await getEternalFarmingsWithFallback(chainId, pool.id as Address),
+        incentives: await getEternalFarmingsWithFallback(chainId, config, pool.id as Address),
       })),
     );
   } catch {
     // Fallback: fetch pools on-chain when subgraph request fails
-    const results = await Promise.all(tokens.map((pair) => getSwaprPoolOnChain(chainId, pair)));
+    const results = await Promise.all(tokens.map((pair) => getSwaprPoolOnChain(chainId, config, pair)));
     return results.flat();
   }
 }
 
-async function getUniswapPools(
-  chainId: SupportedChain,
-  tokens: { token0: Address; token1: Address }[],
-): Promise<PoolInfo[]> {
+async function getUniswapPools(chainId: number, tokens: { token0: Address; token1: Address }[]): Promise<PoolInfo[]> {
   const uniswapClient = uniswapGraphQLClient(chainId);
 
   if (!uniswapClient) {
@@ -350,11 +351,11 @@ async function getUniswapPools(
   );
 }
 
-export const getPools = memoize((chainId: SupportedChain) => {
+export const getPools = memoize((chainId: number, config: Config) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
-      return chainId === gnosis.id ? getSwaprPools(chainId, tokens) : getUniswapPools(chainId, tokens);
+      return chainId === gnosis.id ? getSwaprPools(chainId, config, tokens) : getUniswapPools(chainId, tokens);
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (pools, tokens) =>
@@ -365,11 +366,14 @@ export const getPools = memoize((chainId: SupportedChain) => {
 });
 
 export const useMarketPools = (market: Market) => {
+  const config = useConfig();
   return useQuery<Array<PoolInfo[]> | undefined, Error>({
     queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
-      return await Promise.all(getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId).fetch(poolPair)));
+      return await Promise.all(
+        getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId, config).fetch(poolPair)),
+      );
     },
   });
 };
@@ -377,7 +381,7 @@ export const useMarketPools = (market: Market) => {
 export type PoolDeposit = GetDepositsQuery["deposits"][0];
 type PoolsDeposits = Record<Address, PoolDeposit[]>;
 
-export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owner?: Address) => {
+export const usePoolsDeposits = (chainId: number, pools: Address[], owner?: Address) => {
   return useQuery<PoolsDeposits | undefined, Error>({
     queryKey: ["usePoolsDeposits", chainId, pools, owner],
     enabled: !!owner,
@@ -408,7 +412,7 @@ export const usePoolsDeposits = (chainId: SupportedChain, pools: Address[], owne
 
 export type NftPosition = GetPositionsQuery["positions"][0];
 
-export const useNftPositions = (chainId: SupportedChain, ids: string[]) => {
+export const useNftPositions = (chainId: number, ids: string[]) => {
   return useQuery<Record<string, NftPosition> | undefined, Error>({
     queryKey: ["useNftPositions", chainId, ids],
     enabled: ids.length > 0,

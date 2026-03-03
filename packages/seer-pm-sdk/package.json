@@ -31,9 +31,10 @@
     "./curate": "./src/subgraph/generated/gql-generated-curate.ts",
     "./swapr": "./src/subgraph/generated/gql-generated-swapr.ts",
     "./uniswap": "./src/subgraph/generated/gql-generated-uniswap.ts",
-    "./reality": "./src/subgraph/generated/gql-generated-reality.ts"
+    "./reality": "./src/subgraph/generated/gql-generated-reality.ts",
+    "./abis/eternal-farming": "./abis/EternalFarmingAbi.ts"
   },
-  "files": ["dist", "generated", "src/subgraph/generated", "queries", "README.md"],
+  "files": ["dist", "generated", "src/subgraph/generated", "abis", "queries", "README.md"],
   "scripts": {
     "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",

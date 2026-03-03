@@ -1,8 +1,10 @@
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
-import { bigIntMax, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { type Market as BaseMarket, FUTARCHY_LP_PAIRS_MAPPING } from "@seer-pm/sdk";
+import { bigIntMax, isTwoStringsEqual, isUndefined } from "../utils";
 import { useMarketPools } from "./useMarketPools";
 
-function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
+type Market = BaseMarket<number>;
+
+export function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
   const { data: outcomePools = [], isPending } = useMarketPools(market);
 
   if (isPending) {

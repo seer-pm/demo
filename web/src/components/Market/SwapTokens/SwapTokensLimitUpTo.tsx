@@ -1,7 +1,7 @@
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { useTrade } from "@/hooks/trade";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -11,10 +11,10 @@ import { Parameter, QuestionIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { useQuoteTrade } from "@seer-pm/react";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -157,9 +157,11 @@ export function SwapTokensLimitUpto({
     selectedCollateral,
     swapType,
     tradeType,
+    maxSlippage,
+    isInstantSwap,
   );
-  const isCowFastQuote =
-    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+  const trade = quoteData?.trade;
+  const isCowFastQuote = trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },

@@ -1,10 +1,9 @@
 import { isOpStack } from "@seer-pm/sdk";
-import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
 import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
 import { Market, getLiquidityPair } from "./market";
-export { isOpStack } from "@seer-pm/sdk";
+export { isOpStack, isSeerCredits } from "@seer-pm/sdk";
 
 type BigInt = Record<number, bigint>;
 
@@ -100,13 +99,6 @@ export const getPositionUrl = (chainId: number, farmId: string) => {
 
 export function isVerificationEnabled(chainId: SupportedChain) {
   return !isOpStack(chainId);
-}
-
-export function isSeerCredits(chainId: SupportedChain, tokenAddress: Address) {
-  return (
-    chainId in seerCreditsAddress &&
-    tokenAddress.toLowerCase() === seerCreditsAddress[chainId as keyof typeof seerCreditsAddress].toLowerCase()
-  );
 }
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {

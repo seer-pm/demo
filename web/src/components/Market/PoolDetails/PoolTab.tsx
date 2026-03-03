@@ -1,10 +1,10 @@
 import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
-import { PoolInfo } from "@/hooks/useMarketPools";
 import { getPoolUrl } from "@/lib/config";
 import { BarChartIcon, DensitySmallIcon, SwapIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { PoolInfo } from "@seer-pm/react";
 import { useState } from "react";
 import LiquidityBarChart from "./LiquidityBarChart";
 import LiquidityBarChartVertical from "./LiquidityBarChartVertical";

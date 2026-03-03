@@ -1,12 +1,13 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market, getMarketPoolsPairs } from "@/lib/market";
+import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, encodeAbiParameters, getCreate2Address, keccak256 } from "viem";
+
+type Market = BaseMarket<number>;
 
 // same init hash for uniswap and algebra
 const UNISWAP_V3_POOL_INIT_CODE_HASH = "0xbce37a54eab2fcd71913a0d40723e04238970e7fc1159bfd58ad5b79531697e7";
 
-export const POOL_FACTORY_ADDRESSES: Partial<Record<SupportedChain, Address>> = {
+export const POOL_FACTORY_ADDRESSES: Partial<Record<number, Address>> = {
   // Algebra deployer (Gnosis)
   100: "0xC1b576AC6Ec749d5Ace1787bF9Ec6340908ddB47",
   // TODO: add uniswap deployers

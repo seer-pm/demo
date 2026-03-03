@@ -1,5 +1,4 @@
 import { useMarket } from "@/hooks/useMarket";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -20,6 +19,7 @@ import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useMarketOdds } from "@seer-pm/react";
 import { getMarketEstimate } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";

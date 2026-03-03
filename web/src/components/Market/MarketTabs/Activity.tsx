@@ -1,11 +1,11 @@
 import { Alert } from "@/components/Alert";
 import { Link } from "@/components/Link";
-import { useComputedPoolAddresses } from "@/hooks/useComputedPoolAddresses";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { useComputedPoolAddresses } from "@seer-pm/react";
 import type { TokenTransfer } from "@seer-pm/sdk";
 import { getRouterAddress } from "@seer-pm/sdk";
 import { formatDistanceToNow } from "date-fns";

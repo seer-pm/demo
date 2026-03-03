@@ -1,6 +1,4 @@
 import { Link } from "@/components/Link";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { NftPosition, PoolInfo, useMarketPools, useNftPositions, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useTokenBalances } from "@/hooks/useTokenBalance";
@@ -17,6 +15,14 @@ import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } 
 import { paths } from "@/lib/paths";
 import { displayScalarBound } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import {
+  NftPosition,
+  PoolInfo,
+  useMarketOdds,
+  useMarketPools,
+  useNftPositions,
+  usePoolsDeposits,
+} from "@seer-pm/react";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";

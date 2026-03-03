@@ -1,10 +1,11 @@
 import { SupportedChain } from "@/lib/chains";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { PoolInfo, getPools } from "@seer-pm/react";
 import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+import type { Config } from "@wagmi/core";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
-import { PoolInfo, getPools } from "../useMarketPools";
 
 async function getTicks(chainId: SupportedChain, poolId: string) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -40,9 +41,9 @@ async function getTicks(chainId: SupportedChain, poolId: string) {
   return total;
 }
 
-export async function getPoolAndTicksData(chainId: SupportedChain, token0: Address, token1: Address) {
+export async function getPoolAndTicksData(chainId: SupportedChain, token0: Address, token1: Address, config: Config) {
   try {
-    const pools = await getPools(chainId).fetch({ token0, token1 });
+    const pools = await getPools(chainId, config).fetch({ token0, token1 });
 
     const ticksByPool = await Promise.all(pools.map((pool) => getTicks(chainId, pool.id)));
 

@@ -116,6 +116,7 @@ export {
   getMarketEstimate,
 } from "./market-odds";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+export { isSeerCredits } from "./seer-credits";
 
 // Markets fetch (search + get by id/slug)
 export {
@@ -145,3 +146,17 @@ export { CHAIN_IDS } from "./subgraph";
 // Re-export CoW Protocol SDK for web consumers (single dependency)
 export { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
 export type { EnrichedOrder, UnsignedOrder } from "@cowprotocol/cow-sdk";
+
+// Re-export Swapr SDK for web consumers (single dependency)
+export {
+  TradeType,
+  Trade,
+  CoWTrade,
+  SwaprV3Trade,
+  UniswapTrade,
+  ChainId,
+  configureRpcProviders,
+  Currency,
+  CurrencyAmount,
+  Percent,
+} from "@swapr/sdk";

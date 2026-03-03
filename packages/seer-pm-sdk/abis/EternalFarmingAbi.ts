@@ -1,4 +1,4 @@
-import { AbiEvent } from "viem";
+import type { AbiEvent } from "viem";
 
 export const EternalFarmingCreatedEvent = {
   anonymous: false,

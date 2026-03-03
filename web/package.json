@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@seer-pm/sdk": "*",
+    "@seer-pm/react": "*",
     "@bigmi/react": "^0.6.0",
     "@biomejs/biome": "1.9.3",
     "@cyntler/react-doc-viewer": "^1.17.0",
@@ -37,7 +38,6 @@
     "@orbisclub/orbis-sdk": "^0.4.89",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@supabase/supabase-js": "^2.46.2",
-    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#4fc1e9ce71f76612aa6f468b5b381083d4c52b86",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.20.5",

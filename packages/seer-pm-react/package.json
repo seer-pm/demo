@@ -1,0 +1,43 @@
+{
+  "name": "@seer-pm/react",
+  "version": "0.0.1",
+  "description": "React hooks for the Seer prediction market protocol",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-pm-react"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external js-sha3",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external js-sha3"
+  },
+  "peerDependencies": {
+    "@seer-pm/sdk": "0.0.1",
+    "@tanstack/react-query": ">=5.0.0",
+    "@wagmi/core": ">=2.0.0",
+    "react": ">=18.0.0",
+    "viem": ">=2.0.0",
+    "wagmi": ">=2.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+

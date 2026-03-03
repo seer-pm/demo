@@ -1,8 +1,9 @@
-import { Market } from "@/lib/market";
-import { isUndefined } from "@/lib/utils";
-import { getMarketOdds } from "@seer-pm/sdk";
+import { type Market as BaseMarket, getMarketOdds } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
+import { isUndefined } from "../utils";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
+
+type Market = BaseMarket<number>;
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
   const hasLiquidity = useMarketHasLiquidity(market);
