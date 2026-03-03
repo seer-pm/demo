@@ -6,7 +6,7 @@ import {
   realitioForeignProxyOptimismAddress,
   realitioV2_1ArbitratorWithAppealsAddress,
 } from "@seer-pm/sdk/contracts/arbitrators";
-import { getSdk as getSeerSdk } from "@seer-pm/subgraph/seer";
+import { getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 

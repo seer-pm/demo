@@ -1,7 +1,7 @@
 import { SupportedChain } from "@/lib/chains";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";
 import { PoolInfo, getPools } from "../useMarketPools";

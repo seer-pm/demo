@@ -5,8 +5,8 @@ import { chainIds, config, gnosis } from "./config.ts";
 import { SupportedChain } from "@/lib/chains.ts";
 import { Market, Token0Token1, getMarketPoolsPairs, getTokensPairKey } from "@/lib/market.ts";
 import { isTwoStringsEqual } from "@/lib/utils.ts";
-import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import pLimit from "p-limit";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./subgraph.ts";
 

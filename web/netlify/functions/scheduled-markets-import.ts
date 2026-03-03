@@ -3,7 +3,7 @@ import { getMarketStatus } from "@/lib/market.ts";
 import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
 import { WEATHER_CATEGORY } from "@seer-pm/sdk";
-import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/subgraph/seer";
+import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { createClient } from "@supabase/supabase-js";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { chainIds } from "./utils/config.ts";

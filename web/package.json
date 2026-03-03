@@ -8,7 +8,7 @@
     "prod": "yarn build && yarn server:prod",
     "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
     "lint": "biome check --write ./src ./netlify ../packages",
-    "generate": "yarn workspace @seer-pm/subgraph build",
+    "generate": "yarn workspace @seer-pm/sdk build",
     "server:dev": "node ./server",
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@seer-pm/sdk": "*",
-    "@seer-pm/subgraph": "*",
     "@bigmi/react": "^0.6.0",
     "@biomejs/biome": "1.9.3",
     "@cyntler/react-doc-viewer": "^1.17.0",

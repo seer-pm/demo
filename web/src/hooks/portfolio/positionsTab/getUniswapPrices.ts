@@ -9,7 +9,7 @@ import {
   PoolHourData_OrderBy,
   Pool_OrderBy,
   getSdk,
-} from "@seer-pm/subgraph/uniswap";
+} from "@seer-pm/sdk/uniswap";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
 import { PortfolioPosition } from "./usePortfolioPositions";

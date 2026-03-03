@@ -13,7 +13,7 @@ export type {
   Market,
   SerializedMarket,
 } from "./market-types";
-export { MarketStatus } from "./market-types";
+export { MarketStatus, serializeMarket, deserializeMarket } from "./market-types";
 export {
   getCreateMarketExecution,
   getCreateProposalExecution,
@@ -109,6 +109,31 @@ export { marketAbi } from "../generated/generated-market-factory";
 export { isOpStack } from "./chains";
 export { getTokenSwapResult, getTokenPriceFromSwap } from "./token-price";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+
+// Markets fetch (search + get by id/slug)
+export {
+  fetchMarkets,
+  fetchMarket,
+  type FetchMarketParams,
+  type JsonMarketsResult,
+  type MarketsResult,
+} from "./markets-fetch";
+
+// Subgraph: endpoints, clients, token price from subgraph
+export {
+  initApiHost,
+  getAppSubgraphUrl,
+  graphQLClient,
+  curateGraphQLClient,
+  uniswapGraphQLClient,
+  swaprGraphQLClient,
+  realityGraphQLClient,
+  getSubgraphUrl,
+  SUBGRAPHS,
+  getTokenPriceFromSubgraph,
+} from "./subgraph";
+export type { AppSubgraphType, SubgraphTypes } from "./subgraph";
+export { CHAIN_IDS } from "./subgraph";
 
 // Re-export CoW Protocol SDK for web consumers (single dependency)
 export { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";

@@ -1,0 +1,71 @@
+import { Address, isAddress } from "viem";
+import type { Market, MarketStatus, SerializedMarket, VerificationStatus } from "./market-types";
+import { deserializeMarket } from "./market-types";
+import { getApiHost } from "./subgraph/app-subgraph";
+import type { Market_OrderBy } from "./subgraph/generated/gql-generated-seer";
+
+export type FetchMarketParams = {
+  chainsList?: Array<string | "all">;
+  type?: "Generic" | "Futarchy" | "";
+  marketName?: string;
+  categoryList?: string[];
+  marketStatusList?: MarketStatus[];
+  verificationStatusList?: VerificationStatus[];
+  showConditionalMarkets?: boolean;
+  showMarketsWithRewards?: boolean;
+  minLiquidity?: number;
+  creator?: Address | "";
+  participant?: Address | "";
+  orderBy?: Market_OrderBy;
+  orderDirection?: "asc" | "desc";
+  marketIds?: string[];
+  disabled?: boolean;
+  limit?: number;
+  page?: number;
+  parentMarket?: Address;
+};
+
+export type JsonMarketsResult = { markets: SerializedMarket[]; count: number; pages: number };
+export type MarketsResult<ChainId = number> = {
+  markets: Market<ChainId>[];
+  count: number;
+  pages: number;
+};
+
+export async function fetchMarkets<C = number>(params: FetchMarketParams = {}): Promise<MarketsResult<C>> {
+  const response = await fetch(`${getApiHost()}/.netlify/functions/markets-search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+  const result: JsonMarketsResult = await response.json();
+  return {
+    markets: result.markets.map((market) => deserializeMarket<C>(market)),
+    count: result.count,
+    pages: result.pages,
+  };
+}
+
+export async function fetchMarket<C = number>(chainId: C, idOrSlug: Address | string): Promise<Market<C> | undefined> {
+  const params: { chainId: number; id: Address } | { chainId: number; url: string } = !isAddress(idOrSlug, {
+    strict: false,
+  })
+    ? { chainId: Number(chainId), url: idOrSlug }
+    : { chainId: Number(chainId), id: idOrSlug };
+
+  const response = await fetch(`${getApiHost()}/.netlify/functions/get-market`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+
+  if (response.status === 200) {
+    return deserializeMarket(await response.json()) as Market<C>;
+  }
+
+  return;
+}

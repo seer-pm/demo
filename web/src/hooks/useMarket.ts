@@ -1,6 +1,5 @@
 import { SupportedChain } from "@/lib/chains";
-import { Market, MarketOffChainFields, MarketTypes, Question, getMarketType } from "@/lib/market";
-import { fetchMarket } from "@/lib/markets-fetch";
+import { Market, MarketOffChainFields, MarketTypes, Question, fetchMarket, getMarketType } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { unescapeJson } from "@/lib/reality";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";

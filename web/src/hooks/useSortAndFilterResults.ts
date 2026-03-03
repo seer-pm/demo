@@ -1,5 +1,4 @@
-import { Market } from "@/lib/market";
-import { MarketsResult } from "@/lib/markets-fetch";
+import { Market, MarketsResult } from "@/lib/market";
 import { UseQueryResult } from "@tanstack/react-query";
 import { useAllCollectionsMarkets } from "./collections/useAllCollectionsMarkets";
 import useMarketsSearchParams from "./useMarketsSearchParams";

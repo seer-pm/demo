@@ -7,7 +7,7 @@ import {
   lightGeneralizedTcrAddress,
   readLightGeneralizedTcrChallengePeriodDuration,
 } from "@seer-pm/sdk/contracts/curate";
-import { Status, getSdk as getCurateSdk } from "@seer-pm/subgraph/curate";
+import { Status, getSdk as getCurateSdk } from "@seer-pm/sdk/curate";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { Address, parseAbiItem } from "viem";

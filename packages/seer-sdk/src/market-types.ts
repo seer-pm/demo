@@ -109,3 +109,49 @@ export type SerializedMarket<ChainId = number> = Omit<
   upperBound: string;
   payoutNumerators: readonly string[];
 };
+
+export function serializeMarket<ChainId>(market: Market<ChainId>): SerializedMarket<ChainId> {
+  return {
+    ...market,
+    outcomesSupply: market.outcomesSupply.toString(),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => pn.toString()),
+    },
+    parentOutcome: market.parentOutcome.toString(),
+    templateId: market.templateId.toString(),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: question.bond.toString(),
+      min_bond: question.min_bond.toString(),
+    })),
+    lowerBound: market.lowerBound.toString(),
+    upperBound: market.upperBound.toString(),
+    payoutNumerators: market.payoutNumerators.map((pn) => pn.toString()),
+  };
+}
+
+/** Overload: when deserializing API response (chainId is number) but typing as C (e.g. SupportedChain). */
+export function deserializeMarket<C>(market: SerializedMarket<number>): Market<C>;
+export function deserializeMarket<ChainId>(market: SerializedMarket<ChainId>): Market<ChainId>;
+export function deserializeMarket(market: SerializedMarket): Market {
+  const result = {
+    ...market,
+    outcomesSupply: BigInt(market.outcomesSupply),
+    parentMarket: {
+      ...market.parentMarket,
+      payoutNumerators: market.parentMarket.payoutNumerators.map((pn) => BigInt(pn)),
+    },
+    parentOutcome: BigInt(market.parentOutcome),
+    templateId: BigInt(market.templateId),
+    questions: market.questions.map((question) => ({
+      ...question,
+      bond: BigInt(question.bond),
+      min_bond: BigInt(question.min_bond),
+    })),
+    lowerBound: BigInt(market.lowerBound),
+    upperBound: BigInt(market.upperBound),
+    payoutNumerators: market.payoutNumerators.map((pn) => BigInt(pn)),
+  };
+  return result as Market;
+}

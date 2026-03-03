@@ -3,7 +3,7 @@ import { PoolHourDatasSets } from "@/hooks/chart/utils";
 import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { getUseGraphMarketsKey, useGraphMarketsQueryFn } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
-import { fetchMarkets } from "@/lib/markets-fetch";
+import { fetchMarkets } from "@/lib/market";
 import { unescapeJson } from "@/lib/reality";
 import { getAppUrl } from "@/lib/utils";
 import { QueryClient, dehydrate } from "@tanstack/react-query";

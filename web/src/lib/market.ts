@@ -1,5 +1,6 @@
 import {
   FUTARCHY_LP_PAIRS_MAPPING,
+  type FetchMarketParams,
   type Market as MarketBase,
   type MarketOffChainFields as MarketOffChainFieldsBase,
   MarketStatus,
@@ -9,6 +10,8 @@ import {
   type Token0Token1,
   type VerificationResult,
   type VerificationStatus,
+  fetchMarket as fetchMarketBase,
+  fetchMarkets as fetchMarketsBase,
   getCollateralByIndex,
   getLiquidityPair,
   getLiquidityPairForToken,
@@ -51,6 +54,21 @@ export type MarketOffChainFields = MarketOffChainFieldsBase<SupportedChain>;
 export type Market = MarketBase<SupportedChain>;
 /** SerializedMarket with chainId as SupportedChain (web-specific). */
 export type SerializedMarket = SerializedMarketBase<SupportedChain>;
+
+/** MarketsResult with Market[] = Market<SupportedChain>[] (web-specific). */
+export type MarketsResult = { markets: Market[]; count: number; pages: number };
+
+export type { FetchMarketParams };
+
+/** Fetches a single market by id or url; returns Market<SupportedChain>. */
+export async function fetchMarket(chainId: SupportedChain, idOrSlug: Address | string): Promise<Market | undefined> {
+  return fetchMarketBase(chainId, idOrSlug);
+}
+
+/** Fetches markets with filters; returns MarketsResult<SupportedChain>. */
+export async function fetchMarkets(params: FetchMarketParams = {}): Promise<MarketsResult> {
+  return fetchMarketsBase(params) as Promise<MarketsResult>;
+}
 
 export const getMarketStatus = (market: Market) => {
   if (!hasOpenQuestions(market!)) {

@@ -2,7 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import { getSubgraphUrl } from "@seer-pm/subgraph";
+import { getSubgraphUrl } from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 import { mainnet } from "wagmi/chains";
 

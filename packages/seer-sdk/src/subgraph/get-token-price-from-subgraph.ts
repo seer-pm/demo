@@ -1,7 +1,8 @@
-import type { Token } from "@seer-pm/sdk";
-import { getToken0Token1, tickToPrice } from "@seer-pm/sdk";
-import type { GraphQLClient } from "graphql-request";
 import type { Address } from "viem";
+import type { Token } from "../collateral";
+import { tickToPrice } from "../liquidity-utils";
+import { getToken0Token1 } from "../market-pools";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "./app-subgraph";
 import { getSdk as getSwaprSdk } from "./generated/gql-generated-swapr";
 import { OrderDirection, Pool_OrderBy } from "./generated/gql-generated-swapr";
 import { getSdk as getUniswapSdk } from "./generated/gql-generated-uniswap";
@@ -11,8 +12,14 @@ export async function getTokenPriceFromSubgraph(
   wrappedAddress: Address,
   collateralToken: Token,
   chainId: number,
-  subgraphClient: GraphQLClient,
 ): Promise<number> {
+  const subgraphClient =
+    chainId === CHAIN_IDS.gnosis ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+
+  if (!subgraphClient) {
+    return Number.NaN;
+  }
+
   try {
     const graphQLSdk = chainId === CHAIN_IDS.gnosis ? getSwaprSdk(subgraphClient) : getUniswapSdk(subgraphClient);
     const { pools } = await graphQLSdk.GetPools({

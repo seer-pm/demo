@@ -2,7 +2,7 @@ import { SupportedChain } from "@/lib/chains";
 import { curateGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
-import { Status, getSdk } from "@seer-pm/subgraph/curate";
+import { Status, getSdk } from "@seer-pm/sdk/curate";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";

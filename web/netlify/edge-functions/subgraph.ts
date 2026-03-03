@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/edge-functions";
-import { SUBGRAPHS } from "@seer-pm/subgraph";
+import { SUBGRAPHS } from "@seer-pm/sdk";
 
 export default async (req: Request) => {
   const subgraph = new URL(req.url).searchParams.get("_subgraph");

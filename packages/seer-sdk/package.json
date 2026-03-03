@@ -25,20 +25,33 @@
     "./contracts/market-view": "./generated/generated-market-view.ts",
     "./contracts/router": "./generated/generated-router.ts",
     "./contracts/multi-drop": "./generated/generated-multi-drop.ts",
-    "./contracts/trading-credits": "./generated/generated-trading-credits.ts"
+    "./contracts/trading-credits": "./generated/generated-trading-credits.ts",
+    "./seer": "./src/subgraph/generated/gql-generated-seer.ts",
+    "./tokens": "./src/subgraph/generated/gql-generated-tokens.ts",
+    "./curate": "./src/subgraph/generated/gql-generated-curate.ts",
+    "./swapr": "./src/subgraph/generated/gql-generated-swapr.ts",
+    "./uniswap": "./src/subgraph/generated/gql-generated-uniswap.ts",
+    "./reality": "./src/subgraph/generated/gql-generated-reality.ts"
   },
-  "files": ["dist", "generated", "README.md"],
+  "files": ["dist", "generated", "src/subgraph/generated", "queries", "README.md"],
   "scripts": {
     "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "generate": "wagmi generate",
+    "generate:gql": "graphql-codegen",
     "prepublishOnly": "yarn generate"
   },
   "peerDependencies": {
+    "graphql-request": ">=5.0.0",
+    "graphql-tag": ">=2.0.0",
     "viem": ">=2.0.0",
-    "wagmi": ">=2.0.0"
+    "wagmi": "^2.0.0 || ^3.0.0"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
+    "@graphql-codegen/typescript-operations": "^4.2.0",
     "@wagmi/cli": "^2.1.22",
     "tsup": "^8.0.2",
     "typescript": "^5.2.2",

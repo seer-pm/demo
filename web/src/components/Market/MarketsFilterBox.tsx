@@ -12,7 +12,7 @@ import {
 } from "@/lib/icons";
 import { MarketStatus } from "@/lib/market";
 import { VerificationStatus } from "@/lib/market";
-import { Market_OrderBy } from "@seer-pm/subgraph/seer";
+import { Market_OrderBy } from "@seer-pm/sdk/seer";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";

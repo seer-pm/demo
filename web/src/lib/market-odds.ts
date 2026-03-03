@@ -1,9 +1,8 @@
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { Market, getMarketUnit, isOdd } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import type { Token } from "@seer-pm/sdk";
 import { getTokenPriceFromSwap } from "@seer-pm/sdk";
-import { getTokenPriceFromSubgraph } from "@seer-pm/subgraph";
+import { getTokenPriceFromSubgraph } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { displayScalarBound } from "./reality";
 
@@ -43,21 +42,9 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
-async function getTokenPriceFromSubgraphWithClient(
-  wrappedAddress: Address,
-  collateralToken: Token,
-  chainId: SupportedChain,
-) {
-  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-  if (!subgraphClient) {
-    return Number.NaN;
-  }
-  return getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId, subgraphClient);
-}
-
 export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: SupportedChain) {
   if (chainId === gnosis.id) {
-    return await getTokenPriceFromSubgraphWithClient(wrappedAddress, collateralToken, chainId);
+    return await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
   }
   return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
 }
@@ -78,7 +65,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
   const prices = await Promise.all(
     market.wrappedTokens.map((wrappedAddress) =>
       market.chainId === gnosis.id
-        ? getTokenPriceFromSubgraphWithClient(wrappedAddress, collateralToken, market.chainId)
+        ? getTokenPriceFromSubgraph(wrappedAddress, collateralToken, market.chainId)
         : getTokenPriceFromSwap(wrappedAddress, collateralToken, market.chainId),
     ),
   );

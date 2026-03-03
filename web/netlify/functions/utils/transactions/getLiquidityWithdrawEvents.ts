@@ -3,8 +3,8 @@ import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import { SupportedChain, gnosis } from "@/lib/chains";
 import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { Burn_OrderBy, GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { Burn_OrderBy, GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import { Address, parseUnits } from "viem";
 
 async function fetchBurnsFromSubgraph(

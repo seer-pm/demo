@@ -3,8 +3,8 @@ import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, 
 import { getMarketEstimate } from "@/lib/market-odds";
 import { normalizeOdds } from "@/lib/market-odds";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { GetPoolHourDatasQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { GetPoolHourDatasQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import { subDays } from "date-fns";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";

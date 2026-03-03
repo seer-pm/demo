@@ -1,12 +1,10 @@
 import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { VerificationStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { MarketsResult, fetchMarkets } from "@/lib/markets-fetch";
+import { FetchMarketParams, MarketStatus, MarketsResult, VerificationStatus, fetchMarkets } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { readMarketViewGetMarkets } from "@seer-pm/sdk/contracts/market-view";
-import { Market_OrderBy } from "@seer-pm/subgraph/seer";
+import { Market_OrderBy } from "@seer-pm/sdk/seer";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
@@ -62,29 +60,9 @@ const useOnChainMarkets = (
   });
 };
 
-export type UseGraphMarketsParams = {
-  chainsList: Array<string | "all">;
-  type: "Generic" | "Futarchy" | "";
-  marketName: string;
-  categoryList?: string[];
-  marketStatusList: MarketStatus[] | undefined;
-  verificationStatusList: VerificationStatus[] | undefined;
-  showConditionalMarkets: boolean | undefined;
-  showMarketsWithRewards: boolean | undefined;
-  minLiquidity?: number;
-  creator: Address | "";
-  participant: Address | "";
-  orderBy: Market_OrderBy | undefined;
-  orderDirection: "asc" | "desc" | undefined;
-  marketIds: string[] | undefined;
-  disabled: boolean | undefined;
-  limit: number | undefined;
-  page: number | undefined;
-};
+export const getUseGraphMarketsKey = (params: FetchMarketParams) => ["useGraphMarkets", params];
 
-export const getUseGraphMarketsKey = (params: UseGraphMarketsParams) => ["useGraphMarkets", params];
-
-export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
+export const useGraphMarketsQueryFn = async (params: FetchMarketParams) => {
   const result = await fetchMarkets(params);
   for (const market of result.markets) {
     queryClient.setQueryData(getUseGraphMarketKey(market.id, market.chainId), market);
@@ -94,7 +72,7 @@ export const useGraphMarketsQueryFn = async (params: UseGraphMarketsParams) => {
   return result;
 };
 
-function useGraphMarkets(params: UseGraphMarketsParams) {
+function useGraphMarkets(params: FetchMarketParams) {
   return useQuery<MarketsResult, Error>({
     enabled: !params.disabled,
     queryKey: getUseGraphMarketsKey(params),

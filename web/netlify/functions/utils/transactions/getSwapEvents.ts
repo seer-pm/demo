@@ -5,8 +5,8 @@ import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { OrderBookApi } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
-import { GetSwapsQuery, OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/subgraph/uniswap";
+import { GetSwapsQuery, OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import { Address, parseUnits } from "viem";
 
 async function fetchSwapsFromSubgraph(

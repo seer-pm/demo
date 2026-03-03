@@ -4,15 +4,10 @@ import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import {
-  UseGraphMarketsParams,
-  UseMarketsProps,
-  getUseGraphMarketsKey,
-  useGraphMarketsQueryFn,
-  useMarkets,
-} from "@/hooks/useMarkets";
+import { UseMarketsProps, getUseGraphMarketsKey, useGraphMarketsQueryFn, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
+import { FetchMarketParams } from "@/lib/market";
 import { Market } from "@/lib/market";
 import { getAppUrl } from "@/lib/utils";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
@@ -58,7 +53,7 @@ async function preLoadMarkets(markets: Market[], queryClient: QueryClient) {
   }
 }
 
-function convertToGraphMarketsParams(params: UseMarketsProps): UseGraphMarketsParams {
+function convertToGraphMarketsParams(params: UseMarketsProps): FetchMarketParams {
   return {
     chainsList: params.chainsList || [],
     type: params.type || "",

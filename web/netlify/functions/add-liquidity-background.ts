@@ -1,6 +1,6 @@
 import { convertFromSDAI } from "@/hooks/trade/useShareAssetRatio";
 import { SupportedChain } from "@/lib/chains";
-import { fetchMarket } from "@/lib/markets-fetch";
+import { fetchMarket } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { readContract, writeContract } from "@wagmi/core";
