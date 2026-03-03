@@ -3,6 +3,13 @@ import { getPublicClient } from "@wagmi/core";
 import { Address } from "viem";
 import { config } from "./config";
 
+export const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+} as const;
+
 export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
 
 export const liquidityManagerAddressMapping: Partial<Record<SupportedChain, Address>> = {

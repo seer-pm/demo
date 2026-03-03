@@ -2,6 +2,7 @@ import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "@/lib/chains";
 import { SerializedMarket, serializeMarket } from "@/lib/market";
 import { FetchMarketParams } from "@/lib/markets-fetch";
 import { Address } from "viem";
+import { CORS_HEADERS } from "./utils/common";
 import { searchMarkets } from "./utils/markets";
 
 async function multiChainSearch(
@@ -64,6 +65,13 @@ async function multiChainSearch(
 }
 
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+
   const body = await req.json();
 
   if (!body) {
@@ -71,6 +79,7 @@ export default async (req: Request) => {
       status: 400,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -84,6 +93,7 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   } catch (e) {
@@ -92,6 +102,7 @@ export default async (req: Request) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }

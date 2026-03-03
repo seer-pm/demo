@@ -1,5 +1,6 @@
 import { SupportedChain } from "@/lib/chains";
 import { serializeMarket } from "@/lib/market";
+import { CORS_HEADERS } from "./utils/common";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {
   SubgraphMarket,
@@ -15,6 +16,13 @@ import {
  * cached information that hasn't been refreshed recently. The subgraph provides the current on-chain state.
  */
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+
   const body = await req.json();
 
   if (!body) {
@@ -22,6 +30,7 @@ export default async (req: Request) => {
       status: 400,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -31,6 +40,7 @@ export default async (req: Request) => {
       status: 400,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -69,6 +79,7 @@ export default async (req: Request) => {
         status: 404,
         headers: {
           "Content-Type": "application/json",
+          ...CORS_HEADERS,
         },
       });
     }
@@ -79,6 +90,7 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   } catch (e) {
@@ -87,6 +99,7 @@ export default async (req: Request) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
