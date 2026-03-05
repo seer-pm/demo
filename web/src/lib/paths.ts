@@ -90,6 +90,7 @@ export const paths = {
   },
   futarchy: () => "https://app.futarchy.fi/",
   deepfund: () => "https://deep.seer.pm/",
+  foresight: () => "https://foresight.kleros.io/",
   chainImage: (chainId: number) => {
     const chainImages: Record<number, string> = {
       100: "https://assets.coingecko.com/asset_platforms/images/11062/small/Aatar_green_white.png", // Gnosis
