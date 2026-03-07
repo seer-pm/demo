@@ -1,5 +1,5 @@
 import { CategoricalIcon, MultiCategoricalIcon, MultiScalarIcon, ScalarIcon } from "@/lib/icons";
-import { MarketTypes } from "@/lib/market";
+import { MarketTypes } from "@seer-pm/sdk";
 
 export const MARKET_TYPES_ICONS: Record<MarketTypes, React.ReactNode> = {
   [MarketTypes.CATEGORICAL]: <CategoricalIcon fill="currentColor" />,

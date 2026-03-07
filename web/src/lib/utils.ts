@@ -1,12 +1,6 @@
 import { formatUnits, getAddress } from "viem";
 import SEER_ENV from "./env";
 
-// outcome get from MarketView
-export const INVALID_RESULT_OUTCOME = "Invalid result";
-
-// display text for invalid outcome
-export const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
-
 export function shortenAddress(address: string): string {
   try {
     const formattedAddress = getAddress(address);

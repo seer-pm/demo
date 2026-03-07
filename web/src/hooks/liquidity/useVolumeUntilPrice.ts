@@ -1,5 +1,5 @@
-import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { Market } from "@seer-pm/sdk";
 import { decimalToFraction, tickToPrice } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import { Address, formatUnits } from "viem";

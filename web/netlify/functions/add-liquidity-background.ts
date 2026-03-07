@@ -1,7 +1,7 @@
 import { convertFromSDAI } from "@/hooks/trade/useShareAssetRatio";
-import { SupportedChain } from "@/lib/chains";
 import { fetchMarket } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { readContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";

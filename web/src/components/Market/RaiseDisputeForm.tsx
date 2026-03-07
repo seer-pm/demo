@@ -1,11 +1,12 @@
 import Button from "@/components/Form/Button";
 import { useArbitrationCost } from "@/hooks/useArbitrationCost";
 import { useRaiseDispute } from "@/hooks/useRaiseDispute";
-import { SupportedChain, mainnet } from "@/lib/chains";
-import { Question } from "@/lib/market";
+import { mainnet } from "@/lib/chains";
 import { getCurrentBond } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Question } from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useAccount, useBalance } from "wagmi";

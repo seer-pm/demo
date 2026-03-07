@@ -1,6 +1,7 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { mainnet } from "@/lib/chains";
 import { isOpStack } from "@/lib/config";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { getSubgraphUrl } from "@seer-pm/sdk";
 import { GetPoolHourDatasQuery } from "@seer-pm/sdk/swapr";

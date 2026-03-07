@@ -1,6 +1,5 @@
-import { MarketStatus } from "@/lib/market";
-import { MarketTypes } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
+import { MarketStatus, MarketTypes } from "@seer-pm/sdk";
 
 export const STATUS_TEXTS: Record<MarketStatus, (hasLiquidity?: boolean) => string> = {
   [MarketStatus.NOT_OPEN]: (hasLiquidity?: boolean) => {

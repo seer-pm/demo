@@ -1,13 +1,15 @@
-import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { UseMissingApprovalsProps, useMissingApprovals } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import { getMergeExecution } from "@seer-pm/sdk";
+import type { Execution } from "@seer-pm/sdk";
+import { getApprovals7702 } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { Execution, useCheck7702Support } from "./useCheck7702Support";
-import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
+import { useCheck7702Support } from "./useCheck7702Support";
 
 interface MergePositionProps {
   router: Address;

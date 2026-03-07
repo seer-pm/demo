@@ -1,20 +1,14 @@
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { useReopenQuestion } from "@/hooks/useReopenQuestion";
 import { useResolveMarket } from "@/hooks/useResolveMarket";
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { mainnet } from "@/lib/chains";
 import { getTimeLeft } from "@/lib/date.ts";
 import { CheckCircleIcon, HourGlassIcon, RightArrow } from "@/lib/icons";
-import { MarketTypes } from "@/lib/market";
-import { MarketStatus } from "@/lib/market.ts";
-import { Market, Question } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import {
-  ANSWERED_TOO_SOON,
-  getAnswerTextFromMarket,
-  getQuestionStatus,
-  getRealityLink,
-  isFinalized,
-} from "@/lib/reality";
+import { getAnswerTextFromMarket, getQuestionStatus, getRealityLink, isFinalized } from "@/lib/reality";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketStatus, MarketTypes, Question } from "@seer-pm/sdk";
+import { ANSWERED_TOO_SOON } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { COLORS } from "./index.ts";
 

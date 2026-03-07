@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
 import { isOpStack } from "@/lib/config";
 import SEER_ENV from "@/lib/env";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { GraphQLClient } from "graphql-request";
 import { gnosis, mainnet, optimism } from "./config";
 

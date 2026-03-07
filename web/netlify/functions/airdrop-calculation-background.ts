@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";

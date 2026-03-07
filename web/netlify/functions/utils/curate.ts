@@ -1,7 +1,7 @@
-import { SupportedChain } from "@/lib/chains.ts";
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   lightGeneralizedTcrAbi,
   lightGeneralizedTcrAddress,

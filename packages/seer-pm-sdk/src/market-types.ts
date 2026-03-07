@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import { SupportedChain } from "./chains";
 
 export interface Question {
   id: `0x${string}`;
@@ -16,8 +17,8 @@ export interface Question {
 export type VerificationStatus = "verified" | "verifying" | "challenged" | "not_verified";
 export type VerificationResult = { status: VerificationStatus; itemID?: string; deadline?: number };
 
-export type MarketOffChainFields<ChainId = number> = {
-  chainId: ChainId;
+export type MarketOffChainFields = {
+  chainId: SupportedChain;
   factory?: Address;
   outcomesSupply: bigint;
   liquidityUSD: number;
@@ -52,7 +53,7 @@ export enum MarketStatus {
   CLOSED = "closed",
 }
 
-export type Market<ChainId = number> = MarketOffChainFields<ChainId> & {
+export type Market = MarketOffChainFields & {
   id: Address;
   type: "Generic" | "Futarchy";
   marketName: string;
@@ -82,8 +83,8 @@ export type Market<ChainId = number> = MarketOffChainFields<ChainId> & {
   payoutNumerators: readonly bigint[];
 };
 
-export type SerializedMarket<ChainId = number> = Omit<
-  Market<ChainId>,
+export type SerializedMarket = Omit<
+  Market,
   | "outcomesSupply"
   | "parentOutcome"
   | "templateId"
@@ -94,7 +95,7 @@ export type SerializedMarket<ChainId = number> = Omit<
   | "parentMarket"
 > & {
   outcomesSupply: string;
-  parentMarket: Omit<Market<ChainId>["parentMarket"], "payoutNumerators"> & {
+  parentMarket: Omit<Market["parentMarket"], "payoutNumerators"> & {
     payoutNumerators: readonly string[];
   };
   parentOutcome: string;
@@ -110,7 +111,7 @@ export type SerializedMarket<ChainId = number> = Omit<
   payoutNumerators: readonly string[];
 };
 
-export function serializeMarket<ChainId>(market: Market<ChainId>): SerializedMarket<ChainId> {
+export function serializeMarket(market: Market): SerializedMarket {
   return {
     ...market,
     outcomesSupply: market.outcomesSupply.toString(),
@@ -132,8 +133,7 @@ export function serializeMarket<ChainId>(market: Market<ChainId>): SerializedMar
 }
 
 /** Overload: when deserializing API response (chainId is number) but typing as C (e.g. SupportedChain). */
-export function deserializeMarket<C>(market: SerializedMarket<number>): Market<C>;
-export function deserializeMarket<ChainId>(market: SerializedMarket<ChainId>): Market<ChainId>;
+export function deserializeMarket(market: SerializedMarket): Market;
 export function deserializeMarket(market: SerializedMarket): Market {
   const result = {
     ...market,

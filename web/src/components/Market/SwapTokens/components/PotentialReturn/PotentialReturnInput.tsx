@@ -1,6 +1,6 @@
 import Input from "@/components/Form/Input";
 import MultiSelect from "@/components/Form/MultiSelect";
-import { Market, MarketTypes, getMarketType } from "@/lib/market";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import { Dispatch, ReactNode, SetStateAction, useRef } from "react";
 import { PotentialReturnInputType } from "./interfaces";
 

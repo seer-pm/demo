@@ -1,5 +1,5 @@
-import { Execution } from "@/hooks/useCheck7702Support";
 import { config as wagmiConfig } from "@/wagmi";
+import type { Execution, SupportedChain } from "@seer-pm/sdk";
 import {
   Config,
   ConnectorNotConnectedError,
@@ -16,7 +16,6 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import { SupportedChain } from "./chains";
 import SEER_ENV from "./env";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 

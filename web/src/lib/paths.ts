@@ -1,9 +1,10 @@
 import { TOKENS_BY_CHAIN } from "@seer-pm/sdk";
+import { isSeerCredits } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
-import { SupportedChain, base, optimism } from "./chains";
-import { isSeerCredits } from "./config";
-import { Market } from "./market";
+import { base, optimism } from "./chains";
 
 function marketPath(market: Market): string;
 function marketPath(id: Address | string, chainId: number): string;

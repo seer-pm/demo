@@ -1,10 +1,10 @@
 import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useTokenBalance } from "@seer-pm/react";
 
-import { useMarket } from "@/hooks/useMarket";
-import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { useMarket } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS, NATIVE_TOKEN, TradeType } from "@seer-pm/sdk";
 import { FieldErrors } from "react-hook-form";

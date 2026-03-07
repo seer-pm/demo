@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market, getCollateralByIndex, getToken0Token1, getTokensPairKey } from "@/lib/market";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, getCollateralByIndex, getToken0Token1, getTokensPairKey } from "@seer-pm/sdk";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
 

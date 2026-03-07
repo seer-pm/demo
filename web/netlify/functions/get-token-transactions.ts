@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import type { TokenTransfer } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";

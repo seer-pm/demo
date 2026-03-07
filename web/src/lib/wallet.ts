@@ -1,8 +1,8 @@
 import { config } from "@/wagmi";
+import { SupportedChain } from "@seer-pm/sdk";
 import { getAccount } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { Address } from "viem";
-import { SupportedChain } from "./chains";
 
 export function checkWalletConnectCallback(
   callback: (address: Address, chainId: SupportedChain) => void,

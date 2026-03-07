@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { getToken0Token1 } from "@/lib/market";
-import { uniswapGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { getToken0Token1 } from "@seer-pm/sdk";
+import { uniswapGraphQLClient } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,

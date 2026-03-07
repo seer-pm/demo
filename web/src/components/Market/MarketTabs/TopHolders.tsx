@@ -3,9 +3,9 @@ import { Link } from "@/components/Link";
 import { TokenTransactionsResponse, useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
 import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { useComputedPoolAddresses } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 
 interface TopHoldersProps {
   market: Market;

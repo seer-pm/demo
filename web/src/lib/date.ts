@@ -1,9 +1,9 @@
+import { Market } from "@seer-pm/sdk";
 import { formatDistanceStrict, intervalToDuration } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { compareAsc } from "date-fns/compareAsc";
 import { type FormatDurationOptions, formatDuration } from "date-fns/formatDuration";
 import { fromUnixTime } from "date-fns/fromUnixTime";
-import { Market } from "./market";
 import { isUndefined } from "./utils";
 
 // https://stackoverflow.com/a/72190364

@@ -1,7 +1,7 @@
 import { Link } from "@/components/Link";
-import { useMarket } from "@/hooks/useMarket";
-import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
+import { useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { Alert } from "../Alert";
 

@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
 import { toastError, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { multiDropAbi, multiDropAddress, writeMultiDropClaim } from "@seer-pm/sdk/contracts/multi-drop";
 import { useMutation } from "@tanstack/react-query";
 import { getAccount, simulateContract } from "@wagmi/core";

@@ -1,8 +1,8 @@
 import { ApproveButton } from "@/components/Form/ApproveButton";
 import Button from "@/components/Form/Button";
 import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
-import { UseMissingApprovalsReturn } from "@/hooks/useMissingApprovals";
-import { SupportedChain } from "@/lib/chains";
+import type { UseMissingApprovalsReturn } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Trade } from "@seer-pm/sdk";
 import { Address } from "viem";
 

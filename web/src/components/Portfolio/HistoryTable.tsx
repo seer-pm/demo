@@ -1,10 +1,11 @@
 import React from "react";
 
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,

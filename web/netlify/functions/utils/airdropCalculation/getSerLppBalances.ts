@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk";
 import { formatUnits, zeroAddress } from "viem";
 import { SER_LPP } from "./constants";

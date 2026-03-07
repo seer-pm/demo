@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { isSeerCredits } from "@/lib/config";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { isSeerCredits } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { create } from "zustand";

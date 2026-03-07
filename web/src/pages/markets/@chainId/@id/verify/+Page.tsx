@@ -4,14 +4,14 @@ import { OutcomesFormValues, getImagesForVerification } from "@/components/Marke
 import { ModalContentSucessMessage } from "@/components/MarketForm/PreviewForm";
 import { VerificationForm } from "@/components/MarketForm/VerificationForm";
 import { Spinner } from "@/components/Spinner";
-import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
-import { SupportedChain } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import { useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";

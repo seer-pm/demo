@@ -1,4 +1,5 @@
-import { Market, hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
+import { hasAllUnansweredQuestions, hasOpenQuestions, isInDispute, isWaitingResults } from "@/lib/market";
+import { Market } from "@seer-pm/sdk";
 
 export enum MarketStatus {
   NOT_OPEN = "not_open",

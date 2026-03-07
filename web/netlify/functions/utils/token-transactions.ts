@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import type { TokenTransfer } from "@seer-pm/sdk";
 import { OrderDirection, Transfer_Filter, Transfer_OrderBy, getSdk } from "@seer-pm/sdk/tokens";
 import { Address } from "viem";

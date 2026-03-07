@@ -1,5 +1,6 @@
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester,
   readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests,

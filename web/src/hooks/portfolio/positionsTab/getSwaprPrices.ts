@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { getToken0Token1 } from "@/lib/market";
-import { swaprGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { getToken0Token1 } from "@seer-pm/sdk";
+import { swaprGraphQLClient } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,

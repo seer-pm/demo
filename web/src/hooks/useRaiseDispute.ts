@@ -1,7 +1,8 @@
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
   writeRealitioForeignProxyBaseRequestArbitration,

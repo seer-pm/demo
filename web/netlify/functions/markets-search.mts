@@ -1,5 +1,6 @@
-import { SUPPORTED_CHAINS, SupportedChain, sepolia } from "@/lib/chains";
+import { SUPPORTED_CHAINS, sepolia } from "@/lib/chains";
 import { FetchMarketParams, SerializedMarket, serializeMarket } from "@/lib/market";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { searchMarkets } from "./utils/markets";
 

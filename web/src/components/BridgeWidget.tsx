@@ -1,6 +1,6 @@
 import { useBridgeQuote, useExecuteBridge } from "@/hooks/useBridgeQuote";
 import { useModal } from "@/hooks/useModal";
-import { SupportedChain, gnosis } from "@/lib/chains";
+import { gnosis } from "@/lib/chains";
 import { CheckCircleIcon, CloseCircleOutlineIcon, ExclamationCircleIcon, InfoCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
@@ -15,6 +15,7 @@ import {
 } from "@/wagmi";
 import { ExecutionStatus, Process, RouteExtended } from "@lifi/sdk";
 import { useSyncWagmiConfig } from "@lifi/wallet-management";
+import type { SupportedChain } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";

@@ -2,7 +2,7 @@ import { type Market as BaseMarket, FUTARCHY_LP_PAIRS_MAPPING } from "@seer-pm/s
 import { bigIntMax, isTwoStringsEqual, isUndefined } from "../utils";
 import { useMarketPools } from "./useMarketPools";
 
-type Market = BaseMarket<number>;
+type Market = BaseMarket;
 
 export function useMarketHasLiquidity(market: Market, outcomeIndex?: number | undefined): boolean | undefined {
   const { data: outcomePools = [], isPending } = useMarketPools(market);

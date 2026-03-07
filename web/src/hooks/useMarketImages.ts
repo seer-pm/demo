@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { curateGraphQLClient } from "@/lib/subgraph";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { curateGraphQLClient } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Status, getSdk } from "@seer-pm/sdk/curate";
 import { useQuery } from "@tanstack/react-query";

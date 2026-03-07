@@ -1,5 +1,5 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { FetchMarketParams, MarketStatus, VerificationStatus } from "@/lib/market";
+import { FetchMarketParams, MarketStatus, VerificationStatus } from "@seer-pm/sdk";
 import { Market_OrderBy } from "@seer-pm/sdk/seer";
 
 function useMarketsSearchParams() {

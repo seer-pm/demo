@@ -1,5 +1,6 @@
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { checkWalletConnectCallback } from "@/lib/wallet";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useEffect, useRef } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import Button, { ButtonSize } from "./Button";

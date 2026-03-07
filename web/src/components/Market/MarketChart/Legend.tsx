@@ -1,4 +1,4 @@
-import { Market } from "@/lib/market";
+import { Market } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { IOutcomeData } from "./MarketChart";

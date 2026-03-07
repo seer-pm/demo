@@ -1,12 +1,12 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { getUseGraphMarketKey } from "@/hooks/useMarket";
 import { useSignIn } from "@/hooks/useSignIn";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { CloseIcon, EditIcon, SaveIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastError } from "@/lib/toastify";
 import { fetchAuth, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
+import { getUseGraphMarketKey } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import { MARKET_CATEGORIES } from "@seer-pm/sdk";
 import { useState } from "react";
 import { useForm } from "react-hook-form";

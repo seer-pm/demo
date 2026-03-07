@@ -1,9 +1,9 @@
-import { fetchTokenBalance } from "@/hooks/useTokenBalance";
-import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
-import { PoolInfo, useMarketPools } from "@seer-pm/react";
+import { PoolInfo, fetchTokenBalance, useMarketPools } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useConfig } from "wagmi";
 import Button from "../../Form/Button";
 import PoolTab from "./PoolTab";
 
@@ -16,6 +16,7 @@ export default function PoolDetails({
   outcomeIndex: number;
   closeModal?: () => void;
 }) {
+  const config = useConfig();
   const { data = [] } = useMarketPools(market);
   const poolDataPerToken = data[outcomeIndex] as PoolInfo[] | undefined;
   const { data: poolTokensBalances = [], isLoading } = useQuery<
@@ -31,8 +32,8 @@ export default function PoolDetails({
     queryFn: async () => {
       return await Promise.all(
         poolDataPerToken!.map(async ({ id, token0, token1 }) => {
-          const balance0BigInt = await fetchTokenBalance(token0, id, market.chainId);
-          const balance1BigInt = await fetchTokenBalance(token1, id, market.chainId);
+          const balance0BigInt = await fetchTokenBalance(config, token0, id, market.chainId);
+          const balance1BigInt = await fetchTokenBalance(config, token1, id, market.chainId);
           return {
             balance0: displayBalance(balance0BigInt, 18, true),
             balance1: displayBalance(balance1BigInt, 18, true),

@@ -1,9 +1,7 @@
 import { Link } from "@/components/Link";
 import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
-import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
-import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
@@ -20,12 +18,23 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus, getMarketType } from "@/lib/market";
-import { Market, MarketStatus } from "@/lib/market.ts";
+import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { getQuestionStatus } from "@/lib/reality.ts";
+import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useTokenInfo } from "@seer-pm/react";
+import { useMarket } from "@seer-pm/react";
 import { useMarketHasLiquidity, useMarketOdds } from "@seer-pm/react";
+import {
+  Market,
+  MarketStatus,
+  MarketTypes,
+  getCollateralByIndex,
+  getMarketPoolsPairs,
+  getMarketType,
+} from "@seer-pm/sdk";
+import { displayScalarBound } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { getMarketEstimate } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";

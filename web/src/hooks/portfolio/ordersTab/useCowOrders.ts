@@ -1,8 +1,8 @@
 import { useMarkets } from "@/hooks/useMarkets";
-import { SupportedChain } from "@/lib/chains";
-import { isOpStack } from "@/lib/config";
-import { Market, getTokensPairKey } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { isOpStack } from "@seer-pm/sdk";
+import { Market, getTokensPairKey } from "@seer-pm/sdk";
 import { OrderBookApi } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";

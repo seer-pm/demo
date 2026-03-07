@@ -1,6 +1,6 @@
 import { Dropdown } from "@/components/Dropdown";
 import { getLiquidityUrlByMarket } from "@/lib/config";
-import { Market } from "@/lib/market";
+import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";

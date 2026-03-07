@@ -1,7 +1,7 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
 import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";

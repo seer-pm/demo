@@ -26,7 +26,7 @@ import { AlgebraPoolAbi } from "../abi/AlgebraPoolAbi";
 import { isUndefined } from "../utils";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "./useComputedPoolAddresses";
 
-export type Market = BaseMarket<number>;
+export type Market = BaseMarket;
 
 export interface PoolIncentive {
   reward: bigint;

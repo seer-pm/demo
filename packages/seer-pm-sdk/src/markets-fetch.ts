@@ -26,13 +26,13 @@ export type FetchMarketParams = {
 };
 
 export type JsonMarketsResult = { markets: SerializedMarket[]; count: number; pages: number };
-export type MarketsResult<ChainId = number> = {
-  markets: Market<ChainId>[];
+export type MarketsResult = {
+  markets: Market[];
   count: number;
   pages: number;
 };
 
-export async function fetchMarkets<C = number>(params: FetchMarketParams = {}): Promise<MarketsResult<C>> {
+export async function fetchMarkets(params: FetchMarketParams = {}): Promise<MarketsResult> {
   const response = await fetch(`${getApiHost()}/.netlify/functions/markets-search`, {
     method: "POST",
     headers: {
@@ -42,13 +42,13 @@ export async function fetchMarkets<C = number>(params: FetchMarketParams = {}): 
   });
   const result: JsonMarketsResult = await response.json();
   return {
-    markets: result.markets.map((market) => deserializeMarket<C>(market)),
+    markets: result.markets.map((market) => deserializeMarket(market)),
     count: result.count,
     pages: result.pages,
   };
 }
 
-export async function fetchMarket<C = number>(chainId: C, idOrSlug: Address | string): Promise<Market<C> | undefined> {
+export async function fetchMarket(chainId: number, idOrSlug: Address | string): Promise<Market | undefined> {
   const params: { chainId: number; id: Address } | { chainId: number; url: string } = !isAddress(idOrSlug, {
     strict: false,
   })
@@ -64,7 +64,7 @@ export async function fetchMarket<C = number>(chainId: C, idOrSlug: Address | st
   });
 
   if (response.status === 200) {
-    return deserializeMarket(await response.json()) as Market<C>;
+    return deserializeMarket(await response.json()) as Market;
   }
 
   return;

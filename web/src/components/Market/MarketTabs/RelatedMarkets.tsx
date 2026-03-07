@@ -1,10 +1,9 @@
 import { Alert } from "@/components/Alert";
 import MarketsPagination from "@/components/Market/MarketsPagination";
-import { useMarket } from "@/hooks/useMarket";
-import { getUseGraphMarketKey, useGraphMarketQueryFn } from "@/hooks/useMarket";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
-import { Market } from "@/lib/market";
-import { useQueries } from "@tanstack/react-query";
+import { getGraphMarketQueryFn, getUseGraphMarketKey, useMarket } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { zeroAddress } from "viem";
 import { MarketHeader } from "../Header/MarketHeader";
@@ -24,6 +23,8 @@ interface UseFilterRelatedMarketsParams {
 }
 
 function useFilterRelatedMarkets({ markets, currentMarket, searchTerm }: UseFilterRelatedMarketsParams) {
+  const queryClient = useQueryClient();
+
   // Fetch parent market if current market has a parent
   const hasParent = currentMarket.parentMarket.id !== zeroAddress;
   const { data: parentMarket } = useMarket(
@@ -46,7 +47,7 @@ function useFilterRelatedMarkets({ markets, currentMarket, searchTerm }: UseFilt
   const parentMarketQueries = useQueries({
     queries: uniqueParentMarketIds.map((parentId) => ({
       queryKey: getUseGraphMarketKey(parentId, currentMarket.chainId),
-      queryFn: () => useGraphMarketQueryFn(parentId, currentMarket.chainId),
+      queryFn: () => getGraphMarketQueryFn(queryClient, parentId, currentMarket.chainId),
       enabled: parentId !== zeroAddress.toLowerCase(),
     })),
   });

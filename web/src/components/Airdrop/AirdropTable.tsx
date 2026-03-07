@@ -1,9 +1,9 @@
 import React from "react";
 
 import { AirdropTokenInfo } from "@/hooks/airdrop/useGetListAirdropTokens";
-import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,

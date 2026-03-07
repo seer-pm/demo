@@ -1,4 +1,3 @@
-import { SupportedChain } from "@/lib/chains";
 import { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, MAINNET_RPC, OPTIMISM_RPC, config } from "@/wagmi";
 import {
   EVM,
@@ -10,6 +9,7 @@ import {
   executeRoute,
   getQuote,
 } from "@lifi/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWalletClient, switchChain } from "@wagmi/core";
 import { Address, parseUnits } from "viem";

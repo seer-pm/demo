@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";

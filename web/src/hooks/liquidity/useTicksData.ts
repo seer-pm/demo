@@ -1,5 +1,5 @@
-import { Market, getLiquidityPair } from "@/lib/market";
 import { PoolInfo } from "@seer-pm/react";
+import { Market, getLiquidityPair } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useConfig } from "wagmi";
 import { getPoolAndTicksData } from "./getTicksData";

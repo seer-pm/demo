@@ -1,5 +1,6 @@
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
-import { graphQLClient } from "@/lib/subgraph";
+import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
 import {
   realitioForeignArbitrationProxyWithAppealsAddress,
   realitioForeignProxyBaseAddress,

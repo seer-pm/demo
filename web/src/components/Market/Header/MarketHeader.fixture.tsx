@@ -1,7 +1,7 @@
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { MarketStatus } from "@/lib/market";
-import { Market, Question } from "@/lib/market";
-import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@/lib/reality";
+import { gnosis } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketStatus, Question } from "@seer-pm/sdk";
+import { ANSWERED_TOO_SOON, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import { zeroAddress, zeroHash } from "viem";
 import { MarketHeader } from "./MarketHeader";
 

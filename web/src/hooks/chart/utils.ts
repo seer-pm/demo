@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { getMarketEstimate, normalizeOdds } from "@seer-pm/sdk";
 import { GetPoolHourDatasQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";

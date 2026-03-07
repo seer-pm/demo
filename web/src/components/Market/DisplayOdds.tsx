@@ -1,5 +1,5 @@
 import { QuestionIcon } from "@/lib/icons";
-import { MarketTypes, isOdd } from "@/lib/market";
+import { MarketTypes, isOdd } from "@seer-pm/sdk";
 import Tooltip from "../Tooltip";
 
 export function DisplayOdds({

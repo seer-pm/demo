@@ -1,9 +1,9 @@
-import { SupportedChain } from "@/lib/chains";
 import { FAST_TESTNET_FACTORY } from "@/lib/constants";
-import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@/lib/market";
-import { unescapeJson } from "@/lib/reality";
-import { graphQLClient } from "@/lib/subgraph";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk";
+import { unescapeJson } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";

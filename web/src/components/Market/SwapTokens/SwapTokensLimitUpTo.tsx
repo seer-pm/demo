@@ -6,12 +6,12 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { isSeerCredits } from "@/lib/config";
 import { Parameter, QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
+import { isSeerCredits } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
@@ -158,7 +158,7 @@ export function SwapTokensLimitUpto({
     swapType,
     tradeType,
     maxSlippage,
-    isInstantSwap,
+    !isInstantSwap,
   );
   const trade = quoteData?.trade;
   const isCowFastQuote = trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";

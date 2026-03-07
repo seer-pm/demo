@@ -1,8 +1,6 @@
-import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { type Market, getMarketPoolsPairs } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, encodeAbiParameters, getCreate2Address, keccak256 } from "viem";
-
-type Market = BaseMarket<number>;
 
 // same init hash for uniswap and algebra
 const UNISWAP_V3_POOL_INIT_CODE_HASH = "0xbce37a54eab2fcd71913a0d40723e04238970e7fc1159bfd58ad5b79531697e7";

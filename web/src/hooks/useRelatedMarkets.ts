@@ -1,4 +1,4 @@
-import { Market, fetchMarkets } from "@/lib/market";
+import { Market, fetchMarkets } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 

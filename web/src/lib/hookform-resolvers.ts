@@ -1,5 +1,5 @@
+import { ANSWERED_TOO_SOON, INVALID_RESULT } from "@seer-pm/sdk";
 import * as v from "valibot";
-import { ANSWERED_TOO_SOON, INVALID_RESULT } from "./reality";
 
 export const answerFormSchema = v.variant("answerType", [
   v.object({ answerType: v.literal(INVALID_RESULT) }),

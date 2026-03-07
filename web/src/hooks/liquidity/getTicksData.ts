@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
 import { PoolInfo, getPools } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
 import type { Config } from "@wagmi/core";

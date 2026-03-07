@@ -10,8 +10,7 @@ import {
   LawBalanceIcon,
   QuestionIcon,
 } from "@/lib/icons";
-import { MarketStatus } from "@/lib/market";
-import { VerificationStatus } from "@/lib/market";
+import { MarketStatus, VerificationStatus } from "@seer-pm/sdk";
 import { Market_OrderBy } from "@seer-pm/sdk/seer";
 import clsx from "clsx";
 import { Fragment } from "react";

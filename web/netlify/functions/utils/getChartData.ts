@@ -1,8 +1,7 @@
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
-import { Token0Token1, getMarketPoolsPairs } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, Token0Token1, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasQuery,

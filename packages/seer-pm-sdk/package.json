@@ -36,13 +36,14 @@
   },
   "files": ["dist", "generated", "src/subgraph/generated", "abis", "queries", "README.md"],
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "generate": "wagmi generate",
-    "generate:gql": "graphql-codegen",
-    "prepublishOnly": "yarn generate"
+  "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean --external wagmi,@wagmi/core,react,react-dom,viem,@tanstack/react-query",
+  "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external wagmi,@wagmi/core,react,react-dom,viem,@tanstack/react-query",
+  "generate": "wagmi generate",
+  "generate:gql": "graphql-codegen",
+  "prepublishOnly": "yarn generate"
   },
   "peerDependencies": {
+    "@wagmi/core": ">=2.0.0",
     "graphql-request": ">=5.0.0",
     "graphql-tag": ">=2.0.0",
     "viem": ">=2.0.0",

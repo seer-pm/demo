@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { readGovernedRecipientIsEligible } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";

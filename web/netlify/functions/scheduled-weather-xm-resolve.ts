@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains.ts";
 import { Config } from "@netlify/functions";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { realityAbi, realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";

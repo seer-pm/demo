@@ -1,7 +1,7 @@
 import { RouterAbi } from "@/abi/RouterAbi";
 import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
-import { Market, getRedeemedPrice } from "@/lib/market";
 import { config } from "@/wagmi";
+import { Market, getRedeemedPrice } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { Address, formatUnits } from "viem";

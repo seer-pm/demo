@@ -27,7 +27,22 @@ export {
   MARKET_CATEGORIES,
 } from "./create-market";
 export type { CreateMarketProps, CreateMarketParams } from "./create-market";
-export { MarketTypes, getMarketName, getOutcomes, getQuestionParts, getMarketUnit } from "./market";
+export {
+  INVALID_RESULT_OUTCOME,
+  INVALID_RESULT_OUTCOME_TEXT,
+  MarketTypes,
+  getMarketName,
+  getOutcomes,
+  getQuestionParts,
+  getMarketUnit,
+  getMarketType,
+  hasOutcomes,
+  isInvalidOutcome,
+  getMultiScalarEstimate,
+  getRedeemedPrice,
+} from "./market";
+export type { OnChainMarket } from "./on-chain-market";
+export { mapOnChainMarket } from "./on-chain-market";
 export {
   FUTARCHY_LP_PAIRS_MAPPING,
   getCollateralByIndex,
@@ -38,7 +53,17 @@ export {
   getTokensPairKey,
 } from "./market-pools";
 export type { Token0Token1 } from "./market-pools";
-export { escapeJson, isScalarBoundInWei, displayScalarBound } from "./reality";
+export {
+  ANSWERED_TOO_SOON,
+  INVALID_RESULT,
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_SINGLE_SELECT,
+  REALITY_TEMPLATE_UINT,
+  displayScalarBound,
+  escapeJson,
+  isScalarBoundInWei,
+  unescapeJson,
+} from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
 export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
 export type { MarketLike, RouterAddressMap, RouterTypes } from "./router-addresses";
@@ -60,6 +85,10 @@ export {
 export type { Token, CollateralTokensMap } from "./collateral";
 export { WRAPPED_OUTCOME_TOKEN_DECIMALS, EMPTY_TOKEN } from "./tokens";
 export type { TokenTransfer } from "./tokens";
+export { getTokenInfo } from "./token-info";
+export type { GetTokenResult } from "./token-info";
+export { fetchNeededApprovals, getApprovals7702 } from "./approvals";
+export type { ApprovalInfo, GetApprovals7702Props } from "./approvals";
 export { getSwapRouterAddress } from "./trading";
 export {
   getCowQuote,
@@ -106,6 +135,7 @@ export type {
 } from "./execute-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/generated-market-factory";
+export type { SupportedChain, SupportedChains } from "./chains";
 export { isOpStack } from "./chains";
 export { getTokenSwapResult, getTokenPriceFromSwap, getTokenPrice } from "./token-price";
 export {
@@ -126,6 +156,7 @@ export {
   type JsonMarketsResult,
   type MarketsResult,
 } from "./markets-fetch";
+export { searchOnChainMarkets } from "./on-chain-markets";
 
 // Subgraph: endpoints, clients, token price from subgraph
 export {

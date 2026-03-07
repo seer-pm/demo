@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isUndefined } from "../utils";
 import useMarketHasLiquidity from "./useMarketHasLiquidity";
 
-type Market = BaseMarket<number>;
+type Market = BaseMarket;
 
 export const useMarketOdds = (market: Market, enabled: boolean) => {
   const hasLiquidity = useMarketHasLiquidity(market);

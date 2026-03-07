@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { isOpStack } from "@/lib/config";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { isOpStack } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { gnosis, mainnet } from "viem/chains";
 import { getSwaprCurrentTokensPrices, getSwaprHistoryTokensPrices } from "./getSwaprPrices";

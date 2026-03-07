@@ -1,4 +1,3 @@
-import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -13,13 +12,13 @@ import {
   SeerLogo,
 } from "@/lib/icons";
 import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayScalarBound } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useMarket } from "@seer-pm/react";
 import { useMarketOdds } from "@seer-pm/react";
+import { Market, MarketStatus, MarketTypes, getMarketType, isOdd } from "@seer-pm/sdk";
+import { displayScalarBound } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { getMarketEstimate } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";

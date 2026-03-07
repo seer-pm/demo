@@ -1,27 +1,24 @@
-import { isScalarBoundInWei } from "@seer-pm/sdk";
+import {
+  ANSWERED_TOO_SOON,
+  INVALID_RESULT,
+  type Market,
+  type Question,
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_UINT,
+  isScalarBoundInWei,
+  unescapeJson,
+} from "@seer-pm/sdk";
+import { MarketStatus } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { compareAsc } from "date-fns/compareAsc";
 import { fromUnixTime } from "date-fns/fromUnixTime";
 import { Hex, formatEther, hexToNumber, numberToHex } from "viem";
-import { SupportedChain } from "./chains";
 import { getConfigNumber } from "./config";
-import { MarketStatus } from "./market";
-import { Market, Question } from "./market";
-
-export const REALITY_TEMPLATE_UINT = 1;
-export const REALITY_TEMPLATE_SINGLE_SELECT = 2;
-export const REALITY_TEMPLATE_MULTIPLE_SELECT = 3;
-
-export const INVALID_RESULT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-export const ANSWERED_TOO_SOON = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
 
 export type Outcome = string;
 
 export type FormEventOutcomeValue = number | string;
-
-export function unescapeJson(txt: string) {
-  return txt.replace(/\\"/g, '"');
-}
 
 export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeValue[] | ""): Hex {
   if (outcome === "") {
@@ -232,5 +229,3 @@ export function decodeOutcomes(market: Market, question: Question) {
   const questionIndex = market.questions.findIndex((q) => q.id === question.id);
   return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
 }
-
-export { displayScalarBound, isScalarBoundInWei } from "@seer-pm/sdk";

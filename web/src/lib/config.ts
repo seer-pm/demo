@@ -1,9 +1,8 @@
-import { isOpStack } from "@seer-pm/sdk";
+import { Market, getLiquidityPair, isOpStack } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
-import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
-import { Market, getLiquidityPair } from "./market";
-export { isOpStack, isSeerCredits } from "@seer-pm/sdk";
+import { DEFAULT_CHAIN, base, gnosis, mainnet, optimism } from "./chains";
 
 type BigInt = Record<number, bigint>;
 

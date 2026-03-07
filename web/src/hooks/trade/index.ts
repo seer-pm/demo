@@ -1,8 +1,8 @@
 import { createCowOrder } from "@/hooks/trade/executeCowTrade";
-import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastify, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { useMissingTradeApproval } from "@seer-pm/react";
 import {
   CoWTrade,
   SwaprV3Trade,
@@ -10,7 +10,6 @@ import {
   UniswapTrade,
   buildTradeCalls7702,
   clientToSigner,
-  getMaximumAmountIn,
   tradeTokens as sdkTradeTokens,
 } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
@@ -19,28 +18,11 @@ import { sendCalls } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
 import { useCheck7702Support } from "../useCheck7702Support";
 import { useGlobalState } from "../useGlobalState";
-import { useMissingApprovals } from "../useMissingApprovals";
 
 const EMPTY_APPROVALS = {
   data: [],
   isLoading: false,
 };
-
-function useMissingTradeApproval(account: Address | undefined, trade: Trade | undefined) {
-  const { data, isLoading } = useMissingApprovals(
-    !trade
-      ? undefined
-      : {
-          tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
-          account,
-          spender: trade.approveAddress as `0x${string}`,
-          amounts: getMaximumAmountIn(trade),
-          chainId: trade.chainId as SupportedChain,
-        },
-  );
-
-  return { data, isLoading };
-}
 
 interface TradeTokensProps {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;

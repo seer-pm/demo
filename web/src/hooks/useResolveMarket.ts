@@ -1,7 +1,7 @@
-import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { Market } from "@seer-pm/sdk";
 import { getResolveMarketExecution } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";

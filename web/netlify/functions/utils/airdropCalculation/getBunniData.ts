@@ -1,5 +1,6 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
+import { mainnet } from "@/lib/chains";
 import { Token0Token1, getToken0Token1 } from "@/lib/market";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk";
 import pLimit from "p-limit";

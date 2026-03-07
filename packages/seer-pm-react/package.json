@@ -21,8 +21,8 @@
   },
   "files": ["dist", "README.md"],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external js-sha3",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external js-sha3"
+  "build": "tsup src/index.ts --format cjs,esm --dts --clean --external js-sha3,wagmi,react,react-dom,viem,@tanstack/react-query",
+  "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external js-sha3,wagmi,react,react-dom,viem,@tanstack/react-query"
   },
   "peerDependencies": {
     "@seer-pm/sdk": "0.0.1",

@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { graphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { useQuery } from "@tanstack/react-query";

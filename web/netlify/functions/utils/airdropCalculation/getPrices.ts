@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
 import { getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { GetPoolHourDatasQuery } from "@seer-pm/sdk/swapr";
 import { Address } from "viem";

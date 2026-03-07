@@ -1,8 +1,10 @@
 import { MarketDataMapping } from "@/hooks/portfolio/getMappings";
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { gnosis } from "@/lib/chains";
+import { getCollateralFromDexTx } from "@/lib/market";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { OrderBookApi } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { GetSwapsQuery, OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";

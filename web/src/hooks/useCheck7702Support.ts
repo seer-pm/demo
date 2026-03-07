@@ -1,8 +1,5 @@
-import type { Execution } from "@seer-pm/sdk";
 import { useAccount, useCapabilities } from "wagmi";
 import { useGlobalState } from "./useGlobalState";
-
-export type { Execution };
 
 export function useCheck7702Support(): boolean {
   const { chainId } = useAccount();

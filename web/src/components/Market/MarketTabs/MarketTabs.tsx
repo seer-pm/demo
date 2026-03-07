@@ -1,4 +1,4 @@
-import { Market } from "@/lib/market";
+import { Market } from "@seer-pm/sdk";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import Activity from "./Activity";

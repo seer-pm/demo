@@ -1,22 +1,23 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
 import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
-import { SupportedChain } from "@/lib/chains";
 import { isVerificationEnabled } from "@/lib/config";
 import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
-import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
+import { getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
+import { getUseGraphMarketKey, useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketTypes } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import {
   MARKET_CATEGORIES,
   MISC_CATEGORY,

@@ -1,5 +1,5 @@
 import { QuestionIcon } from "@/lib/icons";
-import { Market, MarketTypes, getMarketType } from "@/lib/market";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import PotentialReturnConfig from "./PotentialReturnConfig";

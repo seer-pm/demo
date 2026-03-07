@@ -1,13 +1,14 @@
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
-import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { UseMissingApprovalsProps, useMissingApprovals } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import { type Execution, getSplitExecution } from "@seer-pm/sdk";
+import { getApprovals7702 } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendCalls, sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt } from "viem";
-import { UseMissingApprovalsProps, getApprovals7702, useMissingApprovals } from "./useMissingApprovals";
 
 interface SplitPositionProps {
   router: Address;

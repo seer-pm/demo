@@ -1,7 +1,8 @@
 import { useCowOrders } from "@/hooks/portfolio/ordersTab/useCowOrders";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { endOfDay, format, startOfDay } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";

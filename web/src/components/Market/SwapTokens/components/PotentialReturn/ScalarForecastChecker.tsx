@@ -1,9 +1,9 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { Market, MarketTypes, getMarketType } from "@/lib/market";
-import { displayScalarBound } from "@/lib/reality";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { useTokensInfo } from "@seer-pm/react";
 import { useQuoteTrade } from "@seer-pm/react";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
+import { displayScalarBound } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS, TradeType } from "@seer-pm/sdk";
 import clsx from "clsx";
@@ -37,7 +37,7 @@ export default function ScalarForecastChecker({
   const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
-  const isCowQuoteEnabled = useGlobalState((state) => state.isInstantSwap);
+  const isCowQuoteEnabled = useGlobalState((state) => !state.isInstantSwap);
 
   const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
   const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (

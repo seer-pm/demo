@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import type { Market } from "./market-types";
 
-export function getCollateralByIndex<ChainId>(market: Market<ChainId>, index: number): Address {
+export function getCollateralByIndex(market: Market, index: number): Address {
   if (market.type === "Generic") {
     return market.collateralToken;
   }
@@ -27,7 +27,7 @@ export function getTokensPairKey(tokenA: Address | string, tokenB: Address | str
 // outcome3 pairs with outcome1
 export const FUTARCHY_LP_PAIRS_MAPPING = [2, 3, 0, 1];
 
-export function getLiquidityPair<ChainId>(market: Market<ChainId>, outcomeIndex: number): Token0Token1 {
+export function getLiquidityPair(market: Market, outcomeIndex: number): Token0Token1 {
   if (market.type === "Generic") {
     return getToken0Token1(market.wrappedTokens[outcomeIndex], market.collateralToken);
   }
@@ -38,7 +38,7 @@ export function getLiquidityPair<ChainId>(market: Market<ChainId>, outcomeIndex:
   );
 }
 
-export function getMarketPoolsPairs<ChainId>(market: Market<ChainId>): Token0Token1[] {
+export function getMarketPoolsPairs(market: Market): Token0Token1[] {
   const pools = new Set<Token0Token1>();
   const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
   tokens.forEach((_, index) => {
@@ -47,7 +47,7 @@ export function getMarketPoolsPairs<ChainId>(market: Market<ChainId>): Token0Tok
   return [...pools];
 }
 
-export function getLiquidityPairForToken<ChainId>(market: Market<ChainId>, outcomeIndex: number): Address {
+export function getLiquidityPairForToken(market: Market, outcomeIndex: number): Address {
   if (market.type === "Generic") {
     return market.collateralToken;
   }

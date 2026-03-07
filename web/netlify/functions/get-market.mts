@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
 import { serializeMarket } from "@/lib/market";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {
   SubgraphMarket,

@@ -1,8 +1,9 @@
-import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
 import { ArrowDropDown } from "@/lib/icons";
-import { Market } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { GetTokenResult } from "@seer-pm/react";
+import { useTokensInfo } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";

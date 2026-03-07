@@ -1,9 +1,9 @@
-import { Market } from "@/lib/market";
 import { config } from "@/wagmi";
+import { useTokensInfo } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";
-import { useTokensInfo } from "./useTokenInfo";
 
 export type Position = { tokenId: Address; balance: bigint; symbol: string; decimals: number };
 

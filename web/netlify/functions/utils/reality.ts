@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { realityGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { realityGraphQLClient } from "@seer-pm/sdk";
 import { QuestionsQueryQuery, getSdk as getRealitySdk } from "@seer-pm/sdk/reality";
 import { Address } from "viem";
 

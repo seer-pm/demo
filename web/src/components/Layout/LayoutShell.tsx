@@ -7,6 +7,7 @@ import { ToastContainer } from "react-toastify";
 import { usePageContext } from "vike-react/usePageContext";
 import { WagmiProvider } from "wagmi";
 import { queryClient } from "../../lib/query-client.ts";
+import "../../lib/subgraph";
 import { config } from "../../wagmi.ts";
 import { SwapUpdater } from "../SwapUpdater.tsx";
 

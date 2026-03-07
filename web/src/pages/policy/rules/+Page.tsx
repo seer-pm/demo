@@ -1,6 +1,7 @@
 import FileViewer from "@/components/FileViewer";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useAccount } from "wagmi";
 
 export default function RulesPolicyPage() {

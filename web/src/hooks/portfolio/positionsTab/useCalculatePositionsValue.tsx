@@ -1,6 +1,7 @@
 import { useCurrentTokensPrices, useHistoryTokensPrices } from "@/hooks/portfolio/positionsTab/useTokenPriceInPool";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { subDays } from "date-fns";
 import { useMemo } from "react";
 import { Address } from "viem";

@@ -1,9 +1,9 @@
 import { ChartData, fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
 import { formatDate } from "@/lib/date";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT, downloadCsv } from "@/lib/utils";
+import { downloadCsv } from "@/lib/utils";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";

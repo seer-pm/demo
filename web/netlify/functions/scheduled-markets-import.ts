@@ -1,7 +1,7 @@
-import { SupportedChain } from "@/lib/chains.ts";
 import { getMarketStatus } from "@/lib/market.ts";
-import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
 import { WEATHER_CATEGORY } from "@seer-pm/sdk";
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { createClient } from "@supabase/supabase-js";

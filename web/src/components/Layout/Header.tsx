@@ -4,9 +4,8 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
-import { SupportedChain, filterChain } from "@/lib/chains";
+import { filterChain } from "@/lib/chains";
 import {
   BookIcon,
   BugIcon,
@@ -25,6 +24,8 @@ import {
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
+import { useTokenBalance } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";

@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { Config, readContracts } from "@wagmi/core";
 import { Address, erc20Abi } from "viem";

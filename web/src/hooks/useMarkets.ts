@@ -1,36 +1,13 @@
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { FetchMarketParams, MarketStatus, MarketsResult, VerificationStatus, fetchMarkets } from "@/lib/market";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { MarketsResult } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
-import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
-import { readMarketViewGetMarkets } from "@seer-pm/sdk/contracts/market-view";
+import { getUseGraphMarketKey } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { FetchMarketParams, MarketStatus, VerificationStatus, fetchMarkets, searchOnChainMarkets } from "@seer-pm/sdk";
 import { Market_OrderBy } from "@seer-pm/sdk/seer";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { getUseGraphMarketKey, mapOnChainMarket } from "./useMarket";
-
-export async function searchOnChainMarkets(chainId: SupportedChain) {
-  return (
-    await readMarketViewGetMarkets(config, {
-      args: [BigInt(50), marketFactoryAddress[chainId]],
-      chainId,
-    })
-  )
-    .filter((m) => m.id !== "0x0000000000000000000000000000000000000000")
-    .map((market) =>
-      mapOnChainMarket(market, {
-        chainId,
-        outcomesSupply: 0n,
-        liquidityUSD: 0,
-        incentive: 0,
-        hasLiquidity: false,
-        categories: ["misc"],
-        poolBalance: [],
-        odds: [],
-        url: "",
-      }),
-    );
-}
 
 const useOnChainMarkets = (
   chainsList: Array<string | "all">,
@@ -50,7 +27,7 @@ const useOnChainMarkets = (
     queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
     enabled: !disabled,
     queryFn: async () => {
-      const markets = (await Promise.all(chainIds.map(searchOnChainMarkets))).flat();
+      const markets = (await Promise.all(chainIds.map((chainId) => searchOnChainMarkets(config, chainId)))).flat();
       return {
         markets,
         count: markets.length,

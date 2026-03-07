@@ -4,22 +4,24 @@ import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
-import { Market, MarketStatus, Question } from "@/lib/market";
 import {
-  ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
-  INVALID_RESULT,
-  REALITY_TEMPLATE_MULTIPLE_SELECT,
-  REALITY_TEMPLATE_SINGLE_SELECT,
-  REALITY_TEMPLATE_UINT,
   formatOutcome,
   getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
-  isScalarBoundInWei,
 } from "@/lib/reality";
 import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
+import { Market, MarketStatus, Question } from "@seer-pm/sdk";
+import {
+  ANSWERED_TOO_SOON,
+  INVALID_RESULT,
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_SINGLE_SELECT,
+  REALITY_TEMPLATE_UINT,
+  isScalarBoundInWei,
+} from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
