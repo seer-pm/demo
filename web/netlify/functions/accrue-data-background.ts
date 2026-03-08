@@ -1,7 +1,8 @@
 import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
 import { gnosis } from "@/lib/chains";
-import { Market, fetchMarkets, getCollateralByIndex, getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { Market } from "@seer-pm/sdk";
+import { fetchMarkets, getCollateralByIndex, getToken0Token1 } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { Address } from "viem";

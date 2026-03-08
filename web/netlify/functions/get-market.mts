@@ -1,4 +1,4 @@
-import { serializeMarket } from "@/lib/market";
+import { serializeMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {

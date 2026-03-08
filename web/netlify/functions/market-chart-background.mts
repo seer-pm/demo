@@ -1,4 +1,3 @@
-import { Market } from "@/lib/market";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { Address } from "viem";

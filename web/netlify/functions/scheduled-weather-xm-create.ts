@@ -1,6 +1,5 @@
-import { getConfigNumber } from "@/lib/config.ts";
-import { MarketTypes } from "@/lib/market.ts";
 import { Config } from "@netlify/functions";
+import { MarketTypes } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk";
 import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
@@ -9,6 +8,7 @@ import { simulateContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, parseEther, zeroAddress } from "viem";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { gnosis, sepolia } from "viem/chains";
+import { getConfigNumber } from "../../src/lib/config.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { Database } from "./utils/supabase.ts";
 import { CityCode, DateParts, WEATHER_CITIES, celciusToKelvin, getOpeningDate } from "./utils/weather.ts";

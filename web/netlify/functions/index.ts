@@ -1,4 +1,4 @@
-import { fetchMarket } from "@/lib/market";
+import { fetchMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { isAddress } from "viem";
 import { renderPage } from "vike/server";

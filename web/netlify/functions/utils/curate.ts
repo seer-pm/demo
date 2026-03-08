@@ -1,6 +1,6 @@
 import { isVerificationEnabled } from "@/lib/config.ts";
-import { VerificationResult } from "@/lib/market";
 import { isUndefined } from "@/lib/utils.ts";
+import type { VerificationResult } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import {
   lightGeneralizedTcrAbi,

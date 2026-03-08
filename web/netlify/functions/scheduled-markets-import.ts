@@ -1,4 +1,3 @@
-import { getMarketStatus } from "@/lib/market.ts";
 import { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { graphQLClient } from "@seer-pm/sdk";
@@ -6,6 +5,7 @@ import { WEATHER_CATEGORY } from "@seer-pm/sdk";
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
 import { createClient } from "@supabase/supabase-js";
 import { Address, privateKeyToAccount } from "viem/accounts";
+import { getMarketStatus } from "../../src/lib/market.ts";
 import { chainIds } from "./utils/config.ts";
 import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { mapGraphMarketFromDbResult } from "./utils/markets.ts";

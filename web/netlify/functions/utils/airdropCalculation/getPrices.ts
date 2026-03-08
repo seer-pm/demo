@@ -1,5 +1,5 @@
-import { getToken0Token1 } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { getToken0Token1 } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { GetPoolHourDatasQuery } from "@seer-pm/sdk/swapr";
