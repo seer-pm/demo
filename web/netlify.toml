@@ -6,7 +6,7 @@
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]
-  NODE_VERSION = "20.18.0"
+  NODE_VERSION = "22.15.1"
 
 [dev]
   command = "node ./web/server"
