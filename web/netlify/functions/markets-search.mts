@@ -25,7 +25,7 @@ async function multiChainSearch(
     orderBy,
     orderDirection,
     marketIds,
-    limit = 1000,
+    limit = 100,
     page = 1,
   } = body;
 

@@ -4,11 +4,18 @@ import { getMarketChartKeyValueHash } from "./market-chart.mts";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
+const MAX_LIMIT = 24;
+
 export default async (req: Request) => {
   try {
-    // Parse the ids parameter from query string
+    // Parse query params
     const url = new URL(req.url);
     const idsParam = url.searchParams.get("ids");
+    const limitParam = url.searchParams.get("limit");
+    const pageParam = url.searchParams.get("page");
+
+    const limit = Math.min(Math.max(1, Number.parseInt(limitParam ?? String(MAX_LIMIT), 10) || MAX_LIMIT), MAX_LIMIT);
+    const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
 
     let marketIds: string[] = [];
     if (idsParam) {
@@ -42,6 +49,10 @@ export default async (req: Request) => {
       // If no IDs provided, get all market charts
       query = query.like("key", getMarketChartKeyValueHash("%", "%"));
     }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
 
     const { data, error } = await query;
 

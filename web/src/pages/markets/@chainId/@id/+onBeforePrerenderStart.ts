@@ -21,8 +21,12 @@ function getQueryClient(config: QueryClientConfig[]) {
   return queryClient;
 }
 
-async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
-  const response = await fetch(`${getAppUrl()}/.netlify/functions/markets-charts`, {
+async function fetchCharts(ids?: Address[]): Promise<Record<Address, PoolHourDatasSets>> {
+  const url = new URL(`${getAppUrl()}/.netlify/functions/markets-charts`);
+  if (ids?.length) {
+    url.searchParams.set("ids", ids.join(","));
+  }
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -33,8 +37,8 @@ async function fetchCharts(): Promise<Record<Address, PoolHourDatasSets>> {
 
 export default async function onBeforePrerenderStart() {
   try {
-    const { markets: allMarkets } = await fetchMarkets();
-    const charts = await fetchCharts();
+    const { markets: allMarkets } = await fetchMarkets({ minLiquidity: 1 });
+    const charts = await fetchCharts(allMarkets.map((m) => m.id));
     // biome-ignore lint/suspicious/noExplicitAny:
     const data: { url: string; pageContext: any }[] = allMarkets
       .filter((market) => market.url && market.url.length < 120)
