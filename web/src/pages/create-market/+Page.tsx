@@ -1,21 +1,19 @@
 import { Alert } from "@/components/Alert";
-import { DateFormValues, MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
-import { DateForm } from "@/components/MarketForm/DateForm";
+import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
 import { MarketTypes } from "@/lib/market";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
 
 enum FormSteps {
   MARKET_TYPE = 1,
   OUTCOMES = 2,
-  DATE = 3,
-  PREVIEW = 4,
+  PREVIEW = 3,
 }
 
 function CreateMarket() {
@@ -41,14 +39,6 @@ function CreateMarket() {
       lowerBound: { value: 0, token: "" },
       upperBound: { value: 0, token: "" },
       unit: "",
-    },
-  });
-  const localDate = useMemo(() => new Date(), []);
-  const utcDate = new Date(localDate.getTime() + localDate.getTimezoneOffset() * 60000 + 60000);
-  const useDateFormReturn = useForm<DateFormValues>({
-    mode: "all",
-    defaultValues: {
-      openingTime: utcDate.toString(),
     },
   });
 
@@ -124,15 +114,10 @@ function CreateMarket() {
             />
           )}
 
-          {activeStep === FormSteps.DATE && (
-            <DateForm useFormReturn={useDateFormReturn} goToPrevStep={goToPrevStep} goToNextStep={goToNextStep} />
-          )}
-
           {activeStep === FormSteps.PREVIEW && (
             <PreviewForm
               marketTypeValues={useMarketTypeFormReturn.getValues()}
               outcomesValues={useOutcomesFormReturn.getValues()}
-              dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}
               isFutarchyMarket={false}

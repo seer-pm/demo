@@ -13,7 +13,6 @@ import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { SupportedChain } from "@/lib/chains";
 import { isVerificationEnabled } from "@/lib/config";
 import { MARKET_CATEGORIES, MISC_CATEGORY } from "@/lib/create-market";
-import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { Market } from "@/lib/market";
 import { getMarketName, getOutcomes } from "@/lib/market";
@@ -26,13 +25,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, parseEther, zeroAddress, zeroHash } from "viem";
 import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
-import {
-  DateFormValues,
-  FormWithPrevStep,
-  MarketTypeFormValues,
-  OutcomesFormValues,
-  getImagesForVerification,
-} from ".";
+import { FormWithPrevStep, MarketTypeFormValues, OutcomesFormValues, getImagesForVerification } from ".";
 import { Alert } from "../Alert";
 import { DashedBox } from "../DashedBox";
 import Button from "../Form/Button";
@@ -45,7 +38,6 @@ import { VerificationForm } from "./VerificationForm";
 type FormStepPreview = {
   marketTypeValues: MarketTypeFormValues;
   outcomesValues: OutcomesFormValues;
-  dateValues: DateFormValues;
   chainId: SupportedChain;
 };
 
@@ -232,7 +224,6 @@ function ModalContentCreateMarket({
 export function PreviewForm({
   marketTypeValues,
   outcomesValues,
-  dateValues,
   goToPrevStep,
   chainId,
   isFutarchyMarket,
@@ -300,7 +291,7 @@ export function PreviewForm({
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
-  const openingTime = Math.round(utcToLocalTime(dateValues.openingTime).getTime() / 1000);
+  const openingTime = Math.round(Date.now() / 1000 - 1);
 
   const createMarketHandler = async () => {
     await createMarket.mutateAsync({

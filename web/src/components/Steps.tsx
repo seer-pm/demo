@@ -1,7 +1,7 @@
 import clsx from "clsx";
 
 export function Steps({ activeStep }: { activeStep: number }) {
-  const stepsCount = 3;
+  const stepsCount = 2;
   const steps = [...Array(stepsCount).keys()].map((n) => n + 1);
   return (
     <ul className="steps steps-horizontal mb-[48px]">
