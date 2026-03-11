@@ -236,6 +236,16 @@ export default function Header() {
                     <GlobeIcon /> <span>Deepfunding</span>
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to={paths.foresight()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
+                  >
+                    <GlobeIcon /> <span>Foresight</span>
+                  </Link>
+                </li>
               </ul>
             </div>
           </li>
@@ -284,6 +294,14 @@ export default function Header() {
                     className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
                     Market Collections
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={paths.tradeCollateral()}
+                    className="whitespace-nowrap flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
+                  >
+                    Trade Collateral
                   </Link>
                 </li>
               </ul>
@@ -493,6 +511,16 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     <GlobeIcon /> <span className="hover:font-semibold">Deepfunding</span>
                   </a>
                 </li>
+                <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
+                  <a
+                    href={paths.foresight()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 whitespace-nowrap"
+                  >
+                    <GlobeIcon /> <span className="hover:font-semibold">Foresight</span>
+                  </a>
+                </li>
               </ul>
             </div>
           </li>
@@ -509,6 +537,11 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
           <li>
             <Link to={"/collections/default"} className="hover:font-semibold">
               Market Collections
+            </Link>
+          </li>
+          <li>
+            <Link to={paths.tradeCollateral()} className="hover:font-semibold">
+              Trade Collateral
             </Link>
           </li>
         </ul>

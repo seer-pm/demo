@@ -3,6 +3,7 @@ import type { FetchMarketParams, SerializedMarket } from "@seer-pm/sdk";
 import { serializeMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
+import { CORS_HEADERS } from "./utils/common";
 import { searchMarkets } from "./utils/markets";
 
 async function multiChainSearch(
@@ -25,7 +26,7 @@ async function multiChainSearch(
     orderBy,
     orderDirection,
     marketIds,
-    limit = 1000,
+    limit = 100,
     page = 1,
   } = body;
 
@@ -65,6 +66,13 @@ async function multiChainSearch(
 }
 
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+
   const body = await req.json();
 
   if (!body) {
@@ -72,6 +80,7 @@ export default async (req: Request) => {
       status: 400,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -85,6 +94,7 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   } catch (e) {
@@ -93,6 +103,7 @@ export default async (req: Request) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }

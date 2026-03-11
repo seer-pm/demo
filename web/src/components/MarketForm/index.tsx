@@ -68,7 +68,3 @@ export type OutcomesFormValues = {
   unit: string; // for scalar markets
   isArbitraryQuestion?: boolean; // for futarchy markets
 };
-
-export type DateFormValues = {
-  openingTime: string;
-};

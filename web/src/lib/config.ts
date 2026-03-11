@@ -30,6 +30,12 @@ export const SWAPR_CONFIG: Partial<
   },
 };
 
+/** PSM3 contract for sUSDS <-> USDC/USDS on Optimism and Base */
+export const PSM3_ADDRESS: Partial<Record<SupportedChain, Address>> = {
+  [optimism.id]: "0xe0F9978b907853F354d79188A3dEfbD41978af62",
+  [base.id]: "0x1601843c5E9bC251A3272907010AFa41Fa18347E",
+};
+
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
   return BIG_NUMBERS_CONFIG[configKey][chainId || DEFAULT_CHAIN];
 };

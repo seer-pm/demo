@@ -1,6 +1,5 @@
 import { Alert } from "@/components/Alert";
-import { DateFormValues, MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
-import { DateForm } from "@/components/MarketForm/DateForm";
+import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
@@ -16,8 +15,7 @@ import { useAccount } from "wagmi";
 
 enum FormSteps {
   OUTCOMES = 1,
-  DATE = 2,
-  PREVIEW = 3,
+  PREVIEW = 2,
 }
 
 function getOutcomes(tokensInfo: GetTokenResult[] | undefined): OutcomesFormValues["outcomes"] {
@@ -58,13 +56,6 @@ function CreateProposal() {
 
   const outcomes = getOutcomes(tokensInfo);
 
-  const useDateFormReturn = useForm<DateFormValues>({
-    mode: "all",
-    defaultValues: {
-      openingTime: "",
-    },
-  });
-
   const goToPrevStep = () => {
     if (activeStep > 1) {
       setActiveStep(activeStep - 1);
@@ -102,15 +93,10 @@ function CreateProposal() {
             />
           )}
 
-          {activeStep === FormSteps.DATE && (
-            <DateForm useFormReturn={useDateFormReturn} goToPrevStep={goToPrevStep} goToNextStep={goToNextStep} />
-          )}
-
           {activeStep === FormSteps.PREVIEW && (
             <PreviewForm
               marketTypeValues={marketTypeValues}
               outcomesValues={{ ...useOutcomesFormReturn.getValues(), outcomes }}
-              dateValues={useDateFormReturn.getValues()}
               chainId={chainId as SupportedChain}
               goToPrevStep={goToPrevStep}
               isFutarchyMarket={true}

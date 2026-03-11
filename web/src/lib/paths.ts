@@ -29,6 +29,7 @@ export const paths = {
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   collection: (collectionId: string) => `/collections/${collectionId}`,
+  tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
     `https://resolve.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
   farmingProgram: () => "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",
@@ -91,6 +92,7 @@ export const paths = {
   },
   futarchy: () => "https://app.futarchy.fi/",
   deepfund: () => "https://deep.seer.pm/",
+  foresight: () => "https://foresight.kleros.io/",
   chainImage: (chainId: number) => {
     const chainImages: Record<number, string> = {
       100: "https://assets.coingecko.com/asset_platforms/images/11062/small/Aatar_green_white.png", // Gnosis
