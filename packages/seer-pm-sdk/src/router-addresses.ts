@@ -6,7 +6,7 @@ import {
   gnosisRouterAddress,
   mainnetRouterAddress,
   routerAddress,
-} from "../generated/generated-router";
+} from "../generated/contracts/router";
 
 /** Minimal market shape needed for router resolution. */
 export interface MarketLike {

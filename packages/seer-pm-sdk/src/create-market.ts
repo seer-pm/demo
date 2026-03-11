@@ -5,7 +5,7 @@ import {
   futarchyFactoryAddress,
   marketFactoryAbi,
   marketFactoryAddress,
-} from "../generated/generated-market-factory";
+} from "../generated/contracts/market-factory";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
 import { escapeJson } from "./reality";

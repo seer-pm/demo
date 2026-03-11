@@ -1,8 +1,8 @@
 import { PoolInfo, getPools } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
-import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+import { GetTicksQuery, OrderDirection, Tick_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import type { Config } from "@wagmi/core";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";

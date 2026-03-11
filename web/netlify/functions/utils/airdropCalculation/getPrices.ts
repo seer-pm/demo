@@ -2,7 +2,7 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import { getToken0Token1 } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import { GetPoolHourDatasQuery } from "@seer-pm/sdk/swapr";
+import { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import { Address } from "viem";
 import { getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
 

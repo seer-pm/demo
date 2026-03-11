@@ -6,8 +6,8 @@ import { isTwoStringsEqual } from "@/lib/utils.ts";
 import type { Market, Token0Token1 } from "@seer-pm/sdk";
 import { getMarketPoolsPairs, getTokensPairKey } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import pLimit from "p-limit";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./subgraph.ts";
 

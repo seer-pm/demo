@@ -12,8 +12,8 @@ import {
   OrderDirection,
   Pool_OrderBy as SwaprPool_OrderBy,
   getSdk as getSwaprSdk,
-} from "@seer-pm/sdk/swapr";
-import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+} from "@seer-pm/sdk/subgraph/swapr";
+import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { useQuery } from "@tanstack/react-query";
 import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
 import { type Config, getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";

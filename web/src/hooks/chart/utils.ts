@@ -2,8 +2,13 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { getMarketEstimate, normalizeOdds } from "@seer-pm/sdk";
-import { GetPoolHourDatasQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+import {
+  GetPoolHourDatasQuery,
+  Mint_OrderBy,
+  OrderDirection,
+  getSdk as getSwaprSdk,
+} from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { subDays } from "date-fns";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";

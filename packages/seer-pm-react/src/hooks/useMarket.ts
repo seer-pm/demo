@@ -1,4 +1,4 @@
-import type { Market, MarketOffChainFields, SupportedChain } from "@seer-pm/sdk";
+import type { Market, SupportedChain } from "@seer-pm/sdk";
 import { fetchMarket, mapOnChainMarket } from "@seer-pm/sdk";
 import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { readMarketViewGetMarket } from "@seer-pm/sdk/contracts/market-view";

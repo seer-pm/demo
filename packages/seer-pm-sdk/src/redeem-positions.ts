@@ -6,7 +6,7 @@ import {
   gnosisRouterAbi,
   mainnetRouterAbi,
   routerAbi,
-} from "../generated/generated-router";
+} from "../generated/contracts/router";
 import { COLLATERAL_TOKENS } from "./collateral";
 import type { Execution } from "./execution";
 import { CHAIN_ROUTERS, type MarketLike, getRedeemRouter } from "./router-addresses";

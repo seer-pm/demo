@@ -1,6 +1,6 @@
 import { encodeFunctionData } from "viem";
 import type { Address } from "viem";
-import { marketAbi } from "../generated/generated-market-factory";
+import { marketAbi } from "../generated/contracts/market-factory";
 import type { Execution } from "./execution";
 
 /**

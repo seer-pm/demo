@@ -3,17 +3,20 @@ import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { getConfigNumber } from "@/lib/config";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
+import { config } from "@/wagmi";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import {
   FormEventOutcomeValue,
+  Market,
+  MarketStatus,
+  Question,
   formatOutcome,
   getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
-} from "@/lib/reality";
-import { config } from "@/wagmi";
-import { valibotResolver } from "@hookform/resolvers/valibot";
-import { Market, MarketStatus, Question } from "@seer-pm/sdk";
+} from "@seer-pm/sdk";
 import {
   ANSWERED_TOO_SOON,
   INVALID_RESULT,
@@ -93,7 +96,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const { address, chainId: connectedChainId, chain } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
-  const currentBond = getCurrentBond(question.bond, question.min_bond, market.chainId);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, getConfigNumber("MIN_BOND", market.chainId));
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationRequest } = useArbitrationRequest(question.id, market.chainId);

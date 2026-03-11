@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "prepare-dev": "yarn workspace @seer-pm/sdk generate && yarn workspace @seer-pm/sdk generate:gql",
     "dev": "yarn server:dev",
     "prod": "yarn build && yarn server:prod",
     "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
     "lint": "biome check --write ./src ./netlify ../packages",
     "generate": "yarn workspace @seer-pm/sdk build",
-    "server:dev": "node ./server",
+    "server:dev": "npx tsx server/index.js",
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
     "cosmos-export": "cosmos-export",
@@ -17,8 +18,6 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@seer-pm/sdk": "*",
-    "@seer-pm/react": "*",
     "@bigmi/react": "^0.6.0",
     "@biomejs/biome": "1.9.3",
     "@cyntler/react-doc-viewer": "^1.17.0",
@@ -36,6 +35,8 @@
     "@netlify/functions": "^2.8.2",
     "@orbisclub/components": "https://github.com/nvm1410/social-components#d1d5249080de9459c12f98c2be9fbc7984127885",
     "@orbisclub/orbis-sdk": "^0.4.89",
+    "@seer-pm/react": "*",
+    "@seer-pm/sdk": "*",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@supabase/supabase-js": "^2.46.2",
     "@tailwindcss/container-queries": "^0.1.1",

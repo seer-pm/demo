@@ -1,6 +1,7 @@
 export * from "./utils";
 export * from "./hooks/useComputedPoolAddresses";
 export * from "./hooks/useMarket";
+export * from "./hooks/useMarkets";
 export * from "./hooks/useMarketHasLiquidity";
 export * from "./hooks/useMarketOdds";
 export * from "./hooks/useMarketPools";
@@ -9,3 +10,8 @@ export * from "./hooks/useTokenInfo";
 export * from "./hooks/useTokenBalance";
 export * from "./hooks/useMissingApprovals";
 export * from "./hooks/useMissingTradeApproval";
+export * from "./hooks/useCheck7702Support";
+export * from "./hooks/useRedeemPositions";
+export * from "./hooks/useMergePositions";
+export * from "./hooks/useSplitPosition";
+export * from "./hooks/useApproveTokens";

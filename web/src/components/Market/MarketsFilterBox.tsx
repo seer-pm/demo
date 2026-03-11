@@ -11,7 +11,7 @@ import {
   QuestionIcon,
 } from "@/lib/icons";
 import { MarketStatus, VerificationStatus } from "@seer-pm/sdk";
-import { Market_OrderBy } from "@seer-pm/sdk/seer";
+import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";

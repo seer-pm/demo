@@ -86,7 +86,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
       amounts: parsedAmount,
       chainId: market.chainId,
     },
-    (/*receipt: TransactionReceipt*/) => {
+    () => {
       reset();
     },
   );

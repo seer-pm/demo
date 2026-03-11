@@ -1,4 +1,4 @@
-import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@seer-pm/sdk/swapr";
+import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import { Pool } from "./fetchPools.ts";

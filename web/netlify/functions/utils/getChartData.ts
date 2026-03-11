@@ -11,13 +11,13 @@ import {
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
-} from "@seer-pm/sdk/swapr";
-import { getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
+} from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import {
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
-} from "@seer-pm/sdk/uniswap";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+} from "@seer-pm/sdk/subgraph/uniswap";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { TickMath } from "@uniswap/v3-sdk";
 import combineQuery from "graphql-combine-query";
 import { gnosis } from "viem/chains";

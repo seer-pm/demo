@@ -1,6 +1,6 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { FetchMarketParams, MarketStatus, VerificationStatus } from "@seer-pm/sdk";
-import { Market_OrderBy } from "@seer-pm/sdk/seer";
+import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();

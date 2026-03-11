@@ -12,10 +12,10 @@ import { useGetCollections } from "@/hooks/collections/useGetCollections";
 import { useUpdateCollection } from "@/hooks/collections/useUpdateCollection";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
-import { useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
+import { useMarkets } from "@seer-pm/react";
 
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { EditIcon, PlusCircleIcon } from "@/lib/icons";

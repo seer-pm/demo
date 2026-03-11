@@ -37,7 +37,7 @@ const schemasAndDocuments = [
 
 const generates = schemasAndDocuments.reduce(
   (acum, curr) => {
-    acum[`src/subgraph/generated/gql-generated-${curr.type}.ts`] = {
+    acum[`generated/subgraph/${curr.type}.ts`] = {
       schema: curr.schema,
       documents: curr.documents,
       plugins: ["typescript", "typescript-operations", "typescript-graphql-request"],

@@ -60,10 +60,27 @@ export {
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   displayScalarBound,
+  encodeOutcomes,
+  encodeQuestionText,
+  decodeQuestion,
+  decodeOutcomes,
   escapeJson,
+  formatOutcome,
+  getAnswerText,
+  getAnswerTextFromMarket,
+  getCurrentBond,
+  getMultiSelectAnswers,
+  getQuestionStatus,
+  getRealityLink,
+  isFinalized,
+  isQuestionOpen,
+  isQuestionUnanswered,
+  isQuestionInDispute,
+  isQuestionPending,
   isScalarBoundInWei,
   unescapeJson,
 } from "./reality";
+export type { FormEventOutcomeValue, Outcome } from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
 export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
 export type { MarketLike, RouterAddressMap, RouterTypes } from "./router-addresses";
@@ -134,7 +151,7 @@ export type {
   GetTradeApprovals7702Params,
 } from "./execute-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
-export { marketAbi } from "../generated/generated-market-factory";
+export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";
 export { isOpStack } from "./chains";
 export { getTokenSwapResult, getTokenPriceFromSwap, getTokenPrice } from "./token-price";
@@ -147,6 +164,15 @@ export {
 } from "./market-odds";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
 export { isSeerCredits } from "./seer-credits";
+
+// Transaction notification abstractions (UI-agnostic)
+export type {
+  TxNotificationMessage,
+  TxNotificationConfig,
+  TxNotificationResult,
+  TxNotifierFn,
+  TxBatchNotifierFn,
+} from "./tx-notifier";
 
 // Markets fetch (search + get by id/slug)
 export {

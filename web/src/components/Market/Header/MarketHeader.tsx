@@ -20,7 +20,6 @@ import {
 } from "@/lib/icons";
 import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { getQuestionStatus } from "@/lib/reality.ts";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useTokenInfo } from "@seer-pm/react";
 import { useMarket } from "@seer-pm/react";
@@ -32,6 +31,7 @@ import {
   getCollateralByIndex,
   getMarketPoolsPairs,
   getMarketType,
+  getQuestionStatus,
 } from "@seer-pm/sdk";
 import { displayScalarBound } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";

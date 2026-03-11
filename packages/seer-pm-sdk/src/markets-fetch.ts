@@ -1,8 +1,8 @@
 import { Address, isAddress } from "viem";
+import type { Market_OrderBy } from "../generated/subgraph/seer";
 import type { Market, MarketStatus, SerializedMarket, VerificationStatus } from "./market-types";
 import { deserializeMarket } from "./market-types";
 import { getApiHost } from "./subgraph/app-subgraph";
-import type { Market_OrderBy } from "./subgraph/generated/gql-generated-seer";
 
 export type FetchMarketParams = {
   chainsList?: Array<string | "all">;

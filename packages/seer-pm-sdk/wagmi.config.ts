@@ -76,7 +76,7 @@ const getConfig = async (): Promise<Config[]> => {
   };
 
   return Object.entries(contractsMapping).map(([key, contractNames]) => ({
-    out: `generated/generated-${key}.ts`,
+    out: `generated/contracts/${key}.ts`,
     contracts: allContracts.filter((contract) => contractNames.includes(contract.name)),
     plugins: [react(), actions()],
   }));

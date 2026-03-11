@@ -1,11 +1,10 @@
 import type { Address } from "viem";
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "../../generated/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "../../generated/subgraph/uniswap";
 import type { Token } from "../collateral";
 import { tickToPrice } from "../liquidity-utils";
 import { getToken0Token1 } from "../market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./app-subgraph";
-import { getSdk as getSwaprSdk } from "./generated/gql-generated-swapr";
-import { OrderDirection, Pool_OrderBy } from "./generated/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "./generated/gql-generated-uniswap";
 import { CHAIN_IDS } from "./subgraph-endpoints";
 
 export async function getTokenPriceFromSubgraph(

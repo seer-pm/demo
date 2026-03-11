@@ -4,7 +4,7 @@ import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@s
 import { unescapeJson } from "@seer-pm/sdk";
 import { graphQLClient } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
-import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/seer";
+import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";

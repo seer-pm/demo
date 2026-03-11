@@ -1,9 +1,8 @@
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { getUseGraphMarketsKey, useGraphMarketsQueryFn } from "@/hooks/useMarkets";
 import { formatDate } from "@/lib/date";
 import { getAppUrl } from "@/lib/utils";
-import { getUseGraphMarketKey } from "@seer-pm/react";
+import { getUseGraphMarketKey, getUseGraphMarketsKey } from "@seer-pm/react";
 import { fetchMarkets } from "@seer-pm/sdk";
 import { unescapeJson } from "@seer-pm/sdk";
 import { QueryClient, dehydrate } from "@tanstack/react-query";
@@ -93,7 +92,7 @@ export default async function onBeforePrerenderStart() {
       page: 1,
     };
 
-    const homeMarketsResult = await useGraphMarketsQueryFn(homeParams);
+    const homeMarketsResult = await fetchMarkets(homeParams);
     const homeMarkets = homeMarketsResult.markets;
     const homeMarketsConfig: QueryClientConfig[] = homeMarkets
       .filter((market) => market.url)

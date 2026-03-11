@@ -1,6 +1,6 @@
 import { encodeFunctionData } from "viem";
 import type { Address } from "viem";
-import { futarchyRouterAbi, gnosisRouterAbi, mainnetRouterAbi, routerAbi } from "../generated/generated-router";
+import { futarchyRouterAbi, gnosisRouterAbi, mainnetRouterAbi, routerAbi } from "../generated/contracts/router";
 import type { Execution } from "./execution";
 import { CHAIN_ROUTERS, type MarketLike } from "./router-addresses";
 

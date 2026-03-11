@@ -1,6 +1,6 @@
 import type { Config } from "@wagmi/core";
-import { marketFactoryAddress } from "../generated/generated-market-factory";
-import { readMarketViewGetMarkets } from "../generated/generated-market-view";
+import { marketFactoryAddress } from "../generated/contracts/market-factory";
+import { readMarketViewGetMarkets } from "../generated/contracts/market-view";
 import type { SupportedChain } from "./chains";
 import type { Market } from "./market-types";
 import { mapOnChainMarket } from "./on-chain-market";

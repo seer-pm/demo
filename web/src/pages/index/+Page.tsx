@@ -4,10 +4,10 @@ import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { UseMarketsProps, getUseGraphMarketsKey, useGraphMarketsQueryFn, useMarkets } from "@/hooks/useMarkets";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { getAppUrl } from "@/lib/utils";
+import { UseMarketsProps, getUseGraphMarketsKey, useGraphMarketsQueryFn, useMarkets } from "@seer-pm/react";
 import { FetchMarketParams, Market } from "@seer-pm/sdk";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -85,7 +85,7 @@ async function preLoadNextPage(params: UseMarketsProps, queryClient: QueryClient
       // Prefetch next page data
       await queryClient.prefetchQuery({
         queryKey,
-        queryFn: () => useGraphMarketsQueryFn(nextPageParams),
+        queryFn: () => useGraphMarketsQueryFn(queryClient, nextPageParams),
       });
     }
   } catch (error) {

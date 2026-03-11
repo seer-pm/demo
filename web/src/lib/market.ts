@@ -8,18 +8,15 @@ import {
   type SerializedMarket,
   getMarketType,
 } from "@seer-pm/sdk";
-import type { Address } from "viem";
 import {
   decodeQuestion,
   isQuestionInDispute,
   isQuestionOpen,
   isQuestionPending,
   isQuestionUnanswered,
-} from "./reality";
+} from "@seer-pm/sdk";
+import type { Address } from "viem";
 import { isUndefined } from "./utils";
-
-/** MarketsResult with Market[] = Market<SupportedChain>[] (web-specific). */
-export type MarketsResult = { markets: Market[]; count: number; pages: number };
 
 export const getMarketStatus = (market: Market) => {
   if (!hasOpenQuestions(market!)) {

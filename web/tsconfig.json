@@ -23,8 +23,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@seer-pm/sdk/*": ["../packages/seer-pm-sdk/dist/*"],
-      "@seer-pm/react/*": ["../packages/seer-pm-react/dist/*"],
+      "@seer-pm/sdk": ["../packages/seer-pm-sdk/src/index.ts"],
+      "@seer-pm/react": ["../packages/seer-pm-react/src/index.ts"],
     },
 
     "types": ["vitest/globals"]

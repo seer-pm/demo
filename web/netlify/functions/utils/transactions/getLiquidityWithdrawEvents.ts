@@ -5,8 +5,8 @@ import { getCollateralFromDexTx } from "@/lib/market";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
-import { Burn_OrderBy, GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/uniswap";
+import { Burn_OrderBy, GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { Address, parseUnits } from "viem";
 
 async function fetchBurnsFromSubgraph(

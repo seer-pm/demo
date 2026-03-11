@@ -70,7 +70,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
       amounts: parsedAmount,
       chainId: market.chainId,
     },
-    (/*receipt: TransactionReceipt*/) => {
+    () => {
       reset();
     },
   );

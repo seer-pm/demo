@@ -16,7 +16,7 @@ import { Contract, providers } from "ethers";
 import type { Signer } from "ethers";
 import type { Address, Hex } from "viem";
 import { decodeFunctionData, encodeFunctionData, parseUnits, zeroAddress } from "viem";
-import { creditsManagerAbi, creditsManagerAddress } from "../generated/generated-trading-credits";
+import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
 import { NATIVE_TOKEN } from "./collateral";
 import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI, UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
 import type { Execution } from "./execution";
@@ -84,7 +84,7 @@ export interface GetTradeApprovals7702Params {
  * Build ERC20 approve calls for 7702 batch (no native token).
  */
 export function getTradeApprovals7702(params: GetTradeApprovals7702Params): Execution[] {
-  const { tokensAddresses, account, spender, amounts, chainId } = params;
+  const { tokensAddresses, spender, amounts, chainId } = params;
   const calls: Execution[] = [];
 
   if (!tokensAddresses.length) return calls;

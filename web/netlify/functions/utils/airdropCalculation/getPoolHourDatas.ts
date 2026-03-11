@@ -4,7 +4,7 @@ import { getToken0Token1, isOpStack } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { getSubgraphUrl } from "@seer-pm/sdk";
-import { GetPoolHourDatasQuery } from "@seer-pm/sdk/swapr";
+import { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import pLimit from "p-limit";
 import { Address } from "viem";
 import { START_TIME } from "./constants";

@@ -1,5 +1,5 @@
 import { base, optimism } from "viem/chains";
-import { marketFactoryAddress } from "../generated/generated-market-factory";
+import { marketFactoryAddress } from "../generated/contracts/market-factory";
 
 /** Chain IDs for which the protocol has a market factory (and thus markets). */
 export type SupportedChain = keyof typeof marketFactoryAddress;

@@ -1,5 +1,5 @@
-import { useMarkets } from "@/hooks/useMarkets";
 import { isUndefined } from "@/lib/utils";
+import { useMarkets } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { isOpStack } from "@seer-pm/sdk";
 import { Market, getTokensPairKey } from "@seer-pm/sdk";
