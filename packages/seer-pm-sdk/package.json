@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
@@ -36,9 +36,10 @@
   },
   "files": ["dist", "generated/contracts", "generated/subgraph", "abis", "queries", "README.md"],
   "scripts": {
-  "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean --external wagmi,@wagmi/core,react,react-dom,viem,@tanstack/react-query",
-  "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external wagmi,@wagmi/core,react,react-dom,viem,@tanstack/react-query",
-  "generate": "wagmi generate",
+  "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+  "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+  "generate": "yarn generate:hooks && yarn generate:gql",
+  "generate:hooks": "wagmi generate",
   "generate:gql": "graphql-codegen",
   "prepublishOnly": "yarn generate"
   },
@@ -51,9 +52,11 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/named-operations-object": "^3.0.0",
     "@graphql-codegen/typescript": "^4.0.0",
     "@graphql-codegen/typescript-graphql-request": "6.2.0",
     "@graphql-codegen/typescript-operations": "^4.2.0",
+    "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@wagmi/cli": "^2.1.22",
     "tsup": "^8.0.2",
     "typescript": "^5.2.2",

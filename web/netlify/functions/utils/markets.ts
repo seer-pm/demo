@@ -434,3 +434,11 @@ export function getMarketsMappings(markets: Market[]) {
     },
   );
 }
+
+export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+
+  return tokenIn.toLocaleLowerCase() === market.collateralToken1.toLocaleLowerCase() ? tokenIn : tokenOut;
+}

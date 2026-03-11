@@ -12,10 +12,28 @@ yarn add @seer-pm/sdk
 pnpm add @seer-pm/sdk
 ```
 
+### Peer dependencies
+
+This package expects the following peer dependencies in your project. Install them if they are not already present:
+
+| Package           | Version        |
+| ----------------- | -------------- |
+| `@wagmi/core`     | `>=2.0.0`      |
+| `graphql-request` | `>=5.0.0`      |
+| `graphql-tag`     | `>=2.0.0`      |
+| `viem`            | `>=2.0.0`      |
+| `wagmi`           | `^2.0.0` or `^3.0.0` |
+
+Example with npm:
+
+```bash
+npm install @seer-pm/sdk @wagmi/core graphql-request graphql-tag viem wagmi
+```
+
 ## Usage
 
 ```ts
-import { SDK_VERSION } from "@seer-pm/sdk";
+import type { Market } from "@seer-pm/sdk";
 ```
 
 See the [integration docs](https://github.com/seer-pm/demo/tree/main/integration-docs) for full flows (create market, resolve, trading, API).

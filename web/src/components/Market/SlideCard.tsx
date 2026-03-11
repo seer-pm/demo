@@ -11,15 +11,20 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { formatBigNumbers, isUndefined } from "@/lib/utils";
-import { useMarket } from "@seer-pm/react";
-import { useMarketOdds } from "@seer-pm/react";
-import { Market, MarketStatus, MarketTypes, getMarketType, isOdd } from "@seer-pm/sdk";
-import { displayScalarBound } from "@seer-pm/sdk";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
-import { getMarketEstimate } from "@seer-pm/sdk";
+import { useMarket, useMarketOdds } from "@seer-pm/react";
+import {
+  INVALID_RESULT_OUTCOME_TEXT,
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getMarketEstimate,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+} from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "../Link";

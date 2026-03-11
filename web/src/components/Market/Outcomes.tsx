@@ -6,11 +6,8 @@ import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
-import { useTokenBalances } from "@seer-pm/react";
-import { useTokensInfo } from "@seer-pm/react";
 import {
   NftPosition,
   PoolInfo,
@@ -18,18 +15,21 @@ import {
   useMarketPools,
   useNftPositions,
   usePoolsDeposits,
+  useTokenBalances,
+  useTokensInfo,
 } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import {
   Market,
   MarketStatus,
   MarketTypes,
+  displayScalarBound,
+  getMarketStatus,
   getMarketType,
   getMultiScalarEstimate,
   isInvalidOutcome,
   isOdd,
 } from "@seer-pm/sdk";
-import { displayScalarBound } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";

@@ -12,15 +12,19 @@ import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { getMarketStatus, isMarketReliable } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { useTokenInfo, useTokensInfo } from "@seer-pm/react";
-import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@seer-pm/react";
-import { useMarketHasLiquidity } from "@seer-pm/react";
+import {
+  getUseGraphMarketKey,
+  useMarket,
+  useMarketHasLiquidity,
+  useMarketQuestions,
+  useTokenInfo,
+  useTokensInfo,
+} from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { Market, MarketStatus, getLiquidityPairForToken } from "@seer-pm/sdk";
+import { Market, MarketStatus, getLiquidityPairForToken, getMarketStatus, isMarketReliable } from "@seer-pm/sdk";
 import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";

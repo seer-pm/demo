@@ -97,7 +97,7 @@ export const useMarkets = ({
   disabled,
   limit,
   page,
-}: UseMarketsProps) => {
+}: UseMarketsProps = {}) => {
   const queryClient = useQueryClient();
 
   const chainIds = (

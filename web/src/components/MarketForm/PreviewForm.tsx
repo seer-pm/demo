@@ -10,22 +10,23 @@ import { useVerifyMarket } from "@/hooks/useVerifyMarket";
 import { isVerificationEnabled } from "@/lib/config";
 import { utcToLocalTime } from "@/lib/date";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
-import { getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { getUseGraphMarketKey, useMarket } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { Market, MarketTypes } from "@seer-pm/sdk";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import {
+  INVALID_RESULT_OUTCOME_TEXT,
   MARKET_CATEGORIES,
   MISC_CATEGORY,
+  Market,
+  MarketTypes,
   getMarketName,
   getNewMarketFromLogs,
   getNewProposalFromLogs,
   getOutcomes,
   getProposalName,
+  getTemplateByMarketType,
 } from "@seer-pm/sdk";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";

@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "React hooks for the Seer prediction market protocol",
   "license": "MIT",
   "author": "Seer",
@@ -21,8 +21,8 @@
   },
   "files": ["dist", "README.md"],
   "scripts": {
-  "build": "tsup src/index.ts --format cjs,esm --dts --clean --external js-sha3,wagmi,react,react-dom,viem,@tanstack/react-query",
-  "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external js-sha3,wagmi,react,react-dom,viem,@tanstack/react-query"
+  "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+  "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
   },
   "peerDependencies": {
     "@seer-pm/sdk": "0.0.1",

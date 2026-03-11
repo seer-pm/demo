@@ -1,9 +1,6 @@
 /**
  * @seer-pm/sdk – SDK for the Seer prediction market protocol
  */
-
-export const SDK_VERSION = "0.0.1";
-
 export type { Execution } from "./execution";
 export type {
   Question,
@@ -32,11 +29,19 @@ export {
   INVALID_RESULT_OUTCOME_TEXT,
   MarketTypes,
   getMarketName,
+  getMarketStatus,
   getOutcomes,
   getQuestionParts,
   getMarketUnit,
   getMarketType,
   hasOutcomes,
+  hasOpenQuestions,
+  hasAllUnansweredQuestions,
+  isInDispute,
+  isWaitingResults,
+  getClosingTime,
+  getTemplateByMarketType,
+  isMarketReliable,
   isInvalidOutcome,
   getMultiScalarEstimate,
   getRedeemedPrice,

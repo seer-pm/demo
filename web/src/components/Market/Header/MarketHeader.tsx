@@ -18,25 +18,23 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
-import { useTokenInfo } from "@seer-pm/react";
-import { useMarket } from "@seer-pm/react";
-import { useMarketHasLiquidity, useMarketOdds } from "@seer-pm/react";
+import { useMarket, useMarketHasLiquidity, useMarketOdds, useTokenInfo } from "@seer-pm/react";
 import {
+  COLLATERAL_TOKENS,
+  INVALID_RESULT_OUTCOME_TEXT,
   Market,
   MarketStatus,
   MarketTypes,
+  displayScalarBound,
   getCollateralByIndex,
+  getMarketEstimate,
   getMarketPoolsPairs,
+  getMarketStatus,
   getMarketType,
   getQuestionStatus,
 } from "@seer-pm/sdk";
-import { displayScalarBound } from "@seer-pm/sdk";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
-import { getMarketEstimate } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { formatUnits } from "viem";

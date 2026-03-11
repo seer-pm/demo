@@ -12,16 +12,23 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
-import { useTokenInfo } from "@seer-pm/react";
-import { useMarket } from "@seer-pm/react";
-import { Market, MarketStatus, MarketTypes, getAnswerTextFromMarket, getMarketType, isOdd } from "@seer-pm/sdk";
-import { displayScalarBound } from "@seer-pm/sdk";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
-import { getMarketEstimate, rescaleOdds } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { useMarket, useTokenInfo } from "@seer-pm/react";
+import {
+  COLLATERAL_TOKENS,
+  INVALID_RESULT_OUTCOME_TEXT,
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getAnswerTextFromMarket,
+  getMarketEstimate,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+  rescaleOdds,
+} from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
