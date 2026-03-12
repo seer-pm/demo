@@ -1,4 +1,4 @@
-import { useTrade } from "@/hooks/trade";
+import { useTrade } from "@/hooks/trade/useTrade";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 

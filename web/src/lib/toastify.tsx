@@ -1,5 +1,5 @@
 import { config as wagmiConfig } from "@/wagmi";
-import type { TxBatchNotifierFn, TxNotificationConfig, TxNotifierFn } from "@seer-pm/sdk";
+import type { NotifierFn, TxBatchNotifierFn, TxNotificationConfig, TxNotifierFn } from "@seer-pm/sdk";
 import {
   ConnectorNotConnectedError,
   getTransactionReceipt,
@@ -28,21 +28,9 @@ export const DEFAULT_TOAST_OPTIONS = {
   theme: "light" as Theme,
 };
 
-type ToastifyReturn<T> =
-  | {
-      status: true;
-      data: T;
-    }
-  | {
-      status: false;
-      error: Error;
-    };
-
 type ToastifyConfig = TxNotificationConfig & {
   options?: ToastOptions;
 };
-
-type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Promise<ToastifyReturn<T>>;
 
 interface ToastContentType {
   title: string;
@@ -77,8 +65,7 @@ export function toastError({ title, subtitle = "", options }: ToastContentType) 
   });
 }
 
-// biome-ignore lint/suspicious/noExplicitAny:
-export const toastify: ToastifyFn<any> = async (execute, config) => {
+export const toastify: NotifierFn = async (execute, config) => {
   toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
 
   try {

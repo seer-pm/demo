@@ -178,6 +178,7 @@ export type {
   TxNotifierFn,
   TxBatchNotifierFn,
 } from "./tx-notifier";
+export type { NotifierFn, NotifierResult } from "./notifier";
 
 // Markets fetch (search + get by id/slug)
 export {

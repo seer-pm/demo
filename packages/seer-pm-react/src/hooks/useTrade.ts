@@ -1,30 +1,27 @@
-import { createCowOrder } from "@/hooks/trade/executeCowTrade";
-import { queryClient } from "@/lib/query-client";
-import { toastify, toastifyTx } from "@/lib/toastify";
-import { config } from "@/wagmi";
-import { useMissingTradeApproval } from "@seer-pm/react";
 import {
   CoWTrade,
+  type NotifierFn,
   SwaprV3Trade,
   Trade,
+  type TxNotifierFn,
   UniswapTrade,
   buildTradeCalls7702,
   clientToSigner,
   tradeTokens as sdkTradeTokens,
 } from "@seer-pm/sdk";
-import { useMutation } from "@tanstack/react-query";
-import { getConnectorClient } from "@wagmi/core";
-import { sendCalls } from "@wagmi/core";
-import { Address, TransactionReceipt } from "viem";
-import { useCheck7702Support } from "../useCheck7702Support";
-import { useGlobalState } from "../useGlobalState";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Config } from "@wagmi/core";
+import { getConnectorClient, sendCalls } from "@wagmi/core";
+import type { Address, TransactionReceipt } from "viem";
+import { useConfig } from "wagmi";
+import { useMissingTradeApproval } from "./useMissingTradeApproval";
 
 const EMPTY_APPROVALS = {
   data: [],
   isLoading: false,
 };
 
-interface TradeTokensProps {
+export interface TradeTokensProps {
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
   account: Address;
   isBuyExactOutputNative: boolean;
@@ -32,7 +29,12 @@ interface TradeTokensProps {
   isSeerCredits: boolean;
 }
 
-async function tradeTokens(props: TradeTokensProps): Promise<string | TransactionReceipt> {
+async function tradeTokens(
+  props: TradeTokensProps,
+  config: Config,
+  orderNotifier: NotifierFn,
+  txNotifier: TxNotifierFn,
+): Promise<string | TransactionReceipt> {
   const adapters = {
     config,
     getSigner: async () => {
@@ -43,7 +45,7 @@ async function tradeTokens(props: TradeTokensProps): Promise<string | Transactio
   };
 
   if (props.trade instanceof CoWTrade) {
-    const result = await toastify(() => sdkTradeTokens(props, adapters), {
+    const result = await orderNotifier(() => sdkTradeTokens(props, adapters) as Promise<string>, {
       txSent: { title: "Confirm order..." },
       txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
     });
@@ -51,51 +53,27 @@ async function tradeTokens(props: TradeTokensProps): Promise<string | Transactio
     return result.data;
   }
 
-  const result = await toastifyTx(() => sdkTradeTokens(props, adapters) as Promise<`0x${string}`>, {
+  const result = await txNotifier(() => sdkTradeTokens(props, adapters) as Promise<`0x${string}`>, {
     txSent: { title: "Executing trade..." },
     txSuccess: { title: "Trade executed!" },
   });
   if (!result.status) throw result.error;
-  return result.receipt;
+  return result.receipt as TransactionReceipt;
 }
 
-function useTradeLegacy(
-  account: Address | undefined,
-  trade: Trade | undefined,
-  isSeerCredits: boolean,
-  onSuccess: () => unknown,
-) {
-  const { addPendingOrder } = useGlobalState();
-
-  const approvals = useMissingTradeApproval(account, trade);
-
-  return {
-    approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
-    tradeTokens: useMutation({
-      mutationFn: tradeTokens,
-      onSuccess: (result: string | TransactionReceipt) => {
-        if (typeof result === "string") {
-          addPendingOrder(result);
-          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
-        }
-        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        onSuccess();
-      },
-    }),
-  };
-}
-
-async function tradeTokens7702(props: TradeTokensProps): Promise<string | TransactionReceipt> {
+async function tradeTokens7702(
+  props: TradeTokensProps,
+  config: Config,
+  orderNotifier: NotifierFn,
+  txNotifier: TxNotifierFn,
+): Promise<string | TransactionReceipt> {
   if (props.trade instanceof CoWTrade) {
-    return tradeTokens(props);
+    return tradeTokens(props, config, orderNotifier, txNotifier);
   }
 
   const calls = await buildTradeCalls7702(props);
 
-  const result = await toastifyTx(
+  const result = await txNotifier(
     () =>
       sendCalls(config, {
         calls,
@@ -111,19 +89,29 @@ async function tradeTokens7702(props: TradeTokensProps): Promise<string | Transa
     throw result.error;
   }
 
-  return result.receipt;
+  return result.receipt as TransactionReceipt;
 }
 
-const useTrade7702 = (onSuccess: () => unknown) => {
-  const { addPendingOrder } = useGlobalState();
+function useTradeLegacy(
+  account: Address | undefined,
+  trade: Trade | undefined,
+  isSeerCredits: boolean,
+  onSuccess: () => unknown,
+  orderNotifier: NotifierFn,
+  txNotifier: TxNotifierFn,
+  onOrderPlaced?: (orderUid: string) => void,
+) {
+  const config = useConfig();
+  const queryClient = useQueryClient();
+  const approvals = useMissingTradeApproval(account, trade);
 
   return {
-    approvals: EMPTY_APPROVALS,
+    approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
     tradeTokens: useMutation({
-      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props),
+      mutationFn: (props: TradeTokensProps) => tradeTokens(props, config, orderNotifier, txNotifier),
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
-          addPendingOrder(result);
+          onOrderPlaced?.(result);
           queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
         }
         queryClient.invalidateQueries({ queryKey: ["useQuote"] });
@@ -134,31 +122,56 @@ const useTrade7702 = (onSuccess: () => unknown) => {
       },
     }),
   };
-};
+}
+
+function useTrade7702(
+  onSuccess: () => unknown,
+  orderNotifier: NotifierFn,
+  txNotifier: TxNotifierFn,
+  onOrderPlaced?: (orderUid: string) => void,
+) {
+  const config = useConfig();
+  const queryClient = useQueryClient();
+
+  return {
+    approvals: EMPTY_APPROVALS,
+    tradeTokens: useMutation({
+      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props, config, orderNotifier, txNotifier),
+      onSuccess: (result: string | TransactionReceipt) => {
+        if (typeof result === "string") {
+          onOrderPlaced?.(result);
+          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
+        }
+        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
+        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
+        onSuccess();
+      },
+    }),
+  };
+}
 
 export const useTrade = (
   account: Address | undefined,
   trade: Trade | undefined,
   isSeerCredits: boolean,
   onSuccess: () => unknown,
+  supports7702: boolean,
+  orderNotifier: NotifierFn,
+  txNotifier: TxNotifierFn,
+  onOrderPlaced?: (orderUid: string) => void,
 ) => {
-  const supports7702 = useCheck7702Support();
-  const trade7702 = useTrade7702(onSuccess);
-  const tradeLegacy = useTradeLegacy(account, trade, isSeerCredits, onSuccess);
+  const trade7702 = useTrade7702(onSuccess, orderNotifier, txNotifier, onOrderPlaced);
+  const tradeLegacy = useTradeLegacy(
+    account,
+    trade,
+    isSeerCredits,
+    onSuccess,
+    orderNotifier,
+    txNotifier,
+    onOrderPlaced,
+  );
 
   return supports7702 ? trade7702 : tradeLegacy;
 };
-
-export function useCowLimitOrder(onSuccess: () => unknown) {
-  const { addPendingOrder } = useGlobalState();
-  return useMutation({
-    mutationFn: createCowOrder,
-    onSuccess: (result: string) => {
-      addPendingOrder(result);
-      queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-      queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-      onSuccess();
-    },
-  });
-}

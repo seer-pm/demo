@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/react",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "React hooks for the Seer prediction market protocol",
   "license": "MIT",
   "author": "Seer",

@@ -12,6 +12,7 @@ export * from "./hooks/useMissingApprovals";
 export * from "./hooks/useMissingTradeApproval";
 export * from "./hooks/useCheck7702Support";
 export * from "./hooks/useRedeemPositions";
+export * from "./hooks/useTrade";
 export * from "./hooks/useMergePositions";
 export * from "./hooks/useSplitPosition";
 export * from "./hooks/useApproveTokens";
