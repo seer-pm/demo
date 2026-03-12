@@ -35,6 +35,7 @@ import {
   getMarketType,
   getQuestionStatus,
 } from "@seer-pm/sdk";
+import { MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { formatUnits } from "viem";
@@ -44,7 +45,7 @@ import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
+import { COLORS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;

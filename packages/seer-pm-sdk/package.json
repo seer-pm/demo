@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
@@ -40,8 +40,7 @@
   "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
   "generate": "yarn generate:hooks && yarn generate:gql",
   "generate:hooks": "wagmi generate",
-  "generate:gql": "graphql-codegen",
-  "prepublishOnly": "yarn generate"
+  "generate:gql": "graphql-codegen"
   },
   "peerDependencies": {
     "@wagmi/core": ">=2.0.0",

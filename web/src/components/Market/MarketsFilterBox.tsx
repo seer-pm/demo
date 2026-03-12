@@ -11,6 +11,7 @@ import {
   QuestionIcon,
 } from "@/lib/icons";
 import { MarketStatus, VerificationStatus } from "@seer-pm/sdk";
+import { STATUS_TEXTS } from "@seer-pm/sdk";
 import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 import clsx from "clsx";
 import { Fragment } from "react";
@@ -19,7 +20,6 @@ import Button from "../Form/Button";
 import FormError from "../Form/FormError";
 import Input from "../Form/Input";
 import Toggle from "../Form/Toggle";
-import { STATUS_TEXTS } from "./Header";
 
 const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },

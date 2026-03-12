@@ -46,6 +46,7 @@ export {
   getMultiScalarEstimate,
   getRedeemedPrice,
 } from "./market";
+export { STATUS_TEXTS, MARKET_TYPES_TEXTS, MARKET_TYPES_DESCRIPTION } from "./market-texts";
 export type { OnChainMarket } from "./on-chain-market";
 export { mapOnChainMarket } from "./on-chain-market";
 export {

@@ -29,6 +29,7 @@ import {
   isOdd,
   rescaleOdds,
 } from "@seer-pm/sdk";
+import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
@@ -36,7 +37,7 @@ import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
