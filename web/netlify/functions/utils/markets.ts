@@ -240,7 +240,10 @@ export async function searchMarkets({
   }
 
   if (marketIds?.length) {
-    query = query.in("id", marketIds);
+    query = query.in(
+      "id",
+      marketIds.map((id) => id.toLowerCase()),
+    );
   }
 
   if (process.env.VITE_IS_FAST_TESTNET) {
