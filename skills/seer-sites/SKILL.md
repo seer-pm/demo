@@ -138,7 +138,8 @@ Prefer composing screens from smaller components:
 This skill includes example React components in `skills/seer-sites/examples/` that demonstrate recommended integration patterns:
 
 - `MarketsPage.tsx` – high-level markets listing page.
-- `MarketDetailPage.tsx` – single market detail page with a trade form and outcomes list.
+- `MarketDetailPage.tsx` – single market detail page with an outcomes list and trade widget (`SwapWidget`).
+- `SwapWidget.tsx` – full-featured trade widget wired to Seer AMMs and notifiers.
 - `OutcomesList.tsx` – list outcomes on a market detail page: user balance per outcome, image and name, current odds, link to token contract in block explorer, and link to pool (or create pool).
 
 Use these examples as **primary reference** for:
@@ -176,6 +177,11 @@ When using `seer-sites`:
    - Avoid constructing arbitrary call data strings from user input.
    - Surface transaction details clearly before users confirm trades or market creation.
    - Follow the approval-then-trade pattern required by ERC-20 tokens.
+
+6. **Avoid imaginary providers or APIs**
+   - **Do NOT invent components like `SeerProvider`** – there is no provider exported from `@seer-pm/react`.
+   - Use your app's existing React/wagmi provider setup (for example, `WagmiConfig` / `Config` from `wagmi`) and then call Seer hooks (`useMarkets`, `useMarket`, `useCreateMarket`, `useTrade`, `useApproveTokens`, etc.) directly inside components.
+   - Before introducing any new Seer hook or helper, **check `@seer-pm/react` exports and the examples in `skills/seer-sites/examples/*.tsx`**; if it is not there, do not assume it exists.
 
 ---
 
