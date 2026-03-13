@@ -7,7 +7,7 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
-import { isVerificationEnabled } from "@/lib/config";
+import { getConfigNumber, isVerificationEnabled } from "@/lib/config";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
@@ -309,6 +309,7 @@ export function PreviewForm({
       category: MISC_CATEGORY,
       openingTime,
       chainId,
+      minBond: getConfigNumber("MIN_BOND", chainId),
     });
   };
 

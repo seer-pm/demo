@@ -1,13 +1,16 @@
-import { RouterAbi } from "@/abi/RouterAbi";
-import { generateWinningOutcomeIndexes } from "@/lib/conditional-tokens";
-import { config } from "@/wagmi";
-import { Market, getRedeemedPrice } from "@seer-pm/sdk";
+import type { Market } from "@seer-pm/sdk";
+import { generateWinningOutcomeIndexes, getRedeemedPrice } from "@seer-pm/sdk";
+import { routerAbi } from "@seer-pm/sdk/contracts/router";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { Address, formatUnits } from "viem";
-import { Position, useMarketPositions } from "./useMarketPositions";
+import type { Address } from "viem";
+import { formatUnits } from "viem";
+import { useConfig } from "wagmi";
+import type { Position } from "./useMarketPositions";
+import { useMarketPositions } from "./useMarketPositions";
 
 export const useWinningPositions = (account: Address | undefined, market: Market, router: Address) => {
+  const config = useConfig();
   const { data: positions = [] } = useMarketPositions(account, market);
 
   return useQuery<{ winningPositions: Position[]; winningOutcomeIndexes: bigint[] } | undefined, Error>({
@@ -15,7 +18,7 @@ export const useWinningPositions = (account: Address | undefined, market: Market
     queryKey: ["useWinningPositions", router, positions.map((x) => ({ ...x, balance: x.balance.toString() }))],
     queryFn: async () => {
       const winningOutcomes = await readContract(config, {
-        abi: RouterAbi,
+        abi: routerAbi,
         address: router!,
         functionName: "getWinningOutcomes",
         args: [market.conditionId],

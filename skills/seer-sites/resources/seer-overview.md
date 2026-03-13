@@ -23,6 +23,7 @@ Always prefer using SDK helpers over manually encoding contract calls.
 - **Collateral token** – ERC-20 token used to buy positions (e.g., stablecoin).
 - **Router / MarketFactory** – contracts that create markets and manage splitting, merging, and redeeming positions.
 - **AMM** – automated market maker (e.g., Swapr, Uniswap V3) that prices and trades outcome tokens.
+- **Conditional market** – a market that depends on a parent market resolving to a specific outcome. Use `market.parentMarket` (zero = root market) and `market.parentOutcome` (index of the parent outcome). For split/merge/redeem on a conditional market, the collateral token is the **parent’s outcome token** at that index, not the chain’s base collateral. Same hooks (`useSplitPosition`, `useMergePositions`, `useRedeemPositions`) apply; creation uses `CreateMarketProps` with `parentMarket` and `parentOutcome` set.
 
 Frontends usually do not call these contracts directly. Instead, they:
 
@@ -33,15 +34,9 @@ Frontends usually do not call these contracts directly. Instead, they:
 
 ## High-level flows
 
-### 1. Setup (clients and configuration)
+### 1. Setup
 
-Before calling Seer contracts or HTTP APIs, set up:
-
-- A **public client** and a **wallet client** (via viem).
-- Network / chain configuration supported by Seer.
-- Contract addresses (from SDK helpers or configuration).
-
-See: [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md).
+Install both SDKs (`@seer-pm/sdk` and `@seer-pm/react`). The project must use **wagmi** for chain and wallet (public + wallet clients) and satisfy the **peer dependencies** of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also requires `@seer-pm/sdk` and `@tanstack/react-query`; `@seer-pm/sdk` also requires `graphql-request` and `graphql-tag` for HTTP API usage. Contract addresses and supported networks are provided by the SDK.
 
 ### 2. Create a market
 
@@ -52,10 +47,8 @@ Steps:
    - Outcomes (e.g., YES, NO).
    - Bounds or scalar range (if applicable).
    - Collateral token, oracle, and resolution details.
-2. Use SDK helpers to create the market via `MarketFactory` / Router.
+2. Use `useCreateMarket` from `@seer-pm/react` (pass `txNotifier`, `isFutarchyMarket`, `onSuccess`; mutation accepts `CreateMarketProps`) to create the market via `MarketFactory` / Router.
 3. Optionally, seed liquidity in an AMM.
-
-See: [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md).
 
 ### 3. Trade / bet on outcomes
 
@@ -66,9 +59,7 @@ Steps:
    - Connected wallet.
    - Sufficient collateral balance.
    - Approved the collateral token for the Router or AMM.
-3. Use an SDK helper to execute the trade (buy/sell outcome tokens).
-
-See: [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md).
+3. Use `useQuoteTrade` for quotes and `useTrade` from `@seer-pm/react` to execute the trade (buy/sell outcome tokens).
 
 ### 4. Split, merge, redeem positions
 
@@ -78,9 +69,7 @@ After trading or receiving positions, users may:
 - **Merge** complementary outcomes back into collateral.
 - **Redeem** positions for collateral once a market is resolved.
 
-These flows are usually exposed as actions in a **market detail** page.
-
-See: [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
+These flows are usually exposed as actions in a **market detail** page. Use `useSplitPosition`, `useMergePositions`, and `useRedeemPositions` from `@seer-pm/react`.
 
 ### 5. Resolve a market
 
@@ -89,10 +78,7 @@ When the outcome is known:
 1. Authorized resolver submits the result on-chain.
 2. Users with winning positions redeem for collateral.
 
-See:
-
-- [3-resolve-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/3-resolve-market.md)
-- [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md)
+Use `useResolveMarket` from `@seer-pm/react` (pass `txNotifier`, optional `onSuccess`; mutation accepts `{ market }`). After resolution, users redeem via `useRedeemPositions` from `@seer-pm/react`.
 
 ---
 
@@ -103,7 +89,7 @@ See:
   - `useMarket` – single market details.
   - `useApproveTokens` – token approvals.
   - `useTrade` or equivalent – place trades.
-  - Additional hooks for create, resolve, and portfolio flows.
+  - `useCreateMarket`, `useResolveMarket`, and additional hooks for portfolio flows.
 
 - Build **pages** and **widgets** on top of these hooks:
   - Markets list page.

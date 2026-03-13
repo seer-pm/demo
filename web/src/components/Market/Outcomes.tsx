@@ -3,7 +3,7 @@ import { useModal } from "@/hooks/useModal";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
+import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -18,6 +18,7 @@ import {
   useTokenBalances,
   useTokensInfo,
 } from "@seer-pm/react";
+import { getLiquidityUrl, getLiquidityUrlByMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import {
   Market,

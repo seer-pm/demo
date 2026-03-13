@@ -1,9 +1,9 @@
 import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
-import { getPoolUrl } from "@/lib/config";
 import { BarChartIcon, DensitySmallIcon, SwapIcon } from "@/lib/icons";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
+import { getPoolExplorerUrl } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import { useState } from "react";
 import LiquidityBarChart from "./LiquidityBarChart";
@@ -37,7 +37,7 @@ function PoolTab({
         <div className="flex items-center gap-2">
           <p className="font-semibold text-[14px]">Pool Id:</p>
           <Link
-            to={getPoolUrl(market.chainId, poolId)}
+            to={getPoolExplorerUrl(market.chainId, poolId)}
             title={poolId}
             className="hover:underline text-purple-primary"
             target="_blank"

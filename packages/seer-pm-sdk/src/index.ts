@@ -46,6 +46,11 @@ export {
   getMultiScalarEstimate,
   getRedeemedPrice,
 } from "./market";
+export {
+  generateBasicPartition,
+  generateWinningOutcomeIndexes,
+  getPositionId,
+} from "./conditional-tokens";
 export { STATUS_TEXTS, MARKET_TYPES_TEXTS, MARKET_TYPES_DESCRIPTION } from "./market-texts";
 export type { OnChainMarket } from "./on-chain-market";
 export { mapOnChainMarket } from "./on-chain-market";
@@ -59,6 +64,13 @@ export {
   getTokensPairKey,
 } from "./market-pools";
 export type { Token0Token1 } from "./market-pools";
+export {
+  getBlockExplorerUrl,
+  getLiquidityUrl,
+  getLiquidityUrlByMarket,
+  getPoolExplorerUrl,
+  getTokenExplorerUrl,
+} from "./explorer-urls";
 export {
   ANSWERED_TOO_SOON,
   INVALID_RESULT,

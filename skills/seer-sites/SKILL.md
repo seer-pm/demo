@@ -43,10 +43,7 @@ Do **not** use this skill when:
 
 - **Frontend framework**: React + TypeScript.
 - **Routing**: Any (Next.js, React Router, etc.). Examples are framework-agnostic and focus on components/pages.
-- **Seer SDK packages**:
-  - `@seer-pm/sdk` – core integration (contracts + HTTP API).
-  - `@seer-pm/react` – hooks and React utilities around the core SDK.
-- **Chain + wallet setup**: viem public + wallet clients as described in Seer integration docs.
+- **Seer SDK packages**: Install both `@seer-pm/sdk` (core integration: contracts + HTTP API) and `@seer-pm/react` (hooks and React utilities). The project must use **wagmi** and satisfy the **peer dependencies** of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also needs `@seer-pm/sdk`, `@tanstack/react-query`; `@seer-pm/sdk` also needs `graphql-request` and `graphql-tag` for HTTP API usage.
 
 Whenever possible, follow the patterns from the official Seer integration docs instead of inventing new flows or parameters.
 
@@ -56,24 +53,47 @@ Whenever possible, follow the patterns from the official Seer integration docs i
 
 For any Seer-related behavior, refer to the **integration docs** hosted in the `seer-pm/demo` repository:
 
-| Goal | Document |
-|------|----------|
-| Overview & integration map | [0-intro.md](https://github.com/seer-pm/demo/raw/main/integration-docs/0-intro.md) |
-| viem + Seer setup (clients, chain) | [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md) |
-| Create a market | [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md) |
-| Resolve a market | [3-resolve-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/3-resolve-market.md) |
-| Split / merge / redeem positions | [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md) |
-| Conditional markets | [5-conditional-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/5-conditional-market.md) |
-| Futarchy markets | [6-futarchy-markets.md](https://github.com/seer-pm/demo/raw/main/integration-docs/6-futarchy-markets.md) |
-| Trading via AMMs | [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md) |
-| HTTP API (get market, search, portfolio, etc.) | [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) |
+| Goal | Document / API |
+|------|----------------|
+| Create a market | `useCreateMarket` from `@seer-pm/react` (pass `txNotifier`, `isFutarchyMarket`, `onSuccess`; mutation accepts `CreateMarketProps`) |
+| Resolve a market | `useResolveMarket` from `@seer-pm/react` (pass `txNotifier`, optional `onSuccess`; mutation accepts `ResolveMarketProps` with `market`) |
+| Split / merge / redeem positions | `useSplitPosition`, `useMergePositions`, and `useRedeemPositions` from `@seer-pm/react` |
+| Trading via AMMs | `useQuoteTrade` and `useTrade` from `@seer-pm/react` |
+| Block explorer / pool URLs | `getBlockExplorerUrl`, `getTokenExplorerUrl`, `getLiquidityUrlByMarket`, `getPoolExplorerUrl` from `@seer-pm/sdk` |
 
 Treat these documents as the **authoritative reference** for:
 
 - Contract addresses and networks (or how to derive them from the SDK).
 - Required parameters (bounds, oracle, question, outcomes, etc.).
-- How splitting/merging/redeeming positions works.
-- How trading works on AMMs (Swapr/Uniswap V3).
+- How split/merge/redeem work via `useSplitPosition`, `useMergePositions`, and `useRedeemPositions`.
+- How trading works via `useQuoteTrade` (quotes) and `useTrade` (execute) on AMMs (Swapr/Uniswap V3).
+
+---
+
+## Conditional markets
+
+A **conditional market** is a market that depends on a specific outcome of an existing **parent** market. The child question is only relevant if the parent resolves to that outcome (e.g. “Will X happen by 2026?” conditional on “Will X happen by 2025?” resolving to **Yes**).
+
+**Detecting and using parent data**
+
+- **`market.parentMarket`** – Address of the parent market contract. If it is the zero address, the market is a **root** (non-conditional) market; otherwise it is a conditional (child) market.
+- **`market.parentOutcome`** – Index of the parent outcome this market is conditional on (e.g. `0` = first outcome, often “Yes”). Only meaningful when `parentMarket` is not zero.
+
+**Creating a conditional market**
+
+Use the same flow as for root markets (`useCreateMarket` and `CreateMarketProps`), but set **`parentMarket`** to the parent market address and **`parentOutcome`** to the chosen parent outcome index. Use the zero address for `parentMarket` when creating a root market.
+
+**Split, merge, and redeem on conditional markets**
+
+The same hooks apply (`useSplitPosition`, `useMergePositions`, `useRedeemPositions`), but the **collateral token** for a conditional market is not the chain’s base collateral (e.g. sDAI). It is the **parent’s outcome token** for the outcome the child is conditional on. That token is the one at index `market.parentOutcome` in the parent market’s outcome tokens (e.g. `parentMarket.wrappedTokens[parentOutcome]` or the equivalent from the SDK). So for a child market you pass that parent outcome token as the collateral when calling split/merge/redeem.
+
+**After resolution**
+
+Redeeming winning positions on a **resolved conditional** market returns **parent outcome tokens**, not base collateral. To show or offer “redeem to base collateral” in one step when the parent is a root and already resolved, the SDK or contracts may expose a helper (e.g. ConditionalRouter); otherwise the user redeems the child and then redeems the parent separately.
+
+**Nested conditionals**
+
+Markets can be conditional on other conditional markets. The rule is the same at each level: the “collateral” for a child is always the parent’s wrapped outcome token for the outcome the child depends on. If the parent resolves to a different outcome, that child branch has no redeemable value.
 
 ---
 
@@ -96,11 +116,11 @@ When generating sites or components, prioritize these high-level flows:
 
 3. **Create market flow**
    - Form to define question, outcomes, collateral token, bounds, and other Seer-specific parameters.
-   - Call SDK helpers to deploy the market via `MarketFactory` / Router.
+   - Use `useCreateMarket` from `@seer-pm/react` with a `txNotifier`; the mutation accepts full `CreateMarketProps`. The hook handles both regular markets and futarchy proposals via `isFutarchyMarket`.
 
 4. **Resolve market flow**
-   - UI for the resolver to submit the result.
-   - After resolution, guide the user to **redeem** positions as needed.
+   - Use `useResolveMarket` from `@seer-pm/react` (pass `txNotifier`, optional `onSuccess`; mutation accepts `{ market }`) for the resolver to submit the result.
+   - After resolution, guide the user to **redeem** positions via `useRedeemPositions`.
 
 Prefer composing screens from smaller components:
 
@@ -118,7 +138,8 @@ Prefer composing screens from smaller components:
 This skill includes example React components in `skills/seer-sites/examples/` that demonstrate recommended integration patterns:
 
 - `MarketsPage.tsx` – high-level markets listing page.
-- `MarketDetailPage.tsx` – single market detail page with a trade form.
+- `MarketDetailPage.tsx` – single market detail page with a trade form and outcomes list.
+- `OutcomesList.tsx` – list outcomes on a market detail page: user balance per outcome, image and name, current odds, link to token contract in block explorer, and link to pool (or create pool).
 
 Use these examples as **primary reference** for:
 
@@ -139,7 +160,7 @@ When using `seer-sites`:
    - Only fall back to raw contract calls if no suitable helper exists and the integration docs clearly describe the call.
 
 2. **Keep Seer-specific logic in dedicated hooks/utilities**
-   - Prefer extracting Seer logic into hooks (e.g., `useMarkets`, `useMarket`, `useTrade`, `useApproveTokens`) and then consuming those hooks in UI components.
+   - Prefer extracting Seer logic into hooks (e.g., `useMarkets`, `useMarket`, `useTrade`, `useCreateMarket`, `useApproveTokens`) and then consuming those hooks in UI components.
 
 3. **Respect network & address configuration**
    - Do not hardcode contract addresses or chain IDs.
