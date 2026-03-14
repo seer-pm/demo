@@ -42,7 +42,7 @@ function formatBalance(amount: bigint, decimals: number): string {
 
 function OddsDisplay({ odds }: { odds: number | null | undefined }) {
   if (odds == null || Number.isNaN(odds)) return <span>—</span>;
-  const pct = (odds * 100).toFixed(1);
+  const pct = odds.toFixed(1);
   return <span>{pct}%</span>;
 }
 

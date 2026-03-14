@@ -17,6 +17,8 @@ Use this skill when the goal is to:
 - Use **Seer** as the prediction-market backend.
 - Integrate Seer with React-based frontends produced from Stitch designs.
 
+**Generic Stitch prompt:** For building Seer sites with Google Stitch (or similar design tools), use **`skills/seer-sites/STITCH_PROMPT.md`**. It defines the fixed Seer data model (market/outcome fields, screens, redeem flow) and a **Part 2 placeholder** where the user specifies site name, identity, network, and aesthetic. Copy Part 1 as-is; fill Part 2 per project.
+
 This skill does **not** define on-chain contracts or ABIs; instead, it relies on the Seer SDK as the single source of truth for integration details.
 
 ---
@@ -41,9 +43,23 @@ Do **not** use this skill when:
 
 ## Tech stack & assumptions
 
+- **Package manager**: Prefer **yarn v1** over npm for install scripts and lockfiles, unless the user explicitly asks for npm or another manager.
 - **Frontend framework**: React + TypeScript.
 - **Routing**: Any (Next.js, React Router, etc.). Examples are framework-agnostic and focus on components/pages.
-- **Seer SDK packages**: Install both `@seer-pm/sdk` (core integration: contracts + HTTP API) and `@seer-pm/react` (hooks and React utilities). The project must use **wagmi** and satisfy the **peer dependencies** of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also needs `@seer-pm/sdk`, `@tanstack/react-query`; `@seer-pm/sdk` also needs `graphql-request` and `graphql-tag` for HTTP API usage.
+- **Wallet connection**: A wallet-connection UI library is always required. Prefer **ConnectKit** (works with wagmi) unless the user specifies another (e.g. RainbowKit, WalletConnect modal).
+- **Seer SDK packages**: Install both `@seer-pm/sdk` (core integration: contracts + HTTP API) and `@seer-pm/react` (hooks and React utilities). The project must use **wagmi v2** and **viem v2** (e.g. `wagmi` and `viem` at major version 2) and satisfy the peer dependencies of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also needs `@seer-pm/sdk`, `@tanstack/react-query`; `@seer-pm/sdk` also needs `graphql-request` and `graphql-tag` for HTTP API usage.
+- **Notifications**: `react-toastify` wired through Seer notifier helpers – see `skills/seer-sites/examples/toastify.tsx` and ensure `ToastContainer` + `import "react-toastify/dist/ReactToastify.css";` are added at app root.
+- **Vite projects**: Install **vite-plugin-node-polyfills**, register it in `vite.config.ts` (add `nodePolyfills()` to the `plugins` array), and add a `define` block so Node-style globals and `process.env` are available for SDK/wagmi deps:
+  ```ts
+  import { nodePolyfills } from 'vite-plugin-node-polyfills'
+
+  // In defineConfig:
+  plugins: [nodePolyfills(), /* ...existing plugins (e.g. react()) */],
+  define: {
+    'process.env': {},
+    'global': {},
+  },
+  ```
 
 Whenever possible, follow the patterns from the official Seer integration docs instead of inventing new flows or parameters.
 
@@ -182,6 +198,12 @@ When using `seer-sites`:
    - **Do NOT invent components like `SeerProvider`** – there is no provider exported from `@seer-pm/react`.
    - Use your app's existing React/wagmi provider setup (for example, `WagmiConfig` / `Config` from `wagmi`) and then call Seer hooks (`useMarkets`, `useMarket`, `useCreateMarket`, `useTrade`, `useApproveTokens`, etc.) directly inside components.
    - Before introducing any new Seer hook or helper, **check `@seer-pm/react` exports and the examples in `skills/seer-sites/examples/*.tsx`**; if it is not there, do not assume it exists.
+
+7. **No mock data**
+   - Do **not** use mock or hardcoded market data in React components.
+   - **Home page (markets list):** Always load markets with `useMarkets()` from `@seer-pm/react` (or the equivalent hook that matches your filter, e.g. by creator). Pass the returned data to the UI.
+   - **Market detail page:** Always load the single market with `useMarket(marketId, chainId)` from `@seer-pm/react`. Pass the returned market to the header, outcomes list, and trading widget.
+   - Handle loading and empty states from the hook results; do not fall back to fake data for design or demos.
 
 ---
 

@@ -36,7 +36,7 @@ Frontends usually do not call these contracts directly. Instead, they:
 
 ### 1. Setup
 
-Install both SDKs (`@seer-pm/sdk` and `@seer-pm/react`). The project must use **wagmi** for chain and wallet (public + wallet clients) and satisfy the **peer dependencies** of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also requires `@seer-pm/sdk` and `@tanstack/react-query`; `@seer-pm/sdk` also requires `graphql-request` and `graphql-tag` for HTTP API usage. Contract addresses and supported networks are provided by the SDK.
+Install both SDKs (`@seer-pm/sdk` and `@seer-pm/react`). The project must use **wagmi v2** and **viem v2** (major version 2) for chain and wallet (public + wallet clients) and satisfy the peer dependencies of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also requires `@seer-pm/sdk` and `@tanstack/react-query`; `@seer-pm/sdk` also requires `graphql-request` and `graphql-tag` for HTTP API usage. Contract addresses and supported networks are provided by the SDK.
 
 ### 2. Create a market
 
@@ -84,9 +84,9 @@ Use `useResolveMarket` from `@seer-pm/react` (pass `txNotifier`, optional `onSuc
 
 ## Recommended frontend architecture
 
-- Use a set of **hooks** (often from `@seer-pm/react`) as the integration boundary:
-  - `useMarkets` – list markets.
-  - `useMarket` – single market details.
+- Use a set of **hooks** (often from `@seer-pm/react`) as the integration boundary — **do not use mock data**; always read from the SDK:
+  - `useMarkets()` – list markets (use on the home page).
+  - `useMarket(marketId, chainId)` – single market details (use on the market detail page).
   - `useApproveTokens` – token approvals.
   - `useTrade` or equivalent – place trades.
   - `useCreateMarket`, `useResolveMarket`, and additional hooks for portfolio flows.
