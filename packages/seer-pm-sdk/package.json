@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
@@ -67,7 +67,7 @@
   "dependencies": {
     "@uniswap/v3-sdk": "^3.19.0",
     "@cowprotocol/cow-sdk": "^5.3.2",
-    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#4fc1e9ce71f76612aa6f468b5b381083d4c52b86",
+    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af",
     "ethers": "^5.7.2"
   }
 }
