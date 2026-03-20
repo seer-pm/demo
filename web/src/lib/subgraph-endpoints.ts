@@ -64,7 +64,7 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV`,
   },
   bunniLpPositionMainnet: {
-    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/8necVcWSBJk7mj7VHPEKjbwXoKKH3C938tJCjNjQctrp`,
+    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/C8QxbHvGr3VC6KFvnnZYc55kzkDo7FiBAHFw45QmGR4B`,
   },
   futarchy: {
     [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/H8uG6j77JyfwRv31aYfJcFby8eRfXSpbwqiuzPQfCQJD`,
