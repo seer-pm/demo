@@ -4,12 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "prepare-dev": "yarn workspace @seer-pm/sdk generate && yarn workspace @seer-pm/sdk generate:gql",
     "dev": "yarn server:dev",
     "prod": "yarn build && yarn server:prod",
     "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
     "lint": "biome check --write ./src ./netlify ../packages",
-    "generate": "yarn workspace @seer-pm/sdk build",
+    "generate": "yarn workspace @seer-pm/sdk generate",
     "server:dev": "npx tsx server/index.js",
     "server:prod": "cross-env NODE_ENV=production node ./server",
     "cosmos": "cosmos",
