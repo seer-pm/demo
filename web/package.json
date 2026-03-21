@@ -103,11 +103,6 @@
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^5.1.4"
   },
-  "workspaces": {
-    "nohoist": [
-      "@web3modal/wagmi"
-    ]
-  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "yarn lint"
