@@ -51,8 +51,6 @@
   },
   "peerDependencies": {
     "@wagmi/core": ">=2.0.0",
-    "graphql-request": ">=5.0.0",
-    "graphql-tag": ">=2.0.0",
     "viem": ">=2.0.0",
     "wagmi": "^2.0.0 || ^3.0.0"
   },
@@ -64,6 +62,8 @@
     "@graphql-codegen/typescript-operations": "^4.2.0",
     "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@wagmi/cli": "^2.1.22",
+    "graphql-request": ">=5.0.0",
+    "graphql-tag": ">=2.0.0",
     "tsup": "^8.0.2",
     "typescript": "^5.2.2",
     "viem": "^2.38.0"
@@ -75,6 +75,7 @@
     "@cowprotocol/cow-sdk": "^5.3.2",
     "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af",
     "@uniswap/v3-sdk": "^3.19.0",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "graphql": "16.11.0"
   }
 }
