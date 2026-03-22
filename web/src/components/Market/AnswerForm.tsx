@@ -3,23 +3,28 @@ import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { getConfigNumber } from "@/lib/config";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
-import { Market, MarketStatus, Question } from "@/lib/market";
+import { config } from "@/wagmi";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import {
-  ANSWERED_TOO_SOON,
   FormEventOutcomeValue,
-  INVALID_RESULT,
-  REALITY_TEMPLATE_MULTIPLE_SELECT,
-  REALITY_TEMPLATE_SINGLE_SELECT,
-  REALITY_TEMPLATE_UINT,
+  Market,
+  MarketStatus,
+  Question,
   formatOutcome,
   getAnswerTextFromMarket,
   getCurrentBond,
   getRealityLink,
+} from "@seer-pm/sdk";
+import {
+  ANSWERED_TOO_SOON,
+  INVALID_RESULT,
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
+  REALITY_TEMPLATE_SINGLE_SELECT,
+  REALITY_TEMPLATE_UINT,
   isScalarBoundInWei,
-} from "@/lib/reality";
-import { config } from "@/wagmi";
-import { valibotResolver } from "@hookform/resolvers/valibot";
+} from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useForm } from "react-hook-form";
@@ -91,7 +96,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
   const { address, chainId: connectedChainId, chain } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
-  const currentBond = getCurrentBond(question.bond, question.min_bond, market.chainId);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, getConfigNumber("MIN_BOND", market.chainId));
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationRequest } = useArbitrationRequest(question.id, market.chainId);

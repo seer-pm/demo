@@ -1,7 +1,8 @@
 import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";

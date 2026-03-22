@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/edge-functions";
-import { SUBGRAPHS } from "../../src/lib/subgraph-endpoints.ts";
+import { SUBGRAPHS } from "../../../packages/seer-pm-sdk/src/subgraph/subgraph-endpoints.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

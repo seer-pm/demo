@@ -1,6 +1,5 @@
-import { Market } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
+import { Market, MarketStatus } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useWinningOutcomes } from "./useWinningOutcomes";
 

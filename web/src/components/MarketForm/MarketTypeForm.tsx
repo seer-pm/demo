@@ -1,4 +1,4 @@
-import { MarketTypes } from "@/lib/market";
+import { MarketTypes } from "@seer-pm/sdk";
 import { FormProvider } from "react-hook-form";
 import { FormStepProps, FormWithNextStep, MarketTypeFormValues } from ".";
 import { Alert } from "../Alert";

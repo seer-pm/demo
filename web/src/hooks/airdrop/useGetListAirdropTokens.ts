@@ -1,14 +1,14 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { useMarkets } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
+import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "../contracts/generated-multi-drop";
 import { getTokensInfo } from "../portfolio/utils";
-import { useMarkets } from "../useMarkets";
 
 export interface AirdropTokenInfo {
   tokenName: string;

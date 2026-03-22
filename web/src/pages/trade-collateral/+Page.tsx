@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { TradeCollateralWidget } from "@/components/TradeCollateral/TradeCollateralWidget";
-import { SupportedChain, base, filterChain, optimism } from "@/lib/chains";
+import { base, filterChain, optimism } from "@/lib/chains";
+import { SupportedChain } from "@seer-pm/sdk";
 import { useAccount } from "wagmi";
 
 const COLLATERAL_CHAINS: SupportedChain[] = [base.id, optimism.id];

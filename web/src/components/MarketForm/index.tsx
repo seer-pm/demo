@@ -1,4 +1,4 @@
-import { MarketTypes } from "@/lib/market";
+import { MarketTypes } from "@seer-pm/sdk";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 import { Address } from "viem";
 

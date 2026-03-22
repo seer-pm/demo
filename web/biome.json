@@ -1,7 +1,7 @@
 {
   "files": {
     "include": ["src/**", "netlify/**"],
-    "ignore": ["src/hooks/queries/**"]
+    "ignore": ["**/generated", "src/hooks/queries/**"]
   },
   "formatter": {
     "enabled": true,

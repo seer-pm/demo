@@ -1,9 +1,7 @@
-import { useMarket } from "@/hooks/useMarket";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
-import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
@@ -14,11 +12,24 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { Market, MarketStatus, MarketTypes, getMarketStatus, getMarketType, isOdd } from "@/lib/market";
-import { getMarketEstimate, rescaleOdds } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
-import { displayScalarBound, getAnswerTextFromMarket } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useMarket, useTokenInfo } from "@seer-pm/react";
+import {
+  COLLATERAL_TOKENS,
+  INVALID_RESULT_OUTCOME_TEXT,
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getAnswerTextFromMarket,
+  getMarketEstimate,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+  rescaleOdds,
+} from "@seer-pm/sdk";
+import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
@@ -26,7 +37,7 @@ import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";

@@ -1,7 +1,6 @@
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { zeroAddress } from "viem";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester,
   readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests,
@@ -10,7 +9,9 @@ import {
   readRealitioForeignProxyOptimismArbitrationIdToRequester,
   readRealitioForeignProxyOptimismArbitrationRequests,
   readRealitioV2_1ArbitratorWithAppealsArbitrationRequests,
-} from "./contracts/generated-arbitrators";
+} from "@seer-pm/sdk/contracts/arbitrators";
+import { useQuery } from "@tanstack/react-query";
+import { zeroAddress } from "viem";
 
 interface ArbitrationRequest {
   status: number;

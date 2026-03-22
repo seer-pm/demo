@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains.ts";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";

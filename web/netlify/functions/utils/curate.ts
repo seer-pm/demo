@@ -1,13 +1,13 @@
+import { isVerificationEnabled } from "@/lib/config.ts";
+import { isUndefined } from "@/lib/utils.ts";
+import type { VerificationResult } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   lightGeneralizedTcrAbi,
   lightGeneralizedTcrAddress,
   readLightGeneralizedTcrChallengePeriodDuration,
-} from "@/hooks/contracts/generated-curate";
-import { Status, getSdk as getCurateSdk } from "@/hooks/queries/gql-generated-curate.ts";
-import { SupportedChain } from "@/lib/chains.ts";
-import { isVerificationEnabled } from "@/lib/config.ts";
-import { VerificationResult } from "@/lib/market";
-import { isUndefined } from "@/lib/utils.ts";
+} from "@seer-pm/sdk/contracts/curate";
+import { Status, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { Address, parseAbiItem } from "viem";

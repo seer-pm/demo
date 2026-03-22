@@ -10,19 +10,22 @@ import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
-import { marketFactoryAddress } from "@/hooks/contracts/generated-market-factory";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
-import { getUseGraphMarketKey, useMarket, useMarketQuestions } from "@/hooks/useMarket";
-import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity";
-import { useTokenInfo, useTokensInfo } from "@/hooks/useTokenInfo";
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getLiquidityPairForToken, getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { isMarketReliable } from "@/lib/market";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import {
+  getUseGraphMarketKey,
+  useMarket,
+  useMarketHasLiquidity,
+  useMarketQuestions,
+  useTokenInfo,
+  useTokensInfo,
+} from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketStatus, getLiquidityPairForToken, getMarketStatus, isMarketReliable } from "@seer-pm/sdk";
+import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";

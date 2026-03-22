@@ -1,16 +1,13 @@
 import { MarketDataMapping } from "@/hooks/portfolio/getMappings";
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import {
-  Burn_OrderBy,
-  GetBurnsQuery,
-  OrderDirection,
-  getSdk as getSwaprSdk,
-} from "@/hooks/queries/gql-generated-swapr";
-import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { getCollateralFromDexTx, getToken0Token1, getTokensPairKey } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+import { gnosis } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import { Burn_OrderBy, GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { Address, parseUnits } from "viem";
+import { getCollateralFromDexTx } from "../markets";
 
 async function fetchBurnsFromSubgraph(
   outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],

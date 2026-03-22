@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 

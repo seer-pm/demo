@@ -2,11 +2,12 @@ import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
 import { chainIds, config, gnosis } from "./config.ts";
 
-import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr.ts";
-import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { SupportedChain } from "@/lib/chains.ts";
-import { Market, Token0Token1, getMarketPoolsPairs, getTokensPairKey } from "@/lib/market.ts";
 import { isTwoStringsEqual } from "@/lib/utils.ts";
+import type { Market, Token0Token1 } from "@seer-pm/sdk";
+import { getMarketPoolsPairs, getTokensPairKey } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import pLimit from "p-limit";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./subgraph.ts";
 

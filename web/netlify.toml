@@ -1,8 +1,8 @@
 [build]
   base = "/"
-  package = "/web"
   publish = "/web/dist/client/"
-  command = "NODE_ENV=production yarn workspace @seer-pm/web build"
+  # Netlify functions import @seer-pm/sdk; build the SDK first so dist outputs exist at bundle time.
+  command = "NODE_ENV=production yarn workspace @seer-pm/sdk build && yarn workspace @seer-pm/web build"
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]
@@ -21,6 +21,11 @@
 
 [build.processing.html]
   pretty_urls = true
+
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"

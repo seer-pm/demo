@@ -1,9 +1,10 @@
 import Button from "@/components/Form/Button";
-import { getRedeemRouter, useRedeemPositions } from "@/hooks/useRedeemPositions";
+import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
-import { useWinningPositions } from "@/hooks/useWinningPositions";
 import { DEFAULT_CHAIN } from "@/lib/chains";
-import { Market } from "@/lib/market";
+import { useWinningPositions } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { getRedeemRouter } from "@seer-pm/sdk";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
 import { useAccount } from "wagmi";

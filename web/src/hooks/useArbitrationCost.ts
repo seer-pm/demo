@@ -1,8 +1,7 @@
 import { ArbitratorAbi } from "@/abi/ArbitratorAbi";
-import { SupportedChain, base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
+import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
+import type { SupportedChain } from "@seer-pm/sdk";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrator,
   readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData,
@@ -12,7 +11,9 @@ import {
   readRealitioForeignProxyOptimismArbitratorExtraData,
   readRealitioV2_1ArbitratorWithAppealsArbitrator,
   readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData,
-} from "./contracts/generated-arbitrators";
+} from "@seer-pm/sdk/contracts/arbitrators";
+import { useQuery } from "@tanstack/react-query";
+import { readContract } from "@wagmi/core";
 
 async function getArbitrationCost(chainId: SupportedChain): Promise<bigint> {
   const [arbitrator, arbitratorExtraData] = await Promise.all(

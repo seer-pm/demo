@@ -1,3 +1,6 @@
+import type { SupportedChain } from "@seer-pm/sdk";
+import { getToken0Token1 } from "@seer-pm/sdk";
+import { uniswapGraphQLClient } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasDocument,
   GetPoolHourDatasQuery,
@@ -6,10 +9,7 @@ import {
   PoolHourData_OrderBy,
   Pool_OrderBy,
   getSdk,
-} from "@/hooks/queries/gql-generated-uniswap";
-import { SupportedChain } from "@/lib/chains";
-import { getToken0Token1 } from "@/lib/market";
-import { uniswapGraphQLClient } from "@/lib/subgraph";
+} from "@seer-pm/sdk/subgraph/uniswap";
 import combineQuery from "graphql-combine-query";
 import { getTokenPricesMapping } from "../utils";
 import { PortfolioPosition } from "./usePortfolioPositions";

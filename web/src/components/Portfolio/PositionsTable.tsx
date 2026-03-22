@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
-import { useMarket } from "@/hooks/useMarket";
 import { useModal } from "@/hooks/useModal";
-import { SupportedChain } from "@/lib/chains";
 import {
   ArrowDropDown,
   ArrowDropUp,
@@ -13,8 +11,10 @@ import {
   QuestionIcon,
   SubDirArrowRight,
 } from "@/lib/icons";
-import { MarketStatus } from "@/lib/market";
 import { paths } from "@/lib/paths";
+import { useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { MarketStatus } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,

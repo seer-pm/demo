@@ -1,7 +1,7 @@
-import { Market, MarketTypes, getMarketType, getMultiScalarEstimate } from "@/lib/market";
-import { displayScalarBound } from "@/lib/reality";
-import { Token } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
+import { Market, MarketTypes, getMarketType, getMultiScalarEstimate } from "@seer-pm/sdk";
+import { displayScalarBound } from "@seer-pm/sdk";
+import type { Token } from "@seer-pm/sdk";
 import { PotentialReturnInputType } from "./interfaces";
 
 export function getPotentialReturn(

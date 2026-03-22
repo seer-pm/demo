@@ -1,11 +1,11 @@
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { getTokenInfo } from "@/hooks/useTokenInfo";
-import { SupportedChain } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
 import { config } from "@/wagmi";
-import { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
+import { getTokenInfo } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { OrderBookApi, OrderStatus, type SupportedChainId } from "@seer-pm/sdk";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 

@@ -1,10 +1,11 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Token0Token1, getToken0Token1 } from "@/lib/market";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
-import ethers, { BigNumber } from "ethers";
+import { mainnet } from "@/lib/chains";
+import type { Token0Token1 } from "@seer-pm/sdk";
+import { getToken0Token1 } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk";
 import pLimit from "p-limit";
-import { Address } from "viem";
+import { Address, formatUnits, zeroAddress } from "viem";
 import { calculateBurnAmounts } from "./utils";
 
 export interface BunniToken {
@@ -199,8 +200,9 @@ export function getBunniPositionHoldersAtTimestamp(
   timestamp: number,
   bunniGauges: string[],
 ) {
-  const balances: { [key: string]: { [key: string]: BigNumber } } = {};
+  const balances: { [key: string]: { [key: string]: bigint } } = {};
   const ignoredAddrs = new Set(bunniGauges.map((addr) => addr.toLowerCase()));
+
   for (const snapshot of allPositionSnapshots) {
     if (Number(snapshot.timestamp) > timestamp) continue;
 
@@ -210,9 +212,9 @@ export function getBunniPositionHoldersAtTimestamp(
     // Skip if either side is a Bunni gauge
     if (ignoredAddrs.has(from) || ignoredAddrs.has(to)) continue;
 
-    if (from === ethers.constants.AddressZero || to === ethers.constants.AddressZero) continue;
+    if (from === zeroAddress || to === zeroAddress) continue;
 
-    const value = BigNumber.from(snapshot.transfer.value || "0");
+    const value = BigInt(snapshot.transfer.value || "0");
 
     const liquidityRaw = snapshot.liquidity;
     const totalSupplyRaw = snapshot.totalSupply;
@@ -220,8 +222,8 @@ export function getBunniPositionHoldersAtTimestamp(
     // Skip if invalid liquidity or totalSupply
     if (!liquidityRaw || !totalSupplyRaw || totalSupplyRaw === "0") continue;
 
-    const liquidity = BigNumber.from(liquidityRaw);
-    const totalSupply = BigNumber.from(totalSupplyRaw);
+    const liquidity = BigInt(liquidityRaw);
+    const totalSupply = BigInt(totalSupplyRaw);
 
     const tickCurrent = Number(snapshot.tick);
     const tickLower = Number(snapshot.token.tickLower);
@@ -237,20 +239,20 @@ export function getBunniPositionHoldersAtTimestamp(
     // Initialize balances for both addresses and tokens
     for (const addr of [from, to]) {
       if (!balances[addr]) balances[addr] = {};
-      if (!balances[addr][token0]) balances[addr][token0] = BigNumber.from(0);
-      if (!balances[addr][token1]) balances[addr][token1] = BigNumber.from(0);
+      if (balances[addr][token0] === undefined) balances[addr][token0] = 0n;
+      if (balances[addr][token1] === undefined) balances[addr][token1] = 0n;
     }
 
     // Subtract from sender
-    if (from !== ethers.constants.AddressZero) {
-      balances[from][token0] = balances[from][token0].sub(amount0);
-      balances[from][token1] = balances[from][token1].sub(amount1);
+    if (from !== zeroAddress) {
+      balances[from][token0] = balances[from][token0] - amount0;
+      balances[from][token1] = balances[from][token1] - amount1;
     }
 
     // Add to recipient
-    if (to !== ethers.constants.AddressZero) {
-      balances[to][token0] = balances[to][token0].add(amount0);
-      balances[to][token1] = balances[to][token1].add(amount1);
+    if (to !== zeroAddress) {
+      balances[to][token0] = balances[to][token0] + amount0;
+      balances[to][token1] = balances[to][token1] + amount1;
     }
   }
 
@@ -259,8 +261,8 @@ export function getBunniPositionHoldersAtTimestamp(
   for (const [addr, tokens] of Object.entries(balances)) {
     const display: { [key: string]: number } = {};
     for (const [token, amount] of Object.entries(tokens)) {
-      if (amount.gt(0) || amount.lt(0)) {
-        display[token] = Number(ethers.utils.formatUnits(amount, 18));
+      if (amount > 0n || amount < 0n) {
+        display[token] = Number(formatUnits(amount, 18));
       }
     }
     if (Object.keys(display).length > 0) {

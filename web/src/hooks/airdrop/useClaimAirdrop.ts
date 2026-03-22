@@ -1,11 +1,11 @@
-import { SupportedChain } from "@/lib/chains";
 import { toastError, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { multiDropAbi, multiDropAddress, writeMultiDropClaim } from "@seer-pm/sdk/contracts/multi-drop";
 import { useMutation } from "@tanstack/react-query";
 import { getAccount, simulateContract } from "@wagmi/core";
 import { TransactionReceipt } from "viem";
 import { gnosis } from "viem/chains";
-import { multiDropAbi, multiDropAddress, writeMultiDropClaim } from "../contracts/generated-multi-drop";
 
 async function claimAirdrop(chainId: SupportedChain): Promise<TransactionReceipt | undefined> {
   if (chainId !== gnosis.id) {

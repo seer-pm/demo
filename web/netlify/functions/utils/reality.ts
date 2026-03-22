@@ -1,6 +1,6 @@
-import { QuestionsQueryQuery, getSdk as getRealitySdk } from "@/hooks/queries/gql-generated-reality";
-import { SupportedChain } from "@/lib/chains";
-import { realityGraphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { realityGraphQLClient } from "@seer-pm/sdk";
+import { QuestionsQueryQuery, getSdk as getRealitySdk } from "@seer-pm/sdk/subgraph/reality";
 import { Address } from "viem";
 
 type ClaimQuestion = QuestionsQueryQuery["questions"][0];

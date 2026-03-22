@@ -1,4 +1,4 @@
-import { Market, MarketStatus, getMarketStatus } from "@/lib/market";
+import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
 import React, { useMemo, useEffect, useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";

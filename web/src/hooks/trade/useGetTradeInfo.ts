@@ -1,4 +1,4 @@
-import { Trade } from "@swapr/sdk";
+import { Trade } from "@seer-pm/sdk";
 
 export function useGetTradeInfo(trade: Trade | undefined) {
   if (!trade) {

@@ -1,8 +1,8 @@
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market } from "@/lib/market";
-import { EMPTY_TOKEN, Token, hasAltCollateral } from "@/lib/tokens";
+import { useTokenInfo } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { EMPTY_TOKEN, type Token, hasAltCollateral } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
-import { useTokenInfo } from "./useTokenInfo";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {
   const { data: parentCollateral } = useTokenInfo(

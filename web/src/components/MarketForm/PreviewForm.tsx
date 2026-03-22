@@ -1,29 +1,35 @@
 import { updateCollectionItem } from "@/hooks/collections/useUpdateCollectionItem";
-import { futarchyFactoryAbi } from "@/hooks/contracts/generated-market-factory";
-import { marketFactoryAbi } from "@/hooks/contracts/generated-market-factory";
-import { getProposalName, useCreateMarket } from "@/hooks/useCreateMarket";
+import { useCreateMarket } from "@/hooks/useCreateMarket";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { getUseGraphMarketKey, useMarket } from "@/hooks/useMarket";
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSubmissionDeposit } from "@/hooks/useSubmissionDeposit";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
 import { useVerifyMarket } from "@/hooks/useVerifyMarket";
-import { SupportedChain } from "@/lib/chains";
-import { isVerificationEnabled } from "@/lib/config";
-import { MARKET_CATEGORIES, MISC_CATEGORY } from "@/lib/create-market";
+import { getConfigNumber, isVerificationEnabled } from "@/lib/config";
 import { CheckCircleIcon, PolicyIcon } from "@/lib/icons";
-import { Market } from "@/lib/market";
-import { getMarketName, getOutcomes } from "@/lib/market";
-import { MarketTypes, getTemplateByMarketType } from "@/lib/market";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, isUndefined } from "@/lib/utils";
+import { displayBalance, isUndefined } from "@/lib/utils";
+import { getUseGraphMarketKey, useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import {
+  INVALID_RESULT_OUTCOME_TEXT,
+  MARKET_CATEGORIES,
+  MISC_CATEGORY,
+  Market,
+  MarketTypes,
+  getMarketName,
+  getNewMarketFromLogs,
+  getNewProposalFromLogs,
+  getOutcomes,
+  getProposalName,
+  getTemplateByMarketType,
+} from "@seer-pm/sdk";
 import { FormEvent, useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Address, TransactionReceipt, isAddress, parseEther, zeroAddress, zeroHash } from "viem";
-import { parseEventLogs } from "viem/utils";
 import { navigate } from "vike/client/router";
 import { FormWithPrevStep, MarketTypeFormValues, OutcomesFormValues, getImagesForVerification } from ".";
 import { Alert } from "../Alert";
@@ -261,17 +267,7 @@ export function PreviewForm({
   const accessToken = useGlobalState((state) => state.accessToken);
 
   const createMarket = useCreateMarket(isFutarchyMarket, async (receipt: TransactionReceipt) => {
-    const marketId = isFutarchyMarket
-      ? parseEventLogs({
-          abi: futarchyFactoryAbi,
-          eventName: "NewProposal",
-          logs: receipt.logs,
-        })?.[0]?.args?.proposal
-      : parseEventLogs({
-          abi: marketFactoryAbi,
-          eventName: "NewMarket",
-          logs: receipt.logs,
-        })?.[0]?.args?.market;
+    const marketId = isFutarchyMarket ? getNewProposalFromLogs(receipt.logs) : getNewMarketFromLogs(receipt.logs);
 
     if (marketId) {
       setNewMarketId(marketId);
@@ -313,6 +309,7 @@ export function PreviewForm({
       category: MISC_CATEGORY,
       openingTime,
       chainId,
+      minBond: getConfigNumber("MIN_BOND", chainId),
     });
   };
 

@@ -1,8 +1,10 @@
-import { GetPoolHourDatasQuery } from "@/hooks/queries/gql-generated-swapr";
-import { SupportedChain, mainnet } from "@/lib/chains";
-import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
-import { Token0Token1, getToken0Token1 } from "@/lib/market";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
+import { mainnet } from "@/lib/chains";
+import type { Token0Token1 } from "@seer-pm/sdk";
+import { getToken0Token1, isOpStack } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getSubgraphUrl } from "@seer-pm/sdk";
+import { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import pLimit from "p-limit";
 import { Address } from "viem";
 import { START_TIME } from "./constants";
@@ -50,7 +52,10 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+          getSubgraphUrl(
+            chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
+            chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
+          )!,
           {
             method: "POST",
             headers: {

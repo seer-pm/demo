@@ -1,91 +1,14 @@
-import {
-  futarchyRouterAddress,
-  gnosisRouterAddress,
-  mainnetRouterAddress,
-  routerAddress,
-} from "@/hooks/contracts/generated-router";
-import { seerCreditsAddress } from "@/hooks/contracts/generated-trading-credits";
+import { isOpStack } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address, parseUnits } from "viem";
 import { hardhat, sepolia } from "viem/chains";
-import { DEFAULT_CHAIN, SupportedChain, base, gnosis, mainnet, optimism } from "./chains";
-import { Market, getLiquidityPair } from "./market";
-import { Token } from "./tokens";
-import { NATIVE_TOKEN } from "./utils";
+import { DEFAULT_CHAIN, base, gnosis, mainnet, optimism } from "./chains";
 
 type BigInt = Record<number, bigint>;
 
 type BigIntConfigValues = {
   MIN_BOND: BigInt;
 };
-
-type CollateralTokensMap = Record<SupportedChain, { primary: Token; secondary: Token | undefined; swap?: Token[] }>;
-
-export const TOKENS_BY_CHAIN = {
-  [gnosis.id]: {
-    sDAI: "0xaf204776c7245bf4147c2612bf6e5972ee483701",
-    xDAI: "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d",
-  },
-  [mainnet.id]: {
-    sDAI: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
-    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-  },
-  [optimism.id]: {
-    sUSDS: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0",
-    USDS: "0x4f13a96ec5c4cf34e442b46bbd98a0791f20edc3",
-    USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-  },
-  [base.id]: {
-    sUSDS: "0x5875eee11cf8398102fdad704c9e96607675467a",
-    USDS: "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
-    USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-  },
-} as const;
-
-export const COLLATERAL_TOKENS: CollateralTokensMap = {
-  [gnosis.id]: {
-    primary: { address: TOKENS_BY_CHAIN[gnosis.id].sDAI, chainId: gnosis.id, symbol: "sDAI", decimals: 18 },
-    secondary: {
-      address: NATIVE_TOKEN,
-      chainId: gnosis.id,
-      symbol: "xDAI",
-      decimals: 18,
-      wrapped: { address: TOKENS_BY_CHAIN[gnosis.id].xDAI, chainId: gnosis.id, symbol: "wxDAI", decimals: 18 },
-    },
-  },
-  [mainnet.id]: {
-    primary: { address: TOKENS_BY_CHAIN[mainnet.id].sDAI, chainId: mainnet.id, symbol: "sDAI", decimals: 18 },
-    secondary: { address: TOKENS_BY_CHAIN[mainnet.id].DAI, chainId: mainnet.id, symbol: "DAI", decimals: 18 },
-  },
-  [optimism.id]: {
-    primary: { address: TOKENS_BY_CHAIN[optimism.id].sUSDS, chainId: optimism.id, symbol: "sUSDS", decimals: 18 },
-    secondary: undefined,
-    swap: [
-      { address: TOKENS_BY_CHAIN[optimism.id].USDS, chainId: optimism.id, symbol: "USDS", decimals: 18 },
-      { address: TOKENS_BY_CHAIN[optimism.id].USDC, chainId: optimism.id, symbol: "USDC", decimals: 6 },
-    ],
-  },
-  [base.id]: {
-    primary: { address: TOKENS_BY_CHAIN[base.id].sUSDS, chainId: base.id, symbol: "sUSDS", decimals: 18 },
-    secondary: undefined,
-    swap: [
-      { address: TOKENS_BY_CHAIN[base.id].USDS, chainId: base.id, symbol: "USDS", decimals: 18 },
-      { address: TOKENS_BY_CHAIN[base.id].USDC, chainId: base.id, symbol: "USDC", decimals: 6 },
-    ],
-  },
-  [sepolia.id]: {
-    primary: {
-      address: "0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357",
-      chainId: sepolia.id,
-      symbol: "DAI",
-      decimals: 18,
-    },
-    secondary: undefined,
-  },
-  // [hardhat.id]: {
-  //   primary: { address: "0xaf204776c7245bf4147c2612bf6e5972ee483701", symbol: "sDAI", decimals: 18 },
-  //   secondary: { address: NATIVE_TOKEN, symbol: "xDAI", decimals: 18 },
-  // },
-} as const;
 
 const BIG_NUMBERS_CONFIG: BigIntConfigValues = {
   MIN_BOND: {
@@ -113,69 +36,8 @@ export const PSM3_ADDRESS: Partial<Record<SupportedChain, Address>> = {
   [base.id]: "0x1601843c5E9bC251A3272907010AFa41Fa18347E",
 };
 
-export type RouterTypes = "base" | "mainnet" | "gnosis";
-
-export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
-  [gnosis.id]: "gnosis",
-  [hardhat.id]: "gnosis",
-  [mainnet.id]: "mainnet",
-  [optimism.id]: "base",
-  [base.id]: "base",
-  [sepolia.id]: "base",
-} as const;
-
-export const getRouterAddress = (market: Market): Address => {
-  if (market.type === "Futarchy") {
-    // @ts-ignore
-    return futarchyRouterAddress[market.chainId];
-  }
-
-  const addresses = Object.assign({}, gnosisRouterAddress, mainnetRouterAddress, routerAddress);
-  return addresses[market.chainId || DEFAULT_CHAIN];
-};
-
 export const getConfigNumber = <T extends keyof BigIntConfigValues>(configKey: T, chainId?: number): bigint => {
   return BIG_NUMBERS_CONFIG[configKey][chainId || DEFAULT_CHAIN];
-};
-
-function getUniswapLiquidityUrl(chainId: number, token1: string, token2: string) {
-  const chainName = chainId === optimism.id ? "optimism" : "base";
-  return `https://app.uniswap.org/positions/create/v3?step=0&currencyA=${token1}&currencyB=${token2}&chain=${chainName}&hook=undefined&priceRangeState={%22priceInverted%22:false,%22fullRange%22:true,%22minPrice%22:%22%22,%22maxPrice%22:%22%22,%22initialPrice%22:%22%22}&depositState={%22exactField%22:%22TOKEN0%22,%22exactAmounts%22:{}}&fee={%22feeAmount%22:100,%22tickSpacing%22:1,%22isDynamic%22:false}`;
-}
-
-export const getLiquidityUrl = (chainId: number, token1: string, token2: string) => {
-  switch (chainId) {
-    case gnosis.id:
-      return `https://v3.swapr.eth.limo/#/add/${token1}/${token2}/enter-amounts`;
-    case mainnet.id:
-      return `https://bunni.pro/add/ethereum?tokenA=${token1}&tokenB=${token2}&fee=3000`;
-    case optimism.id:
-    case base.id:
-      return getUniswapLiquidityUrl(chainId, token1, token2);
-    default:
-      return "#";
-  }
-};
-
-export const getLiquidityUrlByMarket = (market: Market, outcomeIndex: number) => {
-  const liquidityPair = getLiquidityPair(market, outcomeIndex);
-
-  return getLiquidityUrl(market.chainId, liquidityPair.token0, liquidityPair.token1);
-};
-
-export const getPoolUrl = (chainId: number, poolId: string) => {
-  switch (chainId) {
-    case gnosis.id:
-      return `https://v3.swapr.eth.limo/#/info/pools/${poolId}`;
-    case mainnet.id:
-      return `https://bunni.pro/pools/ethereum/${poolId}`;
-    case optimism.id:
-      return `https://app.uniswap.org/explore/pools/optimism/${poolId}`;
-    case base.id:
-      return `https://app.uniswap.org/explore/pools/base/${poolId}`;
-    default:
-      return "#";
-  }
 };
 
 export const getFarmingUrl = (chainId: number, farmId: string) => {
@@ -202,17 +64,6 @@ export const getPositionUrl = (chainId: number, farmId: string) => {
 
 export function isVerificationEnabled(chainId: SupportedChain) {
   return !isOpStack(chainId);
-}
-
-export function isOpStack(chainId: SupportedChain) {
-  return chainId === optimism.id || chainId === base.id;
-}
-
-export function isSeerCredits(chainId: SupportedChain, tokenAddress: Address) {
-  return (
-    chainId in seerCreditsAddress &&
-    tokenAddress.toLowerCase() === seerCreditsAddress[chainId as keyof typeof seerCreditsAddress].toLowerCase()
-  );
 }
 
 export const NETWORK_ICON_MAPPING: { [key: number]: string } = {

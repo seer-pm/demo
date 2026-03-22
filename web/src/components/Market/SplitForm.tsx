@@ -3,10 +3,10 @@ import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { getRouterAddress } from "@/lib/config";
-import { Market } from "@/lib/market";
-import { NATIVE_TOKEN, displayBalance } from "@/lib/utils";
+import { displayBalance } from "@/lib/utils";
+import { useTokenBalance } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { NATIVE_TOKEN, getRouterAddress } from "@seer-pm/sdk";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
@@ -70,7 +70,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
       amounts: parsedAmount,
       chainId: market.chainId,
     },
-    (/*receipt: TransactionReceipt*/) => {
+    () => {
       reset();
     },
   );

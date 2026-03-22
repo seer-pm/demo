@@ -32,7 +32,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement | null, TextareaProps>((pr
         />
       </div>
       {helpText && (
-        <p className="text-accent-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
+        <p className="text-base-content text-[12px] mt-2" dangerouslySetInnerHTML={{ __html: helpText }}></p>
       )}
 
       <FormError errors={errors} name={props.name} />

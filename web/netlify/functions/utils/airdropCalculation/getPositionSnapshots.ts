@@ -1,8 +1,10 @@
-import { SupportedChain, mainnet } from "@/lib/chains";
-import { COLLATERAL_TOKENS, isOpStack } from "@/lib/config";
-import { Token0Token1, getToken0Token1 } from "@/lib/market";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
+import { mainnet } from "@/lib/chains";
 import { isTwoStringsEqual } from "@/lib/utils";
+import type { Token0Token1 } from "@seer-pm/sdk";
+import { getToken0Token1, isOpStack } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getSubgraphUrl } from "@seer-pm/sdk";
 import pLimit from "p-limit";
 import { Address, zeroAddress } from "viem";
 import { START_TIME } from "./constants";
@@ -69,7 +71,10 @@ export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, t
                 }`;
 
         const results = await fetch(
-          chainId === mainnet.id || isOpStack(chainId) ? SUBGRAPHS["uniswap"][chainId] : SUBGRAPHS["algebra"][100],
+          getSubgraphUrl(
+            chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
+            chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
+          )!,
           {
             method: "POST",
             headers: {

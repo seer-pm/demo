@@ -1,11 +1,12 @@
 import { useMarketRulesPolicy } from "@/hooks/useMarketRulesPolicy";
 import { useModal } from "@/hooks/useModal";
-import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { SupportedChain } from "@/lib/chains";
-import { generateTokenName } from "@/lib/create-market";
 import { PlusCircleIcon, PolicyIcon } from "@/lib/icons";
-import { MarketTypes, getMarketName, getQuestionParts, hasOutcomes } from "@/lib/market";
-import { INVALID_RESULT_OUTCOME_TEXT, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { useTokensInfo } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { MarketTypes, hasOutcomes } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
+import { generateTokenName, getMarketName, getQuestionParts } from "@seer-pm/sdk";
 import { useEffect, useRef, useState } from "react";
 import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
 import { Address, isAddress } from "viem";

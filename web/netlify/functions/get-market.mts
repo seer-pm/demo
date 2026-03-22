@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { serializeMarket } from "@/lib/market";
+import { serializeMarket } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { CORS_HEADERS } from "./utils/common";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {

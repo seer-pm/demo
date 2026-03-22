@@ -1,16 +1,17 @@
-import { useQuoteTrade, useTrade } from "@/hooks/trade";
+import { useTrade } from "@/hooks/trade/useTrade";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { COLLATERAL_TOKENS, isSeerCredits } from "@/lib/config";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
-import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@/lib/market";
-import { Token, getCollateralPerShare, getOutcomeTokenVolume } from "@/lib/tokens";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import { useQuoteTrade } from "@seer-pm/react";
+import { isSeerCredits } from "@seer-pm/sdk";
+import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
+import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -191,9 +192,12 @@ export function SwapTokensMarket({
     selectedCollateral,
     swapType,
     tradeType,
+    maxSlippage,
+    !isInstantSwap,
   );
-  const isCowFastQuote =
-    quoteData?.trade instanceof CoWTrade && quoteData?.trade?.quote?.expiration === "1970-01-01T00:00:00Z";
+
+  const trade = quoteData?.trade;
+  const isCowFastQuote = trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },

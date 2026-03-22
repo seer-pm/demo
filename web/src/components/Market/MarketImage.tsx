@@ -1,5 +1,5 @@
-import { useMarket } from "@/hooks/useMarket";
-import { SupportedChain } from "@/lib/chains";
+import { useMarket } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 
 export function MarketImage({ marketAddress, chainId }: { marketAddress: Address; chainId: SupportedChain }) {

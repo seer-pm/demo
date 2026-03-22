@@ -1,8 +1,8 @@
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import { ConditionalEvent_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
-import { SupportedChain } from "@/lib/chains";
-import { unescapeJson } from "@/lib/reality";
-import { graphQLClient } from "@/lib/subgraph";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { unescapeJson } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
+import { ConditionalEvent_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { Address } from "viem";
 
 export async function getSplitMergeRedeemEvents(account: string, chainId: SupportedChain): Promise<TransactionData[]> {

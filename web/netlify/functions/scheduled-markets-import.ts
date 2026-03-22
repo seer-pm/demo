@@ -1,9 +1,8 @@
-import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
-import { SupportedChain } from "@/lib/chains.ts";
-import { WEATHER_CATEGORY } from "@/lib/create-market.ts";
-import { getMarketStatus } from "@/lib/market.ts";
-import { graphQLClient } from "@/lib/subgraph.ts";
 import { Config } from "@netlify/functions";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
+import { WEATHER_CATEGORY, getMarketStatus } from "@seer-pm/sdk";
+import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { Address, privateKeyToAccount } from "viem/accounts";
 import { chainIds } from "./utils/config.ts";

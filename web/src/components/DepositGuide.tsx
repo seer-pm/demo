@@ -1,8 +1,9 @@
-import { SupportedChain, gnosis } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
+import { gnosis } from "@/lib/chains";
 import { CloseIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { base, mainnet, optimism, sepolia } from "viem/chains";
 
 function DepositGuide({

@@ -1,4 +1,3 @@
-import { Market_OrderBy } from "@/hooks/queries/gql-generated-seer";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
@@ -11,8 +10,9 @@ import {
   LawBalanceIcon,
   QuestionIcon,
 } from "@/lib/icons";
-import { MarketStatus } from "@/lib/market";
-import { VerificationStatus } from "@/lib/market";
+import { MarketStatus, VerificationStatus } from "@seer-pm/sdk";
+import { STATUS_TEXTS } from "@seer-pm/sdk";
+import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -20,7 +20,6 @@ import Button from "../Form/Button";
 import FormError from "../Form/FormError";
 import Input from "../Form/Input";
 import Toggle from "../Form/Toggle";
-import { STATUS_TEXTS } from "./Header";
 
 const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },

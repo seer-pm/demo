@@ -1,14 +1,10 @@
 import { Link } from "@/components/Link";
 import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
-import { useMarket } from "@/hooks/useMarket";
-import useMarketHasLiquidity from "@/hooks/useMarketHasLiquidity.ts";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
-import { useTokenInfo } from "@/hooks/useTokenInfo.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
-import { COLLATERAL_TOKENS, NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
+import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config.ts";
 import { getChallengeRemainingTime, getTimeLeft } from "@/lib/date.ts";
 import {
   CheckCircleIcon,
@@ -22,12 +18,24 @@ import {
   SeerLogo,
   USDIcon,
 } from "@/lib/icons";
-import { MarketTypes, getCollateralByIndex, getMarketPoolsPairs, getMarketStatus, getMarketType } from "@/lib/market";
-import { getMarketEstimate } from "@/lib/market-odds.ts";
-import { Market, MarketStatus } from "@/lib/market.ts";
 import { paths } from "@/lib/paths";
-import { displayScalarBound, getQuestionStatus } from "@/lib/reality.ts";
-import { INVALID_RESULT_OUTCOME_TEXT, displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useMarket, useMarketHasLiquidity, useMarketOdds, useTokenInfo } from "@seer-pm/react";
+import {
+  COLLATERAL_TOKENS,
+  INVALID_RESULT_OUTCOME_TEXT,
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getCollateralByIndex,
+  getMarketEstimate,
+  getMarketPoolsPairs,
+  getMarketStatus,
+  getMarketType,
+  getQuestionStatus,
+} from "@seer-pm/sdk";
+import { MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { formatUnits } from "viem";
@@ -37,7 +45,7 @@ import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
 import { MarketInfo } from "./MarketInfo";
-import { COLORS, MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "./index.ts";
+import { COLORS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;

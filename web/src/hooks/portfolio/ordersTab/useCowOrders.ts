@@ -1,10 +1,10 @@
-import { useMarkets } from "@/hooks/useMarkets";
-import { SupportedChain } from "@/lib/chains";
-import { isOpStack } from "@/lib/config";
-import { Market, getTokensPairKey } from "@/lib/market";
-import { getCollateralSymbol, getCollateralTokenForSwap } from "@/lib/tokens";
 import { isUndefined } from "@/lib/utils";
-import { OrderBookApi } from "@cowprotocol/cow-sdk";
+import { useMarkets } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { isOpStack } from "@seer-pm/sdk";
+import { Market, getTokensPairKey } from "@seer-pm/sdk";
+import { OrderBookApi } from "@seer-pm/sdk";
+import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address, formatUnits } from "viem";
 import { getMappings } from "../getMappings";
@@ -14,7 +14,7 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: Addr
   if (!chainId || !account || !initialMarkets || isOpStack(chainId)) return [];
   const mappings = await getMappings(initialMarkets, chainId);
   const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
-  const orderBookApi = new OrderBookApi({ chainId });
+  const orderBookApi = new OrderBookApi({ chainId: chainId as number });
   const orders = await orderBookApi.getOrders({ owner: account });
 
   const processedOrders = orders.reduce<CowOrderData[]>((acc, curr) => {

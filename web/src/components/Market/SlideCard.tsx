@@ -1,5 +1,3 @@
-import { useMarket } from "@/hooks/useMarket";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -13,20 +11,27 @@ import {
   PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType, isOdd } from "@/lib/market";
-import { getMarketEstimate } from "@/lib/market-odds";
 import { paths } from "@/lib/paths";
-import { displayScalarBound } from "@/lib/reality";
-import { INVALID_RESULT_OUTCOME_TEXT, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { formatBigNumbers, isUndefined } from "@/lib/utils";
+import { useMarket, useMarketOdds } from "@seer-pm/react";
+import {
+  INVALID_RESULT_OUTCOME_TEXT,
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getMarketEstimate,
+  getMarketStatus,
+  getMarketType,
+  isOdd,
+} from "@seer-pm/sdk";
+import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { DisplayOdds } from "./DisplayOdds";
-import { BAR_COLOR, COLORS, MARKET_TYPES_TEXTS } from "./Header";
+import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS_LG } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";

@@ -1,43 +1,15 @@
-import { Market } from "@/lib/market";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
-import { config } from "@/wagmi";
-import { useMutation } from "@tanstack/react-query";
-import { writeContract } from "@wagmi/core";
-import { TransactionReceipt } from "viem";
-import { marketAbi } from "./contracts/generated-market-factory";
+import { useResolveMarket as useResolveMarketBase } from "@seer-pm/react";
 
-interface ResolveMarketProps {
-  market: Market;
-}
-
-async function resolveMarket(props: ResolveMarketProps): Promise<TransactionReceipt> {
-  const result = await toastifyTx(
-    () =>
-      writeContract(config, {
-        address: props.market.id,
-        chainId: props.market.chainId,
-        abi: marketAbi,
-        functionName: "resolve",
-      }),
-    {
-      txSent: { title: "Resolving market..." },
-      txSuccess: { title: "Market resolved!" },
-    },
-  );
-
-  if (!result.status) {
-    throw result.error;
-  }
-
-  return result.receipt;
-}
-
-export const useResolveMarket = () => {
-  return useMutation({
-    mutationFn: resolveMarket,
-    onSuccess: (/*data: TransactionReceipt*/) => {
+/**
+ * App-specific resolve market hook: wires toast notifications and invalidates useMarket on success.
+ */
+export function useResolveMarket() {
+  return useResolveMarketBase({
+    txNotifier: toastifyTx,
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
     },
   });
-};
+}

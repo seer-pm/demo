@@ -1,22 +1,36 @@
 import { Link } from "@/components/Link";
-import { useMarketOdds } from "@/hooks/useMarketOdds";
-import { NftPosition, PoolInfo, useMarketPools, useNftPositions, usePoolsDeposits } from "@/hooks/useMarketPools";
 import { useModal } from "@/hooks/useModal";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
-import { useTokenBalances } from "@/hooks/useTokenBalance";
-import { useTokensInfo } from "@/hooks/useTokenInfo";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
-import { SUPPORTED_CHAINS, SupportedChain } from "@/lib/chains";
-import { getFarmingUrl, getLiquidityUrl, getLiquidityUrlByMarket, getPositionUrl } from "@/lib/config";
+import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
-import { getMarketStatus, isOdd } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
-import { MarketTypes, getMarketType, getMultiScalarEstimate, isInvalidOutcome } from "@/lib/market";
 import { paths } from "@/lib/paths";
-import { displayScalarBound } from "@/lib/reality";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import {
+  NftPosition,
+  PoolInfo,
+  useMarketOdds,
+  useMarketPools,
+  useNftPositions,
+  usePoolsDeposits,
+  useTokenBalances,
+  useTokensInfo,
+} from "@seer-pm/react";
+import { getLiquidityUrl, getLiquidityUrlByMarket } from "@seer-pm/sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import {
+  Market,
+  MarketStatus,
+  MarketTypes,
+  displayScalarBound,
+  getMarketStatus,
+  getMarketType,
+  getMultiScalarEstimate,
+  isInvalidOutcome,
+  isOdd,
+} from "@seer-pm/sdk";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";

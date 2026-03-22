@@ -1,9 +1,7 @@
-import { Execution } from "@/hooks/useCheck7702Support";
 import { config as wagmiConfig } from "@/wagmi";
+import type { NotifierFn, TxBatchNotifierFn, TxNotificationConfig, TxNotifierFn } from "@seer-pm/sdk";
 import {
-  Config,
   ConnectorNotConnectedError,
-  SendCallsReturnType,
   getTransactionReceipt,
   sendCalls,
   waitForCallsStatus,
@@ -16,7 +14,6 @@ import {
   TransactionReceiptNotFoundError,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import { SupportedChain } from "./chains";
 import SEER_ENV from "./env";
 import { CheckCircleIcon, CloseCircleIcon, LoadingIcon } from "./icons";
 
@@ -31,55 +28,9 @@ export const DEFAULT_TOAST_OPTIONS = {
   theme: "light" as Theme,
 };
 
-type ToastifyReturn<T> =
-  | {
-      status: true;
-      data: T;
-    }
-  | {
-      status: false;
-      error: Error;
-    };
-
-type ToastifyTxReturn =
-  | {
-      status: true;
-      receipt: TransactionReceipt;
-    }
-  | {
-      status: false;
-      error: Error;
-    };
-
-type ToastifyConfig = {
-  txSent?: {
-    title: string;
-    subtitle?: string;
-  };
-  txSuccess?: {
-    title: string;
-    subtitle?: string;
-  };
-  txError?: {
-    title: string;
-    subtitle?: string;
-  };
+type ToastifyConfig = TxNotificationConfig & {
   options?: ToastOptions;
 };
-
-type ToastifyFn<T> = (execute: () => Promise<T>, config?: ToastifyConfig) => Promise<ToastifyReturn<T>>;
-
-type ToastifyTxFn = (
-  contractWrite: () => Promise<`0x${string}` | SendCallsReturnType>,
-  config?: ToastifyConfig,
-) => Promise<ToastifyTxReturn>;
-
-type ToastifySendCalls = (
-  calls: Execution[],
-  chainId: SupportedChain,
-  wagmiConfig: Config,
-  config?: ToastifyConfig,
-) => Promise<ToastifyTxReturn>;
 
 interface ToastContentType {
   title: string;
@@ -114,8 +65,7 @@ export function toastError({ title, subtitle = "", options }: ToastContentType) 
   });
 }
 
-// biome-ignore lint/suspicious/noExplicitAny:
-export const toastify: ToastifyFn<any> = async (execute, config) => {
+export const toastify: NotifierFn = async (execute, config) => {
   toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
 
   try {
@@ -132,12 +82,17 @@ export const toastify: ToastifyFn<any> = async (execute, config) => {
   }
 };
 
-export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
+export const toastifyTx: TxNotifierFn = async (contractWrite, config) => {
+  const toastConfig = config as ToastifyConfig | undefined;
   let hash: `0x${string}` | undefined = undefined;
   try {
     const result = await contractWrite();
 
-    toastInfo({ title: config?.txSent?.title || "Sending transaction...", subtitle: config?.txSent?.subtitle });
+    toastInfo({
+      title: toastConfig?.txSent?.title || "Sending transaction...",
+      subtitle: toastConfig?.txSent?.subtitle,
+      options: toastConfig?.options,
+    });
 
     let receipt: TransactionReceipt;
     if (typeof result === "string") {
@@ -166,7 +121,11 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
       });
     }
 
-    toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
+    toastSuccess({
+      title: toastConfig?.txSuccess?.title || "Transaction sent!",
+      subtitle: toastConfig?.txSent?.subtitle,
+      options: toastConfig?.options,
+    });
 
     return { status: true, receipt: receipt };
     // biome-ignore lint/suspicious/noExplicitAny:
@@ -180,17 +139,26 @@ export const toastifyTx: ToastifyTxFn = async (contractWrite, config) => {
     ) {
       const newReceipt = await pollForTransactionReceipt(hash);
       if (newReceipt) {
-        toastSuccess({ title: config?.txSuccess?.title || "Transaction sent!", subtitle: config?.txSent?.subtitle });
+        toastSuccess({
+          title: toastConfig?.txSuccess?.title || "Transaction sent!",
+          subtitle: toastConfig?.txSent?.subtitle,
+          options: toastConfig?.options,
+        });
         return { status: true, receipt: newReceipt };
       }
     }
-    toastError({ title: getErrorMessage(error), subtitle: config?.txSent?.subtitle });
+    toastError({
+      title: getErrorMessage(error),
+      subtitle: toastConfig?.txSent?.subtitle,
+      options: toastConfig?.options,
+    });
 
     return { status: false, error };
   }
 };
 
-export const toastifySendCallsTx: ToastifySendCalls = async (calls, chainId, wagmiConfig, config) => {
+export const toastifySendCallsTx: TxBatchNotifierFn = async (calls, chainId, wagmiConfig, config) => {
+  const baseConfig = config as ToastifyConfig | undefined;
   const BATCH_SIZE = 10;
   const batches = [];
 
@@ -217,28 +185,27 @@ export const toastifySendCallsTx: ToastifySendCalls = async (calls, chainId, wag
     const batch = batches[i];
     const isLastBatch = i === batches.length - 1;
 
-    const result = await toastifyTx(
-      () => sendCalls(wagmiConfig, { calls: batch, chainId }),
-      isSingleBatch
-        ? config
-        : {
-            txSent: {
-              title: config?.txSent?.title || `Sending batch ${i + 1}/${batches.length}...`,
-              subtitle: config?.txSent?.subtitle,
-            },
-            txSuccess: {
-              title: isLastBatch
-                ? config?.txSuccess?.title || "All transactions sent!"
-                : `Batch ${i + 1}/${batches.length} sent!`,
-              subtitle: config?.txSuccess?.subtitle,
-            },
-            txError: {
-              title: config?.txError?.title || `Failed to send batch ${i + 1}/${batches.length}`,
-              subtitle: config?.txError?.subtitle,
-            },
-            options: config?.options,
+    const mergedConfig: ToastifyConfig | undefined = isSingleBatch
+      ? baseConfig
+      : {
+          txSent: {
+            title: baseConfig?.txSent?.title || `Sending batch ${i + 1}/${batches.length}...`,
+            subtitle: baseConfig?.txSent?.subtitle,
           },
-    );
+          txSuccess: {
+            title: isLastBatch
+              ? baseConfig?.txSuccess?.title || "All transactions sent!"
+              : `Batch ${i + 1}/${batches.length} sent!`,
+            subtitle: baseConfig?.txSuccess?.subtitle,
+          },
+          txError: {
+            title: baseConfig?.txError?.title || `Failed to send batch ${i + 1}/${batches.length}`,
+            subtitle: baseConfig?.txError?.subtitle,
+          },
+          options: baseConfig?.options,
+        };
+
+    const result = await toastifyTx(() => sendCalls(wagmiConfig, { calls: batch, chainId }), mergedConfig);
 
     // If any batch fails, abort the entire process and return the error
     if (!result.status) {

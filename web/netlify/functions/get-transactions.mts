@@ -1,6 +1,6 @@
 import { MarketDataMapping, getMappings } from "@/hooks/portfolio/getMappings";
 import { TransactionData } from "@/hooks/portfolio/historyTab/types";
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { getBlock } from "@wagmi/core";
 import { Address } from "viem";
 import { config } from "./utils/config";

@@ -2,10 +2,10 @@ import React from "react";
 
 import { CowOrderData } from "@/hooks/portfolio/ordersTab/types";
 import { cancelCowOrder, cancelEthFlowOrder } from "@/hooks/trade/executeCowTrade";
-import { SupportedChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { SupportedChainId } from "@cowprotocol/cow-sdk";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { type SupportedChainId } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,

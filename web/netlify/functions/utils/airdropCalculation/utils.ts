@@ -1,5 +1,4 @@
 import { TickMath } from "@uniswap/v3-sdk";
-import { BigNumber } from "ethers";
 import { Address } from "viem";
 import { SubgraphMarket } from "./getAllMarkets";
 
@@ -34,44 +33,44 @@ export function getRandomNextDayTimestamp(timestampInSeconds: number, lastDayInS
   return nextDayStartSeconds + randomOffset;
 }
 
-const Q96 = BigNumber.from(2).pow(96);
+const Q96 = 2n ** 96n;
 
-function getSqrtPriceAtTick(tick: number) {
-  return BigNumber.from(TickMath.getSqrtRatioAtTick(tick).toString());
+function getSqrtPriceAtTick(tick: number): bigint {
+  return BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
 }
 
 // Calculate amount0 and amount1 for burning X LP tokens
 export function calculateBurnAmounts(
-  X: BigNumber,
-  totalSupply: BigNumber,
-  liquidity: BigNumber,
+  X: bigint,
+  totalSupply: bigint,
+  liquidity: bigint,
   tickCurrent: number,
   tickLower: number,
   tickUpper: number,
-) {
-  const deltaL = liquidity.mul(X).div(totalSupply);
+): { amount0: bigint; amount1: bigint } {
+  const deltaL = (liquidity * X) / totalSupply;
 
   const sqrtLower = getSqrtPriceAtTick(tickLower);
   const sqrtUpper = getSqrtPriceAtTick(tickUpper);
   const sqrtCurrent = getSqrtPriceAtTick(tickCurrent);
-  let amount0: BigNumber;
-  let amount1: BigNumber;
+  let amount0: bigint;
+  let amount1: bigint;
 
   if (tickCurrent < tickLower) {
     // Below range: only token1
-    amount0 = BigNumber.from(0);
-    amount1 = deltaL.mul(sqrtUpper.sub(sqrtLower)).div(Q96);
+    amount0 = 0n;
+    amount1 = (deltaL * (sqrtUpper - sqrtLower)) / Q96;
   } else if (tickCurrent >= tickUpper) {
     // Above range: only token0
-    amount0 = deltaL.mul(sqrtUpper.sub(sqrtLower)).mul(Q96).div(sqrtLower.mul(sqrtUpper));
-    amount1 = BigNumber.from(0);
+    amount0 = (deltaL * (sqrtUpper - sqrtLower) * Q96) / (sqrtLower * sqrtUpper);
+    amount1 = 0n;
   } else {
     // In range: both token0 and token1
-    const invSqrtCurrent = Q96.mul(Q96).div(sqrtCurrent);
-    const invSqrtUpper = Q96.mul(Q96).div(sqrtUpper);
+    const invSqrtCurrent = (Q96 * Q96) / sqrtCurrent;
+    const invSqrtUpper = (Q96 * Q96) / sqrtUpper;
 
-    amount0 = deltaL.mul(invSqrtCurrent.sub(invSqrtUpper)).div(Q96);
-    amount1 = deltaL.mul(sqrtCurrent.sub(sqrtLower)).div(Q96);
+    amount0 = (deltaL * (invSqrtCurrent - invSqrtUpper)) / Q96;
+    amount1 = (deltaL * (sqrtCurrent - sqrtLower)) / Q96;
   }
 
   return { amount0, amount1 };

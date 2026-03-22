@@ -1,9 +1,9 @@
-import { Market } from "@/lib/market";
 import { isTwoStringsEqual } from "@/lib/utils";
+import { Market } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { useTicksData } from "./useTicksData";
 import { getVolumeUntilPrice } from "./useVolumeUntilPrice";
-import { tickToPrice } from "./utils";
 
 export function getPriceFromVolume(
   pool: {

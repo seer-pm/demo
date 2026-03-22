@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains.ts";
 import { Config } from "@netlify/functions";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import slug from "slug";
 import { Address } from "viem";

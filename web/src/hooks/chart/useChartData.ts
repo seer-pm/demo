@@ -1,6 +1,6 @@
-import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { PoolHourDatasSets, filterChartData } from "./utils";

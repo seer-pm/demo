@@ -1,11 +1,12 @@
 import Button from "@/components/Form/Button";
 import { useArbitrationCost } from "@/hooks/useArbitrationCost";
 import { useRaiseDispute } from "@/hooks/useRaiseDispute";
-import { SupportedChain, mainnet } from "@/lib/chains";
-import { Question } from "@/lib/market";
-import { getCurrentBond } from "@/lib/reality";
+import { mainnet } from "@/lib/chains";
+import { getConfigNumber } from "@/lib/config";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { config } from "@/wagmi";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Question, getCurrentBond } from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useAccount, useBalance } from "wagmi";
@@ -21,7 +22,7 @@ export function RaiseDisputeForm({ question, closeModal, chainId }: RaiseDispute
   const { address, chainId: connectedChainId } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n } } = useBalance({ address, config: config, chainId: mainnet.id });
-  const currentBond = getCurrentBond(question.bond, question.min_bond, chainId);
+  const currentBond = getCurrentBond(question.bond, question.min_bond, getConfigNumber("MIN_BOND", chainId));
 
   const { data: arbitrationCost } = useArbitrationCost(chainId);
   const hasEnoughBalance = arbitrationCost && balance.value > arbitrationCost;

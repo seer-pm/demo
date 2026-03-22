@@ -1,5 +1,8 @@
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import { tickToPrice } from "@/hooks/liquidity/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, Token0Token1, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasQuery,
   GetSwapsQuery,
@@ -8,17 +11,13 @@ import {
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as SwaprGetPoolHourDatasQuery,
-} from "@/hooks/queries/gql-generated-swapr";
-import { getSdk as getSwaprSdk } from "@/hooks/queries/gql-generated-swapr";
+} from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import {
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   GetPoolHourDatasQuery as UniswapGetPoolHourDatasQuery,
-} from "@/hooks/queries/gql-generated-uniswap";
-import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { SupportedChain } from "@/lib/chains";
-import { Market } from "@/lib/market";
-import { Token0Token1, getMarketPoolsPairs } from "@/lib/market";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
+} from "@seer-pm/sdk/subgraph/uniswap";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { TickMath } from "@uniswap/v3-sdk";
 import combineQuery from "graphql-combine-query";
 import { gnosis } from "viem/chains";

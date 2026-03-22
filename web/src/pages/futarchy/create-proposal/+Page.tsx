@@ -3,9 +3,11 @@ import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketFor
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
-import { GetTokenResult, useTokensInfo } from "@/hooks/useTokenInfo";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
-import { MarketTypes } from "@/lib/market";
+import { DEFAULT_CHAIN } from "@/lib/chains";
+import type { GetTokenResult } from "@seer-pm/react";
+import { useTokensInfo } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { MarketTypes } from "@seer-pm/sdk";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address } from "viem";

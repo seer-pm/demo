@@ -1,4 +1,4 @@
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { readContracts } from "@wagmi/core";
 import { config } from "./config";
 

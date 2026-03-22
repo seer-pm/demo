@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk";
 
 export interface PoHRequest {
   id: string;

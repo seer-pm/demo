@@ -1,10 +1,9 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { filterChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { RightArrow } from "@/lib/icons";
-import { Token } from "@/lib/tokens";
 import { isTwoStringsEqual } from "@/lib/utils";
-import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, UniswapTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";

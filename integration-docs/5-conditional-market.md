@@ -79,45 +79,41 @@ If the parent resolves to an outcome **different** from the one the child is con
 
 ---
 
-## Viem examples
+## Using @seer-pm/sdk
 
-We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY)`. Addresses come from `SEER_CONTRACTS[chain.id]`. You also need the **MarketFactory** and **Router** (or GnosisRouter/MainnetRouter) ABIs, and a **parent market** already created. The parent can be root or conditional.
+We use the [Viem setup](1-viem-setup.md) and **@seer-pm/sdk**. For split/merge/redeem on the conditional market use `getRouterAddress(market)` and the parent’s wrapped outcome token as collateral (see below). You need a **parent market** already created; the parent can be root or conditional.
 
 ### 1. Create a conditional categorical market
 
-Use the same `createMarketParams` helper and MarketFactory ABI as in [Create a market](2-create-market.md), and set `parentMarket` and `parentOutcome`:
+Use `getCreateMarketExecution` as in [Create a market](2-create-market.md), with `parentMarket` and `parentOutcome` set to the parent market address and the outcome index this market is conditional on:
 
 ```typescript
-import { getPublicClient, getWalletClient, SEER_CONTRACTS, ERC20_APPROVE_ABI, MARKET_ABI } from "./viem-setup";
-import { gnosis } from "viem/chains"; // or mainnet, base, etc.
+import { getPublicClient, getWalletClient } from "./viem-setup";
+import { gnosis } from "viem/chains";
+import { getCreateMarketExecution, getNewMarketFromLogs, marketAbi, MarketTypes } from "@seer-pm/sdk";
 
 const chain = gnosis;
 const publicClient = getPublicClient(chain);
 const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${string}`);
-const addresses = SEER_CONTRACTS[chain.id];
+const chainId = chain.id;
 const parentMarketAddress = "0x..."; // parent market address
-const parentOutcomeIndex = 0;       // e.g. 0 = Yes
+const parentOutcomeIndex = 0n;       // e.g. 0 = Yes
 
-const params = createMarketParams({
+const execution = getCreateMarketExecution({
+  marketType: MarketTypes.CATEGORICAL,
   marketName: "If the war ends in 2024, will Russia withdraw all troops by end of 2025?",
   outcomes: ["Yes", "No"],
-  parentMarket: parentMarketAddress,
-  parentOutcome: BigInt(parentOutcomeIndex),
-  category: "misc",
   openingTime: Math.floor(Date.now() / 1000) + 86400 * 30,
   minBond: 10000000000000000n,
-  tokenNames: ["YES", "NO"],
+  chainId,
+  parentMarket: parentMarketAddress,
+  parentOutcome: parentOutcomeIndex,
 });
 
-const hash = await walletClient.writeContract({
-  address: addresses.MarketFactory,
-  abi: marketFactoryAbi,
-  functionName: "createCategoricalMarket",
-  args: [params],
-});
+const hash = await walletClient.sendTransaction(execution);
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
-// Parse NewMarket event to get conditional market address
-const conditionalMarketAddress = "0x..."; // from event
+
+const conditionalMarketAddress = getNewMarketFromLogs(receipt.logs);
 ```
 
 ### 2. Get parent wrapped outcome token (for split/merge/redeem)
@@ -127,18 +123,18 @@ The “collateral” token for the **conditional** market in Router calls is the
 ```typescript
 const parentMarket = await publicClient.readContract({
   address: conditionalMarketAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "parentMarket",
 });
 const parentOutcome = await publicClient.readContract({
   address: conditionalMarketAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "parentOutcome",
 });
 
 const [parentWrappedOutcomeToken] = await publicClient.readContract({
   address: parentMarket,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "wrappedOutcome",
   args: [parentOutcome],
 });
@@ -213,14 +209,14 @@ You need a full set of child outcome tokens (equal amount of each outcome). Same
 // 1. Approve router to spend `amount` of each child outcome token.
 const numOutcomes = await publicClient.readContract({
   address: conditionalMarketAddress,
-  abi: MARKET_ABI,
+  abi: marketAbi,
   functionName: "numOutcomes",
   args: [],
 });
 for (let i = 0n; i < numOutcomes; i++) {
   const [childWrappedToken] = await publicClient.readContract({
     address: conditionalMarketAddress,
-    abi: MARKET_ABI,
+    abi: marketAbi,
     functionName: "wrappedOutcome",
     args: [i],
   });
@@ -253,7 +249,7 @@ const amounts = [500000000000000000n];
 for (let i = 0; i < outcomeIndexes.length; i++) {
   const [winningChildToken] = await publicClient.readContract({
     address: conditionalMarketAddress,
-    abi: MARKET_ABI,
+    abi: marketAbi,
     functionName: "wrappedOutcome",
     args: [outcomeIndexes[i]],
   });
@@ -305,7 +301,7 @@ const amounts = [500000000000000000n];
 for (let i = 0; i < outcomeIndexes.length; i++) {
   const [winningChildToken] = await publicClient.readContract({
     address: conditionalMarketAddress,
-    abi: MARKET_ABI,
+    abi: marketAbi,
     functionName: "wrappedOutcome",
     args: [outcomeIndexes[i]],
   });

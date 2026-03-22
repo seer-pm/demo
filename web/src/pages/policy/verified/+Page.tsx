@@ -1,6 +1,7 @@
 import FileViewer from "@/components/FileViewer";
 import { useVerifiedMarketPolicy } from "@/hooks/useVerifiedMarketPolicy";
-import { DEFAULT_CHAIN, SupportedChain } from "@/lib/chains";
+import { DEFAULT_CHAIN } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useAccount } from "wagmi";
 
 export default function Page() {

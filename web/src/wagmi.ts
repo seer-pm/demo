@@ -14,7 +14,7 @@ export const BASE_RPC = rpcEndpoint("base");
 export const ARBITRUM_RPC = rpcEndpoint("arbitrum");
 
 if (typeof window !== "undefined") {
-  import("@swapr/sdk").then(({ configureRpcProviders, ChainId }) => {
+  import("@seer-pm/sdk").then(({ configureRpcProviders, ChainId }) => {
     configureRpcProviders({
       [ChainId.XDAI]: GNOSIS_RPC,
       [ChainId.MAINNET]: MAINNET_RPC,

@@ -1,0 +1,141 @@
+{
+  "name": "@seer-pm/sdk",
+  "version": "0.0.7",
+  "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-sdk"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./contracts/curate": {
+      "types": "./generated/contracts/curate.ts",
+      "import": "./dist/generated/contracts/curate.mjs",
+      "require": "./dist/generated/contracts/curate.js"
+    },
+    "./contracts/reality": {
+      "types": "./generated/contracts/reality.ts",
+      "import": "./dist/generated/contracts/reality.mjs",
+      "require": "./dist/generated/contracts/reality.js"
+    },
+    "./contracts/arbitrators": {
+      "types": "./generated/contracts/arbitrators.ts",
+      "import": "./dist/generated/contracts/arbitrators.mjs",
+      "require": "./dist/generated/contracts/arbitrators.js"
+    },
+    "./contracts/market-factory": {
+      "types": "./generated/contracts/market-factory.ts",
+      "import": "./dist/generated/contracts/market-factory.mjs",
+      "require": "./dist/generated/contracts/market-factory.js"
+    },
+    "./contracts/market-view": {
+      "types": "./generated/contracts/market-view.ts",
+      "import": "./dist/generated/contracts/market-view.mjs",
+      "require": "./dist/generated/contracts/market-view.js"
+    },
+    "./contracts/router": {
+      "types": "./generated/contracts/router.ts",
+      "import": "./dist/generated/contracts/router.mjs",
+      "require": "./dist/generated/contracts/router.js"
+    },
+    "./contracts/multi-drop": {
+      "types": "./generated/contracts/multi-drop.ts",
+      "import": "./dist/generated/contracts/multi-drop.mjs",
+      "require": "./dist/generated/contracts/multi-drop.js"
+    },
+    "./contracts/trading-credits": {
+      "types": "./generated/contracts/trading-credits.ts",
+      "import": "./dist/generated/contracts/trading-credits.mjs",
+      "require": "./dist/generated/contracts/trading-credits.js"
+    },
+    "./subgraph/seer": {
+      "types": "./generated/subgraph/seer.ts",
+      "import": "./dist/generated/subgraph/seer.mjs",
+      "require": "./dist/generated/subgraph/seer.js"
+    },
+    "./subgraph/tokens": {
+      "types": "./generated/subgraph/tokens.ts",
+      "import": "./dist/generated/subgraph/tokens.mjs",
+      "require": "./dist/generated/subgraph/tokens.js"
+    },
+    "./subgraph/curate": {
+      "types": "./generated/subgraph/curate.ts",
+      "import": "./dist/generated/subgraph/curate.mjs",
+      "require": "./dist/generated/subgraph/curate.js"
+    },
+    "./subgraph/swapr": {
+      "types": "./generated/subgraph/swapr.ts",
+      "import": "./dist/generated/subgraph/swapr.mjs",
+      "require": "./dist/generated/subgraph/swapr.js"
+    },
+    "./subgraph/uniswap": {
+      "types": "./generated/subgraph/uniswap.ts",
+      "import": "./dist/generated/subgraph/uniswap.mjs",
+      "require": "./dist/generated/subgraph/uniswap.js"
+    },
+    "./subgraph/reality": {
+      "types": "./generated/subgraph/reality.ts",
+      "import": "./dist/generated/subgraph/reality.mjs",
+      "require": "./dist/generated/subgraph/reality.js"
+    },
+    "./abis/eternal-farming": {
+      "types": "./abis/EternalFarmingAbi.ts",
+      "import": "./dist/abis/EternalFarmingAbi.mjs",
+      "require": "./dist/abis/EternalFarmingAbi.js"
+    }
+  },
+  "files": [
+    "dist",
+    "generated/contracts",
+    "generated/subgraph",
+    "abis",
+    "queries",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "generate": "yarn generate:hooks && yarn generate:gql",
+    "generate:hooks": "wagmi generate",
+    "generate:gql": "graphql-codegen"
+  },
+  "peerDependencies": {
+    "@wagmi/core": ">=2.0.0",
+    "viem": ">=2.0.0",
+    "wagmi": "^2.0.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/named-operations-object": "^3.0.0",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
+    "@graphql-codegen/typescript-operations": "^4.2.0",
+    "@graphql-codegen/typescript-react-query": "^6.1.0",
+    "@wagmi/cli": "^2.1.22",
+    "graphql-request": ">=5.0.0",
+    "graphql-tag": ">=2.0.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2",
+    "viem": "^2.38.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@cowprotocol/cow-sdk": "^5.3.2",
+    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af",
+    "@uniswap/v3-sdk": "^3.19.0",
+    "ethers": "^5.7.2",
+    "graphql": "16.11.0"
+  }
+}

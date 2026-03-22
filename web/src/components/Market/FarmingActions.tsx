@@ -6,9 +6,9 @@ import {
   useFarmPosition7702,
   useWithdrawNft,
 } from "@/hooks/useFarmingCenter";
-import { PoolDeposit, PoolIncentive, PoolInfo } from "@/hooks/useMarketPools";
-import { SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG } from "@/lib/config";
+import type { PoolDeposit, PoolIncentive, PoolInfo } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 import Button from "../Form/Button";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";

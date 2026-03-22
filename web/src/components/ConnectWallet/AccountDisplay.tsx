@@ -1,7 +1,7 @@
-import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { SupportedChain } from "@/lib/chains";
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
+import { useTokenBalance } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import clsx from "clsx";
 import React from "react";

@@ -1,10 +1,10 @@
-import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@/hooks/queries/gql-generated-seer";
-import { SupportedChain } from "@/lib/chains";
 import { FAST_TESTNET_FACTORY } from "@/lib/constants";
-import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@/lib/market";
-import { unescapeJson } from "@/lib/reality";
-import { graphQLClient } from "@/lib/subgraph";
-import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@/lib/utils";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk";
+import { unescapeJson } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
+import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { readContracts } from "@wagmi/core";
 import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
@@ -436,4 +436,12 @@ export function getMarketsMappings(markets: Market[]) {
       tokenToMarket: {} as Record<Address, { market: Market; tokenIndex: number }>,
     },
   );
+}
+
+export function getCollateralFromDexTx(market: Market, tokenIn: Address, tokenOut: Address) {
+  if (market.type === "Generic") {
+    return market.collateralToken;
+  }
+
+  return tokenIn.toLocaleLowerCase() === market.collateralToken1.toLocaleLowerCase() ? tokenIn : tokenOut;
 }

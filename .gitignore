@@ -8,3 +8,6 @@ node_modules
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# SDK generated contracts (published to npm, not to git)
+packages/seer-sdk/generated

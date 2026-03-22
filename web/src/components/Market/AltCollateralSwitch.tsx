@@ -1,7 +1,7 @@
-import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { COLLATERAL_TOKENS } from "@/lib/config";
-import { Market } from "@/lib/market";
 import { isUndefined } from "@/lib/utils";
+import { useTokensInfo } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import React from "react";
 import { Address, zeroAddress } from "viem";
 import Toggle from "../Form/Toggle";

@@ -1,14 +1,10 @@
+import { getQuestionParts } from "@seer-pm/sdk";
+import { Market, MarketTypes, Question, getMarketType } from "@seer-pm/sdk";
+import { REALITY_TEMPLATE_MULTIPLE_SELECT, REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
+import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
+import { encodeQuestionText, isMarketReliable } from "@seer-pm/sdk";
 import { zeroAddress, zeroHash } from "viem";
 import { describe, expect, it } from "vitest";
-import { Market, Question } from "./market";
-import { MarketTypes, getMarketType, getQuestionParts, isMarketReliable } from "./market";
-import {
-  REALITY_TEMPLATE_MULTIPLE_SELECT,
-  REALITY_TEMPLATE_SINGLE_SELECT,
-  REALITY_TEMPLATE_UINT,
-  encodeQuestionText,
-} from "./reality";
-import { INVALID_RESULT_OUTCOME_TEXT } from "./utils";
 
 const createMinimalMarket = (overrides: Partial<Market>): Market => {
   return {

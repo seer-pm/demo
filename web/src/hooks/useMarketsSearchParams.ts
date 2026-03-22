@@ -1,8 +1,6 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { VerificationStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market_OrderBy } from "./queries/gql-generated-seer";
-import { UseGraphMarketsParams } from "./useMarkets";
+import { FetchMarketParams, MarketStatus, VerificationStatus } from "@seer-pm/sdk";
+import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,7 +205,7 @@ function useMarketsSearchParams() {
     showConditionalMarkets,
     showMarketsWithRewards,
     showFutarchyMarkets,
-    type: (showFutarchyMarkets ? "Futarchy" : "Generic") as UseGraphMarketsParams["type"],
+    type: (showFutarchyMarkets ? "Futarchy" : "Generic") as FetchMarketParams["type"],
     orderDirection,
     minLiquidity,
 

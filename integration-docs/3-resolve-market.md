@@ -22,15 +22,16 @@ Once the market is resolved, users can redeem winning position tokens for the un
 
 ---
 
-## Viem examples
+## Using @seer-pm/sdk (recommended)
 
-We use the [Viem setup](1-viem-setup.md): `getPublicClient(chain)` and `getWalletClient(chain, process.env.PRIVATE_KEY)`.
+The **@seer-pm/sdk** provides `getResolveMarketExecution(marketAddress, chainId)`. Send the result with your wallet client.
 
-### Shared: ABI and address
+### Resolve the market
 
 ```typescript
-import { getPublicClient, getWalletClient, MARKET_ABI } from "./viem-setup";
-import { gnosis } from "viem/chains"; // or mainnet, base, etc.
+import { getPublicClient, getWalletClient } from "./viem-setup";
+import { gnosis } from "viem/chains";
+import { getResolveMarketExecution } from "@seer-pm/sdk";
 
 const chain = gnosis;
 const publicClient = getPublicClient(chain);
@@ -38,36 +39,29 @@ const walletClient = getWalletClient(chain, process.env.PRIVATE_KEY! as `0x${str
 const account = walletClient.account!;
 
 const marketAddress = "0x..."; // Market contract address
-```
 
-### Resolve the market
+const execution = getResolveMarketExecution(marketAddress, chain.id);
 
-Call `resolve()` on the Market contract:
-
-```typescript
-const hash = await walletClient.writeContract({
-  address: marketAddress,
-  abi: MARKET_ABI,
-  functionName: "resolve",
-  args: [],
-});
-
+const hash = await walletClient.sendTransaction(execution);
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
 ```
 
 ### Simulate before sending
 
-To avoid reverts (e.g. question not yet settled), simulate first:
+To avoid reverts (e.g. question not yet settled), simulate the call first with `publicClient.call`. It uses the same payload as the transaction and does not change state ([viem: simulateContract](https://viem.sh/docs/contract/simulateContract#simulatecontract)):
 
 ```typescript
-const { request } = await publicClient.simulateContract({
+const execution = getResolveMarketExecution(marketAddress, chain.id);
+
+await publicClient.call({
+  to: execution.to,
+  data: execution.data,
+  value: execution.value,
   account: account.address,
-  address: marketAddress,
-  abi: MARKET_ABI,
-  functionName: "resolve",
-  args: [],
 });
 
-const hash = await walletClient.writeContract(request);
+const hash = await walletClient.sendTransaction(execution);
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
 ```
+
+---

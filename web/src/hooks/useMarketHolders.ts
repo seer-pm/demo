@@ -1,5 +1,5 @@
-import { SupportedChain } from "@/lib/chains";
-import { TokenTransfer } from "@/lib/tokens";
+import type { SupportedChain } from "@seer-pm/sdk";
+import type { TokenTransfer } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 

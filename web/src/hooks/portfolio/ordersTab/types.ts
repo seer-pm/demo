@@ -1,4 +1,4 @@
-import { EnrichedOrder } from "@cowprotocol/cow-sdk";
+import type { EnrichedOrder } from "@seer-pm/sdk";
 
 export interface CowOrderData extends EnrichedOrder {
   marketName: string;

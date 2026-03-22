@@ -1,3 +1,4 @@
+import type { SupportedChain, SupportedChains as SupportedChainsBase } from "@seer-pm/sdk";
 import { Chain, gnosis as _gnosis, mainnet as _mainnet, base, hardhat, optimism, sepolia } from "wagmi/chains";
 import SEER_ENV from "./env";
 
@@ -7,13 +8,9 @@ const gnosis = _gnosis;
 
 export { mainnet, gnosis, optimism, base, hardhat, sepolia };
 
-export const SUPPORTED_CHAINS: Partial<
-  Record<
-    typeof gnosis.id | typeof mainnet.id | typeof optimism.id | typeof base.id | typeof sepolia.id,
-    /* | typeof hardhat.id */
-    Chain
-  >
-> =
+type SupportedChains = SupportedChainsBase<Chain>;
+
+export const SUPPORTED_CHAINS: SupportedChains =
   // ...((SEER_ENV.VITE_ADD_HARDHAT_NETWORK === "1" ? { [hardhat.id]: hardhat } : ({} as Chain)) as Record<number, Chain>),
   (
     SEER_ENV.VITE_IS_FAST_TESTNET === "1"
@@ -21,9 +18,7 @@ export const SUPPORTED_CHAINS: Partial<
       : SEER_ENV.VITE_TESTNET_WEBSITE === "1"
         ? { [sepolia.id]: sepolia }
         : { [gnosis.id]: gnosis, [mainnet.id]: mainnet, [optimism.id]: optimism, [base.id]: base }
-  ) as Record<string, Chain>;
-
-export type SupportedChain = keyof typeof SUPPORTED_CHAINS;
+  ) as SupportedChains;
 
 export const DEFAULT_CHAIN: SupportedChain = gnosis.id;
 

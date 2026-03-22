@@ -1,7 +1,7 @@
-import { SupportedChain } from "@/lib/chains";
-import { SUBGRAPHS } from "@/lib/subgraph-endpoints";
 import { isTwoStringsEqual } from "@/lib/utils";
-import ethers, { BigNumber } from "ethers";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk";
+import { formatUnits, zeroAddress } from "viem";
 import { SER_LPP } from "./constants";
 import { Transfer } from "./getAllTransfers";
 
@@ -47,7 +47,7 @@ export async function getSerLppBalances(chainId: SupportedChain) {
     }
     currentTimestamp = transfers[transfers.length - 1]?.timestamp;
   }
-  const tokenBalances: { [key: string]: BigNumber } = {};
+  const tokenBalances: { [key: string]: bigint } = {};
 
   // Process each transfer
   for (const transfer of allTransfers) {
@@ -57,15 +57,15 @@ export async function getSerLppBalances(chainId: SupportedChain) {
     }
     const from = transfer.from.toLowerCase();
     const to = transfer.to.toLowerCase();
-    const value = ethers.BigNumber.from(transfer.value);
-    tokenBalances[from] = (tokenBalances[from] || ethers.BigNumber.from(0)).sub(value);
-    tokenBalances[to] = (tokenBalances[to] || ethers.BigNumber.from(0)).add(value);
+    const value = BigInt(transfer.value);
+    tokenBalances[from] = (tokenBalances[from] ?? 0n) - value;
+    tokenBalances[to] = (tokenBalances[to] ?? 0n) + value;
   }
   const formattedBalances: { [key: string]: number } = {};
   for (const [user, balance] of Object.entries(tokenBalances)) {
     // Exclude zero address and non-positive balances
-    if (user !== ethers.constants.AddressZero && balance.gt(0)) {
-      formattedBalances[user] = Number(ethers.utils.formatUnits(balance, 18));
+    if (user !== zeroAddress && balance > 0n) {
+      formattedBalances[user] = Number(formatUnits(balance, 18));
     }
   }
   return formattedBalances;

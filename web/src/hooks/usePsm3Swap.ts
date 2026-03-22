@@ -1,12 +1,11 @@
 import { PSM3_ABI, PSM3_REFERRAL_CODE } from "@/abi/psm3";
 import { useApproveTokens } from "@/hooks/useApproveTokens";
-import { Execution, useCheck7702Support } from "@/hooks/useCheck7702Support";
-import { fetchNeededApprovals, getApprovals7702 } from "@/hooks/useMissingApprovals";
-import { SupportedChain } from "@/lib/chains";
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { PSM3_ADDRESS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { Execution, SupportedChain, fetchNeededApprovals, getApprovals7702 } from "@seer-pm/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { readContract, sendCalls, writeContract } from "@wagmi/core";
 import { Address, encodeFunctionData, erc20Abi } from "viem";
@@ -127,7 +126,7 @@ async function psm3Swap7702(params: Psm3SwapParams, address: Address): Promise<u
     throw new Error("PSM3 not available");
   }
 
-  const needed = await fetchNeededApprovals([assetIn], address, psm3Address, [amountIn], chainId);
+  const needed = await fetchNeededApprovals(config, [assetIn], address, psm3Address, [amountIn], chainId);
   const calls: Execution[] = getApprovals7702({
     tokensAddresses: needed.map((n) => n.tokenAddress),
     account: address,

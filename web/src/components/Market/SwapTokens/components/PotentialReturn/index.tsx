@@ -1,7 +1,7 @@
-import { COLLATERAL_TOKENS } from "@/lib/config";
 import { QuestionIcon } from "@/lib/icons";
-import { Market, MarketTypes, getMarketType } from "@/lib/market";
-import { Token } from "@/lib/tokens";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
+import type { Token } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import PotentialReturnConfig from "./PotentialReturnConfig";
 import { PotentialReturnResult } from "./PotentialReturnResult";
 

@@ -1,6 +1,6 @@
-import { OrderDirection, Transfer_Filter, Transfer_OrderBy, getSdk } from "@/hooks/queries/gql-generated-tokens";
-import { SupportedChain } from "@/lib/chains";
-import { TokenTransfer } from "@/lib/tokens";
+import type { SupportedChain } from "@seer-pm/sdk";
+import type { TokenTransfer } from "@seer-pm/sdk";
+import { OrderDirection, Transfer_Filter, Transfer_OrderBy, getSdk } from "@seer-pm/sdk/subgraph/tokens";
 import { Address } from "viem";
 import { swaprGraphQLClient } from "./subgraph";
 

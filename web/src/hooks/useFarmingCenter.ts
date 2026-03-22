@@ -1,13 +1,13 @@
-import { SupportedChain } from "@/lib/chains";
 import { SWAPR_CONFIG } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { PoolDeposit, PoolIncentive, PoolInfo } from "@seer-pm/react";
+import type { SupportedChain } from "@seer-pm/sdk";
+import type { Execution } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { sendTransaction } from "@wagmi/core";
 import { Address, TransactionReceipt, encodeFunctionData } from "viem";
-import { Execution } from "./useCheck7702Support";
-import { PoolDeposit, PoolIncentive, PoolInfo } from "./useMarketPools";
 
 interface FarmingProps {
   farmingCenter: Address;

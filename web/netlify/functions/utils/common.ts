@@ -1,4 +1,5 @@
-import { SupportedChain, sepolia } from "@/lib/chains";
+import { sepolia } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { getPublicClient } from "@wagmi/core";
 import { Address } from "viem";
 import { config } from "./config";

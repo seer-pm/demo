@@ -1,5 +1,5 @@
 import { useApproveTokens } from "@/hooks/useApproveTokens";
-import { SupportedChain } from "@/lib/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 import Button from "./Button";
 

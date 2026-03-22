@@ -1,18 +1,17 @@
-import { getSdk as getUniswapSdk } from "@/hooks/queries/gql-generated-uniswap";
-import { SupportedChain } from "@/lib/chains";
-import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@/lib/market";
-import { getMarketEstimate } from "@/lib/market-odds";
-import { normalizeOdds } from "@/lib/market-odds";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@/lib/subgraph";
-import { subDays } from "date-fns";
-import { formatUnits } from "viem";
-import { gnosis } from "viem/chains";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import { getMarketEstimate, normalizeOdds } from "@seer-pm/sdk";
 import {
   GetPoolHourDatasQuery,
   Mint_OrderBy,
   OrderDirection,
   getSdk as getSwaprSdk,
-} from "../queries/gql-generated-swapr";
+} from "@seer-pm/sdk/subgraph/swapr";
+import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
+import { subDays } from "date-fns";
+import { formatUnits } from "viem";
+import { gnosis } from "viem/chains";
 import { ChartData } from "./useChartData";
 
 export type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];

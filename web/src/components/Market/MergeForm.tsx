@@ -3,11 +3,11 @@ import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
-import { useTokenBalance, useTokenBalances } from "@/hooks/useTokenBalance";
-import { useTokensInfo } from "@/hooks/useTokenInfo";
-import { getRouterAddress } from "@/lib/config";
-import { Market } from "@/lib/market";
 import { displayBalance } from "@/lib/utils";
+import { useTokenBalance, useTokenBalances } from "@seer-pm/react";
+import { useTokensInfo } from "@seer-pm/react";
+import { Market } from "@seer-pm/sdk";
+import { getRouterAddress } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -86,7 +86,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
       amounts: parsedAmount,
       chainId: market.chainId,
     },
-    (/*receipt: TransactionReceipt*/) => {
+    () => {
       reset();
     },
   );

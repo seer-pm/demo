@@ -1,8 +1,6 @@
-import { useTokenInfo } from "@/hooks/useTokenInfo";
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
-import { getMarketStatus } from "@/lib/market";
-import { MarketStatus } from "@/lib/market";
-import { Market } from "@/lib/market";
+import { useTokenInfo } from "@seer-pm/react";
+import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
