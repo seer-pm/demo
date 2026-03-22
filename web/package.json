@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "yarn server:dev",
     "prod": "yarn build && yarn server:prod",
-    "build": "yarn generate && tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
+    "build": "tsc && cross-env NODE_OPTIONS=--max-old-space-size=4096 vike build",
     "lint": "biome check --write ./src ./netlify ../packages",
     "generate": "yarn workspace @seer-pm/sdk generate",
     "server:dev": "npx tsx server/index.js",
