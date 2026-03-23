@@ -1,6 +1,6 @@
 import React from "react";
 import type { Market, SupportedChain, VerificationStatus } from "@seer-pm/sdk";
-import { MarketStatus, getMarketType, MARKET_TYPES_TEXTS, getMarketStatus, STATUS_TEXTS, getRedeemRouter } from "@seer-pm/sdk";
+import { MarketStatus, getMarketType, MARKET_TYPES_TEXTS, getMarketStatus, STATUS_TEXTS } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 import { useMarket, useMarketHasLiquidity } from "@seer-pm/react";
@@ -52,8 +52,7 @@ export const MarketDetailPage: React.FC<MarketDetailPageProps> = ({ marketId, ch
   const typeText = MARKET_TYPES_TEXTS[getMarketType(market)];
   const statusText = STATUS_TEXTS[getMarketStatus(market)](hasLiquidity);
   const seerMarketPath = `https://app.seer.pm/markets/${market.chainId}/${market.url || market.id}`;
-  const redeemRouter = getRedeemRouter(false, market);
-  const { data: winningPositionsData } = useWinningPositions(address, market, redeemRouter);
+  const { data: winningPositionsData } = useWinningPositions(address, market);
   const hasWinningPositionsToRedeem =
     !!winningPositionsData?.winningPositions && winningPositionsData.winningOutcomeIndexes.length > 0;
 

@@ -24,6 +24,8 @@ export {
   MARKET_CATEGORIES,
 } from "./create-market";
 export type { CreateMarketProps, CreateMarketParams } from "./create-market";
+export { validateNewMarket } from "./validate-new-market";
+export type { NewMarketValidationIssue } from "./validate-new-market";
 export {
   INVALID_RESULT_OUTCOME,
   INVALID_RESULT_OUTCOME_TEXT,
@@ -149,6 +151,7 @@ export {
   cancelCowOrder,
   cancelEthFlowOrder,
   clientToSigner,
+  viemClientToSigner,
   createCowOrder,
   ETH_FLOW_ADDRESS,
   executeCoWTrade,
@@ -180,6 +183,10 @@ export {
   getMarketOdds,
   getMarketEstimate,
 } from "./market-odds";
+export { getMarketPositions } from "./get-market-positions";
+export type { MarketPosition } from "./get-market-positions";
+export { getWinningPositions } from "./get-winning-positions";
+export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
 export { isSeerCredits } from "./seer-credits";
 

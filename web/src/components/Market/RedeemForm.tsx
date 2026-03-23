@@ -42,7 +42,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
 
   const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market);
 
-  const { data: winningPositionsData, isPending } = useWinningPositions(account, market, router);
+  const { data: winningPositionsData, isPending } = useWinningPositions(account, market);
   const { winningPositions = [], winningOutcomeIndexes = [] } = winningPositionsData || {};
 
   const redeemAmounts = winningPositions.map((wp) => wp.balance);

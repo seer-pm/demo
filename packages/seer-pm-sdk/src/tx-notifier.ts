@@ -1,5 +1,5 @@
-import type { Config, SendCallsReturnType } from "@wagmi/core";
-import type { TransactionReceipt } from "viem";
+import type { Config } from "@wagmi/core";
+import type { SendCallsReturnType, TransactionReceipt } from "viem";
 import type { SupportedChain } from "./chains";
 import type { Execution } from "./execution";
 

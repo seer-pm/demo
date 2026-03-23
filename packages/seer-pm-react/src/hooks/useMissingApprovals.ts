@@ -2,7 +2,7 @@ import type { GetApprovals7702Props } from "@seer-pm/sdk";
 import { fetchNeededApprovals, getTokenInfo } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
-import { useConfig } from "wagmi";
+import { useClient } from "wagmi";
 
 export type UseMissingApprovalsProps = GetApprovals7702Props;
 
@@ -14,7 +14,7 @@ export interface UseMissingApprovalsReturn {
 }
 
 export function useMissingApprovals(props: UseMissingApprovalsProps | undefined) {
-  const config = useConfig();
+  const client = useClient({ chainId: props?.chainId });
 
   let approvalAmounts: bigint[] = [];
   if (!props) {
@@ -26,7 +26,7 @@ export function useMissingApprovals(props: UseMissingApprovalsProps | undefined)
   }
 
   return useQuery<UseMissingApprovalsReturn[] | undefined, Error>({
-    enabled: Boolean(props?.tokensAddresses.length && props?.account),
+    enabled: Boolean(client && props?.tokensAddresses.length && props?.account),
     queryKey: [
       "useMissingApprovals",
       props?.tokensAddresses,
@@ -37,16 +37,9 @@ export function useMissingApprovals(props: UseMissingApprovalsProps | undefined)
     ],
     queryFn: async () => {
       const { tokensAddresses, account, spender, chainId } = props!;
-      const missingApprovals = await fetchNeededApprovals(
-        config,
-        tokensAddresses,
-        account!,
-        spender,
-        approvalAmounts,
-        chainId,
-      );
+      const missingApprovals = await fetchNeededApprovals(client!, tokensAddresses, account!, spender, approvalAmounts);
       const tokensInfo = await Promise.all(
-        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId, config)),
+        missingApprovals.map((missingApproval) => getTokenInfo(missingApproval.tokenAddress, chainId, client!)),
       );
 
       return missingApprovals.map((missingApproval, i) => ({

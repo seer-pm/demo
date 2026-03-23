@@ -2,10 +2,9 @@
  * Token info (decimals, name, symbol) via ERC20 reads.
  */
 
-import type { Config } from "@wagmi/core";
-import { readContracts } from "@wagmi/core";
-import type { Address } from "viem";
+import type { Address, Client } from "viem";
 import { erc20Abi } from "viem";
+import { multicall } from "viem/actions";
 import { gnosis } from "viem/chains";
 import type { SupportedChain } from "./chains";
 import { NATIVE_TOKEN } from "./tokens";
@@ -18,7 +17,7 @@ export interface GetTokenResult {
   symbol: string;
 }
 
-export async function getTokenInfo(address: Address, chainId: SupportedChain, config: Config): Promise<GetTokenResult> {
+export async function getTokenInfo(address: Address, chainId: SupportedChain, client: Client): Promise<GetTokenResult> {
   if (address.toLowerCase() === NATIVE_TOKEN.toLowerCase()) {
     return {
       address,
@@ -29,26 +28,23 @@ export async function getTokenInfo(address: Address, chainId: SupportedChain, co
     };
   }
 
-  const [decimals, name, symbol] = await readContracts(config, {
+  const [decimals, name, symbol] = await multicall(client, {
     allowFailure: false,
     contracts: [
       {
         address,
         abi: erc20Abi,
         functionName: "decimals",
-        chainId,
       },
       {
         address,
         abi: erc20Abi,
         functionName: "name",
-        chainId,
       },
       {
         address,
         abi: erc20Abi,
         functionName: "symbol",
-        chainId,
       },
     ],
   });
