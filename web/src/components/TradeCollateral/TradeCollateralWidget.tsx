@@ -117,7 +117,11 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
   const getToken = useMemo(() => getOptions.find((t) => t.address === getAddress), [getOptions, getAddress]);
 
   const canUsePsm3 = isOptimismOrBase && !!PSM3_ADDRESS[chainId] && !!payToken && !!getToken;
-  const { data: previewAmountOut, isLoading: isPreviewLoading } = usePsm3Preview(
+  const {
+    data: previewAmountOut,
+    isLoading: isPreviewLoading,
+    isFetching: isPreviewFetching,
+  } = usePsm3Preview(
     chainId,
     canUsePsm3 ? payToken!.address : undefined,
     canUsePsm3 ? getToken!.address : undefined,
@@ -231,13 +235,14 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
             !previewAmountOut ||
             !payToken ||
             !getToken ||
+            isPreviewFetching ||
             psm3Swap.isPending ||
             (payBalance !== undefined && amountInBigInt > payBalance)
           }
-          isLoading={psm3Swap.isPending || isPreviewLoading}
+          isLoading={psm3Swap.isPending || isPreviewLoading || isPreviewFetching}
           text="Swap"
           onClick={() => {
-            if (!address || !amountInBigInt || !previewAmountOut || !payToken || !getToken) return;
+            if (!address || !amountInBigInt || !previewAmountOut || !payToken || !getToken || isPreviewFetching) return;
             const minAmountOut = (previewAmountOut * (10000n - SLIPPAGE_BPS)) / 10000n;
             psm3Swap
               .mutateAsync({

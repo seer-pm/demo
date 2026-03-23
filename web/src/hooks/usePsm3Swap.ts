@@ -7,9 +7,9 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { Execution, SupportedChain, fetchNeededApprovals, getApprovals7702 } from "@seer-pm/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { readContract, sendCalls, writeContract } from "@wagmi/core";
+import { getConnectorClient, readContract, sendCalls, writeContract } from "@wagmi/core";
 import { Address, Client, encodeFunctionData, erc20Abi } from "viem";
-import { useAccount, useClient } from "wagmi";
+import { useAccount } from "wagmi";
 
 export function usePsm3Preview(
   chainId: SupportedChain,
@@ -163,10 +163,9 @@ async function psm3Swap7702(params: Psm3SwapParams, client: Client): Promise<unk
 }
 
 const usePsm3Swap7702Hook = () => {
-  const client = useClient();
-
   return useMutation({
     mutationFn: async (params: Psm3SwapParams) => {
+      const client = await getConnectorClient(config, { chainId: params.chainId });
       if (!client?.account) {
         throw new Error("Wallet client not connected");
       }
