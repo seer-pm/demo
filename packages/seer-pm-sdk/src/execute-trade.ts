@@ -10,12 +10,11 @@ import {
   type UnsignedOrder,
 } from "@cowprotocol/cow-sdk";
 import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
-import type { Config } from "@wagmi/core";
-import { sendTransaction } from "@wagmi/core";
 import { Contract, providers } from "ethers";
 import type { Signer } from "ethers";
-import type { Address, Hex } from "viem";
+import type { Address, Client, Hex } from "viem";
 import { decodeFunctionData, encodeFunctionData, parseUnits, zeroAddress } from "viem";
+import { sendTransaction } from "viem/actions";
 import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
 import { NATIVE_TOKEN } from "./collateral";
 import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI, UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
@@ -306,14 +305,13 @@ export async function cancelEthFlowOrder(signer: Signer, params: { order: Enrich
   return order.uid;
 }
 
-/**
- * Convert wagmi connector client to ethers Signer.
- */
-export function clientToSigner(client: {
+type SignerCompatibleClient = {
   account: { address: Address };
   chain: { id: number; name: string };
   transport: unknown;
-}): Signer {
+};
+
+function toEthersSigner(client: SignerCompatibleClient): Signer {
   const { account, chain } = client;
   const network = {
     chainId: chain.id,
@@ -321,6 +319,28 @@ export function clientToSigner(client: {
   };
   const provider = new providers.Web3Provider(client.transport as providers.ExternalProvider, network);
   return provider.getSigner(account.address);
+}
+
+/**
+ * Convert a viem client with account+chain to ethers Signer.
+ */
+export function viemClientToSigner(client: Client): Signer {
+  if (!client.account || !client.chain) {
+    throw new Error("Wallet client must include account and chain");
+  }
+
+  return toEthersSigner({
+    account: { address: client.account.address },
+    chain: { id: client.chain.id, name: client.chain.name },
+    transport: client.transport,
+  });
+}
+
+/**
+ * Convert wagmi connector client to ethers Signer.
+ */
+export function clientToSigner(client: SignerCompatibleClient): Signer {
+  return toEthersSigner(client);
 }
 
 /**
@@ -353,7 +373,7 @@ export async function buildUniswapTradeExecution(
  * Execute Swapr trade. Returns tx hash; app should wrap with toastifyTx and wait for receipt.
  */
 export async function executeSwaprTrade(
-  config: Config,
+  client: Client,
   trade: SwaprV3Trade,
   account: Address,
   isBuyExactOutputNative: boolean,
@@ -361,20 +381,20 @@ export async function executeSwaprTrade(
   isSeerCredits: boolean,
 ): Promise<`0x${string}`> {
   const exec = await buildSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
-  return sendTransaction(config, exec);
+  return sendTransaction(client, { ...exec, account, chain: client.chain });
 }
 
 /**
  * Execute Uniswap trade. Returns tx hash; app should wrap with toastifyTx and wait for receipt.
  */
 export async function executeUniswapTrade(
-  config: Config,
+  client: Client,
   trade: UniswapTrade,
   account: Address,
   isSeerCredits: boolean,
 ): Promise<`0x${string}`> {
   const exec = await buildUniswapTradeExecution(trade, account, isSeerCredits);
-  return sendTransaction(config, exec);
+  return sendTransaction(client, { ...exec, account, chain: client.chain });
 }
 
 /**
@@ -386,10 +406,10 @@ export async function executeUniswapTrade(
  */
 export async function tradeTokens(
   props: TradeTokensProps,
-  adapters: { config: Config; getSigner?: () => Promise<Signer> },
+  adapters: { client: Client; getSigner?: () => Promise<Signer> },
 ): Promise<string> {
   const { trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
-  const { config, getSigner } = adapters;
+  const { client, getSigner } = adapters;
 
   if (trade instanceof CoWTrade) {
     if (!getSigner) {
@@ -400,10 +420,10 @@ export async function tradeTokens(
   }
 
   if (trade instanceof UniswapTrade) {
-    return executeUniswapTrade(config, trade, account, isSeerCredits);
+    return executeUniswapTrade(client, trade, account, isSeerCredits);
   }
 
-  return executeSwaprTrade(config, trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  return executeSwaprTrade(client, trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
 }
 
 /**

@@ -6,14 +6,13 @@ import {
   type TxNotifierFn,
   UniswapTrade,
   buildTradeCalls7702,
-  clientToSigner,
   tradeTokens as sdkTradeTokens,
+  viemClientToSigner,
 } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Config } from "@wagmi/core";
-import { getConnectorClient, sendCalls } from "@wagmi/core";
-import type { Address, TransactionReceipt } from "viem";
-import { useConfig } from "wagmi";
+import type { Address, Client, TransactionReceipt } from "viem";
+import { sendCalls } from "viem/actions";
+import { useConnectorClient } from "wagmi";
 import { useMissingTradeApproval } from "./useMissingTradeApproval";
 
 const EMPTY_APPROVALS = {
@@ -31,17 +30,13 @@ export interface TradeTokensProps {
 
 async function tradeTokens(
   props: TradeTokensProps,
-  config: Config,
+  client: Client,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
 ): Promise<string | TransactionReceipt> {
   const adapters = {
-    config,
-    getSigner: async () => {
-      const client = await getConnectorClient(config);
-      if (!client) throw new Error("No wallet connected");
-      return clientToSigner(client);
-    },
+    client,
+    getSigner: async () => viemClientToSigner(client),
   };
 
   if (props.trade instanceof CoWTrade) {
@@ -63,21 +58,22 @@ async function tradeTokens(
 
 async function tradeTokens7702(
   props: TradeTokensProps,
-  config: Config,
+  client: Client,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
 ): Promise<string | TransactionReceipt> {
   if (props.trade instanceof CoWTrade) {
-    return tradeTokens(props, config, orderNotifier, txNotifier);
+    return tradeTokens(props, client, orderNotifier, txNotifier);
   }
 
   const calls = await buildTradeCalls7702(props);
 
   const result = await txNotifier(
     () =>
-      sendCalls(config, {
+      sendCalls(client, {
         calls,
-        chainId: props.trade.chainId,
+        chain: client.chain,
+        account: client.account,
       }),
     {
       txSent: { title: "Executing trade..." },
@@ -101,14 +97,24 @@ function useTradeLegacy(
   txNotifier: TxNotifierFn,
   onOrderPlaced?: (orderUid: string) => void,
 ) {
-  const config = useConfig();
+  const { data: walletClient } = useConnectorClient({
+    chainId: trade?.chainId,
+    query: {
+      enabled: Boolean(trade),
+    },
+  });
   const queryClient = useQueryClient();
   const approvals = useMissingTradeApproval(account, trade);
 
   return {
     approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
     tradeTokens: useMutation({
-      mutationFn: (props: TradeTokensProps) => tradeTokens(props, config, orderNotifier, txNotifier),
+      mutationFn: async (props: TradeTokensProps) => {
+        if (!walletClient) {
+          throw new Error("No wallet client connected");
+        }
+        return tradeTokens(props, walletClient, orderNotifier, txNotifier);
+      },
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
           onOrderPlaced?.(result);
@@ -125,18 +131,29 @@ function useTradeLegacy(
 }
 
 function useTrade7702(
+  trade: Trade | undefined,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
   onOrderPlaced?: (orderUid: string) => void,
 ) {
-  const config = useConfig();
+  const { data: walletClient } = useConnectorClient({
+    chainId: trade?.chainId,
+    query: {
+      enabled: Boolean(trade),
+    },
+  });
   const queryClient = useQueryClient();
 
   return {
     approvals: EMPTY_APPROVALS,
     tradeTokens: useMutation({
-      mutationFn: (props: TradeTokensProps) => tradeTokens7702(props, config, orderNotifier, txNotifier),
+      mutationFn: async (props: TradeTokensProps) => {
+        if (!walletClient) {
+          throw new Error("No wallet client connected");
+        }
+        return tradeTokens7702(props, walletClient, orderNotifier, txNotifier);
+      },
       onSuccess: (result: string | TransactionReceipt) => {
         if (typeof result === "string") {
           onOrderPlaced?.(result);
@@ -162,7 +179,7 @@ export const useTrade = (
   txNotifier: TxNotifierFn,
   onOrderPlaced?: (orderUid: string) => void,
 ) => {
-  const trade7702 = useTrade7702(onSuccess, orderNotifier, txNotifier, onOrderPlaced);
+  const trade7702 = useTrade7702(trade, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
   const tradeLegacy = useTradeLegacy(
     account,
     trade,

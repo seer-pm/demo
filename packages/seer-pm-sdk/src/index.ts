@@ -24,6 +24,8 @@ export {
   MARKET_CATEGORIES,
 } from "./create-market";
 export type { CreateMarketProps, CreateMarketParams } from "./create-market";
+export { validateNewMarket } from "./validate-new-market";
+export type { NewMarketValidationIssue } from "./validate-new-market";
 export {
   INVALID_RESULT_OUTCOME,
   INVALID_RESULT_OUTCOME_TEXT,
@@ -120,7 +122,7 @@ export {
 export type { Token, CollateralTokensMap } from "./collateral";
 export { WRAPPED_OUTCOME_TOKEN_DECIMALS, EMPTY_TOKEN } from "./tokens";
 export type { TokenTransfer } from "./tokens";
-export { getTokenInfo } from "./token-info";
+export { getTokenInfo, getTokensInfo } from "./token-info";
 export type { GetTokenResult } from "./token-info";
 export { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 export type { ApprovalInfo, GetApprovals7702Props } from "./approvals";
@@ -149,6 +151,7 @@ export {
   cancelCowOrder,
   cancelEthFlowOrder,
   clientToSigner,
+  viemClientToSigner,
   createCowOrder,
   ETH_FLOW_ADDRESS,
   executeCoWTrade,
@@ -180,6 +183,10 @@ export {
   getMarketOdds,
   getMarketEstimate,
 } from "./market-odds";
+export { getMarketPositions } from "./get-market-positions";
+export type { MarketPosition } from "./get-market-positions";
+export { getWinningPositions } from "./get-winning-positions";
+export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
 export { isSeerCredits } from "./seer-credits";
 

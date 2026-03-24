@@ -2,18 +2,19 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
-import { config } from "@/wagmi";
-import { getTokenInfo } from "@seer-pm/sdk";
+import { getTokensInfo } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { OrderBookApi, OrderStatus, type SupportedChainId } from "@seer-pm/sdk";
 import { useEffect } from "react";
-import { useAccount } from "wagmi";
+import type { Client } from "viem";
+import { useAccount, useClient } from "wagmi";
 
 const SWAP_STATUS_CHECK_INTERVAL = 3000;
 
 async function updateOrders(
   pendingOrders: string[],
   chainId: SupportedChainId,
+  client: Client,
   removePendingOrder: (orderId: string) => void,
 ) {
   if (pendingOrders.length === 0) {
@@ -30,10 +31,11 @@ async function updateOrders(
         return;
       }
 
-      const [buyToken, sellToken] = await Promise.all([
-        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain, config),
-        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain, config),
-      ]);
+      const [buyToken, sellToken] = await getTokensInfo(
+        [order.buyToken as `0x${string}`, order.sellToken as `0x${string}`],
+        chainId as SupportedChain,
+        client,
+      );
 
       if (order.status === OrderStatus.FULFILLED) {
         toastSuccess({
@@ -60,18 +62,19 @@ async function updateOrders(
 export function SwapUpdater() {
   const { pendingOrders, removePendingOrder } = useGlobalState();
   const { chainId } = useAccount();
+  const client = useClient({ chainId });
 
   useEffect(() => {
-    if (!chainId) {
+    if (!chainId || !client) {
       return;
     }
 
     const intervalId = setInterval(async () => {
-      await updateOrders(pendingOrders, chainId, removePendingOrder);
+      await updateOrders(pendingOrders, chainId, client, removePendingOrder);
     }, SWAP_STATUS_CHECK_INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [chainId, pendingOrders]);
+  }, [chainId, client, pendingOrders, removePendingOrder]);
 
   return <></>;
 }

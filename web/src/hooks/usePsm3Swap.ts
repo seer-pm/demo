@@ -7,8 +7,8 @@ import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { Execution, SupportedChain, fetchNeededApprovals, getApprovals7702 } from "@seer-pm/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { readContract, sendCalls, writeContract } from "@wagmi/core";
-import { Address, encodeFunctionData, erc20Abi } from "viem";
+import { getConnectorClient, readContract, sendCalls, writeContract } from "@wagmi/core";
+import { Address, Client, encodeFunctionData, erc20Abi } from "viem";
 import { useAccount } from "wagmi";
 
 export function usePsm3Preview(
@@ -119,14 +119,18 @@ const usePsm3SwapLegacy = () => {
   });
 };
 
-async function psm3Swap7702(params: Psm3SwapParams, address: Address): Promise<unknown> {
+async function psm3Swap7702(params: Psm3SwapParams, client: Client): Promise<unknown> {
   const { chainId, assetIn, amountIn } = params;
   const psm3Address = PSM3_ADDRESS[chainId];
   if (!psm3Address) {
     throw new Error("PSM3 not available");
   }
+  const address = client.account?.address;
+  if (!address) {
+    throw new Error("Wallet account not connected");
+  }
 
-  const needed = await fetchNeededApprovals(config, [assetIn], address, psm3Address, [amountIn], chainId);
+  const needed = await fetchNeededApprovals(client, [assetIn], address, psm3Address, [amountIn]);
   const calls: Execution[] = getApprovals7702({
     tokensAddresses: needed.map((n) => n.tokenAddress),
     account: address,
@@ -159,14 +163,13 @@ async function psm3Swap7702(params: Psm3SwapParams, address: Address): Promise<u
 }
 
 const usePsm3Swap7702Hook = () => {
-  const { address } = useAccount();
-
   return useMutation({
     mutationFn: async (params: Psm3SwapParams) => {
-      if (!address) {
-        throw new Error("Wallet not connected");
+      const client = await getConnectorClient(config, { chainId: params.chainId });
+      if (!client?.account) {
+        throw new Error("Wallet client not connected");
       }
-      return psm3Swap7702(params, address);
+      return psm3Swap7702(params, client);
     },
   });
 };

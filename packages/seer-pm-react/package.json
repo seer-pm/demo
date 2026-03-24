@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/react",
-  "version": "0.0.7",
+  "version": "0.0.10",
   "description": "React hooks for the Seer prediction market protocol",
   "license": "MIT",
   "author": "Seer",
@@ -25,7 +25,8 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
     "@seer-pm/sdk": "~0.0.1",

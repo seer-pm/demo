@@ -2,10 +2,9 @@
  * ERC20 approval helpers: fetch needed approvals and build 7702 approval calls.
  */
 
-import type { Config } from "@wagmi/core";
-import { readContracts } from "@wagmi/core";
-import type { Address } from "viem";
+import type { Address, Client } from "viem";
 import { encodeFunctionData, erc20Abi } from "viem";
+import { multicall } from "viem/actions";
 import type { SupportedChain } from "./chains";
 import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
@@ -17,12 +16,11 @@ export interface ApprovalInfo {
 }
 
 export async function fetchNeededApprovals(
-  config: Config,
+  client: Client,
   tokensAddresses: Address[],
   account: Address,
   spender: Address,
   amounts: bigint[],
-  chainId: SupportedChain,
 ): Promise<ApprovalInfo[]> {
   if (tokensAddresses.length !== amounts.length) {
     throw new Error("Invalid tokens and amounts lengths");
@@ -32,14 +30,13 @@ export async function fetchNeededApprovals(
     return [];
   }
 
-  const allowances = await readContracts(config, {
+  const allowances = await multicall(client, {
     allowFailure: false,
     contracts: tokensAddresses.map((tokenAddress) => ({
       abi: erc20Abi,
       address: tokenAddress,
       functionName: "allowance",
       args: [account, spender],
-      chainId,
     })),
   });
 
