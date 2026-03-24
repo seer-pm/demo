@@ -1,5 +1,5 @@
 import type { GetTokenResult, SupportedChain } from "@seer-pm/sdk";
-import { getTokenInfo } from "@seer-pm/sdk";
+import { getTokenInfo, getTokensInfo } from "@seer-pm/sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { useClient } from "wagmi";
@@ -22,8 +22,7 @@ export function useTokensInfo(tokens: Address[] | undefined, chainId: SupportedC
     enabled: !!client && !isUndefined(tokens) && (tokens?.length ?? 0) > 0,
     queryKey: ["useTokens", tokens, chainId],
     queryFn: async () => {
-      const tokensInfo = await Promise.all(tokens!.map((token) => getTokenInfo(token, chainId, client!)));
-
+      const tokensInfo = await getTokensInfo(tokens!, chainId, client!);
       for (const tokenInfo of tokensInfo) {
         queryClient.setQueryData(
           getUseTokenQueryKey(tokenInfo.address, tokenInfo.chainId as SupportedChain),

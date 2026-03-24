@@ -122,7 +122,7 @@ export {
 export type { Token, CollateralTokensMap } from "./collateral";
 export { WRAPPED_OUTCOME_TOKEN_DECIMALS, EMPTY_TOKEN } from "./tokens";
 export type { TokenTransfer } from "./tokens";
-export { getTokenInfo } from "./token-info";
+export { getTokenInfo, getTokensInfo } from "./token-info";
 export type { GetTokenResult } from "./token-info";
 export { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 export type { ApprovalInfo, GetApprovals7702Props } from "./approvals";

@@ -2,7 +2,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
-import { getTokenInfo } from "@seer-pm/sdk";
+import { getTokensInfo } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { OrderBookApi, OrderStatus, type SupportedChainId } from "@seer-pm/sdk";
 import { useEffect } from "react";
@@ -31,10 +31,11 @@ async function updateOrders(
         return;
       }
 
-      const [buyToken, sellToken] = await Promise.all([
-        getTokenInfo(order.buyToken as `0x${string}`, chainId as SupportedChain, client),
-        getTokenInfo(order.sellToken as `0x${string}`, chainId as SupportedChain, client),
-      ]);
+      const [buyToken, sellToken] = await getTokensInfo(
+        [order.buyToken as `0x${string}`, order.sellToken as `0x${string}`],
+        chainId as SupportedChain,
+        client,
+      );
 
       if (order.status === OrderStatus.FULFILLED) {
         toastSuccess({

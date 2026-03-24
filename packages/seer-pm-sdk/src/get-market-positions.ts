@@ -2,7 +2,7 @@ import type { Address, Client } from "viem";
 import { erc20Abi } from "viem";
 import { multicall } from "viem/actions";
 import type { SupportedChain } from "./chains";
-import { getTokenInfo } from "./token-info";
+import { getTokensInfo } from "./token-info";
 
 export interface MarketPosition {
   tokenId: Address;
@@ -24,9 +24,7 @@ export const getMarketPositions = async ({
   wrappedTokens,
   chainId,
 }: GetMarketPositionsParams): Promise<MarketPosition[]> => {
-  const tokensInfo = await Promise.all(
-    wrappedTokens.map((wrappedAddress) => getTokenInfo(wrappedAddress, chainId, client)),
-  );
+  const tokensInfo = await getTokensInfo(wrappedTokens, chainId, client);
 
   const balances = (await multicall(client, {
     contracts: wrappedTokens.map((wrappedAddress) => ({
