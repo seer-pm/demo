@@ -14,6 +14,7 @@ import {
   isQuestionPending,
   isQuestionUnanswered,
 } from "./reality";
+export { unescapeJson } from "./reality";
 
 /** Outcome string from MarketView for the invalid outcome. */
 export const INVALID_RESULT_OUTCOME = "Invalid result";

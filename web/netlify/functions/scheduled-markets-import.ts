@@ -1,7 +1,8 @@
 import { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { graphQLClient } from "@seer-pm/sdk";
-import { WEATHER_CATEGORY, getMarketStatus } from "@seer-pm/sdk";
+import { WEATHER_CATEGORY } from "@seer-pm/sdk/create-market";
+import { getMarketStatus } from "@seer-pm/sdk/market";
+import { graphQLClient } from "@seer-pm/sdk/subgraph";
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { Address, privateKeyToAccount } from "viem/accounts";

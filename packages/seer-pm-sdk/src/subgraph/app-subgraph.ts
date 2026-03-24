@@ -19,7 +19,7 @@ export function getApiHost(): string {
   return apiHost;
 }
 
-export type AppSubgraphType = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "reality";
+export type AppSubgraphType = "seer" | "curate" | "uniswap" | "algebra" | "algebrafarming" | "reality" | "tokens";
 
 export function getAppSubgraphUrl(subgraphType: AppSubgraphType, chainId: number): string {
   return `${apiHost}/subgraph?_subgraph=${subgraphType}&_chainId=${chainId}`;
@@ -40,7 +40,10 @@ export function uniswapGraphQLClient(chainId: number): GraphQLClient | undefined
   return new GraphQLClient(getAppSubgraphUrl("uniswap", chainId));
 }
 
-export function swaprGraphQLClient(chainId: number, subgraph: "algebra" | "algebrafarming"): GraphQLClient | undefined {
+export function swaprGraphQLClient(
+  chainId: number,
+  subgraph: "algebra" | "algebrafarming" | "tokens",
+): GraphQLClient | undefined {
   if (chainId !== CHAIN_IDS.gnosis) {
     return undefined;
   }

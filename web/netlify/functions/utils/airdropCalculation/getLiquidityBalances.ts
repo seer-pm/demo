@@ -1,8 +1,9 @@
-import type { Token0Token1 } from "@seer-pm/sdk";
-import { getToken0Token1, isOpStack } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import { getSubgraphUrl } from "@seer-pm/sdk";
+import { isOpStack } from "@seer-pm/sdk/chains";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
+import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
+import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
+import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import { Address, zeroAddress } from "viem";
 import { mainnet } from "wagmi/chains";
 

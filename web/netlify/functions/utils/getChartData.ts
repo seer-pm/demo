@@ -1,13 +1,8 @@
 import { PoolHourDatasSets } from "@/hooks/chart/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
-import {
-  Market,
-  Token0Token1,
-  getMarketPoolsPairs,
-  swaprGraphQLClient,
-  tickToPrice,
-  uniswapGraphQLClient,
-} from "@seer-pm/sdk";
+import type { Market, SupportedChain, Token0Token1 } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk/liquidity-utils";
+import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
+import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import {
   GetPoolHourDatasQuery,
   GetSwapsQuery,
@@ -23,8 +18,8 @@ import {
 } from "@seer-pm/sdk/subgraph/uniswap";
 import { TickMath } from "@uniswap/v3-sdk";
 import combineQuery from "graphql-combine-query";
-import { gnosis } from "viem/chains";
 import pLimit from "p-limit";
+import { gnosis } from "viem/chains";
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -35,8 +30,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 }
 
 async function fetchBatch(poolsPairs: Token0Token1[], chainId: SupportedChain, startTime: number) {
-  const graphQLClient =
-    chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
     throw new Error("Subgraph not available");
@@ -64,18 +58,13 @@ async function fetchBatch(poolsPairs: Token0Token1[], chainId: SupportedChain, s
     })),
   );
 
-  const result = Object.values(
-    await graphQLClient.request<Record<string, any>>(document, variables),
-  );
+  // biome-ignore lint/suspicious/noExplicitAny: _
+  const result = Object.values(await graphQLClient.request<Record<string, any>>(document, variables));
 
   return result.map((x) => x[0]?.periodStartUnix);
 }
 
-async function getLastNotEmptyStartTime(
-  poolsPairs: Token0Token1[],
-  chainId: SupportedChain,
-  startTime: number,
-) {
+async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: SupportedChain, startTime: number) {
   if (poolsPairs.length === 0) {
     return [];
   }
@@ -98,8 +87,7 @@ async function getSwapsByToken(
   initialStartTime: number,
   chainId: SupportedChain,
 ): Promise<GetSwapsQuery["swaps"]> {
-  const graphQLClient =
-    chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
     throw new Error("Subgraph not available");
@@ -124,10 +112,7 @@ async function getSwapsByToken(
       },
     });
     total = total.concat(swaps);
-    if (
-      !swaps[swaps.length - 1]?.timestamp ||
-      Number(swaps[swaps.length - 1]?.timestamp) === startTime
-    ) {
+    if (!swaps[swaps.length - 1]?.timestamp || Number(swaps[swaps.length - 1]?.timestamp) === startTime) {
       break;
     }
     if (swaps.length < 1000) {
@@ -145,8 +130,7 @@ async function getPoolHourDatasByToken(
   initialStartTime: number,
   chainId: SupportedChain,
 ): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
-  const graphQLClient =
-    chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
     throw new Error("Subgraph not available");
@@ -244,8 +228,7 @@ export async function getChartData(market: Market): Promise<PoolHourDatasSets> {
   const poolsPairs = getMarketPoolsPairs(market);
 
   try {
-    const firstTimestamp =
-      market.blockTimestamp || Math.floor(new Date("2024-01-01").getTime() / 1000);
+    const firstTimestamp = market.blockTimestamp || Math.floor(new Date("2024-01-01").getTime() / 1000);
 
     return await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp);
   } catch (e) {

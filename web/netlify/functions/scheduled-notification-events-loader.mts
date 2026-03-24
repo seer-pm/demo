@@ -1,11 +1,11 @@
 import type { SupportedChain } from "@seer-pm/sdk";
+import { getAppSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
 import { getPublicClientForNetwork } from "./utils/common.ts";
 import { config as wagmiConfig } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
-import { getSubgraphUrl } from "./utils/subgraph.ts";
 
 interface NetworkContracts {
   realityETH: `0x${string}`;
@@ -37,7 +37,7 @@ const CTF_RESOLUTION_EVENT = parseAbiItem(
 );
 
 async function fetchSubgraph(query: string, variables: Record<string, string | string[]>, chainId: SupportedChain) {
-  const results = await fetch(getSubgraphUrl("seer", chainId), {
+  const results = await fetch(getAppSubgraphUrl("seer", chainId), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

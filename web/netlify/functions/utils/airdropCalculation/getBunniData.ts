@@ -1,9 +1,9 @@
 import { mainnet } from "@/lib/chains";
-import type { Token0Token1 } from "@seer-pm/sdk";
-import { getToken0Token1 } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
+import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
+import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
+import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import pLimit from "p-limit";
 import { Address, formatUnits, zeroAddress } from "viem";
 import { calculateBurnAmounts } from "./utils";

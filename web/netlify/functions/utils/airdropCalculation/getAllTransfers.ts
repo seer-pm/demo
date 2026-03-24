@@ -1,5 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { formatUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
 

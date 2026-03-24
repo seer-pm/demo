@@ -1,5 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { zeroAddress } from "viem";
 
 export interface SubgraphMarket {

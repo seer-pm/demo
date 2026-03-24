@@ -1,4 +1,4 @@
-import { ChainId, configureRpcProviders } from "@seer-pm/sdk";
+import { ChainId, configureRpcProviders } from "@seer-pm/sdk/swapr";
 import { http, createConfig } from "wagmi";
 import { base, gnosis, mainnet, optimism, sepolia } from "wagmi/chains";
 

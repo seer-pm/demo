@@ -1,6 +1,6 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk";
+import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { formatUnits, zeroAddress } from "viem";
 import { SER_LPP } from "./constants";
 import { Transfer } from "./getAllTransfers";

@@ -1,5 +1,5 @@
 import { isTwoStringsEqual } from "@/lib/utils";
-import { fetchMarket } from "@seer-pm/sdk";
+import { fetchMarket } from "@seer-pm/sdk/markets-fetch";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "./utils/auth";
 

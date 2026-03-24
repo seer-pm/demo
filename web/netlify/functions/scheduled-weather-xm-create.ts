@@ -1,8 +1,8 @@
 import { Config } from "@netlify/functions";
-import { MarketTypes } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk";
 import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
+import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk/create-market";
+import { MarketTypes } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
 import { simulateContract, writeContract } from "@wagmi/core";
 import { PrivateKeyAccount, parseEther, zeroAddress } from "viem";

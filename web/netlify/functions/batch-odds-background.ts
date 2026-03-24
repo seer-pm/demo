@@ -1,4 +1,4 @@
-import { getMarketOdds } from "@seer-pm/sdk";
+import { getMarketOdds } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import { chainIds, gnosis } from "./utils/config";

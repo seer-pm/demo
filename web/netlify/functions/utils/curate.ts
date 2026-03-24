@@ -1,12 +1,12 @@
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { isUndefined } from "@/lib/utils.ts";
-import type { VerificationResult } from "@seer-pm/sdk";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, VerificationResult } from "@seer-pm/sdk";
 import {
   lightGeneralizedTcrAbi,
   lightGeneralizedTcrAddress,
   readLightGeneralizedTcrChallengePeriodDuration,
 } from "@seer-pm/sdk/contracts/curate";
+import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { Status, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
@@ -15,7 +15,6 @@ import { getPublicClientForNetwork } from "./common.ts";
 import { config as wagmiConfig } from "./config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./logs.ts";
 import { readContractsInBatch } from "./readContractsInBatch.ts";
-import { curateGraphQLClient } from "./subgraph.ts";
 import { Json } from "./supabase.ts";
 
 interface VerificationItem {

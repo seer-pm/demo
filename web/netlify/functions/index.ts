@@ -1,5 +1,5 @@
-import { fetchMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
+import { fetchMarket } from "@seer-pm/sdk/markets-fetch";
 import { isAddress } from "viem";
 import { renderPage } from "vike/server";
 

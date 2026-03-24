@@ -1,14 +1,8 @@
 import { sepolia } from "@/lib/chains.ts";
 import { Config } from "@netlify/functions";
-import {
-  Question,
-  type SupportedChain,
-  decodeQuestion,
-  getAnswerText,
-  getRealityLink,
-  isScalarBoundInWei,
-} from "@seer-pm/sdk";
+import type { Question, SupportedChain } from "@seer-pm/sdk";
 import { realityAddress } from "@seer-pm/sdk/contracts/reality";
+import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
 import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";

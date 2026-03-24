@@ -1,8 +1,9 @@
 import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { getTokensInfo } from "@/hooks/portfolio/utils";
-import { MarketStatus, MarketTypes, getCollateralByIndex, getMarketType, getRedeemedPrice } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getMarketStatus, getQuestionParts } from "@seer-pm/sdk";
+import { MarketTypes, getMarketStatus, getMarketType, getQuestionParts, getRedeemedPrice } from "@seer-pm/sdk/market";
+import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
+import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { Address, formatUnits } from "viem";
 import { config } from "./utils/config";
 import { getMarketsMappings, searchMarkets } from "./utils/markets";

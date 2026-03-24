@@ -18,6 +18,71 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./market": {
+      "types": "./dist/market.d.ts",
+      "import": "./dist/market.mjs",
+      "require": "./dist/market.js"
+    },
+    "./market-types": {
+      "types": "./dist/market-types.d.ts",
+      "import": "./dist/market-types.mjs",
+      "require": "./dist/market-types.js"
+    },
+    "./subgraph": {
+      "types": "./dist/subgraph/index.d.ts",
+      "import": "./dist/subgraph/index.mjs",
+      "require": "./dist/subgraph/index.js"
+    },
+    "./swapr": {
+      "types": "./dist/swapr.d.ts",
+      "import": "./dist/swapr.mjs",
+      "require": "./dist/swapr.js"
+    },
+    "./create-market": {
+      "types": "./dist/create-market.d.ts",
+      "import": "./dist/create-market.mjs",
+      "require": "./dist/create-market.js"
+    },
+    "./market-pools": {
+      "types": "./dist/market-pools.d.ts",
+      "import": "./dist/market-pools.mjs",
+      "require": "./dist/market-pools.js"
+    },
+    "./collateral": {
+      "types": "./dist/collateral.d.ts",
+      "import": "./dist/collateral.mjs",
+      "require": "./dist/collateral.js"
+    },
+    "./markets-fetch": {
+      "types": "./dist/markets-fetch.d.ts",
+      "import": "./dist/markets-fetch.mjs",
+      "require": "./dist/markets-fetch.js"
+    },
+    "./market-odds": {
+      "types": "./dist/market-odds.d.ts",
+      "import": "./dist/market-odds.mjs",
+      "require": "./dist/market-odds.js"
+    },
+    "./reality": {
+      "types": "./dist/reality.d.ts",
+      "import": "./dist/reality.mjs",
+      "require": "./dist/reality.js"
+    },
+    "./liquidity-utils": {
+      "types": "./dist/liquidity-utils.d.ts",
+      "import": "./dist/liquidity-utils.mjs",
+      "require": "./dist/liquidity-utils.js"
+    },
+    "./chains": {
+      "types": "./dist/chains.d.ts",
+      "import": "./dist/chains.mjs",
+      "require": "./dist/chains.js"
+    },
+    "./cow": {
+      "types": "./dist/cow.d.ts",
+      "import": "./dist/cow.mjs",
+      "require": "./dist/cow.js"
+    },
     "./contracts/curate": {
       "types": "./generated/contracts/curate.ts",
       "import": "./dist/generated/contracts/curate.mjs",
@@ -103,8 +168,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chains.ts src/cow.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chains.ts src/cow.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:hooks && yarn generate:gql",
     "generate:hooks": "wagmi generate",
