@@ -1,7 +1,7 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
-import { config as wagmiConfig } from "./config.ts";
+import { getBlockNumber } from "viem/actions";
+import { getPublicClientByChainId } from "./config.ts";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -15,9 +15,8 @@ export async function getLastProcessedBlock(networkId: SupportedChain, key: stri
     }
 
     // default to current block - 100
-    const currentBlock = await getBlockNumber(wagmiConfig, {
-      chainId: networkId,
-    });
+    const publicClient = getPublicClientByChainId(networkId);
+    const currentBlock = await getBlockNumber(publicClient);
     return currentBlock - 100n;
   }
 

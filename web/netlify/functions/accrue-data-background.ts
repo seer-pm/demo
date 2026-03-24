@@ -1,4 +1,3 @@
-import { getTokenPricesMapping } from "@/hooks/portfolio/utils";
 import { gnosis } from "@/lib/chains";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
@@ -6,11 +5,12 @@ import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getCollateralByIndex, getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { fetchMarkets } from "@seer-pm/sdk/markets-fetch";
-import { Address } from "viem";
+import type { Address } from "viem";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import { fetchPools } from "./utils/fetchPools";
 import { getMainCollateralPriceByChainMapping } from "./utils/getMarketsLiquidity";
 import { getMarketsMappings } from "./utils/markets";
+import { getTokenPricesMapping } from "./utils/portfolio";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   const transfers = await getAllTransfers("tokens", chainId);

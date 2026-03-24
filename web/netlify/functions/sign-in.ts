@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { verifyMessage } from "@wagmi/core";
 import jwt from "jsonwebtoken";
+import type { PublicClient } from "viem";
+import { verifyMessage } from "viem/actions";
 import { parseSiweMessage } from "viem/siwe";
-import { config } from "./utils/config";
+import { getPublicClientByChainId } from "./utils/config";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -20,9 +21,15 @@ export default async (req: Request) => {
     // Parse the SIWE message
     const siweMessage = parseSiweMessage(message);
     const address = siweMessage.address!;
+    let publicClient: PublicClient;
+    try {
+      publicClient = getPublicClientByChainId(siweMessage.chainId);
+    } catch {
+      return new Response(JSON.stringify({ error: "Unsupported chain" }), { status: 400 });
+    }
 
     // Verify the signature
-    const isValid = await verifyMessage(config, {
+    const isValid = await verifyMessage(publicClient, {
       address,
       message,
       signature,

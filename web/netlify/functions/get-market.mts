@@ -3,7 +3,7 @@ import { serializeMarket } from "@seer-pm/sdk/market-types";
 import { CORS_HEADERS } from "./utils/common";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {
-  SubgraphMarket,
+  type SubgraphMarket,
   getDatabaseMarket,
   getMarketId,
   getSubgraphMarket,

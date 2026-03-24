@@ -1,23 +1,23 @@
-import { MarketDataMapping, getMappings } from "@/hooks/portfolio/getMappings";
-import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getBlock } from "@wagmi/core";
-import { Address } from "viem";
-import { config } from "./utils/config";
+import type { Address } from "viem";
+import { getBlock } from "viem/actions";
+import { getPublicClientByChainId } from "./utils/config";
 import { searchMarkets } from "./utils/markets";
+import { type MarketDataMapping, type TransactionData, getMappings } from "./utils/portfolio";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./utils/transactions/getSwapEvents";
 
-async function getBlockTimestamp(initialBlockNumber: number) {
+async function getBlockTimestamp(chainId: SupportedChain, initialBlockNumber: number) {
   let blockNumber = initialBlockNumber;
   const maxAttempts = 10; // Limit the number of attempts
   let attempts = 0;
+  const client = getPublicClientByChainId(chainId);
 
   while (attempts < maxAttempts) {
     try {
-      const block = await getBlock(config, { blockNumber: BigInt(blockNumber) });
+      const block = await getBlock(client, { blockNumber: BigInt(blockNumber) });
       if (block.timestamp) {
         return Number(block.timestamp);
       }
@@ -90,7 +90,7 @@ async function getTransactions(
   const data = await getEvents(mappings, account, chainId, startTime, endTime, eventType);
 
   // get timestamp
-  const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(x.blockNumber)));
+  const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(chainId, x.blockNumber)));
 
   return data
     .map((x, index) => {

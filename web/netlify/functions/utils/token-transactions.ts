@@ -1,7 +1,7 @@
 import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
 import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { OrderDirection, Transfer_Filter, Transfer_OrderBy, getSdk } from "@seer-pm/sdk/subgraph/tokens";
-import { Address } from "viem";
+import { OrderDirection, type Transfer_Filter, Transfer_OrderBy, getSdk } from "@seer-pm/sdk/subgraph/tokens";
+import type { Address } from "viem";
 
 export async function getAllTransactions(
   where: Transfer_Filter,

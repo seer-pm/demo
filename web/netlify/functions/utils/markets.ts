@@ -3,12 +3,12 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, unescapeJson } from "@seer-pm/sdk/market";
 import type { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk/market-types";
 import { graphQLClient } from "@seer-pm/sdk/subgraph";
-import { GetMarketQuery, Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
+import { type GetMarketQuery, type Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
-import { readContracts } from "@wagmi/core";
-import { Address, erc20Abi, zeroAddress, zeroHash } from "viem";
-import { config } from "./config";
-import { Database, Json } from "./supabase";
+import { type Address, erc20Abi, zeroAddress, zeroHash } from "viem";
+import { multicall } from "viem/actions";
+import { getPublicClientByChainId } from "./config";
+import type { Database, Json } from "./supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -354,11 +354,11 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
   const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];
 
   // [tokenBalance, ..., ...]
-  const balances = (await readContracts(config, {
+  const client = getPublicClientByChainId(chainId);
+  const balances = (await multicall(client, {
     contracts: allTokensIds.map((wrappedAddresses) => ({
       abi: erc20Abi,
       address: wrappedAddresses,
-      chainId,
       functionName: "balanceOf",
       args: [address],
     })),

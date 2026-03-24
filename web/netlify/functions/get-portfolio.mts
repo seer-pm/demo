@@ -1,12 +1,11 @@
-import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
-import { getTokensInfo } from "@/hooks/portfolio/utils";
+import type { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { MarketTypes, getMarketStatus, getMarketType, getQuestionParts, getRedeemedPrice } from "@seer-pm/sdk/market";
 import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
-import { Address, formatUnits } from "viem";
-import { config } from "./utils/config";
+import { type Address, formatUnits } from "viem";
 import { getMarketsMappings, searchMarkets } from "./utils/markets";
+import { getTokensInfo } from "./utils/portfolio";
 
 async function fetchPositions(address: Address, chainId: SupportedChain) {
   const { markets } = await searchMarkets({ chainIds: [chainId] });
@@ -18,11 +17,7 @@ async function fetchPositions(address: Address, chainId: SupportedChain) {
   const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
 
   const allTokensIds = Object.keys(tokenToMarket) as Address[];
-  const {
-    balances,
-    names: tokenNames,
-    decimals: tokenDecimals,
-  } = await getTokensInfo(config, chainId, allTokensIds, address);
+  const { balances, names: tokenNames, decimals: tokenDecimals } = await getTokensInfo(chainId, allTokensIds, address);
 
   return balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {

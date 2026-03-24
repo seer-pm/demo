@@ -1,6 +1,6 @@
-import { readContracts } from "@wagmi/core";
-import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
-import { chainIds, config, gnosis } from "./config.ts";
+import { type Address, erc20Abi, formatUnits, zeroAddress } from "viem";
+import { multicall } from "viem/actions";
+import { chainIds, getPublicClientByChainId, gnosis } from "./config.ts";
 
 import { isTwoStringsEqual } from "@/lib/utils.ts";
 import type { SupportedChain } from "@seer-pm/sdk";
@@ -38,17 +38,17 @@ export async function fetchTokenBalances(
   retry?: boolean,
 ) {
   try {
+    const client = getPublicClientByChainId(chainId);
     // try to batch call
     let balances: bigint[] = [];
     for (let i = 0; i < Math.ceil(tokenList.length / groupCount); i++) {
-      const data = await readContracts(config, {
+      const data = await multicall(client, {
         allowFailure: false,
         contracts: tokenList.slice(i * groupCount, (i + 1) * groupCount).map(({ token, owner }) => ({
           address: token,
           abi: erc20Abi,
           args: [owner],
           functionName: "balanceOf",
-          chainId,
         })),
         batchSize: 0,
       });

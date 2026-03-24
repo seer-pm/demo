@@ -1,15 +1,15 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getTransactionReceipt, waitForTransactionReceipt } from "@wagmi/core";
 import { TransactionNotFoundError, TransactionReceiptNotFoundError, WaitForTransactionReceiptTimeoutError } from "viem";
-import { config } from "./config";
+import { getTransactionReceipt, waitForTransactionReceipt } from "viem/actions";
+import { getPublicClientByChainId } from "./config";
 
 export const waitForContractWrite = async (contractWrite: () => Promise<`0x${string}`>, chainId: SupportedChain) => {
   let hash: `0x${string}` | undefined = undefined;
   try {
+    const publicClient = getPublicClientByChainId(chainId);
     hash = await contractWrite();
-    const receipt = await waitForTransactionReceipt(config, {
+    const receipt = await waitForTransactionReceipt(publicClient, {
       hash,
-      ...(chainId && { chainId }),
     });
     return { status: true, receipt: receipt };
     // biome-ignore lint/suspicious/noExplicitAny:
@@ -21,7 +21,7 @@ export const waitForContractWrite = async (contractWrite: () => Promise<`0x${str
         error instanceof TransactionNotFoundError ||
         error instanceof TransactionReceiptNotFoundError)
     ) {
-      const newReceipt = await pollForTransactionReceipt(hash);
+      const newReceipt = await pollForTransactionReceipt(chainId, hash);
       if (newReceipt) {
         return { status: true, receipt: newReceipt };
       }
@@ -30,10 +30,16 @@ export const waitForContractWrite = async (contractWrite: () => Promise<`0x${str
   }
 };
 
-async function pollForTransactionReceipt(hash: `0x${string}`, maxAttempts = 7, initialInterval = 500) {
+async function pollForTransactionReceipt(
+  chainId: SupportedChain,
+  hash: `0x${string}`,
+  maxAttempts = 7,
+  initialInterval = 500,
+) {
+  const publicClient = getPublicClientByChainId(chainId);
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const txReceipt = await getTransactionReceipt(config, { hash });
+      const txReceipt = await getTransactionReceipt(publicClient, { hash });
       if (txReceipt?.blockNumber) {
         return txReceipt;
       }

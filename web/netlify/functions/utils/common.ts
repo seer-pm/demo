@@ -1,8 +1,6 @@
 import { sepolia } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getPublicClient } from "@wagmi/core";
-import { Address } from "viem";
-import { config } from "./config";
+import type { Address } from "viem";
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -18,10 +16,6 @@ export const liquidityManagerAddressMapping: Partial<Record<SupportedChain, Addr
 };
 
 export const FROM_EMAIL = "gen@seer.pm";
-
-export function getPublicClientForNetwork(networkId: SupportedChain) {
-  return getPublicClient(config, { chainId: networkId });
-}
 
 export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain): Promise<number> {
   if (chainId === sepolia.id) {

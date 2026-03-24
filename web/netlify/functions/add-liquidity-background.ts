@@ -1,15 +1,15 @@
-import { convertFromSDAI } from "@/hooks/trade/useShareAssetRatio";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { fetchMarket } from "@seer-pm/sdk/markets-fetch";
-import { readContract, writeContract } from "@wagmi/core";
-import { PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
-import { Address, privateKeyToAccount } from "viem/accounts";
+import { type PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
+import { type Address, privateKeyToAccount } from "viem/accounts";
+import { readContract, writeContract } from "viem/actions";
 import { LiquidityManagerAbi } from "./utils/abis/LiquidityManagerAbi";
 import { SDaiAdapterAbi } from "./utils/abis/SDaiAdapterAbi";
 import { S_DAI_ADAPTER, liquidityManagerAddressMapping } from "./utils/common";
-import { config } from "./utils/config";
+import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/config";
+import { convertFromSDAI } from "./utils/sdai";
 import { waitForContractWrite } from "./utils/waitForContractWrite";
 
 export default async (req: Request) => {
@@ -31,14 +31,15 @@ export default async (req: Request) => {
 
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
+  const publicClient = getPublicClientByChainId(chainId);
+  const walletClient = getWalletClientForNetwork(account, chainId);
   const liquidityAmount = BigInt(0.01 * 1e18);
   const totalLiquidityAmount = liquidityAmount * 2n * BigInt(market.wrappedTokens.length - 1);
-  const currentSDaiBalance = await readContract(config, {
+  const currentSDaiBalance = await readContract(publicClient, {
     address: COLLATERAL_TOKENS[chainId].primary.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [account.address],
-    chainId: Number(chainId) as SupportedChain,
   });
   console.log({ currentSDaiBalance, totalLiquidityAmount });
   if (currentSDaiBalance < totalLiquidityAmount) {
@@ -46,17 +47,13 @@ export default async (req: Request) => {
     // xDAI to sDAI
     await waitForContractWrite(
       async () =>
-        writeContract(config, {
+        writeContract(walletClient, {
           account,
           address: S_DAI_ADAPTER,
           abi: SDaiAdapterAbi,
           functionName: "depositXDAI",
           args: [account.address],
-          value: await convertFromSDAI({
-            amount: ((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n,
-            chainId,
-          }), //convert a bit more than required to prevent slippage
-          chainId,
+          value: await convertFromSDAI(chainId, ((totalLiquidityAmount - currentSDaiBalance) * 1050n) / 1000n), // convert a bit more than required to prevent slippage
         }),
       chainId,
     );
@@ -69,13 +66,12 @@ export default async (req: Request) => {
     totalLiquidityAmount,
   );
   console.log("adding index liquidity");
-  await writeContract(config, {
+  await writeContract(walletClient, {
     account,
     address: liquidityManagerAddressMapping[chainId]!,
     abi: LiquidityManagerAbi,
     functionName: "addIndexLiquidityToMarket",
     args: [marketId, liquidityAmount],
-    chainId: chainId,
   });
   console.log("add index liquidity successfully to market:", {
     marketName: market.marketName,
@@ -91,24 +87,24 @@ async function checkAllowanceAndApprove(
   spender: Address,
   amount: bigint,
 ) {
-  const currentTokenAllowance = await readContract(config, {
+  const publicClient = getPublicClientByChainId(chainId);
+  const walletClient = getWalletClientForNetwork(ownerAccount, chainId);
+  const currentTokenAllowance = await readContract(publicClient, {
     address: token,
     abi: erc20Abi,
     functionName: "allowance",
     args: [ownerAccount.address, spender],
-    chainId,
   });
   if (currentTokenAllowance < amount) {
     console.log("approving");
     await waitForContractWrite(
       () =>
-        writeContract(config, {
+        writeContract(walletClient, {
           address: token,
           account: ownerAccount,
           abi: erc20Abi,
           functionName: "approve",
           args: [spender, amount],
-          chainId,
         }),
       chainId,
     );

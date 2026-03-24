@@ -1,13 +1,12 @@
 import { sepolia } from "@/lib/chains.ts";
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import type { Question, SupportedChain } from "@seer-pm/sdk";
 import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
-import { getPublicClientForNetwork } from "./utils/common.ts";
-import { chainIds, config as wagmiConfig } from "./utils/config.ts";
+import { getBlockNumber, getLogs } from "viem/actions";
+import { chainIds, getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
 
 const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
@@ -101,7 +100,7 @@ const REALITY_LOG_NEW_ANSWER_EVENT = parseAbiItem(
 async function getNewAnswerEvents(chainId: SupportedChain, fromBlock: bigint) {
   // Listen for RealityETH LogNewAnswer events
   console.log(`[Network ${chainId}] Searching new answer events from block ${fromBlock.toString()}`);
-  const newAnswerLogs = await getPublicClientForNetwork(chainId).getLogs({
+  const newAnswerLogs = await getLogs(getPublicClientByChainId(chainId), {
     address: realityAddress[chainId],
     event: REALITY_LOG_NEW_ANSWER_EVENT,
     fromBlock,
@@ -163,9 +162,7 @@ Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
   // Update the last processed block even if this execution failed
   // This is because RPCs only allow reading a fixed number of blocks
   // So there's no point in trying to read from an old block that may fail
-  const currentBlock = await getBlockNumber(wagmiConfig, {
-    chainId,
-  });
+  const currentBlock = await getBlockNumber(getPublicClientByChainId(chainId));
   await updateLastProcessedBlock(chainId, currentBlock, getLastProcessedBlockKey(chainId));
 }
 

@@ -1,17 +1,17 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk/create-market";
 import { MarketTypes } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
-import { simulateContract, writeContract } from "@wagmi/core";
-import { PrivateKeyAccount, parseEther, zeroAddress } from "viem";
-import { Address, privateKeyToAccount } from "viem/accounts";
+import { type PrivateKeyAccount, parseEther, zeroAddress } from "viem";
+import { type Address, privateKeyToAccount } from "viem/accounts";
+import { simulateContract, writeContract } from "viem/actions";
 import { gnosis, sepolia } from "viem/chains";
 import { getConfigNumber } from "../../src/lib/config.ts";
-import { config as wagmiConfig } from "./utils/config.ts";
-import { Database } from "./utils/supabase.ts";
-import { CityCode, DateParts, WEATHER_CITIES, celciusToKelvin, getOpeningDate } from "./utils/weather.ts";
+import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/config.ts";
+import type { Database } from "./utils/supabase.ts";
+import { type CityCode, type DateParts, WEATHER_CITIES, celciusToKelvin, getOpeningDate } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -100,6 +100,9 @@ async function createMarketForCity(
   utcDate: Date,
   chainId: SupportedChain,
 ): Promise<`0x${string}`> {
+  const publicClient = getPublicClientByChainId(chainId);
+  const walletClient = getWalletClientForNetwork(account, chainId);
+
   const { year, month, day } = marketDate;
 
   const { lowerBound, upperBound } = await getForecast(cityCode, year, month, day);
@@ -108,11 +111,10 @@ async function createMarketForCity(
 
   const openingTime = Math.round(utcDate.getTime() / 1000);
 
-  const simulation = await simulateContract(wagmiConfig, {
+  const simulation = await simulateContract(publicClient, {
     account,
     address: marketFactoryAddress[chainId],
     functionName: "createScalarMarket",
-    chainId,
     abi: marketFactoryAbi,
     args: [
       getCreateMarketParams({
@@ -136,7 +138,7 @@ async function createMarketForCity(
     ],
   });
 
-  const txHash = await writeContract(wagmiConfig, simulation.request);
+  const txHash = await writeContract(walletClient, simulation.request);
 
   const { error: insertError } = await supabase.from("weather_markets").insert({
     date: `${year}-${month}-${day}`,

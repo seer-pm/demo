@@ -1,6 +1,6 @@
 import { TickMath } from "@uniswap/v3-sdk";
-import { Address } from "viem";
-import { SubgraphMarket } from "./getAllMarkets";
+import type { Address } from "viem";
+import type { SubgraphMarket } from "./getAllMarkets";
 
 export function getTokensByTimestamp(markets: SubgraphMarket[], timestamp: number) {
   return markets.reduce(

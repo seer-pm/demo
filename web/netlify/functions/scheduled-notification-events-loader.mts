@@ -1,10 +1,9 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getAppSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
 import { parseAbiItem } from "viem";
-import { getPublicClientForNetwork } from "./utils/common.ts";
-import { config as wagmiConfig } from "./utils/config.ts";
+import { getBlockNumber, getLogs } from "viem/actions";
+import { getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
 
 interface NetworkContracts {
@@ -240,7 +239,7 @@ function getNotificationData(marketId: string, marketName: string, networkId: nu
 async function getAnswerEvents(networkId: SupportedChain, fromBlock: bigint) {
   try {
     // Listen for Reality.eth answer submissions
-    const answerLogs = await getPublicClientForNetwork(networkId).getLogs({
+    const answerLogs = await getLogs(getPublicClientByChainId(networkId), {
       address: NETWORK_CONTRACTS[networkId].realityETH,
       event: REALITY_ETH_ANSWER_EVENT,
       fromBlock,
@@ -258,7 +257,7 @@ async function getAnswerEvents(networkId: SupportedChain, fromBlock: bigint) {
 async function getResolutionEvents(networkId: SupportedChain, fromBlock: bigint) {
   try {
     // Listen for ConditionalTokens resolutions
-    const resolutionLogs = await getPublicClientForNetwork(networkId).getLogs({
+    const resolutionLogs = await getLogs(getPublicClientByChainId(networkId), {
       address: NETWORK_CONTRACTS[networkId].conditionalTokens,
       event: CTF_RESOLUTION_EVENT,
       fromBlock,
@@ -300,9 +299,7 @@ async function getMarketNamesByMarket(marketIds: string[], networkId: SupportedC
 async function processNetworkEvents(networkId: SupportedChain) {
   const fromBlock = await getLastProcessedBlock(networkId, getLastProcessedBlockKey(networkId));
 
-  const currentBlock = await getBlockNumber(wagmiConfig, {
-    chainId: networkId,
-  });
+  const currentBlock = await getBlockNumber(getPublicClientByChainId(networkId));
 
   await updateLastProcessedBlock(networkId, currentBlock, getLastProcessedBlockKey(networkId));
 

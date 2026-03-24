@@ -1,9 +1,9 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import { simulateContract, writeContract } from "@wagmi/core";
-import { Address, privateKeyToAccount } from "viem/accounts";
-import { config as wagmiConfig } from "./utils/config.ts";
-import { Database } from "./utils/supabase.ts";
+import { type Address, privateKeyToAccount } from "viem/accounts";
+import { simulateContract, writeContract } from "viem/actions";
+import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/config.ts";
+import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -32,15 +32,16 @@ export default async () => {
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
 
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
+  const publicClient = getPublicClientByChainId(chainId);
+  const walletClient = getWalletClientForNetwork(account, chainId);
 
   const result = [];
   for (const market of markets) {
     try {
-      const simulation = await simulateContract(wagmiConfig, {
+      const simulation = await simulateContract(publicClient, {
         account,
         address: market.id as `0x${string}`,
         functionName: "resolve",
-        chainId,
         abi: [
           {
             inputs: [],
@@ -52,7 +53,7 @@ export default async () => {
         ],
       });
 
-      const res = await writeContract(wagmiConfig, simulation.request);
+      const res = await writeContract(walletClient, simulation.request);
       result.push({ status: "fulfilled", value: res });
     } catch (error) {
       // TODO: probably the question is answered too soon, we should fix it on the subgraph

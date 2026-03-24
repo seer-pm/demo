@@ -1,8 +1,8 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import slug from "slug";
-import { Address } from "viem";
+import type { Address } from "viem";
 import { chainIds } from "./utils/config.ts";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);

@@ -2,8 +2,8 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
-import { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
-import { Address } from "viem";
+import type { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
+import type { Address } from "viem";
 import { getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
 
 async function getLatestPoolHourDataMap(

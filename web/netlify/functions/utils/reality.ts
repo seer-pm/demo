@@ -1,7 +1,7 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { realityGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { QuestionsQueryQuery, getSdk as getRealitySdk } from "@seer-pm/sdk/subgraph/reality";
-import { Address } from "viem";
+import { type QuestionsQueryQuery, getSdk as getRealitySdk } from "@seer-pm/sdk/subgraph/reality";
+import type { Address } from "viem";
 
 type ClaimQuestion = QuestionsQueryQuery["questions"][0];
 

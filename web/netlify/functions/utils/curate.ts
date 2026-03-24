@@ -1,21 +1,16 @@
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { isUndefined } from "@/lib/utils.ts";
 import type { SupportedChain, VerificationResult } from "@seer-pm/sdk";
-import {
-  lightGeneralizedTcrAbi,
-  lightGeneralizedTcrAddress,
-  readLightGeneralizedTcrChallengePeriodDuration,
-} from "@seer-pm/sdk/contracts/curate";
+import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { Status, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { getBlockNumber } from "@wagmi/core";
-import { Address, parseAbiItem } from "viem";
-import { getPublicClientForNetwork } from "./common.ts";
-import { config as wagmiConfig } from "./config.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { type Address, parseAbiItem } from "viem";
+import { getBlockNumber, getLogs, readContract } from "viem/actions";
+import { getPublicClientByChainId } from "./config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./logs.ts";
 import { readContractsInBatch } from "./readContractsInBatch.ts";
-import { Json } from "./supabase.ts";
+import type { Json } from "./supabase.ts";
 
 interface VerificationItem {
   itemID: `0x${string}`;
@@ -51,9 +46,10 @@ type ItemAndMetadata = { itemID: `0x${string}`; metadataPath: string };
 export async function getVerification(chainId: SupportedChain, curateItems: CurateItem[]): Promise<VerificationItem[]> {
   let challengePeriodDuration: bigint;
   try {
-    challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(wagmiConfig, {
-      args: [],
-      chainId,
+    challengePeriodDuration = await readContract(getPublicClientByChainId(chainId), {
+      address: lightGeneralizedTcrAddress[chainId],
+      abi: lightGeneralizedTcrAbi,
+      functionName: "challengePeriodDuration",
     });
   } catch {}
 
@@ -160,9 +156,10 @@ export async function getSubgraphVerificationStatusList(
   if (client && !isUndefined(registryAddress)) {
     let challengePeriodDuration: bigint;
     try {
-      challengePeriodDuration = await readLightGeneralizedTcrChallengePeriodDuration(wagmiConfig, {
-        args: [],
-        chainId,
+      challengePeriodDuration = await readContract(getPublicClientByChainId(chainId), {
+        address: lightGeneralizedTcrAddress[chainId],
+        abi: lightGeneralizedTcrAbi,
+        functionName: "challengePeriodDuration",
       });
     } catch {}
 
@@ -214,7 +211,7 @@ const LIGHT_GENERALIZED_TCR_NEW_ITEM_EVENT = parseAbiItem(
 async function getNewItemEvents(chainId: SupportedChain, fromBlock: bigint) {
   try {
     // Listen for LightGeneralizedTCR NewItem events
-    const newItemLogs = await getPublicClientForNetwork(chainId).getLogs({
+    const newItemLogs = await getLogs(getPublicClientByChainId(chainId), {
       address: lightGeneralizedTcrAddress[chainId],
       event: LIGHT_GENERALIZED_TCR_NEW_ITEM_EVENT,
       fromBlock,
@@ -257,9 +254,7 @@ async function getItemsAndMetadata(chainId: SupportedChain, fetchFromSubgraph: b
     metadataPath: d.args._data || "",
   }));
 
-  const currentBlock = await getBlockNumber(wagmiConfig, {
-    chainId,
-  });
+  const currentBlock = await getBlockNumber(getPublicClientByChainId(chainId));
 
   await updateLastProcessedBlock(chainId, currentBlock, getLastProcessedBlockKey(chainId));
 
