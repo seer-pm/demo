@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
