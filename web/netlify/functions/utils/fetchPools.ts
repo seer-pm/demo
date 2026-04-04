@@ -14,8 +14,9 @@ import pLimit from "p-limit";
 
 interface SubgraphPool {
   id: string;
-  token0: { id: string; symbol: string };
-  token1: { id: string; symbol: string };
+  sqrtPrice: string;
+  token0: { id: string; symbol: string; decimals: string };
+  token1: { id: string; symbol: string; decimals: string };
   token0Price: string;
   token1Price: string;
   volumeToken0: string;
@@ -116,6 +117,71 @@ export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Toke
   return results.flat();
 }
 
+/**
+ * For **Swapr** pools (Algebra-style AMM): off-chain counterpart to `pricing.priceToTokenPrices`,
+ * spot ratios from sqrtPrice (Q64.96 → Q192 price). Returns the same pair order as this subgraph:
+ * [token0Price, token1Price].
+ *
+ * Useful in clients because the Swapr subgraph only writes `token0Price` / `token1Price` on swap events
+ * (and on pool initialize in newer mappings); if no swap has been indexed yet, those fields can
+ * stay zero while `sqrtPrice` is already valid — recompute from `sqrtPrice` instead.
+ *
+ * Pass `sqrtPrice` as bigint (e.g. BigInt(pool.sqrtPrice) from GraphQL string).
+ *
+ * Each ratio is scaled with 1e18 in bigint before converting to number; the final values are still
+ * IEEE doubles (~15–17 significant digits).
+ */
+export function priceToTokenPricesNumber(sqrtPrice: bigint, decimals0: number, decimals1: number): [number, number] {
+  const Q192 = 1n << 192n;
+  const RATIO_SCALE = 1_000_000_000_000_000_000n;
+
+  function pow10(n: number): bigint {
+    return 10n ** BigInt(n);
+  }
+
+  function ratioToNumber(a: bigint, b: bigint): number {
+    return b === 0n ? 0 : Number((a * RATIO_SCALE) / b) / 1e18;
+  }
+
+  const sqrt2 = sqrtPrice * sqrtPrice;
+  const d0 = pow10(decimals0);
+  const d1 = pow10(decimals1);
+
+  // token1 per token0: (sqrt²/Q192) * 10^d0/10^d1
+  const num1 = sqrt2 * d0;
+  const den1 = Q192 * d1;
+  const price1 = ratioToNumber(num1, den1);
+
+  // token0 per token1: inverse as a separate ratio — avoids float error from 1/price1
+  const num0 = Q192 * d1;
+  const den0 = sqrt2 * d0;
+  const price0 = ratioToNumber(num0, den0);
+
+  return [price0, price1];
+}
+
+/**
+ * Subgraph spot prices for the pool. On Swapr (Gnosis), if indexed `token0Price`/`token1Price` are still
+ * zero, recompute from `sqrtPrice` (see `priceToTokenPricesNumber`). Other DEXes: pass through.
+ */
+export function getSubgraphPoolTokenPrices(
+  chainId: SupportedChain,
+  pool: SubgraphPool,
+): { token0Price: string; token1Price: string } {
+  if (chainId !== gnosis.id) {
+    return { token0Price: pool.token0Price, token1Price: pool.token1Price };
+  }
+  if (Number(pool.token0Price) === 0 && Number(pool.token1Price) === 0) {
+    const [p0, p1] = priceToTokenPricesNumber(
+      BigInt(pool.sqrtPrice),
+      Number(pool.token0.decimals),
+      Number(pool.token1.decimals),
+    );
+    return { token0Price: String(p0), token1Price: String(p1) };
+  }
+  return { token0Price: pool.token0Price, token1Price: pool.token1Price };
+}
+
 export async function getAllMarketPools(markets: Market[]) {
   const tokenPairToMarketMapping = markets.reduce(
     (acc, curr) => {
@@ -161,8 +227,13 @@ export async function getAllMarketPools(markets: Market[]) {
         const poolsByChainWithMarketData = poolsByChain.map((pool) => {
           const market = tokenPairToMarketMapping[getTokensPairKey(pool.token0.id, pool.token1.id)];
           if (!market) return;
+
+          const { token0Price, token1Price } = getSubgraphPoolTokenPrices(chainId, pool);
+
           return {
             ...pool,
+            token0Price,
+            token1Price,
             market,
             balance0: poolTokenBalanceMapping[`${pool.token0.id}-${pool.id}`],
             balance1: poolTokenBalanceMapping[`${pool.token1.id}-${pool.id}`],

@@ -1,6 +1,7 @@
 import { getMarketOdds } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
+import { zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
 import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
@@ -21,8 +22,21 @@ export default async () => {
       finalizeTs: twoDaysAgo,
       orderBy: "oddsRunTimestamp",
       orderDirection: "asc",
-      limit: 100,
+      limit: 300, // 300 markets every 5 minutes = 3600 markets / hour
     });
+
+    const parentMarketsIds = Array.from(
+      new Set(markets.filter((market) => market.parentMarket.id !== zeroAddress).map((m) => m.parentMarket.id)),
+    );
+
+    if (parentMarketsIds.length > 0) {
+      // We need to include the parent markets in order to calculate the prices of child markets relative to the main collateral.
+      const { markets: parentMarkets } = await searchMarkets({
+        chainIds: chainIds.map((c) => c),
+        marketIds: parentMarketsIds,
+      });
+      markets.push(...parentMarkets);
+    }
 
     console.log("markets length", markets.length);
     console.log("fetching pools...");
