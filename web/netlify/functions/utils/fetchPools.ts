@@ -105,7 +105,7 @@ async function fetchPoolsByTokenPairs(chainId: SupportedChain, tokenPairs: Token
 }
 
 export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
-  const batchSize = 100;
+  const batchSize = 900;
   const limit = pLimit(2);
 
   const batches = Array.from({ length: Math.ceil(tokenPairs.length / batchSize) }, (_, i) =>
