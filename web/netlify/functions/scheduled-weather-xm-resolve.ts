@@ -1,15 +1,15 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { realityAbi, realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { createClient } from "@supabase/supabase-js";
-import { simulateContract, writeContract } from "@wagmi/core";
-import { PrivateKeyAccount, numberToHex, parseEther } from "viem";
-import { Address, privateKeyToAccount } from "viem/accounts";
+import { type PrivateKeyAccount, numberToHex, parseEther } from "viem";
+import { type Address, privateKeyToAccount } from "viem/accounts";
+import { simulateContract, writeContract } from "viem/actions";
 import { gnosis, sepolia } from "viem/chains";
-import { config as wagmiConfig } from "./utils/config.ts";
+import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/config.ts";
 import { getRealityClaimArgs } from "./utils/reality.ts";
-import { Database } from "./utils/supabase.ts";
-import { CityCode, WEATHER_CITIES, celciusToKelvin } from "./utils/weather.ts";
+import type { Database } from "./utils/supabase.ts";
+import { type CityCode, WEATHER_CITIES, celciusToKelvin } from "./utils/weather.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -48,6 +48,9 @@ async function resolveMarketForCity(
   account: PrivateKeyAccount,
   data: Database["public"]["Tables"]["weather_markets"]["Row"],
 ) {
+  const publicClient = getPublicClientByChainId(data.chain_id as SupportedChain);
+  const walletClient = getWalletClientForNetwork(account, data.chain_id as SupportedChain);
+
   // Check if the city exists
   if (!WEATHER_CITIES[data.city as CityCode]) {
     console.error(`City ${data.city} not found in WEATHER_CITIES`);
@@ -89,17 +92,16 @@ async function resolveMarketForCity(
 
   console.log(`Submitting answer for market ${marketData.id}...`);
 
-  const simulation = await simulateContract(wagmiConfig, {
+  const simulation = await simulateContract(publicClient, {
     account,
     address: realityAddress[data.chain_id as SupportedChain],
     functionName: "submitAnswer",
-    chainId: data.chain_id as SupportedChain,
     abi: realityAbi,
     args: [questionId, answer, maxPrevious],
     value: BigInt(subgraphData.questions[0].question.min_bond),
   });
 
-  const txHash = await writeContract(wagmiConfig, simulation.request);
+  const txHash = await writeContract(walletClient, simulation.request);
 
   console.log(`Submitted answer for market ${marketData.id} with tx hash ${txHash}`);
 
@@ -113,11 +115,13 @@ async function claimRealityBonds(account: PrivateKeyAccount, chainId: SupportedC
     return;
   }
 
-  const simulation = await simulateContract(wagmiConfig, {
+  const publicClient = getPublicClientByChainId(chainId);
+  const walletClient = getWalletClientForNetwork(account, chainId);
+
+  const simulation = await simulateContract(publicClient, {
     account,
     address: realityAddress[chainId],
     functionName: "claimMultipleAndWithdrawBalance",
-    chainId: chainId,
     abi: realityAbi,
     args: [
       claimArgs.question_ids,
@@ -129,7 +133,7 @@ async function claimRealityBonds(account: PrivateKeyAccount, chainId: SupportedC
     ],
   });
 
-  const txHash = await writeContract(wagmiConfig, simulation.request);
+  const txHash = await writeContract(walletClient, simulation.request);
 }
 
 export default async () => {

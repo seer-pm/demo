@@ -5,9 +5,9 @@ import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
-import { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
+import type { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import pLimit from "p-limit";
-import { Address } from "viem";
+import type { Address } from "viem";
 import { START_TIME } from "./constants";
 
 export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {

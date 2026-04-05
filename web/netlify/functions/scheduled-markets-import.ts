@@ -1,15 +1,15 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { WEATHER_CATEGORY } from "@seer-pm/sdk/create-market";
 import { getMarketStatus } from "@seer-pm/sdk/market";
 import { graphQLClient } from "@seer-pm/sdk/subgraph";
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
-import { Address, privateKeyToAccount } from "viem/accounts";
+import { type Address, privateKeyToAccount } from "viem/accounts";
 import { chainIds } from "./utils/config.ts";
-import { CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
+import { type CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
-import { Database } from "./utils/supabase.ts";
+import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 

@@ -3,7 +3,7 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { formatUnits, zeroAddress } from "viem";
 import { SER_LPP } from "./constants";
-import { Transfer } from "./getAllTransfers";
+import type { Transfer } from "./getAllTransfers";
 
 export async function getSerLppBalances(chainId: SupportedChain) {
   const serLpp = SER_LPP[chainId as 1 | 100];

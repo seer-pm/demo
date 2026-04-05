@@ -1,12 +1,12 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { Address } from "viem";
+import type { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { fetchSubgraphMarkets } from "./utils/airdropCalculation/getAllMarkets";
 import { getAllTokens } from "./utils/airdropCalculation/getAllTokens";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import {
-  BunniPositionSnapshot,
+  type BunniPositionSnapshot,
   getBunniLpTokensByTokenPairs,
   getBunniPositionHoldersAtTimestamp,
   getBunniPositionSnapshots,
@@ -17,7 +17,7 @@ import {
 } from "./utils/airdropCalculation/getLiquidityBalances";
 import { getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./utils/airdropCalculation/getPOHVerifiedUsers";
 import {
-  PositionSnapshot,
+  type PositionSnapshot,
   getLiquidityBalancesByPositionAtTimestamp,
   getPositionSnapshotsByTokenPairs,
 } from "./utils/airdropCalculation/getPositionSnapshots";

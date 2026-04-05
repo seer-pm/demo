@@ -1,6 +1,6 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { readContracts } from "@wagmi/core";
-import { config } from "./config";
+import { multicall } from "viem/actions";
+import { getPublicClientByChainId } from "./config";
 
 export async function readContractsInBatch(
   // biome-ignore lint/suspicious/noExplicitAny:
@@ -10,11 +10,12 @@ export async function readContractsInBatch(
   retry?: boolean,
 ) {
   try {
+    const client = getPublicClientByChainId(chainId);
     // try to batch call
     // biome-ignore lint/suspicious/noExplicitAny:
     let total: any[] = [];
     for (let i = 0; i < Math.ceil(contracts.length / groupCount); i++) {
-      const data = await readContracts(config, {
+      const data = await multicall(client, {
         allowFailure: false,
         contracts: contracts.slice(i * groupCount, (i + 1) * groupCount),
         batchSize: 0,

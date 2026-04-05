@@ -1,6 +1,6 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { Address } from "viem";
+import type { Address } from "viem";
 import { getMarketChartKeyValueHash } from "./market-chart.mts";
 import { getChartData } from "./utils/getChartData";
 import { searchMarkets } from "./utils/markets";

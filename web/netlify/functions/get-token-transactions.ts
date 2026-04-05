@@ -1,8 +1,8 @@
 import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
-import { Address } from "viem";
-import { Database } from "./utils/supabase";
+import type { Address } from "viem";
+import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 

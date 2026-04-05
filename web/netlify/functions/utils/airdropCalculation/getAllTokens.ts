@@ -1,5 +1,5 @@
-import { Address } from "viem";
-import { SubgraphMarket } from "./getAllMarkets";
+import type { Address } from "viem";
+import type { SubgraphMarket } from "./getAllMarkets";
 
 function getCollateralByIndex(market: SubgraphMarket, index: number) {
   if (market.type === "Generic") {

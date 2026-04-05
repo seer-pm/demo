@@ -7,7 +7,7 @@ import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import pLimit from "p-limit";
-import { Address, zeroAddress } from "viem";
+import { type Address, zeroAddress } from "viem";
 import { START_TIME } from "./constants";
 
 export interface PositionSnapshot {

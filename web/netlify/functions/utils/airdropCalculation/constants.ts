@@ -1,4 +1,4 @@
-import { gnosis, mainnet } from "wagmi/chains";
+import { gnosis, mainnet } from "viem/chains";
 
 export const START_TIME = {
   [gnosis.id]: 1728416320,

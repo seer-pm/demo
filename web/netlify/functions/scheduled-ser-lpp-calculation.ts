@@ -1,4 +1,4 @@
-import { Config } from "@netlify/functions";
+import type { Config } from "@netlify/functions";
 
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {

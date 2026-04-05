@@ -4,8 +4,8 @@ import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
-import { Address, zeroAddress } from "viem";
-import { mainnet } from "wagmi/chains";
+import { type Address, zeroAddress } from "viem";
+import { mainnet } from "viem/chains";
 
 export interface LiquidityEvent {
   id: string;

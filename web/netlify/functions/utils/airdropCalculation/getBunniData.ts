@@ -5,7 +5,7 @@ import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import pLimit from "p-limit";
-import { Address, formatUnits, zeroAddress } from "viem";
+import { type Address, formatUnits, zeroAddress } from "viem";
 import { calculateBurnAmounts } from "./utils";
 
 export interface BunniToken {
