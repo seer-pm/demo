@@ -68,7 +68,7 @@ export default async () => {
       })),
     );
     if (errorLiquidity) {
-      throw errorLiquidity;
+      console.error(errorLiquidity.message);
     }
 
     // update odds for each market
@@ -82,7 +82,7 @@ export default async () => {
         }),
       ),
     );
-    const { error } = await supabase.from("markets").upsert(
+    const { error: errorOdds } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({
         id: market.id,
         chain_id: market.chainId,
@@ -92,8 +92,8 @@ export default async () => {
       })),
     );
 
-    if (error) {
-      throw error;
+    if (errorOdds) {
+      console.error(errorOdds.message);
     }
 
     //update incentive for each market (currently only gnosis markets have)
@@ -101,7 +101,7 @@ export default async () => {
     console.log("fetching incentives...");
     const gnosisPools = pools.filter((x) => x.chainId === gnosis.id);
     const marketToIncentiveMapping = await getMarketsIncentive(gnosisPools);
-    const { error: errorIncentive } = await supabase.from("markets").upsert(
+    const { error: errorIncentives } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
         chain_id: market.chainId,
@@ -109,10 +109,10 @@ export default async () => {
         updated_at: new Date(),
       })),
     );
-    if (errorIncentive) {
-      throw errorIncentive;
+    if (errorIncentives) {
+      console.error(errorIncentives.message);
     }
-    console.log("Batch odds background ok");
+    console.log("Batch odds background completed");
   } catch (e) {
     console.log(e);
   }
