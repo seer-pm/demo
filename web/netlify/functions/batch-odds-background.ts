@@ -38,7 +38,19 @@ export default async () => {
       markets.push(...parentMarkets);
     }
 
-    console.log("markets length", markets.length);
+    {
+      // Remove duplicate markets that may have been introduced after adding parent markets
+      const seen = new Set<string>();
+      let w = 0;
+      for (const m of markets) {
+        const k = `${m.chainId}-${m.id}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        markets[w++] = m;
+      }
+      markets.length = w;
+    }
+
     console.log("fetching pools...");
     const pools = await getAllMarketPools(markets);
     if (!pools.length) throw "No pool found";

@@ -196,57 +196,64 @@ export async function getAllMarketPools(markets: Market[]) {
     },
     {} as { [key: string]: Market },
   );
-  const allPools = (
-    await Promise.all(
-      chainIds.map(async (chainId) => {
-        const marketsByChain = markets.filter((market) => market.chainId === chainId);
-        const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketPoolsPairs(market));
-        const poolsByChain = await fetchPools(chainId, tokenPairsByChain);
-        const tokenPoolList = poolsByChain.reduce(
-          (acc, curr) => {
-            acc.push({
-              token: curr.token0.id as Address,
-              owner: curr.id as Address,
-            });
-            acc.push({
-              token: curr.token1.id as Address,
-              owner: curr.id as Address,
-            });
-            return acc;
-          },
-          [] as { token: Address; owner: Address }[],
-        );
-        const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId, 50, true)) as bigint[];
-        const poolTokenBalanceMapping = tokenPoolList.reduce(
-          (acc, curr, index) => {
-            acc[`${curr.token}-${curr.owner}`] = Number(Number(formatUnits(poolTokenBalances[index], 18)).toFixed(4));
-            return acc;
-          },
-          {} as { [key: string]: number },
-        );
-        const poolsByChainWithMarketData = poolsByChain.map((pool) => {
-          const market = tokenPairToMarketMapping[getTokensPairKey(pool.token0.id, pool.token1.id)];
-          if (!market) return;
+  const settled = await Promise.allSettled(
+    chainIds.map(async (chainId) => {
+      const marketsByChain = markets.filter((market) => market.chainId === chainId);
+      const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketPoolsPairs(market));
+      const poolsByChain = await fetchPools(chainId, tokenPairsByChain);
+      const tokenPoolList = poolsByChain.reduce(
+        (acc, curr) => {
+          acc.push({
+            token: curr.token0.id as Address,
+            owner: curr.id as Address,
+          });
+          acc.push({
+            token: curr.token1.id as Address,
+            owner: curr.id as Address,
+          });
+          return acc;
+        },
+        [] as { token: Address; owner: Address }[],
+      );
+      const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId, 50, true)) as bigint[];
+      const poolTokenBalanceMapping = tokenPoolList.reduce(
+        (acc, curr, index) => {
+          acc[`${curr.token}-${curr.owner}`] = Number(Number(formatUnits(poolTokenBalances[index], 18)).toFixed(4));
+          return acc;
+        },
+        {} as { [key: string]: number },
+      );
+      const poolsByChainWithMarketData = poolsByChain.map((pool) => {
+        const market = tokenPairToMarketMapping[getTokensPairKey(pool.token0.id, pool.token1.id)];
+        if (!market) return;
 
-          const { token0Price, token1Price } = getSubgraphPoolTokenPrices(chainId, pool);
+        const { token0Price, token1Price } = getSubgraphPoolTokenPrices(chainId, pool);
 
-          return {
-            ...pool,
-            token0Price,
-            token1Price,
-            market,
-            balance0: poolTokenBalanceMapping[`${pool.token0.id}-${pool.id}`],
-            balance1: poolTokenBalanceMapping[`${pool.token1.id}-${pool.id}`],
-            // For generic markets, isToken0Collateral indicates whether token0 is the market's collateral token.
-            // For futarchy markets, this flag is unused since they have two collateral tokens.
-            isToken0Collateral: isTwoStringsEqual(pool.token0.id, market.collateralToken),
-            chainId: Number(chainId),
-            outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
-          };
-        });
-        return poolsByChainWithMarketData.filter((x) => x);
-      }),
-    )
-  ).flat() as Pool[];
+        return {
+          ...pool,
+          token0Price,
+          token1Price,
+          market,
+          balance0: poolTokenBalanceMapping[`${pool.token0.id}-${pool.id}`],
+          balance1: poolTokenBalanceMapping[`${pool.token1.id}-${pool.id}`],
+          // For generic markets, isToken0Collateral indicates whether token0 is the market's collateral token.
+          // For futarchy markets, this flag is unused since they have two collateral tokens.
+          isToken0Collateral: isTwoStringsEqual(pool.token0.id, market.collateralToken),
+          chainId: Number(chainId),
+          outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
+        };
+      });
+      return poolsByChainWithMarketData.filter((x) => x);
+    }),
+  );
+
+  const allPools = settled.flatMap((result, index) => {
+    if (result.status === "fulfilled") {
+      return result.value;
+    }
+    const chainId = chainIds[index];
+    console.error(`[getAllMarketPools] chainId ${chainId} failed:`, result.reason);
+    return [] as Pool[];
+  }) as Pool[];
   return allPools;
 }
