@@ -22,7 +22,7 @@ export default async () => {
       finalizeTs: twoDaysAgo,
       orderBy: "oddsRunTimestamp",
       orderDirection: "asc",
-      limit: 300, // 300 markets every 5 minutes = 3600 markets / hour
+      limit: 150, // 150 markets every 5 minutes = 1800 markets / hour
     });
 
     const parentMarketsIds = Array.from(
