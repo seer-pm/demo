@@ -26,13 +26,15 @@ function getAddress(address: Address) {
 
 export const paths = {
   market: marketPath,
-  verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
+  verifyMarket: (id: Address | string, chainId: number) =>
+    `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
   collection: (collectionId: string) => `/collections/${collectionId}`,
   tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>
     `https://resolve.kleros.io/cases/${disputeId.toString()}?requiredChainId=${chainId}`,
-  farmingProgram: () => "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",
+  farmingProgram: () =>
+    "https://seer-pm.medium.com/announcing-the-seer-initial-airdrop-distribution-58d38e1ec8f9",
   curateVerifiedList: (chainId: SupportedChain, itemId?: string) => {
     if (chainId in lightGeneralizedTcrAddress) {
       // @ts-ignore
@@ -54,7 +56,8 @@ export const paths = {
   discord: () => "https://discord.com/invite/rBEB4MYQwV",
   telegram: () => "https://t.me/Seerpredictionmarket",
   twitter: () => "https://x.com/seer_pm",
-  verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
+  verificationCheck: (id: Address | string, chainId: number) =>
+    `/verification-check/${chainId}/${id.toString()}/`,
   depositGuideEth: () =>
     "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-ethereum/deposit-dai",
   depositGuideGnosis: () =>
@@ -85,7 +88,9 @@ export const paths = {
 
     if (chainId === 42161) {
       // arbitrum
-      return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/assets/${getAddress(address)}/logo.png`;
+      return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/assets/${getAddress(
+        address,
+      )}/logo.png`;
     }
 
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;
@@ -103,5 +108,14 @@ export const paths = {
     };
 
     return chainImages[chainId] || "";
+  },
+  logoImage: (site: string) => {
+    return (
+      {
+        futarchy: "https://cdn.kleros.link/ipfs/QmdUY8h6JPphoCERMzrS4zFymkNnmGLrFV2YNb531s95v7",
+        deepfund: "https://cdn.kleros.link/ipfs/QmXJKtDUHARincj3LaDT2f58wzs2Jp5bKNMQSLcVNHV4Hw",
+        foresight: "https://cdn.kleros.link/ipfs/QmVEHkJR6AcRSawWAYTki9JKcpvFaF8rv7efwCVpP3TqBW",
+      }[site] ?? ""
+    );
   },
 };
