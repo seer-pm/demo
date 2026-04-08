@@ -173,19 +173,20 @@ async function exportData(market: Market) {
     return {
       date: formatDate(timestamp, "MM-dd-yyyy HH:mm"),
       timestamp,
-      ...series.reduce(
-        (acc, curr) => {
-          acc[curr.name] = curr.data[index][1];
-          return acc;
-        },
-        {} as { [key: string]: number },
-      ),
+      ...series.reduce((acc, curr) => {
+        acc[curr.name] = curr.data[index][1];
+        return acc;
+      }, {} as { [key: string]: number }),
     };
   });
   downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
 }
 
-function getChartTimeConfig(period: ChartOptionPeriod, startDate: Date | undefined, endDate: Date | undefined) {
+function getChartTimeConfig(
+  period: ChartOptionPeriod,
+  startDate: Date | undefined,
+  endDate: Date | undefined,
+) {
   if (startDate) {
     const endDateForCalc = endDate || new Date();
     const dayCount = differenceInDays(endDateForCalc, startDate);
@@ -247,7 +248,10 @@ function MarketChart({ market }: { market: Market }) {
                 setStartDate(undefined);
                 setEndDate(undefined);
               }}
-              className={clsx("pill-button", !startDate && !endDate && period === option && "pill-button-active")}
+              className={clsx(
+                "pill-button",
+                !startDate && !endDate && period === option && "pill-button-active",
+              )}
             >
               {option}
             </div>
@@ -260,7 +264,9 @@ function MarketChart({ market }: { market: Market }) {
             >
               {!startDate && !endDate
                 ? "Custom"
-                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${endDate ? format(endDate, "MMM d, yyyy") : "_"}`}
+                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                    endDate ? format(endDate, "MMM d, yyyy") : "_"
+                  }`}
             </button>
             {isShowDateRangePicker && (
               <div className="absolute left-0 top-[60px] z-10">
@@ -275,8 +281,9 @@ function MarketChart({ market }: { market: Market }) {
           </div>
           <div className="tooltip">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
-              The chart represents the token distribution in the liquidity pool over time and may not fully align with
-              the outcome odds, which are calculated based on potential token purchases.
+              The chart represents the token distribution in the liquidity pool over time and may
+              not fully align with the outcome odds, which are calculated based on potential token
+              purchases.
             </p>
             <QuestionIcon fill="#9747FF" />
           </div>
@@ -322,7 +329,13 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
   useEffect(() => {
     setVisibleOutcomes(new Set(outcomeNames));
   }, [outcomeNames]);
+  const truncateOutcomeName = (name: string, maxLength = 12) => {
+    if (!name) return "";
 
+    if (name.length <= maxLength) return name;
+
+    return name.slice(0, maxLength - 2) + "…";
+  };
   const handleToggleOutcome = (outcomeName: string) => {
     setVisibleOutcomes((prev) => {
       const newSet = new Set(prev);
@@ -390,7 +403,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
         const series = chart.addSeries(LineSeries, {
           color: outcomeData.outcome.color,
           lineWidth: 2,
-          title: outcomeData.outcome.name,
+          title: truncateOutcomeName(outcomeData.outcome.name),
           priceFormat: {
             type: "price",
             precision: market.type === "Futarchy" ? 3 : 2,
@@ -421,7 +434,9 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
 
       for (const { data, color } of seriesInstances) {
         if (visibleOutcomes.has(data.outcome.name)) {
-          const dataPoint = data.data.find((d: { time: UTCTimestamp; value: number }) => d.time === time);
+          const dataPoint = data.data.find(
+            (d: { time: UTCTimestamp; value: number }) => d.time === time,
+          );
           if (dataPoint) {
             values.push({
               name: data.outcome.name,
@@ -480,7 +495,9 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}:</span>
-                <span className="text-sm text-gray-700">{item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%</span>
+                <span className="text-sm text-gray-700">
+                  {item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%
+                </span>
               </div>
             ))}
           </div>

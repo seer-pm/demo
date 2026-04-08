@@ -21,6 +21,8 @@ interface SubgraphPool {
   token1Price: string;
   volumeToken0: string;
   volumeToken1: string;
+  liquidity: string;
+  tick?: string | null;
 }
 export interface Pool extends SubgraphPool {
   balance0: number;
@@ -44,12 +46,14 @@ export async function fetchTokenBalances(
     for (let i = 0; i < Math.ceil(tokenList.length / groupCount); i++) {
       const data = await multicall(client, {
         allowFailure: false,
-        contracts: tokenList.slice(i * groupCount, (i + 1) * groupCount).map(({ token, owner }) => ({
-          address: token,
-          abi: erc20Abi,
-          args: [owner],
-          functionName: "balanceOf",
-        })),
+        contracts: tokenList
+          .slice(i * groupCount, (i + 1) * groupCount)
+          .map(({ token, owner }) => ({
+            address: token,
+            abi: erc20Abi,
+            args: [owner],
+            functionName: "balanceOf",
+          })),
         batchSize: 0,
       });
       balances = balances.concat(data as bigint[]);
@@ -66,7 +70,8 @@ export async function fetchTokenBalances(
 }
 
 async function fetchPoolsByTokenPairs(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
-  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
+  const subgraphClient =
+    chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
   if (!subgraphClient) {
     return [];
   }
@@ -112,7 +117,9 @@ export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Toke
     tokenPairs.slice(i * batchSize, (i + 1) * batchSize),
   );
 
-  const results = await Promise.all(batches.map((batch) => limit(() => fetchPoolsByTokenPairs(chainId, batch))));
+  const results = await Promise.all(
+    batches.map((batch) => limit(() => fetchPoolsByTokenPairs(chainId, batch))),
+  );
 
   return results.flat();
 }
@@ -131,7 +138,11 @@ export async function fetchPools(chainId: SupportedChain, tokenPairs: Token0Toke
  * Each ratio is scaled with 1e18 in bigint before converting to number; the final values are still
  * IEEE doubles (~15–17 significant digits).
  */
-export function priceToTokenPricesNumber(sqrtPrice: bigint, decimals0: number, decimals1: number): [number, number] {
+export function priceToTokenPricesNumber(
+  sqrtPrice: bigint,
+  decimals0: number,
+  decimals1: number,
+): [number, number] {
   const Q192 = 1n << 192n;
   const RATIO_SCALE = 1_000_000_000_000_000_000n;
 
@@ -183,46 +194,48 @@ export function getSubgraphPoolTokenPrices(
 }
 
 export async function getAllMarketPools(markets: Market[]) {
-  const tokenPairToMarketMapping = markets.reduce(
-    (acc, curr) => {
-      for (const token of curr.wrappedTokens) {
-        for (const collateral of [curr.collateralToken, curr.collateralToken1, curr.collateralToken2]) {
-          if (!isTwoStringsEqual(collateral, zeroAddress)) {
-            acc[collateral > token ? `${token}-${collateral}` : `${collateral}-${token}`] = curr;
-          }
+  const tokenPairToMarketMapping = markets.reduce((acc, curr) => {
+    for (const token of curr.wrappedTokens) {
+      for (const collateral of [
+        curr.collateralToken,
+        curr.collateralToken1,
+        curr.collateralToken2,
+      ]) {
+        if (!isTwoStringsEqual(collateral, zeroAddress)) {
+          acc[collateral > token ? `${token}-${collateral}` : `${collateral}-${token}`] = curr;
         }
       }
-      return acc;
-    },
-    {} as { [key: string]: Market },
-  );
+    }
+    return acc;
+  }, {} as { [key: string]: Market });
   const settled = await Promise.allSettled(
     chainIds.map(async (chainId) => {
       const marketsByChain = markets.filter((market) => market.chainId === chainId);
       const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketPoolsPairs(market));
       const poolsByChain = await fetchPools(chainId, tokenPairsByChain);
-      const tokenPoolList = poolsByChain.reduce(
-        (acc, curr) => {
-          acc.push({
-            token: curr.token0.id as Address,
-            owner: curr.id as Address,
-          });
-          acc.push({
-            token: curr.token1.id as Address,
-            owner: curr.id as Address,
-          });
-          return acc;
-        },
-        [] as { token: Address; owner: Address }[],
-      );
-      const poolTokenBalances = (await fetchTokenBalances(tokenPoolList, chainId, 50, true)) as bigint[];
-      const poolTokenBalanceMapping = tokenPoolList.reduce(
-        (acc, curr, index) => {
-          acc[`${curr.token}-${curr.owner}`] = Number(Number(formatUnits(poolTokenBalances[index], 18)).toFixed(4));
-          return acc;
-        },
-        {} as { [key: string]: number },
-      );
+      const tokenPoolList = poolsByChain.reduce((acc, curr) => {
+        acc.push({
+          token: curr.token0.id as Address,
+          owner: curr.id as Address,
+        });
+        acc.push({
+          token: curr.token1.id as Address,
+          owner: curr.id as Address,
+        });
+        return acc;
+      }, [] as { token: Address; owner: Address }[]);
+      const poolTokenBalances = (await fetchTokenBalances(
+        tokenPoolList,
+        chainId,
+        50,
+        true,
+      )) as bigint[];
+      const poolTokenBalanceMapping = tokenPoolList.reduce((acc, curr, index) => {
+        acc[`${curr.token}-${curr.owner}`] = Number(
+          Number(formatUnits(poolTokenBalances[index], 18)).toFixed(4),
+        );
+        return acc;
+      }, {} as { [key: string]: number });
       const poolsByChainWithMarketData = poolsByChain.map((pool) => {
         const market = tokenPairToMarketMapping[getTokensPairKey(pool.token0.id, pool.token1.id)];
         if (!market) return;
