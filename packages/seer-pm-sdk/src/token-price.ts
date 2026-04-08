@@ -15,9 +15,9 @@ export async function getTokenPrice(
   collateralToken: Token,
   chainId: number,
 ): Promise<number> {
-  const priceFromSubgraph = getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
+  const priceFromSubgraph = await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
   if(Number.isNaN(priceFromSubgraph)){
-    return getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId)
+    return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId)
   }
   return priceFromSubgraph
 }
