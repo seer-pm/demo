@@ -10,7 +10,7 @@ import { chainIds, getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
 
 const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
-const SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL = "-3951302263";
+const SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL = "-1003951302263";
 const HIGH_LIQUIDITY_NOTIFICATION_THRESHOLD = 500;
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -154,6 +154,7 @@ Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
 
         const maxLiq = newAnswers[i].maxLiquidity;
         if (SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL && maxLiq > HIGH_LIQUIDITY_NOTIFICATION_THRESHOLD) {
+          console.log(`[Network ${chainId}] Sending high liquidity notification (maxLiquidity: ${maxLiq}) for market: https://app.seer.pm/markets/${chainId}/${newAnswers[i].url}`);
           await sendTelegramMessage(botToken, SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL, messages[i]);
         }
 
