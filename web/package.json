@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@bigmi/react": "^0.6.0",
-    "@biomejs/biome": "1.9.3",
+    "@biomejs/biome": "1.9.4",
     "@cyntler/react-doc-viewer": "^1.17.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.4.2",

@@ -10,16 +10,12 @@ import { getSwaprQuote, getUniswapQuote } from "./quote";
 import { getTokenPriceFromSubgraph } from "./subgraph";
 import type { Token } from "./tokens";
 
-export async function getTokenPrice(
-  wrappedAddress: Address,
-  collateralToken: Token,
-  chainId: number,
-): Promise<number> {
+export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: number): Promise<number> {
   const priceFromSubgraph = await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
-  if(Number.isNaN(priceFromSubgraph)){
-    return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId)
+  if (Number.isNaN(priceFromSubgraph)) {
+    return await getTokenPriceFromSwap(wrappedAddress, collateralToken, chainId);
   }
-  return priceFromSubgraph
+  return priceFromSubgraph;
 }
 
 const CEIL_PRICE = 1;
@@ -84,22 +80,10 @@ export async function getTokenPriceFromSwap(
   chainId: number,
 ): Promise<number> {
   try {
-    const price = await getTokenSwapResult(
-      wrappedAddress,
-      collateralToken,
-      chainId,
-      String(BUY_AMOUNT),
-      "buy",
-    );
+    const price = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT), "buy");
     const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
     if (pricePerShare > CEIL_PRICE) {
-      const sellPrice = await getTokenSwapResult(
-        wrappedAddress,
-        collateralToken,
-        chainId,
-        String(SELL_AMOUNT),
-        "sell",
-      );
+      const sellPrice = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(SELL_AMOUNT), "sell");
       const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
       if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
         return Number.NaN;

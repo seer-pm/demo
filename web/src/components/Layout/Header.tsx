@@ -19,7 +19,7 @@ import {
   PersonAdd,
   PolicyIcon,
   QuestionIcon,
-  SeerLogo
+  SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
@@ -55,14 +55,8 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   }, [accessToken]);
 
   return (
-    <div
-      className={clsx(
-        isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6",
-      )}
-    >
-      {!isMobile && (
-        <div className="text-[20px] font-semibold text-center">Email Notifications</div>
-      )}
+    <div className={clsx(isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6")}>
+      {!isMobile && <div className="text-[20px] font-semibold text-center">Email Notifications</div>}
       <p className="text-[14px] text-black-secondary">
         Receive email notifications for your followed markets and important updates.
       </p>
@@ -163,13 +157,7 @@ export default function Header() {
       <Modal
         title="Deposit"
         className="w-[500px]"
-        content={
-          <DepositGuide
-            closeModal={closeModal}
-            chainId={chainId as SupportedChain}
-            balance={balance}
-          />
-        }
+        content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
       />
       <BetaWarning />
 
@@ -198,11 +186,7 @@ export default function Header() {
           </li>
           <li>
             <div className="dropdown dropdown-end">
-              <button
-                type="button"
-                tabIndex={0}
-                className="flex items-center space-x-2 hover:opacity-85 py-3"
-              >
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
                 <span>Policies</span> <DownArrow />
               </button>
               <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal ">
@@ -227,11 +211,7 @@ export default function Header() {
           </li>
           <li>
             <div className="dropdown dropdown-end">
-              <button
-                type="button"
-                tabIndex={0}
-                className="flex items-center space-x-2 hover:opacity-85 py-3"
-              >
+              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
                 <span>App</span> <DownArrow />
               </button>
               <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal ">
@@ -242,7 +222,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("futarchy")} />{" "}
+                    <img className="h-[32px] w-auto" src={paths.logoImage("futarchy")} alt="Futarchy.fi" />{" "}
                     <span>Futarchy.fi</span>
                   </Link>
                 </li>
@@ -253,7 +233,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("deepfund")} />{" "}
+                    <img className="h-[32px] w-auto" src={paths.logoImage("deepfund")} alt="Deepfunding" />{" "}
                     <span>Deepfunding</span>
                   </Link>
                 </li>
@@ -264,7 +244,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral  hover:border-l-purple-primary"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("foresight")} />{" "}
+                    <img className="h-[32px] w-auto" src={paths.logoImage("foresight")} alt="Foresight" />{" "}
                     <span>Foresight</span>
                   </Link>
                 </li>
@@ -284,16 +264,11 @@ export default function Header() {
           </li>
           {isConnected && (
             <div className="dropdown dropdown-end mt-[5px]">
-              <button
-                type="button"
-                tabIndex={0}
-                className="flex flex-col items-center hover:opacity-85"
-              >
+              <button type="button" tabIndex={0} className="flex flex-col items-center hover:opacity-85">
                 <PersonAdd />
                 {!isFetching && (
                   <p className="text-[10px]">
-                    {displayBalance(balance, 18, true)}{" "}
-                    {COLLATERAL_TOKENS[chainId].secondary?.symbol}
+                    {displayBalance(balance, 18, true)} {COLLATERAL_TOKENS[chainId].secondary?.symbol}
                   </p>
                 )}
               </button>
@@ -472,13 +447,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
       <Modal
         title="Deposit"
         className="w-[400px]"
-        content={
-          <DepositGuide
-            closeModal={closeModal}
-            chainId={chainId as SupportedChain}
-            balance={balance}
-          />
-        }
+        content={<DepositGuide closeModal={closeModal} chainId={chainId as SupportedChain} balance={balance} />}
       />
       <div className="px-[24px] py-[48px]">
         <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
@@ -504,10 +473,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"
                   >
-                    <PolicyIcon />{" "}
-                    <span className="hover:font-semibold whitespace-nowrap">
-                      Verified Market Policy
-                    </span>
+                    <PolicyIcon /> <span className="hover:font-semibold whitespace-nowrap">Verified Market Policy</span>
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
@@ -534,7 +500,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("futarchy")} />{" "}
+                    <img className="h-[32px] w-auto" src={paths.logoImage("futarchy")} alt="Futarchy.fi" />{" "}
                     <span className="hover:font-semibold whitespace-nowrap">Futarchy.fi</span>
                   </a>
                 </li>
@@ -545,7 +511,8 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2 whitespace-nowrap"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("deepfund")} /> <span className="hover:font-semibold">Deepfunding</span>
+                    <img className="h-[32px] w-auto" src={paths.logoImage("deepfund")} alt="Deepfunding" />{" "}
+                    <span className="hover:font-semibold">Deepfunding</span>
                   </a>
                 </li>
                 <li className="flex space-x-2 items-center  px-[24px] py-[16px]">
@@ -555,19 +522,15 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
                     rel="noopener noreferrer"
                     className="flex items-center space-x-2 whitespace-nowrap"
                   >
-                    <img className="h-[32px] w-auto" src={paths.logoImage("foresight")} /> <span className="hover:font-semibold">Foresight</span>
+                    <img className="h-[32px] w-auto" src={paths.logoImage("foresight")} alt="Foresight" />{" "}
+                    <span className="hover:font-semibold">Foresight</span>
                   </a>
                 </li>
               </ul>
             </div>
           </li>
           <li>
-            <Link
-              to={paths.farmingProgram()}
-              className="hover:font-semibold"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <Link to={paths.farmingProgram()} className="hover:font-semibold" target="_blank" rel="noopener noreferrer">
               Airdrop
             </Link>
           </li>
@@ -595,9 +558,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
               {!isFetching && (
                 <p className="text-[14px]">
                   Current balance:{" "}
-                  <span className="text-purple-primary font-semibold">
-                    {displayBalance(balance, 18, true)}
-                  </span>{" "}
+                  <span className="text-purple-primary font-semibold">{displayBalance(balance, 18, true)}</span>{" "}
                   {COLLATERAL_TOKENS[chainId].secondary?.symbol}
                 </p>
               )}
@@ -610,11 +571,7 @@ function MobileMenu({ topOffset }: { topOffset: number }) {
           <AccountSettings isMobile />
         </div>
         <div className="dropdown dropdown-end">
-          <button
-            type="button"
-            tabIndex={0}
-            className="flex items-center gap-2 hover:font-semibold"
-          >
+          <button type="button" tabIndex={0} className="flex items-center gap-2 hover:font-semibold">
             <QuestionIcon fill="#9747FF" /> Help
           </button>
           <ul className="dropdown-content z-[1] w-[248px] [&_svg]:text-purple-primary !left-0">

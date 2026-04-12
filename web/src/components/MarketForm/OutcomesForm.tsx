@@ -8,13 +8,7 @@ import { MarketTypes, hasOutcomes } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { generateTokenName, getMarketName, getQuestionParts } from "@seer-pm/sdk";
 import { useEffect, useRef, useState } from "react";
-import {
-  FieldPath,
-  FormProvider,
-  UseFieldArrayReturn,
-  UseFormReturn,
-  useFieldArray,
-} from "react-hook-form";
+import { FieldPath, FormProvider, UseFieldArrayReturn, UseFormReturn, useFieldArray } from "react-hook-form";
 import { Address, isAddress } from "viem";
 import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues } from ".";
 import { Alert } from "../Alert";
@@ -23,16 +17,11 @@ import Input from "../Form/Input";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 import { SearchToken, TokenListItem } from "./SearchToken";
 
-function getActualTokenName(
-  field: FieldPath<OutcomesFormValues>,
-  formValues: OutcomesFormValues,
-): string {
+function getActualTokenName(field: FieldPath<OutcomesFormValues>, formValues: OutcomesFormValues): string {
   if (field.includes("outcomes")) {
     const idx = Number(field.split(".")[1]);
     if (!Number.isNaN(idx) && formValues.outcomes[idx]) {
-      return (
-        formValues.outcomes[idx].token?.trim() || generateTokenName(formValues.outcomes[idx].value)
-      );
+      return formValues.outcomes[idx].token?.trim() || generateTokenName(formValues.outcomes[idx].value);
     }
   }
   if (field === "lowerBound.token") {
@@ -44,10 +33,7 @@ function getActualTokenName(
   return "";
 }
 
-function hasDuplicateOutcomeTokenName(
-  outcomeIndex: number,
-  formValues: OutcomesFormValues,
-): boolean {
+function hasDuplicateOutcomeTokenName(outcomeIndex: number, formValues: OutcomesFormValues): boolean {
   const currentTokenName = getActualTokenName(
     `outcomes.${outcomeIndex}.token` as FieldPath<OutcomesFormValues>,
     formValues,
@@ -55,10 +41,7 @@ function hasDuplicateOutcomeTokenName(
 
   return formValues.outcomes.some((_outcome, index) => {
     if (index === outcomeIndex) return false;
-    const otherTokenName = getActualTokenName(
-      `outcomes.${index}.token` as FieldPath<OutcomesFormValues>,
-      formValues,
-    );
+    const otherTokenName = getActualTokenName(`outcomes.${index}.token` as FieldPath<OutcomesFormValues>, formValues);
     return isTwoStringsEqual(currentTokenName, otherTokenName);
   });
 }
@@ -113,11 +96,7 @@ function OutcomeField({
               if (isTwoStringsEqual(v, INVALID_RESULT_OUTCOME_TEXT)) {
                 return "Invalid Outcome.";
               }
-              if (
-                outcomes.some(
-                  (outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value),
-                )
-              ) {
+              if (outcomes.some((outcome, index) => index !== outcomeIndex && isTwoStringsEqual(v, outcome.value))) {
                 return "Duplicated outcome.";
               }
 
@@ -162,12 +141,7 @@ interface CollateralFieldsProps {
   searchCollateral: (collateralNumber: 1 | 2) => void;
 }
 
-function CollateralField({
-  collateralNumber,
-  useFormReturn,
-  chainId,
-  searchCollateral,
-}: CollateralFieldsProps) {
+function CollateralField({ collateralNumber, useFormReturn, chainId, searchCollateral }: CollateralFieldsProps) {
   const collateralIndex = collateralNumber - 1;
   const collaterals = useFormReturn.watch(["collateralToken1", "collateralToken2"]);
   const collateral = collaterals[collateralIndex];
@@ -195,10 +169,7 @@ function CollateralField({
                 return "Invalid address.";
               }
               if (
-                collaterals.some(
-                  (collateral, index) =>
-                    index !== collateralIndex && isTwoStringsEqual(v, collateral),
-                )
+                collaterals.some((collateral, index) => index !== collateralIndex && isTwoStringsEqual(v, collateral))
               ) {
                 return "Duplicated collateral.";
               }
@@ -288,18 +259,12 @@ function TokenNameField({
                   (fieldName === "lowerBound.token" &&
                     isTwoStringsEqual(
                       currentTokenName,
-                      getActualTokenName(
-                        "upperBound.token" as FieldPath<OutcomesFormValues>,
-                        formValues,
-                      ),
+                      getActualTokenName("upperBound.token" as FieldPath<OutcomesFormValues>, formValues),
                     )) ||
                   (fieldName === "upperBound.token" &&
                     isTwoStringsEqual(
                       currentTokenName,
-                      getActualTokenName(
-                        "lowerBound.token" as FieldPath<OutcomesFormValues>,
-                        formValues,
-                      ),
+                      getActualTokenName("lowerBound.token" as FieldPath<OutcomesFormValues>, formValues),
                     ))
                 ) {
                   return "Duplicated token name.";
@@ -308,10 +273,7 @@ function TokenNameField({
                 // Check for duplicates with outcomes
                 if (fieldName.includes("outcomes")) {
                   const outcomeIndex = Number(fieldName.split(".")[1]);
-                  if (
-                    !Number.isNaN(outcomeIndex) &&
-                    hasDuplicateOutcomeTokenName(outcomeIndex, formValues)
-                  ) {
+                  if (!Number.isNaN(outcomeIndex) && hasDuplicateOutcomeTokenName(outcomeIndex, formValues)) {
                     return "Duplicated token name.";
                   }
                 }
@@ -361,11 +323,7 @@ function OutcomesSection({
 
   const [lowerBound, outcomes] = watch(["lowerBound", "outcomes"]);
 
-  const {
-    fields: outcomesFields,
-    append: appendOutcome,
-    remove: removeOutcome,
-  } = useFieldArrayReturn;
+  const { fields: outcomesFields, append: appendOutcome, remove: removeOutcome } = useFieldArrayReturn;
 
   const addOutcome = () => {
     return appendOutcome({ value: "", token: "", image: "" }, { shouldFocus: false });
@@ -513,9 +471,7 @@ function CollateralsSection({
 
       <Modal
         title="Select Token"
-        content={
-          <SearchToken closeModal={closeModal} selectToken={selectToken} chainId={chainId} />
-        }
+        content={<SearchToken closeModal={closeModal} selectToken={selectToken} chainId={chainId} />}
       />
     </>
   );
@@ -577,9 +533,7 @@ export function OutcomesForm({
                     return true;
                   }
 
-                  if (
-                    isUndefined(getQuestionParts(getMarketName(marketType, v, unit), marketType))
-                  ) {
+                  if (isUndefined(getQuestionParts(getMarketName(marketType, v, unit), marketType))) {
                     return "Invalid question format. The question must include one [outcome type] at the beginning or within the question body.";
                   }
 
@@ -613,12 +567,10 @@ export function OutcomesForm({
                   <Alert type="info" className="mt-5">
                     <div className="space-y-[10px]">
                       <p>
-                        This market will measure the impact of an event on token price, rather than
-                        measuring the impact of a governance proposal.
+                        This market will measure the impact of an event on token price, rather than measuring the impact
+                        of a governance proposal.
                       </p>
-                      <p>
-                        For example, "Will GnosisPay reach $5mil weekly volume by December 31 2025?"
-                      </p>
+                      <p>For example, "Will GnosisPay reach $5mil weekly volume by December 31 2025?"</p>
                     </div>
                   </Alert>
                 )}
@@ -629,24 +581,22 @@ export function OutcomesForm({
           <Alert type="info">
             <div className="space-y-[10px]">
               <p>
-                A good question is clear, specific, and unambiguous. For example, instead of asking
-                "Will the economy improve?", a better question would be "Will the US GDP growth rate
-                exceed 2.5% in Q4 2024?".
+                A good question is clear, specific, and unambiguous. For example, instead of asking "Will the economy
+                improve?", a better question would be "Will the US GDP growth rate exceed 2.5% in Q4 2024?".
               </p>
               <p>
-                Ambiguity is the enemy of effective prediction markets, so strive to eliminate any
-                potential for multiple interpretations.
+                Ambiguity is the enemy of effective prediction markets, so strive to eliminate any potential for
+                multiple interpretations.
               </p>
               <p>
-                Verifiability is crucial for resolving predictions fairly. The question should rely
-                on publicly available, trustworthy data sources for resolution. Specify these
-                sources in advance if possible. For instance, "According to the Bureau of Labor
-                Statistics' official report, will the US unemployment rate be below 4% in December
-                2024?"
+                Verifiability is crucial for resolving predictions fairly. The question should rely on publicly
+                available, trustworthy data sources for resolution. Specify these sources in advance if possible. For
+                instance, "According to the Bureau of Labor Statistics' official report, will the US unemployment rate
+                be below 4% in December 2024?"
               </p>
               <p>
-                This approach ensures that when the resolution date arrives, there's a clear,
-                indisputable way to determine the outcome.
+                This approach ensures that when the resolution date arrives, there's a clear, indisputable way to
+                determine the outcome.
               </p>
               <p className="font-medium">
                 <a
@@ -664,9 +614,7 @@ export function OutcomesForm({
           {isFutarchyMarket ? (
             <CollateralsSection useFormReturn={useFormReturn} chainId={chainId} />
           ) : (
-            <OutcomesSection
-              {...{ marketHasOutcomes, marketName, marketType, useFormReturn, useFieldArrayReturn }}
-            />
+            <OutcomesSection {...{ marketHasOutcomes, marketName, marketType, useFormReturn, useFieldArrayReturn }} />
           )}
 
           {marketType === MarketTypes.MULTI_SCALAR && (
@@ -677,9 +625,8 @@ export function OutcomesForm({
                 <div className="space-y-[10px]">
                   <p>You can set the expected total amount and units if they are known.</p>
                   <p>
-                    For example on the market "How many seats in Canada's House of Commons will the
-                    [party name] win in the 45th Canadian federal election?", total amount is "343"
-                    and unit is "seats".
+                    For example on the market "How many seats in Canada's House of Commons will the [party name] win in
+                    the 45th Canadian federal election?", total amount is "343" and unit is "seats".
                   </p>
                 </div>
               </Alert>

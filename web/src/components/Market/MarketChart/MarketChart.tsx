@@ -173,20 +173,19 @@ async function exportData(market: Market) {
     return {
       date: formatDate(timestamp, "MM-dd-yyyy HH:mm"),
       timestamp,
-      ...series.reduce((acc, curr) => {
-        acc[curr.name] = curr.data[index][1];
-        return acc;
-      }, {} as { [key: string]: number }),
+      ...series.reduce(
+        (acc, curr) => {
+          acc[curr.name] = curr.data[index][1];
+          return acc;
+        },
+        {} as { [key: string]: number },
+      ),
     };
   });
   downloadCsv(headers, rows, `seer-price-data-${slug(market.marketName).slice(0, 80)}`);
 }
 
-function getChartTimeConfig(
-  period: ChartOptionPeriod,
-  startDate: Date | undefined,
-  endDate: Date | undefined,
-) {
+function getChartTimeConfig(period: ChartOptionPeriod, startDate: Date | undefined, endDate: Date | undefined) {
   if (startDate) {
     const endDateForCalc = endDate || new Date();
     const dayCount = differenceInDays(endDateForCalc, startDate);
@@ -248,10 +247,7 @@ function MarketChart({ market }: { market: Market }) {
                 setStartDate(undefined);
                 setEndDate(undefined);
               }}
-              className={clsx(
-                "pill-button",
-                !startDate && !endDate && period === option && "pill-button-active",
-              )}
+              className={clsx("pill-button", !startDate && !endDate && period === option && "pill-button-active")}
             >
               {option}
             </div>
@@ -281,9 +277,8 @@ function MarketChart({ market }: { market: Market }) {
           </div>
           <div className="tooltip">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
-              The chart represents the token distribution in the liquidity pool over time and may
-              not fully align with the outcome odds, which are calculated based on potential token
-              purchases.
+              The chart represents the token distribution in the liquidity pool over time and may not fully align with
+              the outcome odds, which are calculated based on potential token purchases.
             </p>
             <QuestionIcon fill="#9747FF" />
           </div>
@@ -334,7 +329,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
 
     if (name.length <= maxLength) return name;
 
-    return name.slice(0, maxLength - 2) + "…";
+    return `${name.slice(0, maxLength - 2)}…`;
   };
   const handleToggleOutcome = (outcomeName: string) => {
     setVisibleOutcomes((prev) => {
@@ -434,9 +429,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
 
       for (const { data, color } of seriesInstances) {
         if (visibleOutcomes.has(data.outcome.name)) {
-          const dataPoint = data.data.find(
-            (d: { time: UTCTimestamp; value: number }) => d.time === time,
-          );
+          const dataPoint = data.data.find((d: { time: UTCTimestamp; value: number }) => d.time === time);
           if (dataPoint) {
             values.push({
               name: data.outcome.name,
@@ -495,9 +488,7 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}:</span>
-                <span className="text-sm text-gray-700">
-                  {item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%
-                </span>
+                <span className="text-sm text-gray-700">{item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%</span>
               </div>
             ))}
           </div>

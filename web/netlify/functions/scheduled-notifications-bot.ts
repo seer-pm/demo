@@ -154,7 +154,9 @@ Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
 
         const maxLiq = newAnswers[i].maxLiquidity;
         if (SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL && maxLiq > HIGH_LIQUIDITY_NOTIFICATION_THRESHOLD) {
-          console.log(`[Network ${chainId}] Sending high liquidity notification (maxLiquidity: ${maxLiq}) for market: https://app.seer.pm/markets/${chainId}/${newAnswers[i].url}`);
+          console.log(
+            `[Network ${chainId}] Sending high liquidity notification (maxLiquidity: ${maxLiq}) for market: https://app.seer.pm/markets/${chainId}/${newAnswers[i].url}`,
+          );
           await sendTelegramMessage(botToken, SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL, messages[i]);
         }
 
@@ -180,6 +182,8 @@ export default async () => {
     console.log("Missing TELEGRAM_NOTIFICATIONS_BOT_TOKEN variable");
     return;
   }
+
+  console.log("Initializing notification cycle...");
 
   for (const chainId of chainIds) {
     if (chainId === sepolia.id) {

@@ -12,7 +12,7 @@ export default function SwapButtons({
   isLoading,
   isBuyExactOutputNative,
   missingApprovals,
-  text
+  text,
 }: {
   account?: Address;
   trade: Trade;
@@ -20,7 +20,7 @@ export default function SwapButtons({
   isLoading: boolean;
   isBuyExactOutputNative: boolean;
   missingApprovals: UseMissingApprovalsReturn[] | undefined;
-  text?: string
+  text?: string;
 }) {
   const isShowApproval = !isBuyExactOutputNative && missingApprovals && missingApprovals.length > 0;
   return (

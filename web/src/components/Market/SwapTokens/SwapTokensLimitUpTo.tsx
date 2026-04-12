@@ -67,9 +67,7 @@ export function SwapTokensLimitUpto({
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
   );
   const poolInfo = ticksByPool ? Object.values(ticksByPool)[0].poolInfo : undefined;
-  const currentSqrtPriceX96 = poolInfo
-    ? BigInt(TickMath.getSqrtRatioAtTick(poolInfo.tick).toString())
-    : 0n;
+  const currentSqrtPriceX96 = poolInfo ? BigInt(TickMath.getSqrtRatioAtTick(poolInfo.tick).toString()) : 0n;
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -163,8 +161,7 @@ export function SwapTokensLimitUpto({
     !isInstantSwap,
   );
   const trade = quoteData?.trade;
-  const isCowFastQuote =
-    trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";
+  const isCowFastQuote = trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -213,15 +210,7 @@ export function SwapTokensLimitUpto({
       );
     }
     if (limitErrorMessage && limitErrorMessage !== "This field is required." && !isUseMax) {
-      return (
-        <Button
-          variant="primary"
-          className="w-full"
-          type="button"
-          disabled={true}
-          text={limitErrorMessage}
-        />
-      );
+      return <Button variant="primary" className="w-full" type="button" disabled={true} text={limitErrorMessage} />;
     }
     if (quoteData?.trade) {
       const parsedAmount = parseUnits(amount, sellToken.decimals);
@@ -251,26 +240,9 @@ export function SwapTokensLimitUpto({
     }
 
     if (quoteIsLoading && quoteFetchStatus === "fetching") {
-      return (
-        <Button
-          variant="primary"
-          type="button"
-          className="w-full"
-          disabled={true}
-          isLoading={true}
-          text=""
-        />
-      );
+      return <Button variant="primary" type="button" className="w-full" disabled={true} isLoading={true} text="" />;
     }
-    return (
-      <Button
-        variant="primary"
-        className="w-full"
-        type="button"
-        disabled={true}
-        text="Enter target price"
-      />
-    );
+    return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter target price" />;
   };
 
   const checkPriceDirection = (value: number) => {
@@ -376,10 +348,7 @@ export function SwapTokensLimitUpto({
           />
         }
       />
-      <form
-        onSubmit={handleSubmit(openConfirmSwapModal, handleOpenConfirmPartialSwap)}
-        className="space-y-5"
-      >
+      <form onSubmit={handleSubmit(openConfirmSwapModal, handleOpenConfirmPartialSwap)} className="space-y-5">
         <div className="space-y-2">
           <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
@@ -405,12 +374,7 @@ export function SwapTokensLimitUpto({
 
                       // All trades must be less than 1. Input field defaults to cents - when user types "86",
                       // it automatically becomes "0.86" to represent 86 cents
-                      if (
-                        value &&
-                        !value.includes(".") &&
-                        !value.includes(",") &&
-                        Number(value) >= 1
-                      ) {
+                      if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
                         const formattedValue = `0.${value}`;
                         setValue("limitPrice", formattedValue, {
                           shouldValidate: true,
@@ -429,7 +393,7 @@ export function SwapTokensLimitUpto({
                       limitPriceRef.current?.focus({ preventScroll: true });
                     });
                   }}
-                  value={isUseMax ? limitPriceFromVolume?.toFixed(8) ?? "" : limitPrice}
+                  value={isUseMax ? (limitPriceFromVolume?.toFixed(8) ?? "") : limitPrice}
                   className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
@@ -605,18 +569,15 @@ export function SwapTokensLimitUpto({
 
         {isPriceTooHigh && (
           <Alert type="warning">
-            Price exceeds 1{" "}
-            {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per
-            share. Try to reduce the input price.
+            Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
+            Try to reduce the input price.
           </Alert>
         )}
         {quoteError && (
           <Alert type="error">
             {quoteError.message
               ? quoteError.message === "No route found"
-                ? `Not enough liquidity. Try to ${
-                    swapType === "buy" ? "reduce" : "increase"
-                  } the input price.`
+                ? `Not enough liquidity. Try to ${swapType === "buy" ? "reduce" : "increase"} the input price.`
                 : quoteError.message
               : "Error when quoting price"}
           </Alert>
