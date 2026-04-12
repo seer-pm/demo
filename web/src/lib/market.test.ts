@@ -38,6 +38,7 @@ const createMinimalMarket = (overrides: Partial<Market>): Market => {
     chainId: 1,
     outcomesSupply: 0n,
     liquidityUSD: 0,
+    maxLiquidity: 0,
     incentive: 0,
     hasLiquidity: false,
     categories: ["misc"],

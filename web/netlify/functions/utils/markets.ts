@@ -13,7 +13,7 @@ import type { Database, Json } from "./supabase";
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export const MARKET_DB_FIELDS =
-  "id,chain_id,url,subgraph_data,categories,liquidity,incentive,odds,pool_balance,verification,images";
+  "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images";
 
 export type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
 
@@ -24,6 +24,7 @@ type DbMarket = {
   subgraph_data?: Json;
   categories?: string[] | null;
   liquidity?: number | null;
+  max_liquidity?: number | null;
   incentive?: number | null;
   odds?: number[] | null;
   pool_balance?: Json;
@@ -44,6 +45,7 @@ export function mapGraphMarket(
     chainId: SupportedChain;
     verification: VerificationResult | undefined;
     liquidityUSD: number;
+    maxLiquidity: number;
     incentive: number;
     hasLiquidity: boolean;
     categories: string[];
@@ -106,6 +108,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
     chainId: extraData.chain_id as SupportedChain,
     verification: extraData?.verification as VerificationResult,
     liquidityUSD: extraData?.liquidity ?? 0,
+    maxLiquidity: extraData?.max_liquidity ?? 0,
     incentive: extraData?.incentive ?? 0,
     hasLiquidity: extraData?.odds?.some((odd: number | null) => (odd ?? 0) > 0) ?? false,
     odds: extraData?.odds?.map((x) => x ?? Number.NaN) ?? [],

@@ -10,8 +10,20 @@ import { chainIds, getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
 
 const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
+const SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL = "-3951302263";
+const HIGH_LIQUIDITY_NOTIFICATION_THRESHOLD = 500;
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+
+type MarketFromQuestion = {
+  maxLiquidity: number;
+  url: string;
+  encodedQuestion: string;
+  question: Question;
+  answer: `0x${string}`;
+  outcomes: string[];
+  templateId: string;
+};
 
 async function sendTelegramMessage(botToken: string, chatId: string, message: string) {
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -33,7 +45,9 @@ async function sendTelegramMessage(botToken: string, chatId: string, message: st
   throw new Error(`Failed to send Telegram message: ${response.status} ${response.statusText}`);
 }
 
-async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, string>) {
+async function getMarketsFromQuestions(
+  questionIdToAnswerMap: Record<`0x${string}`, `0x${string}`>,
+): Promise<Map<`0x${string}`, MarketFromQuestion>> {
   try {
     const questionIds = Object.keys(questionIdToAnswerMap);
     if (questionIds.length === 0) {
@@ -47,18 +61,7 @@ async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, str
       return new Map();
     }
 
-    const questionToMarketMap = new Map<
-      `0x${string}`,
-      {
-        marketId: string;
-        url: string;
-        encodedQuestion: string;
-        question: Question;
-        answer: string;
-        outcomes: string[];
-        templateId: string;
-      }
-    >();
+    const questionToMarketMap = new Map<`0x${string}`, MarketFromQuestion>();
 
     for (const market of data) {
       const upperBound = BigInt(market.subgraph_data?.upperBound || 0);
@@ -70,8 +73,8 @@ async function getMarketsFromQuestions(questionIdToAnswerMap: Record<string, str
       for (let i = 0; i < questions.length; i++) {
         const question = questions[i];
         if (question?.question?.id && questionIdToAnswerMap[question.question.id]) {
-          questionToMarketMap.set(question.question.id as `0x${string}`, {
-            marketId: market.id,
+          questionToMarketMap.set(question.question.id, {
+            maxLiquidity: market.max_liquidity ?? 0,
             url: market.url,
             encodedQuestion: market.subgraph_data.encodedQuestions[i],
             question: question.question,
@@ -114,7 +117,7 @@ async function getNewAnswerEvents(chainId: SupportedChain, fromBlock: bigint) {
       acc[args.question_id!] = args.answer!;
       return acc;
     },
-    {} as Record<string, string>,
+    {} as Record<`0x${string}`, `0x${string}`>,
   );
 
   const questionToMarketMap = await getMarketsFromQuestions(questionIdToAnswerMap);
@@ -148,6 +151,11 @@ Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
       // Send messages in batches of 20, with a 1.5-second delay between batches
       for (let i = 0; i < messages.length; i++) {
         await sendTelegramMessage(botToken, SEER_NOTIFICATIONS_CHANNEL, messages[i]);
+
+        const maxLiq = newAnswers[i].maxLiquidity;
+        if (SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL && maxLiq > HIGH_LIQUIDITY_NOTIFICATION_THRESHOLD) {
+          await sendTelegramMessage(botToken, SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL, messages[i]);
+        }
 
         // Wait for 1.5 seconds after every 20 messages (but not after the last message)
         if ((i + 1) % 20 === 0 && i + 1 < messages.length) {

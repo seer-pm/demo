@@ -353,6 +353,7 @@ export function PreviewForm({
     wrappedTokens: dummyOutcomes.map((_) => "0x000"),
     outcomesSupply: 0n,
     liquidityUSD: 0,
+    maxLiquidity: 0,
     incentive: 0,
     hasLiquidity: false,
     parentCollectionId: "0x000",

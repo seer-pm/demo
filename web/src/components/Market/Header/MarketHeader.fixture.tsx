@@ -24,6 +24,7 @@ const baseMarket: Market = {
   parentOutcome: 0n,
   outcomesSupply: 0n,
   liquidityUSD: 0,
+  maxLiquidity: 0,
   incentive: 0,
   hasLiquidity: false,
   parentCollectionId: "0x000",

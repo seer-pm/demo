@@ -22,6 +22,7 @@ export type MarketOffChainFields = {
   factory?: Address;
   outcomesSupply: bigint;
   liquidityUSD: number;
+  maxLiquidity: number;
   incentive: number;
   hasLiquidity: boolean;
   categories: string[];

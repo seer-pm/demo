@@ -3,7 +3,7 @@ import { normalizeOdds } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import { zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
-import { getAllMarketPools, Pool } from "./utils/fetchPools";
+import { Pool, getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 import { searchMarkets } from "./utils/markets";
@@ -26,11 +26,7 @@ export default async () => {
     });
 
     const parentMarketsIds = Array.from(
-      new Set(
-        markets
-          .filter((market) => market.parentMarket.id !== zeroAddress)
-          .map((m) => m.parentMarket.id),
-      ),
+      new Set(markets.filter((market) => market.parentMarket.id !== zeroAddress).map((m) => m.parentMarket.id)),
     );
 
     if (parentMarketsIds.length > 0) {
@@ -62,11 +58,13 @@ export default async () => {
     // update liquidity for each market
     console.log("fetching liquidity...");
     const liquidityToMarketMapping = await getMarketsLiquidity(markets, pools);
+
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
         chain_id: market.chainId,
         liquidity: liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0,
+        max_liquidity: Math.max(liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0, market.maxLiquidity ?? 0),
         pool_balance: liquidityToMarketMapping[market.id]?.poolBalance || [],
         updated_at: new Date(),
       })),
@@ -113,9 +111,7 @@ export default async () => {
           return Number.NaN;
         }
         const [price0, price1] = tickToPrice(Number(pool.tick));
-        return wrappedAddress.toLowerCase() === token0.toLowerCase()
-          ? Number(price0)
-          : Number(price1);
+        return wrappedAddress.toLowerCase() === token0.toLowerCase() ? Number(price0) : Number(price1);
       });
 
       return normalizeOdds(prices);

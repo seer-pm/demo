@@ -22,6 +22,7 @@ export async function searchOnChainMarkets(config: Config, chainId: SupportedCha
         chainId,
         outcomesSupply: 0n,
         liquidityUSD: 0,
+        maxLiquidity: 0,
         incentive: 0,
         hasLiquidity: false,
         categories: ["misc"],

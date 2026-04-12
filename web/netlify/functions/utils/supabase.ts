@@ -200,6 +200,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      l2_pools: {
+        Row: {
+          created_at: string | null;
+          data: Json;
+          id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          data: Json;
+          id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          data?: Json;
+          id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       markets: {
         Row: {
           categories: string[] | null;
@@ -211,6 +232,7 @@ export type Database = {
           images: Json | null;
           incentive: number | null;
           liquidity: number | null;
+          max_liquidity: number | null;
           metadata: Json | null;
           odds: number[] | null;
           odds_run_timestamp: number | null;
@@ -235,6 +257,7 @@ export type Database = {
           images?: Json | null;
           incentive?: number | null;
           liquidity?: number | null;
+          max_liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
           odds_run_timestamp?: number | null;
@@ -259,6 +282,7 @@ export type Database = {
           images?: Json | null;
           incentive?: number | null;
           liquidity?: number | null;
+          max_liquidity?: number | null;
           metadata?: Json | null;
           odds?: number[] | null;
           odds_run_timestamp?: number | null;
@@ -329,6 +353,7 @@ export type Database = {
           chain_id: number;
           from: string;
           id: number;
+          subgraph_id: string;
           timestamp: number;
           to: string;
           token: string;
@@ -340,6 +365,7 @@ export type Database = {
           chain_id: number;
           from: string;
           id?: number;
+          subgraph_id: string;
           timestamp: number;
           to: string;
           token: string;
@@ -351,6 +377,7 @@ export type Database = {
           chain_id?: number;
           from?: string;
           id?: number;
+          subgraph_id?: string;
           timestamp?: number;
           to?: string;
           token?: string;
@@ -435,17 +462,19 @@ export type Database = {
           is_underlying_worthless: number | null;
           liquidity: number | null;
           market_name: string | null;
+          max_liquidity: number | null;
           metadata: Json | null;
           odds: number[] | null;
           odds_run_timestamp: number | null;
           opening_ts: number | null;
           outcomes: Json | null;
+          outcomes_supply: number | null;
           outcomes_text: string | null;
           parent_market: Json | null;
           parent_outcome: string | null;
           payout_numerators_value: number | null;
           payout_reported: boolean | null;
-          pool_balance: Json;
+          pool_balance: Json | null;
           status: string | null;
           subgraph_data: Json | null;
           updated_at: string | null;
@@ -469,6 +498,48 @@ export type Database = {
       insert_airdrop_safely: {
         Args: { new_timestamp: number; records: Json };
         Returns: undefined;
+      };
+      markets_by_question_ids: {
+        Args: { ids: string[] };
+        Returns: {
+          categories: string[] | null;
+          chain_id: number;
+          chart_data: Json | null;
+          created_at: string | null;
+          creator: string | null;
+          id: string;
+          images: Json | null;
+          incentive: number | null;
+          liquidity: number | null;
+          max_liquidity: number | null;
+          metadata: Json | null;
+          odds: number[] | null;
+          odds_run_timestamp: number | null;
+          opening_ts: number | null;
+          parent_outcome: string | null;
+          payout_numerators_value: number | null;
+          payout_reported: boolean | null;
+          pool_balance: Json;
+          status: string | null;
+          subgraph_data: Json | null;
+          updated_at: string | null;
+          url: string | null;
+          verification: Json | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "markets";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      search_markets_any_token: {
+        Args: { tokens: string[] };
+        Returns: {
+          chain_id: number;
+          market_id: string;
+          token: string;
+        }[];
       };
       show_limit: { Args: never; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
