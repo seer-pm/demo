@@ -10,7 +10,10 @@ import pLimit from "p-limit";
 import type { Address } from "viem";
 import { START_TIME } from "./constants";
 
-export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
+export async function getPoolHourDatasByTokenPair(
+  chainId: SupportedChain,
+  tokenPair: Token0Token1,
+) {
   let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];
   const initialPeriodStartUnix = START_TIME[chainId as 1 | 100];
   let currentPeriodStartUnix = initialPeriodStartUnix;
@@ -71,7 +74,7 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
 
         const json = await results.json();
         if (json.errors?.length) {
-          throw json.errors[0].message;
+          throw json.errors[0];
         }
         poolHourDatas = json?.data?.poolHourDatas ?? [];
         success = true;
@@ -80,7 +83,11 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
         retries++;
 
         if (retries === maxRetries) {
-          throw new Error(`Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${error.message}`);
+          throw new Error(
+            `Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${
+              (error as any).message
+            }`,
+          );
         }
 
         // Exponential backoff
@@ -106,6 +113,111 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
     // wait 300ms between calls
     await new Promise((res) => setTimeout(res, 300));
   }
+  return allData;
+}
+
+export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartTime?: number) {
+  const subgraphUrl = getSubgraphUrl(
+    chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
+    chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
+  )!;
+
+  // 1. Get time range
+  const timeRangeQuery = `{
+    poolHourDatas(first: 1, orderBy: periodStartUnix, orderDirection: asc) {
+      periodStartUnix
+    }
+    poolHourDatasDesc: poolHourDatas(first: 1, orderBy: periodStartUnix, orderDirection: desc) {
+      periodStartUnix
+    }
+  }`;
+
+  const timeRangeResult = await fetch(subgraphUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: timeRangeQuery }),
+  });
+
+  const timeRangeJson = await timeRangeResult.json();
+
+  const startTime =
+    initialStartTime ||
+    Number.parseInt(timeRangeJson.data.poolHourDatas[0]?.periodStartUnix || "0");
+
+  const endTime = Number.parseInt(timeRangeJson.data.poolHourDatasDesc[0]?.periodStartUnix || "0");
+
+  // 2. Chunk by time (1 day)
+  const CHUNK_SIZE = 24 * 60 * 60;
+  const chunks: Promise<GetPoolHourDatasQuery["poolHourDatas"]>[] = [];
+
+  for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
+    chunks.push(
+      fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)),
+    );
+  }
+  const limit = pLimit(10);
+  const results = await Promise.all(chunks.map((chunkFn) => limit(() => chunkFn)));
+  const allData = results.flat();
+
+  allData.sort((a, b) => Number(b.periodStartUnix) - Number(a.periodStartUnix));
+
+  return allData;
+}
+
+async function fetchPoolHourDatasTimeRange(
+  subgraphUrl: string,
+  startTime: number,
+  endTime: number,
+): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
+  let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];
+  let currentTimestamp = startTime;
+
+  while (currentTimestamp < endTime) {
+    const query = `{
+      poolHourDatas(
+        first: 1000,
+        orderBy: periodStartUnix,
+        orderDirection: asc,
+        where: {
+          periodStartUnix_gte: ${currentTimestamp},
+          periodStartUnix_lt: ${endTime}
+        }
+      ) {
+        id
+        token0Price
+        token1Price
+        periodStartUnix
+        sqrtPrice
+        liquidity
+        pool {
+          id
+          liquidity
+          token0 { id name }
+          token1 { id name }
+        }
+      }
+    }`;
+
+    const result = await fetch(subgraphUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+
+    const json = await result.json();
+
+    if (json.errors?.length) {
+      throw json.errors[0];
+    }
+
+    const data = json?.data?.poolHourDatas ?? [];
+    allData = allData.concat(data);
+
+    if (data.length < 1000) break;
+
+    currentTimestamp = Number(data[data.length - 1].periodStartUnix) + 1;
+  }
+
   return allData;
 }
 

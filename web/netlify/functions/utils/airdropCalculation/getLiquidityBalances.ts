@@ -71,7 +71,7 @@ export async function fetchMints(chainId: SupportedChain, tokenPairs: Token0Toke
     );
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const mints = json?.data?.mints ?? [];
     allMints = allMints.concat(mints);
@@ -133,7 +133,7 @@ export async function fetchBurns(chainId: SupportedChain, tokenPairs: Token0Toke
     );
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const burns = json?.data?.burns ?? [];
     allBurns = allBurns.concat(burns);

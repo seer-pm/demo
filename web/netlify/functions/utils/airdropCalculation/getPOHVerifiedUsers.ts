@@ -34,7 +34,7 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
     });
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const requests = json?.data?.requests ?? [];
     allRequests = allRequests.concat(requests);
@@ -51,5 +51,7 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
   return allRequests;
 }
 export function isPOHVerifiedUserAtTime(requests: PoHRequest[], user: string, timestamp: number) {
-  return requests.some((request) => request.requester === user && Number(request.resolutionTime) <= timestamp);
+  return requests.some(
+    (request) => request.requester === user && Number(request.resolutionTime) <= timestamp,
+  );
 }

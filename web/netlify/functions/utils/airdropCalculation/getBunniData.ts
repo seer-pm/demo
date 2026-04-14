@@ -39,7 +39,10 @@ export interface BunniPositionSnapshot {
   blockNumber: string;
 }
 
-export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
+export async function getBunniLpTokensByTokenPair(
+  chainId: SupportedChain,
+  tokenPair: Token0Token1,
+) {
   if (chainId !== mainnet.id) {
     return [];
   }
@@ -57,7 +60,11 @@ export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, token
     while (retries < maxRetries && !success) {
       try {
         const query: string = `{
-                    bunniTokens(first: 1000, orderBy: id, orderDirection: asc${currentId ? `, where: {id_gt: ${currentId}, pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}` : `, where: {pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`}) {
+                    bunniTokens(first: 1000, orderBy: id, orderDirection: asc${
+                      currentId
+                        ? `, where: {id_gt: ${currentId}, pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
+                        : `, where: {pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
+                    }) {
                       id
                       name
                       symbol
@@ -81,7 +88,7 @@ export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, token
 
         const json = await results.json();
         if (json.errors?.length) {
-          throw json.errors[0].message;
+          throw json.errors[0];
         }
         bunniTokens = json?.data?.bunniTokens ?? [];
         success = true;
@@ -146,7 +153,13 @@ export async function getBunniPositionSnapshots(bunniLpTokens: string[]) {
 
   while (true) {
     const query: string = `{
-              positionSnapshots(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}", token_in:[${bunniLpTokens.map((token) => `"${token}"`)}]}` : `, where: {token_in:[${bunniLpTokens.map((token) => `"${token}"`)}]}`}) {
+              positionSnapshots(first: 1000, orderBy: timestamp, orderDirection: asc${
+                currentTimestamp
+                  ? `, where: {timestamp_gt: "${currentTimestamp}", token_in:[${bunniLpTokens.map(
+                      (token) => `"${token}"`,
+                    )}]}`
+                  : `, where: {token_in:[${bunniLpTokens.map((token) => `"${token}"`)}]}`
+              }) {
                 id
                 token {
                     id
@@ -179,7 +192,7 @@ export async function getBunniPositionSnapshots(bunniLpTokens: string[]) {
     });
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const positionSnapshots = json?.data?.positionSnapshots ?? [];
     allPositionSnapshots = allPositionSnapshots.concat(positionSnapshots);
@@ -234,7 +247,14 @@ export function getBunniPositionHoldersAtTimestamp(
 
     if (!token0 || !token1) continue;
 
-    const { amount0, amount1 } = calculateBurnAmounts(value, totalSupply, liquidity, tickCurrent, tickLower, tickUpper);
+    const { amount0, amount1 } = calculateBurnAmounts(
+      value,
+      totalSupply,
+      liquidity,
+      tickCurrent,
+      tickLower,
+      tickUpper,
+    );
 
     // Initialize balances for both addresses and tokens
     for (const addr of [from, to]) {

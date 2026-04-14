@@ -33,7 +33,9 @@ export async function fetchSubgraphMarkets(chainId: SupportedChain) {
   let currentId = undefined;
   while (attempt < maxAttempts) {
     const query: string = `{
-          markets(first: 1000, orderBy: id, orderDirection: asc${currentId ? `, where: {id_gt: "${currentId}"}` : ""}) {
+          markets(first: 1000, orderBy: id, orderDirection: asc${
+            currentId ? `, where: {id_gt: "${currentId}"}` : ""
+          }) {
             id
             type
             marketName
@@ -68,7 +70,7 @@ export async function fetchSubgraphMarkets(chainId: SupportedChain) {
     });
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const markets = json?.data?.markets ?? [];
     allMarkets = allMarkets.concat(markets);

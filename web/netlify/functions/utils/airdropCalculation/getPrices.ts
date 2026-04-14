@@ -4,7 +4,8 @@ import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import type { Address } from "viem";
-import { getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
+import { getAllPoolHourDatas, getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
+import { gnosis } from "viem/chains";
 
 async function getLatestPoolHourDataMap(
   tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
@@ -12,7 +13,10 @@ async function getLatestPoolHourDataMap(
   startTime: number,
 ) {
   const resolvedMap = new Map<string, GetPoolHourDatasQuery["poolHourDatas"][0]>();
-  const poolHourDatas = await getPoolHourDatasByTokenPairs(chainId, tokens);
+  const poolHourDatas =
+    chainId === gnosis.id
+      ? await getAllPoolHourDatas(chainId)
+      : await getPoolHourDatasByTokenPairs(chainId, tokens);
   for (const entry of poolHourDatas) {
     const key = entry.pool.token0.id + entry.pool.token1.id;
     if (!resolvedMap.has(key) && Number(entry.periodStartUnix) <= startTime) {
@@ -42,36 +46,30 @@ export async function getPrices(
     }[][],
   );
 
-  const simpleTokensMapping = simpleTokens.reduce(
-    (acc, { tokenId }) => {
-      const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
-      const { token0, token1 } = getToken0Token1(tokenId, primaryCollateralAddress);
-      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
-      acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
-        ? isTwoStringsEqual(tokenId, token0)
-          ? Number(correctPoolHourData.token1Price)
-          : Number(correctPoolHourData.token0Price)
-        : 0;
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
+  const simpleTokensMapping = simpleTokens.reduce((acc, { tokenId }) => {
+    const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
+    const { token0, token1 } = getToken0Token1(tokenId, primaryCollateralAddress);
+    const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
+    acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
+      ? isTwoStringsEqual(tokenId, token0)
+        ? Number(correctPoolHourData.token1Price)
+        : Number(correctPoolHourData.token0Price)
+      : 0;
+    return acc;
+  }, {} as { [key: string]: number });
 
-  const conditionalTokensMapping = conditionalTokens.reduce(
-    (acc, { tokenId, parentTokenId }) => {
-      const { token0, token1 } = getToken0Token1(tokenId, parentTokenId!);
-      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
-      const relativePrice = correctPoolHourData
-        ? isTwoStringsEqual(tokenId, token0)
-          ? Number(correctPoolHourData.token1Price)
-          : Number(correctPoolHourData.token0Price)
-        : 0;
+  const conditionalTokensMapping = conditionalTokens.reduce((acc, { tokenId, parentTokenId }) => {
+    const { token0, token1 } = getToken0Token1(tokenId, parentTokenId!);
+    const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
+    const relativePrice = correctPoolHourData
+      ? isTwoStringsEqual(tokenId, token0)
+        ? Number(correctPoolHourData.token1Price)
+        : Number(correctPoolHourData.token0Price)
+      : 0;
 
-      acc[tokenId.toLocaleLowerCase()] =
-        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
+    acc[tokenId.toLocaleLowerCase()] =
+      relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
+    return acc;
+  }, {} as { [key: string]: number });
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }

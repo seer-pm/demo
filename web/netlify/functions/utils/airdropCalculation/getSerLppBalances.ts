@@ -11,7 +11,11 @@ export async function getSerLppBalances(chainId: SupportedChain) {
   let currentTimestamp = undefined;
   while (true) {
     const query: string = `{
-              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${currentTimestamp ? `, where: {timestamp_gt: "${currentTimestamp}", token:"${serLpp}"}` : `, where: {token:"${serLpp}"}`}) {
+              transfers(first: 1000, orderBy: timestamp, orderDirection: asc${
+                currentTimestamp
+                  ? `, where: {timestamp_gt: "${currentTimestamp}", token:"${serLpp}"}`
+                  : `, where: {token:"${serLpp}"}`
+              }) {
                 id
                 from
                 to
@@ -34,7 +38,7 @@ export async function getSerLppBalances(chainId: SupportedChain) {
     });
     const json = await results.json();
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
     const transfers = json?.data?.transfers ?? [];
     allTransfers = allTransfers.concat(transfers);

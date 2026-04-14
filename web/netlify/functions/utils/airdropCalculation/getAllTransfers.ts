@@ -1,5 +1,6 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
+import pLimit from "p-limit";
 import { formatUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
 
@@ -15,11 +16,16 @@ export interface Transfer {
   value: string;
 }
 
-export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain, initialStartTime?: number) {
+export async function getAllTransfers(
+  type: "futarchy" | "tokens",
+  chainId: SupportedChain,
+  initialStartTime?: number,
+) {
   if (type === "futarchy" && chainId !== gnosis.id) {
     return [];
   }
-  const subgraphUrl = type === "futarchy" ? SUBGRAPHS[type][100] : SUBGRAPHS[type][chainId as 1 | 100];
+  const subgraphUrl =
+    type === "futarchy" ? SUBGRAPHS[type][100] : SUBGRAPHS[type][chainId as 1 | 100];
   // First, get the time range
   const timeRangeQuery = `{
     transfers(first: 1, orderBy: timestamp, orderDirection: asc) { timestamp }
@@ -33,7 +39,8 @@ export async function getAllTransfers(type: "futarchy" | "tokens", chainId: Supp
   });
   const timeRangeJson = await timeRangeResult.json();
 
-  const startTime = initialStartTime || Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
+  const startTime =
+    initialStartTime || Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
   const endTime = Number.parseInt(timeRangeJson.data.transfersDesc[0]?.timestamp || "0");
 
   // Divide into chunks
@@ -43,14 +50,18 @@ export async function getAllTransfers(type: "futarchy" | "tokens", chainId: Supp
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
     chunks.push(fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)));
   }
-
-  const results = await Promise.all(chunks);
+  const limit = pLimit(10);
+  const results = await Promise.all(chunks.map((chunkFn) => limit(() => chunkFn)));
   const allTransfers = results.flat();
 
   return allTransfers;
 }
 
-async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: number): Promise<Transfer[]> {
+async function fetchTimeRange(
+  subgraphUrl: string,
+  startTime: number,
+  endTime: number,
+): Promise<Transfer[]> {
   let allTransfers: Transfer[] = [];
   let currentTimestamp = startTime;
 
@@ -82,7 +93,7 @@ async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: n
     const json = await result.json();
 
     if (json.errors?.length) {
-      throw json.errors[0].message;
+      throw json.errors[0];
     }
 
     const transfers = json?.data?.transfers ?? [];
