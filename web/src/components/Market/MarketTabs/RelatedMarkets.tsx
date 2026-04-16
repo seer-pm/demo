@@ -22,7 +22,11 @@ interface UseFilterRelatedMarketsParams {
   searchTerm: string;
 }
 
-function useFilterRelatedMarkets({ markets, currentMarket, searchTerm }: UseFilterRelatedMarketsParams) {
+function useFilterRelatedMarkets({
+  markets,
+  currentMarket,
+  searchTerm,
+}: UseFilterRelatedMarketsParams) {
   const queryClient = useQueryClient();
 
   // Fetch parent market if current market has a parent
@@ -93,13 +97,15 @@ function useFilterRelatedMarkets({ markets, currentMarket, searchTerm }: UseFilt
       return outcomeText.toLowerCase().includes(searchTerm.toLowerCase());
     });
   }, [markets, searchTerm, parentMarketsMap]);
-
   return {
     filteredMarkets,
   };
 }
 
-export function RelatedMarkets({ market }: RelatedMarketsProps) {
+export function RelatedMarkets({
+  market,
+  setRelatedMarketsCount,
+}: RelatedMarketsProps & { setRelatedMarketsCount: (count: number) => void }) {
   const { data: markets = [], isPending } = useRelatedMarkets(market);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -122,6 +128,10 @@ export function RelatedMarkets({ market }: RelatedMarketsProps) {
       setPage(1);
     }
   }, [filteredMarkets, page, pageCount]);
+
+  useEffect(() => {
+    setRelatedMarketsCount(filteredMarkets.length);
+  }, [filteredMarkets.length]);
 
   useEffect(() => {
     // Reset to first page when search term changes
