@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-import { PortfolioPosition } from "@/hooks/portfolio/positionsTab/usePortfolioPositions";
 import { useModal } from "@/hooks/useModal";
 import {
   ArrowDropDown,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useMarket } from "@seer-pm/react";
+import type { PortfolioPosition } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { MarketStatus } from "@seer-pm/sdk";
 import {
@@ -25,7 +25,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { Address, zeroAddress } from "viem";
+import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import { MarketImage } from "../Market/MarketImage";
@@ -60,15 +60,18 @@ function RedeemModalContent({
   );
 }
 
-export default function PositionsTable({
+function PositionsTableInner({
   data,
   chainId,
+  account,
+  showRedeemColumn,
 }: {
   data: PortfolioPosition[];
   chainId: SupportedChain;
+  account: Address | undefined;
+  showRedeemColumn: boolean;
 }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
-  const { address: account } = useAccount();
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   function formatSmallNumber(n: number | undefined) {
     if (typeof n !== "number") return "-";
@@ -79,8 +82,42 @@ export default function PositionsTable({
 
     return n.toFixed(2);
   }
-  const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(
-    () => [
+  const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
+    const redeemColumn: ColumnDef<PortfolioPosition> = {
+      accessorKey: "marketStatus",
+      cell: (info) => {
+        const position = info.row.original;
+        if (info.getValue<string>() === MarketStatus.CLOSED) {
+          return (
+            <button
+              type="button"
+              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
+              onClick={() => {
+                setSelectedMarketId(position.marketId);
+                openModal();
+              }}
+            >
+              Redeem
+            </button>
+          );
+        }
+        return <p className="text-[14px] text-black-secondary">Not redeemable</p>;
+      },
+      header: "Redeem",
+      sortingFn: (rowA, rowB) => {
+        const statusA = rowA.original.marketStatus;
+        const statusB = rowB.original.marketStatus;
+        if (statusA === MarketStatus.CLOSED && statusB !== MarketStatus.CLOSED) {
+          return -1;
+        }
+        if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
+          return 1;
+        }
+        return 0;
+      },
+    };
+
+    return [
       {
         accessorKey: "marketName",
         cell: (info) => {
@@ -189,42 +226,9 @@ export default function PositionsTable({
         ),
         header: "Value (sDAI)",
       },
-      {
-        accessorKey: "marketStatus",
-        cell: (info) => {
-          const position = info.row.original;
-          if (info.getValue<string>() === MarketStatus.CLOSED) {
-            return (
-              <button
-                type="button"
-                className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
-                onClick={() => {
-                  setSelectedMarketId(position.marketId);
-                  openModal();
-                }}
-              >
-                Redeem
-              </button>
-            );
-          }
-          return <p className="text-[14px] text-black-secondary">Not redeemable</p>;
-        },
-        header: "Redeem",
-        sortingFn: (rowA, rowB) => {
-          const statusA = rowA.original.marketStatus;
-          const statusB = rowB.original.marketStatus;
-          if (statusA === MarketStatus.CLOSED && statusB !== MarketStatus.CLOSED) {
-            return -1;
-          }
-          if (statusA !== MarketStatus.CLOSED && statusB === MarketStatus.CLOSED) {
-            return 1;
-          }
-          return 0;
-        },
-      },
-    ],
-    [],
-  );
+      ...(showRedeemColumn ? [redeemColumn] : []),
+    ];
+  }, [chainId, showRedeemColumn]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -242,7 +246,7 @@ export default function PositionsTable({
     initialState: {
       sorting: [
         {
-          id: "marketStatus",
+          id: showRedeemColumn ? "marketStatus" : "marketName",
           desc: false,
         },
       ],
@@ -252,34 +256,46 @@ export default function PositionsTable({
   return (
     <>
       <div className="w-full overflow-x-auto mb-6">
-        <Modal
-          title="Redeem"
-          content={
-            <div>
-              <button
-                type="button"
-                className="absolute right-[20px] top-[20px] hover:opacity-60"
-                onClick={() => closeModal()}
-                aria-label="Close modal"
-              >
-                <CloseIcon fill="currentColor" />
-              </button>
-              <RedeemModalContent
-                account={account}
-                marketId={selectedMarketId as Address}
-                chainId={chainId}
-                closeModal={closeModal}
-              />
-            </div>
-          }
-          className="[&_.btn-primary]:w-full"
-        />
+        {showRedeemColumn && (
+          <Modal
+            title="Redeem"
+            content={
+              <div>
+                <button
+                  type="button"
+                  className="absolute right-[20px] top-[20px] hover:opacity-60"
+                  onClick={() => closeModal()}
+                  aria-label="Close modal"
+                >
+                  <CloseIcon fill="currentColor" />
+                </button>
+                <RedeemModalContent
+                  account={account}
+                  marketId={selectedMarketId as Address}
+                  chainId={chainId}
+                  closeModal={closeModal}
+                />
+              </div>
+            }
+            className="[&_.btn-primary]:w-full"
+          />
+        )}
         <table className="simple-table table-fixed">
           <colgroup>
-            <col style={{ width: "46%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "24%" }} />
+            {showRedeemColumn ? (
+              <>
+                <col style={{ width: "46%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "24%" }} />
+              </>
+            ) : (
+              <>
+                <col style={{ width: "52%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "24%" }} />
+              </>
+            )}
           </colgroup>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -344,5 +360,29 @@ export default function PositionsTable({
         page={table.getState().pagination.pageIndex + 1}
       />
     </>
+  );
+}
+
+export default function PositionsTable({
+  data,
+  chainId,
+  account,
+}: {
+  data: PortfolioPosition[];
+  chainId: SupportedChain;
+  account: Address | undefined;
+}) {
+  const { address: connectedAddress } = useAccount();
+  const showRedeemColumn =
+    account !== undefined && connectedAddress !== undefined && isAddressEqual(account, connectedAddress);
+
+  return (
+    <PositionsTableInner
+      key={showRedeemColumn ? "owner" : "viewer"}
+      data={data}
+      chainId={chainId}
+      account={account}
+      showRedeemColumn={showRedeemColumn}
+    />
   );
 }

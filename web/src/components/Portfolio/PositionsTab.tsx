@@ -1,18 +1,16 @@
-import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
-import { DEFAULT_CHAIN } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
+import { usePortfolioValue } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
-import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
 
-function PositionsTab({ account }: { account: Address | undefined }) {
-  const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { positions = [], error, isGettingPositions } = useCalculatePositionsValue(account);
+function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
+  const { data, isLoading, error } = usePortfolioValue(account, chainId);
+  const positions = data?.positions ?? [];
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);
@@ -25,13 +23,13 @@ function PositionsTab({ account }: { account: Address | undefined }) {
       return isMatchName || isMatchOutcome;
     }) ?? [];
   const renderTable = () => {
-    if (isGettingPositions) {
+    if (isLoading) {
       return <div className="shimmer-container w-full h-[200px]" />;
     }
     return !filteredPositions.length ? (
       <Alert type="warning">No positions found.</Alert>
     ) : (
-      <PositionsTable chainId={chainId as SupportedChain} data={filteredPositions} />
+      <PositionsTable account={account} chainId={chainId} data={filteredPositions} />
     );
   };
   if (error) {

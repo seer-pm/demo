@@ -73,7 +73,7 @@ export function useRedeemPositionsLegacy(
         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
         await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        queryClient.invalidateQueries({ queryKey: ["usePortfolioPositions"] });
         onSuccess?.();
       },
     }),
@@ -132,7 +132,7 @@ function useRedeemPositions7702(
         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
         await queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
         queryClient.invalidateQueries({ queryKey: ["useWinningPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        queryClient.invalidateQueries({ queryKey: ["usePortfolioPositions"] });
         onSuccess?.();
       },
     }),
