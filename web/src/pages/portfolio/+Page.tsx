@@ -4,25 +4,116 @@ import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
-import useCalculatePositionsValue from "@/hooks/portfolio/positionsTab/useCalculatePositionsValue";
-
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
+import type { PortfolioPnLPeriod, SupportedChain } from "@seer-pm/sdk";
+import { useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
+function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: SupportedChain }) {
+  const { data, isLoading } = usePortfolioValue(account, chainId);
+  const currentPortfolioValue = data?.currentPortfolioValue ?? 0;
+  const delta = data?.delta ?? 0;
+  const deltaPercent = data?.deltaPercent ?? 0;
+
+  return (
+    <div>
+      <p className="text-[16px] text-black-secondary">Total</p>
+      {isLoading ? (
+        <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
+      ) : (
+        <p className="text-[32px] text-base-content font-semibold">
+          {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
+        </p>
+      )}
+      {isLoading ? (
+        <div className="shimmer-container h-[20px] w-[300px]" />
+      ) : delta >= 0 ? (
+        <p className="text-[#00C42B] flex gap-2">
+          <span>
+            <ArrowDropUp fill="#00C42B" />
+          </span>
+          {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
+        </p>
+      ) : (
+        <p className="text-[#c40000] flex gap-2">
+          <span>
+            <ArrowDropDown fill="#c40000" />
+          </span>
+          {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: SupportedChain }) {
+  const [plPeriod, setPlPeriod] = useState<PortfolioPnLPeriod>("1d");
+  const { data: plData, isLoading: isLoadingPL } = usePortfolioPnL(account, chainId, plPeriod);
+
+  const pnl = plData?.pnl ?? 0;
+  const isPnlPositive = pnl >= 0;
+  const pnlTextColor = isPnlPositive ? "text-[#00C42B]" : "text-[#c40000]";
+
+  return (
+    <div className="flex flex-col items-end gap-3">
+      <div className="flex items-center gap-3">
+        <p className="text-[16px] text-black-secondary">Profit/Loss</p>
+        <div className="join">
+          <button
+            type="button"
+            className={`btn btn-xs join-item ${plPeriod === "1d" ? "btn-active" : "btn-ghost"}`}
+            onClick={() => setPlPeriod("1d")}
+          >
+            1D
+          </button>
+          <button
+            type="button"
+            className={`btn btn-xs join-item ${plPeriod === "1w" ? "btn-active" : "btn-ghost"}`}
+            onClick={() => setPlPeriod("1w")}
+          >
+            1W
+          </button>
+          <button
+            type="button"
+            className={`btn btn-xs join-item ${plPeriod === "1m" ? "btn-active" : "btn-ghost"}`}
+            onClick={() => setPlPeriod("1m")}
+          >
+            1M
+          </button>
+          <button
+            type="button"
+            className={`btn btn-xs join-item ${plPeriod === "all" ? "btn-active" : "btn-ghost"}`}
+            onClick={() => setPlPeriod("all")}
+          >
+            ALL
+          </button>
+        </div>
+      </div>
+      {isLoadingPL ? (
+        <div className="shimmer-container h-[28px] w-[160px]" />
+      ) : (
+        <p className={`text-[32px] font-semibold ${pnlTextColor}`}>
+          {isPnlPositive ? "+" : ""}
+          {pnl.toFixed(2)} sDAI
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PortfolioPage() {
-  const { address: connectedAccount } = useAccount();
+  const { address: connectedAccount, chainId = DEFAULT_CHAIN } = useAccount();
   const { routeParams } = usePageContext();
   const account = (routeParams?.id || connectedAccount) as Address | undefined;
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "positions";
-
-  const { isCalculating, delta, currentPortfolioValue, deltaPercent, isCalculatingDelta } =
-    useCalculatePositionsValue(account);
 
   if (!account) {
     return (
@@ -38,37 +129,15 @@ function PortfolioPage() {
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
-      <div className="mt-8 bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] h-[162px] pl-6 pt-[38px] flex gap-4">
-        <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
-          <Union />
+      <div className="mt-8 bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex gap-4 items-start justify-between">
+        <div className="flex gap-4">
+          <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
+            <Union />
+          </div>
+          <PortfolioValueVariation account={account} chainId={chainId as SupportedChain} />
         </div>
-        <div>
-          <p className="text-[16px] text-black-secondary">Total</p>
-          {isCalculating ? (
-            <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
-          ) : (
-            <p className="text-[32px] text-base-content font-semibold">
-              {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
-            </p>
-          )}
-          {isCalculatingDelta ? (
-            <div className="shimmer-container h-[20px] w-[300px]" />
-          ) : delta >= 0 ? (
-            <p className="text-[#00C42B] flex gap-2">
-              <span>
-                <ArrowDropUp fill="#00C42B" />
-              </span>
-              {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
-            </p>
-          ) : (
-            <p className="text-[#c40000] flex gap-2">
-              <span>
-                <ArrowDropDown fill="#c40000" />
-              </span>
-              {delta.toFixed(2)} sDAI ({deltaPercent.toFixed(2)}%) today
-            </p>
-          )}
-        </div>
+
+        <PortfolioPnLHistory account={account} chainId={chainId as SupportedChain} />
       </div>
 
       <div>
@@ -125,9 +194,9 @@ function PortfolioPage() {
             Airdrop
           </button>
         </div>
-        {activeTab === "positions" && <PositionsTab account={account} />}
-        {activeTab === "orders" && <OrdersTab account={account} />}
-        {activeTab === "history" && <HistoryTab account={account} />}
+        {activeTab === "positions" && <PositionsTab account={account} chainId={chainId as SupportedChain} />}
+        {activeTab === "orders" && <OrdersTab account={account} chainId={chainId as SupportedChain} />}
+        {activeTab === "history" && <HistoryTab account={account} chainId={chainId as SupportedChain} />}
         {activeTab === "airdrop" && <AirdropTab account={account} />}
       </div>
     </div>

@@ -1,21 +1,18 @@
 import { useCowOrders } from "@/hooks/portfolio/ordersTab/useCowOrders";
-import { DEFAULT_CHAIN } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isUndefined } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, SupportedChainId } from "@seer-pm/sdk";
 import { endOfDay, format, startOfDay } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";
-import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
 import OrdersTable from "./OrdersTable";
 
-function OrdersTab({ account }: { account: Address | undefined }) {
-  const { chainId = DEFAULT_CHAIN } = useAccount();
-  const { data: orders, error } = useCowOrders(account as Address, chainId as SupportedChain);
+function OrdersTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
+  const { data: orders, error } = useCowOrders(account as Address, chainId);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
@@ -45,7 +42,7 @@ function OrdersTab({ account }: { account: Address | undefined }) {
     return !filteredOrders.length ? (
       <Alert type="warning">No orders found.</Alert>
     ) : (
-      <OrdersTable chainId={chainId} data={filteredOrders} />
+      <OrdersTable chainId={chainId as SupportedChainId} data={filteredOrders} />
     );
   };
   if (error) {

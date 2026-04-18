@@ -182,6 +182,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      dex_pool_hour_prices: {
+        Row: {
+          chain_id: number;
+          period_start_unix: number;
+          pool_id: string;
+          token0_id: string;
+          token0_price: string;
+          token1_id: string;
+          token1_price: string;
+        };
+        Insert: {
+          chain_id: number;
+          period_start_unix: number;
+          pool_id: string;
+          token0_id: string;
+          token0_price: string;
+          token1_id: string;
+          token1_price: string;
+        };
+        Update: {
+          chain_id?: number;
+          period_start_unix?: number;
+          pool_id?: string;
+          token0_id?: string;
+          token0_price?: string;
+          token1_id?: string;
+          token1_price?: string;
+        };
+        Relationships: [];
+      };
       key_value: {
         Row: {
           id: number;
@@ -495,6 +525,24 @@ export type Database = {
       };
     };
     Functions: {
+      dex_pool_hour_prices_latest_for_tokens: {
+        Args: { p_chain_id: number; p_token_ids: string[] };
+        Returns: {
+          chain_id: number;
+          period_start_unix: number;
+          pool_id: string;
+          token0_id: string;
+          token0_price: string;
+          token1_id: string;
+          token1_price: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "dex_pool_hour_prices";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       insert_airdrop_safely: {
         Args: { new_timestamp: number; records: Json };
         Returns: undefined;
