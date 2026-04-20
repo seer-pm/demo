@@ -46,12 +46,14 @@ export async function getAllTransfers(
   // Divide into chunks
   const CHUNK_SIZE = 24 * 60 * 60; // 1 days in seconds
   const chunks: Promise<Transfer[]>[] = [];
+  const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)));
+    chunks.push(
+      limit(() => fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime))),
+    );
   }
-  const limit = pLimit(10);
-  const results = await Promise.all(chunks.map((chunkFn) => limit(() => chunkFn)));
+  const results = await Promise.all(chunks);
   const allTransfers = results.flat();
 
   return allTransfers;

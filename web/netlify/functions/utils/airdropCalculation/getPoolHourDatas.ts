@@ -149,14 +149,16 @@ export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartT
   // 2. Chunk by time (1 day)
   const CHUNK_SIZE = 24 * 60 * 60;
   const chunks: Promise<GetPoolHourDatasQuery["poolHourDatas"]>[] = [];
+  const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
     chunks.push(
-      fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)),
+      limit(() =>
+        fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)),
+      ),
     );
   }
-  const limit = pLimit(10);
-  const results = await Promise.all(chunks.map((chunkFn) => limit(() => chunkFn)));
+  const results = await Promise.all(chunks);
   const allData = results.flat();
 
   allData.sort((a, b) => Number(b.periodStartUnix) - Number(a.periodStartUnix));

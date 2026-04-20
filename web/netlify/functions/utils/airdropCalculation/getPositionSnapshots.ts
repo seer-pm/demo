@@ -61,21 +61,19 @@ export async function getAllPositionSnapshots(chainId: SupportedChain, initialSt
   const CHUNK_SIZE = 24 * 60 * 60;
 
   const chunks: Promise<PositionSnapshot[]>[] = [];
+  const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
     const start = time;
     const end = Math.min(time + CHUNK_SIZE, endTime);
 
-    chunks.push(fetchPositionSnapshotsTimeRange(subgraphUrl, start, end));
+    chunks.push(limit(() => fetchPositionSnapshotsTimeRange(subgraphUrl, start, end)));
   }
 
-  const limit = pLimit(10);
-
-  const results = await Promise.all(chunks.map((chunkFn) => limit(() => chunkFn)));
+  const results = await Promise.all(chunks);
 
   const allData = results.flat();
 
-  // Optional sort
   allData.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
   return allData;
