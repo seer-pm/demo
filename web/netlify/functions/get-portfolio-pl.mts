@@ -3,6 +3,7 @@ import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, isAddress, isAddressEqual } from "viem";
 import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
+import { computeCollateralPortfolioValuesForPeriod } from "./utils/collateralPortfolioValue";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import type { Database } from "./utils/supabase";
@@ -14,9 +15,9 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * Portfolio P/L (period) — how this endpoint works (important assumptions)
  *
  * What we value (`valueEnd` / `valueStart`)
- * - We value **outcome-token positions only** (the same shape as `get-portfolio` / `get-portfolio-value`).
- * - We intentionally **do not** include “idle” primary collateral (e.g. sDAI sitting in the wallet) in `V`.
- *   Therefore, pure wallet deposits/withdrawals of collateral should not move `V`.
+ * - **Outcome-token positions** (same shape as `get-portfolio` / `get-portfolio-value`).
+ * - **Protocol collateral only** (primary token, e.g. sDAI on Gnosis): cumulative signed flows from subgraph `ConditionalEvent`
+ *   (`GetConditionalEvents`: types `split` / `merge` / `redeem`, filtered to primary `collateral`). Peer wallet transfers are excluded.
  *
  * Prices
  * - Current prices: DEX subgraphs (Swapr on Gnosis, Uniswap on mainnet/OP stack) via `dexPoolPricesFromDb`.
@@ -30,19 +31,17 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   This is a performance + definition choice: scanning from `0`/a fixed genesis would be too expensive and arbitrary.
  *
  * Positions at `startTime` (for `valueStart`)
- * - We start from **current** positions (`buildPortfolioPositions`) and **roll back balances** using `tokens_transfers`
- *   between `(startTime, endTime]` for the outcome tokens in the current portfolio.
+ * - We start from **current** positions (`buildPortfolioPositions` with `forHistoricPnl: true`) and **roll back balances** using `tokens_transfers`
+ *   between `(startTime, endTime]` for the outcome tokens in that portfolio (includes zero-balance rows from Supabase for redeemed winners).
  * - This is an approximation: it assumes `tokens_transfers` is complete for those tokens over the window.
  *
  * P/L formula (explicitly simplified for our `V`)
- * - Because `V` is positions-only, we **do not subtract external collateral cashflows** from P/L.
- * - So: `pnl = valueEnd - valueStart`.
+ * - `pnl = valueEnd - valueStart`: outcome-token mark-to-market plus cumulative **primary-collateral protocol flows** at `endTime`
+ *   minus at `startTime`, in **human units of the primary collateral** (aligned with UI “sDAI” style labels on Gnosis).
  *
  * What this P/L is / isn’t
- * - This is closer to “change in marked-to-market value of current holdings between two timestamps”, not a full
- *   realized P/L ledger with cost basis.
- * - If you later want Polymarket-style P/L including cash in `V`, you must re-introduce a `NetFlows` term aligned with
- *   whatever cash component is included in `V`.
+ * - Intentionally **protocol-only equity**: outcomes plus collateral that flowed through split/merge/redeem paths (CTF contract),
+ *   not full wallet balances.
  */
 
 type Period = "1d" | "1w" | "1m" | "all";
@@ -61,7 +60,7 @@ async function computePositionsAtStartFromTransfers(
 
   const { data, error } = await supabase
     .from("tokens_transfers")
-    .select("token,from,to,value,timestamp")
+    .select("token,from,to,value::text,timestamp")
     .eq("chain_id", chainId)
     .in("token", tokenIds)
     .gt("timestamp", startTime)
@@ -182,8 +181,8 @@ export default async (req: Request) => {
       });
     }
 
-    const chainIdNum = Number.parseInt(chainId, 10);
-    if (Number.isNaN(chainIdNum)) {
+    const chainIdNum = Number(chainId);
+    if (!Number.isInteger(chainIdNum)) {
       return new Response(JSON.stringify({ error: "chainId must be a valid number" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -203,7 +202,7 @@ export default async (req: Request) => {
     const endTime = Math.floor(Date.now() / 1000); // now
     const startTime = await computeStartTime(supabase, period, chainIdNum as SupportedChain, account, endTime);
 
-    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
+    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain, true);
 
     const positionsAtStart = await computePositionsAtStartFromTransfers(
       supabase,
@@ -221,8 +220,16 @@ export default async (req: Request) => {
       startTime,
     );
 
-    const valueEnd = sumPortfolioValueCurrent(positions);
-    const valueStart = sumPortfolioValueAtReference(positionsAtStart, historyPrices, startTime);
+    const collateralValues = await computeCollateralPortfolioValuesForPeriod(
+      account,
+      chainIdNum as SupportedChain,
+      startTime,
+      endTime,
+    );
+
+    const valueEnd = sumPortfolioValueCurrent(positions) + collateralValues.valueEnd;
+    const valueStart =
+      sumPortfolioValueAtReference(positionsAtStart, historyPrices, startTime) + collateralValues.valueStart;
 
     const pnl = valueEnd - valueStart;
 

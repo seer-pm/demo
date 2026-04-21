@@ -119,6 +119,7 @@ query GetConditionalEvents(
     type
     amount
     blockNumber
+    timestamp
     collateral
     transactionHash
   }

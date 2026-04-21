@@ -57,8 +57,8 @@ export default async (req: Request) => {
       });
     }
 
-    const chainIdNum = Number.parseInt(chainId, 10);
-    if (Number.isNaN(chainIdNum)) {
+    const chainIdNum = Number(chainId);
+    if (!Number.isInteger(chainIdNum)) {
       return new Response(JSON.stringify({ error: "chainId must be a valid number" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
