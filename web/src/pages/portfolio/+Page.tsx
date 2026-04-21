@@ -26,9 +26,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
       {isLoading ? (
         <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
       ) : (
-        <p className="text-[32px] text-base-content font-semibold">
-          {Number(currentPortfolioValue ?? 0n).toFixed(2)} sDAI
-        </p>
+        <p className="text-[32px] text-base-content font-semibold">{Number(currentPortfolioValue).toFixed(2)} sDAI</p>
       )}
       {isLoading ? (
         <div className="shimmer-container h-[20px] w-[300px]" />
@@ -64,34 +62,16 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
       <div className="flex items-center gap-3">
         <p className="text-[16px] text-black-secondary">Profit/Loss</p>
         <div className="join">
-          <button
-            type="button"
-            className={`btn btn-xs join-item ${plPeriod === "1d" ? "btn-active" : "btn-ghost"}`}
-            onClick={() => setPlPeriod("1d")}
-          >
-            1D
-          </button>
-          <button
-            type="button"
-            className={`btn btn-xs join-item ${plPeriod === "1w" ? "btn-active" : "btn-ghost"}`}
-            onClick={() => setPlPeriod("1w")}
-          >
-            1W
-          </button>
-          <button
-            type="button"
-            className={`btn btn-xs join-item ${plPeriod === "1m" ? "btn-active" : "btn-ghost"}`}
-            onClick={() => setPlPeriod("1m")}
-          >
-            1M
-          </button>
-          <button
-            type="button"
-            className={`btn btn-xs join-item ${plPeriod === "all" ? "btn-active" : "btn-ghost"}`}
-            onClick={() => setPlPeriod("all")}
-          >
-            ALL
-          </button>
+          {(["1d", "1w", "1m", "all"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`btn btn-xs join-item ${plPeriod === p ? "btn-active" : "btn-ghost"}`}
+              onClick={() => setPlPeriod(p)}
+            >
+              {p.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
       {isLoadingPL ? (

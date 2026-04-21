@@ -1,9 +1,9 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
-import { type Address, formatUnits, isAddressEqual } from "viem";
+import { type Address, formatUnits, isAddress, isAddressEqual } from "viem";
 import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
-import { getCurrentTokensPricesForPortfolio, getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
+import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import type { Database } from "./utils/supabase";
 import { getTokenDecimals } from "./utils/tokenDecimals";
@@ -90,6 +90,20 @@ async function computePositionsAtStartFromTransfers(
   return positionsNow.map((p) => {
     const deltaWei = deltaWeiByToken[p.tokenId.toLowerCase()] ?? 0n;
     const rawNow = BigInt(p.rawBalance);
+    if (rawNow < deltaWei) {
+      console.warn(
+        "get-portfolio-pl: current balance smaller than net transfers in window; clamping start balance to 0 (possible missing or late transfer data)",
+        {
+          tokenId: p.tokenId,
+          rawNow: rawNow.toString(),
+          deltaWei: deltaWei.toString(),
+          startTime,
+          endTime,
+          chainId,
+          account: account.toLowerCase(),
+        },
+      );
+    }
     const startWei = rawNow >= deltaWei ? rawNow - deltaWei : 0n;
     const decimals = decimalsByToken[p.tokenId.toLowerCase()] ?? 18;
     const startBalance = Number(formatUnits(startWei, decimals));
@@ -144,16 +158,17 @@ async function computeStartTime(
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const account = url.searchParams.get("account") as Address | null;
+    const accountParam = url.searchParams.get("account");
     const chainId = url.searchParams.get("chainId");
     const period = (url.searchParams.get("period") ?? "1d").toLowerCase() as Period;
 
-    if (!account) {
+    if (!accountParam || !isAddress(accountParam)) {
       return new Response(JSON.stringify({ error: "Account parameter is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
+    const account = accountParam as Address;
     if (!chainId) {
       return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
         status: 400,
@@ -199,13 +214,15 @@ export default async (req: Request) => {
       endTime,
     );
 
-    const [currentPrices, historyPrices] = await Promise.all([
-      getCurrentTokensPricesForPortfolio(supabase, positions, chainIdNum as SupportedChain),
-      getHistoryTokensPricesForPortfolio(supabase, positions, chainIdNum as SupportedChain, startTime),
-    ]);
+    const historyPrices = await getHistoryTokensPricesForPortfolio(
+      supabase,
+      positions,
+      chainIdNum as SupportedChain,
+      startTime,
+    );
 
-    const valueEnd = sumPortfolioValueCurrent(positions, currentPrices);
-    const valueStart = sumPortfolioValueAtReference(positionsAtStart, historyPrices, currentPrices, startTime);
+    const valueEnd = sumPortfolioValueCurrent(positions);
+    const valueStart = sumPortfolioValueAtReference(positionsAtStart, historyPrices, startTime);
 
     const pnl = valueEnd - valueStart;
 

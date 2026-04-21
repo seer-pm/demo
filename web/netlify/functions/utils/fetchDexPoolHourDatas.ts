@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import { base, gnosis, mainnet } from "viem/chains";
@@ -23,13 +24,25 @@ export type DexPoolHourFetchCursor = {
   /** Current inner window: exclusive lower for the active subgraph query. */
   inner_period_gt: number;
   batch_index: number;
+  /** Next subgraph `skip` for this inner window batch (resume after `MAX_PAGES_PER_RUN` pages). */
   skip: number;
   pairs_count: number;
+  /** SHA-256 hex of canonically sorted (token0, token1) pairs; invalidates resume if the pool set changes. */
+  pairs_fingerprint: string;
 };
+
+/** Deterministic fingerprint for the set of pools (order-independent). */
+export function dexPoolPairsFingerprint(pairs: { token0: string; token1: string }[]): string {
+  const sorted = [...pairs].sort((a, b) =>
+    a.token0 === b.token0 ? a.token1.localeCompare(b.token1) : a.token0.localeCompare(b.token0),
+  );
+  const payload = sorted.map((p) => `${p.token0}\0${p.token1}`).join("\0");
+  return createHash("sha256").update(payload).digest("hex");
+}
 
 const PAGE_SIZE = 1000;
 /** Pools per GraphQL `or` branch — smaller ORs reduce indexer load. */
-const PAIR_BATCH_SIZE = 500;
+const PAIR_BATCH_SIZE = 150;
 /**
  * Max span of each **inner** time window inside a single outer `[sliceGt, sliceLte]` range.
  * The scheduled job passes an outer slice; this function walks `innerGt → innerLte` in steps of
@@ -37,9 +50,13 @@ const PAIR_BATCH_SIZE = 500;
  * band (lighter on the indexer than one huge range). If the outer slice is narrower than this,
  * one inner window covers the whole outer slice.
  */
-const INNER_WINDOW_SEC = 24 * 60 * 60 * 30 * 6;
-/** Safety cap on `skip` steps per inner window to avoid pathological deep pagination. */
-const MAX_SKIP = 20_000;
+const INNER_WINDOW_SEC = 24 * 60 * 60 * 30 * 3;
+/**
+ * Max GraphQL pages fetched per `fetchPoolHourDatasSince` invocation (each page is up to `PAGE_SIZE` rows).
+ * Yields with `nextCursor.skip` set to the next subgraph `skip` so later invocations continue past deep windows
+ * instead of re-hitting a fixed offset cap with an unchanged cursor.
+ */
+const MAX_PAGES_PER_RUN = 20;
 
 function dexSubgraphName(chainId: SupportedChain): "algebra" | "uniswap" {
   return chainId === gnosis.id ? "algebra" : "uniswap";
@@ -81,6 +98,8 @@ export function parseDexPoolHourFetchCursor(value: unknown): DexPoolHourFetchCur
     typeof o.batch_index !== "number" ||
     typeof o.skip !== "number" ||
     typeof o.pairs_count !== "number" ||
+    typeof o.pairs_fingerprint !== "string" ||
+    o.pairs_fingerprint.length === 0 ||
     o.period_gt >= o.period_lte ||
     o.inner_period_gt < o.period_gt ||
     o.inner_period_gt >= o.period_lte ||
@@ -99,6 +118,7 @@ export function parseDexPoolHourFetchCursor(value: unknown): DexPoolHourFetchCur
     batch_index: o.batch_index,
     skip: o.skip,
     pairs_count: o.pairs_count,
+    pairs_fingerprint: o.pairs_fingerprint,
   };
 }
 
@@ -235,11 +255,13 @@ export async function fetchPoolHourDatasSince(
   const fnT0 = Date.now();
   const all: DexPoolHourRow[] = [];
 
-  const rawResume = resume && resume.pairs_count === pairs.length ? resume : null;
+  const pairsFingerprint = dexPoolPairsFingerprint(pairs);
+  const rawResume =
+    resume && resume.pairs_count === pairs.length && resume.pairs_fingerprint === pairsFingerprint ? resume : null;
   const resumeOk = rawResume;
   if (resume && !resumeOk) {
     console.log(
-      `fetchDexPoolHourDatas chain=${chainId} ignoring resume (pairs_count was ${resume.pairs_count}, now ${pairs.length})`,
+      `fetchDexPoolHourDatas chain=${chainId} ignoring resume (pairs_count was ${resume.pairs_count}, now ${pairs.length}; fingerprint match=${resume.pairs_fingerprint === pairsFingerprint})`,
     );
   }
 
@@ -248,7 +270,7 @@ export async function fetchPoolHourDatasSince(
     innerGt = sliceGt;
   }
   let startBatch = resumeOk?.batch_index ?? 0;
-  const startSkip = resumeOk?.skip ?? 0;
+  let startSkip = resumeOk?.skip ?? 0;
   let pagesThisRun = 0;
 
   console.log(
@@ -274,7 +296,7 @@ export async function fetchPoolHourDatasSince(
       );
 
       for (;;) {
-        if (skip > MAX_SKIP) {
+        if (pagesThisRun >= MAX_PAGES_PER_RUN) {
           return {
             rows: all,
             nextCursor: {
@@ -285,6 +307,7 @@ export async function fetchPoolHourDatasSince(
               batch_index: batchIdx,
               skip,
               pairs_count: pairs.length,
+              pairs_fingerprint: pairsFingerprint,
             },
           };
         }
@@ -357,6 +380,7 @@ export async function fetchPoolHourDatasSince(
     }
 
     startBatch = 0;
+    startSkip = 0;
     innerGt = innerLte;
   }
 
