@@ -6,9 +6,26 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, erc20Abi, formatUnits } from "viem";
 import { multicall } from "viem/actions";
 import { getPublicClientByChainId } from "./config";
+import { getCurrentTokensPricesForPortfolio } from "./dexPoolPricesFromDb";
 import { getMarketsMappings, searchMarkets } from "./markets";
 import type { Database } from "./supabase";
 import { getTokenDecimalsList } from "./tokenDecimals";
+
+function enrichPositionsWithTokenValues(
+  positions: PortfolioPosition[],
+  tokenIdToCurrentPrice: Record<string, number | undefined>,
+): PortfolioPosition[] {
+  return positions.map((position) => {
+    let tokenPrice = tokenIdToCurrentPrice[position.tokenId.toLowerCase()] ?? 0;
+    tokenPrice = position.redeemedPrice || tokenPrice;
+    const tokenValue = tokenPrice * position.tokenBalance;
+    return {
+      ...position,
+      tokenPrice,
+      tokenValue,
+    };
+  });
+}
 
 async function fetchTokenHoldingsFromSupabase(
   supabase: SupabaseClient<Database>,
@@ -17,7 +34,7 @@ async function fetchTokenHoldingsFromSupabase(
 ) {
   const { data, error } = await supabase
     .from("tokens_holdings_v")
-    .select("token, owner, balance")
+    .select("token, owner, balance::text")
     .eq("owner", address.toLowerCase())
     .gt("balance", 0)
     .eq("chain_id", chainId)
@@ -30,7 +47,7 @@ async function fetchTokenHoldingsFromSupabase(
 
   const rows = data ?? [];
   const tokens = rows.map((row) => row.token as Address);
-  const balances = rows.map((row) => BigInt(row.balance as number));
+  const balances = rows.map((row) => BigInt(row.balance));
 
   return { tokens, balances };
 }
@@ -77,7 +94,7 @@ export async function buildPortfolioPositions(
   }
 
   const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
-  return balances.reduce((acumm, balance, index) => {
+  const positions = balances.reduce((acumm, balance, index) => {
     if (balance > 0n) {
       if (!tokenToMarket[allTokensIds[index]]) {
         console.log("Missing market for token", allTokensIds[index]);
@@ -127,10 +144,15 @@ export async function buildPortfolioPositions(
         parentMarketId: parentMarket?.id,
         parentOutcome: parentMarket ? parentMarket.outcomes[Number(market.parentOutcome)] : undefined,
         redeemedPrice: getRedeemedPrice(market, tokenIndex),
+        tokenPrice: 0,
+        tokenValue: 0,
         outcomeImage: market.images?.outcomes?.[outcomeIndex],
         isInvalidOutcome,
       });
     }
     return acumm;
   }, [] as PortfolioPosition[]);
+
+  const currentPrices = await getCurrentTokensPricesForPortfolio(supabase, positions, chainId);
+  return enrichPositionsWithTokenValues(positions, currentPrices);
 }

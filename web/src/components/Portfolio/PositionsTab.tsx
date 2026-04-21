@@ -1,6 +1,6 @@
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
-import { usePortfolioValue } from "@seer-pm/react";
+import { usePortfolioPositions } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
@@ -9,8 +9,7 @@ import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
 
 function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
-  const { data, isLoading, error } = usePortfolioValue(account, chainId);
-  const positions = data?.positions ?? [];
+  const { data: positions = [], isLoading, error } = usePortfolioPositions(account, chainId);
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
     setFilterMarketName((event.target as HTMLInputElement).value);

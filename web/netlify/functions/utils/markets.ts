@@ -257,10 +257,11 @@ export async function searchMarkets({
     if (error) {
       throw error;
     }
-    query = query.in(
-      "id",
-      data.map((d) => d.market_id),
-    );
+    const marketIdsFromTokens = [...new Set((data ?? []).map((d) => d.market_id).filter(Boolean))];
+    if (marketIdsFromTokens.length === 0) {
+      return { markets: [], count: 0 };
+    }
+    query = query.in("id", marketIdsFromTokens);
   }
 
   if (process.env.VITE_IS_FAST_TESTNET) {

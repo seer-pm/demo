@@ -2,14 +2,10 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { subDays } from "date-fns";
-import { type Address } from "viem";
+import { type Address, isAddress } from "viem";
 import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
-import { getCurrentTokensPricesForPortfolio, getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
-import {
-  enrichPositionsWithTokenValues,
-  sumPortfolioValueAtReference,
-  sumPortfolioValueCurrent,
-} from "./utils/portfolioValuation";
+import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
+import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -37,7 +33,6 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   portfolio have moved purely from price between `historyTimestamp` and now?”.
  *
  * Response shape
- * - `positions`: current positions with per-token values at **current** prices (`enrichPositionsWithTokenValues`).
  * - `currentPortfolioValue`, `historyPortfolioValue`, `historyTimestamp`.
  * - `delta` = `currentPortfolioValue - historyPortfolioValue`; `deltaPercent` = `delta / historyPortfolioValue` (0 if undefined/NaN).
  */
@@ -45,15 +40,16 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const account = url.searchParams.get("account");
+    const accountParam = url.searchParams.get("account");
     const chainId = url.searchParams.get("chainId");
 
-    if (!account) {
+    if (!accountParam || !isAddress(accountParam)) {
       return new Response(JSON.stringify({ error: "Account parameter is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
+    const account = accountParam as Address;
     if (!chainId) {
       return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
         status: 400,
@@ -79,29 +75,24 @@ export default async (req: Request) => {
       );
     }
 
-    const positions = await buildPortfolioPositions(supabase, account as Address, chainIdNum as SupportedChain);
+    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
 
     const historyTimestamp = Math.floor(subDays(new Date(), 1).getTime() / 1000);
 
-    const [currentPrices, historyPrices] = await Promise.all([
-      getCurrentTokensPricesForPortfolio(supabase, positions, chainIdNum as SupportedChain),
-      getHistoryTokensPricesForPortfolio(supabase, positions, chainIdNum as SupportedChain, historyTimestamp),
-    ]);
-
-    const currentPortfolioValue = sumPortfolioValueCurrent(positions, currentPrices);
-    const historyPortfolioValue = sumPortfolioValueAtReference(
+    const historyPrices = await getHistoryTokensPricesForPortfolio(
+      supabase,
       positions,
-      historyPrices,
-      currentPrices,
+      chainIdNum as SupportedChain,
       historyTimestamp,
     );
-    const delta = currentPortfolioValue - historyPortfolioValue;
-    const deltaPercent = Number.isNaN(delta / historyPortfolioValue) ? 0 : (delta / historyPortfolioValue) * 100;
 
-    const positionsWithValues = enrichPositionsWithTokenValues(positions, currentPrices);
+    const currentPortfolioValue = sumPortfolioValueCurrent(positions);
+    const historyPortfolioValue = sumPortfolioValueAtReference(positions, historyPrices, historyTimestamp);
+    const delta = currentPortfolioValue - historyPortfolioValue;
+    const ratio = delta / historyPortfolioValue;
+    const deltaPercent = Number.isFinite(ratio) ? ratio * 100 : 0;
 
     const body = JSON.stringify({
-      positions: positionsWithValues,
       currentPortfolioValue,
       historyPortfolioValue,
       historyTimestamp,

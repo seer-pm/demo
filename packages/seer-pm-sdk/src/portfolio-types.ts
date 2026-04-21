@@ -10,8 +10,8 @@ export interface PortfolioPosition {
   marketStatus: string;
   tokenBalance: number;
   rawBalance: string;
-  tokenValue?: number;
-  tokenPrice?: number;
+  tokenValue: number;
+  tokenPrice: number;
   outcome: string;
   collateralToken: Address;
   parentMarketId?: Address;
@@ -24,7 +24,6 @@ export interface PortfolioPosition {
 }
 
 export type PortfolioValueApiResponse = {
-  positions: PortfolioPosition[];
   currentPortfolioValue: number;
   historyPortfolioValue: number;
   historyTimestamp: number;

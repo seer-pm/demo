@@ -1,6 +1,6 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { type Address } from "viem";
+import { type Address, isAddress } from "viem";
 import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
 import type { Database } from "./utils/supabase";
 
@@ -9,11 +9,10 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const account = url.searchParams.get("account");
+    const accountParam = url.searchParams.get("account");
     const chainId = url.searchParams.get("chainId");
 
-    // Validate required parameters
-    if (!account) {
+    if (!accountParam || !isAddress(accountParam)) {
       return new Response(JSON.stringify({ error: "Account parameter is required" }), {
         status: 400,
         headers: {
@@ -21,6 +20,7 @@ export default async (req: Request) => {
         },
       });
     }
+    const account = accountParam as Address;
 
     if (!chainId) {
       return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
@@ -42,7 +42,7 @@ export default async (req: Request) => {
       });
     }
 
-    const positions = await buildPortfolioPositions(supabase, account as Address, chainIdNum as SupportedChain);
+    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
 
     return new Response(JSON.stringify(positions), {
       status: 200,

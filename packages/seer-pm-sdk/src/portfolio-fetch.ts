@@ -15,7 +15,8 @@ export async function fetchPortfolioPositions(account: Address, chainId: Support
   });
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio?${params.toString()}`);
   if (!res.ok) {
-    throw new Error("Error fetching portfolio");
+    const text = await res.text();
+    throw new Error(text || "Error fetching portfolio");
   }
   return (await res.json()) as PortfolioPosition[];
 }
@@ -30,7 +31,8 @@ export async function fetchPortfolioValue(
   });
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio-value?${params.toString()}`);
   if (!res.ok) {
-    throw new Error("Error fetching portfolio value");
+    const text = await res.text();
+    throw new Error(text || "Error fetching portfolio value");
   }
   return (await res.json()) as PortfolioValueApiResponse;
 }
