@@ -15,10 +15,19 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: SupportedChain }) {
-  const { data, isLoading } = usePortfolioValue(account, chainId);
+  const { data, isLoading, error } = usePortfolioValue(account, chainId);
   const currentPortfolioValue = data?.currentPortfolioValue ?? 0;
   const delta = data?.delta ?? 0;
   const deltaPercent = data?.deltaPercent ?? 0;
+
+  if (error) {
+    return (
+      <div>
+        <p className="text-[16px] text-black-secondary">Total</p>
+        <p className="text-sm text-error">Unable to load portfolio value.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -51,7 +60,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
 
 function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: SupportedChain }) {
   const [plPeriod, setPlPeriod] = useState<PortfolioPnLPeriod>("1d");
-  const { data: plData, isLoading: isLoadingPL } = usePortfolioPnL(account, chainId, plPeriod);
+  const { data: plData, isLoading, error } = usePortfolioPnL(account, chainId, plPeriod);
 
   const pnl = plData?.pnl ?? 0;
   const isPnlPositive = pnl >= 0;
@@ -74,8 +83,10 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
           ))}
         </div>
       </div>
-      {isLoadingPL ? (
+      {isLoading ? (
         <div className="shimmer-container h-[28px] w-[160px]" />
+      ) : error ? (
+        <p className="text-sm text-error">Unable to load P/L.</p>
       ) : (
         <p className={`text-[32px] font-semibold ${pnlTextColor}`}>
           {isPnlPositive ? "+" : ""}
