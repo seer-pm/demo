@@ -183,6 +183,47 @@ type SearchMarketsProps = {
   orderBy?: Market_OrderBy | "liquidityUSD" | "creationDate" | "oddsRunTimestamp";
   orderDirection?: "asc" | "desc";
 };
+
+export type SearchAllMarketsProps = Omit<SearchMarketsProps, "limit" | "page">;
+
+/** Page size PostgREST uses when no range is set (~1000 rows); stay aligned for stable pagination. */
+const SEARCH_MARKETS_PAGE_SIZE = 1000;
+
+/**
+ * Same filters as {@link searchMarkets}, but fetches every page until no more rows (not only the first chunk).
+ */
+export async function searchAllMarkets(props: SearchAllMarketsProps): Promise<{ markets: Market[]; count: number }> {
+  let page = 1;
+  const allMarkets: Market[] = [];
+  let totalCount = 0;
+
+  while (true) {
+    const { markets, count } = await searchMarkets({
+      ...props,
+      limit: SEARCH_MARKETS_PAGE_SIZE,
+      page,
+    });
+
+    if (page === 1) {
+      totalCount = count;
+    }
+
+    allMarkets.push(...markets);
+
+    if (markets.length < SEARCH_MARKETS_PAGE_SIZE) {
+      break;
+    }
+
+    if (totalCount > 0 && allMarkets.length >= totalCount) {
+      break;
+    }
+
+    page++;
+  }
+
+  return { markets: allMarkets, count: totalCount };
+}
+
 export async function searchMarkets({
   chainIds,
   type,
