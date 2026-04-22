@@ -210,6 +210,18 @@ export {
 } from "./markets-fetch";
 export { searchOnChainMarkets } from "./on-chain-markets";
 
+export {
+  fetchPortfolioPositions,
+  fetchPortfolioValue,
+  fetchPortfolioPnL,
+} from "./portfolio-fetch";
+export type {
+  PortfolioPosition,
+  PortfolioPnLPeriod,
+  PortfolioPnLData,
+  PortfolioValueApiResponse,
+} from "./portfolio-types";
+
 // Subgraph: endpoints, clients, token price from subgraph
 export {
   initApiHost,

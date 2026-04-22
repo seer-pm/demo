@@ -1,26 +1,23 @@
 import { useHistoryTransactions } from "@/hooks/portfolio/historyTab/useHistoryTransactions";
-import { DEFAULT_CHAIN } from "@/lib/chains";
 import { SearchIcon } from "@/lib/icons";
 import { isUndefined } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { endOfDay, format, startOfDay, subMonths } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";
-import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
 import HistoryTable from "./HistoryTable";
 
-function HistoryTab({ account }: { account: Address | undefined }) {
-  const { chainId = DEFAULT_CHAIN } = useAccount();
+function HistoryTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
   const currentDate = startOfDay(new Date());
   const [startDate, setStartDate] = useState<Date | undefined>(subMonths(currentDate, 1));
   const [endDate, setEndDate] = useState<Date | undefined>(currentDate);
   const { data: historyTransactions, error } = useHistoryTransactions(
     account as Address,
-    chainId as SupportedChain,
+    chainId,
     startDate && Math.floor(startOfDay(startDate).getTime() / 1000),
     endDate && Math.floor(endOfDay(endDate).getTime() / 1000),
   );
@@ -50,7 +47,7 @@ function HistoryTab({ account }: { account: Address | undefined }) {
     return !filteredTransactions.length ? (
       <Alert type="warning">No transactions found.</Alert>
     ) : (
-      <HistoryTable chainId={chainId as SupportedChain} data={filteredTransactions} />
+      <HistoryTable chainId={chainId} data={filteredTransactions} />
     );
   };
   if (error) {

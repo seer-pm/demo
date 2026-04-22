@@ -21,3 +21,6 @@ export * from "./hooks/useCreateMarket";
 export * from "./hooks/useResolveMarket";
 export * from "./hooks/useMarketPositions";
 export * from "./hooks/useWinningPositions";
+export * from "./hooks/usePortfolioValue";
+export * from "./hooks/usePortfolioPnL";
+export * from "./hooks/usePortfolioPositions";

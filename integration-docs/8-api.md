@@ -304,8 +304,8 @@ interface PortfolioPosition {
   marketName: string;
   marketStatus: string;
   tokenBalance: number;
-  tokenValue?: number;
-  tokenPrice?: number;
+  tokenValue: number;
+  tokenPrice: number;
   outcome: string;
   collateralToken: `0x${string}`;
   parentMarketId?: `0x${string}`;

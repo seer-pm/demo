@@ -49,7 +49,8 @@ async function updateOrders(
         toastInfo({ title: "Swap cancelled" });
       }
       queryClient.invalidateQueries({ queryKey: ["useCowOrders"] }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["usePositions"] });
+        queryClient.invalidateQueries({ queryKey: ["usePortfolioPositions"] });
+        queryClient.invalidateQueries({ queryKey: ["portfolioValue"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
         queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
         queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
