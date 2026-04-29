@@ -26,13 +26,24 @@ export interface RouterAddressMap {
   conditionalRouterAddress: Record<number, Address>;
 }
 
-const routerAddressMap: RouterAddressMap = {
+/** Deployed Seer router addresses by chain (generated from contracts). Not DEX routers. */
+export const routerAddressMap: RouterAddressMap = {
   conditionalRouterAddress,
   futarchyRouterAddress,
   gnosisRouterAddress,
   mainnetRouterAddress,
   routerAddress,
 };
+
+/** Router contract addresses on `chainId` across all deployed router roles (CTF only). */
+export function getRouterAddresses(chainId: number): Address[] {
+  const out: Address[] = [];
+  for (const map of Object.values(routerAddressMap)) {
+    const addr = map[chainId];
+    if (addr) out.push(addr);
+  }
+  return out;
+}
 
 export const CHAIN_ROUTERS: Record<number, RouterTypes> = {
   [gnosis.id]: "gnosis",

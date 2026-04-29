@@ -9,9 +9,6 @@ import type { Database } from "./supabase";
 /** Same window as the former subgraph `GetPoolHourDatas` query (~3 months). */
 const HISTORY_LOOKBACK_SECONDS = 60 * 60 * 24 * 30 * 3;
 
-/** Parallel Supabase reads per batch (many unique pools). */
-const HISTORY_QUERY_CONCURRENCY = 25;
-
 function dedupePositionsForPoolHourQuery(positions: PortfolioPosition[]): PortfolioPosition[] {
   const seen = new Set<string>();
   const out: PortfolioPosition[] = [];
@@ -72,41 +69,6 @@ export async function getCurrentTokensPricesForPortfolio(
   );
 }
 
-async function fetchHistoryRowForPool(
-  supabase: SupabaseClient<Database>,
-  chainId: number,
-  token0: string,
-  token1: string,
-  startTime: number,
-): Promise<PoolPriceRow | null> {
-  const windowStart = startTime - HISTORY_LOOKBACK_SECONDS;
-  const { data, error } = await supabase
-    .from("dex_pool_hour_prices")
-    .select("token0_id, token1_id, token0_price, token1_price")
-    .eq("chain_id", chainId)
-    .eq("token0_id", token0)
-    .eq("token1_id", token1)
-    .lte("period_start_unix", startTime)
-    .gte("period_start_unix", windowStart)
-    .order("period_start_unix", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("dex_pool_hour_prices", error);
-    return null;
-  }
-  if (!data) {
-    return null;
-  }
-  return {
-    token0: { id: data.token0_id },
-    token1: { id: data.token1_id },
-    token0Price: data.token0_price,
-    token1Price: data.token1_price,
-  };
-}
-
 /**
  * Nearest hour at or before `startTime` within the lookback window, per pool — mirrors the old subgraph history query.
  */
@@ -121,22 +83,36 @@ export async function getHistoryTokensPricesForPortfolio(
   }
 
   const unique = dedupePositionsForPoolHourQuery(positions);
-  const poolsAccum: PoolPriceRow[] = [];
 
-  for (let i = 0; i < unique.length; i += HISTORY_QUERY_CONCURRENCY) {
-    const chunk = unique.slice(i, i + HISTORY_QUERY_CONCURRENCY);
-    const rows = await Promise.all(
-      chunk.map(async (pos) => {
-        const { token0, token1 } = getToken0Token1(pos.tokenId as Address, pos.collateralToken as Address);
-        return fetchHistoryRowForPool(supabase, chainId, token0.toLowerCase(), token1.toLowerCase(), startTime);
-      }),
-    );
-    for (const r of rows) {
-      if (r) {
-        poolsAccum.push(r);
-      }
-    }
+  const pToken0: string[] = [];
+  const pToken1: string[] = [];
+  for (const pos of unique) {
+    const { token0, token1 } = getToken0Token1(pos.tokenId as Address, pos.collateralToken as Address);
+    pToken0.push(token0.toLowerCase());
+    pToken1.push(token1.toLowerCase());
   }
+
+  const { data: rpcRows, error: rpcError } = await supabase.rpc("dex_pool_hour_prices_nearest_before_for_pairs", {
+    p_chain_id: chainId,
+    p_start_time: startTime,
+    p_lookback_seconds: HISTORY_LOOKBACK_SECONDS,
+    p_token0_ids: pToken0,
+    p_token1_ids: pToken1,
+  });
+
+  if (rpcError) {
+    console.error("dex_pool_hour_prices_nearest_before_for_pairs", rpcError);
+  }
+
+  const poolsAccum: PoolPriceRow[] =
+    rpcError || !rpcRows
+      ? []
+      : rpcRows.map((r) => ({
+          token0: { id: r.token0_id },
+          token1: { id: r.token1_id },
+          token0Price: r.token0_price,
+          token1Price: r.token1_price,
+        }));
 
   return getTokenPricesMapping(positions, poolsAccum, chainId);
 }

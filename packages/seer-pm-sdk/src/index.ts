@@ -102,7 +102,13 @@ export {
 } from "./reality";
 export type { FormEventOutcomeValue, Outcome } from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
-export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
+export {
+  CHAIN_ROUTERS,
+  getRouterAddress,
+  getRedeemRouter,
+  routerAddressMap,
+  getRouterAddresses,
+} from "./router-addresses";
 export type { MarketLike, RouterAddressMap, RouterTypes } from "./router-addresses";
 export { getRedeemExecution } from "./redeem-positions";
 export type { GetRedeemExecutionParams } from "./redeem-positions";

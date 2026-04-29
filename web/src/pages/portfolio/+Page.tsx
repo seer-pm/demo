@@ -5,7 +5,7 @@ import HistoryTab from "@/components/Portfolio/HistoryTab";
 import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { DEFAULT_CHAIN } from "@/lib/chains";
+import { filterChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioPnLPeriod, SupportedChain } from "@seer-pm/sdk";
@@ -98,7 +98,8 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
 }
 
 function PortfolioPage() {
-  const { address: connectedAccount, chainId = DEFAULT_CHAIN } = useAccount();
+  const { address: connectedAccount, chainId: rawChainId } = useAccount();
+  const chainId: SupportedChain = filterChain(rawChainId);
   const { routeParams } = usePageContext();
   const account = (routeParams?.id || connectedAccount) as Address | undefined;
 
@@ -125,10 +126,10 @@ function PortfolioPage() {
           <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
             <Union />
           </div>
-          <PortfolioValueVariation account={account} chainId={chainId as SupportedChain} />
+          <PortfolioValueVariation account={account} chainId={chainId} />
         </div>
 
-        <PortfolioPnLHistory account={account} chainId={chainId as SupportedChain} />
+        <PortfolioPnLHistory account={account} chainId={chainId} />
       </div>
 
       <div>
@@ -185,9 +186,9 @@ function PortfolioPage() {
             Airdrop
           </button>
         </div>
-        {activeTab === "positions" && <PositionsTab account={account} chainId={chainId as SupportedChain} />}
-        {activeTab === "orders" && <OrdersTab account={account} chainId={chainId as SupportedChain} />}
-        {activeTab === "history" && <HistoryTab account={account} chainId={chainId as SupportedChain} />}
+        {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
+        {activeTab === "orders" && <OrdersTab account={account} chainId={chainId} />}
+        {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
         {activeTab === "airdrop" && <AirdropTab account={account} />}
       </div>
     </div>
