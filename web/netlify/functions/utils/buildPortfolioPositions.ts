@@ -7,7 +7,7 @@ import { type Address, erc20Abi, formatUnits } from "viem";
 import { multicall } from "viem/actions";
 import { getPublicClientByChainId } from "./config";
 import { getCurrentTokensPricesForPortfolio } from "./dexPoolPricesFromDb";
-import { getMarketsMappings, searchMarkets } from "./markets";
+import { getMarketsMappings, searchAllMarkets } from "./markets";
 import type { Database } from "./supabase";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
@@ -45,8 +45,9 @@ async function fetchTokenHoldings(
       throw new Error(`Error fetching positions: ${error.message}`);
     }
 
-    const tokens = data.map((row) => row.token as Address);
-    const balances = data.map((row) => BigInt(row.balance));
+    const rows = data ?? [];
+    const tokens = rows.map((row) => row.token as Address);
+    const balances = rows.map((row) => BigInt(row.balance));
     return { tokens, balances };
   }
 
@@ -121,10 +122,10 @@ export async function buildPortfolioPositions(
     return [];
   }
 
-  // `searchMarkets` only needs token addresses; ERC20 metadata is independent. Run in parallel to save wall time.
+  // `searchAllMarkets` only needs token addresses; ERC20 metadata is independent. Run in parallel to save wall time.
   const [{ names: tokenNames, decimals: tokenDecimals }, { markets }] = await Promise.all([
     fetchErc20NamesDecimals(chainId, allTokensIds),
-    searchMarkets({ chainIds: [chainId], tokens: allTokensIds }),
+    searchAllMarkets({ chainIds: [chainId], tokens: allTokensIds }),
   ]);
 
   if (markets.length === 0) {

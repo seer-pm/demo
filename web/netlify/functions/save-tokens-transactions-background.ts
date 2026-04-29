@@ -22,7 +22,7 @@ export default async () => {
   console.log("initialTimestamp", initialTimestamp);
 
   const chainId = 100; // TODO: make multi chain
-  const allTransfers = await getAllTransfers("tokens", chainId, initialTimestamp);
+  const allTransfers = await getAllTransfers("tokens", chainId, true, initialTimestamp);
 
   console.log("transfersToInsert", allTransfers.length);
   if (allTransfers.length > 0) {
@@ -38,7 +38,7 @@ export default async () => {
       subgraph_id: `${transfer.id}-${chainId}`,
     }));
 
-    const BATCH_SIZE = 5000;
+    const BATCH_SIZE = 1000;
     const batches = [];
 
     for (let i = 0; i < transfersToInsert.length; i += BATCH_SIZE) {

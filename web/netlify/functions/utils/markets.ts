@@ -347,6 +347,30 @@ export async function searchMarkets({
   };
 }
 
+/**
+ * Fetch **all** markets matching a filter by paging `searchMarkets`.
+ *
+ * Notes:
+ * - We intentionally require `chainIds` to avoid accidental cross-chain full scans.
+ */
+export async function searchAllMarkets(
+  args: Omit<SearchMarketsProps, "limit" | "page"> & { chainIds: SupportedChain[] },
+): Promise<{ markets: Market[] }> {
+  const pageSize = 1000;
+  const markets: Market[] = [];
+  let page = 1;
+
+  for (;;) {
+    const resp = await searchMarkets({ ...args, limit: pageSize, page });
+    markets.push(...resp.markets);
+
+    if (resp.markets.length < pageSize) break;
+    page += 1;
+  }
+
+  return { markets };
+}
+
 const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   const { data: markets, error } = await supabase
     .from("markets")

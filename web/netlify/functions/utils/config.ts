@@ -62,7 +62,7 @@ export const publicClients = Object.fromEntries(
     Number(chainId),
     createPublicClient({
       chain,
-      transport: http(getRpcUrlByChainId(Number(chainId))),
+      transport: http(getRpcUrlByChainId(Number(chainId)), { batch: true }),
     }),
   ]),
 );
@@ -82,7 +82,7 @@ export function getWalletClientForNetwork(account: PrivateKeyAccount, chainId: n
   return createWalletClient({
     account,
     chain: getChainById(chainId),
-    transport: http(getRpcUrlByChainId(chainId)),
+    transport: http(getRpcUrlByChainId(chainId), { batch: true }),
   });
 }
 

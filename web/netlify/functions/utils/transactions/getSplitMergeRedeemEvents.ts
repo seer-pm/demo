@@ -16,7 +16,7 @@ export async function getSplitMergeRedeemEvents(account: string, chainId: Suppor
     orderBy: ConditionalEvent_OrderBy.BlockNumber,
     orderDirection: OrderDirection.Desc,
     where: {
-      accountId: account as Address,
+      accountId: account.toLowerCase() as Address,
     },
   });
   return data.conditionalEvents.map((d) => ({
@@ -27,5 +27,6 @@ export async function getSplitMergeRedeemEvents(account: string, chainId: Suppor
     blockNumber: Number(d.blockNumber),
     collateral: d.collateral,
     transactionHash: d.transactionHash,
+    timestamp: Number(d.timestamp),
   }));
 }

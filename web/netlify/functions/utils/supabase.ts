@@ -543,6 +543,30 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      dex_pool_hour_prices_nearest_before_for_pairs: {
+        Args: {
+          p_chain_id: number;
+          p_lookback_seconds: number;
+          p_start_time: number;
+          p_token0_ids: string[];
+          p_token1_ids: string[];
+        };
+        Returns: {
+          chain_id: number;
+          period_start_unix: number;
+          pool_id: string;
+          token0_id: string;
+          token0_price: string;
+          token1_id: string;
+          token1_price: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "dex_pool_hour_prices";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       insert_airdrop_safely: {
         Args: { new_timestamp: number; records: Json };
         Returns: undefined;

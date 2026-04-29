@@ -1,4 +1,4 @@
-import type { SupportedChain } from "@seer-pm/sdk";
+import { type SupportedChain, getPrimaryCollateralAddress } from "@seer-pm/sdk";
 import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { formatUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
@@ -15,15 +15,27 @@ export interface Transfer {
   value: string;
 }
 
-export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain, initialStartTime?: number) {
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+export async function getAllTransfers(
+  type: "futarchy" | "tokens",
+  chainId: SupportedChain,
+  includePrimaryCollateral = false,
+  initialStartTime?: number,
+) {
   if (type === "futarchy" && chainId !== gnosis.id) {
     return [];
   }
+  const primaryCollateral = getPrimaryCollateralAddress(chainId);
+  const excludeToken = includePrimaryCollateral ? undefined : primaryCollateral.toLowerCase();
   const subgraphUrl = type === "futarchy" ? SUBGRAPHS[type][100] : SUBGRAPHS[type][chainId as 1 | 100];
   // First, get the time range
+  const timeRangeTokenWhere = excludeToken ? `, where: { token_not: "${excludeToken}" }` : "";
   const timeRangeQuery = `{
-    transfers(first: 1, orderBy: timestamp, orderDirection: asc) { timestamp }
-    transfersDesc: transfers(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+    transfers(first: 1, orderBy: timestamp, orderDirection: asc${timeRangeTokenWhere}) { timestamp }
+    transfersDesc: transfers(first: 1, orderBy: timestamp, orderDirection: desc${timeRangeTokenWhere}) { timestamp }
   }`;
 
   const timeRangeResult = await fetch(subgraphUrl, {
@@ -37,20 +49,29 @@ export async function getAllTransfers(type: "futarchy" | "tokens", chainId: Supp
   const endTime = Number.parseInt(timeRangeJson.data.transfersDesc[0]?.timestamp || "0");
 
   // Divide into chunks
-  const CHUNK_SIZE = 24 * 60 * 60; // 1 days in seconds
-  const chunks: Promise<Transfer[]>[] = [];
+  const CHUNK_SIZE = 24 * 60 * 60 * 10; // 10 days in seconds
+  const allTransfers: Transfer[] = [];
+  const totalChunks = Math.ceil((endTime - startTime) / CHUNK_SIZE);
+  let chunkIndex = 0;
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)));
+    chunkIndex += 1;
+    console.log(`[getAllTransfers] chunk ${chunkIndex}/${totalChunks}`);
+    const transfers = await fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime), excludeToken);
+    allTransfers.push(...transfers);
+    await sleep(1000);
   }
-
-  const results = await Promise.all(chunks);
-  const allTransfers = results.flat();
 
   return allTransfers;
 }
 
-async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: number): Promise<Transfer[]> {
+async function fetchTimeRange(
+  subgraphUrl: string,
+  startTime: number,
+  endTime: number,
+  excludeToken: string | undefined,
+): Promise<Transfer[]> {
+  const tokenNotClause = excludeToken ? `, token_not: "${excludeToken}"` : "";
   let allTransfers: Transfer[] = [];
   let currentTimestamp = startTime;
 
@@ -60,7 +81,7 @@ async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: n
         first: 1000, 
         orderBy: timestamp, 
         orderDirection: asc,
-        where: {timestamp_gte: "${currentTimestamp}", timestamp_lt: "${endTime}"}
+        where: {timestamp_gte: "${currentTimestamp}", timestamp_lt: "${endTime}"${tokenNotClause}}
       ) {
         id
         from
@@ -79,6 +100,9 @@ async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: n
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
     });
+    if (!result.ok) {
+      throw new Error(`Subgraph request failed (${result.status}): ${await result.text()}`);
+    }
     const json = await result.json();
 
     if (json.errors?.length) {

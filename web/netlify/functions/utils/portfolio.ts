@@ -26,7 +26,7 @@ export interface TransactionData {
   blockNumber: number;
   collateral: Address;
   collateralSymbol?: string;
-  timestamp?: number;
+  timestamp: number;
   transactionHash?: string;
   amount?: string;
   payout?: string;

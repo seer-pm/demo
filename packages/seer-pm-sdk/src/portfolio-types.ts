@@ -37,6 +37,8 @@ export type PortfolioPnLData = {
   pnl: number;
   valueStart: number;
   valueEnd: number;
+  /** Net primary collateral spent on indexed outcome swaps (DEX + CoW) over the window; subtracted from naive Δ(value) for `pnl`. */
+  tradingCollateralNetOut?: number;
   startTime: number;
   endTime: number;
 };
