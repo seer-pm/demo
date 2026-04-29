@@ -1,6 +1,7 @@
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { MarketTypes, getMarketStatus, getMarketType, getQuestionParts, getRedeemedPrice } from "@seer-pm/sdk/market";
 import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
+import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, erc20Abi, formatUnits } from "viem";
@@ -27,30 +28,12 @@ function enrichPositionsWithTokenValues(
   });
 }
 
-async function fetchTokenHoldings(
+/** Current holdings only: `tokens_holdings_v` with balance > 0; balances via `balanceOf` on-chain. */
+export async function fetchCurrentTokenHoldings(
   supabase: SupabaseClient<Database>,
   address: Address,
   chainId: SupportedChain,
-  forHistoricPnl: boolean,
-) {
-  if (forHistoricPnl) {
-    const { data, error } = await supabase
-      .from("tokens_holdings_v")
-      .select("token, balance::text")
-      .eq("owner", address.toLowerCase())
-      .eq("chain_id", chainId)
-      .order("token", { ascending: true });
-
-    if (error) {
-      throw new Error(`Error fetching positions: ${error.message}`);
-    }
-
-    const rows = data ?? [];
-    const tokens = rows.map((row) => row.token as Address);
-    const balances = rows.map((row) => BigInt(row.balance));
-    return { tokens, balances };
-  }
-
+): Promise<{ tokens: Address[]; balances: bigint[] }> {
   const { data, error } = await supabase
     .from("tokens_holdings_v")
     .select("token")
@@ -67,7 +50,7 @@ async function fetchTokenHoldings(
   const tokens = rows.map((row) => row.token as Address);
 
   if (tokens.length === 0) {
-    return { tokens, balances: [] as bigint[] };
+    return { tokens, balances: [] };
   }
 
   const publicClient = getPublicClientByChainId(chainId);
@@ -85,56 +68,62 @@ async function fetchTokenHoldings(
   return { tokens, balances };
 }
 
-async function fetchErc20NamesDecimals(chainId: SupportedChain, tokens: Address[]) {
-  if (tokens.length === 0) {
-    return { names: [] as string[], decimals: [] as number[] };
-  }
-
-  const decimals = getTokenDecimalsList(chainId, tokens);
-  const publicClient = getPublicClientByChainId(chainId);
-  const names = (await multicall(publicClient, {
-    contracts: tokens.map((tokenAddress) => ({
-      abi: erc20Abi,
-      address: tokenAddress,
-      functionName: "name",
-      args: [],
-    })),
-    allowFailure: false,
-  })) as string[];
-
-  return { names, decimals };
-}
-
-/**
- * Same positions list as `get-portfolio` — used by portfolio value / P&L endpoints.
- * - Default (`forHistoricPnl` false): tokens from `tokens_holdings_v` with balance above zero; balances via `balanceOf` on-chain.
- * - `forHistoricPnl` true (e.g. `get-portfolio-pl`): every row in `tokens_holdings_v` for the account, balances from Supabase
- *   so redeeming does not drop positions before the indexer/cron matches chain state; zero-balance rows are included for P/L rollbacks.
- */
-export async function buildPortfolioPositions(
+async function fetchHistoricTokenHoldings(
   supabase: SupabaseClient<Database>,
   address: Address,
   chainId: SupportedChain,
-  forHistoricPnl = false,
+  tokens: Address[],
+): Promise<bigint[]> {
+  if (tokens.length === 0) {
+    return [];
+  }
+
+  const lower = tokens.map((t) => t.toLowerCase());
+  const { data, error } = await supabase
+    .from("tokens_holdings_v")
+    .select("token, balance::text")
+    .eq("owner", address.toLowerCase())
+    .eq("chain_id", chainId)
+    .in("token", lower);
+
+  if (error) {
+    throw new Error(`Error fetching balances from tokens_holdings_v: ${error.message}`);
+  }
+
+  const balanceByTokenLc = new Map<string, bigint>();
+  for (const row of data ?? []) {
+    const tok = row.token?.toLowerCase();
+    if (!tok) continue;
+    balanceByTokenLc.set(tok, BigInt(row.balance as string));
+  }
+
+  return tokens.map((t) => balanceByTokenLc.get(t.toLowerCase()) ?? 0n);
+}
+
+/**
+ * Builds portfolio positions from pre-resolved tokens, balances, and markets (caller loads markets).
+ */
+export async function buildPortfolioPositionsCore(
+  supabase: SupabaseClient<Database>,
+  chainId: SupportedChain,
+  allTokensIds: Address[],
+  balances: bigint[],
+  markets: Market[],
+  includeZeroBalances: boolean,
 ): Promise<PortfolioPosition[]> {
-  const { tokens: allTokensIds, balances } = await fetchTokenHoldings(supabase, address, chainId, forHistoricPnl);
-  if (allTokensIds.length === 0) {
+  if (allTokensIds.length === 0 || markets.length === 0) {
     return [];
   }
 
-  // `searchAllMarkets` only needs token addresses; ERC20 metadata is independent. Run in parallel to save wall time.
-  const [{ names: tokenNames, decimals: tokenDecimals }, { markets }] = await Promise.all([
-    fetchErc20NamesDecimals(chainId, allTokensIds),
-    searchAllMarkets({ chainIds: [chainId], tokens: allTokensIds }),
-  ]);
-
-  if (markets.length === 0) {
-    return [];
+  if (allTokensIds.length !== balances.length) {
+    throw new Error("buildPortfolioPositionsCore: tokens and balances length mismatch");
   }
+
+  const tokenDecimals = getTokenDecimalsList(chainId, allTokensIds);
 
   const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
   const positions = balances.reduce((acumm, balance, index) => {
-    if (!forHistoricPnl && balance <= 0n) {
+    if (!includeZeroBalances && balance <= 0n) {
       return acumm;
     }
 
@@ -172,7 +161,6 @@ export async function buildPortfolioPositions(
     acumm.push({
       marketId: market.id,
       tokenIndex,
-      tokenName: tokenNames[index],
       tokenId: allTokensIds[index],
       tokenBalance,
       rawBalance: balance.toString(),
@@ -195,4 +183,32 @@ export async function buildPortfolioPositions(
 
   const currentPrices = await getCurrentTokensPricesForPortfolio(supabase, positions, chainId);
   return enrichPositionsWithTokenValues(positions, currentPrices);
+}
+
+export async function buildHistoricPortfolioPositions(
+  supabase: SupabaseClient<Database>,
+  address: Address,
+  chainId: SupportedChain,
+  markets: Market[],
+): Promise<PortfolioPosition[]> {
+  const allTokenIds = [
+    ...new Set(markets.flatMap((m) => (m.wrappedTokens ?? []).map((w) => String(w).toLowerCase()))),
+  ] as Address[];
+  const balances = await fetchHistoricTokenHoldings(supabase, address, chainId, allTokenIds);
+
+  return buildPortfolioPositionsCore(supabase, chainId, allTokenIds, balances, markets, true);
+}
+
+export async function buildCurrentPortfolioPositions(
+  supabase: SupabaseClient<Database>,
+  address: Address,
+  chainId: SupportedChain,
+): Promise<PortfolioPosition[]> {
+  const { tokens, balances } = await fetchCurrentTokenHoldings(supabase, address, chainId);
+  if (tokens.length === 0) {
+    return [];
+  }
+
+  const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens });
+  return buildPortfolioPositionsCore(supabase, chainId, tokens, balances, markets, false);
 }

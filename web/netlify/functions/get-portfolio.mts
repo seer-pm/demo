@@ -1,7 +1,7 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
-import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
+import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -42,7 +42,7 @@ export default async (req: Request) => {
       });
     }
 
-    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
+    const positions = await buildCurrentPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
 
     return new Response(JSON.stringify(positions), {
       status: 200,

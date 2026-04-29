@@ -297,7 +297,6 @@ Array of `PortfolioPosition`:
 
 ```ts
 interface PortfolioPosition {
-  tokenName: string;
   tokenId: `0x${string}`;
   tokenIndex: number;
   marketId: `0x${string}`;

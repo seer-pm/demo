@@ -10,30 +10,6 @@ import {
 
 const DEBUG_MAX_TRANSFERS = 50;
 
-/** Net signed wei (primary collateral only): user receives from router (+), user sends to router (−). */
-async function sumRouterPrimaryCollateralSignedWeiUpTo(
-  supabase: SupabaseClient<Database>,
-  chainId: SupportedChain,
-  account: Address,
-  routerAddresses: Address[],
-  primaryToken: Address,
-  timestampMax: number,
-): Promise<bigint> {
-  const transfers = await listRouterPrimaryCollateralTransfersInWindow(
-    supabase,
-    chainId,
-    account,
-    routerAddresses,
-    primaryToken,
-    -1,
-    timestampMax,
-  );
-
-  let sum = 0n;
-  for (const t of transfers) sum += t.signedValueWeiForUser;
-  return sum;
-}
-
 type RouterCollateralTransfer = {
   timestamp: number;
   blockNumber: number;
@@ -85,28 +61,49 @@ async function listRouterPrimaryCollateralTransfersInWindow(
   return out;
 }
 
-async function cumulativeRouterCollateralHumanUpTo(
+/**
+ * One fetch of router↔user primary transfers up to `endTime`, then cumulative human values at each `startTime`
+ * and `valueEnd` at `endTime`. Avoids N duplicate full scans of router primary transfers.
+ */
+export async function computeCollateralPortfolioValuesForPeriods(
   supabase: SupabaseClient<Database>,
   account: Address,
   chainId: SupportedChain,
-  timestampMax: number,
-): Promise<number> {
+  endTime: number,
+  startTimes: number[],
+): Promise<{ valueEnd: number; valueStartByStartTime: Map<number, number> }> {
+  const primary = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary;
   const routers = getRouterAddresses(chainId);
-  if (routers.length === 0) return 0;
 
-  const primary = COLLATERAL_TOKENS[chainId]?.primary;
-  if (!primary) return 0;
-
-  const wei = await sumRouterPrimaryCollateralSignedWeiUpTo(
+  const transfers = await listRouterPrimaryCollateralTransfersInWindow(
     supabase,
     chainId,
     account,
     routers,
     primary.address,
-    timestampMax,
+    -1,
+    endTime,
   );
 
-  return Number(formatUnits(wei, primary.decimals));
+  const uniqueStarts = [...new Set(startTimes)].sort((a, b) => a - b);
+  const valueStartByStartTime = new Map<number, number>();
+
+  let idx = 0;
+  let sumWei = 0n;
+  for (const S of uniqueStarts) {
+    while (idx < transfers.length && transfers[idx].timestamp <= S) {
+      sumWei += transfers[idx].signedValueWeiForUser;
+      idx++;
+    }
+    valueStartByStartTime.set(S, Number(formatUnits(sumWei, primary.decimals)));
+  }
+  while (idx < transfers.length && transfers[idx].timestamp <= endTime) {
+    sumWei += transfers[idx].signedValueWeiForUser;
+    idx++;
+  }
+  const valueEnd = Number(formatUnits(sumWei, primary.decimals));
+
+  return { valueEnd, valueStartByStartTime };
 }
 
 /**
@@ -145,79 +142,72 @@ export async function computeCollateralPortfolioValuesForPeriod(
     }>;
   };
 }> {
-  try {
-    getPrimaryCollateralAddress(chainId);
-  } catch {
-    return { valueEnd: 0, valueStart: 0 };
+  const { valueEnd, valueStartByStartTime } = await computeCollateralPortfolioValuesForPeriods(
+    supabase,
+    account,
+    chainId,
+    endTime,
+    [startTime],
+  );
+  const valueStart = valueStartByStartTime.get(startTime) ?? 0;
+
+  if (!opts?.debug) return { valueEnd, valueStart };
+
+  const routers = getRouterAddresses(chainId);
+  const primary = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary;
+  if (!primary || routers.length === 0) return { valueEnd, valueStart };
+
+  const transfers = await listRouterPrimaryCollateralTransfersInWindow(
+    supabase,
+    chainId,
+    account,
+    routers,
+    primary.address,
+    startTime,
+    endTime,
+  );
+
+  let sumUserToRouterWei = 0n;
+  let sumRouterToUserWei = 0n;
+  let netUserSignedWei = 0n;
+  for (const t of transfers) {
+    netUserSignedWei += t.signedValueWeiForUser;
+    if (t.signedValueWeiForUser < 0n) sumUserToRouterWei += -t.signedValueWeiForUser;
+    if (t.signedValueWeiForUser > 0n) sumRouterToUserWei += t.signedValueWeiForUser;
   }
 
-  try {
-    const [valueEnd, valueStart] = await Promise.all([
-      cumulativeRouterCollateralHumanUpTo(supabase, account, chainId, endTime),
-      cumulativeRouterCollateralHumanUpTo(supabase, account, chainId, startTime),
-    ]);
+  const topTransfersByAbsSigned = [...transfers]
+    .sort((a, b) => {
+      const aa = a.signedValueWeiForUser < 0n ? -a.signedValueWeiForUser : a.signedValueWeiForUser;
+      const bb = b.signedValueWeiForUser < 0n ? -b.signedValueWeiForUser : b.signedValueWeiForUser;
+      if (aa === bb) return b.timestamp - a.timestamp;
+      return bb > aa ? 1 : -1;
+    })
+    .slice(0, DEBUG_MAX_TRANSFERS)
+    .map((t) => ({
+      timestamp: t.timestamp,
+      blockNumber: t.blockNumber,
+      txHash: t.txHash,
+      from: t.from,
+      to: t.to,
+      value: Number(formatUnits(t.valueWei, primary.decimals)),
+      signedForUser: Number(formatUnits(t.signedValueWeiForUser, primary.decimals)),
+    }));
 
-    if (!opts?.debug) return { valueEnd, valueStart };
-
-    const routers = getRouterAddresses(chainId);
-    const primary = COLLATERAL_TOKENS[chainId]?.primary;
-    if (!primary || routers.length === 0) return { valueEnd, valueStart };
-
-    const transfers = await listRouterPrimaryCollateralTransfersInWindow(
-      supabase,
-      chainId,
-      account,
+  return {
+    valueEnd,
+    valueStart,
+    debug: {
+      primaryToken: primary.address,
+      routerCount: routers.length,
       routers,
-      primary.address,
       startTime,
       endTime,
-    );
-
-    let sumUserToRouterWei = 0n;
-    let sumRouterToUserWei = 0n;
-    let netUserSignedWei = 0n;
-    for (const t of transfers) {
-      netUserSignedWei += t.signedValueWeiForUser;
-      if (t.signedValueWeiForUser < 0n) sumUserToRouterWei += -t.signedValueWeiForUser;
-      if (t.signedValueWeiForUser > 0n) sumRouterToUserWei += t.signedValueWeiForUser;
-    }
-
-    const topTransfersByAbsSigned = [...transfers]
-      .sort((a, b) => {
-        const aa = a.signedValueWeiForUser < 0n ? -a.signedValueWeiForUser : a.signedValueWeiForUser;
-        const bb = b.signedValueWeiForUser < 0n ? -b.signedValueWeiForUser : b.signedValueWeiForUser;
-        if (aa === bb) return b.timestamp - a.timestamp;
-        return bb > aa ? 1 : -1;
-      })
-      .slice(0, DEBUG_MAX_TRANSFERS)
-      .map((t) => ({
-        timestamp: t.timestamp,
-        blockNumber: t.blockNumber,
-        txHash: t.txHash,
-        from: t.from,
-        to: t.to,
-        value: Number(formatUnits(t.valueWei, primary.decimals)),
-        signedForUser: Number(formatUnits(t.signedValueWeiForUser, primary.decimals)),
-      }));
-
-    return {
-      valueEnd,
-      valueStart,
-      debug: {
-        primaryToken: primary.address,
-        routerCount: routers.length,
-        routers,
-        startTime,
-        endTime,
-        sumUserToRouter: Number(formatUnits(sumUserToRouterWei, primary.decimals)),
-        sumRouterToUser: Number(formatUnits(sumRouterToUserWei, primary.decimals)),
-        netUserSigned: Number(formatUnits(netUserSignedWei, primary.decimals)),
-        transferCount: transfers.length,
-        topTransfersByAbsSigned,
-      },
-    };
-  } catch (e) {
-    console.error("computeCollateralPortfolioValuesForPeriod failed", e);
-    return { valueEnd: 0, valueStart: 0 };
-  }
+      sumUserToRouter: Number(formatUnits(sumUserToRouterWei, primary.decimals)),
+      sumRouterToUser: Number(formatUnits(sumRouterToUserWei, primary.decimals)),
+      netUserSigned: Number(formatUnits(netUserSignedWei, primary.decimals)),
+      transferCount: transfers.length,
+      topTransfersByAbsSigned,
+    },
+  };
 }

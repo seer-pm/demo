@@ -3,7 +3,7 @@ import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { subDays } from "date-fns";
 import { type Address, isAddress } from "viem";
-import { buildPortfolioPositions } from "./utils/buildPortfolioPositions";
+import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import type { Database } from "./utils/supabase";
@@ -75,7 +75,7 @@ export default async (req: Request) => {
       );
     }
 
-    const positions = await buildPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
+    const positions = await buildCurrentPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
 
     const historyTimestamp = Math.floor(subDays(new Date(), 1).getTime() / 1000);
 

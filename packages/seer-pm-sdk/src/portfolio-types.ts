@@ -2,7 +2,6 @@ import type { Address } from "viem";
 
 /** A row in the portfolio positions table / get-portfolio API. */
 export interface PortfolioPosition {
-  tokenName: string;
   tokenId: Address;
   tokenIndex: number;
   marketId: Address;
