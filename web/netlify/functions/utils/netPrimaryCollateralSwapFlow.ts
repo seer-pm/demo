@@ -1,12 +1,9 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS, getPrimaryCollateralAddress } from "@seer-pm/sdk";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
-import { searchAllMarkets, searchMarkets } from "./markets";
 import { getMappings } from "./portfolio";
-import type { Database } from "./supabase";
 import { getSwapEvents } from "./transactions/getSwapEvents";
-import { listDistinctUserTransferTokensInWindow } from "./transactions/listDistinctUserTransferTokensInWindow";
 
 export type PrimaryCollateralSwapFlowDebugRow = {
   marketId: string;
@@ -32,15 +29,14 @@ export type PrimaryCollateralSwapFlowDebugRow = {
  * Sources: same as transaction history (`getSwapEvents`). Does not include split/merge/redeem (those are captured in
  * `collateralValues` from router `tokens_transfers` when applicable).
  *
- * Global mode (no `marketId`): loads only markets tied to **tokens this user touched** in `tokens_transfers` over the
- * same `(startTime, endTime]` window, instead of every chain market.
+ * `markets` must be preloaded (e.g. same `searchAllMarkets` pass as portfolio positions for this request).
  */
 export async function computeNetPrimaryCollateralSwapFlow(
-  supabase: SupabaseClient<Database>,
   account: Address,
   chainId: SupportedChain,
   startTime: number,
   endTime: number,
+  markets: Market[],
   marketId?: Address,
   opts?: { limitRows?: number },
 ): Promise<{
@@ -48,57 +44,75 @@ export async function computeNetPrimaryCollateralSwapFlow(
   rows: PrimaryCollateralSwapFlowDebugRow[];
   primary: { address: string; decimals: number };
 }> {
-  let primaryAddr: string;
-  let decimals: number;
-  try {
-    primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
-    decimals = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS]?.primary?.decimals ?? 18;
-  } catch {
-    return { netOut: 0, rows: [], primary: { address: "", decimals: 18 } };
-  }
-
-  // Market list strategy:
-  // - For market-specific P&L, load only that market by id and build mappings from it.
-  // - For global P&L, load markets for tokens this user had in `tokens_transfers` (not full chain).
-  let markets: Awaited<ReturnType<typeof searchMarkets>>["markets"] = [];
-  if (marketId) {
-    const resp = await searchMarkets({ chainIds: [chainId], id: marketId });
-    markets = resp.markets;
-  } else {
-    const fromTransfers = await listDistinctUserTransferTokensInWindow(supabase, chainId, account, startTime, endTime);
-
-    const tokenSet = new Set(fromTransfers);
-    tokenSet.delete(primaryAddr);
-
-    const distinctTokens = Array.from(tokenSet);
-
-    if (distinctTokens.length === 0) {
-      markets = [];
-    } else {
-      const { markets: loaded } = await searchAllMarkets({
-        chainIds: [chainId],
-        tokens: distinctTokens as Address[],
-      });
-      markets = loaded;
-    }
-  }
+  const primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
+  const decimals = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary.decimals;
 
   if (markets.length === 0) return { netOut: 0, rows: [], primary: { address: primaryAddr, decimals } };
 
+  const { netOutByStartTime, rowsByStartTime } = await computeNetPrimaryCollateralSwapFlowForPeriods(
+    account,
+    chainId,
+    [startTime],
+    endTime,
+    markets,
+    marketId,
+    opts,
+  );
+
+  return {
+    netOut: netOutByStartTime.get(startTime) ?? 0,
+    rows: rowsByStartTime.get(startTime) ?? [],
+    primary: { address: primaryAddr, decimals },
+  };
+}
+
+/**
+ * Single `getSwapEvents` over `(min(startTimes), endTime]`, then net primary collateral out per window
+ * `(startTime, endTime]` for each `startTime`.
+ */
+export async function computeNetPrimaryCollateralSwapFlowForPeriods(
+  account: Address,
+  chainId: SupportedChain,
+  startTimes: number[],
+  endTime: number,
+  markets: Market[],
+  marketId?: Address,
+  opts?: { limitRows?: number },
+): Promise<{
+  netOutByStartTime: Map<number, number>;
+  rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
+  primary: { address: string; decimals: number };
+}> {
+  const primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
+  const decimals = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary.decimals;
+
+  if (markets.length === 0 || startTimes.length === 0) {
+    return {
+      netOutByStartTime: new Map(startTimes.map((s) => [s, 0])),
+      rowsByStartTime: new Map(startTimes.map((s) => [s, [] as PrimaryCollateralSwapFlowDebugRow[]])),
+      primary: { address: primaryAddr, decimals },
+    };
+  }
+
   const mappings = await getMappings(markets, chainId);
+  const minStart = Math.min(...startTimes);
+  const swaps = await getSwapEvents(mappings, account, chainId, minStart, endTime);
 
-  const swaps = await getSwapEvents(mappings, account, chainId, startTime, endTime);
+  const netOutWeiByStart = new Map<number, bigint>();
+  const rowsByStart = new Map<number, PrimaryCollateralSwapFlowDebugRow[]>();
+  for (const s of startTimes) {
+    netOutWeiByStart.set(s, 0n);
+    rowsByStart.set(s, []);
+  }
 
-  const rows: PrimaryCollateralSwapFlowDebugRow[] = [];
-  let netOutWei = 0n;
   const rowLimit = Math.max(0, opts?.limitRows ?? 200);
 
   for (const s of swaps) {
     if (marketId && (s.marketId ?? "").toLowerCase() !== marketId.toLowerCase()) {
       continue;
     }
-    const ts = s.timestamp;
-    if (ts <= startTime || ts > endTime) {
+    const ts = Number(s.timestamp ?? 0);
+    if (ts > endTime) {
       continue;
     }
 
@@ -109,26 +123,38 @@ export async function computeNetPrimaryCollateralSwapFlow(
     if (tin === primaryAddr) counted += BigInt(s.amountIn || 0);
     if (tout === primaryAddr) counted -= BigInt(s.amountOut || 0);
 
-    if (counted !== 0n) {
-      netOutWei += counted;
-      if (rowLimit > 0 && rows.length < rowLimit) {
-        rows.push({
-          marketId: String(s.marketId ?? ""),
-          marketName: String(s.marketName ?? ""),
-          timestamp: Number(s.timestamp ?? 0),
-          blockNumber: Number(s.blockNumber ?? 0),
-          txHash: s.transactionHash,
-          tokenIn: s.tokenIn,
-          tokenOut: s.tokenOut,
-          amountIn: s.amountIn,
-          amountOut: s.amountOut,
-          tokenInSymbol: s.tokenInSymbol,
-          tokenOutSymbol: s.tokenOutSymbol,
-          countedPrimaryNetOutWei: counted.toString(),
-        });
+    if (counted === 0n) continue;
+
+    for (const startTime of startTimes) {
+      if (ts <= startTime || ts > endTime) continue;
+      netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + counted);
+      if (rowLimit > 0) {
+        const rows = rowsByStart.get(startTime) ?? [];
+        if (rows.length < rowLimit) {
+          rows.push({
+            marketId: String(s.marketId ?? ""),
+            marketName: String(s.marketName ?? ""),
+            timestamp: ts,
+            blockNumber: Number(s.blockNumber ?? 0),
+            txHash: s.transactionHash,
+            tokenIn: s.tokenIn,
+            tokenOut: s.tokenOut,
+            amountIn: s.amountIn,
+            amountOut: s.amountOut,
+            tokenInSymbol: s.tokenInSymbol,
+            tokenOutSymbol: s.tokenOutSymbol,
+            countedPrimaryNetOutWei: counted.toString(),
+          });
+          rowsByStart.set(startTime, rows);
+        }
       }
     }
   }
 
-  return { netOut: Number(formatUnits(netOutWei, decimals)), rows, primary: { address: primaryAddr, decimals } };
+  const netOutByStartTime = new Map<number, number>();
+  for (const st of startTimes) {
+    netOutByStartTime.set(st, Number(formatUnits(netOutWeiByStart.get(st) ?? 0n, decimals)));
+  }
+
+  return { netOutByStartTime, rowsByStartTime: rowsByStart, primary: { address: primaryAddr, decimals } };
 }
