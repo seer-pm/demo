@@ -190,6 +190,9 @@ export type { WinningPositionInput, WinningPositionsResult } from "./get-winning
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
 export { isSeerCredits } from "./seer-credits";
 
+// Curate / TCR
+export { CURATE_STATUS, type CurateStatus, isCurateStatus } from "./curate-status";
+
 // Transaction notification abstractions (UI-agnostic)
 export type {
   TxNotificationMessage,

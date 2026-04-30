@@ -1,14 +1,13 @@
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { isUndefined } from "@/lib/utils.ts";
-import type { SupportedChain, VerificationResult } from "@seer-pm/sdk";
+import { CURATE_STATUS, type SupportedChain, type VerificationResult } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { Status, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
+import { getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, parseAbiItem } from "viem";
-import { getBlockNumber, getLogs, readContract } from "viem/actions";
+import { getLogs, readContract } from "viem/actions";
 import { getPublicClientByChainId } from "./config.ts";
-import { getLastProcessedBlock, updateLastProcessedBlock } from "./logs.ts";
 import { readContractsInBatch } from "./readContractsInBatch.ts";
 import type { Json } from "./supabase.ts";
 
@@ -163,15 +162,15 @@ export async function getSubgraphVerificationStatusList(
       });
     } catch {}
 
-    const { litems } = await getCurateSdk(client).GetImages({
+    const { LItem } = await getCurateSdk(client).GetImages({
       where: {
-        registryAddress,
+        registryAddress: { _eq: registryAddress.toLowerCase() },
       },
       first: 1000,
     });
-    return litems.reduce(
+    return LItem.reduce(
       (obj, item) => {
-        const marketId = item.metadata?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+        const marketId = item?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
         if (!marketId) {
           return obj;
         }
@@ -180,13 +179,13 @@ export async function getSubgraphVerificationStatusList(
             ? Number(item.latestRequestSubmissionTime) + Number(challengePeriodDuration)
             : undefined;
         const isVerifiedBeforeClearing =
-          item.status === Status.ClearingRequested &&
-          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
-        if (item.status === Status.Registered || isVerifiedBeforeClearing) {
+          item.status === CURATE_STATUS.ClearingRequested &&
+          item.requests.find((request) => request.requestType === CURATE_STATUS.RegistrationRequested)?.resolved;
+        if (item.status === CURATE_STATUS.Registered || isVerifiedBeforeClearing) {
           obj[marketId] = { status: "verified", itemID: item.itemID, deadline };
           return obj;
         }
-        if (item.status === Status.RegistrationRequested) {
+        if (item.status === CURATE_STATUS.RegistrationRequested) {
           if (item.disputed) {
             obj[marketId] = { status: "challenged", itemID: item.itemID, deadline };
           } else {
@@ -226,28 +225,30 @@ async function getNewItemEvents(chainId: SupportedChain, fromBlock: bigint) {
   }
 }
 
-async function getItemsAndMetadata(chainId: SupportedChain, fetchFromSubgraph: boolean) {
-  if (fetchFromSubgraph) {
-    const client = curateGraphQLClient(chainId);
+async function getItemsAndMetadata(chainId: SupportedChain) {
+  // `curateGraphQLClient` points at the same hosted subgraph for every chain; we scope results to the
+  // requested chain by filtering on `registryAddress`, which is unique per chain in `lightGeneralizedTcrAddress`.
+  // if (fetchFromSubgraph) {
+  const client = curateGraphQLClient(chainId);
 
-    const registryAddress = lightGeneralizedTcrAddress[chainId];
-    if (client && !isUndefined(registryAddress)) {
-      const { litems } = await getCurateSdk(client).GetImages({
-        where: {
-          registryAddress,
-        },
-        first: 1000,
-      });
-      return litems.reduce((obj, item) => {
-        obj.push({ itemID: item.itemID, metadataPath: item.data });
-        return obj;
-      }, [] as ItemAndMetadata[]);
-    }
-
-    return [];
+  const registryAddress = lightGeneralizedTcrAddress[chainId];
+  if (client && !isUndefined(registryAddress)) {
+    const { LItem } = await getCurateSdk(client).GetImages({
+      where: {
+        registryAddress: { _eq: registryAddress.toLowerCase() },
+      },
+      first: 1000,
+    });
+    return LItem.reduce((obj, item) => {
+      obj.push({ itemID: item.itemID as Address, metadataPath: item.data });
+      return obj;
+    }, [] as ItemAndMetadata[]);
   }
 
-  const fromBlock = await getLastProcessedBlock(chainId, getLastProcessedBlockKey(chainId));
+  return [];
+  // }
+
+  /* const fromBlock = await getLastProcessedBlock(chainId, getLastProcessedBlockKey(chainId));
 
   const items: ItemAndMetadata[] = (await getNewItemEvents(chainId, fromBlock)).map((d) => ({
     itemID: d.args._itemID || "0x",
@@ -258,7 +259,7 @@ async function getItemsAndMetadata(chainId: SupportedChain, fetchFromSubgraph: b
 
   await updateLastProcessedBlock(chainId, currentBlock, getLastProcessedBlockKey(chainId));
 
-  return items;
+  return items; */
 }
 
 /**
@@ -283,7 +284,7 @@ export async function fetchAndStoreMetadata(
     return;
   }
 
-  const items: ItemAndMetadata[] = await getItemsAndMetadata(chainId, true);
+  const items: ItemAndMetadata[] = await getItemsAndMetadata(chainId);
 
   // Get existing items from the database
   const { data: existingItems } = await supabase
@@ -307,16 +308,18 @@ export async function fetchAndStoreMetadata(
   const itemsToProcess = itemsToFetch.slice(0, batchSize);
 
   // For the remaining items, just ensure they're in the database without metadata
-  const itemsToStore = itemsToFetch.slice(batchSize).map((item) => ({
-    item_id: item.itemID,
-    chain_id: chainId,
-    metadata_path: item.metadataPath,
-    metadata: null,
-  }));
+  const itemsToStore: CurateItem[] = itemsToFetch.slice(batchSize).map(
+    (item): CurateItem => ({
+      item_id: item.itemID,
+      chain_id: chainId,
+      metadata_path: item.metadataPath,
+      metadata: null,
+    }),
+  );
 
   // Fetch metadata for the batch
-  const processedItems = await Promise.all(
-    itemsToProcess.map(async (item) => {
+  const processedItems: CurateItem[] = await Promise.all(
+    itemsToProcess.map(async (item): Promise<CurateItem> => {
       const metadataUrl = `https://cdn.kleros.link${item.metadataPath}`;
       let metadata = null;
       try {
@@ -354,6 +357,6 @@ export async function fetchAndStoreMetadata(
   }
 }
 
-function getLastProcessedBlockKey(chainId: SupportedChain): string {
+/* function getLastProcessedBlockKey(chainId: SupportedChain): string {
   return `curate-new-item-events-${chainId}-last-block`;
-}
+} */
