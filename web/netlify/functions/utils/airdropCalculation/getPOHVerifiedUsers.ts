@@ -51,7 +51,5 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
   return allRequests;
 }
 export function isPOHVerifiedUserAtTime(requests: PoHRequest[], user: string, timestamp: number) {
-  return requests.some(
-    (request) => request.requester === user && Number(request.resolutionTime) <= timestamp,
-  );
+  return requests.some((request) => request.requester === user && Number(request.resolutionTime) <= timestamp);
 }

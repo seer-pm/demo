@@ -33,9 +33,7 @@ export async function fetchSubgraphMarkets(chainId: SupportedChain) {
   let currentId = undefined;
   while (attempt < maxAttempts) {
     const query: string = `{
-          markets(first: 1000, orderBy: id, orderDirection: asc${
-            currentId ? `, where: {id_gt: "${currentId}"}` : ""
-          }) {
+          markets(first: 1000, orderBy: id, orderDirection: asc${currentId ? `, where: {id_gt: "${currentId}"}` : ""}) {
             id
             type
             marketName

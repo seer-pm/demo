@@ -39,10 +39,7 @@ export interface BunniPositionSnapshot {
   blockNumber: string;
 }
 
-export async function getBunniLpTokensByTokenPair(
-  chainId: SupportedChain,
-  tokenPair: Token0Token1,
-) {
+export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
   if (chainId !== mainnet.id) {
     return [];
   }
@@ -247,14 +244,7 @@ export function getBunniPositionHoldersAtTimestamp(
 
     if (!token0 || !token1) continue;
 
-    const { amount0, amount1 } = calculateBurnAmounts(
-      value,
-      totalSupply,
-      liquidity,
-      tickCurrent,
-      tickLower,
-      tickUpper,
-    );
+    const { amount0, amount1 } = calculateBurnAmounts(value, totalSupply, liquidity, tickCurrent, tickLower, tickUpper);
 
     // Initialize balances for both addresses and tokens
     for (const addr of [from, to]) {

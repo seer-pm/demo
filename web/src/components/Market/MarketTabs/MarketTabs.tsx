@@ -9,15 +9,10 @@ const Comments = clientOnly(() => import("./Comments"));
 
 export default function MarketTabs({ market }: { market: Market }) {
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<
-    "comments" | "conditionalMarkets" | "topHolders" | "activity"
-  >("comments");
+  const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
   return (
     <div>
-      <div
-        role="tablist"
-        className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1"
-      >
+      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
           role="tab"
@@ -29,9 +24,7 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${
-            activeTab === "conditionalMarkets" && "tab-active"
-          }`}
+          className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
           onClick={() => setActiveTab("conditionalMarkets")}
         >
           Related Conditional Markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
@@ -39,9 +32,7 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${
-            activeTab === "topHolders" && "tab-active"
-          }`}
+          className={`tab text-[16px] whitespace-nowrap ${activeTab === "topHolders" && "tab-active"}`}
           onClick={() => setActiveTab("topHolders")}
         >
           Top Holders
@@ -49,9 +40,7 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${
-            activeTab === "activity" && "tab-active"
-          }`}
+          className={`tab text-[16px] whitespace-nowrap ${activeTab === "activity" && "tab-active"}`}
           onClick={() => setActiveTab("activity")}
         >
           Activity
@@ -59,10 +48,7 @@ export default function MarketTabs({ market }: { market: Market }) {
       </div>
       {activeTab === "comments" && <Comments market={market} />}
       {activeTab === "conditionalMarkets" && (
-        <RelatedMarkets
-          market={market}
-          setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)}
-        />
+        <RelatedMarkets market={market} setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)} />
       )}
       {activeTab === "topHolders" && <TopHolders market={market} />}
       {activeTab === "activity" && <Activity market={market} />}

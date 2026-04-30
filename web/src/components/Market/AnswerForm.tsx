@@ -58,9 +58,7 @@ function getOutcome(templateId: bigint, values: AnswerFormValues, scalarBoundInW
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_UINT) {
-    return scalarBoundInWei
-      ? parseEther(String(values.outcome)).toString()
-      : String(values.outcome);
+    return scalarBoundInWei ? parseEther(String(values.outcome)).toString() : String(values.outcome);
   }
 
   if (Number(templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
@@ -88,29 +86,17 @@ function getOutcomesOptions(market: Market, question: Question) {
   }
 
   if (Number(market.templateId) === REALITY_TEMPLATE_SINGLE_SELECT) {
-    options = options.filter(
-      (_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer),
-    );
+    options = options.filter((_, i) => question.finalize_ts === 0 || i !== hexToNumber(question.best_answer));
   }
 
   return options;
 }
 
-export function AnswerForm({
-  market,
-  marketStatus,
-  question,
-  closeModal,
-  raiseDispute,
-}: AnswerFormProps) {
+export function AnswerForm({ market, marketStatus, question, closeModal, raiseDispute }: AnswerFormProps) {
   const { address, chainId: connectedChainId, chain } = useAccount();
   const { open } = useWeb3Modal();
   const { data: balance = { value: 0n }, isLoading } = useBalance({ address });
-  const currentBond = getCurrentBond(
-    question.bond,
-    question.min_bond,
-    getConfigNumber("MIN_BOND", market.chainId),
-  );
+  const currentBond = getCurrentBond(question.bond, question.min_bond, getConfigNumber("MIN_BOND", market.chainId));
   const hasEnoughBalance = balance.value > currentBond;
 
   const { data: arbitrationRequest } = useArbitrationRequest(question.id, market.chainId);
@@ -142,9 +128,7 @@ export function AnswerForm({
   const onSubmit = async (values: AnswerFormValues) => {
     await submitAnswer.mutateAsync({
       questionId: question.id,
-      outcome: formatOutcome(
-        getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound)),
-      ),
+      outcome: formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound))),
       currentBond: currentBond,
       chainId: market.chainId,
     });
@@ -157,12 +141,7 @@ export function AnswerForm({
         <Alert type="error">Connect your wallet to submit an answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px] flex justify-center">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-          <Button
-            variant="primary"
-            type="button"
-            onClick={async () => open({ view: "Connect" })}
-            text="Connect"
-          />
+          <Button variant="primary" type="button" onClick={async () => open({ view: "Connect" })} text="Connect" />
         </div>
       </>
     );
@@ -171,9 +150,7 @@ export function AnswerForm({
   if (market.chainId !== connectedChainId) {
     return (
       <>
-        <Alert type="info">
-          Switch to {SUPPORTED_CHAINS?.[market.chainId]?.name} to report the answer.
-        </Alert>
+        <Alert type="info">Switch to {SUPPORTED_CHAINS?.[market.chainId]?.name} to report the answer.</Alert>
         <div className="space-x-[24px] text-center mt-[24px]">
           <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
           <Button
@@ -216,9 +193,7 @@ export function AnswerForm({
           <div>This market is already resolved.</div>
           <div>
             Final answer:{" "}
-            <span className="text-purple-primary font-semibold">
-              {getAnswerTextFromMarket(question, market)}
-            </span>
+            <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
           </div>
         </div>
         <div className="text-center mt-[24px]">
@@ -244,9 +219,7 @@ export function AnswerForm({
         if (invalidResultIndex > -1) {
           setValue(`outcomes.${invalidResultIndex}.value`, false);
         }
-        const answeredTooSoonIndex = outcomesOptions.findIndex(
-          (o) => o.value === ANSWERED_TOO_SOON,
-        );
+        const answeredTooSoonIndex = outcomesOptions.findIndex((o) => o.value === ANSWERED_TOO_SOON);
         if (answeredTooSoonIndex > -1) {
           setValue(`outcomes.${answeredTooSoonIndex}.value`, false);
         }
@@ -276,9 +249,7 @@ export function AnswerForm({
         </div>
         <div>
           Current answer:{" "}
-          <span className="text-purple-primary font-semibold">
-            {getAnswerTextFromMarket(question, market)}
-          </span>
+          <span className="text-purple-primary font-semibold">{getAnswerTextFromMarket(question, market)}</span>
         </div>
       </div>
 
@@ -291,15 +262,11 @@ export function AnswerForm({
         <input
           type="radio"
           {...register("answerType")}
-          value={
-            Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT ? "multi" : "single"
-          }
+          value={Number(market.templateId) === REALITY_TEMPLATE_MULTIPLE_SELECT ? "multi" : "single"}
           className="radio"
         />
         <span className="label-text text-[16px] text-base-content">
-          {Number(market.templateId) === REALITY_TEMPLATE_UINT
-            ? "Type an answer"
-            : "Choose an answer"}
+          {Number(market.templateId) === REALITY_TEMPLATE_UINT ? "Type an answer" : "Choose an answer"}
         </span>
       </label>
       {(answerType === "single" || answerType === "multi") && (
@@ -343,9 +310,7 @@ export function AnswerForm({
                       className="checkbox shrink-0"
                       onClick={onMultiSelectClick(i, outcome.value)}
                     />
-                    <span className="label-text text-[16px] text-base-content break-words">
-                      {outcome.text}
-                    </span>
+                    <span className="label-text text-[16px] text-base-content break-words">{outcome.text}</span>
                   </label>
                 </div>
               ))}
@@ -356,29 +321,15 @@ export function AnswerForm({
 
       {question.best_answer !== INVALID_RESULT && (
         <label className="label cursor-pointer justify-start space-x-2">
-          <input
-            type="radio"
-            {...register("answerType")}
-            value={INVALID_RESULT}
-            className="radio"
-          />
-          <span className="label-text text-[16px] text-base-content">
-            Mark this question invalid
-          </span>
+          <input type="radio" {...register("answerType")} value={INVALID_RESULT} className="radio" />
+          <span className="label-text text-[16px] text-base-content">Mark this question invalid</span>
         </label>
       )}
 
       {question.finalize_ts > 0 && question.best_answer !== ANSWERED_TOO_SOON && (
         <label className="label cursor-pointer justify-start space-x-2">
-          <input
-            type="radio"
-            {...register("answerType")}
-            value={ANSWERED_TOO_SOON}
-            className="radio"
-          />
-          <span className="label-text text-[16px] text-base-content">
-            Mark this question answered too soon
-          </span>
+          <input type="radio" {...register("answerType")} value={ANSWERED_TOO_SOON} className="radio" />
+          <span className="label-text text-[16px] text-base-content">Mark this question answered too soon</span>
         </label>
       )}
 

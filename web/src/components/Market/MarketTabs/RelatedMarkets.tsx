@@ -22,11 +22,7 @@ interface UseFilterRelatedMarketsParams {
   searchTerm: string;
 }
 
-function useFilterRelatedMarkets({
-  markets,
-  currentMarket,
-  searchTerm,
-}: UseFilterRelatedMarketsParams) {
+function useFilterRelatedMarkets({ markets, currentMarket, searchTerm }: UseFilterRelatedMarketsParams) {
   const queryClient = useQueryClient();
 
   // Fetch parent market if current market has a parent

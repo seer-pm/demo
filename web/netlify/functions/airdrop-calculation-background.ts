@@ -15,21 +15,14 @@ import {
   getAllLiquidityEvents,
   getLiquidityBalancesAtTimestamp,
 } from "./utils/airdropCalculation/getLiquidityBalances";
-import {
-  getPOHVerifiedUsers,
-  isPOHVerifiedUserAtTime,
-} from "./utils/airdropCalculation/getPOHVerifiedUsers";
+import { getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./utils/airdropCalculation/getPOHVerifiedUsers";
 import {
   type PositionSnapshot,
   getLiquidityBalancesByPositionAtTimestamp,
   getPositionSnapshotsByTokenPairs,
 } from "./utils/airdropCalculation/getPositionSnapshots";
 import { getPrices } from "./utils/airdropCalculation/getPrices";
-import {
-  getRandomNextDayTimestamp,
-  getTokensByTimestamp,
-  mergeTokenBalances,
-} from "./utils/airdropCalculation/utils";
+import { getRandomNextDayTimestamp, getTokensByTimestamp, mergeTokenBalances } from "./utils/airdropCalculation/utils";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -105,11 +98,7 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   } else {
     liquidityHoldersAtTimestamp = mergeTokenBalances(
       getLiquidityBalancesAtTimestamp(liquidityEvents, timestamp),
-      getBunniPositionHoldersAtTimestamp(
-        positionSnapshots as BunniPositionSnapshot[],
-        timestamp,
-        bunniGauges,
-      ),
+      getBunniPositionHoldersAtTimestamp(positionSnapshots as BunniPositionSnapshot[], timestamp, bunniGauges),
     );
   }
   const initialUser = {
@@ -169,8 +158,7 @@ async function distributeAirdrop(timestamp: number) {
           chainIds: new Set(),
         };
       }
-      const totalHoldingPerUser =
-        (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
+      const totalHoldingPerUser = (holderData.directHolding ?? 0) + (holderData.indirectHolding ?? 0);
       const isPOHUser =
         isPOHVerifiedUserAtTime(requestsMainnet, holderAddress, timestamp) ||
         isPOHVerifiedUserAtTime(requestsGnosis, holderAddress, timestamp);
@@ -211,11 +199,7 @@ async function distributeAirdrop(timestamp: number) {
 }
 
 async function getLatestSnapshotUnixTimestamp() {
-  const { data, error } = await supabase
-    .from("airdrop_state")
-    .select("last_timestamp")
-    .eq("id", "latest_day")
-    .single();
+  const { data, error } = await supabase.from("airdrop_state").select("last_timestamp").eq("id", "latest_day").single();
 
   if (error && error.code !== "PGRST116") {
     console.error("Failed to fetch airdrop_state:", error);
