@@ -3,17 +3,18 @@ import { CloseIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 import { base, mainnet, optimism, sepolia } from "viem/chains";
 
 function DepositGuide({
   closeModal,
   chainId,
   balance,
+  symbol,
 }: {
   closeModal: () => void;
   chainId: SupportedChain;
   balance: bigint;
+  symbol: string;
 }) {
   const buttonByChain = {
     [gnosis.id]: (
@@ -27,8 +28,23 @@ function DepositGuide({
       </a>
     ),
     [sepolia.id]: null,
-    [optimism.id]: null,
-    [base.id]: null,
+    [optimism.id]: (
+      <a target="_blank" rel="noopener noreferrer" href="/trade-collateral" className="btn btn-primary">
+        Trade Collateral
+      </a>
+    ),
+    [base.id]: (
+      <a target="_blank" rel="noopener noreferrer" href="/trade-collateral" className="btn btn-primary">
+        Trade Collateral
+      </a>
+    ),
+  };
+  const guideByChain = {
+    [gnosis.id]: paths.depositGuideGnosis(),
+    [mainnet.id]: paths.depositGuideEth(),
+    [sepolia.id]: null,
+    [optimism.id]: paths.dappGuide(),
+    [base.id]: paths.dappGuide(),
   };
   return (
     <div className="flex flex-col items-center gap-4">
@@ -42,17 +58,19 @@ function DepositGuide({
       </button>
       <p>
         Current balance: <span className="text-purple-primary font-semibold">{displayBalance(balance, 18, true)}</span>{" "}
-        {COLLATERAL_TOKENS[chainId].secondary?.symbol}
+        {symbol}
       </p>
       {buttonByChain[chainId]}
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href={chainId === mainnet.id ? paths.depositGuideEth() : paths.depositGuideGnosis()}
-        className="text-purple-primary hover:underline text-[14px]"
-      >
-        View Full Guide
-      </a>
+      {guideByChain[chainId] && (
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          href={guideByChain[chainId]}
+          className="text-purple-primary hover:underline text-[14px]"
+        >
+          View Full Guide
+        </a>
+      )}
     </div>
   );
 }

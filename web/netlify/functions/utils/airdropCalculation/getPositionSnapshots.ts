@@ -53,8 +53,7 @@ export async function getAllPositionSnapshots(chainId: SupportedChain, initialSt
 
   const json = await res.json();
 
-  const startTime =
-    initialStartTime || Number.parseInt(json.data.positionSnapshots[0]?.timestamp || "0");
+  const startTime = initialStartTime || Number.parseInt(json.data.positionSnapshots[0]?.timestamp || "0");
 
   const endTime = Number.parseInt(json.data.positionSnapshotsDesc[0]?.timestamp || "0");
 
@@ -143,6 +142,7 @@ async function fetchPositionSnapshotsTimeRange(
         retries++;
 
         if (retries === maxRetries) {
+          // biome-ignore lint/suspicious/noExplicitAny:
           throw new Error(`Failed at ${currentTimestamp}: ${(err as any).message}`);
         }
 
@@ -154,10 +154,7 @@ async function fetchPositionSnapshotsTimeRange(
   return allData;
 }
 
-export async function getPositionSnapshotsByTokenPair(
-  chainId: SupportedChain,
-  tokenPair: Token0Token1,
-) {
+export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
   let allData: PositionSnapshot[] = [];
   const initialTimestamp = START_TIME[chainId as 1 | 100];
   let currentTimestamp = initialTimestamp;
@@ -227,6 +224,7 @@ export async function getPositionSnapshotsByTokenPair(
 
         if (retries === maxRetries) {
           throw new Error(
+            // biome-ignore lint/suspicious/noExplicitAny:
             `Max retries reached for timestamp ${currentTimestamp}. ${(error as any).message}`,
           );
         }
@@ -277,23 +275,23 @@ export async function getPositionSnapshotsByTokenPairs(
   return allData;
 }
 
-export function getLiquidityBalancesByPositionAtTimestamp(
-  positionSnapshots: PositionSnapshot[],
-  timestamp: number,
-) {
+export function getLiquidityBalancesByPositionAtTimestamp(positionSnapshots: PositionSnapshot[], timestamp: number) {
   const farmingContract = "0xDe51dDF1aE7d5BBD7bF1A0e40aAA1F6C12579106";
-  const uniquePositionsSnapshotsMapping = positionSnapshots.reduce((acc, snapshot) => {
-    const currentPositionTimestamp = acc[snapshot.position.id]?.timestamp;
-    if (
-      !currentPositionTimestamp ||
-      (Number(snapshot.timestamp) > Number(currentPositionTimestamp) &&
-        Number(snapshot.timestamp) <= timestamp &&
-        !isTwoStringsEqual(snapshot.owner, farmingContract))
-    ) {
-      acc[snapshot.position.id] = snapshot;
-    }
-    return acc;
-  }, {} as { [key: string]: PositionSnapshot });
+  const uniquePositionsSnapshotsMapping = positionSnapshots.reduce(
+    (acc, snapshot) => {
+      const currentPositionTimestamp = acc[snapshot.position.id]?.timestamp;
+      if (
+        !currentPositionTimestamp ||
+        (Number(snapshot.timestamp) > Number(currentPositionTimestamp) &&
+          Number(snapshot.timestamp) <= timestamp &&
+          !isTwoStringsEqual(snapshot.owner, farmingContract))
+      ) {
+        acc[snapshot.position.id] = snapshot;
+      }
+      return acc;
+    },
+    {} as { [key: string]: PositionSnapshot },
+  );
   const records = Object.values(uniquePositionsSnapshotsMapping);
   const tokenBalances: { [key: string]: { [key: string]: number } } = {};
   // Process each event

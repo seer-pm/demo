@@ -10,10 +10,7 @@ import pLimit from "p-limit";
 import type { Address } from "viem";
 import { START_TIME } from "./constants";
 
-export async function getPoolHourDatasByTokenPair(
-  chainId: SupportedChain,
-  tokenPair: Token0Token1,
-) {
+export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
   let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];
   const initialPeriodStartUnix = START_TIME[chainId as 1 | 100];
   let currentPeriodStartUnix = initialPeriodStartUnix;
@@ -85,6 +82,7 @@ export async function getPoolHourDatasByTokenPair(
         if (retries === maxRetries) {
           throw new Error(
             `Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${
+              // biome-ignore lint/suspicious/noExplicitAny:
               (error as any).message
             }`,
           );
@@ -140,9 +138,7 @@ export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartT
 
   const timeRangeJson = await timeRangeResult.json();
 
-  const startTime =
-    initialStartTime ||
-    Number.parseInt(timeRangeJson.data.poolHourDatas[0]?.periodStartUnix || "0");
+  const startTime = initialStartTime || Number.parseInt(timeRangeJson.data.poolHourDatas[0]?.periodStartUnix || "0");
 
   const endTime = Number.parseInt(timeRangeJson.data.poolHourDatasDesc[0]?.periodStartUnix || "0");
 
@@ -152,11 +148,7 @@ export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartT
   const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(
-      limit(() =>
-        fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime)),
-      ),
-    );
+    chunks.push(limit(() => fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime))));
   }
   const results = await Promise.all(chunks);
   const allData = results.flat();
