@@ -6,6 +6,7 @@ import { graphQLClient } from "@seer-pm/sdk/subgraph";
 import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, privateKeyToAccount } from "viem/accounts";
+import { sepolia } from "viem/chains";
 import { chainIds } from "./utils/config.ts";
 import { type CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
 import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
@@ -147,6 +148,8 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<Markets
       skip,
       orderBy: Market_OrderBy.BlockNumber,
       orderDirection: OrderDirection.Desc,
+      // Search for markets with changes in the last 20 minutes
+      where: { updatedAt_gt: Math.floor((Date.now() - 20 * 60 * 1000) / 1000).toString() },
     });
 
     if (markets.length === 0) {
@@ -214,15 +217,17 @@ export default async () => {
 
   // update markets & verification status
   const chainResults = await Promise.allSettled(
-    chainIds.map(async (chainId) => {
-      try {
-        const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
-        return { chainId, hasNewMarkets, success: true };
-      } catch (e) {
-        console.error(`Chain id ${chainId} error`, e);
-        return { chainId, hasNewMarkets: false, success: false, error: e };
-      }
-    }),
+    chainIds
+      .filter((chainId) => chainId !== sepolia.id)
+      .map(async (chainId) => {
+        try {
+          const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
+          return { chainId, hasNewMarkets, success: true };
+        } catch (e) {
+          console.error(`Chain id ${chainId} error`, e);
+          return { chainId, hasNewMarkets: false, success: false, error: e };
+        }
+      }),
   );
 
   // Check if any chain had new markets

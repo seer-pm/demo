@@ -56,52 +56,6 @@ cat <<EOF >> subgraph.yaml
         - event: NewProposal(indexed address,string,bytes32,bytes32)
           handler: handleNewProposal
       file: ./src/market-factory.ts
-  - kind: ethereum
-    name: FutarchyFactoryV2
-    network: gnosis
-    source:
-      abi: FutarchyFactory
-      address: "0x7e1acbb3C118A57E25C5fDcb1bFEae7443DfD1dB"
-      startBlock: 37314394
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: FutarchyFactory
-          file: ./abis/FutarchyFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: FutarchyProposal
-          file: ./abis/FutarchyProposal.json
-      eventHandlers:
-        - event: NewProposal(indexed address,string,bytes32,bytes32)
-          handler: handleNewProposal
-      file: ./src/market-factory.ts
-  - kind: ethereum
-    name: FutarchyFactoryV3
-    network: gnosis
-    source:
-      abi: FutarchyFactory
-      address: "0x7e1acbb3C118A57E25C5fDcb1bFEae7443DfD1dB"
-      startBlock: 37314394
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: FutarchyFactory
-          file: ./abis/FutarchyFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: FutarchyProposal
-          file: ./abis/FutarchyProposal.json
-      eventHandlers:
-        - event: NewProposal(indexed address,string,bytes32,bytes32)
-          handler: handleNewProposal
-      file: ./src/market-factory.ts
 EOF
 fi
 cat <<EOF >> subgraph.yaml 
@@ -127,29 +81,6 @@ cat <<EOF >> subgraph.yaml
       eventHandlers:
         - event: NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])
           handler: handleNewMarket
-      file: ./src/market-factory.ts
-  - kind: ethereum
-    name: FutarchyFactory
-    network: gnosis
-    source:
-      abi: FutarchyFactory
-      address: "0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345"
-      startBlock: 38290244
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities: []
-      abis:
-        - name: FutarchyFactory
-          file: ./abis/FutarchyFactory.json
-        - name: Reality
-          file: ./abis/Realitiy.json
-        - name: FutarchyProposal
-          file: ./abis/FutarchyProposal.json
-      eventHandlers:
-        - event: NewProposal(indexed address,string,bytes32,bytes32)
-          handler: handleNewProposal
       file: ./src/market-factory.ts
   - kind: ethereum
     name: Reality

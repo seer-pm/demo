@@ -281,6 +281,7 @@ export function processMarket(
   market.blockNumber = event.block.number;
   market.blockTimestamp = event.block.timestamp;
   market.transactionHash = event.transaction.hash;
+  market.updatedAt = event.block.timestamp;
 
   market.save();
 }

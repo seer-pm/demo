@@ -46,6 +46,7 @@ export function handleNewAnswer(evt: LogNewAnswer): void {
 
     market.hasAnswers = true;
     market.finalizeTs = getFinalizeTs(market);
+    market.updatedAt = evt.block.timestamp;
     market.save();
   }
 }
@@ -67,6 +68,7 @@ export function handleArbitrationRequest(
     market.questionsInArbitration = market.questionsInArbitration.plus(
       BigInt.fromI32(1)
     );
+    market.updatedAt = evt.block.timestamp;
     market.save();
   }
 }
@@ -86,6 +88,7 @@ export function handleCancelArbitration(evt: LogCancelArbitration): void {
     market.questionsInArbitration = market.questionsInArbitration.minus(
       BigInt.fromI32(1)
     );
+    market.updatedAt = evt.block.timestamp;
     market.save();
   }
 }
@@ -107,13 +110,15 @@ export function handleFinalize(evt: LogFinalize): void {
     market.questionsInArbitration = market.questionsInArbitration.minus(
       BigInt.fromI32(1)
     );
+    market.updatedAt = evt.block.timestamp;
     market.save();
   }
 }
 
 function processReopenedQuestion(
   baseQuestion: Question,
-  newQuestionId: string
+  newQuestionId: string,
+  blockTimestamp: BigInt
 ): void {
   const baseMarketQuestions = baseQuestion.baseQuestions.load();
 
@@ -145,6 +150,7 @@ function processReopenedQuestion(
 
     const market = Market.load(baseMarketQuestions[i].market)!;
     market.finalizeTs = getFinalizeTs(market);
+    market.updatedAt = blockTimestamp;
     market.save();
   }
 }
@@ -158,7 +164,11 @@ export function handleReopenQuestion(event: LogReopenQuestion): void {
     return;
   }
 
-  processReopenedQuestion(baseQuestion, event.params.question_id.toHexString());
+  processReopenedQuestion(
+    baseQuestion,
+    event.params.question_id.toHexString(),
+    event.block.timestamp
+  );
 
   // TODO: recalculate market.hasAnswers
 }

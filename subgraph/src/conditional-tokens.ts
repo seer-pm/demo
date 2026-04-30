@@ -13,6 +13,7 @@ function createConditionalEvent(
   type: string,
   amount: BigInt,
   blockNumber: BigInt,
+  timestamp: BigInt,
   collateral: Address,
   transactionHash: Bytes,
   logIndex: BigInt
@@ -25,6 +26,7 @@ function createConditionalEvent(
   conditionalEvent.type = type;
   conditionalEvent.amount = amount;
   conditionalEvent.blockNumber = blockNumber;
+  conditionalEvent.timestamp = timestamp;
   conditionalEvent.collateral = collateral;
   conditionalEvent.transactionHash = transactionHash;
   conditionalEvent.save();
@@ -161,6 +163,7 @@ export function handlePositionSplit(evt: PositionSplit): void {
     let market = markets[i];
     if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
       market.outcomesSupply = market.outcomesSupply.plus(evt.params.amount);
+      market.updatedAt = evt.block.timestamp;
       market.save();
     }
   }
@@ -177,6 +180,7 @@ export function handlePositionSplit(evt: PositionSplit): void {
     "split",
     evt.params.amount,
     evt.block.number,
+    evt.block.timestamp,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex
@@ -195,6 +199,7 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     let market = markets[i];
     if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
       market.outcomesSupply = market.outcomesSupply.minus(evt.params.amount);
+      market.updatedAt = evt.block.timestamp;
       market.save();
     }
   }
@@ -211,6 +216,7 @@ export function handlePositionsMerge(evt: PositionsMerge): void {
     "merge",
     evt.params.amount,
     evt.block.number,
+    evt.block.timestamp,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex
@@ -229,6 +235,7 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     let market = markets[i];
     if (market.parentCollectionId.equals(evt.params.parentCollectionId)) {
       market.outcomesSupply = market.outcomesSupply.minus(evt.params.payout);
+      market.updatedAt = evt.block.timestamp;
       market.save();
     }
   }
@@ -245,6 +252,7 @@ export function handlePayoutRedemption(evt: PayoutRedemption): void {
     "redeem",
     evt.params.payout,
     evt.block.number,
+    evt.block.timestamp,
     getCollateralToken(market, evt.params.collateralToken),
     evt.transaction.hash,
     evt.logIndex
@@ -261,6 +269,7 @@ export function handleConditionResolution(evt: ConditionResolution): void {
   for(let i = 0; i < markets.length; i++) {
     markets[i].payoutReported = true;
     markets[i].payoutNumerators = evt.params.payoutNumerators;
+    markets[i].updatedAt = evt.block.timestamp;
     markets[i].save();
   }
 }

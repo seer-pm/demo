@@ -33,6 +33,8 @@ type Market @entity {
   payoutNumerators: [BigInt!]!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
+  " Unix timestamp (seconds) of the block when any Market scalar field was last updated "
+  updatedAt: BigInt!
   transactionHash: Bytes!
   questions: [MarketQuestion!]! @derivedFrom(field: "market")
   openingTs: BigInt!
@@ -90,6 +92,7 @@ type ConditionalEvent @entity {
   type: String!
   amount: BigInt!
   blockNumber: BigInt!
+  timestamp: BigInt!
   collateral: Bytes!
   transactionHash: Bytes!
 }

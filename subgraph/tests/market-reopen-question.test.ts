@@ -91,7 +91,10 @@ describe("Describe entity assertions", () => {
         `Who will win the 2024 U.S. Presidential Election?␟"Kamala Harris","Donald Trump"␟misc␟en_US`,
       ],
       questions: questions,
-    });
+      type: "Generic",
+      collateralToken1: Address.zero(),
+      collateralToken2: Address.zero(),
+    }, Address.zero());
   });
 
   afterAll(() => {

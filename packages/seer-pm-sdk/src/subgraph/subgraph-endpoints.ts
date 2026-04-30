@@ -23,10 +23,10 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
 export const SUBGRAPHS = {
   seer: {
-    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmRbM8wp5Ft1gPQurtiezastbY76WqELEWcoMTPVyaFf3v`,
-    [CHAIN_IDS.mainnet]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmbmKoyAUveLE94FSKowSShAoTKCcRsRa2LdaMWwkx1EdJ`,
-    [CHAIN_IDS.optimism]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmUrD13KfaaoJmnUN9CH9wja8YLVdkGXhVjRTtkdkRw5oH`,
-    [CHAIN_IDS.base]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmS53PLFUSFY22P4PSZ1Davk19Zhj7FTDVxbXpzK1cFMaG`,
+    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
+    [CHAIN_IDS.mainnet]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
+    [CHAIN_IDS.optimism]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/5EgCRnG4A6tykXmkSv4vc8PJXLwuhWJYiS2ZLByLRKZb`,
+    [CHAIN_IDS.base]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/ApaZsL18VaU8dbzNAsdxHTdMR3sV7bwqXF3wKjVrwu5Z`,
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
