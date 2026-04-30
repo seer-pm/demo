@@ -49,6 +49,11 @@ const generates = schemasAndDocuments.reduce(
           Int8: "string",
           Bytes: "`0x${string}`",
           Timestamp: "string",
+          jsonb: "unknown",
+          numeric: "string",
+          ruling: "string",
+          status: "string",
+          timestamptz: "string",
         },
       },
     };

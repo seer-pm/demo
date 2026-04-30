@@ -30,9 +30,8 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
   },
   curate: {
-    // TODO: add fallback urls? or change subgraph?
-    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/9hHo5MpjpC1JqfD3BsgFnojGurXRHTrHWcUcZPPCo6m8`,
-    [CHAIN_IDS.mainnet]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/A5oqWboEuDezwqpkaJjih4ckGhoHRoXZExqUbja2k1NQ`,
+    [CHAIN_IDS.gnosis]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
+    [CHAIN_IDS.mainnet]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
   },
   algebra: {

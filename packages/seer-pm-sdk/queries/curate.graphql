@@ -1,20 +1,16 @@
 query GetImages(
-  $where: LItem_filter
+  $where: LItem_bool_exp
   $skip: Int = 0
   $first: Int = 100
-  $block: Block_height
-  $subgraphError: _SubgraphErrorPolicy_! = deny
 ) {
-  litems(where: $where, block: $block, skip: $skip, first: $first, subgraphError: $subgraphError) {
+  LItem(where: $where, offset: $skip, limit: $first) {
     itemID
     status
     registryAddress
-    metadata {
-      props {
-        value
-        description
-        label
-      }
+    props {
+      value
+      description
+      label
     }
     data
     latestRequester

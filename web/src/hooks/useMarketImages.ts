@@ -1,8 +1,8 @@
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
+import { CURATE_STATUS, type SupportedChain } from "@seer-pm/sdk";
 import { curateGraphQLClient } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
-import { Status, getSdk } from "@seer-pm/sdk/subgraph/curate";
+import { getSdk } from "@seer-pm/sdk/subgraph/curate";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
@@ -24,15 +24,15 @@ export const getMarketImages = memoize((chainId: SupportedChain) => {
       const data = await getSdk(client).GetImages({
         where: {
           // status: registered ? Status.Registered : undefined,
-          registryAddress,
+          registryAddress: { _eq: registryAddress.toLowerCase() },
         },
         first: 1000,
       });
-      return data.litems;
+      return data.LItem;
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (litems, marketId) =>
-      litems.filter((litem) => litem.metadata?.props?.some((prop) => isTwoStringsEqual(prop.value, marketId))),
+      litems.filter((litem) => litem?.props?.some((prop) => isTwoStringsEqual(prop.value, marketId))),
   });
 });
 
@@ -48,9 +48,9 @@ export const useMarketImages = (marketId: Address | undefined, chainId: Supporte
           return true;
         }
         const isVerifiedBeforeClearing =
-          item.status === Status.ClearingRequested &&
-          item.requests.find((request) => request.requestType === Status.RegistrationRequested)?.resolved;
-        return registered ? item.status === Status.Registered || isVerifiedBeforeClearing : true;
+          item.status === CURATE_STATUS.ClearingRequested &&
+          item.requests.find((request) => request.requestType === CURATE_STATUS.RegistrationRequested)?.resolved;
+        return registered ? item.status === CURATE_STATUS.Registered || isVerifiedBeforeClearing : true;
       });
       if (litems.length === 0) {
         throw new Error("Market images not found");
