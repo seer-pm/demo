@@ -148,8 +148,8 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<Markets
       skip,
       orderBy: Market_OrderBy.BlockNumber,
       orderDirection: OrderDirection.Desc,
-      // Search for markets with changes in the last 20 minutes
-      where: { updatedAt_gt: Math.floor((Date.now() - 20 * 60 * 1000) / 1000).toString() },
+      // Search for markets with changes in the last 5 hours
+      where: { updatedAt_gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() },
     });
 
     if (markets.length === 0) {
