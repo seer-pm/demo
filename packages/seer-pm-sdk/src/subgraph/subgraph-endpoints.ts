@@ -35,10 +35,10 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
   },
   algebra: {
-    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR`,
+    [CHAIN_IDS.gnosis]: `https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/1.0.0/gn`,
   },
   algebrafarming: {
-    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/4WysHZ1gFJcv1HLAobLMx3dS9B6aovExzyG3n7kRjwKT`,
+    [CHAIN_IDS.gnosis]: `https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/1.0.0/gn`,
   },
   uniswap: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
