@@ -9,7 +9,7 @@ import { type Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { chainIds } from "./utils/config.ts";
 import { type CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
-import { EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
+import { type EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -126,12 +126,12 @@ const MARKETS_PAGE_SIZE = 1000;
 async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMarket[]> {
   const client = graphQLClient(chainId);
   const allMarkets: EnvioMarket[] = [];
-  let skip = 0;
+  let offset = 0;
 
   while (true) {
     const { Market: markets } = await getSeerSdk(client).GetMarkets({
-      first: MARKETS_PAGE_SIZE,
-      skip,
+      limit: MARKETS_PAGE_SIZE,
+      offset,
       orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
       // Search for markets with changes in the last 5 hours
       where: { updatedAt: { _gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() } },
@@ -145,7 +145,7 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMa
     if (markets.length < MARKETS_PAGE_SIZE) {
       break;
     }
-    skip += MARKETS_PAGE_SIZE;
+    offset += MARKETS_PAGE_SIZE;
   }
 
   return allMarkets;

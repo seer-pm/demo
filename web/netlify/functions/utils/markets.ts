@@ -105,10 +105,40 @@ export function envioMarketToLegacySubgraphMarket(market: EnvioMarket): LegacySu
     factory,
     creator,
     transactionHash,
-    ...rest
+    marketName,
+    outcomes,
+    parentOutcome,
+    templateId,
+    hasAnswers,
+    questionsInArbitration,
+    openingTs,
+    finalizeTs,
+    encodedQuestions,
+    lowerBound,
+    upperBound,
+    payoutReported,
+    payoutNumerators,
+    outcomesSupply,
+    blockTimestamp,
   } = sortEnvioMarketQuestions(market);
+  // Note: explicitly select fields to avoid leaking Envio-only properties.
   return {
     id: address,
+    marketName,
+    outcomes,
+    parentOutcome,
+    templateId,
+    hasAnswers,
+    questionsInArbitration,
+    openingTs,
+    finalizeTs,
+    encodedQuestions,
+    lowerBound,
+    upperBound,
+    payoutReported,
+    payoutNumerators,
+    outcomesSupply,
+    blockTimestamp,
     type: marketType as LegacySubgraphMarket["type"],
     wrappedTokens: wrappedTokens as Address[],
     collateralToken: collateralToken as Address,
@@ -117,10 +147,9 @@ export function envioMarketToLegacySubgraphMarket(market: EnvioMarket): LegacySu
     parentCollectionId: parentCollectionId as `0x${string}`,
     conditionId: conditionId as `0x${string}`,
     questionId: questionId as `0x${string}`,
-    factory: market.factory as Address,
+    factory: factory as Address,
     creator: creator as Address,
     transactionHash: transactionHash as `0x${string}`,
-    ...rest,
     parentMarket: parentMarket
       ? {
           id: parentMarket.address,
@@ -199,9 +228,7 @@ export function mapGraphMarket(
       return unescapeJson(outcome);
     }),
     parentMarket: {
-      id: market.parentMarket
-        ? (("address" in market.parentMarket ? market.parentMarket.address : market.parentMarket.id) as Address)
-        : zeroAddress,
+      id: market.parentMarket ? (market.parentMarket.id as Address) : zeroAddress,
       conditionId: (market.parentMarket?.conditionId as `0x${string}`) || zeroHash,
       payoutReported: market.parentMarket?.payoutReported || false,
       payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
@@ -212,18 +239,11 @@ export function mapGraphMarket(
     finalizeTs: Number(market.finalizeTs),
     questions: market.questions.flatMap((question) => {
       if (!question.question) return [];
-      const baseQuestion = question.baseQuestion
-        ? (("questionId" in question.baseQuestion
-            ? question.baseQuestion.questionId
-            : question.baseQuestion.id) as `0x${string}`)
-        : undefined;
+      const baseQuestion = question.baseQuestion ? (question.baseQuestion.id as `0x${string}`) : undefined;
       return [
         {
           ...question.question,
-          id: ("questionId" in question.question
-            ? question.question.questionId
-            : question.question.id) as `0x${string}`,
-
+          id: question.question.id as `0x${string}`,
           arbitrator: (question.question.arbitrator as Address) || zeroAddress,
           best_answer: (question.question.best_answer as `0x${string}`) || zeroHash,
           opening_ts: Number(question.question.opening_ts),

@@ -10,12 +10,12 @@ export async function fetchSubgraphMarkets(chainId: SupportedChain) {
   const client = graphQLClient(chainId);
   const sdk = getSeerSdk(client);
   const envioMarkets: EnvioMarket[] = [];
-  let skip = 0;
+  let offset = 0;
   let page = 0;
   while (page < MAX_PAGES) {
     const { Market: markets } = await sdk.GetMarkets({
-      first: MARKETS_PAGE_SIZE,
-      skip,
+      limit: MARKETS_PAGE_SIZE,
+      offset,
       where: { chainId: { _eq: String(chainId) } },
       orderBy: { [Market_Select_Column.Address]: Order_By.Asc },
     });
@@ -26,7 +26,7 @@ export async function fetchSubgraphMarkets(chainId: SupportedChain) {
     if (markets.length < MARKETS_PAGE_SIZE) {
       break;
     }
-    skip += MARKETS_PAGE_SIZE;
+    offset += MARKETS_PAGE_SIZE;
     page++;
   }
 

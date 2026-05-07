@@ -19,7 +19,7 @@ export const CHAIN_IDS = {
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
-export const SEER_MARKETS_SUBGRAPH: string | null = "https://indexer.hyperindex.xyz/798eb82/v1/graphql";
+export const SEER_MARKETS_SUBGRAPH = "https://indexer.hyperindex.xyz/798eb82/v1/graphql";
 
 export const SUBGRAPHS = {
   seer: {

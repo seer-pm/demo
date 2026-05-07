@@ -41,16 +41,18 @@ export async function getAllTransfers(chainId: SupportedChain, initialStartTime?
   const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(limit(() => fetchTimeRange(chainId, time, Math.min(time + CHUNK_SIZE, endTime))));
+    chunks.push(limit(() => fetchTimeRange(sdk, chainId, time, Math.min(time + CHUNK_SIZE, endTime))));
   }
   const results = await Promise.all(chunks);
   return results.flat();
 }
 
-async function fetchTimeRange(chainId: SupportedChain, chunkStart: number, chunkEnd: number): Promise<Transfer[]> {
-  const client = graphQLClient(chainId);
-  const sdk = getSeerSdk(client);
-
+async function fetchTimeRange(
+  sdk: ReturnType<typeof getSeerSdk>,
+  chainId: SupportedChain,
+  chunkStart: number,
+  chunkEnd: number,
+): Promise<Transfer[]> {
   let allTransfers: Transfer[] = [];
   let currentTimestamp = chunkStart;
 
@@ -61,7 +63,7 @@ async function fetchTimeRange(chainId: SupportedChain, chunkStart: number, chunk
         {
           timestamp: {
             _gte: String(currentTimestamp),
-            _lt: String(chunkEnd),
+            _lte: String(chunkEnd),
           },
         },
       ],

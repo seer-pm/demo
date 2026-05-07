@@ -68,11 +68,11 @@ fragment Market on Market {
 
 query GetMarkets(
   $where: Market_bool_exp
-  $skip: Int = 0
-  $first: Int = 100
+  $offset: Int = 0
+  $limit: Int = 100
   $orderBy: [Market_order_by!]
 ) {
-  Market(where: $where, offset: $skip, limit: $first, order_by: $orderBy) {
+  Market(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     ...Market
   }
 }
@@ -85,11 +85,11 @@ query GetMarket($id: String!) {
 
 query GetConditionalEvents(
   $where: ConditionalEvent_bool_exp
-  $skip: Int = 0
-  $first: Int = 100
+  $offset: Int = 0
+  $limit: Int = 100
   $orderBy: [ConditionalEvent_order_by!]
 ) {
-  ConditionalEvent(where: $where, offset: $skip, limit: $first, order_by: $orderBy) {
+  ConditionalEvent(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     market {
       address
       marketName
@@ -129,8 +129,8 @@ fragment Transfer on Transfer {
 }
 
 query GetTransfers(
-  $limit: Int = 1000
   $offset: Int = 0
+  $limit: Int = 1000
   $where: Transfer_bool_exp
   $orderBy: [Transfer_order_by!]
 ) {
