@@ -1,6 +1,7 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { FetchMarketParams, MarketStatus, VerificationStatus } from "@seer-pm/sdk";
-import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
+
+type MarketsOrderBy = NonNullable<FetchMarketParams["orderBy"]>;
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,7 +16,7 @@ function useMarketsSearchParams() {
       : (searchParams.getAll("verificationStatus") as VerificationStatus[]);
   const chainsList = searchParams.getAll("chains").length === 0 ? undefined : searchParams.getAll("chains");
   const categoryList = searchParams.getAll("category").length === 0 ? undefined : searchParams.getAll("category");
-  const orderBy = (searchParams.get("orderBy") || undefined) as Market_OrderBy;
+  const orderBy = (searchParams.get("orderBy") || undefined) as FetchMarketParams["orderBy"];
   const page = Number(searchParams.get("page") ?? 1);
   const showMyMarkets = searchParams.get("myMarkets") === "true";
   const showConditionalMarkets = searchParams.get("conditionalMarkets") === "true";
@@ -90,7 +91,7 @@ function useMarketsSearchParams() {
     });
   };
 
-  const setOrderBy = (orderBy: Market_OrderBy | "default") => {
+  const setOrderBy = (orderBy: MarketsOrderBy | "default") => {
     setSearchParams((params) => {
       if (orderBy === "default") {
         params.delete("orderBy");

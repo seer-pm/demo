@@ -4,12 +4,10 @@ export type SubgraphTypes =
   | "uniswap"
   | "algebra"
   | "algebrafarming"
-  | "tokens"
   | "poh"
   | "reality"
   | "bunniMainnet"
-  | "bunniLpPositionMainnet"
-  | "futarchy";
+  | "bunniLpPositionMainnet";
 
 export const CHAIN_IDS = {
   gnosis: 100,
@@ -21,13 +19,14 @@ export const CHAIN_IDS = {
 
 const api = "8b2690ffdd390bad59638b894ee8d9f6";
 
+export const SEER_MARKETS_SUBGRAPH: string | null = "https://indexer.hyperindex.xyz/798eb82/v1/graphql";
+
 export const SUBGRAPHS = {
   seer: {
-    [CHAIN_IDS.gnosis]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH`,
-    [CHAIN_IDS.mainnet]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/BMQD869m8LnGJJfqMRjcQ16RTyUw6EUx5jkh3qWhSn3M`,
-    [CHAIN_IDS.optimism]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/5EgCRnG4A6tykXmkSv4vc8PJXLwuhWJYiS2ZLByLRKZb`,
-    [CHAIN_IDS.base]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/ApaZsL18VaU8dbzNAsdxHTdMR3sV7bwqXF3wKjVrwu5Z`,
-    [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/deployments/id/QmP4s663tVTkSosuoCkX4CMZZXw8sSBV6VPXGrYC3PSXRC`,
+    [CHAIN_IDS.gnosis]: SEER_MARKETS_SUBGRAPH,
+    [CHAIN_IDS.mainnet]: SEER_MARKETS_SUBGRAPH,
+    [CHAIN_IDS.optimism]: SEER_MARKETS_SUBGRAPH,
+    [CHAIN_IDS.base]: SEER_MARKETS_SUBGRAPH,
   },
   curate: {
     [CHAIN_IDS.gnosis]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
@@ -35,19 +34,17 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
   },
   algebra: {
-    [CHAIN_IDS.gnosis]: `https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/1.0.0/gn`,
+    [CHAIN_IDS.gnosis]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/1.0.0/gn",
   },
   algebrafarming: {
-    [CHAIN_IDS.gnosis]: `https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/1.0.0/gn`,
+    [CHAIN_IDS.gnosis]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/1.0.0/gn",
   },
   uniswap: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
     [CHAIN_IDS.optimism]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5Vg1mtJELha5ApuhkBk573K1iQKh6uUie72VotwGURy4`,
     [CHAIN_IDS.base]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5vS7rrUPc4ftB2nodNBf4EoAZkdD11jPuUVw7p56bMLb`,
-  },
-  tokens: {
-    [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/DJKN6orXh7MUv5y94WumfvRxyV1khuZhXtCMjQM349ru`,
-    [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/Gfh4bbQ8MrXa45PddVuxE1SzzfdhsdiC4BbGUjfsu8Qn`,
   },
   poh: {
     [CHAIN_IDS.gnosis]:
@@ -64,9 +61,6 @@ export const SUBGRAPHS = {
   },
   bunniLpPositionMainnet: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/C8QxbHvGr3VC6KFvnnZYc55kzkDo7FiBAHFw45QmGR4B`,
-  },
-  futarchy: {
-    [CHAIN_IDS.gnosis]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/H8uG6j77JyfwRv31aYfJcFby8eRfXSpbwqiuzPQfCQJD`,
   },
 } as const;
 

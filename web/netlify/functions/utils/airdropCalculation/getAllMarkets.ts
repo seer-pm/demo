@@ -1,89 +1,34 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
-import { zeroAddress } from "viem";
+import { graphQLClient } from "@seer-pm/sdk/subgraph";
+import { Market_Select_Column, Order_By, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
+import { type EnvioMarket, envioMarketToLegacySubgraphMarket } from "../markets";
 
-export interface SubgraphMarket {
-  id: string;
-  type: string;
-  marketName: string;
-  outcomes: string[]; // assuming outcomes is an array of strings
-  templateId: string;
-  questions: {
-    id: string;
-  }[];
-  collateralToken: string;
-  collateralToken1: string;
-  collateralToken2: string;
-  outcomesSupply: string[]; // assuming array of BigInt strings
-  payoutReported: boolean;
-  payoutNumerators: string[]; // assuming array of BigInt strings
-  parentMarket: {
-    id: string;
-  };
-  parentOutcome: string;
-  wrappedTokens: string[]; // assuming array of addresses
-  creator: string;
-  finalizeTs: string; // often a string (Unix timestamp)
-}
+const MARKETS_PAGE_SIZE = 1000;
+const MAX_PAGES = 200;
 
 export async function fetchSubgraphMarkets(chainId: SupportedChain) {
-  const maxAttempts = 20;
-  let attempt = 0;
-  let allMarkets: SubgraphMarket[] = [];
-  let currentId = undefined;
-  while (attempt < maxAttempts) {
-    const query: string = `{
-          markets(first: 1000, orderBy: id, orderDirection: asc${currentId ? `, where: {id_gt: "${currentId}"}` : ""}) {
-            id
-            type
-            marketName
-            outcomes
-            templateId
-            questions {
-              id
-            }
-            collateralToken
-            collateralToken1
-            collateralToken2
-            outcomesSupply
-            payoutReported
-            payoutNumerators
-            parentMarket{
-              id
-            }
-            parentOutcome
-            wrappedTokens
-            creator
-            finalizeTs
-          }
-        }`;
-    const results = await fetch(SUBGRAPHS["seer"][chainId as 1 | 100], {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-      }),
+  const client = graphQLClient(chainId);
+  const sdk = getSeerSdk(client);
+  const envioMarkets: EnvioMarket[] = [];
+  let skip = 0;
+  let page = 0;
+  while (page < MAX_PAGES) {
+    const { Market: markets } = await sdk.GetMarkets({
+      first: MARKETS_PAGE_SIZE,
+      skip,
+      where: { chainId: { _eq: String(chainId) } },
+      orderBy: { [Market_Select_Column.Address]: Order_By.Asc },
     });
-    const json = await results.json();
-    if (json.errors?.length) {
-      throw json.errors[0];
-    }
-    const markets = json?.data?.markets ?? [];
-    allMarkets = allMarkets.concat(markets);
-
-    if (markets[markets.length - 1]?.id === currentId) {
+    if (markets.length === 0) {
       break;
     }
-    if (markets.length < 1000) {
-      break; // We've fetched all markets
+    envioMarkets.push(...(markets as EnvioMarket[]));
+    if (markets.length < MARKETS_PAGE_SIZE) {
+      break;
     }
-    currentId = markets[markets.length - 1]?.id;
-    attempt++;
+    skip += MARKETS_PAGE_SIZE;
+    page++;
   }
-  return allMarkets.map((market) => ({
-    ...market,
-    parentMarket: market.parentMarket ?? { id: zeroAddress },
-  }));
+
+  return envioMarkets.map((m) => envioMarketToLegacySubgraphMarket(m));
 }

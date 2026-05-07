@@ -12,7 +12,7 @@ import {
 } from "@/lib/icons";
 import { MarketStatus, VerificationStatus } from "@seer-pm/sdk";
 import { STATUS_TEXTS } from "@seer-pm/sdk";
-import { Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
+import type { FetchMarketParams } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { Fragment } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -25,7 +25,7 @@ const ORDER_OPTIONS = [
   { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },
   { value: "liquidityUSD", text: "Liquidity" },
   { value: "outcomesSupply", text: "Open Interest" },
-  { value: Market_OrderBy.OpeningTs, text: "Opening Date" },
+  { value: "openingTs", text: "Opening Date" },
   { value: "creationDate", text: "Creation Date" },
 ];
 
@@ -85,7 +85,7 @@ interface MarketFilters {
   marketStatusList: MarketStatus[];
   verificationStatusList: VerificationStatus[];
   chainsList: string[];
-  orderBy: Market_OrderBy | "default";
+  orderBy: NonNullable<FetchMarketParams["orderBy"]> | "default";
   showConditionalMarkets: boolean;
   showMarketsWithRewards: boolean;
   showFutarchyMarkets: boolean;

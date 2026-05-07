@@ -22,7 +22,7 @@ export default async () => {
   console.log("initialTimestamp", initialTimestamp);
 
   const chainId = 100; // TODO: make multi chain
-  const allTransfers = await getAllTransfers("tokens", chainId, initialTimestamp);
+  const allTransfers = await getAllTransfers(chainId, initialTimestamp);
 
   console.log("transfersToInsert", allTransfers.length);
   if (allTransfers.length > 0) {

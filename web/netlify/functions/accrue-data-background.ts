@@ -13,7 +13,7 @@ import { getMarketsMappings } from "./utils/markets";
 import { getTokenPricesMapping } from "./utils/portfolio";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
-  const transfers = await getAllTransfers("tokens", chainId);
+  const transfers = await getAllTransfers(chainId);
   const resolvedMarkets = markets.filter((market) => market.payoutReported && market.finalizeTs > 0);
   // // get all transfers
   const predictorToWinningMarketsMapping: {
@@ -72,7 +72,7 @@ async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
             id: market.id,
             name: market.marketName,
             url: market.url,
-            chainId,
+            chainId: market.chainId,
             resolvedAt: new Date(market.finalizeTs * 1000),
           };
         }),
@@ -179,16 +179,14 @@ async function writeToSheet(data: string) {
 }
 
 export default async () => {
-  const { markets } = await fetchMarkets();
+  const chainId = gnosis.id;
+  const { markets } = await fetchMarkets({ chainsList: [String(chainId)] });
   const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
-  const predictors = await getTopPredictors(
-    markets.filter((x) => x.chainId === gnosis.id),
-    gnosis.id,
-  );
+  const predictors = await getTopPredictors(markets, chainId);
   const marketsVolume = await getMarketsVolume(
-    markets.filter((x) => x.chainId === gnosis.id),
-    gnosis.id,
-    mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[gnosis.id].primary.address]?.[gnosis.id] || 0,
+    markets,
+    chainId,
+    mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[chainId].primary.address]?.[chainId] || 0,
   );
 
   const predictorsToRows = [

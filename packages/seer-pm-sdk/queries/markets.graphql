@@ -1,5 +1,5 @@
 fragment Question on Question {
-  id
+  questionId
   index
   arbitrator
   opening_ts
@@ -12,8 +12,9 @@ fragment Question on Question {
 }
 
 fragment Market on Market {
-  id
-  type
+  address
+  chainId
+  marketType
   marketName
   outcomes
   wrappedTokens
@@ -21,7 +22,8 @@ fragment Market on Market {
   collateralToken1
   collateralToken2
   parentMarket {
-    id
+    address
+    chainId
     payoutReported
     conditionId
     payoutNumerators
@@ -35,7 +37,7 @@ fragment Market on Market {
   questionsInArbitration
   questions {
     question {
-      id
+      questionId
       arbitrator
       opening_ts
       timeout
@@ -47,7 +49,7 @@ fragment Market on Market {
       index
     }
     baseQuestion {
-      id
+      questionId
     }
   }
   openingTs
@@ -65,58 +67,35 @@ fragment Market on Market {
 }
 
 query GetMarkets(
+  $where: Market_bool_exp
   $skip: Int = 0
   $first: Int = 100
-  $orderBy: Market_orderBy
-  $orderDirection: OrderDirection
-  $where: Market_filter
-  $block: Block_height
-  $subgraphError: _SubgraphErrorPolicy_! = deny
+  $orderBy: [Market_order_by!]
 ) {
-  markets(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
+  Market(where: $where, offset: $skip, limit: $first, order_by: $orderBy) {
     ...Market
   }
 }
 
-query GetMarket($id: ID!) {
-  market(id: $id) {
+query GetMarket($id: String!) {
+  market: Market_by_pk(id: $id) {
     ...Market
   }
 }
 
 query GetConditionalEvents(
+  $where: ConditionalEvent_bool_exp
   $skip: Int = 0
   $first: Int = 100
-  $orderBy: ConditionalEvent_orderBy
-  $orderDirection: OrderDirection
-  $where: ConditionalEvent_filter
-  $block: Block_height
-  $subgraphError: _SubgraphErrorPolicy_! = deny
+  $orderBy: [ConditionalEvent_order_by!]
 ) {
-  conditionalEvents(
-    skip: $skip
-    first: $first
-    orderBy: $orderBy
-    orderDirection: $orderDirection
-    where: $where
-    block: $block
-    subgraphError: $subgraphError
-  ) {
-    id
+  ConditionalEvent(where: $where, offset: $skip, limit: $first, order_by: $orderBy) {
     market {
-      id
+      address
       marketName
     }
     accountId
-    type
+    eventType
     amount
     blockNumber
     collateral
@@ -124,14 +103,38 @@ query GetConditionalEvents(
   }
 }
 
-query GetCurateMetadata($id: ID!) {
-  curateMetadata(id: $id) {
+query GetCurateMetadata($id: String!) {
+  curateMetadata: CurateMetadata_by_pk(id: $id) {
     registrationMetaEvidenceURI
   }
 }
 
-query GetArbitratorMetadata($id: ID!) {
-  arbitratorMetadata(id: $id) {
+query GetArbitratorMetadata($id: String!) {
+  arbitratorMetadata: ArbitratorMetadata_by_pk(id: $id) {
     registrationMetaEvidenceURI
+  }
+}
+
+fragment Transfer on Transfer {
+  id
+  chainId
+  from
+  to
+  timestamp
+  blockNumber
+  value
+  token {
+    id
+  }
+}
+
+query GetTransfers(
+  $limit: Int = 1000
+  $offset: Int = 0
+  $where: Transfer_bool_exp
+  $orderBy: [Transfer_order_by!]
+) {
+  Transfer(limit: $limit, offset: $offset, where: $where, order_by: $orderBy) {
+    ...Transfer
   }
 }

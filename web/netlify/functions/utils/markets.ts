@@ -2,8 +2,9 @@ import { FAST_TESTNET_FACTORY } from "@/lib/constants";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, unescapeJson } from "@seer-pm/sdk/market";
 import type { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk/market-types";
+import { MarketsOrderBy } from "@seer-pm/sdk/markets-fetch";
 import { graphQLClient } from "@seer-pm/sdk/subgraph";
-import { type GetMarketQuery, type Market_OrderBy, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
+import { type GetMarketQuery, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import { multicall } from "viem/actions";
@@ -15,7 +16,138 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 export const MARKET_DB_FIELDS =
   "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images";
 
-export type SubgraphMarket = NonNullable<GetMarketQuery["market"]>;
+export type LegacySubgraphMarket = {
+  __typename?: "Market";
+  id: string;
+  type: "Generic" | "Futarchy";
+  marketName: string;
+  outcomes: Array<string>;
+  wrappedTokens: Array<`0x${string}`>;
+  collateralToken: `0x${string}`;
+  collateralToken1: `0x${string}`;
+  collateralToken2: `0x${string}`;
+  parentOutcome: string;
+  parentCollectionId: `0x${string}`;
+  conditionId: `0x${string}`;
+  questionId: `0x${string}`;
+  templateId: string;
+  hasAnswers: boolean;
+  questionsInArbitration: string;
+  openingTs: string;
+  finalizeTs: string;
+  encodedQuestions: Array<string>;
+  lowerBound: string;
+  upperBound: string;
+  payoutReported: boolean;
+  payoutNumerators: Array<string>;
+  factory: `0x${string}`;
+  creator: `0x${string}`;
+  outcomesSupply: string;
+  blockTimestamp: string;
+  transactionHash: `0x${string}`;
+  parentMarket?: {
+    __typename?: "Market";
+    id: string;
+    payoutReported: boolean;
+    conditionId: `0x${string}`;
+    payoutNumerators: Array<string>;
+  } | null;
+  questions: Array<{
+    __typename?: "MarketQuestion";
+    question: {
+      __typename?: "Question";
+      id: string;
+      arbitrator: `0x${string}`;
+      opening_ts: string;
+      timeout: string;
+      finalize_ts: string;
+      is_pending_arbitration: boolean;
+      best_answer: `0x${string}`;
+      bond: string;
+      min_bond: string;
+      index: number;
+    };
+    baseQuestion: { __typename?: "Question"; id: string };
+  }>;
+};
+
+export type EnvioMarket = NonNullable<GetMarketQuery["market"]>;
+
+/** Sort Envio `questions` by `question.index` (matches on-chain / legacy order). */
+function sortEnvioMarketQuestions(market: EnvioMarket): EnvioMarket {
+  const sortedQuestions = [...market.questions].sort(
+    (questionA, questionB) => questionA.question!.index - questionB.question!.index,
+  );
+  return {
+    ...market,
+    questions: sortedQuestions,
+  };
+}
+
+// Remaps Envio index fields to the legacy The Graph shape stored in `subgraph_data`.
+// Root: `address` → `id`, `marketType` → `type`; drop `chainId` (chain lives on the DB row).
+// Nested: parent market `address` → `id` (Supabase filters use subgraph_data->parentMarket->>id).
+// Questions: Envio uses `questionId`; legacy consumers expect `id` on Question / baseQuestion.
+export function envioMarketToLegacySubgraphMarket(market: EnvioMarket): LegacySubgraphMarket {
+  const {
+    address,
+    marketType,
+    chainId: _chainId,
+    parentMarket,
+    questions,
+    wrappedTokens,
+    collateralToken,
+    collateralToken1,
+    collateralToken2,
+    parentCollectionId,
+    conditionId,
+    questionId,
+    factory,
+    creator,
+    transactionHash,
+    ...rest
+  } = sortEnvioMarketQuestions(market);
+  return {
+    id: address,
+    type: marketType as LegacySubgraphMarket["type"],
+    wrappedTokens: wrappedTokens as Address[],
+    collateralToken: collateralToken as Address,
+    collateralToken1: collateralToken1 as Address,
+    collateralToken2: collateralToken2 as Address,
+    parentCollectionId: parentCollectionId as `0x${string}`,
+    conditionId: conditionId as `0x${string}`,
+    questionId: questionId as `0x${string}`,
+    factory: market.factory as Address,
+    creator: creator as Address,
+    transactionHash: transactionHash as `0x${string}`,
+    ...rest,
+    parentMarket: parentMarket
+      ? {
+          id: parentMarket.address,
+          payoutReported: parentMarket.payoutReported,
+          conditionId: parentMarket.conditionId as `0x${string}`,
+          payoutNumerators: parentMarket.payoutNumerators,
+        }
+      : null,
+    questions: questions.map((entry) => ({
+      question: {
+        opening_ts: String(entry.question?.opening_ts),
+        timeout: String(entry.question?.timeout),
+        finalize_ts: String(entry.question?.finalize_ts),
+        is_pending_arbitration: Boolean(entry.question?.is_pending_arbitration),
+        arbitrator: entry.question?.arbitrator as Address,
+        best_answer: entry.question?.best_answer as `0x${string}`,
+        bond: String(entry.question?.bond),
+        min_bond: String(entry.question?.min_bond),
+        index: Number(entry.question?.index),
+        id: entry.question!.questionId,
+      },
+      baseQuestion: {
+        id: entry.baseQuestion!.questionId,
+      },
+    })),
+  };
+}
 
 type DbMarket = {
   id: string;
@@ -40,7 +172,7 @@ type PoolBalance = Array<{
 type VerificationImages = { market: string; outcomes: string[] };
 
 export function mapGraphMarket(
-  market: SubgraphMarket,
+  market: LegacySubgraphMarket,
   extra: {
     chainId: SupportedChain;
     verification: VerificationResult | undefined;
@@ -58,6 +190,7 @@ export function mapGraphMarket(
   return {
     ...market,
     id: market.id as Address,
+    wrappedTokens: market.wrappedTokens as Address[],
     marketName: unescapeJson(market.marketName),
     outcomes: market.outcomes.map((outcome) => {
       if (outcome === INVALID_RESULT_OUTCOME) {
@@ -66,8 +199,10 @@ export function mapGraphMarket(
       return unescapeJson(outcome);
     }),
     parentMarket: {
-      id: (market.parentMarket?.id as Address) || zeroAddress,
-      conditionId: market.parentMarket?.conditionId || zeroHash,
+      id: market.parentMarket
+        ? (("address" in market.parentMarket ? market.parentMarket.address : market.parentMarket.id) as Address)
+        : zeroAddress,
+      conditionId: (market.parentMarket?.conditionId as `0x${string}`) || zeroHash,
       payoutReported: market.parentMarket?.payoutReported || false,
       payoutNumerators: (market.parentMarket?.payoutNumerators || []).map((n) => BigInt(n)),
     },
@@ -75,18 +210,31 @@ export function mapGraphMarket(
     templateId: BigInt(market.templateId),
     openingTs: Number(market.openingTs),
     finalizeTs: Number(market.finalizeTs),
-    questions: market.questions.map((question) => {
-      return {
-        ...question.question,
-        id: question.question.id as `0x${string}`,
-        opening_ts: Number(question.question.opening_ts),
-        timeout: Number(question.question.timeout),
-        finalize_ts: Number(question.question.finalize_ts),
-        bond: BigInt(question.question.bond),
-        min_bond: BigInt(question.question.min_bond),
-        // Base question is not yet available for futarchy markets yet
-        base_question: (question?.baseQuestion?.id || zeroAddress) as `0x${string}`,
-      };
+    questions: market.questions.flatMap((question) => {
+      if (!question.question) return [];
+      const baseQuestion = question.baseQuestion
+        ? (("questionId" in question.baseQuestion
+            ? question.baseQuestion.questionId
+            : question.baseQuestion.id) as `0x${string}`)
+        : undefined;
+      return [
+        {
+          ...question.question,
+          id: ("questionId" in question.question
+            ? question.question.questionId
+            : question.question.id) as `0x${string}`,
+
+          arbitrator: (question.question.arbitrator as Address) || zeroAddress,
+          best_answer: (question.question.best_answer as `0x${string}`) || zeroHash,
+          opening_ts: Number(question.question.opening_ts),
+          timeout: Number(question.question.timeout),
+          finalize_ts: Number(question.question.finalize_ts),
+          bond: BigInt(question.question.bond),
+          min_bond: BigInt(question.question.min_bond),
+          // Base question is not yet available for futarchy markets
+          base_question: baseQuestion || zeroAddress,
+        },
+      ];
     }),
     outcomesSupply: BigInt(market.outcomesSupply),
     lowerBound: BigInt(market.lowerBound),
@@ -103,7 +251,7 @@ export function mapGraphMarket(
   };
 }
 
-export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extraData: DbMarket) {
+export function mapGraphMarketFromDbResult(subgraphMarket: LegacySubgraphMarket, extraData: DbMarket) {
   return mapGraphMarket(subgraphMarket, {
     chainId: extraData.chain_id as SupportedChain,
     verification: extraData?.verification as VerificationResult,
@@ -119,10 +267,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: SubgraphMarket, extra
   });
 }
 
-function sortMarkets(
-  orderBy: Market_OrderBy | "liquidityUSD" | "creationDate" | "oddsRunTimestamp" | undefined,
-  orderDirection: "asc" | "desc",
-) {
+function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" | "desc") {
   if (!orderBy) {
     return [
       { column: "is_closed", ascending: true },
@@ -180,7 +325,7 @@ type SearchMarketsProps = {
   marketIds?: string[] | undefined;
   limit?: number;
   page?: number;
-  orderBy?: Market_OrderBy | "liquidityUSD" | "creationDate" | "oddsRunTimestamp";
+  orderBy?: MarketsOrderBy;
   orderDirection?: "asc" | "desc";
 };
 
@@ -366,7 +511,7 @@ export async function searchMarkets({
 
   return {
     markets: data.map((result) => {
-      return mapGraphMarketFromDbResult(result.subgraph_data as SubgraphMarket, result);
+      return mapGraphMarketFromDbResult(result.subgraph_data as LegacySubgraphMarket, result);
     }),
     count: count || 0,
   };
@@ -387,15 +532,15 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
     (acum, market) => {
       const wrappedTokens = (market.wrappedTokens as string[]) || [];
       for (const tokenId of wrappedTokens) {
-        acum[tokenId as `0x${string}`] = market.id as Address;
+        acum[tokenId as Address] = market.id as Address;
       }
       return acum;
     },
-    {} as Record<`0x${string}`, Address>,
+    {} as Record<Address, Address>,
   );
 
   // [tokenId, ..., ...]
-  const allTokensIds = Object.keys(tokenToMarket) as `0x${string}`[];
+  const allTokensIds = Object.keys(tokenToMarket) as Address[];
 
   // [tokenBalance, ..., ...]
   const client = getPublicClientByChainId(chainId);
@@ -453,7 +598,8 @@ export async function getDatabaseMarket(chainId: SupportedChain, id: "" | Addres
 
 export async function getSubgraphMarket(chainId: SupportedChain, id: "" | Address) {
   const client = graphQLClient(chainId);
-  const { market } = await getSeerSdk(client).GetMarket({ id });
+  const subgraphId = `${chainId}:${id.toLowerCase()}`;
+  const { market } = await getSeerSdk(client).GetMarket({ id: subgraphId });
   return market;
 }
 
