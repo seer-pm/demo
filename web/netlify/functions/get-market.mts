@@ -3,7 +3,8 @@ import { serializeMarket } from "@seer-pm/sdk/market-types";
 import { CORS_HEADERS } from "./utils/common";
 import { getSubgraphVerificationStatusList } from "./utils/curate";
 import {
-  type SubgraphMarket,
+  type LegacySubgraphMarket,
+  envioMarketToLegacySubgraphMarket,
   getDatabaseMarket,
   getMarketId,
   getSubgraphMarket,
@@ -70,9 +71,12 @@ export default async (req: Request) => {
       dbRow.verification = verification;
     }
 
-    const subgraphMarket =
-      (subgraphResult.status === "fulfilled" && subgraphResult.value) ||
-      (dbRow?.subgraph_data as SubgraphMarket | undefined);
+    let subgraphMarket: LegacySubgraphMarket | undefined;
+    if (subgraphResult.status === "fulfilled" && subgraphResult.value) {
+      subgraphMarket = envioMarketToLegacySubgraphMarket(subgraphResult.value);
+    } else if (dbRow?.subgraph_data) {
+      subgraphMarket = dbRow.subgraph_data as LegacySubgraphMarket;
+    }
 
     if (!subgraphMarket) {
       return new Response(JSON.stringify({ error: "Market not found" }), {
