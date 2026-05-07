@@ -1,8 +1,9 @@
 import { Address, isAddress } from "viem";
-import type { Market_OrderBy } from "../generated/subgraph/seer";
 import type { Market, MarketStatus, SerializedMarket, VerificationStatus } from "./market-types";
 import { deserializeMarket } from "./market-types";
 import { getApiHost } from "./subgraph/app-subgraph";
+
+export type MarketsOrderBy = "openingTs" | "outcomesSupply" | "liquidityUSD" | "creationDate" | "oddsRunTimestamp";
 
 export type FetchMarketParams = {
   chainsList?: Array<string | "all">;
@@ -16,7 +17,7 @@ export type FetchMarketParams = {
   minLiquidity?: number;
   creator?: Address | "";
   participant?: Address | "";
-  orderBy?: Market_OrderBy;
+  orderBy?: MarketsOrderBy;
   orderDirection?: "asc" | "desc";
   marketIds?: string[];
   disabled?: boolean;

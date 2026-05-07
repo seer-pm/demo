@@ -7,7 +7,6 @@ import {
   fetchMarkets,
   searchOnChainMarkets,
 } from "@seer-pm/sdk";
-import { type Market_OrderBy } from "@seer-pm/sdk/subgraph/seer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";
@@ -66,7 +65,7 @@ export interface UseMarketsProps {
   chainsList?: Array<string | "all">;
   creator?: Address | "";
   participant?: Address | "";
-  orderBy?: Market_OrderBy;
+  orderBy?: FetchMarketParams["orderBy"];
   showMyMarkets?: boolean;
   showConditionalMarkets?: boolean;
   showMarketsWithRewards?: boolean;

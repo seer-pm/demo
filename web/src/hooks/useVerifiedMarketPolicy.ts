@@ -16,7 +16,7 @@ export const useVerifiedMarketPolicy = (chainId: SupportedChain | undefined) => 
       }
 
       const { curateMetadata } = await getSeerSdk(client).GetCurateMetadata({
-        id: lightGeneralizedTcrAddress[chainId!],
+        id: `${chainId!}:${lightGeneralizedTcrAddress[chainId!].toLowerCase()}`,
       });
 
       if (!curateMetadata?.registrationMetaEvidenceURI) {

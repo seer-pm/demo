@@ -1,24 +1,24 @@
 import type { Address } from "viem";
-import type { SubgraphMarket } from "./getAllMarkets";
+import { LegacySubgraphMarket } from "../markets";
 
-function getCollateralByIndex(market: SubgraphMarket, index: number) {
+function getCollateralByIndex(market: LegacySubgraphMarket, index: number) {
   if (market.type === "Generic") {
     return market.collateralToken;
   }
   return index < 2 ? market.collateralToken1 : market.collateralToken2;
 }
 
-export function getAllTokens(markets: SubgraphMarket[]) {
+export function getAllTokens(markets: LegacySubgraphMarket[]) {
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
       acum[market.id] = market;
       return acum;
     },
-    {} as { [key: string]: SubgraphMarket },
+    {} as { [key: string]: LegacySubgraphMarket },
   );
   const tokens = markets.reduce(
     (acum, market) => {
-      const parentMarket = marketIdToMarket[market.parentMarket.id];
+      const parentMarket = market.parentMarket != null ? marketIdToMarket[market.parentMarket.id] : undefined;
       const parentTokenId = parentMarket
         ? (parentMarket.wrappedTokens[Number(market.parentOutcome)] as Address)
         : undefined;

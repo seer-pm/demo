@@ -9,11 +9,6 @@ const schemasAndDocuments = [
     documents: "./queries/markets.graphql",
   },
   {
-    type: "tokens",
-    schema: SUBGRAPHS.tokens[gnosis.id],
-    documents: "./queries/tokens.graphql",
-  },
-  {
     type: "curate",
     schema: SUBGRAPHS.curate[gnosis.id],
     documents: "./queries/curate.graphql",
@@ -51,6 +46,7 @@ const generates = schemasAndDocuments.reduce(
           Timestamp: "string",
           jsonb: "unknown",
           numeric: "string",
+          markettype: "string",
           ruling: "string",
           status: "string",
           timestamptz: "string",

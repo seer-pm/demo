@@ -1,41 +1,39 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
+import { graphQLClient } from "@seer-pm/sdk/subgraph";
+import {
+  type GetTransfersQuery,
+  Order_By,
+  type Transfer_Bool_Exp,
+  getSdk as getSeerSdk,
+} from "@seer-pm/sdk/subgraph/seer";
 import pLimit from "p-limit";
 import { formatUnits, zeroAddress } from "viem";
-import { gnosis } from "viem/chains";
 
-export interface Transfer {
-  id: string;
-  from: string;
-  to: string;
-  token: {
-    id: string;
-  };
-  timestamp: string;
-  blockNumber: string;
-  value: string;
-}
+type Transfer = Omit<GetTransfersQuery["Transfer"][number], "token"> & {
+  token: { id: string };
+};
 
-export async function getAllTransfers(type: "futarchy" | "tokens", chainId: SupportedChain, initialStartTime?: number) {
-  if (type === "futarchy" && chainId !== gnosis.id) {
-    return [];
-  }
-  const subgraphUrl = type === "futarchy" ? SUBGRAPHS[type][100] : SUBGRAPHS[type][chainId as 1 | 100];
-  // First, get the time range
-  const timeRangeQuery = `{
-    transfers(first: 1, orderBy: timestamp, orderDirection: asc) { timestamp }
-    transfersDesc: transfers(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
-  }`;
+export async function getAllTransfers(chainId: SupportedChain, initialStartTime?: number) {
+  const client = graphQLClient(chainId);
+  const sdk = getSeerSdk(client);
 
-  const timeRangeResult = await fetch(subgraphUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: timeRangeQuery }),
-  });
-  const timeRangeJson = await timeRangeResult.json();
+  const [ascResult, descResult] = await Promise.all([
+    sdk.GetTransfers({
+      limit: 1,
+      offset: 0,
+      where: { chainId: { _eq: String(Number(chainId)) } },
+      orderBy: [{ timestamp: Order_By.Asc }],
+    }),
+    sdk.GetTransfers({
+      limit: 1,
+      offset: 0,
+      where: { chainId: { _eq: String(Number(chainId)) } },
+      orderBy: [{ timestamp: Order_By.Desc }],
+    }),
+  ]);
 
-  const startTime = initialStartTime || Number.parseInt(timeRangeJson.data.transfers[0]?.timestamp || "0");
-  const endTime = Number.parseInt(timeRangeJson.data.transfersDesc[0]?.timestamp || "0");
+  const startTime = initialStartTime ?? Number.parseInt(ascResult.Transfer[0]?.timestamp ?? "0", 10);
+  const endTime = Number.parseInt(descResult.Transfer[0]?.timestamp ?? "0", 10);
 
   // Divide into chunks
   const CHUNK_SIZE = 24 * 60 * 60; // 1 days in seconds
@@ -43,54 +41,51 @@ export async function getAllTransfers(type: "futarchy" | "tokens", chainId: Supp
   const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(limit(() => fetchTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime))));
+    chunks.push(limit(() => fetchTimeRange(sdk, chainId, time, Math.min(time + CHUNK_SIZE, endTime))));
   }
   const results = await Promise.all(chunks);
-  const allTransfers = results.flat();
-
-  return allTransfers;
+  return results.flat();
 }
 
-async function fetchTimeRange(subgraphUrl: string, startTime: number, endTime: number): Promise<Transfer[]> {
+async function fetchTimeRange(
+  sdk: ReturnType<typeof getSeerSdk>,
+  chainId: SupportedChain,
+  chunkStart: number,
+  chunkEnd: number,
+): Promise<Transfer[]> {
   let allTransfers: Transfer[] = [];
-  let currentTimestamp = startTime;
+  let currentTimestamp = chunkStart;
 
-  while (currentTimestamp < endTime) {
-    const query = `{
-      transfers(
-        first: 1000, 
-        orderBy: timestamp, 
-        orderDirection: asc,
-        where: {timestamp_gte: "${currentTimestamp}", timestamp_lt: "${endTime}"}
-      ) {
-        id
-        from
-        to
-        token {
-          id
-        }
-        timestamp
-        blockNumber
-        value
-      }
-    }`;
+  while (currentTimestamp < chunkEnd) {
+    const where: Transfer_Bool_Exp = {
+      _and: [
+        { chainId: { _eq: String(Number(chainId)) } },
+        {
+          timestamp: {
+            _gte: String(currentTimestamp),
+            _lte: String(chunkEnd),
+          },
+        },
+      ],
+    };
 
-    const result = await fetch(subgraphUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+    const { Transfer: transfers } = await sdk.GetTransfers({
+      limit: 1000,
+      offset: 0,
+      where,
+      orderBy: [{ timestamp: Order_By.Asc }],
     });
-    const json = await result.json();
 
-    if (json.errors?.length) {
-      throw json.errors[0];
+    if (transfers.length === 0) {
+      break;
     }
 
-    const transfers = json?.data?.transfers ?? [];
-    allTransfers = allTransfers.concat(transfers);
+    allTransfers = allTransfers.concat(transfers.filter((t): t is Transfer => t.token != null && t.token.id != null));
 
-    if (transfers.length < 1000) break;
-    currentTimestamp = Number.parseInt(transfers[transfers.length - 1].timestamp) + 1;
+    if (transfers.length < 1000) {
+      break;
+    }
+    currentTimestamp = Number.parseInt(transfers[transfers.length - 1].timestamp, 10) + 1;
   }
 
   return allTransfers;

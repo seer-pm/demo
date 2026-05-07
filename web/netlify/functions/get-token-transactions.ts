@@ -1,5 +1,4 @@
 import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import type { Database } from "./utils/supabase";
@@ -122,22 +121,6 @@ export default async (req: Request) => {
           "Content-Type": "application/json",
         },
       });
-    }
-
-    // Check if chain is supported
-    const supportedChains = Object.keys(SUBGRAPHS.tokens).map(Number);
-    if (!supportedChains.includes(chainIdNum)) {
-      return new Response(
-        JSON.stringify({
-          error: `Unsupported chain ID: ${chainIdNum}. Supported chains: ${supportedChains.join(", ")}`,
-        }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
     }
 
     // Get top holders for each token using the fetched data

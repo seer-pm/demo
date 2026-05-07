@@ -23,17 +23,19 @@ export const useMarketRulesPolicy = (chainId: SupportedChain | undefined) => {
         throw new Error("Subgraph not available");
       }
 
+      const arbitratorAddress =
+        chainId === mainnet.id || chainId === sepolia.id
+          ? realitioV2_1ArbitratorWithAppealsAddress[chainId]
+          : chainId === gnosis.id
+            ? realitioForeignArbitrationProxyWithAppealsAddress[mainnetId]
+            : chainId === optimism.id
+              ? realitioForeignProxyOptimismAddress[mainnetId]
+              : chainId === base.id
+                ? realitioForeignProxyBaseAddress[mainnetId]
+                : zeroAddress;
+
       const { arbitratorMetadata } = await getSeerSdk(client).GetArbitratorMetadata({
-        id:
-          chainId === mainnet.id || chainId === sepolia.id
-            ? realitioV2_1ArbitratorWithAppealsAddress[chainId]
-            : chainId === gnosis.id
-              ? realitioForeignArbitrationProxyWithAppealsAddress[mainnetId]
-              : chainId === optimism.id
-                ? realitioForeignProxyOptimismAddress[mainnetId]
-                : chainId === base.id
-                  ? realitioForeignProxyBaseAddress[mainnetId]
-                  : zeroAddress,
+        id: `${mainnetId}:${arbitratorAddress.toLowerCase()}`,
       });
 
       if (!arbitratorMetadata?.registrationMetaEvidenceURI) {

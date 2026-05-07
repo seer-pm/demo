@@ -44,15 +44,10 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   // get all transfers
   console.timeEnd("2");
   console.time("3");
-  const originalTransfers = await getAllTransfers("tokens", chainId);
+  const originalTransfers = await getAllTransfers(chainId);
   console.timeEnd("3");
-  console.time("4");
-  const futarchyTransfers = await getAllTransfers("futarchy", chainId);
-  console.timeEnd("4");
   console.time("5");
-  const transfers = originalTransfers
-    .concat(futarchyTransfers)
-    .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+  const transfers = originalTransfers.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   // get all liquidity events
   const liquidityEvents = chainId === gnosis.id ? [] : await getAllLiquidityEvents(chainId, tokens);
   // get prices at timestamps

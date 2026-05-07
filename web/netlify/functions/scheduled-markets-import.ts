@@ -3,13 +3,13 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { WEATHER_CATEGORY } from "@seer-pm/sdk/create-market";
 import { getMarketStatus } from "@seer-pm/sdk/market";
 import { graphQLClient } from "@seer-pm/sdk/subgraph";
-import { Market_OrderBy, OrderDirection, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
+import { Market_Select_Column, Order_By, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { chainIds } from "./utils/config.ts";
 import { type CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
-import { mapGraphMarketFromDbResult } from "./utils/markets.ts";
+import { type EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -116,18 +116,6 @@ async function updateImages() {
   console.log(`Successfully updated images for ${successCount} out of ${results.length} markets`);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny:
-function sortQuestions(market: any) {
-  // Sort questions by index
-  const sortedQuestions = [...market.questions].sort(
-    (questionA, questionB) => questionA.question.index - questionB.question.index,
-  );
-  return {
-    ...market,
-    questions: sortedQuestions,
-  };
-}
-
 function getLiquidityAccount() {
   const privateKey = process.env.LIQUIDITY_ACCOUNT_PRIVATE_KEY!;
   return privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Address);
@@ -135,21 +123,18 @@ function getLiquidityAccount() {
 
 const MARKETS_PAGE_SIZE = 1000;
 
-type MarketsResult = Awaited<ReturnType<ReturnType<typeof getSeerSdk>["GetMarkets"]>>["markets"];
-
-async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<MarketsResult> {
+async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMarket[]> {
   const client = graphQLClient(chainId);
-  const allMarkets: MarketsResult = [];
-  let skip = 0;
+  const allMarkets: EnvioMarket[] = [];
+  let offset = 0;
 
   while (true) {
-    const { markets } = await getSeerSdk(client).GetMarkets({
-      first: MARKETS_PAGE_SIZE,
-      skip,
-      orderBy: Market_OrderBy.BlockNumber,
-      orderDirection: OrderDirection.Desc,
+    const { Market: markets } = await getSeerSdk(client).GetMarkets({
+      limit: MARKETS_PAGE_SIZE,
+      offset,
+      orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
       // Search for markets with changes in the last 5 hours
-      where: { updatedAt_gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() },
+      where: { updatedAt: { _gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() } },
     });
 
     if (markets.length === 0) {
@@ -160,7 +145,7 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<Markets
     if (markets.length < MARKETS_PAGE_SIZE) {
       break;
     }
-    skip += MARKETS_PAGE_SIZE;
+    offset += MARKETS_PAGE_SIZE;
   }
 
   return allMarkets;
@@ -190,20 +175,25 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
   const weatherTxHashSet = new Set((weatherMarkets ?? []).map((weatherMarket) => weatherMarket.tx_hash));
   const liquidityAccount = getLiquidityAccount();
   await supabase.from("markets").upsert(
-    markets.map((market) => ({
-      id: market.id,
-      chain_id: chainId,
-      status: getMarketStatus(mapGraphMarketFromDbResult(market, { id: market.id, chain_id: chainId })),
-      subgraph_data: sortQuestions(market),
-      verification: verificationStatusList[market.id as `0x${string}`] ?? {
-        status: "not_verified",
-      },
-      // check if it's a weather market
-      ...(weatherTxHashSet.has(market.transactionHash) && {
-        creator: liquidityAccount.address.toLowerCase(),
-        categories: [WEATHER_CATEGORY],
-      }),
-    })),
+    markets.map((market) => {
+      const legacySubgraphMarket = envioMarketToLegacySubgraphMarket(market);
+      return {
+        id: market.address,
+        chain_id: chainId,
+        status: getMarketStatus(
+          mapGraphMarketFromDbResult(legacySubgraphMarket, { id: market.address, chain_id: chainId }),
+        ),
+        subgraph_data: legacySubgraphMarket,
+        verification: verificationStatusList[market.address as `0x${string}`] ?? {
+          status: "not_verified",
+        },
+        // check if it's a weather market
+        ...(weatherTxHashSet.has(market.transactionHash) && {
+          creator: liquidityAccount.address.toLowerCase(),
+          categories: [WEATHER_CATEGORY],
+        }),
+      };
+    }),
   );
 
   // Check if the most recent market was created within the maxAgeSeconds window

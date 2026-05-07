@@ -1,9 +1,0 @@
-# subgraph
-generated/*
-build/*
-generated/*
-build/*
-contracts/*
-tests/.bin
-tests/.latest.json
-subgraph.yaml
