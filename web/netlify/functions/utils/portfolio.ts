@@ -68,15 +68,16 @@ export async function getMappings(initialMarkets: Market[], chainId: SupportedCh
 
   const publicClient = getPublicClientByChainId(chainId);
 
-  const allTokensSymbols = (await multicall(publicClient, {
+  const symbolResults = await multicall(publicClient, {
     contracts: Array.from(allTokensIds.values()).map((tokenId) => ({
       abi: erc20Abi,
       address: tokenId,
       functionName: "symbol",
       args: [],
     })),
-    allowFailure: false,
-  })) as string[];
+    allowFailure: true,
+  });
+  const allTokensSymbols = symbolResults.map((r) => (r.status === "success" ? (r.result as string) : ""));
   const tokenIdToTokenSymbolMapping = Array.from(allTokensIds.values()).reduce(
     (acc, curr, index) => {
       acc[curr] = allTokensSymbols[index];

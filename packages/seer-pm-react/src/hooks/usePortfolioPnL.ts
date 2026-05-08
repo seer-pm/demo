@@ -9,12 +9,13 @@ export function usePortfolioPnL(
   account: Address | undefined,
   chainId: SupportedChain | undefined,
   period: PortfolioPnLPeriod,
+  marketId?: Address,
 ) {
   return useQuery({
     enabled: Boolean(account && chainId !== undefined),
-    queryKey: ["portfolioPnL", account, chainId, period],
+    queryKey: ["portfolioPnL", account, chainId, period, marketId],
     retry: false,
-    queryFn: () => fetchPortfolioPnL(account as Address, chainId as SupportedChain, period),
+    queryFn: () => fetchPortfolioPnL(account as Address, chainId as SupportedChain, period, marketId),
     staleTime: 60_000,
     refetchInterval: 60_000,
   });

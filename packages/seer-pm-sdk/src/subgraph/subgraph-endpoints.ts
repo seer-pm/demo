@@ -38,7 +38,7 @@ export const SUBGRAPHS = {
   },
   uniswap: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
-    [CHAIN_IDS.optimism]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5Vg1mtJELha5ApuhkBk573K1iQKh6uUie72VotwGURy4`,
+    [CHAIN_IDS.optimism]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/AUpZ47RTWDBpco7YTTffGyRkBJ2i26Ms8dQSkUdxPHGc`,
     [CHAIN_IDS.base]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/HMuAwufqZ1YCRmzL2SfHTVkzZovC9VL2UAKhjvRqKiR1`,
   },
   poh: {

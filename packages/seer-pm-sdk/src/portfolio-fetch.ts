@@ -41,12 +41,16 @@ export async function fetchPortfolioPnL(
   account: Address,
   chainId: SupportedChain,
   period: PortfolioPnLPeriod,
+  marketId?: Address,
 ): Promise<PortfolioPnLData> {
   const params = new URLSearchParams({
     account,
     chainId: String(chainId),
     period,
   });
+  if (marketId) {
+    params.set("marketId", marketId);
+  }
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio-pl?${params.toString()}`);
   if (!res.ok) {
     const text = await res.text();
