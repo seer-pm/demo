@@ -17,11 +17,19 @@ export interface TokenTransactionsResponse {
   chainId: number;
 }
 
-async function fetchTokenTransactions(tokenIds: string[], chainId: SupportedChain): Promise<TokenTransactionsResponse> {
+async function fetchTokenTransactions(
+  tokenIds: string[],
+  chainId: SupportedChain,
+  account?: Address,
+): Promise<TokenTransactionsResponse> {
   const params = new URLSearchParams({
     tokenIds: tokenIds.join(","),
     chainId: chainId.toString(),
   });
+
+  if (account) {
+    params.set("account", account);
+  }
 
   const response = await fetch(`/.netlify/functions/get-token-transactions?${params}`);
 
@@ -32,10 +40,10 @@ async function fetchTokenTransactions(tokenIds: string[], chainId: SupportedChai
   return response.json();
 }
 
-export function useMarketHolders(tokenIds: string[], chainId: SupportedChain) {
+export function useMarketHolders(tokenIds: string[], chainId: SupportedChain, account?: Address) {
   return useQuery({
-    queryKey: ["marketHolders", tokenIds, chainId],
-    queryFn: () => fetchTokenTransactions(tokenIds, chainId),
+    queryKey: ["marketHolders", tokenIds, chainId, account],
+    queryFn: () => fetchTokenTransactions(tokenIds, chainId, account),
     enabled: tokenIds.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

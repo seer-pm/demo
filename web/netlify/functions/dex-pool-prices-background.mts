@@ -10,7 +10,7 @@ import {
   fetchPoolHourDatasSince,
   parseDexPoolHourFetchCursor,
 } from "./utils/fetchDexPoolHourDatas.ts";
-import { MARKET_DB_FIELDS, type SubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
+import { MARKET_DB_FIELDS, type LegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -136,7 +136,7 @@ async function loadMarketsForChain(
     }
     for (const row of data) {
       try {
-        out.push(mapGraphMarketFromDbResult(row.subgraph_data as SubgraphMarket, row));
+        out.push(mapGraphMarketFromDbResult(row.subgraph_data as LegacySubgraphMarket, row));
       } catch {
         /* skip malformed */
       }

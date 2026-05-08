@@ -9,7 +9,9 @@ import { Market } from "@seer-pm/sdk";
 import type { TokenTransfer } from "@seer-pm/sdk";
 import { getRouterAddress } from "@seer-pm/sdk";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import { Address, isAddressEqual } from "viem";
+import { useAccount } from "wagmi";
 
 interface ActivityProps {
   market: Market;
@@ -35,7 +37,11 @@ function getTransactionType(transaction: TokenTransfer, pools: Address[], router
 }
 
 export default function Activity({ market }: ActivityProps) {
-  const { data, isLoading, error } = useMarketHolders(market.wrappedTokens, market.chainId);
+  const { address } = useAccount();
+  const [showMyActivity, setShowMyActivity] = useState(false);
+  const isFilteringMyActivity = Boolean(address && showMyActivity);
+  const accountFilter = isFilteringMyActivity ? address : undefined;
+  const { data, isLoading, error } = useMarketHolders(market.wrappedTokens, market.chainId, accountFilter);
   const { data: poolAddresses = [] } = useComputedPoolAddresses(market);
 
   if (isLoading) {
@@ -46,88 +52,104 @@ export default function Activity({ market }: ActivityProps) {
     return <Alert type="warning">Error loading activity: {error.message}</Alert>;
   }
 
-  if (!data || !data.recentTransactions || data.recentTransactions.length === 0) {
-    return <Alert type="warning">No recent activity</Alert>;
-  }
-
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   const routerAddress = getRouterAddress(market);
 
   return (
     <div className="p-4 card shadow-sm border-separator-100">
-      <div className="w-full overflow-x-auto mb-6">
-        <table className="simple-table table-fixed">
-          <colgroup>
-            <col style={{ width: "70%" }} />
-            <col style={{ width: "30%" }} />
-          </colgroup>
-          <tbody>
-            {data.recentTransactions
-              .map((transaction) => {
-                const tokenIndex = market.wrappedTokens.findIndex((wrappedToken) =>
-                  isTwoStringsEqual(wrappedToken, transaction.token),
-                );
+      {address && (
+        <div className="flex justify-end mb-4">
+          <label className="cursor-pointer flex items-center gap-2 text-sm font-medium" htmlFor="show-my-activity">
+            <input
+              className="cursor-pointer checkbox"
+              id="show-my-activity"
+              type="checkbox"
+              checked={showMyActivity}
+              onChange={(event) => setShowMyActivity(event.target.checked)}
+            />
+            My activity
+          </label>
+        </div>
+      )}
+      {!data || !data.recentTransactions || data.recentTransactions.length === 0 ? (
+        <Alert type="warning">
+          {isFilteringMyActivity ? "No recent activity for your account" : "No recent activity"}
+        </Alert>
+      ) : (
+        <div className="w-full overflow-x-auto mb-6">
+          <table className="simple-table table-fixed">
+            <colgroup>
+              <col style={{ width: "70%" }} />
+              <col style={{ width: "30%" }} />
+            </colgroup>
+            <tbody>
+              {data.recentTransactions
+                .map((transaction) => {
+                  const tokenIndex = market.wrappedTokens.findIndex((wrappedToken) =>
+                    isTwoStringsEqual(wrappedToken, transaction.token),
+                  );
 
-                const timeAgo = formatDistanceToNow(new Date(transaction.timestamp * 1000), {
-                  addSuffix: true,
-                });
+                  const timeAgo = formatDistanceToNow(new Date(transaction.timestamp * 1000), {
+                    addSuffix: true,
+                  });
 
-                const transactionType = getTransactionType(transaction, poolAddresses, routerAddress);
+                  const transactionType = getTransactionType(transaction, poolAddresses, routerAddress);
 
-                // Skip mint/burn transactions
-                if (!transactionType) {
-                  return null;
-                }
+                  // Skip mint/burn transactions
+                  if (!transactionType) {
+                    return null;
+                  }
 
-                return {
-                  transaction,
-                  tokenIndex,
-                  timeAgo,
-                  transactionType,
-                };
-              })
-              .filter((item): item is NonNullable<typeof item> => item !== null)
-              .map(({ transaction, tokenIndex, timeAgo, transactionType }) => (
-                <tr key={transaction.id}>
-                  <td className="text-left">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
-                        <Link to={`/portfolio/${transaction.from}`} className="hover:text-purple-primary">
-                          {shortenAddress(transaction.from)}
-                        </Link>
+                  return {
+                    transaction,
+                    tokenIndex,
+                    timeAgo,
+                    transactionType,
+                  };
+                })
+                .filter((item): item is NonNullable<typeof item> => item !== null)
+                .map(({ transaction, tokenIndex, timeAgo, transactionType }) => (
+                  <tr key={transaction.id}>
+                    <td className="text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
+                          <Link to={`/portfolio/${transaction.from}`} className="hover:text-purple-primary">
+                            {shortenAddress(transaction.from)}
+                          </Link>
 
+                          <a
+                            href={blockExplorerUrl && `${blockExplorerUrl}/address/${transaction.from}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLinkIcon />
+                          </a>
+                        </span>
+                        <span className={`text-sm font-medium ${transactionType.color}`}>{transactionType.type}</span>
+                        <span className="text-sm font-medium text-base-content/90">
+                          {displayBalance(BigInt(transaction.value), 18, true)}
+                        </span>
+                        <span className="text-sm text-base-content">{market.outcomes[tokenIndex]}</span>
+                      </div>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-xs lg:text-sm text-gray-500">
                         <a
-                          href={blockExplorerUrl && `${blockExplorerUrl}/address/${transaction.from}`}
+                          href={blockExplorerUrl && `${blockExplorerUrl}/tx/${transaction.tx_hash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <ExternalLinkIcon />
+                          {timeAgo}
                         </a>
                       </span>
-                      <span className={`text-sm font-medium ${transactionType.color}`}>{transactionType.type}</span>
-                      <span className="text-sm font-medium text-base-content/90">
-                        {displayBalance(BigInt(transaction.value), 18, true)}
-                      </span>
-                      <span className="text-sm text-base-content">{market.outcomes[tokenIndex]}</span>
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <span className="text-xs lg:text-sm text-gray-500">
-                      <a
-                        href={blockExplorerUrl && `${blockExplorerUrl}/tx/${transaction.tx_hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {timeAgo}
-                      </a>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
