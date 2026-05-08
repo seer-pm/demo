@@ -22,12 +22,7 @@ const api = "8b2690ffdd390bad59638b894ee8d9f6";
 export const SEER_MARKETS_SUBGRAPH = "https://indexer.hyperindex.xyz/798eb82/v1/graphql";
 
 export const SUBGRAPHS = {
-  seer: {
-    [CHAIN_IDS.gnosis]: SEER_MARKETS_SUBGRAPH,
-    [CHAIN_IDS.mainnet]: SEER_MARKETS_SUBGRAPH,
-    [CHAIN_IDS.optimism]: SEER_MARKETS_SUBGRAPH,
-    [CHAIN_IDS.base]: SEER_MARKETS_SUBGRAPH,
-  },
+  seer: SEER_MARKETS_SUBGRAPH,
   curate: {
     [CHAIN_IDS.gnosis]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
     [CHAIN_IDS.mainnet]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
@@ -71,5 +66,10 @@ export const SUBGRAPHS = {
 export function getSubgraphUrl(name: SubgraphTypes, chainId: number): string | undefined {
   const subgraph = SUBGRAPHS[name];
   if (!subgraph) return undefined;
+
+  if (name === "seer") {
+    return subgraph as (typeof SUBGRAPHS)["seer"];
+  }
+
   return (subgraph as Record<number, string>)[chainId];
 }

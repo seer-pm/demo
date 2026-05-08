@@ -1,7 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, isAddress, isAddressEqual } from "viem";
 import { buildHistoricPortfolioPositions } from "./utils/buildPortfolioPositions";
@@ -560,16 +559,6 @@ export default async (req: Request) => {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
-    }
-
-    const supportedChains = Object.keys(SUBGRAPHS.tokens).map(Number);
-    if (!supportedChains.includes(chainIdNum)) {
-      return new Response(
-        JSON.stringify({
-          error: `Unsupported chain ID: ${chainIdNum}. Supported chains: ${supportedChains.join(", ")}`,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
     }
 
     const supportedChain = chainIdNum as SupportedChain;

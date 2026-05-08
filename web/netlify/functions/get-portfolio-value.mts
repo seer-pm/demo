@@ -1,5 +1,4 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
 import { createClient } from "@supabase/supabase-js";
 import { subDays } from "date-fns";
 import { type Address, isAddress } from "viem";
@@ -63,16 +62,6 @@ export default async (req: Request) => {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
-    }
-
-    const supportedChains = Object.keys(SUBGRAPHS.tokens).map(Number);
-    if (!supportedChains.includes(chainIdNum)) {
-      return new Response(
-        JSON.stringify({
-          error: `Unsupported chain ID: ${chainIdNum}. Supported chains: ${supportedChains.join(", ")}`,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
     }
 
     const positions = await buildCurrentPortfolioPositions(supabase, account, chainIdNum as SupportedChain);

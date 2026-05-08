@@ -350,44 +350,28 @@ type SearchMarketsProps = {
   orderDirection?: "asc" | "desc";
 };
 
-export type SearchAllMarketsProps = Omit<SearchMarketsProps, "limit" | "page">;
-
-/** Page size PostgREST uses when no range is set (~1000 rows); stay aligned for stable pagination. */
-const SEARCH_MARKETS_PAGE_SIZE = 1000;
-
 /**
- * Same filters as {@link searchMarkets}, but fetches every page until no more rows (not only the first chunk).
+ * Fetch **all** markets matching a filter by paging `searchMarkets`.
+ *
+ * Notes:
+ * - We intentionally require `chainIds` to avoid accidental cross-chain full scans.
  */
-export async function searchAllMarkets(props: SearchAllMarketsProps): Promise<{ markets: Market[]; count: number }> {
+export async function searchAllMarkets(
+  args: Omit<SearchMarketsProps, "limit" | "page"> & { chainIds: SupportedChain[] },
+): Promise<{ markets: Market[] }> {
+  const pageSize = 1000;
+  const markets: Market[] = [];
   let page = 1;
-  const allMarkets: Market[] = [];
-  let totalCount = 0;
 
-  while (true) {
-    const { markets, count } = await searchMarkets({
-      ...props,
-      limit: SEARCH_MARKETS_PAGE_SIZE,
-      page,
-    });
+  for (;;) {
+    const resp = await searchMarkets({ ...args, limit: pageSize, page });
+    markets.push(...resp.markets);
 
-    if (page === 1) {
-      totalCount = count;
-    }
-
-    allMarkets.push(...markets);
-
-    if (markets.length < SEARCH_MARKETS_PAGE_SIZE) {
-      break;
-    }
-
-    if (totalCount > 0 && allMarkets.length >= totalCount) {
-      break;
-    }
-
-    page++;
+    if (resp.markets.length < pageSize) break;
+    page += 1;
   }
 
-  return { markets: allMarkets, count: totalCount };
+  return { markets };
 }
 
 export async function searchMarkets({
@@ -553,30 +537,6 @@ export async function searchMarkets({
   };
 }
 
-/**
- * Fetch **all** markets matching a filter by paging `searchMarkets`.
- *
- * Notes:
- * - We intentionally require `chainIds` to avoid accidental cross-chain full scans.
- */
-export async function searchAllMarkets(
-  args: Omit<SearchMarketsProps, "limit" | "page"> & { chainIds: SupportedChain[] },
-): Promise<{ markets: Market[] }> {
-  const pageSize = 1000;
-  const markets: Market[] = [];
-  let page = 1;
-
-  for (;;) {
-    const resp = await searchMarkets({ ...args, limit: pageSize, page });
-    markets.push(...resp.markets);
-
-    if (resp.markets.length < pageSize) break;
-    page += 1;
-  }
-
-  return { markets };
-}
-
 const fetchMarketsWithPositions = async (address: Address, chainId: SupportedChain) => {
   const { data: markets, error } = await supabase
     .from("markets")
@@ -604,6 +564,7 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
 
   // [tokenBalance, ..., ...]
   const client = getPublicClientByChainId(chainId);
+
   const balances = (await multicall(client, {
     contracts: allTokensIds.map((wrappedAddresses) => ({
       abi: erc20Abi,

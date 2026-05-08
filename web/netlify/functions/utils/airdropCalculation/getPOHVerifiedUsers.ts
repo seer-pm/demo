@@ -1,5 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
+import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 
 export interface PoHRequest {
   id: string;
@@ -23,7 +23,7 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
                 resolutionTime
               }
             }`;
-    const results = await fetch(SUBGRAPHS["poh"][chainId as 1 | 100], {
+    const results = await fetch(getSubgraphUrl("poh", chainId as 1 | 100)!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

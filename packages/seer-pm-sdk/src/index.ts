@@ -241,7 +241,6 @@ export {
   swaprGraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
-  SUBGRAPHS,
   getTokenPriceFromSubgraph,
 } from "./subgraph";
 export type { AppSubgraphType, SubgraphTypes } from "./subgraph";
