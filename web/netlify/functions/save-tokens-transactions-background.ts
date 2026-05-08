@@ -3,7 +3,14 @@ import { getAllTransfers } from "./utils/airdropCalculation/getAllTransfers";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
+const DISABLED = true;
+
 export default async () => {
+  if (DISABLED) {
+    console.log("cron disabled");
+    return;
+  }
+
   let initialTimestamp = 0;
 
   const { data: maxTimestampData, error: maxTimestampError } = await supabase
