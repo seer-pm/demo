@@ -352,8 +352,7 @@ export type Database = {
           block_number: number;
           chain_id: number;
           from: string;
-          id: number;
-          subgraph_id: string;
+          log_index: number;
           timestamp: number;
           to: string;
           token: string;
@@ -364,8 +363,7 @@ export type Database = {
           block_number: number;
           chain_id: number;
           from: string;
-          id?: number;
-          subgraph_id: string;
+          log_index: number;
           timestamp: number;
           to: string;
           token: string;
@@ -376,8 +374,7 @@ export type Database = {
           block_number?: number;
           chain_id?: number;
           from?: string;
-          id?: number;
-          subgraph_id?: string;
+          log_index?: number;
           timestamp?: number;
           to?: string;
           token?: string;

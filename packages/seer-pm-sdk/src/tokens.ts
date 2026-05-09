@@ -16,10 +16,11 @@ export interface Token {
 }
 
 export type TokenTransfer = {
-  id: string | number;
+  id: string;
   chain_id: number;
   token: Address;
   tx_hash: string;
+  log_index: number;
   block_number: number;
   timestamp: number;
   value: bigint;

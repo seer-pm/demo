@@ -1,14 +1,10 @@
-import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
+import type { TokenTransfer } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import type { Address } from "viem";
+import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
 import type { Database } from "./utils/supabase";
+import { getTokenHolders } from "./utils/token-transactions";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
-
-interface Holder {
-  address: string;
-  balance: string;
-}
 
 async function getRecentTransactions(tokenIds: string[], limit = 100): Promise<TokenTransfer[]> {
   const { data } = await supabase
@@ -20,57 +16,10 @@ async function getRecentTransactions(tokenIds: string[], limit = 100): Promise<T
     )
     .order("timestamp", { ascending: false })
     .limit(limit);
-  return (
-    data?.map((r) => {
-      return {
-        ...r,
-        from: r.from as Address,
-        to: r.to as Address,
-        chain_id: r.chain_id as SupportedChain,
-        token: r.token as Address,
-        value: BigInt(r.value),
-      };
-    }) || []
-  );
+  return data?.map(tokensTransfersRowToTransfer) || [];
 }
 
 const TOP_HOLDERS_COUNT = 10;
-
-async function getTopHoldersForTokens(tokenIds: string[]): Promise<{ [tokenId: string]: Holder[] }> {
-  const { data, error } = await supabase
-    .from("tokens_holdings_v")
-    .select("token, owner, balance")
-    .in(
-      "token",
-      tokenIds.map((id) => id.toLowerCase()),
-    )
-    .neq("owner", "0x0000000000000000000000000000000000000000")
-    .gt("balance", 0)
-    .order("token", { ascending: true })
-    .order("balance", { ascending: false });
-
-  if (error) {
-    throw new Error(`Error·fetching·token·holders:·${error.message}`);
-  }
-
-  const result: { [tokenId: string]: Holder[] } = {};
-
-  if (data) {
-    for (const tokenId of tokenIds) {
-      const holders = data
-        .filter((row) => row.token!.toLowerCase() === tokenId.toLowerCase())
-        .slice(0, TOP_HOLDERS_COUNT)
-        .map((row) => ({
-          address: row.owner as string,
-          balance: BigInt(row.balance as number).toString(),
-        }));
-
-      result[tokenId!.toLowerCase()] = holders;
-    }
-  }
-
-  return result;
-}
 
 export default async (req: Request) => {
   try {
@@ -124,7 +73,7 @@ export default async (req: Request) => {
     }
 
     // Get top holders for each token using the fetched data
-    const topHolders = await getTopHoldersForTokens(tokenIds);
+    const topHolders = await getTokenHolders(supabase, chainIdNum, tokenIds, TOP_HOLDERS_COUNT);
 
     // Get last 100 transactions across all tokens
     const recentTransactions = await getRecentTransactions(tokenIds, 100);

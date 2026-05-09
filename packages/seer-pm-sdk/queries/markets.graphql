@@ -116,12 +116,13 @@ query GetArbitratorMetadata($id: String!) {
 }
 
 fragment Transfer on Transfer {
-  id
   chainId
   from
   to
   timestamp
   blockNumber
+  transactionHash
+  logIndex
   value
   token {
     id

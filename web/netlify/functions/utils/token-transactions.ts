@@ -1,79 +1,52 @@
-import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
-import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { OrderDirection, type Transfer_Filter, Transfer_OrderBy, getSdk } from "@seer-pm/sdk/subgraph/tokens";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 
-export async function getAllTransactions(
-  where: Transfer_Filter,
-  initialTimestamp: string,
-  chainId: SupportedChain,
-  loopLimit: number,
-): Promise<TokenTransfer[]> {
-  const subgraphClient = swaprGraphQLClient(chainId, "tokens");
-  if (!subgraphClient) {
-    return [];
-  }
+import type { Database } from "./supabase";
 
-  const sdk = getSdk(subgraphClient);
-
-  let allTransfers: TokenTransfer[] = [];
-  let currentTimestamp: string = initialTimestamp;
-
-  let i = 0;
-
-  // Paginate through all transfers for all tokens
-  while (true) {
-    const result = await sdk.GetTransfers({
-      first: 1000,
-      orderBy: Transfer_OrderBy.Timestamp,
-      orderDirection: OrderDirection.Asc,
-      where: {
-        ...where,
-        ...(currentTimestamp && { timestamp_gt: currentTimestamp }),
-      },
-    });
-
-    const transfers: TokenTransfer[] = result.transfers.map((transfer) => {
-      return {
-        id: transfer.id,
-        chain_id: chainId,
-        block_number: Number(transfer.blockNumber),
-        timestamp: Number(transfer.timestamp),
-        from: transfer.from,
-        to: transfer.to,
-        tx_hash: transfer.id.split("-")[0],
-        token: transfer.token.id as Address,
-        value: BigInt(transfer.value),
-      };
-    });
-    allTransfers = allTransfers.concat(transfers);
-
-    if (transfers.length < 1000) {
-      break; // We've fetched all
-    }
-
-    currentTimestamp = String(transfers[transfers.length - 1]?.timestamp);
-
-    i++;
-
-    if (loopLimit > 0 && i >= loopLimit) {
-      break;
-    }
-  }
-
-  return allTransfers;
+export interface TokenHolder {
+  address: Address;
+  balance: string;
 }
 
-export async function getAllTransactionsForTokens(
+export async function getTokenHolders(
+  client: SupabaseClient<Database>,
+  chainId: number,
   tokenIds: string[],
-  chainId: SupportedChain,
-): Promise<TokenTransfer[]> {
-  return getAllTransactions(
-    {
-      token_in: tokenIds.map((id) => id.toLowerCase()),
-    },
-    "0",
-    chainId,
-    0,
-  );
+  count?: number,
+): Promise<{ [tokenId: string]: TokenHolder[] }> {
+  const { data, error } = await client
+    .from("tokens_holdings_v")
+    .select("token, owner, balance")
+    .eq("chain_id", chainId)
+    .in(
+      "token",
+      tokenIds.map((id) => id.toLowerCase()),
+    )
+    .neq("owner", "0x0000000000000000000000000000000000000000")
+    .gt("balance", 0)
+    .order("token", { ascending: true })
+    .order("balance", { ascending: false });
+
+  if (error) {
+    throw new Error(`Error fetching token holders: ${error.message}`);
+  }
+
+  const result: { [tokenId: string]: TokenHolder[] } = {};
+
+  if (data) {
+    for (const tokenId of tokenIds) {
+      let holders = data
+        .filter((row) => row.token!.toLowerCase() === tokenId.toLowerCase())
+        .map((row) => ({
+          address: row.owner as Address,
+          balance: BigInt(row.balance as number).toString(),
+        }));
+      if (count !== undefined) {
+        holders = holders.slice(0, count);
+      }
+      result[tokenId.toLowerCase()] = holders;
+    }
+  }
+
+  return result;
 }

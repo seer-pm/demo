@@ -186,10 +186,11 @@ Returns top holders and recent transactions for one or more tokens (per chain).
 
 ```ts
 type TokenTransfer = {
-  id: string | number;
+  id: string;
   chain_id: number; // SupportedChain
   token: `0x${string}`;
   tx_hash: string;
+  log_index: number;
   block_number: number;
   timestamp: number;
   value: string; // serialized bigint
