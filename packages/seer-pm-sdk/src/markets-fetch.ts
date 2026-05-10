@@ -24,6 +24,7 @@ export type FetchMarketParams = {
   limit?: number;
   page?: number;
   parentMarket?: Address;
+  tokens?: Address[];
 };
 
 export type JsonMarketsResult = { markets: SerializedMarket[]; count: number; pages: number };

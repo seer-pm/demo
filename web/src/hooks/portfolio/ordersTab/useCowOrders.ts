@@ -1,8 +1,6 @@
-import { isUndefined } from "@/lib/utils";
-import { useMarkets } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { isOpStack } from "@seer-pm/sdk";
-import { Market, getTokensPairKey } from "@seer-pm/sdk";
+import { fetchMarkets, getTokensPairKey } from "@seer-pm/sdk";
 import { OrderBookApi } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
@@ -10,12 +8,33 @@ import { Address, formatUnits } from "viem";
 import { getMappings } from "../getMappings";
 import { CowOrderData } from "./types";
 
-async function getCowOrders(initialMarkets: Market[] | undefined, account?: Address, chainId?: SupportedChain) {
-  if (!chainId || !account || !initialMarkets || isOpStack(chainId)) return [];
-  const mappings = await getMappings(initialMarkets, chainId);
-  const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
+async function getCowOrders(account?: Address, chainId?: SupportedChain) {
+  if (!chainId || !account || isOpStack(chainId)) return [];
   const orderBookApi = new OrderBookApi({ chainId: chainId as number });
   const orders = await orderBookApi.getOrders({ owner: account });
+
+  if (orders.length === 0) return [];
+
+  // Collect unique tokens from orders so we can fetch only the markets that touch them.
+  const uniqueTokens = Array.from(
+    new Set(
+      orders.flatMap((order) => [
+        (order.sellToken as Address).toLowerCase() as Address,
+        (order.buyToken as Address).toLowerCase() as Address,
+      ]),
+    ),
+  );
+
+  const { markets } = await fetchMarkets({
+    chainsList: [chainId.toString()],
+    tokens: uniqueTokens,
+    limit: 1000,
+  });
+
+  if (markets.length === 0) return [];
+
+  const mappings = await getMappings(markets, chainId);
+  const { tokenIdToTokenSymbolMapping, tokenPairToMarketMapping } = mappings;
 
   const processedOrders = orders.reduce<CowOrderData[]>((acc, curr) => {
     const sellToken = getCollateralTokenForSwap(curr.sellToken as Address, chainId);
@@ -71,12 +90,11 @@ async function getCowOrders(initialMarkets: Market[] | undefined, account?: Addr
 }
 
 export const useCowOrders = (address: Address, chainId: SupportedChain) => {
-  const { data } = useMarkets({});
   return useQuery<CowOrderData[] | undefined, Error>({
-    enabled: !!address && !isUndefined(data),
+    enabled: !!address,
     queryKey: ["useCowOrders", address, chainId],
     retry: false,
-    queryFn: async () => getCowOrders(data!.markets, address, chainId),
+    queryFn: async () => getCowOrders(address, chainId),
     refetchOnMount: true,
   });
 };

@@ -25,6 +25,7 @@ async function multiChainSearch(
     orderBy,
     orderDirection,
     marketIds,
+    tokens,
     limit = 100,
     page = 1,
   } = body;
@@ -51,6 +52,7 @@ async function multiChainSearch(
     creator,
     participant,
     marketIds,
+    tokens,
     limit,
     page,
     orderBy,
