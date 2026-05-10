@@ -70,7 +70,7 @@ function MarketPnL({
   return (
     <span className="ml-3 flex items-center gap-1">
       <span className="text-base-content/70 @[510px]:inline-block hidden">{"P&L:"}</span>
-      <span className="ml-1">{isLoading ? <Spinner /> : marketPnL ? formatBigNumbers(marketPnL.pnl) : ""}</span>
+      <span className="ml-1">{isLoading ? <Spinner /> : marketPnL ? formatBigNumbers(marketPnL.pnl) : "N/A"}</span>
       {!isLoading && marketPnL && <USDIcon />}
     </span>
   );

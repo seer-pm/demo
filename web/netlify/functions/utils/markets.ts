@@ -359,7 +359,7 @@ function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" 
   return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
 }
 
-function escapePostgrest(str: string): string {
+export function escapePostgrest(str: string): string {
   return str
     .replace(/%/g, "\\%")
     .replace(/_/g, "\\_")

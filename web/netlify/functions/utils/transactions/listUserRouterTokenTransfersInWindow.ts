@@ -2,6 +2,7 @@ import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { tokensTransfersRowToTransfer } from "../airdropCalculation/getAllTransfers";
+import { escapePostgrest } from "../markets";
 import type { Database } from "../supabase";
 
 const PAGE_SIZE = 1000;
@@ -26,7 +27,8 @@ export async function listUserRouterTokenTransfersInWindow(
   const out: TokenTransfer[] = [];
 
   const accountLc = account.toLowerCase();
-  const routersIn = `(${routerAddresses.map((a) => a.toLowerCase()).join(",")})`;
+  const escapedRouters = routerAddresses.map((a) => escapePostgrest(a.toLowerCase())).join(",");
+  const routersIn = `(${escapedRouters})`;
   const tokens = tokenAddresses.map((t) => t.toLowerCase());
 
   // Keyset pagination; stable order matches PK tie-break: (timestamp, tx_hash, log_index).
@@ -84,6 +86,5 @@ export async function listUserRouterTokenTransfersInWindow(
     last = { timestamp: ts, tx_hash: txHash, log_index: logIndex };
   }
 
-  out.sort((a, b) => a.timestamp - b.timestamp);
   return out;
 }

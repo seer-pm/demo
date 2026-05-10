@@ -6,7 +6,7 @@ export interface PoHRequest {
   requester: string;
   resolutionTime: string;
 }
-export async function getPOHVerifiedUsers(chainId: SupportedChain) {
+export async function getPOHVerifiedUsers(chainId: 1 | 100) {
   const maxAttempts = 20;
   let attempt = 0;
   let allRequests: PoHRequest[] = [];
@@ -23,7 +23,7 @@ export async function getPOHVerifiedUsers(chainId: SupportedChain) {
                 resolutionTime
               }
             }`;
-    const results = await fetch(getSubgraphUrl("poh", chainId as 1 | 100)!, {
+    const results = await fetch(getSubgraphUrl("poh", chainId)!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
