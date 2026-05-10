@@ -3,7 +3,7 @@ import { useRedeemPositions } from "@/hooks/useRedeemPositions";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { useWinningPositions } from "@seer-pm/react";
-import { Market } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, Market } from "@seer-pm/sdk";
 import { getRedeemRouter } from "@seer-pm/sdk";
 import { useForm } from "react-hook-form";
 import { Address, zeroAddress } from "viem";
@@ -92,7 +92,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
         <div className="flex space-x-2">
           <div>Parent Token</div>
           <Toggle {...register("isRedeemToParentCollateral")} />
-          <div>sDAI</div>
+          <div>{COLLATERAL_TOKENS[market.chainId].primary.symbol}</div>
         </div>
       )}
 

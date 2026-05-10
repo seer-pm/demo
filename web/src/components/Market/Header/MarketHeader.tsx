@@ -20,13 +20,14 @@ import {
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
-import { useMarket, useMarketHasLiquidity, useMarketOdds, useTokenInfo } from "@seer-pm/react";
+import { useMarket, useMarketHasLiquidity, useMarketOdds, usePortfolioPnL, useTokenInfo } from "@seer-pm/react";
 import {
   COLLATERAL_TOKENS,
   INVALID_RESULT_OUTCOME_TEXT,
   Market,
   MarketStatus,
   MarketTypes,
+  SupportedChain,
   displayScalarBound,
   getCollateralByIndex,
   getMarketEstimate,
@@ -38,7 +39,7 @@ import {
 import { MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
-import { formatUnits } from "viem";
+import { type Address, formatUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
@@ -52,6 +53,27 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
+}
+
+function MarketPnL({
+  account,
+  chainId,
+  marketId,
+}: {
+  account: Address | undefined;
+  chainId: SupportedChain;
+  marketId: Address;
+}) {
+  const { data: marketPnL, isLoading } = usePortfolioPnL(account, chainId, "all", marketId);
+  if (!account) return null;
+
+  return (
+    <span className="ml-3 flex items-center gap-1">
+      <span className="text-base-content/70 @[510px]:inline-block hidden">{"P&L:"}</span>
+      <span className="ml-1">{isLoading ? <Spinner /> : marketPnL ? formatBigNumbers(marketPnL.pnl) : "N/A"}</span>
+      {!isLoading && marketPnL && <USDIcon />}
+    </span>
+  );
 }
 
 function OutcomesInfo({
@@ -419,6 +441,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                     </div>
                   }
                 />
+              )}
+              {market.parentMarket.id.toLowerCase() === zeroAddress.toLowerCase() && (
+                <MarketPnL account={address} chainId={market.chainId} marketId={market.id} />
               )}
             </div>
           </div>

@@ -1,13 +1,13 @@
 import { gnosis } from "@/lib/chains";
-import type { SupportedChain } from "@seer-pm/sdk";
+import { type SupportedChain, getMappings } from "@seer-pm/sdk";
 import { getPrimaryCollateralAddress } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import type { Address } from "viem";
 import { getAddress, isAddress } from "viem";
+import { getPublicClientByChainId } from "./utils/config";
 import { searchAllMarkets } from "./utils/markets";
-import { getMappings } from "./utils/portfolio";
 
 /** Only count swaps strictly after this Unix timestamp (seconds). */
 const MIN_SWAP_TIMESTAMP = 1776773809;
@@ -53,7 +53,7 @@ async function fetchSeerOutcomePrimaryCollateralVolume(account: Address): Promis
     return 0;
   }
 
-  const { outcomeTokenToCollateral } = await getMappings(markets, chainId);
+  const { outcomeTokenToCollateral } = await getMappings(getPublicClientByChainId(chainId), markets, chainId);
   if (outcomeTokenToCollateral.size === 0) {
     return 0;
   }

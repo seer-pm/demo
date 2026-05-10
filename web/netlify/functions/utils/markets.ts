@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { type Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import { multicall } from "viem/actions";
 import { getPublicClientByChainId } from "./config";
+import { getSubgraphVerificationStatusList } from "./curate";
 import type { Database, Json } from "./supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -287,6 +288,47 @@ export function mapGraphMarketFromDbResult(subgraphMarket: LegacySubgraphMarket,
   });
 }
 
+/** Same subgraph + DB merge as `get-market` Netlify — returns full `Market` for server-side consumers. */
+export async function getMarketByChainAndId(chainId: SupportedChain, id: Address | ""): Promise<Market | undefined> {
+  if (!id) {
+    return undefined;
+  }
+
+  const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
+    getDatabaseMarket(chainId, id),
+    getSubgraphMarket(chainId, id),
+    getSubgraphVerificationStatusList(chainId),
+  ]);
+
+  const dbRow: DbMarket =
+    (dbResult.status === "fulfilled" && dbResult.value) ||
+    ({
+      id,
+      chain_id: chainId,
+      verification: undefined,
+      subgraph_data: undefined,
+    } as DbMarket);
+
+  const verification =
+    verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
+  if (verification !== undefined) {
+    dbRow.verification = verification as Json;
+  }
+
+  let subgraphMarket: LegacySubgraphMarket | undefined;
+  if (subgraphResult.status === "fulfilled" && subgraphResult.value) {
+    subgraphMarket = envioMarketToLegacySubgraphMarket(subgraphResult.value);
+  } else if (dbRow?.subgraph_data) {
+    subgraphMarket = dbRow.subgraph_data as LegacySubgraphMarket;
+  }
+
+  if (!subgraphMarket) {
+    return undefined;
+  }
+
+  return mapGraphMarketFromDbResult(subgraphMarket, dbRow);
+}
+
 function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" | "desc") {
   if (!orderBy) {
     return [
@@ -317,7 +359,7 @@ function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" 
   return [{ column: "opening_ts", ascending: orderDirection === "asc" }];
 }
 
-function escapePostgrest(str: string): string {
+export function escapePostgrest(str: string): string {
   return str
     .replace(/%/g, "\\%")
     .replace(/_/g, "\\_")
@@ -332,6 +374,7 @@ type SearchMarketsProps = {
   type?: "Generic" | "Futarchy" | "";
   id?: Address | "";
   parentMarket?: Address | "";
+  tokens?: Address[] | undefined;
   marketName?: string;
   categoryList?: string[] | undefined;
   marketStatusList?: MarketStatus[] | undefined;
@@ -349,44 +392,28 @@ type SearchMarketsProps = {
   orderDirection?: "asc" | "desc";
 };
 
-export type SearchAllMarketsProps = Omit<SearchMarketsProps, "limit" | "page">;
-
-/** Page size PostgREST uses when no range is set (~1000 rows); stay aligned for stable pagination. */
-const SEARCH_MARKETS_PAGE_SIZE = 1000;
-
 /**
- * Same filters as {@link searchMarkets}, but fetches every page until no more rows (not only the first chunk).
+ * Fetch **all** markets matching a filter by paging `searchMarkets`.
+ *
+ * Notes:
+ * - We intentionally require `chainIds` to avoid accidental cross-chain full scans.
  */
-export async function searchAllMarkets(props: SearchAllMarketsProps): Promise<{ markets: Market[]; count: number }> {
+export async function searchAllMarkets(
+  args: Omit<SearchMarketsProps, "limit" | "page"> & { chainIds: SupportedChain[] },
+): Promise<{ markets: Market[] }> {
+  const pageSize = 1000;
+  const markets: Market[] = [];
   let page = 1;
-  const allMarkets: Market[] = [];
-  let totalCount = 0;
 
-  while (true) {
-    const { markets, count } = await searchMarkets({
-      ...props,
-      limit: SEARCH_MARKETS_PAGE_SIZE,
-      page,
-    });
+  for (;;) {
+    const resp = await searchMarkets({ ...args, limit: pageSize, page });
+    markets.push(...resp.markets);
 
-    if (page === 1) {
-      totalCount = count;
-    }
-
-    allMarkets.push(...markets);
-
-    if (markets.length < SEARCH_MARKETS_PAGE_SIZE) {
-      break;
-    }
-
-    if (totalCount > 0 && allMarkets.length >= totalCount) {
-      break;
-    }
-
-    page++;
+    if (resp.markets.length < pageSize) break;
+    page += 1;
   }
 
-  return { markets: allMarkets, count: totalCount };
+  return { markets };
 }
 
 export async function searchMarkets({
@@ -394,6 +421,7 @@ export async function searchMarkets({
   type,
   id,
   parentMarket,
+  tokens,
   marketName,
   categoryList,
   marketStatusList,
@@ -452,6 +480,20 @@ export async function searchMarkets({
       "id",
       marketIds.map((id) => id.toLowerCase()),
     );
+  }
+
+  if (tokens?.length) {
+    const { data, error } = await supabase.rpc("search_markets_any_token", {
+      tokens: tokens.map((t) => t.toLowerCase()),
+    });
+    if (error) {
+      throw error;
+    }
+    const marketIdsFromTokens = [...new Set((data ?? []).map((d) => d.market_id).filter(Boolean))];
+    if (marketIdsFromTokens.length === 0) {
+      return { markets: [], count: 0 };
+    }
+    query = query.in("id", marketIdsFromTokens);
   }
 
   if (process.env.VITE_IS_FAST_TESTNET) {
@@ -564,6 +606,7 @@ const fetchMarketsWithPositions = async (address: Address, chainId: SupportedCha
 
   // [tokenBalance, ..., ...]
   const client = getPublicClientByChainId(chainId);
+
   const balances = (await multicall(client, {
     contracts: allTokensIds.map((wrappedAddresses) => ({
       abi: erc20Abi,

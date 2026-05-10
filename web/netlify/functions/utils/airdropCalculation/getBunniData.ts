@@ -3,7 +3,7 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
-import { SUBGRAPHS } from "@seer-pm/sdk/subgraph";
+import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import pLimit from "p-limit";
 import { type Address, formatUnits, zeroAddress } from "viem";
 import { calculateBurnAmounts } from "./utils";
@@ -72,7 +72,7 @@ export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, token
                     }
                 }`;
 
-        const results = await fetch(SUBGRAPHS["bunniMainnet"][1], {
+        const results = await fetch(getSubgraphUrl("bunniMainnet", mainnet.id)!, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export async function getBunniPositionSnapshots(bunniLpTokens: string[]) {
                 blockNumber
               }
             }`;
-    const results = await fetch(SUBGRAPHS["bunniLpPositionMainnet"][1], {
+    const results = await fetch(getSubgraphUrl("bunniLpPositionMainnet", mainnet.id)!, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

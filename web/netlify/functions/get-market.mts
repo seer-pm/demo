@@ -1,15 +1,7 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { serializeMarket } from "@seer-pm/sdk/market-types";
 import { CORS_HEADERS } from "./utils/common";
-import { getSubgraphVerificationStatusList } from "./utils/curate";
-import {
-  type LegacySubgraphMarket,
-  envioMarketToLegacySubgraphMarket,
-  getDatabaseMarket,
-  getMarketId,
-  getSubgraphMarket,
-  mapGraphMarketFromDbResult,
-} from "./utils/markets";
+import { getMarketByChainAndId, getMarketId } from "./utils/markets";
 
 /**
  * For individual market fetches, we prioritize real-time accuracy by querying both the database and subgraph.
@@ -53,32 +45,9 @@ export default async (req: Request) => {
     // we first look up the corresponding market ID in Supabase before querying the subgraph.
     const id = await getMarketId(body.id, body.url);
 
-    const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
-      getDatabaseMarket(Number(body.chainId) as SupportedChain, id),
-      getSubgraphMarket(Number(body.chainId) as SupportedChain, id),
-      getSubgraphVerificationStatusList(Number(body.chainId) as SupportedChain),
-    ]);
+    const market = await getMarketByChainAndId(Number(body.chainId) as SupportedChain, id);
 
-    const dbRow = (dbResult.status === "fulfilled" && dbResult.value) || {
-      id,
-      chain_id: Number(body.chainId) as SupportedChain,
-      verification: undefined,
-      subgraph_data: undefined,
-    };
-    const verification =
-      verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
-    if (verification !== undefined) {
-      dbRow.verification = verification;
-    }
-
-    let subgraphMarket: LegacySubgraphMarket | undefined;
-    if (subgraphResult.status === "fulfilled" && subgraphResult.value) {
-      subgraphMarket = envioMarketToLegacySubgraphMarket(subgraphResult.value);
-    } else if (dbRow?.subgraph_data) {
-      subgraphMarket = dbRow.subgraph_data as LegacySubgraphMarket;
-    }
-
-    if (!subgraphMarket) {
+    if (!market) {
       return new Response(JSON.stringify({ error: "Market not found" }), {
         status: 404,
         headers: {
@@ -88,9 +57,7 @@ export default async (req: Request) => {
       });
     }
 
-    const market = serializeMarket(mapGraphMarketFromDbResult(subgraphMarket, dbRow));
-
-    return new Response(JSON.stringify(market), {
+    return new Response(JSON.stringify(serializeMarket(market)), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

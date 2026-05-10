@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/edge-functions";
-import { SUBGRAPHS } from "../../../packages/seer-pm-sdk/src/subgraph/subgraph-endpoints.ts";
+import { getSubgraphUrl } from "../../../packages/seer-pm-sdk/src/subgraph/subgraph-endpoints.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +19,7 @@ export default async (req: Request) => {
   const chainId = Number.parseInt(new URL(req.url).searchParams.get("_chainId") || "");
 
   // @ts-ignore
-  const subgraphUrl = SUBGRAPHS[subgraph][chainId];
+  const subgraphUrl = getSubgraphUrl(subgraph, chainId);
 
   console.log(`Proxying request to subgraph: ${subgraph} for chain: ${chainId}`);
 

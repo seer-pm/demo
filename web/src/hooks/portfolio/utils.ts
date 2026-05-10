@@ -70,12 +70,18 @@ export function getTokenPricesMapping(
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
 }
 
+export type TokensInfo = {
+  balances: bigint[];
+  names: string[];
+  decimals: bigint[];
+};
+
 export async function getTokensInfo(
   config: Config,
   chainId: SupportedChain,
   tokenAddresses: readonly Address[],
   account: Address,
-) {
+): Promise<TokensInfo> {
   const functions = [
     {
       name: "balanceOf",

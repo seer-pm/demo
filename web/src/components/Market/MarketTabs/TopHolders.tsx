@@ -7,6 +7,9 @@ import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { useComputedPoolAddresses } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 
+/** Display cap per outcome; full holder lists come from the API. */
+const TOP_HOLDERS_COUNT = 10;
+
 interface TopHoldersProps {
   market: Market;
 }
@@ -29,7 +32,7 @@ function filterTopHolders(
 }
 
 export default function TopHolders({ market }: TopHoldersProps) {
-  const { data, isLoading, error } = useMarketHolders(market.wrappedTokens, market.chainId);
+  const { data, isLoading, error } = useMarketHolders(market);
   const { data: poolAddresses = [] } = useComputedPoolAddresses(market);
 
   if (isLoading) {
@@ -85,7 +88,7 @@ export default function TopHolders({ market }: TopHoldersProps) {
                           </td>
                         </tr>
                       ) : (
-                        holders.slice(0, 5).map((holder) => (
+                        holders.slice(0, TOP_HOLDERS_COUNT).map((holder) => (
                           <tr key={holder.address}>
                             <td className="text-left">
                               <span className="text-sm text-base-content/90 flex space-x-2 items-center">

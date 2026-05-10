@@ -67,6 +67,12 @@ export {
 } from "./market-pools";
 export type { Token0Token1 } from "./market-pools";
 export {
+  UNISWAP_V3_POOL_INIT_CODE_HASH,
+  POOL_FACTORY_ADDRESSES,
+  computePoolAddress,
+  getComputedPoolAddressesForMarket,
+} from "./pool-address";
+export {
   getBlockExplorerUrl,
   getLiquidityUrl,
   getLiquidityUrlByMarket,
@@ -102,7 +108,13 @@ export {
 } from "./reality";
 export type { FormEventOutcomeValue, Outcome } from "./reality";
 export { getResolveMarketExecution } from "./resolve-market";
-export { CHAIN_ROUTERS, getRouterAddress, getRedeemRouter } from "./router-addresses";
+export {
+  CHAIN_ROUTERS,
+  getRouterAddress,
+  getRedeemRouter,
+  routerAddressMap,
+  getRouterAddresses,
+} from "./router-addresses";
 export type { MarketLike, RouterAddressMap, RouterTypes } from "./router-addresses";
 export { getRedeemExecution } from "./redeem-positions";
 export type { GetRedeemExecutionParams } from "./redeem-positions";
@@ -213,6 +225,24 @@ export {
 } from "./markets-fetch";
 export { searchOnChainMarkets } from "./on-chain-markets";
 
+export {
+  fetchPortfolioPositions,
+  fetchPortfolioValue,
+  fetchPortfolioPnL,
+} from "./portfolio-fetch";
+export type {
+  PortfolioPosition,
+  PortfolioPnLPeriod,
+  PortfolioPnLData,
+  PortfolioValueApiResponse,
+  TransactionData,
+} from "./portfolio-types";
+export {
+  reconstructSplitMergeRedeemFromTransfers,
+  type ReconstructSplitMergeRedeemParams,
+} from "./reconstruct-split-merge-redeem";
+export { getMappings, type MarketDataMapping } from "./get-mappings";
+
 // Subgraph: endpoints, clients, token price from subgraph
 export {
   initApiHost,
@@ -223,7 +253,6 @@ export {
   swaprGraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
-  SUBGRAPHS,
   getTokenPriceFromSubgraph,
 } from "./subgraph";
 export type { AppSubgraphType, SubgraphTypes } from "./subgraph";

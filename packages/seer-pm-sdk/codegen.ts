@@ -5,7 +5,7 @@ import { SUBGRAPHS } from "./src/subgraph/subgraph-endpoints";
 const schemasAndDocuments = [
   {
     type: "seer",
-    schema: SUBGRAPHS.seer[gnosis.id],
+    schema: SUBGRAPHS.seer,
     documents: "./queries/markets.graphql",
   },
   {

@@ -1,12 +1,12 @@
 import { gnosis } from "@/lib/chains";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
+import type { MarketDataMapping } from "@seer-pm/sdk";
 import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { type GetMintsQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
-import type { MarketDataMapping, TransactionData } from "../portfolio";
 
 async function fetchMintsFromSubgraph(
   outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
