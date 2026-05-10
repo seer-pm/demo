@@ -14,7 +14,7 @@ import { paths } from "@/lib/paths";
 import { useMarket } from "@seer-pm/react";
 import type { PortfolioPosition } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { MarketStatus } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, MarketStatus } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -82,6 +82,7 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
+  const primarySymbol = COLLATERAL_TOKENS[chainId].primary.symbol;
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
@@ -207,7 +208,7 @@ function PositionsTableInner({
                 <p>{formatSmallNumber(info.getValue<number>())}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
-                    = relative price to parent outcome &times; parent's sDAI price
+                    = relative price to parent outcome &times; parent's {primarySymbol} price
                   </p>
                   <QuestionIcon fill="#9747FF" />
                 </span>
@@ -216,7 +217,7 @@ function PositionsTableInner({
           }
           return <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>;
         },
-        header: "Price (sDAI)",
+        header: `Price (${primarySymbol})`,
       },
 
       {
@@ -224,11 +225,11 @@ function PositionsTableInner({
         cell: (info) => (
           <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>
         ),
-        header: "Value (sDAI)",
+        header: `Value (${primarySymbol})`,
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
     ];
-  }, [chainId, showRedeemColumn]);
+  }, [chainId, primarySymbol, showRedeemColumn]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
