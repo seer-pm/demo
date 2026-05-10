@@ -1,9 +1,8 @@
-import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
+import { type MarketDataMapping, type SupportedChain, type TransactionData, getMappings } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "./utils/config";
 import { searchMarkets } from "./utils/markets";
-import { type MarketDataMapping, getMappings } from "./utils/portfolio";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
@@ -83,7 +82,7 @@ async function getTransactions(
     return [];
   }
 
-  const mappings = await getMappings(markets, chainId);
+  const mappings = await getMappings(getPublicClientByChainId(chainId), markets, chainId);
 
   const { tokenIdToTokenSymbolMapping } = mappings;
 

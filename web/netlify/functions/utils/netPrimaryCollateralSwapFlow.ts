@@ -1,8 +1,8 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, getPrimaryCollateralAddress } from "@seer-pm/sdk";
+import { COLLATERAL_TOKENS, getMappings, getPrimaryCollateralAddress } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
-import { getMappings } from "./portfolio";
+import { getPublicClientByChainId } from "./config";
 import { getSwapEvents } from "./transactions/getSwapEvents";
 
 export type PrimaryCollateralSwapFlowDebugRow = {
@@ -94,7 +94,7 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
     };
   }
 
-  const mappings = await getMappings(markets, chainId);
+  const mappings = await getMappings(getPublicClientByChainId(chainId), markets, chainId);
   const minStart = Math.min(...startTimes);
   const swaps = await getSwapEvents(mappings, account, chainId, minStart, endTime);
 

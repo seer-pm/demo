@@ -241,6 +241,7 @@ export {
   reconstructSplitMergeRedeemFromTransfers,
   type ReconstructSplitMergeRedeemParams,
 } from "./reconstruct-split-merge-redeem";
+export { getMappings, type MarketDataMapping } from "./get-mappings";
 
 // Subgraph: endpoints, clients, token price from subgraph
 export {
