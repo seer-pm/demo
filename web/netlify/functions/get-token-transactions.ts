@@ -88,7 +88,6 @@ async function getRecentTransactions(
   return { outcomeBatch, mergedWithPrimary };
 }
 
-const TOP_HOLDERS_COUNT = 10;
 /** Single outcome-token query window; response trims to `RECENT_TRANSFERS_RESPONSE_LIMIT` rows. */
 const RECENT_TRANSFERS_FETCH_LIMIT = 500;
 const RECENT_TRANSFERS_RESPONSE_LIMIT = 100;
@@ -166,7 +165,7 @@ export default async (req: Request) => {
       );
     }
 
-    const topHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds, TOP_HOLDERS_COUNT);
+    const topHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds);
 
     const { outcomeBatch, mergedWithPrimary } = await getRecentTransactions(
       effectiveTokenIds,

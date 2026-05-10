@@ -92,9 +92,7 @@ async function fetchHistoricTokenHoldings(
 
   const balanceByTokenLc = new Map<string, bigint>();
   for (const row of data ?? []) {
-    const tok = row.token?.toLowerCase();
-    if (!tok) continue;
-    balanceByTokenLc.set(tok, BigInt(row.balance as string));
+    balanceByTokenLc.set(row.token.toLowerCase(), BigInt(row.balance));
   }
 
   return tokens.map((t) => balanceByTokenLc.get(t.toLowerCase()) ?? 0n);

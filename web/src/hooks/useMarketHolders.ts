@@ -8,6 +8,7 @@ interface Holder {
 }
 
 export interface TokenTransactionsResponse {
+  /** All holders per outcome token (unsliced); UI applies a top-N display cap. */
   topHolders: { [tokenId: string]: Holder[] };
   recentTransactions: Array<TokenTransfer>;
   recentActivity: TransactionData[];

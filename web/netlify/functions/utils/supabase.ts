@@ -513,10 +513,10 @@ export type Database = {
       };
       tokens_holdings_v: {
         Row: {
-          balance: number | null;
-          chain_id: number | null;
-          owner: string | null;
-          token: string | null;
+          balance: number;
+          chain_id: number;
+          owner: string;
+          token: string;
         };
         Relationships: [];
       };
