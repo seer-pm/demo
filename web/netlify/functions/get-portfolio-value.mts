@@ -1,6 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { subDays } from "date-fns";
 import { type Address, isAddress } from "viem";
 import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
@@ -21,8 +20,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   (`redeemedPrice` rules match the UI).
  *
  * Historical snapshot (`historyTimestamp`)
- * - Fixed offset: **one calendar day** before “now” via `subDays(new Date(), 1)` (unix seconds), **not** necessarily
- *   exactly `now - 86400` (DST / calendar semantics differ from `get-portfolio-pl`’s `1d` window).
+ * - Fixed offset: **one calendar day** before “now” (unix seconds), **not** necessarily exactly `now - 86400`
+ *   (DST / calendar semantics differ from `get-portfolio-pl`’s `1d` window).
  *
  * Critical difference vs `get-portfolio-pl`
  * - We use the **same current positions** for both valuations: `historyPortfolioValue` is “this **same** bag of tokens,
@@ -66,7 +65,9 @@ export default async (req: Request) => {
 
     const positions = await buildCurrentPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
 
-    const historyTimestamp = Math.floor(subDays(new Date(), 1).getTime() / 1000);
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    const historyTimestamp = Math.floor(oneDayAgo.getTime() / 1000);
 
     const historyPrices = await getHistoryTokensPricesForPortfolio(
       supabase,
