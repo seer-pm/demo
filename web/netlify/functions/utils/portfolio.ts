@@ -19,32 +19,6 @@ export interface MarketDataMapping {
   };
 }
 
-export interface TransactionData {
-  marketName: string;
-  marketId: string;
-  type: "split" | "merge" | "redeem" | "swap" | "lp" | "lp-burn";
-  blockNumber: number;
-  collateral: Address;
-  collateralSymbol?: string;
-  timestamp: number;
-  transactionHash?: string;
-  amount?: string;
-  payout?: string;
-  tokenIn?: string;
-  tokenOut?: string;
-  tokenInSymbol?: string;
-  tokenOutSymbol?: string;
-  amountIn?: string;
-  amountOut?: string;
-  price?: string;
-  token0?: string;
-  token1?: string;
-  token0Symbol?: string;
-  token1Symbol?: string;
-  amount0?: string;
-  amount1?: string;
-}
-
 export async function getMappings(initialMarkets: Market[], chainId: SupportedChain): Promise<MarketDataMapping> {
   const markets = initialMarkets.filter((x) => x.chainId === chainId);
   const conditionIdToMarketMapping: MarketDataMapping["conditionIdToMarketMapping"] = {};

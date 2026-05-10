@@ -20,28 +20,31 @@ export async function listDistinctUserTransferTokensInWindow(
   const seen = new Set<string>();
 
   // Keyset pagination avoids high OFFSET degradation and requires a stable order.
-  // We paginate backwards (newest -> oldest) so the cursor is the last (timestamp, id) seen.
-  let last: { timestamp: number; id: number } | null = null;
+  // PK is (chain_id, tx_hash, log_index); chain_id is fixed — cursor uses (timestamp, tx_hash, log_index).
+  // Paginate backwards (newest -> oldest).
+  let last: { timestamp: number; tx_hash: string; log_index: number } | null = null;
   for (;;) {
     let q = supabase
       .from("tokens_transfers")
-      .select("token,timestamp,id")
+      .select("token,timestamp,tx_hash,log_index")
       .eq("chain_id", chainId)
       .gt("timestamp", startTime)
       .lte("timestamp", endTime)
       .order("timestamp", { ascending: false })
-      .order("id", { ascending: false })
+      .order("tx_hash", { ascending: false })
+      .order("log_index", { ascending: false })
       .limit(PAGE_SIZE);
 
     if (last) {
-      // Combine (from/to match) AND (keyset cursor) in a single OR expression.
-      // (from=acct OR to=acct) AND (ts<lastTs OR (ts=lastTs AND id<lastId))
+      // (from=acct OR to=acct) AND key-after cursor for DESC (ts, tx_hash, log_index)
       q = q.or(
         [
           `and(from.eq.${accountLc},timestamp.lt.${last.timestamp})`,
-          `and(from.eq.${accountLc},timestamp.eq.${last.timestamp},id.lt.${last.id})`,
+          `and(from.eq.${accountLc},timestamp.eq.${last.timestamp},tx_hash.lt.${last.tx_hash})`,
+          `and(from.eq.${accountLc},timestamp.eq.${last.timestamp},tx_hash.eq.${last.tx_hash},log_index.lt.${last.log_index})`,
           `and(to.eq.${accountLc},timestamp.lt.${last.timestamp})`,
-          `and(to.eq.${accountLc},timestamp.eq.${last.timestamp},id.lt.${last.id})`,
+          `and(to.eq.${accountLc},timestamp.eq.${last.timestamp},tx_hash.lt.${last.tx_hash})`,
+          `and(to.eq.${accountLc},timestamp.eq.${last.timestamp},tx_hash.eq.${last.tx_hash},log_index.lt.${last.log_index})`,
         ].join(","),
       );
     } else {
@@ -64,11 +67,14 @@ export async function listDistinctUserTransferTokensInWindow(
 
     const lastRow = rows[rows.length - 1];
     const ts = Number(lastRow?.timestamp ?? Number.NaN);
-    const id = Number(lastRow?.id ?? Number.NaN);
-    if (!Number.isFinite(ts) || !Number.isFinite(id)) {
-      throw new Error("tokens_transfers distinct tokens in window: missing cursor (timestamp,id) for pagination");
+    const txHash = lastRow?.tx_hash;
+    const logIndex = Number(lastRow?.log_index ?? Number.NaN);
+    if (!Number.isFinite(ts) || typeof txHash !== "string" || txHash.length === 0 || !Number.isFinite(logIndex)) {
+      throw new Error(
+        "tokens_transfers distinct tokens in window: missing cursor (timestamp,tx_hash,log_index) for pagination",
+      );
     }
-    last = { timestamp: ts, id };
+    last = { timestamp: ts, tx_hash: txHash, log_index: logIndex };
   }
 
   return Array.from(seen);

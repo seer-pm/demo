@@ -29,7 +29,7 @@ function filterTopHolders(
 }
 
 export default function TopHolders({ market }: TopHoldersProps) {
-  const { data, isLoading, error } = useMarketHolders(market.wrappedTokens, market.chainId);
+  const { data, isLoading, error } = useMarketHolders(market);
   const { data: poolAddresses = [] } = useComputedPoolAddresses(market);
 
   if (isLoading) {

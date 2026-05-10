@@ -39,7 +39,7 @@ import {
 import { MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
-import { type Address, formatUnits } from "viem";
+import { type Address, formatUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
@@ -69,7 +69,7 @@ function MarketPnL({
 
   return (
     <span className="ml-3 flex items-center gap-1">
-      <span className="text-base-content/70 @[510px]:inline-block hidden">PnL:</span>
+      <span className="text-base-content/70 @[510px]:inline-block hidden">{"P&L:"}</span>
       <span className="ml-1">{isLoading ? <Spinner /> : marketPnL ? formatBigNumbers(marketPnL.pnl) : ""}</span>
       {!isLoading && marketPnL && <USDIcon />}
     </span>
@@ -442,7 +442,9 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                   }
                 />
               )}
-              <MarketPnL account={address} chainId={market.chainId} marketId={market.id} />
+              {market.parentMarket.id.toLowerCase() === zeroAddress.toLowerCase() && (
+                <MarketPnL account={address} chainId={market.chainId} marketId={market.id} />
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">

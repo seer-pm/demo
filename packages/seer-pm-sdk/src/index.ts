@@ -67,6 +67,12 @@ export {
 } from "./market-pools";
 export type { Token0Token1 } from "./market-pools";
 export {
+  UNISWAP_V3_POOL_INIT_CODE_HASH,
+  POOL_FACTORY_ADDRESSES,
+  computePoolAddress,
+  getComputedPoolAddressesForMarket,
+} from "./pool-address";
+export {
   getBlockExplorerUrl,
   getLiquidityUrl,
   getLiquidityUrlByMarket,
@@ -229,7 +235,12 @@ export type {
   PortfolioPnLPeriod,
   PortfolioPnLData,
   PortfolioValueApiResponse,
+  TransactionData,
 } from "./portfolio-types";
+export {
+  reconstructSplitMergeRedeemFromTransfers,
+  type ReconstructSplitMergeRedeemParams,
+} from "./reconstruct-split-merge-redeem";
 
 // Subgraph: endpoints, clients, token price from subgraph
 export {

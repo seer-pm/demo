@@ -1,5 +1,6 @@
 import { type Market as BaseMarket, getMarketPoolsPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
   EternalFarmingAbi,
   EternalFarmingCreatedEvent,
@@ -24,7 +25,6 @@ import { useConfig } from "wagmi";
 import { gnosis } from "wagmi/chains";
 import { AlgebraPoolAbi } from "../abi/AlgebraPoolAbi";
 import { isUndefined } from "../utils";
-import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "./useComputedPoolAddresses";
 
 export type Market = BaseMarket;
 

@@ -1,9 +1,8 @@
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { unescapeJson } from "@seer-pm/sdk/market";
 import { graphQLClient } from "@seer-pm/sdk/subgraph";
 import { ConditionalEvent_Select_Column, Order_By, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import type { Address } from "viem";
-import type { TransactionData } from "../portfolio";
 
 export async function getSplitMergeRedeemEvents(account: string, chainId: SupportedChain): Promise<TransactionData[]> {
   const client = graphQLClient(chainId);

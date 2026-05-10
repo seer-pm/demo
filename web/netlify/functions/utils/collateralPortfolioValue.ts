@@ -1,12 +1,9 @@
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TokenTransfer } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS, getPrimaryCollateralAddress, getRouterAddresses } from "@seer-pm/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits } from "viem";
 import type { Database } from "./supabase";
-import {
-  type TokenTransferRow,
-  listUserRouterTokenTransfersInWindow,
-} from "./transactions/listUserRouterTokenTransfersInWindow";
+import { listUserRouterTokenTransfersInWindow } from "./transactions/listUserRouterTokenTransfersInWindow";
 
 const DEBUG_MAX_TRANSFERS = 50;
 
@@ -29,7 +26,7 @@ async function listRouterPrimaryCollateralTransfersInWindow(
   startTime: number,
   endTime: number,
 ): Promise<RouterCollateralTransfer[]> {
-  const rows: TokenTransferRow[] = await listUserRouterTokenTransfersInWindow(
+  const rows: TokenTransfer[] = await listUserRouterTokenTransfersInWindow(
     supabase,
     chainId,
     account,
@@ -42,7 +39,7 @@ async function listRouterPrimaryCollateralTransfersInWindow(
   const accountLc = account.toLowerCase();
   const out: RouterCollateralTransfer[] = [];
   for (const row of rows) {
-    const valueWei = BigInt(row.value as string);
+    const valueWei = BigInt(row.value);
     const from = String(row.from).toLowerCase();
     const to = String(row.to).toLowerCase();
     const signedValueWeiForUser = to === accountLc ? valueWei : -valueWei;

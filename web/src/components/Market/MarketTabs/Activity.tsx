@@ -3,37 +3,49 @@ import { Link } from "@/components/Link";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
-import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
-import { useComputedPoolAddresses } from "@seer-pm/react";
-import { Market } from "@seer-pm/sdk";
-import type { TokenTransfer } from "@seer-pm/sdk";
-import { getRouterAddress } from "@seer-pm/sdk";
-import { formatDistanceToNow } from "date-fns";
+import { displayBalance, displayNumber, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { COLLATERAL_TOKENS, Market } from "@seer-pm/sdk";
+import type { TransactionData } from "@seer-pm/sdk";
+import { format } from "date-fns";
 import { useState } from "react";
-import { Address, isAddressEqual } from "viem";
+import { Address, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 
 interface ActivityProps {
   market: Market;
 }
 
-function getTransactionType(transaction: TokenTransfer, pools: Address[], routerAddress: Address) {
-  const { from, to } = transaction;
+function activityTypeClass(type: TransactionData["type"]): string {
+  if (type === "bought") return "text-success-primary";
+  if (type === "sold") return "text-error-primary";
+  return "text-base-content/90";
+}
 
-  if (isAddressEqual(from, routerAddress) || isAddressEqual(to, routerAddress)) {
-    // split, merge or redeem
-    return null;
+function activityTypeLabel(type: TransactionData["type"]): string {
+  switch (type) {
+    case "split":
+      return "Split";
+    case "merge":
+      return "Merge";
+    case "redeem":
+      return "Redeem";
+    case "bought":
+      return "Bought";
+    case "sold":
+      return "Sold";
+    default:
+      return type;
   }
+}
 
-  // If from is any pool, it's a purchase
-  const isFromRouter = pools.some((routerAddress) => isTwoStringsEqual(from, routerAddress));
-
-  if (isFromRouter) {
-    return { type: "bought", color: "text-success-primary" };
+function formatActivityAmount(row: TransactionData): string {
+  const s = row.amount ?? row.payout;
+  if (!s) return "0";
+  try {
+    return displayBalance(parseUnits(s as `${string}`, 18), 18, true);
+  } catch {
+    return displayNumber(Number(s), 2, true);
   }
-
-  // Otherwise it's a sale
-  return { type: "sold", color: "text-error-primary" };
 }
 
 export default function Activity({ market }: ActivityProps) {
@@ -41,8 +53,7 @@ export default function Activity({ market }: ActivityProps) {
   const [showMyActivity, setShowMyActivity] = useState(false);
   const isFilteringMyActivity = Boolean(address && showMyActivity);
   const accountFilter = isFilteringMyActivity ? address : undefined;
-  const { data, isLoading, error } = useMarketHolders(market.wrappedTokens, market.chainId, accountFilter);
-  const { data: poolAddresses = [] } = useComputedPoolAddresses(market);
+  const { data, isLoading, error } = useMarketHolders(market, accountFilter);
 
   if (isLoading) {
     return <div className="shimmer-container w-full h-[50px]"></div>;
@@ -54,7 +65,11 @@ export default function Activity({ market }: ActivityProps) {
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
-  const routerAddress = getRouterAddress(market);
+  const rows = (data?.recentActivity ?? []).filter((row) => {
+    if (!isFilteringMyActivity) return true;
+    if (!address || !row.trader) return false;
+    return isTwoStringsEqual(row.trader as string, address);
+  });
 
   return (
     <div className="p-4 card shadow-sm border-separator-100">
@@ -72,7 +87,7 @@ export default function Activity({ market }: ActivityProps) {
           </label>
         </div>
       )}
-      {!data || !data.recentTransactions || data.recentTransactions.length === 0 ? (
+      {!data || rows.length === 0 ? (
         <Alert type="warning">
           {isFilteringMyActivity ? "No recent activity for your account" : "No recent activity"}
         </Alert>
@@ -84,68 +99,63 @@ export default function Activity({ market }: ActivityProps) {
               <col style={{ width: "30%" }} />
             </colgroup>
             <tbody>
-              {data.recentTransactions
-                .map((transaction) => {
-                  const tokenIndex = market.wrappedTokens.findIndex((wrappedToken) =>
-                    isTwoStringsEqual(wrappedToken, transaction.token),
-                  );
+              {rows.map((row) => {
+                const tokenIndex = row.outcomeToken
+                  ? market.wrappedTokens.findIndex((w) => isTwoStringsEqual(w, row.outcomeToken as Address))
+                  : -1;
 
-                  const timeAgo = formatDistanceToNow(new Date(transaction.timestamp * 1000), {
-                    addSuffix: true,
-                  });
+                const occurredAt = format(new Date(row.timestamp * 1000), "MMM d, yyyy · HH:mm");
 
-                  const transactionType = getTransactionType(transaction, poolAddresses, routerAddress);
+                const trader = row.trader;
+                const txHash = row.transactionHash ?? "";
 
-                  // Skip mint/burn transactions
-                  if (!transactionType) {
-                    return null;
-                  }
-
-                  return {
-                    transaction,
-                    tokenIndex,
-                    timeAgo,
-                    transactionType,
-                  };
-                })
-                .filter((item): item is NonNullable<typeof item> => item !== null)
-                .map(({ transaction, tokenIndex, timeAgo, transactionType }) => (
-                  <tr key={transaction.id}>
+                return (
+                  <tr key={row.transferId ?? `${txHash}-${row.timestamp}-${row.type}-${row.outcomeToken ?? ""}`}>
                     <td className="text-left">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
-                          <Link to={`/portfolio/${transaction.from}`} className="hover:text-purple-primary">
-                            {shortenAddress(transaction.from)}
-                          </Link>
+                        {trader ? (
+                          <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
+                            <Link to={`/portfolio/${trader}`} className="hover:text-purple-primary">
+                              {shortenAddress(trader)}
+                            </Link>
 
-                          <a
-                            href={blockExplorerUrl && `${blockExplorerUrl}/address/${transaction.from}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLinkIcon />
-                          </a>
+                            <a
+                              href={blockExplorerUrl && `${blockExplorerUrl}/address/${trader}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLinkIcon />
+                            </a>
+                          </span>
+                        ) : (
+                          <span className="text-sm text-base-content/60">—</span>
+                        )}
+                        <span className={`text-sm font-medium ${activityTypeClass(row.type)}`}>
+                          {activityTypeLabel(row.type)}
                         </span>
-                        <span className={`text-sm font-medium ${transactionType.color}`}>{transactionType.type}</span>
-                        <span className="text-sm font-medium text-base-content/90">
-                          {displayBalance(BigInt(transaction.value), 18, true)}
+                        <span className="text-sm font-medium text-base-content/90">{formatActivityAmount(row)}</span>
+                        <span className="text-sm text-base-content">
+                          {tokenIndex >= 0
+                            ? market.outcomes[tokenIndex]
+                            : (COLLATERAL_TOKENS[market.chainId]?.primary.symbol ?? "—")}
                         </span>
-                        <span className="text-sm text-base-content">{market.outcomes[tokenIndex]}</span>
                       </div>
                     </td>
                     <td className="text-right">
                       <span className="text-xs lg:text-sm text-gray-500">
                         <a
-                          href={blockExplorerUrl && `${blockExplorerUrl}/tx/${transaction.tx_hash}`}
+                          href={blockExplorerUrl && `${blockExplorerUrl}/tx/${txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          title={new Date(row.timestamp * 1000).toISOString()}
                         >
-                          {timeAgo}
+                          {occurredAt}
                         </a>
                       </span>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -41,3 +41,34 @@ export type PortfolioPnLData = {
   startTime: number;
   endTime: number;
 };
+
+/** Portfolio / activity transaction row (split, merge, redeem, swap, LP). */
+export interface TransactionData {
+  marketName: string;
+  marketId: string;
+  type: "split" | "merge" | "redeem" | "swap" | "lp" | "lp-burn" | "bought" | "sold";
+  blockNumber: number;
+  collateral: Address;
+  collateralSymbol?: string;
+  timestamp: number;
+  transactionHash?: string;
+  /** Wallet to attribute for SMR / DEX leg rows (activity feed). */
+  trader?: Address;
+  outcomeToken?: Address;
+  transferId?: string;
+  amount?: string;
+  payout?: string;
+  tokenIn?: string;
+  tokenOut?: string;
+  tokenInSymbol?: string;
+  tokenOutSymbol?: string;
+  amountIn?: string;
+  amountOut?: string;
+  price?: string;
+  token0?: string;
+  token1?: string;
+  token0Symbol?: string;
+  token1Symbol?: string;
+  amount0?: string;
+  amount1?: string;
+}

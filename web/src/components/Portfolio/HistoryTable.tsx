@@ -1,11 +1,10 @@
 import React from "react";
 
-import { TransactionData } from "@/hooks/portfolio/historyTab/types";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -17,7 +16,7 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { Address } from "viem";
+import { Address, parseUnits } from "viem";
 import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
@@ -32,9 +31,16 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
             <div className="font-semibold text-[14px] flex items-center gap-2 whitespace-nowrap">
               <p>
                 {info.getValue<string>()
-                  ? { split: "Split", merge: "Merge", redeem: "Redeem", swap: "Swap", lp: "Liquidity Providing" }[
-                      info.getValue<string>()
-                    ]
+                  ? {
+                      split: "Split",
+                      merge: "Merge",
+                      redeem: "Redeem",
+                      swap: "Swap",
+                      lp: "Liquidity Providing",
+                      "lp-burn": "Remove liquidity",
+                      bought: "Bought",
+                      sold: "Sold",
+                    }[info.getValue<string>()]
                   : "-"}
               </p>
             </div>
@@ -147,6 +153,30 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
                 </p>
               );
             }
+            case "bought": {
+              return (
+                <p className="text-[14px] min-w-[200px]">
+                  Bought{" "}
+                  <span className="font-semibold">
+                    {displayBalance(parseUnits((data.amount ?? "0") as `${string}`, 18), 18)}
+                  </span>{" "}
+                  outcome tokens.
+                </p>
+              );
+            }
+            case "sold": {
+              return (
+                <p className="text-[14px] min-w-[200px]">
+                  Sold{" "}
+                  <span className="font-semibold">
+                    {displayBalance(parseUnits((data.amount ?? "0") as `${string}`, 18), 18)}
+                  </span>{" "}
+                  outcome tokens.
+                </p>
+              );
+            }
+            default:
+              return <p className="text-[14px] min-w-[200px]">—</p>;
           }
         },
         header: "Description",

@@ -10,7 +10,7 @@ import {
   fetchPoolHourDatasSince,
   parseDexPoolHourFetchCursor,
 } from "./utils/fetchDexPoolHourDatas.ts";
-import { MARKET_DB_FIELDS, type LegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
+import { type LegacySubgraphMarket, MARKET_DB_FIELDS, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);

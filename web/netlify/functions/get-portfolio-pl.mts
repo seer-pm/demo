@@ -363,12 +363,10 @@ async function computeAllPeriods(
         reconstructSplitMergeRedeemFromTransfersForMarket({
           supabase,
           account,
-          chainId,
-          marketId,
-          marketName: market.marketName,
-          wrappedTokens: market.wrappedTokens as Address[],
+          market,
           startTime: startTimeByPeriod[p],
           endTime,
+          identifySwaps: false,
         }),
       ),
     );
@@ -467,11 +465,25 @@ async function computeAllPeriods(
       const flow = await computeNetPrimaryCollateralSwapFlow(account, chainId, st, endTime, markets, marketId, {
         limitRows: 300,
       });
+      const primaryDecimals = flow.primary.decimals;
+      const absWei = (weiStr: string) => {
+        const w = BigInt(weiStr);
+        return w < 0n ? -w : w;
+      };
+      const rows = [...flow.rows]
+        .map((r) => ({
+          ...r,
+          countedPrimaryNetOutHuman: formatUnits(BigInt(r.countedPrimaryNetOutWei), primaryDecimals),
+        }))
+        .sort((a, b) => {
+          const cmp = absWei(b.countedPrimaryNetOutWei) - absWei(a.countedPrimaryNetOutWei);
+          return cmp > 0n ? 1 : cmp < 0n ? -1 : 0;
+        });
       swapFlowDebug = {
         primary: flow.primary,
         netOut: flow.netOut,
         rowCount: flow.rows.length,
-        rows: flow.rows,
+        rows,
       };
     } catch (err) {
       console.error("get-portfolio-pl: failed to compute primary collateral swap net flow (debug rows)", err);

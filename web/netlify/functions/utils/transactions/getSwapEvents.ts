@@ -1,6 +1,6 @@
 import { gnosis } from "@/lib/chains";
 import { getStore } from "@netlify/blobs";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
 import { OrderBookApi } from "@seer-pm/sdk/cow";
 import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk/market-pools";
@@ -11,7 +11,7 @@ import { type Address, parseUnits } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
-import type { MarketDataMapping, TransactionData } from "../portfolio";
+import type { MarketDataMapping } from "../portfolio";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
 /** Cache CoW swap rows (API + block timestamps) per chain + owner (Netlify Blobs). */

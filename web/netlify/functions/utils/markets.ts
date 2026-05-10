@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { type Address, erc20Abi, zeroAddress, zeroHash } from "viem";
 import { multicall } from "viem/actions";
 import { getPublicClientByChainId } from "./config";
+import { getSubgraphVerificationStatusList } from "./curate";
 import type { Database, Json } from "./supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -285,6 +286,47 @@ export function mapGraphMarketFromDbResult(subgraphMarket: LegacySubgraphMarket,
     url: extraData?.url || "",
     images: (extraData?.images as VerificationImages) || undefined,
   });
+}
+
+/** Same subgraph + DB merge as `get-market` Netlify — returns full `Market` for server-side consumers. */
+export async function getMarketByChainAndId(chainId: SupportedChain, id: Address | ""): Promise<Market | undefined> {
+  if (!id) {
+    return undefined;
+  }
+
+  const [dbResult, subgraphResult, verificationStatusList] = await Promise.allSettled([
+    getDatabaseMarket(chainId, id),
+    getSubgraphMarket(chainId, id),
+    getSubgraphVerificationStatusList(chainId),
+  ]);
+
+  const dbRow: DbMarket =
+    (dbResult.status === "fulfilled" && dbResult.value) ||
+    ({
+      id,
+      chain_id: chainId,
+      verification: undefined,
+      subgraph_data: undefined,
+    } as DbMarket);
+
+  const verification =
+    verificationStatusList.status === "fulfilled" && verificationStatusList.value?.[id as `0x${string}`];
+  if (verification !== undefined) {
+    dbRow.verification = verification as Json;
+  }
+
+  let subgraphMarket: LegacySubgraphMarket | undefined;
+  if (subgraphResult.status === "fulfilled" && subgraphResult.value) {
+    subgraphMarket = envioMarketToLegacySubgraphMarket(subgraphResult.value);
+  } else if (dbRow?.subgraph_data) {
+    subgraphMarket = dbRow.subgraph_data as LegacySubgraphMarket;
+  }
+
+  if (!subgraphMarket) {
+    return undefined;
+  }
+
+  return mapGraphMarketFromDbResult(subgraphMarket, dbRow);
 }
 
 function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" | "desc") {

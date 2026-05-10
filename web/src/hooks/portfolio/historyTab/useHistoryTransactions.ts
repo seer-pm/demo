@@ -1,7 +1,6 @@
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { TransactionData } from "./types";
 
 export const useHistoryTransactions = (
   address: Address,
