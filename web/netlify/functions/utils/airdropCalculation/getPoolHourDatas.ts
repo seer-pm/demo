@@ -4,153 +4,174 @@ import { isOpStack } from "@seer-pm/sdk/chains";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
-import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
-import type { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import type { Address } from "viem";
+import { Database } from "../supabase";
 import { START_TIME } from "./constants";
 
+const supabase: SupabaseClient<Database> = createClient<Database>(
+  process.env.SUPABASE_PROJECT_URL!,
+  process.env.SUPABASE_API_KEY!,
+);
+
+export type PoolHourData = {
+  id: string;
+  token0Price: string;
+  token1Price: string;
+  periodStartUnix: number;
+  sqrtPrice: string | null;
+  liquidity: string | null;
+  pool: {
+    id: string;
+    liquidity: string | null;
+    token0: {
+      id: string;
+      name: string | null;
+    };
+    token1: {
+      id: string;
+      name: string | null;
+    };
+  };
+};
+
+function mapRowToPoolHourData(row: Database["public"]["Tables"]["dex_pool_hour_prices"]["Row"]): PoolHourData {
+  return {
+    id: `${row.pool_id}-${row.period_start_unix}`,
+    token0Price: String(row.token0_price),
+    token1Price: String(row.token1_price),
+    periodStartUnix: row.period_start_unix,
+    sqrtPrice: null,
+    liquidity: null,
+    pool: {
+      id: row.pool_id,
+      liquidity: null,
+      token0: {
+        id: row.token0_id,
+        name: null,
+      },
+      token1: {
+        id: row.token1_id,
+        name: null,
+      },
+    },
+  };
+}
+
 export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
-  let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];
+  let allData: PoolHourData[] = [];
+
   const initialPeriodStartUnix = START_TIME[chainId as 1 | 100];
   let currentPeriodStartUnix = initialPeriodStartUnix;
 
+  const PAGE_SIZE = 1000;
   const maxRetries = 3;
-  let counter = 0;
 
   while (true) {
     let retries = 0;
     let success = false;
-    let poolHourDatas = [];
+    let poolHourDatas: PoolHourData[] = [];
 
     while (retries < maxRetries && !success) {
       try {
-        const query = `{
-                    poolHourDatas(first: 1000, orderBy: periodStartUnix, orderDirection: asc${
-                      currentPeriodStartUnix
-                        ? `, where: {periodStartUnix_gt: ${currentPeriodStartUnix}, pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
-                        : `, where: {pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
-                    }) {
-                    id
-                    token0Price
-                    token1Price
-                    periodStartUnix
-                    sqrtPrice
-                    liquidity
-                    pool {
-                        id
-                        liquidity
-                        token0 {
-                            id
-                            name
-                        }
-                        token1 {
-                            id
-                            name
-                        }
-                    }
-                    }
-                }`;
+        const { data, error } = await supabase
+          .from("dex_pool_hour_prices")
+          .select("*")
+          .eq("chain_id", chainId)
+          .eq("token0_id", tokenPair.token0.toLowerCase())
+          .eq("token1_id", tokenPair.token1.toLowerCase())
+          .gt("period_start_unix", currentPeriodStartUnix)
+          .order("period_start_unix", { ascending: true })
+          .limit(PAGE_SIZE);
 
-        const results = await fetch(
-          getSubgraphUrl(
-            chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
-            chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
-          )!,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ query }),
-          },
-        );
-        if (!results.ok) {
-          throw new Error(`HTTP error! status: ${results.status}`);
+        if (error) {
+          throw error;
         }
 
-        const json = await results.json();
-        if (json.errors?.length) {
-          throw json.errors[0];
-        }
-        poolHourDatas = json?.data?.poolHourDatas ?? [];
+        poolHourDatas = (data ?? []).map(mapRowToPoolHourData);
+
         success = true;
-        counter++;
       } catch (error) {
         retries++;
 
         if (retries === maxRetries) {
           throw new Error(
-            `Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${
-              // biome-ignore lint/suspicious/noExplicitAny:
-              (error as any).message
-            }`,
+            `Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${(error as Error).message}`,
           );
         }
 
-        // Exponential backoff
         await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** retries));
       }
     }
 
     allData = allData.concat(poolHourDatas);
 
-    // Break conditions
     if (
       poolHourDatas.length === 0 ||
       poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix === currentPeriodStartUnix
     ) {
       break;
     }
-    if (poolHourDatas.length < 1000) {
-      break; // We've fetched all
+
+    if (poolHourDatas.length < PAGE_SIZE) {
+      break;
     }
 
     currentPeriodStartUnix = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
 
-    // wait 300ms between calls
     await new Promise((res) => setTimeout(res, 300));
   }
+
   return allData;
 }
 
 export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartTime?: number) {
-  const subgraphUrl = getSubgraphUrl(
-    chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
-    chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
-  )!;
+  const PAGE_SIZE = 1000;
 
-  // 1. Get time range
-  const timeRangeQuery = `{
-    poolHourDatas(first: 1, orderBy: periodStartUnix, orderDirection: asc) {
-      periodStartUnix
-    }
-    poolHourDatasDesc: poolHourDatas(first: 1, orderBy: periodStartUnix, orderDirection: desc) {
-      periodStartUnix
-    }
-  }`;
+  const [{ data: earliestData, error: earliestError }, { data: latestData, error: latestError }] = await Promise.all([
+    supabase
+      .from("dex_pool_hour_prices")
+      .select("period_start_unix")
+      .eq("chain_id", chainId)
+      .order("period_start_unix", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
 
-  const timeRangeResult = await fetch(subgraphUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: timeRangeQuery }),
-  });
+    supabase
+      .from("dex_pool_hour_prices")
+      .select("period_start_unix")
+      .eq("chain_id", chainId)
+      .order("period_start_unix", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const timeRangeJson = await timeRangeResult.json();
+  if (earliestError) {
+    throw earliestError;
+  }
 
-  const startTime = initialStartTime || Number.parseInt(timeRangeJson.data.poolHourDatas[0]?.periodStartUnix || "0");
+  if (latestError) {
+    throw latestError;
+  }
 
-  const endTime = Number.parseInt(timeRangeJson.data.poolHourDatasDesc[0]?.periodStartUnix || "0");
+  const startTime = initialStartTime ?? earliestData?.period_start_unix ?? 0;
 
-  // 2. Chunk by time (1 day)
+  const endTime = latestData?.period_start_unix ?? 0;
+
   const CHUNK_SIZE = 24 * 60 * 60;
-  const chunks: Promise<GetPoolHourDatasQuery["poolHourDatas"]>[] = [];
+
+  const chunks: Promise<PoolHourData[]>[] = [];
   const limit = pLimit(10);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
-    chunks.push(limit(() => fetchPoolHourDatasTimeRange(subgraphUrl, time, Math.min(time + CHUNK_SIZE, endTime))));
+    chunks.push(
+      limit(() => fetchPoolHourDatasTimeRange(chainId, time, Math.min(time + CHUNK_SIZE, endTime), PAGE_SIZE)),
+    );
   }
+
   const results = await Promise.all(chunks);
+
   const allData = results.flat();
 
   allData.sort((a, b) => Number(b.periodStartUnix) - Number(a.periodStartUnix));
@@ -159,57 +180,37 @@ export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartT
 }
 
 async function fetchPoolHourDatasTimeRange(
-  subgraphUrl: string,
+  chainId: SupportedChain,
   startTime: number,
   endTime: number,
-): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
-  let allData: GetPoolHourDatasQuery["poolHourDatas"] = [];
+  pageSize = 1000,
+): Promise<PoolHourData[]> {
+  let allData: PoolHourData[] = [];
   let currentTimestamp = startTime;
 
   while (currentTimestamp < endTime) {
-    const query = `{
-      poolHourDatas(
-        first: 1000,
-        orderBy: periodStartUnix,
-        orderDirection: asc,
-        where: {
-          periodStartUnix_gte: ${currentTimestamp},
-          periodStartUnix_lt: ${endTime}
-        }
-      ) {
-        id
-        token0Price
-        token1Price
-        periodStartUnix
-        sqrtPrice
-        liquidity
-        pool {
-          id
-          liquidity
-          token0 { id name }
-          token1 { id name }
-        }
-      }
-    }`;
+    const { data, error } = await supabase
+      .from("dex_pool_hour_prices")
+      .select("*")
+      .eq("chain_id", chainId)
+      .gte("period_start_unix", currentTimestamp)
+      .lt("period_start_unix", endTime)
+      .order("period_start_unix", { ascending: true })
+      .limit(pageSize);
 
-    const result = await fetch(subgraphUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-
-    const json = await result.json();
-
-    if (json.errors?.length) {
-      throw json.errors[0];
+    if (error) {
+      throw error;
     }
 
-    const data = json?.data?.poolHourDatas ?? [];
-    allData = allData.concat(data);
+    const mappedData = (data ?? []).map(mapRowToPoolHourData);
 
-    if (data.length < 1000) break;
+    allData = allData.concat(mappedData);
 
-    currentTimestamp = Number(data[data.length - 1].periodStartUnix) + 1;
+    if (mappedData.length < pageSize) {
+      break;
+    }
+
+    currentTimestamp = Number(mappedData[mappedData.length - 1].periodStartUnix) + 1;
   }
 
   return allData;
@@ -219,18 +220,21 @@ export async function getPoolHourDatasByTokenPairs(
   chainId: SupportedChain,
   tokenPairs: { tokenId: Address; parentTokenId?: Address }[],
 ) {
-  const limit = pLimit(50);
+  const limit = pLimit(10);
+
   const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId }) => {
     const collateral = parentTokenId
-      ? parentTokenId.toLocaleLowerCase()
-      : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+      ? parentTokenId.toLowerCase()
+      : COLLATERAL_TOKENS[chainId].primary.address.toLowerCase();
+
     return getToken0Token1(tokenId, collateral as Address);
   });
-  const promises = [];
-  for (const tokenPair of sortedTokenPairs) {
-    promises.push(limit(() => getPoolHourDatasByTokenPair(chainId, tokenPair)));
-  }
+
+  const promises = sortedTokenPairs.map((tokenPair) => limit(() => getPoolHourDatasByTokenPair(chainId, tokenPair)));
+
   const allData = (await Promise.all(promises)).flat();
+
   allData.sort((a, b) => Number(b.periodStartUnix) - Number(a.periodStartUnix));
+
   return allData;
 }

@@ -2,7 +2,6 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
-import { fetchSubgraphMarkets } from "./utils/airdropCalculation/getAllMarkets";
 import { getAllTokens } from "./utils/airdropCalculation/getAllTokens";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
 import {
@@ -18,11 +17,12 @@ import {
 import { getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./utils/airdropCalculation/getPOHVerifiedUsers";
 import {
   type PositionSnapshot,
+  getAllPositionSnapshots,
   getLiquidityBalancesByPositionAtTimestamp,
-  getPositionSnapshotsByTokenPairs,
 } from "./utils/airdropCalculation/getPositionSnapshots";
 import { getPrices } from "./utils/airdropCalculation/getPrices";
 import { getRandomNextDayTimestamp, getTokensByTimestamp, mergeTokenBalances } from "./utils/airdropCalculation/utils";
+import { searchAllMarkets } from "./utils/markets";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -35,7 +35,7 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   console.log("START FETCHING DATA ", { chainId, timestamp });
   // get markets
   console.time("1");
-  const markets = await fetchSubgraphMarkets(chainId);
+  const { markets } = await searchAllMarkets({ chainIds: [chainId] });
   // get tokens
   console.timeEnd("1");
   console.time("2");
@@ -66,7 +66,7 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
     positionSnapshots = await getBunniPositionSnapshots(bunniTokens);
     console.timeEnd("8");
   } else {
-    positionSnapshots = await getPositionSnapshotsByTokenPairs(chainId, tokens);
+    positionSnapshots = await getAllPositionSnapshots(chainId);
     console.timeEnd("7");
   }
 

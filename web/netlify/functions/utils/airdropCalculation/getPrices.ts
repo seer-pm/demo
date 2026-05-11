@@ -2,17 +2,16 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
-import type { GetPoolHourDatasQuery } from "@seer-pm/sdk/subgraph/swapr";
 import type { Address } from "viem";
 import { gnosis } from "viem/chains";
-import { getAllPoolHourDatas, getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
+import { PoolHourData, getAllPoolHourDatas, getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
 
 async function getLatestPoolHourDataMap(
   tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
   chainId: SupportedChain,
   startTime: number,
 ) {
-  const resolvedMap = new Map<string, GetPoolHourDatasQuery["poolHourDatas"][0]>();
+  const resolvedMap = new Map<string, PoolHourData>();
   const poolHourDatas =
     chainId === gnosis.id ? await getAllPoolHourDatas(chainId) : await getPoolHourDatasByTokenPairs(chainId, tokens);
   for (const entry of poolHourDatas) {

@@ -1,20 +1,20 @@
+import { Market } from "@seer-pm/sdk";
 import type { Address } from "viem";
-import { LegacySubgraphMarket } from "../markets";
 
-function getCollateralByIndex(market: LegacySubgraphMarket, index: number) {
+function getCollateralByIndex(market: Market, index: number) {
   if (market.type === "Generic") {
     return market.collateralToken;
   }
   return index < 2 ? market.collateralToken1 : market.collateralToken2;
 }
 
-export function getAllTokens(markets: LegacySubgraphMarket[]) {
+export function getAllTokens(markets: Market[]) {
   const marketIdToMarket = markets.reduce(
     (acum, market) => {
       acum[market.id] = market;
       return acum;
     },
-    {} as { [key: string]: LegacySubgraphMarket },
+    {} as { [key: string]: Market },
   );
   const tokens = markets.reduce(
     (acum, market) => {

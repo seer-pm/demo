@@ -1,8 +1,8 @@
+import { Market } from "@seer-pm/sdk";
 import { TickMath } from "@uniswap/v3-sdk";
 import type { Address } from "viem";
-import { LegacySubgraphMarket } from "../markets";
 
-export function getTokensByTimestamp(markets: LegacySubgraphMarket[], timestamp: number) {
+export function getTokensByTimestamp(markets: Market[], timestamp: number) {
   return markets.reduce(
     (acum, market) => {
       if (Number(market.finalizeTs) > timestamp) {

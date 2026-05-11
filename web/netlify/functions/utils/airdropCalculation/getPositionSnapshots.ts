@@ -2,13 +2,9 @@ import { mainnet } from "@/lib/chains";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { isOpStack } from "@seer-pm/sdk/chains";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
-import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
-import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
 import pLimit from "p-limit";
-import { type Address, zeroAddress } from "viem";
-import { START_TIME } from "./constants";
+import { zeroAddress } from "viem";
 
 export interface PositionSnapshot {
   position: {
@@ -52,7 +48,9 @@ export async function getAllPositionSnapshots(chainId: SupportedChain, initialSt
   });
 
   const json = await res.json();
-
+  if (json.error) {
+    throw new Error(json.error);
+  }
   const startTime = initialStartTime || Number.parseInt(json.data.positionSnapshots[0]?.timestamp || "0");
 
   const endTime = Number.parseInt(json.data.positionSnapshotsDesc[0]?.timestamp || "0");
@@ -151,127 +149,6 @@ async function fetchPositionSnapshotsTimeRange(
     }
   }
 
-  return allData;
-}
-
-export async function getPositionSnapshotsByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
-  let allData: PositionSnapshot[] = [];
-  const initialTimestamp = START_TIME[chainId as 1 | 100];
-  let currentTimestamp = initialTimestamp;
-
-  const maxRetries = 3;
-  let counter = 0;
-
-  while (true) {
-    let retries = 0;
-    let success = false;
-    let positionSnapshots = [];
-
-    while (retries < maxRetries && !success) {
-      try {
-        const query = `{
-                    positionSnapshots(first: 1000, orderBy: timestamp, orderDirection: asc${
-                      currentTimestamp
-                        ? `, where: {timestamp_gt: ${currentTimestamp}, pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
-                        : `, where: {pool_: {token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}}`
-                    }) {
-                    position{
-                      id
-                    }
-                    timestamp
-                    owner
-                    depositedToken0
-                    depositedToken1
-                    withdrawnToken0
-                    withdrawnToken1
-                    pool{
-                      token0 {
-                        id
-                      }
-                      token1 {
-                        id
-                      }
-                    }
-                    }
-                }`;
-
-        const results = await fetch(
-          getSubgraphUrl(
-            chainId === mainnet.id || isOpStack(chainId) ? "uniswap" : "algebra",
-            chainId === mainnet.id || isOpStack(chainId) ? chainId : 100,
-          )!,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ query }),
-          },
-        );
-        if (!results.ok) {
-          throw new Error(`HTTP error! status: ${results.status}`);
-        }
-
-        const json = await results.json();
-        if (json.errors?.length) {
-          throw json.errors[0];
-        }
-        positionSnapshots = json?.data?.positionSnapshots ?? [];
-        success = true;
-        counter++;
-      } catch (error) {
-        retries++;
-
-        if (retries === maxRetries) {
-          throw new Error(
-            // biome-ignore lint/suspicious/noExplicitAny:
-            `Max retries reached for timestamp ${currentTimestamp}. ${(error as any).message}`,
-          );
-        }
-
-        // Exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** retries));
-      }
-    }
-
-    allData = allData.concat(positionSnapshots);
-
-    // Break conditions
-    if (
-      positionSnapshots.length === 0 ||
-      positionSnapshots[positionSnapshots.length - 1]?.timestamp === currentTimestamp
-    ) {
-      break;
-    }
-    if (positionSnapshots.length < 1000) {
-      break; // We've fetched all
-    }
-
-    currentTimestamp = positionSnapshots[positionSnapshots.length - 1]?.timestamp;
-
-    // wait 300ms between calls
-    await new Promise((res) => setTimeout(res, 300));
-  }
-  return allData;
-}
-
-export async function getPositionSnapshotsByTokenPairs(
-  chainId: SupportedChain,
-  tokenPairs: { tokenId: Address; parentTokenId?: Address }[],
-) {
-  const limit = pLimit(50);
-  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId }) => {
-    const collateral = parentTokenId
-      ? parentTokenId.toLocaleLowerCase()
-      : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
-    return getToken0Token1(tokenId, collateral as Address);
-  });
-  const promises = [];
-  for (const tokenPair of sortedTokenPairs) {
-    promises.push(limit(() => getPositionSnapshotsByTokenPair(chainId, tokenPair)));
-  }
-  const allData = (await Promise.all(promises)).flat();
-  allData.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   return allData;
 }
 
