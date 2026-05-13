@@ -232,7 +232,7 @@ export async function getChartData(market: Market): Promise<PoolHourDatasSets> {
 
     return await getPoolHourDatas(poolsPairs, market.chainId, firstTimestamp);
   } catch (e) {
-    console.error("getChartData error", e.message);
+    console.error("getChartData error", market.id, e);
     return [];
   }
 }

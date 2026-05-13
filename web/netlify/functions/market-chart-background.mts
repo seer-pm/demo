@@ -61,7 +61,7 @@ export async function fetchCachedChartData(marketId: Address, chainId: Supported
       }
     }
 
-    return chartData.length > 0 ? chartData : cachedData?.value.chartData ?? chartData;
+    return chartData.length > 0 ? chartData : (cachedData?.value.chartData ?? chartData);
   }
 
   // Return cached data (either fresh or when checkTimestamp is false)
