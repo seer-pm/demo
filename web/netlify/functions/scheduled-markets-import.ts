@@ -133,8 +133,11 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMa
       limit: MARKETS_PAGE_SIZE,
       offset,
       orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
-      // Search for markets with changes in the last 5 hours
-      where: { updatedAt: { _gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() } },
+      where: {
+        chainId: { _eq: String(chainId) },
+        // Search for markets with changes in the last 5 hours
+        updatedAt: { _gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() },
+      },
     });
 
     if (markets.length === 0) {
