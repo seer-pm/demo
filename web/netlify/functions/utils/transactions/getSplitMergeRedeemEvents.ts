@@ -15,6 +15,7 @@ export async function getSplitMergeRedeemEvents(account: string, chainId: Suppor
     orderBy: { [ConditionalEvent_Select_Column.BlockNumber]: Order_By.Desc },
     where: {
       accountId: { _eq: account.toLowerCase() },
+      chainId: { _eq: String(chainId) },
     },
   });
   return data.ConditionalEvent.map((d) => ({
