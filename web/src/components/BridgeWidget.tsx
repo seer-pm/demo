@@ -17,7 +17,7 @@ import { ExecutionStatus, Process, RouteExtended } from "@lifi/sdk";
 import { useSyncWagmiConfig } from "@lifi/wallet-management";
 import type { SupportedChain } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getBalance } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
@@ -228,7 +228,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
   const { data: tokensWithBalance, isLoading } = useBridgeTokenBalances(address, tokensByChain);
 
-  const destinationToken = COLLATERAL_TOKENS[toChainId].primary;
+  const destinationToken = getActiveCollateralProfile(toChainId).primary;
 
   const {
     data: bridgeQuote,
@@ -366,7 +366,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                   <p>
                     To bridge another token, you can visit{" "}
                     <a
-                      href={paths.xDAIBridge(toChainId, COLLATERAL_TOKENS[toChainId].primary.address)}
+                      href={paths.xDAIBridge(toChainId, getActiveCollateralProfile(toChainId).primary.address)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary hover:underline"

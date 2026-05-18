@@ -1,7 +1,6 @@
 import { isUndefined } from "@/lib/utils";
 import { useTokensInfo } from "@seer-pm/react";
-import { Market } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { Market, getActiveCollateralProfile } from "@seer-pm/sdk";
 import React from "react";
 import { Address, zeroAddress } from "viem";
 import Toggle from "../Form/Toggle";
@@ -17,19 +16,18 @@ function getCollateralPair(market: Market, isUseWrappedToken: boolean): [Address
     return [market.collateralToken1, market.collateralToken2];
   }
 
-  if (isUndefined(COLLATERAL_TOKENS[market.chainId].secondary)) {
+  const profile = getActiveCollateralProfile(market.chainId);
+  if (isUndefined(profile.secondary)) {
     return [];
   }
 
-  const secondary = isUseWrappedToken
-    ? COLLATERAL_TOKENS[market.chainId].secondary?.wrapped || COLLATERAL_TOKENS[market.chainId].secondary
-    : COLLATERAL_TOKENS[market.chainId].secondary;
+  const secondary = isUseWrappedToken ? profile.secondary?.wrapped || profile.secondary : profile.secondary;
 
   if (!secondary) {
     return [];
   }
 
-  return [COLLATERAL_TOKENS[market.chainId].primary.address, secondary.address];
+  return [profile.primary.address, secondary.address];
 }
 
 const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollateralSwitchProps>((props, ref) => {

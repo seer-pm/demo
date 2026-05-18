@@ -1,4 +1,5 @@
 import { Address, isAddress } from "viem";
+import { getActiveCollateralProfileName } from "./collateral";
 import type { Market, MarketStatus, SerializedMarket, VerificationStatus } from "./market-types";
 import { deserializeMarket } from "./market-types";
 import { getApiHost } from "./subgraph/app-subgraph";
@@ -25,6 +26,11 @@ export type FetchMarketParams = {
   page?: number;
   parentMarket?: Address;
   tokens?: Address[];
+  /**
+   * Only markets from that profile’s MarketFactory (`subgraph_data.factory`).
+   * Omitted values use `getActiveCollateralProfileName()` (after `configureCollateral`).
+   */
+  collateralProfile?: string;
 };
 
 export type JsonMarketsResult = { markets: SerializedMarket[]; count: number; pages: number };
@@ -35,12 +41,16 @@ export type MarketsResult = {
 };
 
 export async function fetchMarkets(params: FetchMarketParams = {}): Promise<MarketsResult> {
+  const body: FetchMarketParams = {
+    ...params,
+    collateralProfile: params.collateralProfile ?? getActiveCollateralProfileName(),
+  };
   const response = await fetch(`${getApiHost()}/.netlify/functions/markets-search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
   const result: JsonMarketsResult = await response.json();
   return {

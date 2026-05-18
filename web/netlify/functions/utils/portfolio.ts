@@ -1,34 +1,26 @@
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
 
 export function getTokenPricesMapping(
-  positions: { parentMarketId?: string; tokenId: string; collateralToken?: string }[],
+  positions: { parentMarketId?: string; tokenId: string; collateralToken: string }[],
   pools: { token0: { id: string }; token1: { id: string }; token0Price: string; token1Price: string }[],
-  chainId: SupportedChain,
 ) {
   const [simpleTokens, conditionalTokens] = positions.reduce(
     (acc, curr) => {
       acc[!isUndefined(curr.parentMarketId) ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as { parentMarketId?: string; tokenId: string; collateralToken?: string }[][],
+    [[], []] as { parentMarketId?: string; tokenId: string; collateralToken: string }[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
-    (acc, { tokenId }) => {
+    (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
-        if (primaryCollateralAddress > tokenId.toLocaleLowerCase()) {
+        if (collateralToken > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
-          return (
-            isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, primaryCollateralAddress)
-          );
+          return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
-        return (
-          isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, primaryCollateralAddress)
-        );
+        return isTwoStringsEqual(pool.token1.id, tokenId) && isTwoStringsEqual(pool.token0.id, collateralToken);
       });
 
       acc[tokenId.toLocaleLowerCase()] = correctPool
@@ -45,7 +37,7 @@ export function getTokenPricesMapping(
     (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        if (collateralToken!.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
+        if (collateralToken.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
           return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
@@ -59,7 +51,7 @@ export function getTokenPricesMapping(
         : 0;
 
       acc[tokenId.toLocaleLowerCase()] =
-        relativePrice * (simpleTokensMapping?.[collateralToken!.toLocaleLowerCase()] || 0);
+        relativePrice * (simpleTokensMapping?.[collateralToken.toLocaleLowerCase()] || 0);
       return acc;
     },
     {} as { [key: string]: number },

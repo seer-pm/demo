@@ -201,12 +201,13 @@ export async function buildCurrentPortfolioPositions(
   supabase: SupabaseClient<Database>,
   address: Address,
   chainId: SupportedChain,
+  collateralProfile: string,
 ): Promise<PortfolioPosition[]> {
   const { tokens, balances } = await fetchCurrentTokenHoldings(supabase, address, chainId);
   if (tokens.length === 0) {
     return [];
   }
 
-  const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens });
+  const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
   return buildPortfolioPositionsCore(supabase, chainId, tokens, balances, markets, false);
 }

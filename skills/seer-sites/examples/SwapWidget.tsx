@@ -3,7 +3,7 @@ import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { formatUnits, isAddressEqual, zeroAddress } from "viem";
 import type { Market, Token } from "@seer-pm/sdk";
 import {
-  COLLATERAL_TOKENS,
+  getActivePrimaryCollateral,
   TradeType,
   isSeerCredits,
   getMaximumAmountIn,
@@ -63,7 +63,7 @@ function buildOutcomeTokens(market: Market): Token[] {
   return tokens;
 }
 
-function getSelectedCollateral(market: Market, outcomeToken: Token, parentCollateral?: Token): Token {
+function getSelectedCollateral(market: Market, parentCollateral?: Token): Token {
   const parentId = market.parentMarket.id;
   const hasParent = typeof parentId === "string" && !isAddressEqual(parentId, zeroAddress) && parentCollateral;
 
@@ -71,7 +71,7 @@ function getSelectedCollateral(market: Market, outcomeToken: Token, parentCollat
     return parentCollateral;
   }
 
-  return COLLATERAL_TOKENS[market.chainId]?.primary ?? outcomeToken;
+  return getActivePrimaryCollateral(market.chainId);
 }
 
 export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
@@ -109,7 +109,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
 
   const hasLiquidity = useMarketHasLiquidity(market, safeOutcomeIndex);
 
-  const selectedCollateral = getSelectedCollateral(market, outcomeToken, parentCollateral);
+  const selectedCollateral = getSelectedCollateral(market, parentCollateral);
 
   const amountForQuote = isAddressEqual(selectedCollateral.address, outcomeToken.address) ? "" : debouncedAmount;
 

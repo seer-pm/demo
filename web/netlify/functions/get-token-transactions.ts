@@ -1,10 +1,11 @@
 import type { Market, SupportedChain, TokenTransfer, TransactionData } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
+import { reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
 import { getMarketByChainAndId } from "./utils/markets";
+import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
 import { getTokenHolders } from "./utils/token-transactions";
 
@@ -48,6 +49,7 @@ async function getRecentTransactions(
   chainId: number,
   account: Address | undefined,
   options: GetRecentTransactionsOptions,
+  primaryToken: string,
 ): Promise<GetRecentTransactionsResult> {
   const { fetchLimit, withMainCollateral, distinctTxCap = 100 } = options;
 
@@ -71,14 +73,13 @@ async function getRecentTransactions(
 
   let mergedWithPrimary: TokenTransfer[] | undefined;
   if (withMainCollateral) {
-    const primary = COLLATERAL_TOKENS[chainId as SupportedChain]?.primary;
     const firstDistinctTxHashes = [...new Set(outcomeBatch.map((t) => t.tx_hash))].slice(0, distinctTxCap);
-    if (primary && firstDistinctTxHashes.length > 0) {
+    if (firstDistinctTxHashes.length > 0) {
       const hashSet = new Set(firstDistinctTxHashes);
       const firstDistinctOutcomeSubset = outcomeBatch.filter((t) => hashSet.has(t.tx_hash));
       const primaryRows = await listPrimaryCollateralTransfersForTxHashesAll(
         chainId,
-        primary.address,
+        primaryToken,
         firstDistinctTxHashes,
       );
       mergedWithPrimary = [...firstDistinctOutcomeSubset, ...primaryRows];
@@ -118,6 +119,18 @@ export default async (req: Request) => {
       });
     }
 
+    const supportedChain = chainIdNum as SupportedChain;
+    const collateralResolved = parseCollateralProfileQueryParam(
+      supportedChain,
+      url.searchParams.get("collateralProfile"),
+    );
+    if ("error" in collateralResolved) {
+      return new Response(JSON.stringify({ error: collateralResolved.error }), {
+        status: collateralResolved.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const account = accountParam?.trim();
     if (account && !isAddress(account)) {
       return new Response(JSON.stringify({ error: "account must be a valid address" }), {
@@ -132,7 +145,7 @@ export default async (req: Request) => {
     let market: Market | undefined;
     if (marketIdParam && isAddress(marketIdParam)) {
       try {
-        market = (await getMarketByChainAndId(chainIdNum as SupportedChain, marketIdParam as Address)) ?? undefined;
+        market = (await getMarketByChainAndId(supportedChain, marketIdParam as Address)) ?? undefined;
       } catch {
         market = undefined;
       }
@@ -176,16 +189,19 @@ export default async (req: Request) => {
         withMainCollateral: Boolean(market),
         distinctTxCap: 100,
       },
+      collateralResolved.primaryCollateral.address,
     );
     const recentTransactions = outcomeBatch.slice(0, RECENT_TRANSFERS_RESPONSE_LIMIT);
 
     let recentActivity: TransactionData[] = [];
     if (market && mergedWithPrimary) {
       try {
-        recentActivity = reconstructSplitMergeRedeemFromTransfers(mergedWithPrimary, {
+        recentActivity = reconstructSplitMergeRedeemFromTransfers(
+          mergedWithPrimary,
           market,
-          options: { identifySwaps: true },
-        });
+          collateralResolved.primaryCollateral,
+          { identifySwaps: true },
+        );
       } catch (e) {
         console.error("get-token-transactions: recentActivity", e);
         recentActivity = [];

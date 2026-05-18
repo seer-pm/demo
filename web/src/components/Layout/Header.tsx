@@ -22,8 +22,7 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
-import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { type SupportedChain, getActiveCollateralProfile } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { Fragment, ReactElement, useEffect, useRef, useState } from "react";
 import { gnosis } from "viem/chains";
@@ -39,7 +38,8 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 function useWalletBalance() {
   const { chainId: raw, address } = useAccount();
   const chainId = filterChain(raw);
-  const token = chainId === gnosis.id ? COLLATERAL_TOKENS[chainId].secondary : COLLATERAL_TOKENS[chainId].primary;
+  const token =
+    chainId === gnosis.id ? getActiveCollateralProfile(chainId).secondary : getActiveCollateralProfile(chainId).primary;
   const { data: balance = BigInt(0), isFetching } = useTokenBalance(address, token?.address, chainId as SupportedChain);
   return { balance, isFetching, symbol: token?.symbol, chainId };
 }

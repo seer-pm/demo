@@ -12,7 +12,7 @@ import { queryClient } from "@/lib/query-client";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { FormEvent, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Address } from "viem";
@@ -165,7 +165,7 @@ function MarkeVerifyPage() {
             <div className="text-purple-primary flex items-center justify-center space-x-2 my-[24px]">
               <span>Verification deposit:</span>{" "}
               <span className="text-[24px] font-semibold">
-                {displayBalance(submissionDeposit, 18)} {COLLATERAL_TOKENS[chainId].secondary?.symbol ?? "DAI"}
+                {displayBalance(submissionDeposit, 18)} {getActiveCollateralProfile(chainId).secondary?.symbol ?? "DAI"}
               </span>
             </div>
           )}

@@ -7,7 +7,7 @@ import {
   mainnetRouterAbi,
   routerAbi,
 } from "../generated/contracts/router";
-import { COLLATERAL_TOKENS } from "./collateral";
+import { getActivePrimaryCollateral } from "./collateral";
 import type { Execution } from "./execution";
 import { CHAIN_ROUTERS, type MarketLike, getRedeemRouter } from "./router-addresses";
 
@@ -127,8 +127,7 @@ export function getRedeemExecution(params: GetRedeemExecutionParams): Execution 
     return getRedeemPositionsFutarchyExecution(router, marketId, chainId, amounts[0], amounts[1]);
   }
   if (isRedeemToParentCollateral) {
-    const collateral = COLLATERAL_TOKENS[market.chainId].primary.address;
-    if (!collateral) throw new Error("Missing primary collateral for chain");
+    const collateral = getActivePrimaryCollateral(market.chainId).address;
     return getRedeemPositionsConditionalToCollateralExecution(
       router,
       marketId,

@@ -1,7 +1,4 @@
-import { mainnet } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { isOpStack } from "@seer-pm/sdk/chains";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
@@ -218,15 +215,12 @@ async function fetchPoolHourDatasTimeRange(
 
 export async function getPoolHourDatasByTokenPairs(
   chainId: SupportedChain,
-  tokenPairs: { tokenId: Address; parentTokenId?: Address }[],
+  tokenPairs: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
 ) {
   const limit = pLimit(10);
 
-  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId }) => {
-    const collateral = parentTokenId
-      ? parentTokenId.toLowerCase()
-      : COLLATERAL_TOKENS[chainId].primary.address.toLowerCase();
-
+  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId, collateralToken }) => {
+    const collateral = (parentTokenId ?? collateralToken).toLowerCase();
     return getToken0Token1(tokenId, collateral as Address);
   });
 

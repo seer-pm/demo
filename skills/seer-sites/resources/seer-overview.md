@@ -57,7 +57,7 @@ Steps:
 1. Fetch market data and prices (contracts, subgraph, or HTTP API).
 2. Ensure user has:
    - Connected wallet.
-   - Sufficient collateral balance.
+   - Sufficient collateral balance (the market’s collateral token — e.g. sDAI or s-gCRC on Gnosis; see [Collateral profiles](../../../integration-docs/9-collateral-profiles.md)).
    - Approved the collateral token for the Router or AMM.
 3. Use `useQuoteTrade` for quotes and `useTrade` from `@seer-pm/react` to execute the trade (buy/sell outcome tokens).
 

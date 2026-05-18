@@ -15,7 +15,7 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
-import { COLLATERAL_TOKENS } from "./collateral";
+import { getActivePrimaryCollateral } from "./collateral";
 import { isTwoStringsEqual, parseFraction } from "./quote-utils";
 import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
@@ -162,11 +162,10 @@ export function getSwaprTrade(
   account: Address | undefined,
   chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  const primary = COLLATERAL_TOKENS[chainId]?.primary;
+  const primary = getActivePrimaryCollateral(chainId);
   const isSingleHop =
-    primary &&
-    (isTwoStringsEqual(currencyAmountIn.currency.address, primary.address) ||
-      isTwoStringsEqual(currencyOut.address, primary.address));
+    isTwoStringsEqual(currencyAmountIn.currency.address, primary.address) ||
+    isTwoStringsEqual(currencyOut.address, primary.address);
   return SwaprV3Trade.getQuote(
     {
       amount: currencyAmountIn,
@@ -383,10 +382,9 @@ export function getSwaprTradeExactOut(
   account: Address | undefined,
   chainId: number,
 ): Promise<SwaprV3Trade | null> {
-  const primary = COLLATERAL_TOKENS[chainId]?.primary;
+  const primary = getActivePrimaryCollateral(chainId);
   const isSingleHop =
-    primary &&
-    (isTwoStringsEqual(currencyIn.address, primary.address) || isTwoStringsEqual(currencyOut.address, primary.address));
+    isTwoStringsEqual(currencyIn.address, primary.address) || isTwoStringsEqual(currencyOut.address, primary.address);
 
   return SwaprV3Trade.getQuote(
     {

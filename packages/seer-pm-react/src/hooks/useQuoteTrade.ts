@@ -3,13 +3,13 @@ import type { Address } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
 
 import {
-  COLLATERAL_TOKENS,
   type QuoteTradeResult,
   type Token,
   type TradeType,
   fetchCowQuote,
   fetchSwaprQuote,
   fetchUniswapQuote,
+  getActivePrimaryCollateral,
   isSeerCredits,
 } from "@seer-pm/sdk";
 
@@ -161,7 +161,7 @@ export function useQuoteTrade(
 ) {
   const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken.address);
 
-  const realCollateralToken: Token = isSeerCreditsCollateral ? COLLATERAL_TOKENS[chainId].primary : collateralToken;
+  const realCollateralToken: Token = isSeerCreditsCollateral ? getActivePrimaryCollateral(chainId) : collateralToken;
 
   const shouldUseInstantSwap = isCowQuoteEnabled || isSeerCreditsCollateral;
   const cowResult = useCowQuote(

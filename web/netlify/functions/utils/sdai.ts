@@ -1,5 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getDefaultCollateralProfile } from "@seer-pm/sdk";
 import { readContract } from "viem/actions";
 import { getPublicClientByChainId } from "./config";
 
@@ -28,7 +28,7 @@ const SDAI_ABI = [
 export async function convertFromSDAI(chainId: SupportedChain, amount: bigint) {
   const publicClient = getPublicClientByChainId(chainId);
   return readContract(publicClient, {
-    address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
+    address: getDefaultCollateralProfile(chainId).primary.address,
     abi: SDAI_ABI,
     functionName: "convertToAssets",
     args: [amount],

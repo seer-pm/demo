@@ -11,22 +11,25 @@ Use **@seer-pm/sdk** to get quotes and build swap flows. The SDK handles routing
 
 ## Main collateral by chain
 
-Pools are quoted against the main collateral. Get the collateral token from the SDK:
+Each market’s pool is **outcome token / that market’s collateral** (`market.collateralToken`). On Gnosis, multiple primaries are registered (sDAI, s-gCRC); call `configureCollateral` for the profile your site uses, then use `getActivePrimaryCollateral` for quotes and swaps.
 
 ```typescript
-import { COLLATERAL_TOKENS, getPrimaryCollateralAddress, type Token } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
 
 const chainId = 100; // gnosis
-const collateralToken: Token = COLLATERAL_TOKENS[chainId].primary;
-const collateralAddress = getPrimaryCollateralAddress(chainId);
+
+// After configureCollateral (defaults to "default" / sDAI):
+const collateralToken: Token = getActivePrimaryCollateral(chainId);
 ```
 
-| Chain       | Main collateral | Address |
-|-------------|-----------------|---------|
-| Gnosis (100)   | sDAI  | `0xaf204776c7245bf4147c2612bf6e5972ee483701` |
-| Ethereum (1)   | DAI   | `0x6B175474E89094C44Da98b954EedeAC495271d0F` |
-| Base (8453)    | sUSDS | `0x5875eee11cf8398102fdad704c9e96607675467a` |
-| Optimism (10)  | sUSDS | `0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0` |
+| Chain | Registered primaries (examples) |
+|-------|----------------------------------|
+| Gnosis (100) | sDAI `0xaf20…3701`, s-gCRC `0x548c…4bC1` |
+| Ethereum (1) | sDAI |
+| Base (8453) | sUSDS |
+| Optimism (10) | sUSDS |
+
+See [Collateral profiles](9-collateral-profiles.md) for the full registry and white-label configuration.
 
 ---
 
@@ -48,7 +51,7 @@ Use the `Token` type and collateral from the SDK:
 
 ```typescript
 import {
-  COLLATERAL_TOKENS,
+  getActivePrimaryCollateral,
   getSwaprQuote,
   getUniswapQuote,
   type QuoteTradeResult,
@@ -58,7 +61,7 @@ import { TradeType } from "@swapr/sdk";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
-const collateralToken = COLLATERAL_TOKENS[chainId].primary;
+const collateralToken = getActivePrimaryCollateral(chainId);
 
 const outcomeToken: Token = {
   address: "0x...", // wrapped outcome token address (e.g. market.wrappedTokens[i])
@@ -73,11 +76,11 @@ const outcomeToken: Token = {
 **Gnosis (Swapr):**
 
 ```typescript
-import { COLLATERAL_TOKENS, getSwaprQuote, type QuoteTradeResult, type Token } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral, getSwaprQuote, type QuoteTradeResult, type Token } from "@seer-pm/sdk";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
-const collateralToken = COLLATERAL_TOKENS[chainId].primary;
+const collateralToken = getActivePrimaryCollateral(chainId);
 const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
 
 const quote: QuoteTradeResult = await getSwaprQuote(
@@ -99,11 +102,11 @@ const amountOutMinimum = (amountOut * 99n) / 100n; // 1% slippage
 **Ethereum / Base / Optimism (Uniswap):**
 
 ```typescript
-import { COLLATERAL_TOKENS, getUniswapQuote, type Token } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral, getUniswapQuote, type Token } from "@seer-pm/sdk";
 import { mainnet } from "viem/chains";
 
 const chainId = mainnet.id;
-const collateralToken = COLLATERAL_TOKENS[chainId].primary;
+const collateralToken = getActivePrimaryCollateral(chainId);
 const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
 
 const quote = await getUniswapQuote(
@@ -125,12 +128,12 @@ const amountOutMinimum = (amountOut * 99n) / 100n;
 Use the exact-out variants or the `fetch*` helpers with `TradeType.EXACT_OUTPUT`:
 
 ```typescript
-import { COLLATERAL_TOKENS, fetchSwaprQuote, type Token } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral, fetchSwaprQuote, type Token } from "@seer-pm/sdk";
 import { TradeType } from "@swapr/sdk";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
-const collateralToken = COLLATERAL_TOKENS[chainId].primary;
+const collateralToken = getActivePrimaryCollateral(chainId);
 const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
 
 const quote = await fetchSwaprQuote(
@@ -153,7 +156,7 @@ const amountInMaximum = (quote.value * 101n) / 100n; // 1% slippage
 When you have a `TradeType` (e.g. from UI), use one function for both modes:
 
 ```typescript
-import { COLLATERAL_TOKENS, fetchUniswapQuote, type Token } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral, fetchUniswapQuote, type Token } from "@seer-pm/sdk";
 import { TradeType } from "@swapr/sdk";
 import { mainnet } from "viem/chains";
 
@@ -178,7 +181,7 @@ async function getQuote(
   );
 }
 
-const collateralToken = COLLATERAL_TOKENS[mainnet.id].primary;
+const collateralToken = getActivePrimaryCollateral(mainnet.id);
 const outcomeToken: Token = { address: "0x...", chainId: mainnet.id, symbol: "SEER_OUTCOME", decimals: 18 };
 
 const exactInQuote = await getQuote(

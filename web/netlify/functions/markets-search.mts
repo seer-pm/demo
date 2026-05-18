@@ -26,6 +26,7 @@ async function multiChainSearch(
     orderDirection,
     marketIds,
     tokens,
+    collateralProfile,
     limit = 100,
     page = 1,
   } = body;
@@ -57,6 +58,7 @@ async function multiChainSearch(
     page,
     orderBy,
     orderDirection,
+    collateralProfile,
   });
 
   return {

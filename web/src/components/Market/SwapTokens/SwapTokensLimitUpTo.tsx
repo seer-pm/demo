@@ -14,7 +14,8 @@ import { isSeerCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -59,7 +60,7 @@ export function SwapTokensLimitUpto({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [isUseMax, setUseMax] = useState(false);
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
 
   const { data: ticksByPool } = useTicksData(

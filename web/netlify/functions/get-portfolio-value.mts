@@ -4,6 +4,7 @@ import { type Address, isAddress } from "viem";
 import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
+import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -63,7 +64,24 @@ export default async (req: Request) => {
       });
     }
 
-    const positions = await buildCurrentPortfolioPositions(supabase, account, chainIdNum as SupportedChain);
+    const supportedChain = chainIdNum as SupportedChain;
+    const collateralResolved = parseCollateralProfileQueryParam(
+      supportedChain,
+      url.searchParams.get("collateralProfile"),
+    );
+    if ("error" in collateralResolved) {
+      return new Response(JSON.stringify({ error: collateralResolved.error }), {
+        status: collateralResolved.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const positions = await buildCurrentPortfolioPositions(
+      supabase,
+      account,
+      supportedChain,
+      collateralResolved.profileName,
+    );
 
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
@@ -72,7 +90,7 @@ export default async (req: Request) => {
     const historyPrices = await getHistoryTokensPricesForPortfolio(
       supabase,
       positions,
-      chainIdNum as SupportedChain,
+      supportedChain,
       historyTimestamp,
     );
 

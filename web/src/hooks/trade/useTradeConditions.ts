@@ -4,9 +4,8 @@ import { useTokenBalance } from "@seer-pm/react";
 
 import { isTwoStringsEqual } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
-import { Market } from "@seer-pm/sdk";
+import { Market, NATIVE_TOKEN, TradeType, getActiveCollateralProfile, getActivePrimaryCollateral } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, NATIVE_TOKEN, TradeType } from "@seer-pm/sdk";
 import { FieldErrors } from "react-hook-form";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
@@ -23,7 +22,7 @@ interface Props {
 export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, tradeType, errors }: Props) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId, swapType));
 
   const selectedCollateral = fixedCollateral || preferredCollateral || primaryCollateral;
@@ -52,9 +51,10 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     !isFetchingNativeBalance &&
     ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
 
+  const activeProfile = getActiveCollateralProfile(market.chainId);
   const isSecondaryCollateral =
-    isTwoStringsEqual(selectedCollateral.address, COLLATERAL_TOKENS[market.chainId].secondary?.address) ||
-    isTwoStringsEqual(selectedCollateral.address, COLLATERAL_TOKENS[market.chainId].secondary?.wrapped?.address);
+    isTwoStringsEqual(selectedCollateral.address, activeProfile.secondary?.address) ||
+    isTwoStringsEqual(selectedCollateral.address, activeProfile.secondary?.wrapped?.address);
   const isCollateralNative =
     market.chainId === gnosis.id && isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN);
 

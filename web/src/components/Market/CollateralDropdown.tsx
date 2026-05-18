@@ -5,7 +5,7 @@ import type { GetTokenResult } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import clsx from "clsx";
 import { useState } from "react";
@@ -31,14 +31,15 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
     return [market.collateralToken1, market.collateralToken2];
   }
 
-  const options = [COLLATERAL_TOKENS[market.chainId].primary.address];
+  const profile = getActiveCollateralProfile(market.chainId);
+  const options = [profile.primary.address];
 
-  if (COLLATERAL_TOKENS[market.chainId].secondary) {
-    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.address!);
+  if (profile.secondary) {
+    options.push(profile.secondary.address);
   }
 
-  if (COLLATERAL_TOKENS[market.chainId].secondary?.wrapped) {
-    options.push(COLLATERAL_TOKENS[market.chainId].secondary?.wrapped!.address!);
+  if (profile.secondary?.wrapped) {
+    options.push(profile.secondary.wrapped.address);
   }
 
   if (type === "sell" && market.chainId in seerCreditsAddress) {
@@ -46,8 +47,8 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
   }
 
   // TODO: allow to swap using multple alternative tokens
-  /*   if (COLLATERAL_TOKENS[market.chainId].swap) {
-    options.push(...COLLATERAL_TOKENS[market.chainId].swap!.map(t => t.address));
+  /*   if (getActiveCollateralProfile(market.chainId).swap) {
+    options.push(...getActiveCollateralProfile(market.chainId).swap!.map(t => t.address));
   } */
 
   return options;

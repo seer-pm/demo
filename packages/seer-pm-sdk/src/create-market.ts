@@ -1,13 +1,16 @@
 import { encodeFunctionData, zeroAddress } from "viem";
 import type { AbiParameterToPrimitiveType, Address } from "viem";
 import {
+  circlesMarketFactoryAddress,
   futarchyFactoryAbi,
   futarchyFactoryAddress,
   marketFactoryAbi,
   marketFactoryAddress,
 } from "../generated/contracts/market-factory";
+import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName } from "./collateral";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
+import { isTwoStringsEqual } from "./quote-utils";
 import { escapeJson } from "./reality";
 
 /** Props for creating a market. Only fields required for your market type are mandatory. */
@@ -172,15 +175,42 @@ const MARKET_TYPE_FUNCTION: Record<
   [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
 } as const;
 
+/** MarketFactory deployments for the **default** collateral profile per chain (from generated `marketFactoryAddress`). */
 const marketFactoryAddressMap = marketFactoryAddress as Record<number, Address>;
 const futarchyFactoryAddressMap = futarchyFactoryAddress as Record<number, Address>;
+const circlesMarketFactoryAddressMap = circlesMarketFactoryAddress as Record<number, Address>;
 
-export function getMarketFactoryAddress(chainId: number): Address {
-  const address = marketFactoryAddressMap[chainId];
+const MARKET_FACTORY_BY_PROFILE: Record<string, Record<number, Address>> = {
+  [DEFAULT_COLLATERAL_PROFILE]: marketFactoryAddressMap,
+  circles: circlesMarketFactoryAddressMap,
+};
+
+export function getMarketFactoryAddress(chainId: number, collateralProfile: string): Address {
+  const map = MARKET_FACTORY_BY_PROFILE[collateralProfile];
+  if (!map) {
+    throw new Error(`No market factory for collateral profile "${collateralProfile}" on chain ${chainId}`);
+  }
+  const address = map[chainId];
   if (!address) {
-    throw new Error(`No market factory address for chain ${chainId}`);
+    throw new Error(`No market factory address for collateralProfile ${collateralProfile} on chain ${chainId}`);
   }
   return address as Address;
+}
+
+/** Returns every official MarketFactory address deployed on `chainId` (all collateral profiles). */
+export function getOfficialMarketFactoryAddresses(chainId: number): Address[] {
+  const addresses = Object.values(MARKET_FACTORY_BY_PROFILE)
+    .map((map) => map[chainId])
+    .filter((address): address is Address => address !== undefined);
+  return [...new Set(addresses)];
+}
+
+/** Whether `factoryAddress` is a known official Seer MarketFactory on `chainId`. */
+export function isOfficialMarketFactory(factoryAddress: Address | undefined, chainId: number): boolean {
+  if (!factoryAddress) {
+    return false;
+  }
+  return getOfficialMarketFactoryAddresses(chainId).some((address) => isTwoStringsEqual(factoryAddress, address));
 }
 
 export function getFutarchyFactoryAddress(chainId: number): Address {
@@ -207,14 +237,14 @@ export function getProposalName(marketName: string, openingTime: number, isArbit
  * Use this to send the tx (e.g. sendTransaction) or to add to a 7702 batch.
  *
  * @param props - CreateMarketProps (must include minBond for the chain)
- * @param marketFactoryAddress - Optional MarketFactory address; if omitted, uses the one for props.chainId
+ * @param marketFactoryAddress - Optional MarketFactory address; if omitted, uses the factory for the active collateral profile
  */
 export function getCreateMarketExecution<TChainId extends number = number>(
   props: CreateMarketProps<TChainId>,
   marketFactoryAddress?: Address,
 ): Execution<TChainId> {
   const p = withCreateMarketDefaults(props);
-  const factoryAddress = marketFactoryAddress ?? getMarketFactoryAddress(p.chainId);
+  const factoryAddress = marketFactoryAddress ?? getMarketFactoryAddress(p.chainId, getActiveCollateralProfileName());
   const params = getCreateMarketParams(props);
   const functionName = MARKET_TYPE_FUNCTION[p.marketType];
   const fnAbi = (marketFactoryAbi as readonly { type: string; name?: string }[]).find(

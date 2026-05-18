@@ -105,15 +105,18 @@ Use the same Router functions with the **child** market; pass the parent's wrapp
 
 The **@seer-pm/sdk** provides `getRouterAddress`, `getSplitExecution`, `getMergeExecution`, and `getRedeemExecution`. Approve the collateral (or outcome tokens) before sending. See [Viem setup](1-viem-setup.md#dependencies) for installation.
 
+**Collateral per market:** Use the market’s `collateralToken` (or the parent outcome token for conditional markets). On Gnosis there are multiple registered primaries (sDAI, s-gCRC); xDAI **splitFromBase** only applies to the **sDAI** profile. See [Collateral profiles](9-collateral-profiles.md).
+
 ### SDK: shared setup and split
 
 ```typescript
 import { getPublicClient, getWalletClient, ERC20_APPROVE_ABI } from "./viem-setup";
 import { gnosis } from "viem/chains";
 import {
+  type Token,
+  getActivePrimaryCollateral,
   getRouterAddress,
   getSplitExecution,
-  COLLATERAL_TOKENS,
 } from "@seer-pm/sdk";
 
 const chain = gnosis;
@@ -125,7 +128,7 @@ const marketAddress = "0x..."; // Market contract address
 
 const market = { id: marketAddress, type: "Generic" as const, chainId };
 const router = getRouterAddress(market);
-const collateralToken = COLLATERAL_TOKENS[chainId]?.primary?.address; // or undefined for Gnosis (splitFromBase) / Mainnet (splitFromDai)
+const collateralToken: Token = getActivePrimaryCollateral(chainId); // or undefined for Gnosis (splitFromBase) / Mainnet (splitFromDai)
 
 const amount = 1000000000000000000n; // 1e18
 
@@ -144,13 +147,13 @@ const hash = await walletClient.sendTransaction(splitExecution);
 await publicClient.waitForTransactionReceipt({ hash });
 ```
 
-- On **Gnosis**, `COLLATERAL_TOKENS[chainId].primary` is sDAI; if you pass `collateralToken: undefined`, the SDK builds a **splitFromBase** (payable xDAI) tx — send the same `amount` as `value` when calling `sendTransaction`.
+- On **Gnosis** with **sDAI** markets: pass `collateralToken: undefined` to use **splitFromBase** (payable xDAI); send the same `amount` as `value`. Not available for s-gCRC markets — always pass the s-gCRC address.
 - On **Ethereum**, `collateralToken: undefined` yields **splitFromDai**; approve DAI to the router and the SDK encodes `splitFromDai(market, amount)`.
 
 ### SDK: merge
 
 ```typescript
-import { getMergeExecution, getRouterAddress, COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getMergeExecution, getRouterAddress } from "@seer-pm/sdk";
 
 // Approve router to spend `amount` of each outcome token (see "Merge" below for the loop over wrappedOutcome(i)).
 const mergeExecution = getMergeExecution({ router, market, collateralToken, amount });
@@ -161,7 +164,7 @@ const hash = await walletClient.sendTransaction(mergeExecution);
 ### SDK: redeem (after market is resolved)
 
 ```typescript
-import { getRedeemExecution, getRouterAddress, COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getRedeemExecution, getRouterAddress } from "@seer-pm/sdk";
 
 const outcomeIndexes = [0n];
 const amounts = [500000000000000000n];

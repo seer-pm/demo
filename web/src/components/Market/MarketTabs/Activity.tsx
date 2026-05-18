@@ -4,7 +4,8 @@ import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
 import { displayBalance, displayNumber, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
-import { COLLATERAL_TOKENS, Market } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { Market } from "@seer-pm/sdk";
 import type { TransactionData } from "@seer-pm/sdk";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -137,7 +138,7 @@ export default function Activity({ market }: ActivityProps) {
                         <span className="text-sm text-base-content">
                           {tokenIndex >= 0
                             ? market.outcomes[tokenIndex]
-                            : (COLLATERAL_TOKENS[market.chainId]?.primary.symbol ?? "—")}
+                            : (getActivePrimaryCollateral(market.chainId).symbol ?? "—")}
                         </span>
                       </div>
                     </td>

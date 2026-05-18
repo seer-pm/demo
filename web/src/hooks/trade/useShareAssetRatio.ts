@@ -1,7 +1,7 @@
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
 import { Address, formatUnits, parseUnits } from "viem";
@@ -144,7 +144,7 @@ export const S_DAI_ADAPTER = "0xD499b51fcFc66bd31248ef4b28d656d67E591A94";
 
 export async function convertFromSDAI({ chainId, amount }: Omit<Props, "owner">) {
   return readContract(config, {
-    address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
+    address: getActiveCollateralProfile(chainId).primary.address,
     abi: SDAI_ABI,
     functionName: "convertToAssets",
     args: [amount],
@@ -154,7 +154,7 @@ export async function convertFromSDAI({ chainId, amount }: Omit<Props, "owner">)
 
 export async function convertToSDAI({ chainId, amount }: Omit<Props, "owner">) {
   return readContract(config, {
-    address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
+    address: getActiveCollateralProfile(chainId).primary.address,
     abi: SDAI_ABI,
     functionName: "convertToShares",
     args: [amount],
@@ -166,7 +166,7 @@ export async function redeemFromSDAI({ chainId, amount, owner }: Props) {
   const unwrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
-        address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
+        address: getActiveCollateralProfile(chainId).primary.address,
         abi: SDAI_ABI,
         functionName: "redeem",
         args: [amount, owner, owner],
@@ -184,7 +184,7 @@ export async function depositToSDAI({ chainId, amount, owner }: Props) {
   const wrappedResult = await toastifyTx(
     () =>
       writeContract(config, {
-        address: COLLATERAL_TOKENS[chainId].primary.address as `0x${string}`,
+        address: getActiveCollateralProfile(chainId).primary.address,
         abi: SDAI_ABI,
         functionName: "deposit",
         args: [amount, owner],

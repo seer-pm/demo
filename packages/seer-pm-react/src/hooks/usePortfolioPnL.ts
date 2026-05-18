@@ -1,5 +1,5 @@
 import type { PortfolioPnLPeriod, SupportedChain } from "@seer-pm/sdk";
-import { fetchPortfolioPnL } from "@seer-pm/sdk";
+import { fetchPortfolioPnL, getActiveCollateralProfileName } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
@@ -15,7 +15,9 @@ export function usePortfolioPnL(
     enabled: Boolean(account && chainId !== undefined),
     queryKey: ["portfolioPnL", account, chainId, period, marketId],
     retry: false,
-    queryFn: () => fetchPortfolioPnL(account as Address, chainId as SupportedChain, period, marketId),
+    queryFn: () => {
+      return fetchPortfolioPnL(account as Address, chainId!, period, getActiveCollateralProfileName(), marketId);
+    },
     staleTime: 60_000,
     refetchInterval: 60_000,
   });

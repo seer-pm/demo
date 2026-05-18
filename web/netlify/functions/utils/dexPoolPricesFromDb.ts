@@ -49,12 +49,12 @@ export async function getCurrentTokensPricesForPortfolio(
 
   if (error) {
     console.error("dex_pool_hour_prices_latest_for_tokens", error);
-    return getTokenPricesMapping(positions, [], chainId);
+    return getTokenPricesMapping(positions, []);
   }
 
   const rows = data ?? [];
   if (rows.length === 0) {
-    return getTokenPricesMapping(positions, [], chainId);
+    return getTokenPricesMapping(positions, []);
   }
 
   return getTokenPricesMapping(
@@ -65,7 +65,6 @@ export async function getCurrentTokensPricesForPortfolio(
       token0Price: r.token0_price,
       token1Price: r.token1_price,
     })),
-    chainId,
   );
 }
 
@@ -114,5 +113,5 @@ export async function getHistoryTokensPricesForPortfolio(
           token1Price: r.token1_price,
         }));
 
-  return getTokenPricesMapping(positions, poolsAccum, chainId);
+  return getTokenPricesMapping(positions, poolsAccum);
 }

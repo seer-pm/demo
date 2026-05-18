@@ -8,7 +8,8 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { filterChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
-import { COLLATERAL_TOKENS, type PortfolioPnLPeriod, type SupportedChain } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { type PortfolioPnLPeriod, type SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
@@ -36,7 +37,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
         <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
       ) : (
         <p className="text-[32px] text-base-content font-semibold">
-          {Number(currentPortfolioValue).toFixed(2)} {COLLATERAL_TOKENS[chainId].primary.symbol}
+          {Number(currentPortfolioValue).toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol}
         </p>
       )}
       {isLoading ? (
@@ -46,14 +47,14 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
           <span>
             <ArrowDropUp fill="#00C42B" />
           </span>
-          {delta.toFixed(2)} {COLLATERAL_TOKENS[chainId].primary.symbol} ({deltaPercent.toFixed(2)}%) today
+          {delta.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol} ({deltaPercent.toFixed(2)}%) today
         </p>
       ) : (
         <p className="text-[#c40000] flex gap-2">
           <span>
             <ArrowDropDown fill="#c40000" />
           </span>
-          {delta.toFixed(2)} {COLLATERAL_TOKENS[chainId].primary.symbol} ({deltaPercent.toFixed(2)}%) today
+          {delta.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol} ({deltaPercent.toFixed(2)}%) today
         </p>
       )}
     </div>
@@ -92,7 +93,7 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
       ) : (
         <p className={`text-[32px] font-semibold ${pnlTextColor}`}>
           {isPnlPositive ? "+" : ""}
-          {pnl.toFixed(2)} {COLLATERAL_TOKENS[chainId].primary.symbol}
+          {pnl.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol}
         </p>
       )}
     </div>

@@ -137,8 +137,9 @@ async function loadMarketsForChain(
     for (const row of data) {
       try {
         out.push(mapGraphMarketFromDbResult(row.subgraph_data as LegacySubgraphMarket, row));
-      } catch {
+      } catch (e) {
         /* skip malformed */
+        console.error("malformed data", e);
       }
     }
     logScheduled(
