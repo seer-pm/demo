@@ -1,5 +1,5 @@
-import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, getMappings, getPrimaryCollateralAddress } from "@seer-pm/sdk";
+import type { SupportedChain, Token } from "@seer-pm/sdk";
+import { getMappings } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
 import { getPublicClientByChainId } from "./config";
@@ -20,6 +20,10 @@ export type PrimaryCollateralSwapFlowDebugRow = {
   countedPrimaryNetOutWei: string; // signed, in wei of primary token
 };
 
+export type CollateralSwapFlowOpts = {
+  limitRows?: number;
+};
+
 /**
  * Net **primary collateral** (e.g. sDAI on Gnosis) spent on outcome **DEX/Cowswap** swaps in `(startTime, endTime]`,
  * in human units (same decimals as chain primary collateral).
@@ -29,7 +33,7 @@ export type PrimaryCollateralSwapFlowDebugRow = {
  * Sources: same as transaction history (`getSwapEvents`). Does not include split/merge/redeem (those are captured in
  * `collateralValues` from router `tokens_transfers` when applicable).
  *
- * `markets` must be preloaded (e.g. same `searchAllMarkets` pass as portfolio positions for this request).
+ * `markets` must be pre-scoped to the request collateral profile (e.g. `searchAllMarkets` with `collateralProfile`).
  */
 export async function computeNetPrimaryCollateralSwapFlow(
   account: Address,
@@ -37,15 +41,16 @@ export async function computeNetPrimaryCollateralSwapFlow(
   startTime: number,
   endTime: number,
   markets: Market[],
+  primaryCollateral: Token,
   marketId?: Address,
-  opts?: { limitRows?: number },
+  opts?: CollateralSwapFlowOpts,
 ): Promise<{
   netOut: number;
   rows: PrimaryCollateralSwapFlowDebugRow[];
   primary: { address: string; decimals: number };
 }> {
-  const primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
-  const decimals = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary.decimals;
+  const primaryAddr = primaryCollateral.address.toLowerCase();
+  const decimals = primaryCollateral.decimals;
 
   if (markets.length === 0) return { netOut: 0, rows: [], primary: { address: primaryAddr, decimals } };
 
@@ -55,6 +60,7 @@ export async function computeNetPrimaryCollateralSwapFlow(
     [startTime],
     endTime,
     markets,
+    primaryCollateral,
     marketId,
     opts,
   );
@@ -76,15 +82,16 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   startTimes: number[],
   endTime: number,
   markets: Market[],
+  primaryCollateral: Token,
   marketId?: Address,
-  opts?: { limitRows?: number },
+  opts?: CollateralSwapFlowOpts,
 ): Promise<{
   netOutByStartTime: Map<number, number>;
   rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
   primary: { address: string; decimals: number };
 }> {
-  const primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
-  const decimals = COLLATERAL_TOKENS[chainId as keyof typeof COLLATERAL_TOKENS].primary.decimals;
+  const primaryAddr = primaryCollateral.address.toLowerCase();
+  const decimals = primaryCollateral.decimals;
 
   if (markets.length === 0 || startTimes.length === 0) {
     return {

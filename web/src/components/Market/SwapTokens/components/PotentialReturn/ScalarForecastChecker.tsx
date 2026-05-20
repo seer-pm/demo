@@ -5,7 +5,8 @@ import { useQuoteTrade } from "@seer-pm/react";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import { displayScalarBound } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, TradeType } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { TradeType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import ReactECharts from "echarts-for-react";
 import { formatUnits, zeroAddress } from "viem";
@@ -34,7 +35,7 @@ export default function ScalarForecastChecker({
   assetsToShares: number;
   sharesToAssets: number;
 }) {
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const isCowQuoteEnabled = useGlobalState((state) => !state.isInstantSwap);

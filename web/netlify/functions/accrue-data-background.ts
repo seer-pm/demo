@@ -1,7 +1,6 @@
 import { gnosis } from "@/lib/chains";
 import { isTwoStringsEqual } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
+import { DEFAULT_COLLATERAL_PROFILE, type SupportedChain, getDefaultCollateralProfile } from "@seer-pm/sdk";
 import { getCollateralByIndex, getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { fetchMarkets } from "@seer-pm/sdk/markets-fetch";
@@ -108,14 +107,15 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, main
     tokens.map((x) => getToken0Token1(x.tokenId, x.collateralToken)),
   );
 
-  const tokenPriceMapping = getTokenPricesMapping(tokens, pools, chainId);
+  const tokenPriceMapping = getTokenPricesMapping(tokens, pools);
+  const defaultCollateralAddress = getDefaultCollateralProfile(chainId).primary.address;
   const marketsVolume = markets.map((market) => {
     let totalVolume = 0;
     for (const tokenId of market.wrappedTokens) {
       const parentMarket = marketIdToMarket[market.parentMarket.id];
       const parentTokenId = parentMarket
         ? parentMarket.wrappedTokens[Number(market.parentOutcome)]
-        : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+        : defaultCollateralAddress.toLocaleLowerCase();
       const tokenPools = pools.filter(
         (pool) =>
           isTwoStringsEqual(pool.token0.id, tokenId > parentTokenId ? parentTokenId : tokenId) &&
@@ -127,10 +127,7 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, main
             ? [Number(pool.volumeToken1), Number(pool.volumeToken0)]
             : [Number(pool.volumeToken0), Number(pool.volumeToken1)];
         const tokenPriceInMainCollateral = tokenPriceMapping[tokenId] || 1 / (market.wrappedTokens.length - 1);
-        const collateralPriceInMainCollateral = isTwoStringsEqual(
-          parentTokenId,
-          COLLATERAL_TOKENS[chainId].primary.address,
-        )
+        const collateralPriceInMainCollateral = isTwoStringsEqual(parentTokenId, defaultCollateralAddress)
           ? 1
           : tokenPriceMapping[parentTokenId] || (parentMarket ? 1 / (parentMarket.wrappedTokens.length - 1) : 0);
         const volumeUSD =
@@ -180,13 +177,16 @@ async function writeToSheet(data: string) {
 
 export default async () => {
   const chainId = gnosis.id;
-  const { markets } = await fetchMarkets({ chainsList: [String(chainId)] });
+  const { markets } = await fetchMarkets({
+    chainsList: [String(chainId)],
+    collateralProfile: DEFAULT_COLLATERAL_PROFILE,
+  });
   const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
   const predictors = await getTopPredictors(markets, chainId);
   const marketsVolume = await getMarketsVolume(
     markets,
     chainId,
-    mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[chainId].primary.address]?.[chainId] || 0,
+    mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(chainId).primary.address]?.[chainId] || 0,
   );
 
   const predictorsToRows = [

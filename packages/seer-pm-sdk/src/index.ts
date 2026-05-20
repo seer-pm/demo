@@ -16,6 +16,8 @@ export {
   getCreateProposalExecution,
   getCreateMarketParams,
   getMarketFactoryAddress,
+  getOfficialMarketFactoryAddresses,
+  isOfficialMarketFactory,
   getFutarchyFactoryAddress,
   getProposalName,
   generateTokenName,
@@ -125,13 +127,20 @@ export type { GetSplitExecutionParams } from "./split-position";
 export {
   NATIVE_TOKEN,
   TOKENS_BY_CHAIN,
-  COLLATERAL_TOKENS,
-  getPrimaryCollateralAddress,
+  DEFAULT_COLLATERAL_PROFILE,
+  configureCollateral,
+  getCollateralProfiles,
+  getCollateralProfileByName,
+  getDefaultCollateralProfile,
+  getAllPrimaryCollaterals,
+  getActiveCollateralProfile,
+  getActiveCollateralProfileName,
+  getActivePrimaryCollateral,
   getCollateralTokenForSwap,
   getCollateralSymbol,
   hasAltCollateral,
 } from "./collateral";
-export type { Token, CollateralTokensMap } from "./collateral";
+export type { Token, CollateralProfile } from "./collateral";
 export { WRAPPED_OUTCOME_TOKEN_DECIMALS, EMPTY_TOKEN } from "./tokens";
 export type { TokenTransfer } from "./tokens";
 export { getTokenInfo, getTokensInfo } from "./token-info";
@@ -239,7 +248,7 @@ export type {
 } from "./portfolio-types";
 export {
   reconstructSplitMergeRedeemFromTransfers,
-  type ReconstructSplitMergeRedeemParams,
+  type ReconstructSplitMergeRedeemOptions,
 } from "./reconstruct-split-merge-redeem";
 export { getMappings, type MarketDataMapping } from "./get-mappings";
 

@@ -1,5 +1,5 @@
 import { FAST_TESTNET_FACTORY } from "@/lib/constants";
-import type { SupportedChain } from "@seer-pm/sdk";
+import { type SupportedChain, getMarketFactoryAddress } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, unescapeJson } from "@seer-pm/sdk/market";
 import type { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk/market-types";
 import { MarketsOrderBy } from "@seer-pm/sdk/markets-fetch";
@@ -390,6 +390,7 @@ type SearchMarketsProps = {
   page?: number;
   orderBy?: MarketsOrderBy;
   orderDirection?: "asc" | "desc";
+  collateralProfile?: string;
 };
 
 /**
@@ -437,6 +438,7 @@ export async function searchMarkets({
   page = 1,
   orderBy,
   orderDirection,
+  collateralProfile,
 }: SearchMarketsProps): Promise<{ markets: Market[]; count: number }> {
   let query = supabase
     .from("markets_search")
@@ -500,6 +502,20 @@ export async function searchMarkets({
     query = query.eq("subgraph_data->>factory", FAST_TESTNET_FACTORY);
   } else {
     query = query.neq("subgraph_data->>factory", FAST_TESTNET_FACTORY);
+  }
+
+  if (collateralProfile) {
+    const factoryAddresses = chainIds.flatMap((chainId) => {
+      try {
+        return [getMarketFactoryAddress(chainId, collateralProfile).toLowerCase()];
+      } catch {
+        return [];
+      }
+    });
+    if (factoryAddresses.length === 0) {
+      return { markets: [], count: 0 };
+    }
+    query = query.in("subgraph_data->>factory", factoryAddresses);
   }
 
   if (categoryList?.length) {

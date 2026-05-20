@@ -1,7 +1,12 @@
 import { useTokenInfo } from "@seer-pm/react";
-import { Market } from "@seer-pm/sdk";
-import { EMPTY_TOKEN, type Token, hasAltCollateral } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import {
+  EMPTY_TOKEN,
+  Market,
+  type Token,
+  getActiveCollateralProfile,
+  getActivePrimaryCollateral,
+  hasAltCollateral,
+} from "@seer-pm/sdk";
 import { Address, zeroAddress } from "viem";
 
 export function useSelectedCollateral(market: Market, useAltCollateral: boolean): Token {
@@ -23,11 +28,8 @@ export function useSelectedCollateral(market: Market, useAltCollateral: boolean)
     return parentCollateral;
   }
 
-  return (
-    hasAltCollateral(COLLATERAL_TOKENS[market.chainId].secondary) && useAltCollateral
-      ? COLLATERAL_TOKENS[market.chainId].secondary
-      : COLLATERAL_TOKENS[market.chainId].primary
-  ) as Token;
+  const profile = getActiveCollateralProfile(market.chainId);
+  return (hasAltCollateral(profile.secondary) && useAltCollateral ? profile.secondary : profile.primary) as Token;
 }
 
 export function getSplitMergeRedeemCollateral(
@@ -40,7 +42,7 @@ export function getSplitMergeRedeemCollateral(
   }
 
   if (market.parentMarket.id !== zeroAddress) {
-    return COLLATERAL_TOKENS[market.chainId].primary.address;
+    return getActivePrimaryCollateral(market.chainId).address;
   }
 
   return !useAltCollateral ? selectedCollateral.address : undefined;

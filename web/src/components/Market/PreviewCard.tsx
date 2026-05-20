@@ -15,8 +15,8 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useMarket, useTokenInfo } from "@seer-pm/react";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import {
-  COLLATERAL_TOKENS,
   INVALID_RESULT_OUTCOME_TEXT,
   Market,
   MarketStatus,
@@ -344,7 +344,9 @@ export function PreviewCard({ market }: { market: Market }) {
                   <p className="text-purple-primary">Open interest:</p>
                   <p className="mx-1">
                     {displayBalance(market.outcomesSupply, 18, true)}{" "}
-                    {parentMarket ? (parentCollateral?.symbol ?? "") : COLLATERAL_TOKENS[market.chainId].primary.symbol}
+                    {parentMarket
+                      ? (parentCollateral?.symbol ?? "")
+                      : getActivePrimaryCollateral(market.chainId).symbol}
                   </p>
                   <p className="text-purple-primary">Liquidity:</p>
                   <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />

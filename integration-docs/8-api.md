@@ -291,6 +291,7 @@ Positions for an account on a chain: outcome token balances per market, with mar
 |-----------|----------|-------------|
 | `account` | Yes | Wallet address. |
 | `chainId` | Yes | Chain ID (number). |
+| `collateralProfile` | No | Registered profile name (`default`, `circles`, …). Defaults to `default`. Filters positions to markets using that profile’s primary collateral. |
 
 ### Response 200
 
@@ -324,6 +325,53 @@ Only positions with balance > 0 are included; for closed markets, only those tha
 
 - **400** – Missing `account` or `chainId`, or non-numeric `chainId`.
 - **500** – Internal server error.
+
+---
+
+## get-portfolio-value
+
+Current portfolio value and ~24h mark-to-market change (outcome positions only; same collateral filter as `get-portfolio`).
+
+| Field | Detail |
+|-------|--------|
+| **Method** | `GET` |
+| **URL** | `https://app.seer.pm/.netlify/functions/get-portfolio-value` |
+
+### Query params
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `account` | Yes | Wallet address. |
+| `chainId` | Yes | Chain ID (number). |
+| `collateralProfile` | No | Registered profile name (see `get-portfolio`). |
+
+### Response 200
+
+`currentPortfolioValue`, `historyPortfolioValue`, `historyTimestamp`, `delta`, `deltaPercent` — values denominated in the selected collateral’s units.
+
+---
+
+## get-portfolio-pl
+
+Period P/L for an account (outcome MTM + router collateral legs − swap cashflow). Cached ~2h when `debug` is not set.
+
+| Field | Detail |
+|-------|--------|
+| **Method** | `GET` |
+| **URL** | `https://app.seer.pm/.netlify/functions/get-portfolio-pl` |
+
+### Query params
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `account` | Yes | Wallet address. |
+| `chainId` | Yes | Chain ID (number). |
+| `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `1d`). |
+| `marketId` | No | Restrict to one market. |
+| `collateralProfile` | No | Registered profile name (see `get-portfolio`). |
+| `debug` | No | `1` or `true` for breakdown (skips cache). |
+
+`@seer-pm/sdk` `fetchPortfolioPnL` / `fetchPortfolioValue` send `collateralProfile` from `getActiveCollateralProfileName()` after `configureCollateral` — see [Collateral profiles](9-collateral-profiles.md).
 
 ---
 
@@ -374,7 +422,9 @@ type MarketsChartsResponse = Record<`0x${string}`, ChartDataSeries>;
 | markets-search | POST | Body with filters and `page`/`limit` | Listings, search, filters |
 | get-token-transactions | GET | `tokenIds`, `chainId` | Token holders and activity |
 | get-transactions | GET | `account`, `chainId`, opt. `eventType`, `startTime`, `endTime` | Wallet transaction history |
-| get-portfolio | GET | `account`, `chainId` | Wallet positions/portfolio |
+| get-portfolio | GET | `account`, `chainId`, opt. `collateralProfile` | Wallet positions (filtered by profile) |
+| get-portfolio-value | GET | `account`, `chainId`, opt. `collateralProfile` | Portfolio value + 24h delta |
+| get-portfolio-pl | GET | `account`, `chainId`, opt. `collateralProfile`, `period` | Period P/L |
 | markets-charts | GET | opt. `ids` (market IDs) | Price/volume charts per market |
 
 All responses are JSON. Errors return `{ "error": "message" }` with the appropriate HTTP status code.

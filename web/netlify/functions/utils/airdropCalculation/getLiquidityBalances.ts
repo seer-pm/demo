@@ -1,6 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { isOpStack } from "@seer-pm/sdk/chains";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
@@ -153,12 +152,11 @@ export async function getAllLiquidityEvents(
   tokenPairs: {
     tokenId: Address;
     parentTokenId?: Address;
+    collateralToken: Address;
   }[],
 ) {
-  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId }) => {
-    const collateral = parentTokenId
-      ? parentTokenId.toLocaleLowerCase()
-      : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId, collateralToken }) => {
+    const collateral = (parentTokenId ?? collateralToken).toLocaleLowerCase();
     return getToken0Token1(tokenId, collateral as Address);
   });
   const mints = await fetchMints(chainId, sortedTokenPairs);

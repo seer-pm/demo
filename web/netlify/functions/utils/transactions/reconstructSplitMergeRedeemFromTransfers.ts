@@ -1,5 +1,5 @@
-import type { Market, SupportedChain, TokenTransfer, TransactionData } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, getRouterAddresses, reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
+import type { Market, SupportedChain, Token, TokenTransfer, TransactionData } from "@seer-pm/sdk";
+import { getRouterAddresses, reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { formatUnits, isAddressEqual } from "viem";
@@ -13,13 +13,10 @@ const TX_HASH_CHUNK = 200;
 function routerPrimaryCollateralNetInWindowFromTransfers(
   transfers: TokenTransfer[],
   account: Address,
-  chainId: SupportedChain,
   wrappedTokens: Address[],
+  primaryCollateral: Token,
 ): number {
-  const primary = COLLATERAL_TOKENS[chainId]?.primary;
-  if (!primary) return 0;
-
-  const primaryTokenLc = primary.address.toLowerCase();
+  const primaryTokenLc = primaryCollateral.address.toLowerCase();
   const outcomeTokenSet = new Set(wrappedTokens.map((t) => t.toLowerCase()));
   const transfersByTx = new Map<string, { outcome: TokenTransfer[]; primary: TokenTransfer[] }>();
 
@@ -48,7 +45,7 @@ function routerPrimaryCollateralNetInWindowFromTransfers(
     netPrimaryWeiInWindow += primaryNetWei;
   }
 
-  return Number(formatUnits(netPrimaryWeiInWindow, primary.decimals));
+  return Number(formatUnits(netPrimaryWeiInWindow, primaryCollateral.decimals));
 }
 
 async function listOutcomeTransfersUserRouterInWindow(
@@ -106,6 +103,7 @@ type ReconstructInput = {
   supabase: SupabaseClient<Database>;
   account: Address;
   market: Market;
+  primaryCollateral: Token;
   startTime: number;
   endTime: number;
   identifySwaps?: boolean;
@@ -115,6 +113,7 @@ export async function reconstructSplitMergeRedeemFromTransfersForMarket({
   supabase,
   account,
   market,
+  primaryCollateral,
   startTime,
   endTime,
   identifySwaps = false,
@@ -123,8 +122,7 @@ export async function reconstructSplitMergeRedeemFromTransfersForMarket({
   routerPrimaryCollateralNetInWindow: number; // signed for user (+ incoming, - outgoing)
 }> {
   const routers = getRouterAddresses(market.chainId);
-  const primary = COLLATERAL_TOKENS[market.chainId]?.primary;
-  if (routers.length === 0 || !primary) {
+  if (routers.length === 0) {
     return { events: [], routerPrimaryCollateralNetInWindow: 0 };
   }
   const outcomeTransfers = await listOutcomeTransfersUserRouterInWindow(
@@ -147,22 +145,21 @@ export async function reconstructSplitMergeRedeemFromTransfersForMarket({
     market.chainId,
     account,
     routers,
-    primary.address.toLowerCase(),
+    primaryCollateral.address.toLowerCase(),
     txHashes,
   );
 
   const merged = [...outcomeTransfers, ...primaryTransfers];
 
-  const events = reconstructSplitMergeRedeemFromTransfers(merged, {
-    market,
-    options: { identifySwaps },
+  const events = reconstructSplitMergeRedeemFromTransfers(merged, market, primaryCollateral, {
+    identifySwaps,
   });
 
   const routerPrimaryCollateralNetInWindow = routerPrimaryCollateralNetInWindowFromTransfers(
     merged,
     account,
-    market.chainId,
     market.wrappedTokens,
+    primaryCollateral,
   );
 
   return { events, routerPrimaryCollateralNetInWindow };

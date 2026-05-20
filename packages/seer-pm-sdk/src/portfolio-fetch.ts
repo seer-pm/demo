@@ -8,10 +8,15 @@ import type {
 } from "./portfolio-types";
 import { getApiHost } from "./subgraph/app-subgraph";
 
-export async function fetchPortfolioPositions(account: Address, chainId: SupportedChain): Promise<PortfolioPosition[]> {
+export async function fetchPortfolioPositions(
+  account: Address,
+  chainId: SupportedChain,
+  collateralProfile: string,
+): Promise<PortfolioPosition[]> {
   const params = new URLSearchParams({
     account,
     chainId: String(chainId),
+    collateralProfile,
   });
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio?${params.toString()}`);
   if (!res.ok) {
@@ -24,10 +29,12 @@ export async function fetchPortfolioPositions(account: Address, chainId: Support
 export async function fetchPortfolioValue(
   account: Address,
   chainId: SupportedChain,
+  collateralProfile: string,
 ): Promise<PortfolioValueApiResponse> {
   const params = new URLSearchParams({
     account,
     chainId: String(chainId),
+    collateralProfile,
   });
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio-value?${params.toString()}`);
   if (!res.ok) {
@@ -41,12 +48,14 @@ export async function fetchPortfolioPnL(
   account: Address,
   chainId: SupportedChain,
   period: PortfolioPnLPeriod,
+  collateralProfile: string,
   marketId?: Address,
 ): Promise<PortfolioPnLData> {
   const params = new URLSearchParams({
     account,
     chainId: String(chainId),
     period,
+    collateralProfile,
   });
   if (marketId) {
     params.set("marketId", marketId);

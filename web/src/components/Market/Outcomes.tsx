@@ -18,10 +18,10 @@ import {
   useTokenBalances,
   useTokensInfo,
 } from "@seer-pm/react";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { getLiquidityUrl, getLiquidityUrlByMarket } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import {
-  COLLATERAL_TOKENS,
   Market,
   MarketStatus,
   MarketTypes,
@@ -329,7 +329,7 @@ function OutcomeDetails({
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   const getTooltipContent = (market: Market, outcomeIndex: number) => {
-    const primarySymbol = COLLATERAL_TOKENS[market.chainId].primary.symbol;
+    const primarySymbol = getActivePrimaryCollateral(market.chainId).symbol;
     const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
     if (outcomeIndex === 1) {
       return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;

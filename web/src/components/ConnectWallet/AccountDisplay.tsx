@@ -1,7 +1,7 @@
 import { displayBalance, isUndefined, shortenAddress } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import clsx from "clsx";
 import React from "react";
@@ -34,7 +34,7 @@ export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Ad
 }) => {
   const { address: defaultAddress } = useAccount();
   const address = propAddress || defaultAddress;
-  const { data: balance } = useTokenBalance(address, COLLATERAL_TOKENS[chainId].primary.address, chainId);
+  const { data: balance } = useTokenBalance(address, getActiveCollateralProfile(chainId).primary.address, chainId);
 
   if (isUndefined(balance)) {
     return null;
@@ -42,7 +42,8 @@ export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Ad
 
   return (
     <div>
-      {displayBalance(balance, COLLATERAL_TOKENS[chainId].primary.decimals)} {COLLATERAL_TOKENS[chainId].primary.symbol}
+      {displayBalance(balance, getActiveCollateralProfile(chainId).primary.decimals)}{" "}
+      {getActiveCollateralProfile(chainId).primary.symbol}
     </div>
   );
 };

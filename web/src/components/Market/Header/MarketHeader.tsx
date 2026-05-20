@@ -21,8 +21,8 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useMarket, useMarketHasLiquidity, useMarketOdds, usePortfolioPnL, useTokenInfo } from "@seer-pm/react";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import {
-  COLLATERAL_TOKENS,
   INVALID_RESULT_OUTCOME_TEXT,
   Market,
   MarketStatus,
@@ -434,7 +434,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                         {displayBalance(market.outcomesSupply, 18, true)}{" "}
                         {parentMarket
                           ? (parentCollateral?.symbol ?? "")
-                          : COLLATERAL_TOKENS[market.chainId].primary.symbol}
+                          : getActivePrimaryCollateral(market.chainId).symbol}
                       </p>
                       <p className="text-purple-primary">Liquidity:</p>
                       <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />

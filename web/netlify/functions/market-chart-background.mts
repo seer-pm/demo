@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { getMarketChartKeyValueHash } from "./market-chart.mts";
 import { getChartData } from "./utils/getChartData";
-import { searchMarkets } from "./utils/markets";
+import { getMarketByChainAndId } from "./utils/markets";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -19,7 +19,7 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
  */
 export async function fetchCachedChartData(marketId: Address, chainId: SupportedChain, checkTimestamp = true) {
   // Fetch market information
-  const market = (await searchMarkets({ chainIds: [chainId], id: marketId }))?.markets?.[0];
+  const market = await getMarketByChainAndId(chainId, marketId);
 
   if (!market) {
     throw new Error("Market not found");

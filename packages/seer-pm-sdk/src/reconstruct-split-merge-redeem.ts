@@ -1,20 +1,16 @@
 import type { Address } from "viem";
 import { formatUnits, getAddress, isAddressEqual, zeroAddress } from "viem";
 import type { SupportedChain } from "./chains";
-import { COLLATERAL_TOKENS } from "./collateral";
 import type { Market } from "./market-types";
 import { getComputedPoolAddressesForMarket } from "./pool-address";
 import type { TransactionData } from "./portfolio-types";
 import { getRouterAddresses } from "./router-addresses";
-import type { TokenTransfer } from "./tokens";
+import type { Token, TokenTransfer } from "./tokens";
 
-export type ReconstructSplitMergeRedeemParams = {
-  market: Market;
-  options?: {
-    identifySwaps?: boolean;
-    /** Overrides CREATE2-derived pools (tests / non-standard factory). */
-    poolAddresses?: Address[];
-  };
+export type ReconstructSplitMergeRedeemOptions = {
+  identifySwaps?: boolean;
+  /** Overrides CREATE2-derived pools (tests / non-standard factory). */
+  poolAddresses?: Address[];
 };
 
 /** Unique wallet on router↔user legs for this tx (same address on all such legs). */
@@ -62,16 +58,12 @@ function normalizeWeiTo18(valueWei: bigint, decimals: number): bigint {
  */
 export function reconstructSplitMergeRedeemFromTransfers(
   transfers: TokenTransfer[],
-  params: ReconstructSplitMergeRedeemParams,
+  market: Market,
+  primaryCollateral: Token,
+  options?: ReconstructSplitMergeRedeemOptions,
 ): TransactionData[] {
-  const { market, options } = params;
   const chainId = market.chainId as SupportedChain;
   const identifySwaps = options?.identifySwaps === true;
-
-  const primary = COLLATERAL_TOKENS[chainId]?.primary;
-  if (!primary) {
-    return [];
-  }
 
   const routers = getRouterAddresses(chainId);
   if (routers.length === 0) {
@@ -84,10 +76,10 @@ export function reconstructSplitMergeRedeemFromTransfers(
   const poolHas = (a: Address) => effectivePools.some((p) => isAddressEqual(p, a));
   const routerHas = (a: Address) => routers.some((r) => isAddressEqual(r, a));
 
-  const primaryTokenLc = primary.address.toLowerCase();
+  const primaryTokenLc = primaryCollateral.address.toLowerCase();
   const outcomeTokenLcs = market.wrappedTokens.map((t) => t.toLowerCase());
   const outcomeTokenSet = new Set(outcomeTokenLcs);
-  const primaryDecimals = primary.decimals;
+  const primaryDecimals = primaryCollateral.decimals;
 
   const transfersByTx = new Map<string, { outcome: TokenTransfer[]; primary: TokenTransfer[] }>();
 
@@ -192,8 +184,8 @@ export function reconstructSplitMergeRedeemFromTransfers(
           marketId: market.id.toLowerCase(),
           type: smrType,
           blockNumber,
-          collateral: primary.address,
-          collateralSymbol: primary.symbol,
+          collateral: primaryCollateral.address,
+          collateralSymbol: primaryCollateral.symbol,
           timestamp,
           transactionHash: txHash,
           amount: smrType === "redeem" ? undefined : amountHuman,
@@ -224,8 +216,8 @@ export function reconstructSplitMergeRedeemFromTransfers(
         marketId: market.id.toLowerCase(),
         type: legType,
         blockNumber: Number(row.block_number),
-        collateral: primary.address,
-        collateralSymbol: primary.symbol,
+        collateral: primaryCollateral.address,
+        collateralSymbol: primaryCollateral.symbol,
         timestamp: Number(row.timestamp),
         transactionHash: txHash,
         amount: formatUnits(row.value, 18),

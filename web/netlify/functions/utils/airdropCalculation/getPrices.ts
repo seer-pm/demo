@@ -1,6 +1,5 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Address } from "viem";
 import { gnosis } from "viem/chains";
@@ -44,9 +43,8 @@ export async function getPrices(
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
-    (acc, { tokenId }) => {
-      const primaryCollateralAddress = COLLATERAL_TOKENS[chainId].primary.address;
-      const { token0, token1 } = getToken0Token1(tokenId, primaryCollateralAddress);
+    (acc, { tokenId, collateralToken }) => {
+      const { token0, token1 } = getToken0Token1(tokenId, collateralToken);
       const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
       acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
         ? isTwoStringsEqual(tokenId, token0)

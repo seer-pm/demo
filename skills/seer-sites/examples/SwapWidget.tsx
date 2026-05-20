@@ -3,7 +3,8 @@ import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { formatUnits, isAddressEqual, zeroAddress } from "viem";
 import type { Market, Token } from "@seer-pm/sdk";
 import {
-  COLLATERAL_TOKENS,
+  EMPTY_TOKEN,
+  getActivePrimaryCollateral,
   TradeType,
   isSeerCredits,
   getMaximumAmountIn,
@@ -63,15 +64,15 @@ function buildOutcomeTokens(market: Market): Token[] {
   return tokens;
 }
 
-function getSelectedCollateral(market: Market, outcomeToken: Token, parentCollateral?: Token): Token {
+function getSelectedCollateral(market: Market, parentCollateral?: Token): Token | undefined {
   const parentId = market.parentMarket.id;
-  const hasParent = typeof parentId === "string" && !isAddressEqual(parentId, zeroAddress) && parentCollateral;
+  const hasParent = typeof parentId === "string" && !isAddressEqual(parentId, zeroAddress);
 
-  if (hasParent && parentCollateral) {
+  if (hasParent) {
     return parentCollateral;
   }
 
-  return COLLATERAL_TOKENS[market.chainId]?.primary ?? outcomeToken;
+  return getActivePrimaryCollateral(market.chainId);
 }
 
 export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
@@ -109,9 +110,15 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
 
   const hasLiquidity = useMarketHasLiquidity(market, safeOutcomeIndex);
 
-  const selectedCollateral = getSelectedCollateral(market, outcomeToken, parentCollateral);
+  const selectedCollateral = getSelectedCollateral(market, parentCollateral);
+  const isCollateralLoading = isChildMarket && !selectedCollateral;
+  const quoteCollateral = selectedCollateral ?? EMPTY_TOKEN;
 
-  const amountForQuote = isAddressEqual(selectedCollateral.address, outcomeToken.address) ? "" : debouncedAmount;
+  const amountForQuote =
+    isCollateralLoading ||
+    (selectedCollateral && isAddressEqual(selectedCollateral.address, outcomeToken.address))
+      ? ""
+      : debouncedAmount;
 
   const sellToken = mode === "buy" ? selectedCollateral : outcomeToken;
 
@@ -126,7 +133,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
     account,
     amountForQuote,
     outcomeToken,
-    selectedCollateral,
+    quoteCollateral,
     mode,
     TradeType.EXACT_INPUT,
     "1",
@@ -135,7 +142,8 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
 
   const requiredAmount = quoteData?.trade ? getMaximumAmountIn(quoteData.trade) : 0n;
 
-  const insufficientBalance = !!quoteData?.trade && requiredAmount > 0n && balance < requiredAmount;
+  const insufficientBalance =
+    !isCollateralLoading && !!quoteData?.trade && requiredAmount > 0n && balance < requiredAmount;
 
   const isSeerCreditsCollateral = selectedCollateral ? isSeerCredits(market.chainId, selectedCollateral.address) : false;
 
@@ -144,7 +152,8 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
     isLoading: isApprovalLoading,
   } = useMissingTradeApproval(account, quoteData?.trade);
 
-  const needsTokenApproval = !isSeerCreditsCollateral && missingApprovals.length > 0;
+  const needsTokenApproval =
+    !isCollateralLoading && !isSeerCreditsCollateral && missingApprovals.length > 0;
 
   const approveTokensMutation = useApproveTokens(toastifyTx);
 
@@ -222,7 +231,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
         : "0.00";
 
   const displayReceiveAmount =
-    quoteData && Number(debouncedAmount) > 0 && !quoteIsLoading
+    quoteData && Number(debouncedAmount) > 0 && !quoteIsLoading && !isCollateralLoading
       ? receivedAmount.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 4,
@@ -233,7 +242,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
   const amountOut = receivedAmount;
 
   const avgPrice =
-    quoteData && amountIn > 0 && amountOut > 0 && !quoteIsLoading
+    quoteData && amountIn > 0 && amountOut > 0 && !quoteIsLoading && !isCollateralLoading
       ? mode === "buy"
         ? amountIn / amountOut
         : amountOut / amountIn
@@ -288,6 +297,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
 
   const canSubmit =
     !isDisabled &&
+    !isCollateralLoading &&
     !insufficientBalance &&
     !isTradePending &&
     !!account &&
@@ -348,7 +358,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
                 step="any"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                disabled={isDisabled}
+                disabled={isDisabled || isCollateralLoading}
                 className="bg-transparent border-none p-0 text-2xl font-black w-1/2 placeholder:text-slate-700 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-70"
               />
               {payToken && (
@@ -361,7 +371,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
                   key={pct}
                   type="button"
                   onClick={() => setAmountToPercent(pct)}
-                  disabled={isDisabled || payBalanceHuman <= 0}
+                  disabled={isDisabled || isCollateralLoading || payBalanceHuman <= 0}
                   className="flex-1 bg-border-green/30 hover:bg-border-green/60 py-1.5 rounded text-[10px] font-bold uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {pct}%
@@ -389,7 +399,9 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
                 readOnly
                 type="text"
                 placeholder="0.0"
-                value={quoteIsLoading && Number(amount) > 0 ? "…" : displayReceiveAmount}
+                value={
+                  (quoteIsLoading || isCollateralLoading) && Number(amount) > 0 ? "…" : displayReceiveAmount
+                }
                 className="bg-transparent border-none p-0 text-2xl font-black w-1/2 placeholder:text-slate-700 focus:ring-0 cursor-default"
               />
               {receiveToken && (
@@ -398,7 +410,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
             </div>
           </div>
         </div>
-        {quoteError && Number(amount) > 0 && (
+        {quoteError && Number(amount) > 0 && !isCollateralLoading && (
           <p className="mt-4 text-xs text-red-400 pt-2">
             {quoteError.message === "No route found"
               ? "Not enough liquidity. Try a smaller amount."
@@ -424,7 +436,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
           >
             {isSwitchPending ? "Switching…" : "Change network"}
           </button>
-        ) : !insufficientBalance && needsTokenApproval ? (
+        ) : !isCollateralLoading && !insufficientBalance && needsTokenApproval ? (
           <button
             type="button"
             onClick={() => {

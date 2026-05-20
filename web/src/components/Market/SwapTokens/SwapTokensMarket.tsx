@@ -11,7 +11,8 @@ import { useQuoteTrade } from "@seer-pm/react";
 import { isSeerCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -117,7 +118,7 @@ export function SwapTokensMarket({
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [focusContainer, setFocusContainer] = useState(0);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {

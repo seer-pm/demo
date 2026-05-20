@@ -14,7 +14,8 @@ import { paths } from "@/lib/paths";
 import { useMarket } from "@seer-pm/react";
 import type { PortfolioPosition } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, MarketStatus } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { MarketStatus } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -82,7 +83,7 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
-  const primarySymbol = COLLATERAL_TOKENS[chainId].primary.symbol;
+  const primarySymbol = getActiveCollateralProfile(chainId).primary.symbol;
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",

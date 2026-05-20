@@ -1,6 +1,6 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
+import { getDefaultCollateralProfile } from "@seer-pm/sdk/collateral";
 import { fetchMarket } from "@seer-pm/sdk/markets-fetch";
 import { type PrivateKeyAccount, erc20Abi, zeroAddress } from "viem";
 import { type Address, privateKeyToAccount } from "viem/accounts";
@@ -35,8 +35,9 @@ export default async (req: Request) => {
   const walletClient = getWalletClientForNetwork(account, chainId);
   const liquidityAmount = BigInt(0.01 * 1e18);
   const totalLiquidityAmount = liquidityAmount * 2n * BigInt(market.wrappedTokens.length - 1);
+  const sdaiAddress = getDefaultCollateralProfile(chainId).primary.address;
   const currentSDaiBalance = await readContract(publicClient, {
-    address: COLLATERAL_TOKENS[chainId].primary.address,
+    address: sdaiAddress,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [account.address],
@@ -60,7 +61,7 @@ export default async (req: Request) => {
   }
   await checkAllowanceAndApprove(
     chainId,
-    COLLATERAL_TOKENS[chainId].primary.address,
+    sdaiAddress,
     account,
     liquidityManagerAddressMapping[chainId]!,
     totalLiquidityAmount,

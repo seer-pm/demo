@@ -1,6 +1,6 @@
 import { base, optimism } from "@/lib/chains.ts";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
+import { getDefaultCollateralProfile } from "@seer-pm/sdk/collateral";
 import { getCollateralByIndex, getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, zeroAddress } from "viem";
@@ -10,29 +10,31 @@ import type { Pool } from "./fetchPools.ts";
 
 type MainCollateralPriceByChain = Record<Address, Partial<Record<SupportedChain, number>>>;
 
+/** USD price for each chain’s **default** collateral profile (sDAI on Gnosis, etc.). */
 export async function getMainCollateralPriceByChainMapping(): Promise<MainCollateralPriceByChain> {
-  let collateralPriceByChain: number[] = [];
+  const acc: MainCollateralPriceByChain = {};
   try {
-    collateralPriceByChain = await Promise.all(
+    await Promise.all(
       chainIds.map(async (chainId) => {
+        const profile = getDefaultCollateralProfile(chainId);
+        let price: number;
         if (chainId === optimism.id || chainId === base.id) {
           // TODO: dexscreener doesn't have the sUSDS price
-          return 1.06;
+          price = 1.06;
+        } else {
+          // sDAI
+          price = (await getDexScreenerPriceUSD(profile.primary.address, chainId)) || 1.2;
         }
-        // sDAI
-        return (await getDexScreenerPriceUSD(COLLATERAL_TOKENS[chainId].primary.address, chainId)) || 1.2;
+        acc[profile.primary.address] = { [chainId]: price };
       }),
     );
-  } catch (e) {
-    collateralPriceByChain = Array(chainIds.length).fill(1.13);
-  }
-  return chainIds.reduce((acc, curr, index) => {
-    if (!acc[COLLATERAL_TOKENS[curr].primary.address]) {
-      acc[COLLATERAL_TOKENS[curr].primary.address] = {};
+  } catch {
+    for (const chainId of chainIds) {
+      const profile = getDefaultCollateralProfile(chainId);
+      acc[profile.primary.address] = { [chainId]: 1.13 };
     }
-    acc[COLLATERAL_TOKENS[curr].primary.address][curr] = collateralPriceByChain[index];
-    return acc;
-  }, {} as MainCollateralPriceByChain);
+  }
+  return acc;
 }
 
 type FutarchyCollateralsPriceMapping = Record<string, Record<string, number>>;
@@ -101,7 +103,8 @@ function getGenericTokenToLiquidityMapping(
       : [curr.balance0, curr.balance1];
     const liquidity =
       (tokenPriceInMainCollateral * balanceToken + balanceCollateral) *
-      (mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[curr.chainId].primary.address]?.[curr.chainId] || 0);
+      (mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(curr.chainId).primary.address]?.[curr.chainId] ||
+        0);
     const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {
@@ -142,7 +145,8 @@ function getConditionalTokenToLiquidityMapping(
     const liquidity =
       (relativeTokenPrice * balanceToken + balanceCollateral) *
       collateralPriceInMainCollateral *
-      (mainCollateralPriceByChainMapping?.[COLLATERAL_TOKENS[curr.chainId].primary.address]?.[curr.chainId] || 0);
+      (mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(curr.chainId).primary.address]?.[curr.chainId] ||
+        0);
     const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
     // if multiple pool, only use one with the highest collateral
     if (acc[key]) {

@@ -16,6 +16,7 @@ This folder contains step-by-step guides for **integrating with** the Seer predi
 | **[6-futarchy-markets.md](6-futarchy-markets.md)** | **Futarchy proposals**: markets with two collateral tokens and four outcomes (Yes/No per token). Creating via **FutarchyFactory.createProposal**, and split/merge/redeem via **FutarchyRouter**; resolution via **FutarchyRealityProxy** or the proposal contract. |
 | **[7-trading.md](7-trading.md)** | **Trading outcome tokens** on AMMs: Swapr (Algebra V3) on Gnosis and Uniswap V3 on Ethereum, Base, and Optimism. Main collateral and router addresses per chain, shared router ABI, and viem examples for swaps (exactInputSingle / exactOutputSingle). |
 | **[8-api.md](8-api.md)** | Reference for the app’s **Netlify serverless API** (e.g. `get-market`, and other functions). Request/response formats, parameters, and usage for integrations, frontends, and tools that consume the Seer app backend. |
+| **[9-collateral-profiles.md](9-collateral-profiles.md)** | **Multi-primary collateral**: `getCollateralProfiles`, `configureCollateral` for site builds, `collateralProfile` API param, sDAI + s-gCRC on Gnosis, secondary tokens per profile. |
 
 ---
 
@@ -37,5 +38,6 @@ Use this folder when integrating with or building tools that interact with the S
 | **Futarchy markets** | [6-futarchy-markets.md](6-futarchy-markets.md) |
 | **Trading on AMMs** | [7-trading.md](7-trading.md) |
 | **HTTP API (get-market, search, portfolio, etc.)** | [8-api.md](8-api.md) |
+| **Collateral profiles / white-label sites** | [9-collateral-profiles.md](9-collateral-profiles.md) |
 
 Typical flow: setup (1) → create or fetch market (2 or 8) → split/merge/trade (4, 7) → resolve (3) → redeem (4).

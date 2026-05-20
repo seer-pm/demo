@@ -1,7 +1,7 @@
 import { QuestionIcon } from "@/lib/icons";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import PotentialReturnConfig from "./PotentialReturnConfig";
 import { PotentialReturnResult } from "./PotentialReturnResult";
 
@@ -36,7 +36,7 @@ export function PotentialReturn({
   receivedAmount,
   collateralPerShare,
 }: PotentialReturnProps) {
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   if (swapType !== "buy" || market.type === "Futarchy") {
     return null;
   }

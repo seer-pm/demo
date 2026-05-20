@@ -35,7 +35,7 @@ async function getSnapshotData(chainId: SupportedChain, timestamp: number) {
   console.log("START FETCHING DATA ", { chainId, timestamp });
   // get markets
   console.time("1");
-  const { markets } = await searchAllMarkets({ chainIds: [chainId] });
+  const { markets } = await searchAllMarkets({ chainIds: [chainId], collateralProfile: "default" });
   // get tokens
   console.timeEnd("1");
   console.time("2");

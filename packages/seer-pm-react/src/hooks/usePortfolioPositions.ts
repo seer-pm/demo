@@ -1,5 +1,5 @@
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
-import { fetchPortfolioPositions } from "@seer-pm/sdk";
+import { fetchPortfolioPositions, getActiveCollateralProfileName } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
@@ -9,6 +9,6 @@ export function usePortfolioPositions(address: Address | undefined, chainId: Sup
   return useQuery<PortfolioPosition[] | undefined, Error>({
     enabled: !!address,
     queryKey: ["usePortfolioPositions", address, chainId],
-    queryFn: () => fetchPortfolioPositions(address!, chainId),
+    queryFn: () => fetchPortfolioPositions(address!, chainId, getActiveCollateralProfileName()),
   });
 }

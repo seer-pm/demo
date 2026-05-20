@@ -3,7 +3,8 @@ import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS, CoWTrade, SwaprV3Trade, UniswapTrade } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
@@ -67,7 +68,7 @@ export function SwapTokensConfirmation({
     invertedPrice,
   } = tradeInfo;
 
-  const primaryCollateral = COLLATERAL_TOKENS[filterChain(trade!.chainId)].primary.address;
+  const primaryCollateral = getActiveCollateralProfile(filterChain(trade!.chainId)).primary.address;
   const isExactInput = trade!.tradeType === 0;
   inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
   outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);

@@ -8,7 +8,8 @@ import { base, optimism } from "@/lib/chains";
 import { PSM3_ADDRESS } from "@/lib/config";
 import { displayBalance } from "@/lib/utils";
 import { useTokenBalance, useTokensInfo } from "@seer-pm/react";
-import { COLLATERAL_TOKENS, GetTokenResult, SupportedChain, Token } from "@seer-pm/sdk";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { GetTokenResult, SupportedChain, Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -22,7 +23,7 @@ interface TradeCollateralWidgetProps {
 }
 
 export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
-  const config = COLLATERAL_TOKENS[chainId];
+  const config = getActiveCollateralProfile(chainId);
   const isOptimismOrBase = chainId === optimism.id || chainId === base.id;
 
   // Optimism/Base: [primary (sUSDS), USDS, USDC]

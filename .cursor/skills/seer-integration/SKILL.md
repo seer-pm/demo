@@ -20,6 +20,7 @@ When helping with Seer (prediction markets, MarketFactory, Router, trading, or t
 | Futarchy markets | [6-futarchy-markets.md](https://github.com/seer-pm/demo/raw/main/integration-docs/6-futarchy-markets.md) |
 | Trading (AMMs) | [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md) |
 | HTTP API (get-market, search, portfolio, etc.) | [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) |
+| Collateral profiles (multi-primary) | [9-collateral-profiles.md](https://github.com/seer-pm/demo/raw/main/integration-docs/9-collateral-profiles.md) |
 
 ## Flow
 

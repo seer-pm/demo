@@ -1,6 +1,6 @@
 import { gnosis } from "@/lib/chains";
 import { type SupportedChain, getMappings } from "@seer-pm/sdk";
-import { getPrimaryCollateralAddress } from "@seer-pm/sdk/collateral";
+import { getDefaultCollateralProfile } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
@@ -47,7 +47,7 @@ function addPrimaryCollateralAmount(
 async function fetchSeerOutcomePrimaryCollateralVolume(account: Address): Promise<number> {
   const chainId = gnosis.id as SupportedChain;
 
-  const { markets } = await searchAllMarkets({ chainIds: [chainId] });
+  const { markets } = await searchAllMarkets({ chainIds: [chainId], collateralProfile: "default" });
 
   if (markets.length === 0) {
     return 0;
@@ -58,7 +58,7 @@ async function fetchSeerOutcomePrimaryCollateralVolume(account: Address): Promis
     return 0;
   }
 
-  const primaryAddr = getPrimaryCollateralAddress(chainId).toLowerCase();
+  const primaryAddr = getDefaultCollateralProfile(chainId).primary.address.toLowerCase();
 
   const poolPairs = Array.from(outcomeTokenToCollateral, ([outcomeToken, collateralToken]) =>
     getToken0Token1(outcomeToken, collateralToken),

@@ -13,9 +13,12 @@ import { SwapUpdater } from "../SwapUpdater.tsx";
 
 import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
+import { configureCollateral } from "@seer-pm/sdk";
 import { AuthUpdater } from "../AuthUpdater.tsx";
 
 globalThis.Buffer = Buffer;
+
+configureCollateral(import.meta.env.VITE_COLLATERAL_PROFILE || "default");
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();

@@ -4,7 +4,7 @@ import { CloseIcon } from "@/lib/icons";
 import { useMarketOdds } from "@seer-pm/react";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { useState } from "react";
 import PotentialReturnInput from "./PotentialReturnInput";
 import { PotentialReturnResult } from "./PotentialReturnResult";
@@ -35,7 +35,7 @@ function PotentialReturnConfig({
   receivedAmount: number;
   collateralPerShare: number;
 }) {
-  const primaryCollateral = COLLATERAL_TOKENS[market.chainId].primary;
+  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const { data: odds = [] } = useMarketOdds(market, true);
   const [input, setInput] = useState<PotentialReturnInputType>(
     getDefaultInput(market, outcomeToken, outcomeText, odds),

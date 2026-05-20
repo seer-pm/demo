@@ -13,7 +13,6 @@ import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
-import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
 import {
   getUseGraphMarketKey,
@@ -24,8 +23,14 @@ import {
   useTokensInfo,
 } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { Market, MarketStatus, getLiquidityPairForToken, getMarketStatus, isMarketReliable } from "@seer-pm/sdk";
-import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
+import {
+  Market,
+  MarketStatus,
+  getLiquidityPairForToken,
+  getMarketStatus,
+  isMarketReliable,
+  isOfficialMarketFactory,
+} from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
@@ -180,12 +185,11 @@ function MarketPage() {
     <div className="container-fluid py-10">
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
-        {marketStatus !== MarketStatus.CLOSED &&
-          !isTwoStringsEqual(market.factory, marketFactoryAddress[market.chainId]) && (
-            <Alert type="warning" title="This market was not created through an official Seer factory.">
-              It could be malicious or contain misleading information. Proceed with extreme caution.
-            </Alert>
-          )}
+        {marketStatus !== MarketStatus.CLOSED && !isOfficialMarketFactory(market.factory, market.chainId) && (
+          <Alert type="warning" title="This market was not created through an official Seer factory.">
+            It could be malicious or contain misleading information. Proceed with extreme caution.
+          </Alert>
+        )}
         {chainId && connectedChainId && chainId !== connectedChainId && (
           <Alert type="warning">
             {isSwitchPending ? (

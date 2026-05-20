@@ -1,6 +1,5 @@
 import { mainnet } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { COLLATERAL_TOKENS } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { getSubgraphUrl } from "@seer-pm/sdk/subgraph";
@@ -122,15 +121,13 @@ export async function getBunniLpTokensByTokenPair(chainId: SupportedChain, token
 
 export async function getBunniLpTokensByTokenPairs(
   chainId: SupportedChain,
-  tokenPairs: { tokenId: Address; parentTokenId?: Address }[],
+  tokenPairs: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
 ) {
   if (chainId !== 1) return { tokens: [], gauges: [] };
   const limit = pLimit(50);
   const promises = [];
-  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId }) => {
-    const collateral = parentTokenId
-      ? parentTokenId.toLocaleLowerCase()
-      : COLLATERAL_TOKENS[chainId].primary.address.toLocaleLowerCase();
+  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId, collateralToken }) => {
+    const collateral = (parentTokenId ?? collateralToken).toLocaleLowerCase();
     return getToken0Token1(tokenId, collateral as Address);
   });
   for (const tokenPair of sortedTokenPairs) {

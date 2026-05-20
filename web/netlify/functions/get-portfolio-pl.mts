@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioPosition, SupportedChain, Token } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, isAddress, isAddressEqual } from "viem";
@@ -12,6 +12,7 @@ import {
   computeNetPrimaryCollateralSwapFlowForPeriods,
 } from "./utils/netPrimaryCollateralSwapFlow";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
+import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
 import { getTokenDecimals } from "./utils/tokenDecimals";
 import { listDistinctUserTransferTokensInWindow } from "./utils/transactions/listDistinctUserTransferTokensInWindow";
@@ -25,7 +26,7 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * What we value (`valueEnd` / `valueStart`)
  * - **Outcome-token positions** (same shape as `get-portfolio` / `get-portfolio-value`).
  * - **Protocol collateral (router legs)**: net ERC20 transfers in `tokens_transfers` between the user and Seer routers
- *   (`routerAddressMap` / `getRouterAddresses`) for the chain **primary** collateral token (`COLLATERAL_TOKENS.primary`, e.g. sDAI on Gnosis).
+ *   (`routerAddressMap` / `getRouterAddresses`) for the request **primary** collateral (`?collateralProfile=`, e.g. `default` or `circles` on Gnosis).
  *   **`GetConditionalEvents` is not used**: split/merge/redeem **always** go through `Router` / `GnosisRouter`, so subgraph conditional events attach to the router as `account`, not to the user; ERC20 transfers user↔router reflect the economic legs.
  *
  * Prices
@@ -264,9 +265,10 @@ async function getMarketsAndPositions(
   chainId: SupportedChain,
   endTime: number,
   marketId: Address | undefined,
+  collateralProfile: string,
 ): Promise<{ markets: Market[]; positions: PortfolioPosition[] } | null> {
   if (marketId) {
-    const { markets: byId } = await searchMarkets({ chainIds: [chainId], id: marketId });
+    const { markets: byId } = await searchMarkets({ chainIds: [chainId], id: marketId, collateralProfile });
     const market = byId[0];
     if (!market) {
       return null;
@@ -282,6 +284,7 @@ async function getMarketsAndPositions(
     const { markets: loaded } = await searchAllMarkets({
       chainIds: [chainId],
       tokens: distinctTokenStrs as Address[],
+      collateralProfile,
     });
     markets = loaded;
   }
@@ -296,6 +299,8 @@ async function computeAllPeriods(
   chainIdNum: number,
   endTime: number,
   marketId: Address | undefined,
+  collateralProfile: string,
+  primaryCollateral: Token,
   debugPeriod?: Period,
 ): Promise<{
   startTimeByPeriod: Record<Period, number>;
@@ -310,7 +315,14 @@ async function computeAllPeriods(
     all: startTimeAll,
   };
 
-  const marketsAndPositions = await getMarketsAndPositions(supabase, account, chainId, endTime, marketId);
+  const marketsAndPositions = await getMarketsAndPositions(
+    supabase,
+    account,
+    chainId,
+    endTime,
+    marketId,
+    collateralProfile,
+  );
   if (!marketsAndPositions) return null;
 
   const { markets, positions } = marketsAndPositions;
@@ -343,6 +355,7 @@ async function computeAllPeriods(
       startTimes,
       endTime,
       markets,
+      primaryCollateral,
       marketId,
       { limitRows: 0 },
     );
@@ -364,6 +377,7 @@ async function computeAllPeriods(
           supabase,
           account,
           market,
+          primaryCollateral,
           startTime: startTimeByPeriod[p],
           endTime,
           identifySwaps: false,
@@ -381,7 +395,14 @@ async function computeAllPeriods(
 
   const collateral = marketId
     ? { valueEnd: 0, valueStartByStartTime: new Map<number, number>() }
-    : await computeCollateralPortfolioValuesForPeriods(supabase, account, chainId, endTime, startTimes);
+    : await computeCollateralPortfolioValuesForPeriods(
+        supabase,
+        account,
+        chainId,
+        endTime,
+        startTimes,
+        primaryCollateral,
+      );
 
   const tokensEndOnly = sumPortfolioValueCurrent(positions);
   const valueEndGlobal = tokensEndOnly + collateral.valueEnd;
@@ -462,9 +483,16 @@ async function computeAllPeriods(
 
     let swapFlowDebug: { primary: unknown; netOut: number; rowCount: number; rows: unknown[] } | undefined;
     try {
-      const flow = await computeNetPrimaryCollateralSwapFlow(account, chainId, st, endTime, markets, marketId, {
-        limitRows: 300,
-      });
+      const flow = await computeNetPrimaryCollateralSwapFlow(
+        account,
+        chainId,
+        st,
+        endTime,
+        markets,
+        primaryCollateral,
+        marketId,
+        { limitRows: 300 },
+      );
       const primaryDecimals = flow.primary.decimals;
       const absWei = (weiStr: string) => {
         const w = BigInt(weiStr);
@@ -575,6 +603,18 @@ export default async (req: Request) => {
 
     const supportedChain = chainIdNum as SupportedChain;
 
+    const collateralResolved = parseCollateralProfileQueryParam(
+      supportedChain,
+      url.searchParams.get("collateralProfile"),
+    );
+    if ("error" in collateralResolved) {
+      return new Response(JSON.stringify({ error: collateralResolved.error }), {
+        status: collateralResolved.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const { profileName, primaryCollateral } = collateralResolved;
+
     const marketId = marketIdParam ? (isAddress(marketIdParam) ? (marketIdParam as Address) : null) : undefined;
     if (marketId === null) {
       return new Response(JSON.stringify({ error: "marketId must be a valid address" }), {
@@ -585,7 +625,7 @@ export default async (req: Request) => {
 
     const endTime = Math.floor(Date.now() / 1000);
 
-    const cacheKey = `${chainIdNum}:${account.toLowerCase()}:${marketId ? marketId.toLowerCase() : "global"}`;
+    const cacheKey = `${chainIdNum}:${account.toLowerCase()}:${profileName}:${marketId ? marketId.toLowerCase() : "global"}`;
     const cached = await readCachedPortfolioPl(cacheKey, { bypassCache: debug });
     if (!debug && cached && Date.now() - cached.cachedAt < PORTFOLIO_PL_CACHE_MS && cached.byPeriod[period]) {
       return new Response(JSON.stringify(cached.byPeriod[period], jsonReplacer), {
@@ -604,6 +644,8 @@ export default async (req: Request) => {
       chainIdNum,
       endTime,
       marketId,
+      profileName,
+      primaryCollateral,
       debug ? period : undefined,
     );
     if (!computed) {
