@@ -8,7 +8,13 @@ import { createClient } from "@supabase/supabase-js";
 import { type Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { chainIds } from "./utils/config.ts";
-import { type CurateItem, fetchAndStoreMetadata, getVerification, getVerificationStatusList } from "./utils/curate.ts";
+import {
+  type CurateItem,
+  fetchAndStoreMetadata,
+  getVerification,
+  getVerificationStatusList,
+  updateVerificationForRecentlyChangedItems,
+} from "./utils/curate.ts";
 import { type EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
@@ -122,6 +128,7 @@ function getLiquidityAccount() {
 }
 
 const MARKETS_PAGE_SIZE = 1000;
+const MARKETS_IMPORT_LOOKBACK_SECONDS = 60 * 60 * 5; // Search for markets with changes in the last 5 hours
 
 async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMarket[]> {
   const client = graphQLClient(chainId);
@@ -135,8 +142,9 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMa
       orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
       where: {
         chainId: { _eq: String(chainId) },
-        // Search for markets with changes in the last 5 hours
-        updatedAt: { _gt: Math.floor((Date.now() - 60 * 60 * 5 * 1000) / 1000).toString() },
+        updatedAt: {
+          _gt: Math.floor((Date.now() - MARKETS_IMPORT_LOOKBACK_SECONDS * 1000) / 1000).toString(),
+        },
       },
     });
 
@@ -198,6 +206,9 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
       };
     }),
   );
+
+  const sinceSeconds = Math.floor(Date.now() / 1000) - MARKETS_IMPORT_LOOKBACK_SECONDS;
+  await updateVerificationForRecentlyChangedItems(supabase, chainId, sinceSeconds);
 
   // Check if the most recent market was created within the maxAgeSeconds window
   const now = Math.floor(Date.now() / 1000);

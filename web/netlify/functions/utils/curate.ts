@@ -3,7 +3,7 @@ import { isUndefined } from "@/lib/utils.ts";
 import { CURATE_STATUS, type SupportedChain, type VerificationResult } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
+import { type GetRecentlyChangedLItemsQuery, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, parseAbiItem } from "viem";
 import { getLogs, readContract } from "viem/actions";
@@ -28,6 +28,117 @@ export interface CurateItem {
 }
 
 type ItemAndMetadata = { itemID: `0x${string}`; metadataPath: string };
+
+type CurateLItemForVerification = GetRecentlyChangedLItemsQuery["LItem"][number];
+
+function getMarketIdFromLItem(item: CurateLItemForVerification): string | undefined {
+  return item.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+}
+
+export function mapLItemToVerificationResult(
+  item: CurateLItemForVerification,
+  challengePeriodDuration?: bigint,
+): VerificationResult {
+  const deadline =
+    item.latestRequestSubmissionTime && challengePeriodDuration
+      ? Number(item.latestRequestSubmissionTime) + Number(challengePeriodDuration)
+      : undefined;
+  const isVerifiedBeforeClearing =
+    item.status === CURATE_STATUS.ClearingRequested &&
+    item.requests.find((request) => request.requestType === CURATE_STATUS.RegistrationRequested)?.resolved;
+  if (item.status === CURATE_STATUS.Registered || isVerifiedBeforeClearing) {
+    return { status: "verified", itemID: item.itemID as `0x${string}`, deadline };
+  }
+  if (item.status === CURATE_STATUS.RegistrationRequested) {
+    if (item.disputed) {
+      return { status: "challenged", itemID: item.itemID as `0x${string}`, deadline };
+    }
+    return { status: "verifying", itemID: item.itemID as `0x${string}`, deadline };
+  }
+  return { status: "not_verified" };
+}
+
+async function getChallengePeriodDuration(chainId: SupportedChain): Promise<bigint | undefined> {
+  try {
+    return await readContract(getPublicClientByChainId(chainId), {
+      address: lightGeneralizedTcrAddress[chainId],
+      abi: lightGeneralizedTcrAbi,
+      functionName: "challengePeriodDuration",
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+export async function fetchRecentlyChangedLItems(
+  chainId: SupportedChain,
+  sinceSeconds: number,
+): Promise<CurateLItemForVerification[]> {
+  const client = curateGraphQLClient(chainId);
+  const registryAddress = lightGeneralizedTcrAddress[chainId];
+  if (!client || isUndefined(registryAddress)) {
+    return [];
+  }
+
+  const since = sinceSeconds.toString();
+  const { LItem } = await getCurateSdk(client).GetRecentlyChangedLItems({
+    where: {
+      registryAddress: { _eq: registryAddress.toLowerCase() },
+      _or: [{ latestRequestSubmissionTime: { _gt: since } }, { latestRequestResolutionTime: { _gt: since } }],
+    },
+  });
+
+  return LItem;
+}
+
+export async function updateVerificationForRecentlyChangedItems(
+  supabase: SupabaseClient,
+  chainId: SupportedChain,
+  sinceSeconds: number,
+): Promise<number> {
+  if (!isVerificationEnabled(chainId)) {
+    return 0;
+  }
+
+  const items = await fetchRecentlyChangedLItems(chainId, sinceSeconds);
+  if (items.length === 0) {
+    console.log(`[Chain ${chainId}] No recently changed curate items`);
+    return 0;
+  }
+
+  const challengePeriodDuration = await getChallengePeriodDuration(chainId);
+  const verificationByMarketId = new Map<string, VerificationResult>();
+
+  for (const item of items) {
+    const marketId = getMarketIdFromLItem(item);
+    if (!marketId) {
+      continue;
+    }
+    verificationByMarketId.set(marketId, mapLItemToVerificationResult(item, challengePeriodDuration));
+  }
+
+  if (verificationByMarketId.size === 0) {
+    return 0;
+  }
+
+  const updates = [...verificationByMarketId.entries()].map(([id, verification]) => ({
+    id,
+    chain_id: chainId,
+    verification,
+  }));
+
+  const { error } = await supabase.from("markets").upsert(updates);
+
+  if (error) {
+    console.error(`[Chain ${chainId}] Error upserting verification:`, error);
+    return 0;
+  }
+
+  console.log(
+    `[Chain ${chainId}] Updated verification for ${updates.length} of ${items.length} recently changed curate items`,
+  );
+  return updates.length;
+}
 
 /**
  * Retrieves verification information for a list of curate items from the LightGeneralizedTCR contract.
@@ -153,14 +264,7 @@ export async function getSubgraphVerificationStatusList(
 
   const registryAddress = lightGeneralizedTcrAddress[chainId];
   if (client && !isUndefined(registryAddress)) {
-    let challengePeriodDuration: bigint;
-    try {
-      challengePeriodDuration = await readContract(getPublicClientByChainId(chainId), {
-        address: lightGeneralizedTcrAddress[chainId],
-        abi: lightGeneralizedTcrAbi,
-        functionName: "challengePeriodDuration",
-      });
-    } catch {}
+    const challengePeriodDuration = await getChallengePeriodDuration(chainId);
 
     const { LItem } = await getCurateSdk(client).GetImages({
       where: {
@@ -170,30 +274,11 @@ export async function getSubgraphVerificationStatusList(
     });
     return LItem.reduce(
       (obj, item) => {
-        const marketId = item?.props?.find((prop) => prop.label === "Market")?.value?.toLowerCase();
+        const marketId = getMarketIdFromLItem(item);
         if (!marketId) {
           return obj;
         }
-        const deadline =
-          item.latestRequestSubmissionTime && challengePeriodDuration
-            ? Number(item.latestRequestSubmissionTime) + Number(challengePeriodDuration)
-            : undefined;
-        const isVerifiedBeforeClearing =
-          item.status === CURATE_STATUS.ClearingRequested &&
-          item.requests.find((request) => request.requestType === CURATE_STATUS.RegistrationRequested)?.resolved;
-        if (item.status === CURATE_STATUS.Registered || isVerifiedBeforeClearing) {
-          obj[marketId] = { status: "verified", itemID: item.itemID, deadline };
-          return obj;
-        }
-        if (item.status === CURATE_STATUS.RegistrationRequested) {
-          if (item.disputed) {
-            obj[marketId] = { status: "challenged", itemID: item.itemID, deadline };
-          } else {
-            obj[marketId] = { status: "verifying", itemID: item.itemID, deadline };
-          }
-          return obj;
-        }
-        obj[marketId] = { status: "not_verified" };
+        obj[marketId] = mapLItemToVerificationResult(item, challengePeriodDuration);
         return obj;
       },
       {} as { [key: string]: VerificationResult },

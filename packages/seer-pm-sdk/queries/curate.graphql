@@ -1,24 +1,39 @@
+fragment LItemVerificationFields on LItem {
+  itemID
+  status
+  registryAddress
+  disputed
+  props {
+    value
+    description
+    label
+  }
+  requests {
+    requestType
+    resolved
+  }
+  latestRequestSubmissionTime
+  latestRequestResolutionTime
+}
+
 query GetImages(
   $where: LItem_bool_exp
   $skip: Int = 0
   $first: Int = 100
 ) {
   LItem(where: $where, offset: $skip, limit: $first) {
-    itemID
-    status
-    registryAddress
-    props {
-      value
-      description
-      label
-    }
+    ...LItemVerificationFields
     data
     latestRequester
-    disputed
-    requests {
-      requestType
-      resolved
-    }
-    latestRequestSubmissionTime
+  }
+}
+
+query GetRecentlyChangedLItems(
+  $where: LItem_bool_exp
+  $skip: Int = 0
+  $first: Int = 1000
+) {
+  LItem(where: $where, offset: $skip, limit: $first) {
+    ...LItemVerificationFields
   }
 }
