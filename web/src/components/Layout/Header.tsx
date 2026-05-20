@@ -22,7 +22,12 @@ import {
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
-import { type SupportedChain, getActiveCollateralProfile } from "@seer-pm/sdk";
+import {
+  DEFAULT_COLLATERAL_PROFILE,
+  type SupportedChain,
+  getActiveCollateralProfile,
+  getActiveCollateralProfileName,
+} from "@seer-pm/sdk";
 import clsx from "clsx";
 import { Fragment, ReactElement, useEffect, useRef, useState } from "react";
 import { gnosis } from "viem/chains";
@@ -38,10 +43,12 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 function useWalletBalance() {
   const { chainId: raw, address } = useAccount();
   const chainId = filterChain(raw);
-  const token =
-    chainId === gnosis.id ? getActiveCollateralProfile(chainId).secondary : getActiveCollateralProfile(chainId).primary;
-  const { data: balance = BigInt(0), isFetching } = useTokenBalance(address, token?.address, chainId as SupportedChain);
-  return { balance, isFetching, symbol: token?.symbol, chainId };
+  const profile = getActiveCollateralProfile(chainId);
+  const useGnosisDefaultSecondary =
+    chainId === gnosis.id && getActiveCollateralProfileName() === DEFAULT_COLLATERAL_PROFILE;
+  const token = useGnosisDefaultSecondary ? (profile.secondary ?? profile.primary) : profile.primary;
+  const { data: balance = BigInt(0), isFetching } = useTokenBalance(address, token.address, chainId as SupportedChain);
+  return { balance, isFetching, symbol: token.symbol, chainId };
 }
 
 // ── Small components ─────────────────────────────────────────────────────────

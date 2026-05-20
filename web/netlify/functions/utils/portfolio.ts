@@ -16,7 +16,7 @@ export function getTokenPricesMapping(
     (acc, { tokenId, collateralToken }) => {
       let isTokenPrice0 = true;
       const correctPool = pools.find((pool) => {
-        if (collateralToken > tokenId.toLocaleLowerCase()) {
+        if (collateralToken.toLocaleLowerCase() > tokenId.toLocaleLowerCase()) {
           isTokenPrice0 = false;
           return isTwoStringsEqual(pool.token0.id, tokenId) && isTwoStringsEqual(pool.token1.id, collateralToken);
         }
