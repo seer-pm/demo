@@ -1,4 +1,4 @@
-import { encodeFunctionData, zeroAddress } from "viem";
+import { encodeFunctionData, isAddressEqual, zeroAddress } from "viem";
 import type { AbiParameterToPrimitiveType, Address } from "viem";
 import {
   circlesMarketFactoryAddress,
@@ -10,7 +10,6 @@ import {
 import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName } from "./collateral";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
-import { isTwoStringsEqual } from "./quote-utils";
 import { escapeJson } from "./reality";
 
 /** Props for creating a market. Only fields required for your market type are mandatory. */
@@ -175,50 +174,85 @@ const MARKET_TYPE_FUNCTION: Record<
   [MarketTypes.MULTI_SCALAR]: "createMultiScalarMarket",
 } as const;
 
-/** MarketFactory deployments for the **default** collateral profile per chain (from generated `marketFactoryAddress`). */
+/** MarketFactory deployments per chain (from generated contract addresses). */
 const marketFactoryAddressMap = marketFactoryAddress as Record<number, Address>;
 const futarchyFactoryAddressMap = futarchyFactoryAddress as Record<number, Address>;
 const circlesMarketFactoryAddressMap = circlesMarketFactoryAddress as Record<number, Address>;
 
-const MARKET_FACTORY_BY_PROFILE: Record<string, Record<number, Address>> = {
-  [DEFAULT_COLLATERAL_PROFILE]: marketFactoryAddressMap,
-  circles: circlesMarketFactoryAddressMap,
+export const MARKET_FACTORY_KEY = "marketFactory" as const;
+export const FUTARCHY_FACTORY_KEY = "futarchyFactory" as const;
+export const CIRCLES_FACTORY_KEY = "circlesFactory" as const;
+
+export type FactoryKey =
+  | typeof MARKET_FACTORY_KEY
+  | typeof FUTARCHY_FACTORY_KEY
+  | typeof CIRCLES_FACTORY_KEY
+  | (string & {});
+
+const MARKET_FACTORY_BY_PROFILE: Record<string, Record<string, Record<number, Address>>> = {
+  [DEFAULT_COLLATERAL_PROFILE]: {
+    [MARKET_FACTORY_KEY]: marketFactoryAddressMap,
+    [FUTARCHY_FACTORY_KEY]: futarchyFactoryAddressMap,
+    [CIRCLES_FACTORY_KEY]: circlesMarketFactoryAddressMap,
+  },
+  circles: {
+    [MARKET_FACTORY_KEY]: circlesMarketFactoryAddressMap,
+  },
 };
 
-export function getMarketFactoryAddress(chainId: number, collateralProfile: string): Address {
-  const map = MARKET_FACTORY_BY_PROFILE[collateralProfile];
+function getFactoryAddress(chainId: number, collateralProfile: string, factoryKey: string): Address {
+  const profileFactories = MARKET_FACTORY_BY_PROFILE[collateralProfile];
+  if (!profileFactories) {
+    throw new Error(`No factories for collateral profile "${collateralProfile}" on chain ${chainId}`);
+  }
+  const map = profileFactories[factoryKey];
   if (!map) {
-    throw new Error(`No market factory for collateral profile "${collateralProfile}" on chain ${chainId}`);
+    throw new Error(`No factory "${factoryKey}" for collateral profile "${collateralProfile}" on chain ${chainId}`);
   }
   const address = map[chainId];
   if (!address) {
-    throw new Error(`No market factory address for collateralProfile ${collateralProfile} on chain ${chainId}`);
+    throw new Error(
+      `No address for factory "${factoryKey}" (collateralProfile ${collateralProfile}) on chain ${chainId}`,
+    );
   }
   return address as Address;
 }
 
-/** Returns every official MarketFactory address deployed on `chainId` (all collateral profiles). */
-export function getOfficialMarketFactoryAddresses(chainId: number): Address[] {
-  const addresses = Object.values(MARKET_FACTORY_BY_PROFILE)
-    .map((map) => map[chainId])
-    .filter((address): address is Address => address !== undefined);
+export function getMarketFactoryAddress(chainId: number, collateralProfile: string): Address {
+  return getFactoryAddress(chainId, collateralProfile, MARKET_FACTORY_KEY);
+}
+
+/** Returns every factory address for a collateral profile (all factory keys, all chains). */
+export function getAllFactoryAddressesForProfile(collateralProfile: string): Address[] {
+  const factories = MARKET_FACTORY_BY_PROFILE[collateralProfile];
+  if (!factories) {
+    throw new Error(`No factories for collateral profile "${collateralProfile}"`);
+  }
+  const addresses = Object.values(factories).flatMap((map) =>
+    Object.values(map).map((address) => address.toLowerCase() as Address),
+  );
+  if (!addresses.length) {
+    throw new Error(`No factory addresses for collateral profile "${collateralProfile}"`);
+  }
   return [...new Set(addresses)];
 }
 
-/** Whether `factoryAddress` is a known official Seer MarketFactory on `chainId`. */
-export function isOfficialMarketFactory(factoryAddress: Address | undefined, chainId: number): boolean {
+/** Whether `factoryAddress` is a known official Seer factory (any collateral profile). */
+export function isOfficialMarketFactory(factoryAddress: Address | undefined, _chainId: number): boolean {
   if (!factoryAddress) {
     return false;
   }
-  return getOfficialMarketFactoryAddresses(chainId).some((address) => isTwoStringsEqual(factoryAddress, address));
+  return Object.keys(MARKET_FACTORY_BY_PROFILE).some((profile) => {
+    try {
+      return getAllFactoryAddressesForProfile(profile).some((address) => isAddressEqual(factoryAddress, address));
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function getFutarchyFactoryAddress(chainId: number): Address {
-  const address = futarchyFactoryAddressMap[chainId];
-  if (!address) {
-    throw new Error(`No futarchy factory address for chain ${chainId}`);
-  }
-  return address as Address;
+  return getFactoryAddress(chainId, DEFAULT_COLLATERAL_PROFILE, FUTARCHY_FACTORY_KEY);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { FAST_TESTNET_FACTORY } from "@/lib/constants";
-import { type SupportedChain, getMarketFactoryAddress } from "@seer-pm/sdk";
+import { type SupportedChain, getAllFactoryAddressesForProfile } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, unescapeJson } from "@seer-pm/sdk/market";
 import type { Market, MarketStatus, VerificationResult, VerificationStatus } from "@seer-pm/sdk/market-types";
 import { MarketsOrderBy } from "@seer-pm/sdk/markets-fetch";
@@ -505,17 +505,11 @@ export async function searchMarkets({
   }
 
   if (collateralProfile) {
-    const factoryAddresses = chainIds.flatMap((chainId) => {
-      try {
-        return [getMarketFactoryAddress(chainId, collateralProfile).toLowerCase()];
-      } catch {
-        return [];
-      }
-    });
-    if (factoryAddresses.length === 0) {
+    try {
+      query = query.in("subgraph_data->>factory", getAllFactoryAddressesForProfile(collateralProfile));
+    } catch {
       return { markets: [], count: 0 };
     }
-    query = query.in("subgraph_data->>factory", factoryAddresses);
   }
 
   if (categoryList?.length) {

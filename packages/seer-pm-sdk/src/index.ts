@@ -16,16 +16,19 @@ export {
   getCreateProposalExecution,
   getCreateMarketParams,
   getMarketFactoryAddress,
-  getOfficialMarketFactoryAddresses,
+  getAllFactoryAddressesForProfile,
   isOfficialMarketFactory,
   getFutarchyFactoryAddress,
+  MARKET_FACTORY_KEY,
+  FUTARCHY_FACTORY_KEY,
+  CIRCLES_FACTORY_KEY,
   getProposalName,
   generateTokenName,
   MISC_CATEGORY,
   WEATHER_CATEGORY,
   MARKET_CATEGORIES,
 } from "./create-market";
-export type { CreateMarketProps, CreateMarketParams } from "./create-market";
+export type { CreateMarketProps, CreateMarketParams, FactoryKey } from "./create-market";
 export { validateNewMarket } from "./validate-new-market";
 export type { NewMarketValidationIssue } from "./validate-new-market";
 export {
