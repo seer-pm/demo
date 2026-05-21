@@ -7,6 +7,7 @@ import { type Address, zeroAddress } from "viem";
 import { getDexScreenerPriceUSD } from "./common.ts";
 import { chainIds } from "./config.ts";
 import type { Pool } from "./fetchPools.ts";
+import { fetchSUSDSPriceFromContract } from "./fetchSUSDSPriceFromContract.ts";
 
 type MainCollateralPriceByChain = Record<Address, Partial<Record<SupportedChain, number>>>;
 
@@ -19,8 +20,8 @@ export async function getMainCollateralPriceByChainMapping(): Promise<MainCollat
         const profile = getDefaultCollateralProfile(chainId);
         let price: number;
         if (chainId === optimism.id || chainId === base.id) {
-          // TODO: dexscreener doesn't have the sUSDS price
-          price = 1.06;
+          // TODO: dexscreener doesn't have the sUSDS price, get from contract
+          price = (await fetchSUSDSPriceFromContract(10)) || 1.097;
         } else {
           // sDAI
           price = (await getDexScreenerPriceUSD(profile.primary.address, chainId)) || 1.2;
@@ -202,6 +203,7 @@ export type LiquidityToMarketMapping = Record<
   `0x${string}`,
   {
     totalLiquidity: number;
+    collateralPriceInUSD: number;
     poolBalance: Array<TokenLiquidityBalanceInfo | null>;
   }
 >;
@@ -270,30 +272,67 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
 
   const liquidityToMarketMapping: LiquidityToMarketMapping = markets.reduce((acc, market) => {
     let totalLiquidity = 0;
+
     const tokenBalanceInfo: (TokenLiquidityBalanceInfo | null)[] = [];
+
     for (const outcomeToken of market.wrappedTokens) {
       const data = tokenToLiquidityMapping[outcomeToken.toLowerCase() as `0x${string}`];
+
       totalLiquidity += data?.liquidity ?? 0;
+
       tokenBalanceInfo.push(data?.tokenBalanceInfo || null);
     }
-    if (!acc[market.id]) {
-      acc[market.id] = { totalLiquidity: 0, poolBalance: [] };
+
+    let collateralPriceInUSD = 1;
+
+    if (market.type === "Generic") {
+      const mainCollateralPrice =
+        mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(market.chainId).primary.address]?.[
+          market.chainId
+        ] || 0;
+
+      if (market.parentMarket.id === zeroAddress) {
+        // generic market collateral = main collateral
+        collateralPriceInUSD = mainCollateralPrice;
+      } else {
+        // conditional market collateral =
+        // parent outcome token price * main collateral price
+        const parentOutcomeToken = market.collateralToken as Address;
+
+        const parentOutcomePriceInMainCollateral =
+          genericTokenToLiquidityMapping[parentOutcomeToken]?.tokenPriceInMainCollateral || 0;
+
+        collateralPriceInUSD = parentOutcomePriceInMainCollateral * mainCollateralPrice;
+      }
+    } else if (market.type === "Futarchy") {
+      collateralPriceInUSD = 1;
     }
+
+    if (!acc[market.id]) {
+      acc[market.id] = {
+        totalLiquidity: 0,
+        collateralPriceInUSD: 0,
+        poolBalance: [],
+      };
+    }
+
     acc[market.id].totalLiquidity = totalLiquidity;
+
+    acc[market.id].collateralPriceInUSD = collateralPriceInUSD;
+
     acc[market.id].poolBalance = getMarketPoolsPairs(market).map((poolPair, i) => {
       if (market.type === "Futarchy") {
-        // we have the same data for token0 and token1 on tokenToLiquidityMapping
         return tokenToLiquidityMapping[poolPair.token0]?.tokenBalanceInfo || null;
       }
 
-      // for generic markets we need to return data for the outcome token
       const collateral = getCollateralByIndex(market, i);
+
       const outcomeToken = collateral === poolPair.token0 ? poolPair.token1 : poolPair.token0;
 
       return tokenToLiquidityMapping[outcomeToken]?.tokenBalanceInfo || null;
     });
+
     return acc;
   }, {} as LiquidityToMarketMapping);
-
   return liquidityToMarketMapping;
 }

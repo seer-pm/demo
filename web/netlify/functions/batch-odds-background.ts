@@ -1,7 +1,7 @@
 import { getToken0Token1, tickToPrice } from "@seer-pm/sdk";
 import { normalizeOdds } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
-import { zeroAddress } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
 import { Pool, getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
@@ -13,7 +13,6 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
 export default async () => {
   try {
     console.log("fetching markets...");
-
     // ignore markets finalized more than two days ago
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
@@ -22,9 +21,8 @@ export default async () => {
       finalizeTs: twoDaysAgo,
       orderBy: "oddsRunTimestamp",
       orderDirection: "asc",
-      limit: 500, // 150 markets every 5 minutes = 1800 markets / hour
+      limit: 150, // 150 markets every 5 minutes = 1800 markets / hour
     });
-
     const parentMarketsIds = Array.from(
       new Set(markets.filter((market) => market.parentMarket.id !== zeroAddress).map((m) => m.parentMarket.id)),
     );
@@ -58,7 +56,6 @@ export default async () => {
     // update liquidity for each market
     console.log("fetching liquidity...");
     const liquidityToMarketMapping = await getMarketsLiquidity(markets, pools);
-
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
@@ -67,12 +64,14 @@ export default async () => {
         max_liquidity: Math.max(liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0, market.maxLiquidity ?? 0),
         pool_balance: liquidityToMarketMapping[market.id]?.poolBalance || [],
         updated_at: new Date(),
+        open_interest_usd:
+          Number(formatUnits(market.outcomesSupply, 18)) *
+          (liquidityToMarketMapping[market.id]?.collateralPriceInUSD ?? 0),
       })),
     );
     if (errorLiquidity) {
       console.error(errorLiquidity.message);
     }
-
     // update odds for each market
     console.log("fetching odds...");
     const getLiquidity = (pool: Pool) => Number(pool.liquidity);
