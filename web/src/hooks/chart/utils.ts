@@ -2,19 +2,21 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { Market, MarketTypes, Token0Token1, getMarketPoolsPairs, getMarketType, isOdd } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { getMarketEstimate, normalizeOdds } from "@seer-pm/sdk";
-import {
-  GetPoolHourDatasQuery,
-  Mint_OrderBy,
-  OrderDirection,
-  getSdk as getSwaprSdk,
-} from "@seer-pm/sdk/subgraph/swapr";
+import type { PoolHourDatasSets } from "@seer-pm/sdk";
+import { Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { subDays } from "date-fns";
 import { formatUnits } from "viem";
 import { gnosis } from "viem/chains";
-import { ChartData } from "./useChartData";
 
-export type PoolHourDatasSets = GetPoolHourDatasQuery["poolHourDatas"][];
+export type ChartData = {
+  chartData: {
+    name: string;
+    type: string;
+    data: number[][];
+  }[];
+  timestamps: number[];
+};
 
 function getNearestRoundedDownTimestamp(timestamp: number, interval: number) {
   return Math.floor(timestamp / interval) * interval;
@@ -279,7 +281,7 @@ async function getFutarchyMarketData(
   return { chartData, timestamps };
 }
 
-export async function filterChartData(
+export async function buildChartData(
   market: Market,
   poolHourDatasSets: PoolHourDatasSets,
   dayCount: number,

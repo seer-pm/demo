@@ -1,19 +1,27 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { fetchCachedChartData } from "./market-chart-background.mts";
+import { CORS_HEADERS } from "./utils/common";
 
 export function getMarketChartKeyValueHash(marketId: Address | "%", chainId: SupportedChain | "%") {
   return `market_chart_hour_data_${marketId}_${chainId}`;
 }
 
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+
   if (req.method !== "GET") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: {
         "Content-Type": "application/json",
         Allow: "GET",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -29,6 +37,7 @@ export default async (req: Request) => {
       status: 400,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }
@@ -47,6 +56,7 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   } catch (e) {
@@ -55,6 +65,7 @@ export default async (req: Request) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
+        ...CORS_HEADERS,
       },
     });
   }

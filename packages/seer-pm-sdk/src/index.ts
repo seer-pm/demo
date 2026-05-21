@@ -235,6 +235,7 @@ export {
   type JsonMarketsResult,
   type MarketsResult,
 } from "./markets-fetch";
+export { fetchChartData, type PoolHourDatasSets } from "./chart-data";
 export { searchOnChainMarkets } from "./on-chain-markets";
 
 export {

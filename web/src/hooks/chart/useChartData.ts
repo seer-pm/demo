@@ -1,26 +1,12 @@
 import { isUndefined } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { Market } from "@seer-pm/sdk";
+import { Market, type PoolHourDatasSets, fetchChartData } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
-import { PoolHourDatasSets, filterChartData } from "./utils";
+import type { ChartData } from "./utils";
+import { buildChartData } from "./utils";
 
-export type ChartData = {
-  chartData: {
-    name: string;
-    type: string;
-    data: number[][];
-  }[];
-  timestamps: number[];
-};
-
-async function fetchPoolHourDataSets(market: Market) {
-  const params = new URLSearchParams();
-  params.append("marketId", market.id);
-  params.append("chainId", market.chainId.toString());
-
-  return fetch(`/.netlify/functions/market-chart?${params.toString()}`).then((res) => res.json());
-}
+export { fetchChartData } from "@seer-pm/sdk";
 
 const getUseChartDataKey = (
   chainId: SupportedChain,
@@ -36,12 +22,12 @@ export const getUsePoolHourDataSetsKey = (chainId: SupportedChain, marketId: Add
   marketId,
 ];
 
-export const usePoolHourDataSets = (market: Market) => {
+const usePoolHourDataSets = (market: Market) => {
   return useQuery<PoolHourDatasSets | undefined, Error>({
     enabled: !!market,
     queryKey: getUsePoolHourDataSetsKey(market.chainId, market.id),
     retry: false,
-    queryFn: async () => fetchPoolHourDataSets(market),
+    queryFn: async () => fetchChartData(market),
     refetchOnMount: "always",
   });
 };
@@ -55,11 +41,6 @@ export const useChartData = (market: Market, dayCount: number, intervalSeconds: 
       JSON.stringify(Array.isArray(poolHourDataSets) ? poolHourDataSets.map((x) => x.length) : poolHourDataSets),
     ],
     retry: false,
-    queryFn: async () => await filterChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
+    queryFn: async () => await buildChartData(market, poolHourDataSets!, dayCount, intervalSeconds, endDate),
   });
 };
-
-export async function fetchFullChartData(market: Market) {
-  const poolHourDataSets = await fetchPoolHourDataSets(market);
-  return await filterChartData(market, poolHourDataSets!, 365 * 10, 60 * 60 * 24, undefined);
-}

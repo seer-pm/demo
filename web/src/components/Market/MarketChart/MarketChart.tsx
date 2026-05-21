@@ -1,4 +1,5 @@
-import { ChartData, fetchFullChartData, useChartData } from "@/hooks/chart/useChartData";
+import { fetchChartData, useChartData } from "@/hooks/chart/useChartData";
+import { type ChartData, buildChartData } from "@/hooks/chart/utils";
 import { formatDate } from "@/lib/date";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { downloadCsv } from "@/lib/utils";
@@ -154,9 +155,14 @@ function getFilteredSeries(market: Market, chartData: ChartData["chartData"]) {
   return rawSeries;
 }
 
+async function fetchDailyChartHistory(market: Market) {
+  const poolHourDataSets = await fetchChartData(market);
+  return await buildChartData(market, poolHourDataSets!, 365 * 10, 60 * 60 * 24, undefined);
+}
+
 async function exportData(market: Market) {
   // Use resolved date for export if available
-  const { chartData, timestamps }: ChartData = await fetchFullChartData(market);
+  const { chartData, timestamps }: ChartData = await fetchDailyChartHistory(market);
   const series = getSeries(market, chartData);
   const headers = [
     {

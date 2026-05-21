@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import { formatUnits, isAddressEqual, zeroAddress } from "viem";
 import type { Market, Token } from "@seer-pm/sdk";
 import {
@@ -76,10 +76,19 @@ function getSelectedCollateral(market: Market, parentCollateral?: Token): Token 
 }
 
 export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
-  const { address: account } = useAccount();
-  const chainId = useChainId();
+  const { address: account, chainId: connectedChainId } = useAccount();
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
-  const isWrongChain = chainId !== undefined && chainId !== market.chainId;
+  const isWrongChain =
+    account != null && connectedChainId != null && connectedChainId !== market.chainId;
+  const lastAutoSwitchChainIdRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    if (!account || connectedChainId == null) return;
+    if (connectedChainId === market.chainId) return;
+    if (lastAutoSwitchChainIdRef.current === market.chainId) return;
+    lastAutoSwitchChainIdRef.current = market.chainId;
+    switchChain({ chainId: market.chainId });
+  }, [account, connectedChainId, market.chainId, switchChain]);
 
   const [mode, setMode] = React.useState<"buy" | "sell">("buy");
   const [outcomeIndex, setOutcomeIndex] = React.useState(0);
@@ -434,7 +443,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
             disabled={isSwitchPending}
             className="w-full mt-6 py-4 bg-amber-500 text-black font-black uppercase tracking-widest text-sm rounded-custom hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSwitchPending ? "Switching…" : "Change network"}
+            {isSwitchPending ? "Switching…" : "Switch chain"}
           </button>
         ) : !isCollateralLoading && !insufficientBalance && needsTokenApproval ? (
           <button

@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
@@ -72,6 +72,11 @@
       "types": "./dist/liquidity-utils.d.ts",
       "import": "./dist/liquidity-utils.mjs",
       "require": "./dist/liquidity-utils.js"
+    },
+    "./chart-data": {
+      "types": "./dist/chart-data.d.ts",
+      "import": "./dist/chart-data.mjs",
+      "require": "./dist/chart-data.js"
     },
     "./chains": {
       "types": "./dist/chains.d.ts",
@@ -168,8 +173,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chains.ts src/cow.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chains.ts src/cow.ts --format cjs,esm --dts --watch",
+    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
     "generate:hooks": "wagmi generate",
