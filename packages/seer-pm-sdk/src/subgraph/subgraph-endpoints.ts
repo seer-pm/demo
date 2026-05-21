@@ -34,7 +34,7 @@ export const SUBGRAPHS = {
   },
   algebrafarming: {
     [CHAIN_IDS.gnosis]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/1.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/2.0.0/gn",
   },
   uniswap: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
