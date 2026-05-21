@@ -17,7 +17,7 @@ export function DisplayOdds({
           trigger={<QuestionIcon fill="#9747FF" />}
           content={
             <div>
-              The odds cannot be disdivlayed because the outcome's current price is far above 1. This typically happens
+              The odds cannot be displayed because the outcome's current price is far above 1. This typically happens
               when there is insufficient liquidity in the market.
             </div>
           }

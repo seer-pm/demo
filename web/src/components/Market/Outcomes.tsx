@@ -512,7 +512,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   images={images}
                 />
               ) : (
-                <>
+                <div className="grid grid-cols-2 min-w-[50%]">
                   <OutcomeDetails
                     market={market}
                     wrappedAddress={market.wrappedTokens[i]}
@@ -535,7 +535,18 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                     loopIndex={j}
                     images={images}
                   />
-                </>
+                </div>
+              )}
+              {market.type === "Futarchy" && (
+                <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
+                  <AddLiquidityLinks
+                    market={market}
+                    outcomeIndex={i}
+                    pools={pools}
+                    openLiquidityModal={openModal}
+                    openPoolDetailsModal={openPoolDetailsModal}
+                  />
+                </div>
               )}
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 {market.type === "Generic" && (
@@ -559,17 +570,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
                 />
               </div>
-              {market.type === "Futarchy" && (
-                <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
-                  <AddLiquidityLinks
-                    market={market}
-                    outcomeIndex={i}
-                    pools={pools}
-                    openLiquidityModal={openModal}
-                    openPoolDetailsModal={openPoolDetailsModal}
-                  />
-                </div>
-              )}
             </div>
           );
         })}
