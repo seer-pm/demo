@@ -1,38 +1,14 @@
-import type { SupportedChain } from "@seer-pm/sdk";
 import {
   type FetchMarketParams,
   type MarketStatus,
   type MarketsResult,
   type VerificationStatus,
   fetchMarkets,
-  searchOnChainMarkets,
 } from "@seer-pm/sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";
-import { useConfig } from "wagmi";
 import { getUseGraphMarketKey } from "./useMarket";
-
-const useOnChainMarkets = (
-  chainIds: SupportedChain[],
-  marketName: string,
-  marketStatusList: MarketStatus[] | undefined,
-  disabled?: boolean,
-) => {
-  const config = useConfig();
-  return useQuery<MarketsResult, Error>({
-    queryKey: ["useOnChainMarkets", chainIds, marketName, marketStatusList],
-    enabled: !disabled && chainIds.length > 0,
-    queryFn: async () => {
-      const markets = (await Promise.all(chainIds.map((chainId) => searchOnChainMarkets(config, chainId)))).flat();
-      return {
-        markets,
-        count: markets.length,
-        pages: 1,
-      };
-    },
-  });
-};
 
 export const getUseGraphMarketsKey = (params: FetchMarketParams) => ["useGraphMarkets", params];
 
@@ -99,14 +75,7 @@ export const useMarkets = ({
 }: UseMarketsProps = {}) => {
   const queryClient = useQueryClient();
 
-  const chainIds = (
-    chainsList.length === 0
-      ? []
-      : chainsList.filter((chain) => chain !== "all" && chain !== "31337").map((chainId) => Number(chainId))
-  ) as SupportedChain[];
-
-  const onChainMarkets = useOnChainMarkets(chainIds, marketName, marketStatusList, disabled);
-  const graphMarkets = useGraphMarkets(
+  return useGraphMarkets(
     {
       chainsList,
       type,
@@ -128,9 +97,4 @@ export const useMarkets = ({
     },
     queryClient,
   );
-
-  if (marketName || (marketStatusList?.length ?? 0) > 0) {
-    return graphMarkets;
-  }
-  return graphMarkets.isError ? onChainMarkets : graphMarkets;
 };

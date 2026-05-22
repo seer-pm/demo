@@ -30,7 +30,7 @@ export const SUBGRAPHS = {
   },
   algebra: {
     [CHAIN_IDS.gnosis]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/2.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/3.0.0/gn",
   },
   algebrafarming: {
     [CHAIN_IDS.gnosis]:
