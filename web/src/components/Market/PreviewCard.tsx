@@ -347,7 +347,7 @@ export function PreviewCard({ market }: { market: Market }) {
                     {parentMarket
                       ? (parentCollateral?.symbol ?? "")
                       : getActivePrimaryCollateral(market.chainId).symbol}{" "}
-                    ({displayNumber(market.openInterestUSD)}$)
+                    ({displayNumber(market.openInterestUSD, undefined, true)} $)
                   </p>
                   <p className="text-purple-primary">Liquidity:</p>
                   <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />

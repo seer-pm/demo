@@ -435,7 +435,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                         {parentMarket
                           ? (parentCollateral?.symbol ?? "")
                           : getActivePrimaryCollateral(market.chainId).symbol}{" "}
-                        ({displayNumber(market.openInterestUSD)}$)
+                        ({displayNumber(market.openInterestUSD, undefined, true)} $)
                       </p>
                       <p className="text-purple-primary">Liquidity:</p>
                       <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
