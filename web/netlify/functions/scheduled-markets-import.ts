@@ -192,7 +192,11 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
         id: market.address,
         chain_id: chainId,
         status: getMarketStatus(
-          mapGraphMarketFromDbResult(legacySubgraphMarket, { id: market.address, chain_id: chainId }),
+          mapGraphMarketFromDbResult(legacySubgraphMarket, {
+            id: market.address,
+            chain_id: chainId,
+            open_interest_usd: 0,
+          }),
         ),
         subgraph_data: legacySubgraphMarket,
         verification: verificationStatusList[market.address as `0x${string}`] ?? {

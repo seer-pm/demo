@@ -266,6 +266,7 @@ export type Database = {
           metadata: Json | null;
           odds: number[] | null;
           odds_run_timestamp: number | null;
+          open_interest_usd: number | null;
           opening_ts: number | null;
           parent_outcome: string | null;
           payout_numerators_value: number | null;
@@ -493,6 +494,7 @@ export type Database = {
           metadata: Json | null;
           odds: number[] | null;
           odds_run_timestamp: number | null;
+          open_interest_usd: number | null;
           opening_ts: number | null;
           outcomes: Json | null;
           outcomes_supply: number | null;
@@ -584,6 +586,7 @@ export type Database = {
           metadata: Json | null;
           odds: number[] | null;
           odds_run_timestamp: number | null;
+          open_interest_usd: number | null;
           opening_ts: number | null;
           parent_outcome: string | null;
           payout_numerators_value: number | null;

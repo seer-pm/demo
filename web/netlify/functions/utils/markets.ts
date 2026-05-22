@@ -15,7 +15,7 @@ import type { Database, Json } from "./supabase";
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export const MARKET_DB_FIELDS =
-  "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images";
+  "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images,open_interest_usd";
 
 export type LegacySubgraphMarket = {
   __typename?: "Market";
@@ -192,6 +192,7 @@ type DbMarket = {
   pool_balance?: Json;
   verification?: Json;
   images?: Json;
+  open_interest_usd: number | null;
 };
 
 type PoolBalance = Array<{
@@ -215,6 +216,7 @@ export function mapGraphMarket(
     odds: (number | null)[];
     url: string;
     images: VerificationImages | undefined;
+    openInterestUSD: number;
   },
 ): Market {
   return {
@@ -285,6 +287,7 @@ export function mapGraphMarketFromDbResult(subgraphMarket: LegacySubgraphMarket,
     poolBalance: (extraData?.pool_balance || []) as PoolBalance,
     url: extraData?.url || "",
     images: (extraData?.images as VerificationImages) || undefined,
+    openInterestUSD: extraData?.open_interest_usd ?? 0,
   });
 }
 
@@ -353,7 +356,7 @@ function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" 
   }
 
   if (orderBy === "outcomesSupply") {
-    return [{ column: "outcomes_supply", ascending: orderDirection === "asc" }];
+    return [{ column: "open_interest_usd", ascending: orderDirection === "asc" }];
   }
   // by opening date
   return [{ column: "opening_ts", ascending: orderDirection === "asc" }];

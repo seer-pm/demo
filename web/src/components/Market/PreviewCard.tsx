@@ -13,7 +13,7 @@ import {
   SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { displayBalance, formatBigNumbers, isUndefined } from "@/lib/utils";
+import { displayBalance, displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useMarket, useTokenInfo } from "@seer-pm/react";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import {
@@ -346,7 +346,8 @@ export function PreviewCard({ market }: { market: Market }) {
                     {displayBalance(market.outcomesSupply, 18, true)}{" "}
                     {parentMarket
                       ? (parentCollateral?.symbol ?? "")
-                      : getActivePrimaryCollateral(market.chainId).symbol}
+                      : getActivePrimaryCollateral(market.chainId).symbol}{" "}
+                    ({displayNumber(market.openInterestUSD)}$)
                   </p>
                   <p className="text-purple-primary">Liquidity:</p>
                   <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
