@@ -2,7 +2,8 @@
   base = "/"
   publish = "/web/dist/client/"
   # Netlify functions import @seer-pm/sdk; build the SDK first so dist outputs exist at bundle time.
-  command = "NODE_ENV=production yarn workspace @seer-pm/sdk build && yarn workspace @seer-pm/web build"
+  # Secondary Netlify sites (not app.seer.pm): set EXCLUDE_SCHEDULED_FUNCTIONS=true to drop scheduled* before deploy.
+  command = "NODE_ENV=production yarn workspace @seer-pm/sdk build && yarn workspace @seer-pm/web build && node web/scripts/strip-scheduled-netlify-functions.mjs"
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]
