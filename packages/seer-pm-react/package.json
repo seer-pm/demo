@@ -17,6 +17,21 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./hooks/useAddV4Liquidity": {
+      "types": "./src/hooks/useAddV4Liquidity.ts",
+      "import": "./src/hooks/useAddV4Liquidity.ts",
+      "require": "./src/hooks/useAddV4Liquidity.ts"
+    },
+    "./hooks/useIsOrderBookPoolInitialized": {
+      "types": "./src/hooks/useIsOrderBookPoolInitialized.ts",
+      "import": "./src/hooks/useIsOrderBookPoolInitialized.ts",
+      "require": "./src/hooks/useIsOrderBookPoolInitialized.ts"
+    },
+    "./hooks/usePlaceV4LimitOrder": {
+      "types": "./src/hooks/usePlaceV4LimitOrder.ts",
+      "import": "./src/hooks/usePlaceV4LimitOrder.ts",
+      "require": "./src/hooks/usePlaceV4LimitOrder.ts"
     }
   },
   "files": [

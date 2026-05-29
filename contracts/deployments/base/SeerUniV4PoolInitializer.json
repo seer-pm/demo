@@ -1,0 +1,112 @@
+{
+  "address": "0xae300296486a63621f7f31E1B94aD22d32347deA",
+  "abi": [
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolManager", "type": "address" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "POOL_MANAGER",
+      "outputs": [
+        {
+          "internalType": "contract IPoolManager",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "tokenA", "type": "address" },
+        { "internalType": "address", "name": "tokenB", "type": "address" },
+        { "internalType": "address", "name": "hooks", "type": "address" },
+        { "internalType": "uint24", "name": "poolFee", "type": "uint24" },
+        { "internalType": "int24", "name": "tickSpacing", "type": "int24" }
+      ],
+      "name": "getPoolKey",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "Currency",
+              "name": "currency0",
+              "type": "address"
+            },
+            {
+              "internalType": "Currency",
+              "name": "currency1",
+              "type": "address"
+            },
+            { "internalType": "uint24", "name": "fee", "type": "uint24" },
+            { "internalType": "int24", "name": "tickSpacing", "type": "int24" },
+            {
+              "internalType": "contract IHooks",
+              "name": "hooks",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct PoolKey",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "tokenA", "type": "address" },
+        { "internalType": "address", "name": "tokenB", "type": "address" },
+        { "internalType": "address", "name": "hooks", "type": "address" },
+        { "internalType": "uint24", "name": "poolFee", "type": "uint24" },
+        { "internalType": "int24", "name": "tickSpacing", "type": "int24" },
+        { "internalType": "uint160", "name": "sqrtPriceX96", "type": "uint160" }
+      ],
+      "name": "initializePool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "market", "type": "address" },
+        {
+          "internalType": "address",
+          "name": "collateralToken",
+          "type": "address"
+        },
+        { "internalType": "address", "name": "hooks", "type": "address" },
+        { "internalType": "uint24", "name": "poolFee", "type": "uint24" },
+        { "internalType": "int24", "name": "tickSpacing", "type": "int24" },
+        {
+          "internalType": "uint160[]",
+          "name": "initialPrices",
+          "type": "uint160[]"
+        }
+      ],
+      "name": "initializePools",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "tokenA", "type": "address" },
+        { "internalType": "address", "name": "tokenB", "type": "address" },
+        { "internalType": "address", "name": "hooks", "type": "address" },
+        { "internalType": "uint24", "name": "poolFee", "type": "uint24" },
+        { "internalType": "int24", "name": "tickSpacing", "type": "int24" }
+      ],
+      "name": "isPoolInitialized",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}

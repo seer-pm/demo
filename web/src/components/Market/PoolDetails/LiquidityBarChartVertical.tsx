@@ -5,7 +5,7 @@ import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
 

@@ -1,5 +1,4 @@
 import type { Market, PoolHourDatasSets, SupportedChain, Token0Token1 } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk/liquidity-utils";
 import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import {
   type GetPoolHourDatasQuery,
@@ -9,7 +8,11 @@ import {
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
 } from "@seer-pm/sdk/subgraph/swapr";
-import { GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument } from "@seer-pm/sdk/subgraph/uniswap";
+import {
+  GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
+  getSdk as getUniswapSdk,
+} from "@seer-pm/sdk/subgraph/uniswap";
+import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import { TickMath } from "@uniswap/v3-sdk";
 import combineQuery from "graphql-combine-query";
 import pLimit from "p-limit";

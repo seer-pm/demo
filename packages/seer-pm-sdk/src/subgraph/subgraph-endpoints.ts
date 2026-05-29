@@ -4,6 +4,7 @@ export type SubgraphTypes =
   | "uniswap"
   | "algebra"
   | "algebrafarming"
+  | "orderBook"
   | "poh"
   | "reality"
   | "bunniMainnet"
@@ -40,6 +41,10 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
     [CHAIN_IDS.optimism]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/49LkWjoVKd3bM9ZrMdFgYkjaCuVj4ExZttQi6XfbcPpG`,
     [CHAIN_IDS.base]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/96eJ9Go8gFjySRGnndG7EYxThaiwVDV8BYPp1TMDcoYh`,
+  },
+  orderBook: {
+    [CHAIN_IDS.base]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-limit-order-hook/1.0.0/gn",
   },
   poh: {
     [CHAIN_IDS.gnosis]:

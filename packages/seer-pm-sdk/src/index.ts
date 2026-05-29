@@ -82,7 +82,6 @@ export {
 export {
   getBlockExplorerUrl,
   getLiquidityUrl,
-  getLiquidityUrlByMarket,
   getPoolExplorerUrl,
   getTokenExplorerUrl,
 } from "./explorer-urls";
@@ -253,7 +252,8 @@ export { getMarketPositions } from "./get-market-positions";
 export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
 export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
-export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+export { decimalToFraction, sqrtPriceX96ToPrice } from "./liquidity-utils";
+export { tickToPrice } from "./tick-math";
 export {
   getVolumeUntilPrice,
   getPriceFromVolume,
@@ -312,6 +312,26 @@ export {
   isTradingCredits,
 } from "./trading-credits";
 export type { CreditsProfileName } from "./trading-credits";
+export {
+  V4_POOL_FEE,
+  V4_TICK_SPACING,
+  V4_POSITION_MANAGER_ADDRESS,
+  V4_STATE_VIEW_ADDRESS,
+  PERMIT2_ADDRESS,
+  chainSupportsOrderBook,
+  marketSupportsOrderBook,
+  getOrderBookPoolParams,
+  clampProbability,
+  isOrderBookPoolInitialized,
+  readV4PoolState,
+  getV4PoolInitializerAddress,
+  getV4PositionManagerAddress,
+  getV4PoolId,
+  getV4HooksAddress,
+  buildOrderBookPoolKey,
+  tickSpacingForFeeTier,
+} from "./order-book-config";
+export type { OrderBookPoolKey, OrderBookPoolParams } from "./order-book-config";
 
 // Curate / TCR
 export { CURATE_STATUS, type CurateStatus, isCurateStatus } from "./curate-status";
@@ -364,6 +384,7 @@ export {
   curateGraphQLClient,
   uniswapGraphQLClient,
   swaprGraphQLClient,
+  orderBookGraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
   getTokenPriceFromSubgraph,
