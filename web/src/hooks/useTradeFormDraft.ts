@@ -8,7 +8,7 @@ import {
   getTradeDraftKey,
   readOrderType,
 } from "@/lib/trade-draft";
-import { type Market, isFillToEstimateEnabled } from "@seer-pm/sdk";
+import { type Market, isFillToEstimateEnabled, marketSupportsOrderBook } from "@seer-pm/sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -104,6 +104,7 @@ export function useTradeOrderType(market: Market): SwapOrderType {
     readOrderType(state.drafts[key]?.orderType, {
       isGeneric: market.type === "Generic",
       allowFillToEstimate: isFillToEstimateEnabled(market),
+      allowLimitOrder: marketSupportsOrderBook(market),
     }),
   );
 }

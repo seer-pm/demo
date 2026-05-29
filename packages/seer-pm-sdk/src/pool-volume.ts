@@ -1,8 +1,9 @@
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import type { Address } from "viem";
 import { formatUnits } from "viem";
-import { decimalToFraction, tickToPrice } from "./liquidity-utils";
+import { decimalToFraction } from "./liquidity-utils";
 import { isTwoStringsEqual } from "./quote-utils";
+import { tickToPrice } from "./tick-math";
 
 export type PoolVolumeInfo = {
   liquidity: bigint;

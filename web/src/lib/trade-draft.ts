@@ -1,7 +1,7 @@
 import type { TradeType } from "@seer-pm/sdk";
 
 /** Order types offered by the trade widget's order-type dropdown. */
-export type SwapOrderType = "market" | "limit" | "fill-to-estimate";
+export type SwapOrderType = "market" | "limit" | "fill-to-estimate" | "limit-order";
 
 export interface MarketDraft {
   /** Outcome the amounts belong to; a draft is dropped when the selected outcome moved on. */
@@ -96,16 +96,24 @@ export function isDraftForOutcome(draft: { outcomeToken: string } | undefined, o
 
 /**
  * A stored order type is only valid while the market still offers it: non-Generic
- * markets are market-order only, and fill-to-estimate is limited to scalar markets.
+ * markets are market-order only, fill-to-estimate is limited to scalar markets, and
+ * limit orders need an order-book pool.
  */
 export function readOrderType(
   orderType: SwapOrderType | undefined,
-  { isGeneric, allowFillToEstimate }: { isGeneric: boolean; allowFillToEstimate: boolean },
+  {
+    isGeneric,
+    allowFillToEstimate,
+    allowLimitOrder = false,
+  }: { isGeneric: boolean; allowFillToEstimate: boolean; allowLimitOrder?: boolean },
 ): SwapOrderType {
   if (!orderType || !isGeneric) {
     return "market";
   }
   if (orderType === "fill-to-estimate" && !allowFillToEstimate) {
+    return "market";
+  }
+  if (orderType === "limit-order" && !allowLimitOrder) {
     return "market";
   }
   return orderType;
