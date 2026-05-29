@@ -15,6 +15,7 @@ import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { ButtonsWrapper } from "./ButtonsWrapper";
+import { CSVUpload } from "./CSVUpload";
 import { SearchToken, TokenListItem } from "./SearchToken";
 
 function getActualTokenName(field: FieldPath<OutcomesFormValues>, formValues: OutcomesFormValues): string {
@@ -325,8 +326,22 @@ function OutcomesSection({
 
   const { fields: outcomesFields, append: appendOutcome, remove: removeOutcome } = useFieldArrayReturn;
 
+  const { Modal, openModal, closeModal } = useModal("csv-import");
+
   const addOutcome = () => {
     return appendOutcome({ value: "", token: "", image: "" }, { shouldFocus: false });
+  };
+
+  const handleCsvImport = (data: { value: string; token: string }[]) => {
+    // Remove blank outcomes before importing
+    for (let i = outcomes.length - 1; i >= 0; i--) {
+      if (!outcomes[i].value.trim() && !outcomes[i].token.trim()) {
+        removeOutcome(i);
+      }
+    }
+    for (const outcome of data) {
+      appendOutcome({ ...outcome, image: "" });
+    }
   };
 
   return (
@@ -353,11 +368,23 @@ function OutcomesSection({
             </div>
           )}
 
-          <div className="text-left">
+          <div className="flex items-center gap-4 text-left">
             <button type="button" onClick={addOutcome}>
               <PlusCircleIcon />
             </button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="small"
+              onClick={openModal}
+              text="Import outcomes with CSV"
+            />
           </div>
+
+          <Modal
+            title=""
+            content={<CSVUpload onDataParsed={handleCsvImport} onClose={closeModal} existingOutcomes={outcomes} />}
+          />
         </>
       )}
 
