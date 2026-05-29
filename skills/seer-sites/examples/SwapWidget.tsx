@@ -13,7 +13,6 @@ import {
 import {
   useMarket,
   useMarketHasLiquidity,
-  useMissingTradeApproval,
   useQuoteTrade,
   useTokenBalance,
   useTokenInfo,
@@ -156,17 +155,12 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
 
   const isSeerCreditsCollateral = selectedCollateral ? isSeerCredits(market.chainId, selectedCollateral.address) : false;
 
-  const {
-    data: missingApprovals = [],
-    isLoading: isApprovalLoading,
-  } = useMissingTradeApproval(account, quoteData?.trade);
-
-  const needsTokenApproval =
-    !isCollateralLoading && !isSeerCreditsCollateral && missingApprovals.length > 0;
-
   const approveTokensMutation = useApproveTokens(toastifyTx);
 
-  const { tradeTokens } = useTrade(
+  const {
+    tradeTokens,
+    approvals: { data: missingApprovals = [], isLoading: isApprovalLoading },
+  } = useTrade(
     account,
     quoteData?.trade,
     isSeerCreditsCollateral,
@@ -177,6 +171,9 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
     toastify,
     toastifyTx,
   );
+
+  const needsTokenApproval =
+    !isCollateralLoading && !isSeerCreditsCollateral && missingApprovals.length > 0;
 
   const executeTrade = tradeTokens.mutateAsync;
   const isTradePending = tradeTokens.isPending;
