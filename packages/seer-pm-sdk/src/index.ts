@@ -212,6 +212,26 @@ export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
 export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+export { getSqrtRatioAtTick, encodeSqrtRatioX96, uniswapV3TickSpacing, UNISWAP_V3_TICK_SPACINGS } from "./tick-math";
+export {
+  V4_POOL_FEE,
+  V4_TICK_SPACING,
+  V4_POSITION_MANAGER_ADDRESS,
+  V4_STATE_VIEW_ADDRESS,
+  PERMIT2_ADDRESS,
+  chainSupportsOrderBook,
+  marketSupportsOrderBook,
+  getOrderBookPoolParams,
+  clampProbability,
+  isOrderBookPoolInitialized,
+  readV4PoolState,
+  getV4PoolInitializerAddress,
+  getV4PositionManagerAddress,
+  getV4PoolId,
+  getV4HooksAddress,
+  buildOrderBookPoolKey,
+} from "./order-book-config";
+export type { OrderBookPoolKey, OrderBookPoolParams } from "./order-book-config";
 export { isSeerCredits } from "./seer-credits";
 
 // Curate / TCR
@@ -263,6 +283,7 @@ export {
   curateGraphQLClient,
   uniswapGraphQLClient,
   swaprGraphQLClient,
+  orderBookGraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
   getTokenPriceFromSubgraph,

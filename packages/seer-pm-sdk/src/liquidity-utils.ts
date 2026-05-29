@@ -1,5 +1,5 @@
-import { TickMath } from "@uniswap/v3-sdk";
 import { formatUnits } from "viem";
+import { MAX_TICK, MIN_TICK, getSqrtRatioAtTick } from "./tick-math";
 
 const TWO_POW_96 = 2n ** 96n;
 
@@ -15,7 +15,7 @@ function sqrtPriceX96ToPriceRaw(sqrtPriceX96: bigint, decimals: number): [bigint
 }
 
 export function tickToPrice(tick: number, decimals = 18, keepPrecision = false) {
-  const sqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
+  const sqrtPriceX96 = getSqrtRatioAtTick(tick);
   const [price0, price1] = sqrtPriceX96ToPriceRaw(sqrtPriceX96, decimals);
 
   if (keepPrecision) {
@@ -40,4 +40,23 @@ export function decimalToFraction(x: number): [string, string] {
   const numerator = Math.round(x * 10 ** decimals);
   const denominator = 10 ** decimals;
   return [String(numerator), String(denominator)];
+}
+
+/** Inverse of TickMath.getSqrtRatioAtTick using native bigint (SSR-safe, no JSBI import). */
+export function sqrtPriceX96ToTick(sqrtPriceX96: bigint): number {
+  let lo = MIN_TICK;
+  let hi = MAX_TICK;
+
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const sqrtMid = getSqrtRatioAtTick(mid);
+
+    if (sqrtMid <= sqrtPriceX96) {
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  return lo - 1;
 }

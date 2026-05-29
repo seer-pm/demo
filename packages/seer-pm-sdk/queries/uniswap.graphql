@@ -44,7 +44,6 @@ query GetPools(
     totalValueLockedToken0
     totalValueLockedToken1
     totalValueLockedUSD
-    totalValueLockedUSDUntracked
     untrackedVolumeUSD
     feesUSD
     __typename

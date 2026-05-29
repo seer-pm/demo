@@ -6,6 +6,9 @@ import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
 import { cjsInterop } from "vite-plugin-cjs-interop";
 
+const seerPmSdkSrc = path.resolve(__dirname, "../packages/seer-pm-sdk/src");
+const seerPmReactSrc = path.resolve(__dirname, "../packages/seer-pm-react/src");
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -13,7 +16,13 @@ export default defineConfig({
     vike(),
     checker({ typescript: true }),
     cjsInterop({
-      dependencies: ["react-paginate"],
+      dependencies: [
+        "react-paginate",
+        "jsbi",
+        "@uniswap/sdk-core",
+        "@uniswap/v3-sdk",
+        "@uniswap/v4-sdk",
+      ],
     }),
   ],
   define: {
@@ -35,19 +44,38 @@ export default defineConfig({
     },
   },
   ssr: {
-    noExternal: ["react-easy-crop", "echarts-for-react", "@bigmi/core"],
+    noExternal: [
+      "react-easy-crop",
+      "echarts-for-react",
+      "@bigmi/core",
+      "@uniswap/sdk-core",
+    ],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "node-fetch": "isomorphic-fetch",
-      jsbi: path.resolve(__dirname, "./../node_modules/jsbi/dist/jsbi-cjs.js"),
-      "@seer-pm/sdk/contracts": path.resolve(__dirname, "../packages/seer-pm-sdk/generated/contracts"),
-      "@seer-pm/sdk/subgraph": path.resolve(__dirname, "../packages/seer-pm-sdk/generated/subgraph"),
-      "@seer-pm/sdk/abis/eternal-farming": path.resolve(__dirname, "../packages/seer-pm-sdk/abis/EternalFarmingAbi.ts"),
-      "@seer-pm/sdk": path.resolve(__dirname, "../packages/seer-pm-sdk/src/index.ts"),
-      "@seer-pm/react": path.resolve(__dirname, "../packages/seer-pm-react/src/index.ts"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "node-fetch", replacement: "isomorphic-fetch" },
+      { find: "jsbi", replacement: path.resolve(__dirname, "../node_modules/jsbi/dist/jsbi.mjs") },
+      {
+        find: "@seer-pm/sdk/order-book",
+        replacement: path.resolve(seerPmSdkSrc, "order-book.ts"),
+      },
+      {
+        find: "@seer-pm/sdk/contracts",
+        replacement: path.resolve(__dirname, "../packages/seer-pm-sdk/generated/contracts"),
+      },
+      {
+        find: "@seer-pm/sdk/subgraph",
+        replacement: path.resolve(__dirname, "../packages/seer-pm-sdk/generated/subgraph"),
+      },
+      {
+        find: "@seer-pm/sdk/abis/eternal-farming",
+        replacement: path.resolve(__dirname, "../packages/seer-pm-sdk/abis/EternalFarmingAbi.ts"),
+      },
+      { find: /^@seer-pm\/react\/(.+)$/, replacement: `${seerPmReactSrc}/$1` },
+      { find: "@seer-pm/react", replacement: path.resolve(seerPmReactSrc, "index.ts") },
+      { find: "@seer-pm/sdk", replacement: path.resolve(seerPmSdkSrc, "index.ts") },
+    ],
   },
   css: {
     postcss: {

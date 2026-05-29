@@ -1,6 +1,5 @@
 import { isTwoStringsEqual } from "@/lib/utils";
-import { tickToPrice } from "@seer-pm/sdk";
-import { TickMath } from "@uniswap/v3-sdk";
+import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk";
 import { Address, formatUnits } from "viem";
 
 const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001
@@ -68,8 +67,8 @@ export function getChartDataByTicks(
     // if (currentLiquidity === 0n) {
     //   continue;
     // }
-    const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentHighTick).toString());
-    const sqrtB = BigInt(TickMath.getSqrtRatioAtTick(Number(higherTicks[i].tickIdx)).toString());
+    const sqrtP = getSqrtRatioAtTick(currentHighTick);
+    const sqrtB = getSqrtRatioAtTick(Number(higherTicks[i].tickIdx));
 
     const amount0 = (currentLiquidity * 2n ** 96n * (sqrtB - sqrtP)) / (sqrtB * sqrtP);
     const amount1Need = (currentLiquidity * (sqrtB - sqrtP)) / 2n ** 96n;
@@ -91,8 +90,8 @@ export function getChartDataByTicks(
     // if (currentLiquidity === 0n) {
     //   continue;
     // }
-    const sqrtA = BigInt(TickMath.getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx)).toString());
-    const sqrtP = BigInt(TickMath.getSqrtRatioAtTick(currentLowTick).toString());
+    const sqrtA = getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx));
+    const sqrtP = getSqrtRatioAtTick(currentLowTick);
     const amount1 = (currentLiquidity * (sqrtP - sqrtA)) / 2n ** 96n;
     const amount0Need = ((currentLiquidity * 2n ** 96n * (sqrtA - sqrtP)) / (sqrtA * sqrtP)) * -1n;
     rangeMapping[`${Number(lowerTicks[i].tickIdx)}-${currentLowTick}`] = {

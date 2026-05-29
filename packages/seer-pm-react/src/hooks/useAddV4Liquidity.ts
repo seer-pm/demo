@@ -1,0 +1,210 @@
+import type { TxNotifierFn } from "@seer-pm/sdk";
+import {
+  PERMIT2_ADDRESS,
+  getOrderBookPoolParams,
+  getV4PositionManagerAddress,
+  isOrderBookPoolInitialized,
+  readV4PoolState,
+} from "@seer-pm/sdk";
+import {
+  computePositionAmounts,
+  deriveSqrtPriceX96FromAmounts,
+  ensurePermit2Allowance,
+  initializeOrderBookPool,
+  mintV4Position,
+  probabilityRangeToTicks,
+  resolveLiquiditySqrtPriceX96,
+} from "@seer-pm/sdk/order-book";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { readContract, writeContract } from "@wagmi/core";
+import type { Address } from "viem";
+import { erc20Abi, maxUint256 } from "viem";
+import { useConfig } from "wagmi";
+import type { Market } from "./useMarketPools";
+
+export interface AddV4LiquidityParams {
+  market: Market;
+  outcomeIndex: number;
+  account: Address;
+  minPrice: number;
+  maxPrice: number;
+  amount0: bigint;
+  amount1: bigint;
+}
+
+export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
+  const config = useConfig();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: AddV4LiquidityParams) => {
+      const { market, outcomeIndex, account, minPrice, maxPrice, amount0, amount1 } = params;
+      const poolParams = getOrderBookPoolParams(market, outcomeIndex);
+      const { poolKey, outcomeIsToken0, token0, token1 } = poolParams;
+      const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
+
+      const poolInitialized = await isOrderBookPoolInitialized(config, market, outcomeIndex);
+
+      let sqrtPriceX96: bigint;
+      if (poolInitialized) {
+        const state = await readV4PoolState(config, market.chainId, poolKey);
+        if (!state) {
+          throw new Error("Pool state unavailable");
+        }
+        sqrtPriceX96 = state.sqrtPriceX96;
+      } else {
+        sqrtPriceX96 = deriveSqrtPriceX96FromAmounts({
+          chainId: market.chainId,
+          poolKey,
+          amount0,
+          amount1,
+          tickLower,
+          tickUpper,
+        });
+      }
+
+      const positionManager = getV4PositionManagerAddress(market.chainId);
+      if (!positionManager) {
+        throw new Error("V4 PositionManager not configured");
+      }
+
+      for (const [token, amount] of [
+        [token0, amount0],
+        [token1, amount1],
+      ] as const) {
+        if (amount === 0n) continue;
+
+        const allowance = await readContract(config, {
+          address: token,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [account, PERMIT2_ADDRESS],
+          chainId: market.chainId,
+        });
+
+        if (allowance < amount) {
+          const approveResult = await txNotifier(
+            () =>
+              writeContract(config, {
+                address: token,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [PERMIT2_ADDRESS, maxUint256],
+                chainId: market.chainId,
+              }),
+            {
+              txSent: { title: "Approving token for Permit2..." },
+              txSuccess: { title: "Token approved." },
+            },
+          );
+          if (!approveResult.status) {
+            throw approveResult.error;
+          }
+        }
+
+        await ensurePermit2Allowance(config, {
+          token,
+          owner: account,
+          amount,
+          chainId: market.chainId,
+        });
+      }
+
+      if (!poolInitialized) {
+        const initResult = await txNotifier(
+          () =>
+            initializeOrderBookPool(config, {
+              market,
+              outcomeIndex,
+              sqrtPriceX96,
+            }),
+          {
+            txSent: { title: "Initializing pool..." },
+            txSuccess: { title: "Pool initialized." },
+          },
+        );
+        if (!initResult.status) {
+          throw initResult.error;
+        }
+      }
+
+      const mintResult = await txNotifier(
+        () =>
+          mintV4Position(config, {
+            chainId: market.chainId,
+            poolKey,
+            sqrtPriceX96,
+            tickLower,
+            tickUpper,
+            amount0,
+            amount1,
+            recipient: account,
+          }),
+        {
+          txSent: { title: "Adding liquidity..." },
+          txSuccess: { title: "Liquidity added." },
+        },
+      );
+
+      if (!mintResult.status) {
+        throw mintResult.error;
+      }
+
+      return mintResult.receipt.transactionHash;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["useMarketPools", variables.market.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["useIsOrderBookPoolInitialized", variables.market.id, variables.outcomeIndex],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["useV4PoolState", variables.market.id, variables.outcomeIndex],
+      });
+      queryClient.invalidateQueries({ queryKey: ["useMarketHasLiquidity", variables.market.id] });
+      queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+    },
+  });
+}
+
+export function computeV4DerivedAmounts(
+  market: Market,
+  outcomeIndex: number,
+  {
+    minPrice,
+    maxPrice,
+    amount0,
+    amount1,
+    poolSqrtPriceX96,
+  }: {
+    minPrice: number;
+    maxPrice: number;
+    amount0?: bigint;
+    amount1?: bigint;
+    poolSqrtPriceX96?: bigint;
+  },
+) {
+  const poolParams = getOrderBookPoolParams(market, outcomeIndex);
+  const { poolKey, outcomeIsToken0 } = poolParams;
+  const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
+
+  const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
+    chainId: market.chainId,
+    poolKey,
+    outcomeIsToken0,
+    minPrice,
+    maxPrice,
+    amount0,
+    amount1,
+    poolSqrtPriceX96,
+  });
+
+  return computePositionAmounts({
+    chainId: market.chainId,
+    poolKey,
+    sqrtPriceX96,
+    tickLower,
+    tickUpper,
+    amount0,
+    amount1,
+  });
+}

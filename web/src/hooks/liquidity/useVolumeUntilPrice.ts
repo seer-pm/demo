@@ -1,7 +1,6 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Market } from "@seer-pm/sdk";
-import { decimalToFraction, tickToPrice } from "@seer-pm/sdk";
-import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
+import { decimalToFraction, encodeSqrtRatioX96, getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk";
 import { Address, formatUnits } from "viem";
 import { useTicksData } from "./useTicksData";
 
@@ -55,9 +54,9 @@ export function getVolumeUntilPrice(
 ): number {
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
   // Exact sqrt prices for current and target
-  let currentSqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(pool.tick).toString());
+  let currentSqrtPriceX96 = getSqrtRatioAtTick(pool.tick);
   const [num, den] = decimalToFraction(isOutcomeToken0 ? targetPrice : 1 / targetPrice);
-  const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+  const targetSqrtPriceX96 = encodeSqrtRatioX96(num, den);
 
   // Determine direction and filter/sort ticks
   const movingUp = (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
@@ -80,7 +79,7 @@ export function getVolumeUntilPrice(
 
   for (let i = 0; i < relevantTicks.length; i++) {
     const tick = Number(relevantTicks[i].tickIdx);
-    const sqrtAtTick = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
+    const sqrtAtTick = getSqrtRatioAtTick(tick);
 
     // Check if target price is between current position and this tick
     let targetWithinRange = false;

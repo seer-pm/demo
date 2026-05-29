@@ -88,6 +88,16 @@
       "import": "./dist/cow.mjs",
       "require": "./dist/cow.js"
     },
+    "./order-book": {
+      "types": "./dist/order-book.d.ts",
+      "import": "./dist/order-book.mjs",
+      "require": "./dist/order-book.js"
+    },
+    "./contracts/order-book": {
+      "types": "./generated/contracts/order-book.ts",
+      "import": "./dist/generated/contracts/order-book.mjs",
+      "require": "./dist/generated/contracts/order-book.js"
+    },
     "./contracts/curate": {
       "types": "./generated/contracts/curate.ts",
       "import": "./dist/generated/contracts/curate.mjs",
@@ -158,6 +168,11 @@
       "import": "./dist/generated/subgraph/reality.mjs",
       "require": "./dist/generated/subgraph/reality.js"
     },
+    "./subgraph/limit-order-hook": {
+      "types": "./generated/subgraph/limit-order-hook.ts",
+      "import": "./dist/generated/subgraph/limit-order-hook.mjs",
+      "require": "./dist/generated/subgraph/limit-order-hook.js"
+    },
     "./abis/eternal-farming": {
       "types": "./abis/EternalFarmingAbi.ts",
       "import": "./dist/abis/EternalFarmingAbi.mjs",
@@ -173,8 +188,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --watch",
+    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts src/order-book.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts src/order-book.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
     "generate:hooks": "wagmi generate",
@@ -205,7 +220,9 @@
   "dependencies": {
     "@cowprotocol/cow-sdk": "^5.3.2",
     "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af",
+    "@uniswap/sdk-core": "^7.7.2",
     "@uniswap/v3-sdk": "^3.19.0",
+    "@uniswap/v4-sdk": "^1.20.0",
     "ethers": "^5.7.2",
     "graphql": "16.11.0"
   }

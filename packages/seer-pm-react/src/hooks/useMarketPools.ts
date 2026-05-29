@@ -1,4 +1,16 @@
-import { type Market as BaseMarket, getMarketPoolsPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
+import {
+  type Market as BaseMarket,
+  getMarketPoolsPairs,
+  sqrtPriceX96ToPrice,
+  uniswapV3TickSpacing,
+} from "@seer-pm/sdk";
+import {
+  V4_POOL_FEE,
+  V4_TICK_SPACING,
+  buildOrderBookPoolKey,
+  chainSupportsOrderBook,
+  readV4PoolState,
+} from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
@@ -16,7 +28,6 @@ import {
 } from "@seer-pm/sdk/subgraph/swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { useQuery } from "@tanstack/react-query";
-import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
 import { type Config, getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
@@ -42,6 +53,7 @@ export interface PoolIncentive {
 export interface PoolInfo {
   id: Address;
   dex: string;
+  version?: "v3" | "v4";
   fee: number;
   token0: Address;
   token1: Address;
@@ -311,7 +323,7 @@ async function getSwaprPools(
   }
 }
 
-async function getUniswapPools(chainId: number, tokens: { token0: Address; token1: Address }[]): Promise<PoolInfo[]> {
+async function getUniswapV3Pools(chainId: number, tokens: { token0: Address; token1: Address }[]): Promise<PoolInfo[]> {
   const uniswapClient = uniswapGraphQLClient(chainId);
 
   if (!uniswapClient) {
@@ -333,7 +345,8 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
   return await Promise.all(
     pools.map(async (pool) => ({
       id: pool.id as Address,
-      dex: "Bunni",
+      dex: "UniV3",
+      version: "v3" as const,
       fee: Number(pool.feeTier),
       token0: pool.token0.id as Address,
       token1: pool.token1.id as Address,
@@ -341,7 +354,7 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
       token1Price: Number(pool.token1Price),
       liquidity: BigInt(pool.liquidity),
       tick: Number(pool.tick),
-      tickSpacing: TICK_SPACINGS[Number(pool.feeTier) as FeeAmount] ?? 60,
+      tickSpacing: uniswapV3TickSpacing(Number(pool.feeTier)),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
@@ -351,11 +364,70 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
   );
 }
 
+async function getUniswapV4Pools(
+  chainId: number,
+  config: Config,
+  tokens: { token0: Address; token1: Address }[],
+): Promise<PoolInfo[]> {
+  if (!chainSupportsOrderBook(chainId)) {
+    return [];
+  }
+
+  const results = await Promise.all(
+    tokens.map(async (pair) => {
+      const poolKey = buildOrderBookPoolKey(pair.token0, pair.token1, chainId);
+      if (!poolKey) {
+        return [];
+      }
+
+      const state = await readV4PoolState(config, chainId, poolKey);
+
+      if (!state || state.liquidity === 0n) {
+        return [];
+      }
+
+      const [token0PriceStr, token1PriceStr] = sqrtPriceX96ToPrice(state.sqrtPriceX96);
+
+      return [
+        {
+          id: state.poolId as Address,
+          dex: "UniV4",
+          version: "v4" as const,
+          fee: V4_POOL_FEE,
+          token0: poolKey.currency0,
+          token1: poolKey.currency1,
+          token0Price: Number(token0PriceStr),
+          token1Price: Number(token1PriceStr),
+          liquidity: state.liquidity,
+          tick: state.tick,
+          tickSpacing: V4_TICK_SPACING,
+          token0Symbol: "",
+          token1Symbol: "",
+          totalValueLockedToken0: 0,
+          totalValueLockedToken1: 0,
+          incentives: [],
+        },
+      ];
+    }),
+  );
+
+  return results.flat();
+}
+
 export const getPools = memoize((chainId: number, config: Config) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
-      return chainId === gnosis.id ? getSwaprPools(chainId, config, tokens) : getUniswapPools(chainId, tokens);
+      if (chainId === gnosis.id) {
+        return getSwaprPools(chainId, config, tokens);
+      }
+
+      const [v3Pools, v4Pools] = await Promise.all([
+        getUniswapV3Pools(chainId, tokens),
+        getUniswapV4Pools(chainId, config, tokens),
+      ]);
+
+      return [...v3Pools, ...v4Pools];
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (pools, tokens) =>
