@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis, mainnet } from "viem/chains";
+import { base, gnosis, mainnet } from "viem/chains";
 import { SUBGRAPHS } from "./src/subgraph/subgraph-endpoints";
 
 const schemasAndDocuments = [
@@ -27,6 +27,11 @@ const schemasAndDocuments = [
     type: "reality",
     schema: SUBGRAPHS.reality[gnosis.id],
     documents: "./queries/reality.graphql",
+  },
+  {
+    type: "limit-order-hook",
+    schema: SUBGRAPHS.orderBook[base.id],
+    documents: "./queries/limit-order-hook.graphql",
   },
 ];
 

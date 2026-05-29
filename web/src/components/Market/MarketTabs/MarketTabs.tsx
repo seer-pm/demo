@@ -1,5 +1,5 @@
 import { useMarketHolders } from "@/hooks/useMarketHolders";
-import { Market } from "@seer-pm/sdk";
+import { Market, marketSupportsOrderBook } from "@seer-pm/sdk";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import Activity from "./Activity";
@@ -7,13 +7,17 @@ import { RelatedMarkets } from "./RelatedMarkets";
 import TopHolders from "./TopHolders";
 
 const Comments = clientOnly(() => import("./Comments"));
+const OpenOrders = clientOnly(() => import("../OpenOrders/OpenOrders"));
 
 export default function MarketTabs({ market }: { market: Market }) {
   // Prefetch holders + activity data while user is on other tabs to avoid Netlify cold start on first request
   useMarketHolders(market);
 
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
+  const showOpenOrders = marketSupportsOrderBook(market);
+  const [activeTab, setActiveTab] = useState<
+    "comments" | "conditionalMarkets" | "topHolders" | "activity" | "openOrders"
+  >("comments");
   return (
     <div>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
@@ -49,6 +53,16 @@ export default function MarketTabs({ market }: { market: Market }) {
         >
           Activity
         </button>
+        {showOpenOrders && (
+          <button
+            type="button"
+            role="tab"
+            className={`tab text-[16px] whitespace-nowrap ${activeTab === "openOrders" && "tab-active"}`}
+            onClick={() => setActiveTab("openOrders")}
+          >
+            Open orders
+          </button>
+        )}
       </div>
       {activeTab === "comments" && <Comments market={market} />}
       {activeTab === "conditionalMarkets" && (
@@ -56,6 +70,7 @@ export default function MarketTabs({ market }: { market: Market }) {
       )}
       {activeTab === "topHolders" && <TopHolders market={market} />}
       {activeTab === "activity" && <Activity market={market} />}
+      {activeTab === "openOrders" && showOpenOrders && <OpenOrders market={market} />}
     </div>
   );
 }

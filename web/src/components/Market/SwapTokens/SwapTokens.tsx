@@ -1,16 +1,19 @@
 import { Dropdown } from "@/components/Dropdown";
-import { getLiquidityUrlByMarket, isFillToEstimateEnabled } from "@seer-pm/sdk";
+import { useModal } from "@/hooks/useModal";
+import { getLiquidityUrl, isFillToEstimateEnabled, marketSupportsOrderBook } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Alert } from "../../Alert";
+import { AddLiquidityV4Adapter } from "../AddLiquidity/AddLiquidityV4Adapter";
 import { OutcomeImage } from "../OutcomeImage";
 import { SwapTokensFillToEstimate } from "./SwapTokensFillToEstimate";
+import { SwapTokensLimitOrder } from "./SwapTokensLimitOrder";
 import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
 
-type SwapOrderType = "market" | "limit" | "fill-to-estimate";
+type SwapOrderType = "market" | "limit" | "fill-to-estimate" | "limit-order";
 
 interface SwapTokensProps {
   market: Market;
@@ -33,15 +36,22 @@ export function SwapTokens({
 }: SwapTokensProps) {
   const [orderType, setOrderType] = useState<SwapOrderType>("market");
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
+  const {
+    Modal: LiquidityModal,
+    openModal: openLiquidityModal,
+    closeModal: closeLiquidityModal,
+  } = useModal("swap-add-liquidity-modal");
 
   const outcomeText = market.outcomes[outcomeIndex];
   const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
   const showFillToEstimate = isFillToEstimateEnabled(market);
+  const useInAppLiquidity = marketSupportsOrderBook(market);
 
   const orderTypeOptions = [
     { text: "Market", value: "market" as const },
     { text: "Fill-to-price", value: "limit" as const },
     ...(showFillToEstimate ? [{ text: "Fill-to-estimate", value: "fill-to-estimate" as const }] : []),
+    ...(useInAppLiquidity ? [{ text: "Limit order", value: "limit-order" as const }] : []),
   ];
 
   return (
@@ -55,14 +65,20 @@ export function SwapTokens({
       {hasEnoughLiquidity === false && (
         <Alert type="warning">
           This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
-          <a
-            href={getLiquidityUrlByMarket(market, outcomeIndex)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-purple-primary"
-          >
-            provide liquidity.
-          </a>
+          {useInAppLiquidity ? (
+            <button type="button" onClick={openLiquidityModal} className="text-purple-primary hover:underline">
+              provide liquidity.
+            </button>
+          ) : (
+            <a
+              href={getLiquidityUrl(market, outcomeIndex)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-primary"
+            >
+              provide liquidity.
+            </a>
+          )}
         </Alert>
       )}
       {!isShowMaxSlippage && (
@@ -109,9 +125,28 @@ export function SwapTokens({
               setShowMaxSlippage={setShowMaxSlippage}
             />
           )}
+          {orderType === "limit-order" && (
+            <SwapTokensLimitOrder
+              market={market}
+              outcomeIndex={outcomeIndex}
+              outcomeToken={outcomeToken}
+              fixedCollateral={fixedCollateral}
+              outcomeImage={outcomeImage}
+              isInvalidOutcome={isInvalidOutcome}
+              onAddLiquidity={openLiquidityModal}
+            />
+          )}
         </div>
       )}
       {isShowMaxSlippage && <SwapTokensMaxSlippage onReturn={() => setShowMaxSlippage(false)} />}
+      {useInAppLiquidity && (
+        <LiquidityModal
+          title="Add Liquidity"
+          content={
+            <AddLiquidityV4Adapter market={market} outcomeIndex={outcomeIndex} closeModal={closeLiquidityModal} />
+          }
+        />
+      )}
     </div>
   );
 }

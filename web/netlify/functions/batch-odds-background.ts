@@ -1,5 +1,6 @@
-import { getToken0Token1, tickToPrice } from "@seer-pm/sdk";
+import { getToken0Token1 } from "@seer-pm/sdk";
 import { normalizeOdds } from "@seer-pm/sdk/market-odds";
+import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import { createClient } from "@supabase/supabase-js";
 import { formatUnits, zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
