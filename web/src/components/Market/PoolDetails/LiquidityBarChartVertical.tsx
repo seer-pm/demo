@@ -23,7 +23,7 @@ export default function LiquidityBarChartVertical({
   const { tick, id } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
-  const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
+  const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData } = getLiquidityChartData(
@@ -93,6 +93,14 @@ export default function LiquidityBarChartVertical({
       containerRef.current.scrollTop = rowHeight * index;
     }
   }, [containerRef.current, sellBarsData]);
+
+  if (isError) {
+    return (
+      <Alert type="error" className="mb-5">
+        Error loading liquidity data.
+      </Alert>
+    );
+  }
 
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (

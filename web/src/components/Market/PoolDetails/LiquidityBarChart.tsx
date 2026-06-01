@@ -26,9 +26,18 @@ export default function LiquidityBarChart({
   const { token0Symbol, token1Symbol, tick, id } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
-  const { data: ticksByPool, isLoading } = useTicksData(market, outcomeTokenIndex);
+  const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
+
+  if (isError) {
+    return (
+      <Alert type="error" className="mb-5">
+        Error loading liquidity data.
+      </Alert>
+    );
+  }
+
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
