@@ -111,7 +111,7 @@ export const paths = {
       {
         futarchy: "https://cdn.kleros.link/ipfs/QmdUY8h6JPphoCERMzrS4zFymkNnmGLrFV2YNb531s95v7",
         deepfund: "https://cdn.kleros.link/ipfs/QmXJKtDUHARincj3LaDT2f58wzs2Jp5bKNMQSLcVNHV4Hw",
-        foresight: "https://cdn.kleros.link/ipfs/QmVEHkJR6AcRSawWAYTki9JKcpvFaF8rv7efwCVpP3TqBW",
+        foresight: "https://cdn.kleros.link/ipfs/QmVRkKuqo1vSMzcDJc9Mdyv9FimaYYZqwETQ9fJ7F8834D",
       }[site] ?? ""
     );
   },
