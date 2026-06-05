@@ -171,8 +171,8 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
       return ANSWERED_TOO_SOON;
     }
     const answerChoice = (outcome as number[]).reduce(
-      (partialSum: number, value: number) => partialSum + 2 ** Number(value),
-      0,
+      (partialSum: bigint, value: number) => partialSum | (1n << BigInt(value)),
+      0n,
     );
     return numberToHex(answerChoice, { size: 32 });
   }
@@ -180,21 +180,21 @@ export function formatOutcome(outcome: FormEventOutcomeValue | FormEventOutcomeV
   if (outcome === ANSWERED_TOO_SOON || outcome === INVALID_RESULT) {
     return outcome as Hex;
   }
-
   return numberToHex(BigInt(outcome), { size: 32 });
 }
 
 /** Decode a multi-select answer value (bitmask) to array of outcome indices. */
-export function getMultiSelectAnswers(value: number): number[] {
-  const answers = value.toString(2);
-  const indexes = [];
-
-  for (let i = 0; i < answers.length; i++) {
-    if (answers[i] === "1") {
-      indexes.push(answers.length - i - 1);
+export function getMultiSelectAnswers(value: bigint): number[] {
+  const indexes: number[] = [];
+  let bit = 0;
+  let mask = value;
+  while (mask > 0n) {
+    if (mask & 1n) {
+      indexes.push(bit);
     }
+    mask >>= 1n;
+    bit++;
   }
-
   return indexes;
 }
 
@@ -241,7 +241,7 @@ export function getAnswerText(
 
   const outcomeIndex = hexToNumber(question.best_answer);
   if (template === REALITY_TEMPLATE_MULTIPLE_SELECT) {
-    return getMultiSelectAnswers(outcomeIndex)
+    return getMultiSelectAnswers(BigInt(question.best_answer))
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }

@@ -52,7 +52,7 @@ function AnswerColumn({
       )}
       {questionStatus === MarketStatus.CLOSED && marketStatus !== MarketStatus.PENDING_EXECUTION && <CheckCircleIcon />}
       {question.finalize_ts > 0 && (
-        <div className="whitespace-nowrap text-ellipsis overflow-hidden">
+        <div className="whitespace-break-spaces text-ellipsis overflow-hidden">
           Answer: {getAnswerTextFromMarket(question, market)}
         </div>
       )}
