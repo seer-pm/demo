@@ -1,6 +1,7 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Market } from "@seer-pm/sdk";
-import { decimalToFraction, encodeSqrtRatioX96, getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk";
+import { decimalToFraction } from "@seer-pm/sdk/liquidity-utils";
+import { encodeSqrtRatioX96, getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
 import { Address, formatUnits } from "viem";
 import { useTicksData } from "./useTicksData";
 

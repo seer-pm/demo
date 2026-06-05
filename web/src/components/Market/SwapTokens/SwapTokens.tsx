@@ -1,26 +1,17 @@
 import { Dropdown } from "@/components/Dropdown";
 import { useModal } from "@/hooks/useModal";
-import { getLiquidityUrlByMarket, marketSupportsOrderBook } from "@seer-pm/sdk";
+import { getLiquidityUrl, marketSupportsOrderBook } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
-import { clientOnly } from "vike-react/clientOnly";
 import { Alert } from "../../Alert";
+import { AddLiquidityV4Adapter } from "../AddLiquidity/AddLiquidityV4Adapter";
 import { OutcomeImage } from "../OutcomeImage";
+import { SwapTokensLimitOrder } from "./SwapTokensLimitOrder";
 import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
-
-const AddLiquidityV4Adapter = clientOnly(async () => {
-  const mod = await import("../AddLiquidity/AddLiquidityV4Adapter");
-  return mod.AddLiquidityV4Adapter;
-});
-
-const SwapTokensLimitOrder = clientOnly(async () => {
-  const mod = await import("./SwapTokensLimitOrder");
-  return mod.SwapTokensLimitOrder;
-});
 
 interface SwapTokensProps {
   market: Market;
@@ -70,7 +61,7 @@ export function SwapTokens({
             </button>
           ) : (
             <a
-              href={getLiquidityUrlByMarket(market, outcomeIndex)}
+              href={getLiquidityUrl(market, outcomeIndex)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-purple-primary"

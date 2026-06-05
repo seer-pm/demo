@@ -13,7 +13,6 @@ import {
   writeLimitOrderHookPlaceOrder,
   writeSeerUniV4PoolInitializerInitializePool,
 } from "../generated/contracts/order-book";
-import { sqrtPriceX96ToTick, tickToPrice } from "./liquidity-utils";
 import type { Market } from "./market-types";
 import {
   type OrderBookPoolKey,
@@ -25,7 +24,8 @@ import {
   permit2Abi,
   positionManagerAbi,
 } from "./order-book-config";
-import { getSqrtRatioAtTick, nearestUsableTick } from "./tick-math";
+import { tickToPrice } from "./tick-math";
+import { getSqrtRatioAtTick, getTickAtSqrtRatio, nearestUsableTick } from "./tick-math";
 
 export * from "./order-book-config";
 
@@ -41,14 +41,24 @@ export function probabilityToTick(probability: number, outcomeIsToken0: boolean,
   let hi = tickMax;
 
   while (lo < hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    const [price0, price1] = tickToPrice(mid);
-    const price = outcomeIsToken0 ? Number(price0) : Number(price1);
+    const mid = outcomeIsToken0 ? Math.floor((lo + hi) / 2) : Math.ceil((lo + hi) / 2);
+    const [price0, price1] = tickToPrice(mid, 18, true);
+    const price = Number(outcomeIsToken0 ? price0 : price1);
 
-    if (price < target) {
-      lo = mid + 1;
+    if (outcomeIsToken0) {
+      // price0 increases as tick increases
+      if (price < target) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
     } else {
-      hi = mid;
+      // price1 decreases as tick increases — find the highest tick still at/above target
+      if (price >= target) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
     }
   }
 
@@ -85,14 +95,16 @@ export function createV4PoolInstance(
   sqrtPriceX96: bigint,
   liquidity = 0n,
   tickCurrent?: number,
+  token0Decimals = 18,
+  token1Decimals = 18,
 ): Pool {
-  const token0 = new Token(chainId, poolKey.currency0, 18);
-  const token1 = new Token(chainId, poolKey.currency1, 18);
+  const token0 = new Token(chainId, poolKey.currency0, token0Decimals);
+  const token1 = new Token(chainId, poolKey.currency1, token1Decimals);
 
   let resolvedTick = tickCurrent;
   if (resolvedTick === undefined) {
     try {
-      resolvedTick = sqrtPriceX96ToTick(sqrtPriceX96);
+      resolvedTick = getTickAtSqrtRatio(sqrtPriceX96);
     } catch {
       resolvedTick = 0;
     }
@@ -110,103 +122,14 @@ export function createV4PoolInstance(
   );
 }
 
-export function deriveSqrtPriceX96FromAmounts({
-  chainId,
-  poolKey,
-  amount0,
-  amount1,
-  tickLower,
-  tickUpper,
-}: {
-  chainId: number;
-  poolKey: OrderBookPoolKey;
-  amount0: bigint;
-  amount1: bigint;
-  tickLower: number;
-  tickUpper: number;
-}): bigint {
-  if (amount0 === 0n && amount1 === 0n) {
-    throw new Error("At least one token amount must be greater than zero");
-  }
-
-  let lo = tickLower;
-  let hi = tickUpper;
-  let bestTick = lo;
-  let bestDiff = BigInt(Number.MAX_SAFE_INTEGER);
-
-  while (lo <= hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    const sqrtPriceX96 = getSqrtRatioAtTick(mid);
-    const pool = createV4PoolInstance(chainId, poolKey, sqrtPriceX96, 0n, mid);
-
-    let derived0 = 0n;
-    let derived1 = 0n;
-
-    try {
-      if (amount0 > 0n) {
-        const position = Position.fromAmount0({
-          pool,
-          tickLower,
-          tickUpper,
-          amount0: amount0.toString(),
-          useFullPrecision: true,
-        });
-        derived0 = BigInt(position.mintAmounts.amount0.toString());
-        derived1 = BigInt(position.mintAmounts.amount1.toString());
-      } else {
-        const position = Position.fromAmount1({
-          pool,
-          tickLower,
-          tickUpper,
-          amount1: amount1.toString(),
-        });
-        derived0 = BigInt(position.mintAmounts.amount0.toString());
-        derived1 = BigInt(position.mintAmounts.amount1.toString());
-      }
-    } catch {
-      lo = mid + 1;
-      continue;
-    }
-
-    const diff =
-      amount0 > 0n
-        ? derived1 > amount1
-          ? derived1 - amount1
-          : amount1 - derived1
-        : derived0 > amount0
-          ? derived0 - amount0
-          : amount0 - derived0;
-
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestTick = mid;
-    }
-
-    if (amount0 > 0n) {
-      if (derived1 < amount1) {
-        lo = mid + 1;
-      } else {
-        hi = mid - 1;
-      }
-    } else if (derived0 < amount0) {
-      hi = mid - 1;
-    } else {
-      lo = mid + 1;
-    }
-  }
-
-  return getSqrtRatioAtTick(bestTick);
-}
-
-/** Price for UI amount linking: pool price when known, else ratio of both amounts, else range midpoint. */
+/** Price for UI amount linking: pool price when known, else initialPrice for new pools. */
 export function resolveLiquiditySqrtPriceX96({
   chainId,
   poolKey,
   outcomeIsToken0,
   minPrice,
   maxPrice,
-  amount0,
-  amount1,
+  initialPrice,
   poolSqrtPriceX96,
 }: {
   chainId: number;
@@ -214,34 +137,18 @@ export function resolveLiquiditySqrtPriceX96({
   outcomeIsToken0: boolean;
   minPrice: number;
   maxPrice: number;
-  amount0?: bigint;
-  amount1?: bigint;
+  initialPrice?: number;
   poolSqrtPriceX96?: bigint;
 }): bigint {
   if (poolSqrtPriceX96) {
     return poolSqrtPriceX96;
   }
 
-  const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
-  const a0 = amount0 ?? 0n;
-  const a1 = amount1 ?? 0n;
-
-  if (a0 > 0n && a1 > 0n) {
-    return deriveSqrtPriceX96FromAmounts({
-      chainId,
-      poolKey,
-      amount0: a0,
-      amount1: a1,
-      tickLower,
-      tickUpper,
-    });
+  if (initialPrice === undefined) {
+    throw new Error("initialPrice is required when pool is not initialized");
   }
 
-  const midTick =
-    tickUpper - tickLower > poolKey.tickSpacing
-      ? nearestUsableTick(Math.floor((tickLower + tickUpper) / 2), poolKey.tickSpacing)
-      : tickLower;
-  return getSqrtRatioAtTick(midTick);
+  return getSqrtRatioAtTick(probabilityToTick(initialPrice, outcomeIsToken0, poolKey.tickSpacing));
 }
 
 export function computePositionAmounts({
@@ -252,6 +159,8 @@ export function computePositionAmounts({
   tickUpper,
   amount0,
   amount1,
+  token0Decimals = 18,
+  token1Decimals = 18,
 }: {
   chainId: number;
   poolKey: OrderBookPoolKey;
@@ -260,8 +169,10 @@ export function computePositionAmounts({
   tickUpper: number;
   amount0?: bigint;
   amount1?: bigint;
+  token0Decimals?: number;
+  token1Decimals?: number;
 }): { amount0: bigint; amount1: bigint } {
-  const pool = createV4PoolInstance(chainId, poolKey, sqrtPriceX96, 0n);
+  const pool = createV4PoolInstance(chainId, poolKey, sqrtPriceX96, 0n, undefined, token0Decimals, token1Decimals);
 
   if (amount0 !== undefined && amount0 > 0n) {
     const position = Position.fromAmount0({
@@ -301,6 +212,8 @@ export function buildV4Position({
   tickUpper,
   amount0,
   amount1,
+  token0Decimals = 18,
+  token1Decimals = 18,
 }: {
   chainId: number;
   poolKey: OrderBookPoolKey;
@@ -309,24 +222,41 @@ export function buildV4Position({
   tickUpper: number;
   amount0: bigint;
   amount1: bigint;
+  token0Decimals?: number;
+  token1Decimals?: number;
 }) {
-  const pool = createV4PoolInstance(chainId, poolKey, sqrtPriceX96, 0n);
+  const pool = createV4PoolInstance(chainId, poolKey, sqrtPriceX96, 0n, undefined, token0Decimals, token1Decimals);
 
-  if (amount0 > 0n) {
-    return Position.fromAmount0({
+  if (amount0 > 0n && amount1 > 0n) {
+    return Position.fromAmounts({
       pool,
       tickLower,
       tickUpper,
       amount0: amount0.toString(),
+      amount1: amount1.toString(),
       useFullPrecision: true,
     });
   }
 
-  return Position.fromAmount1({
+  const { amount0: resolvedAmount0, amount1: resolvedAmount1 } = computePositionAmounts({
+    chainId,
+    poolKey,
+    sqrtPriceX96,
+    tickLower,
+    tickUpper,
+    amount0: amount0 > 0n ? amount0 : undefined,
+    amount1: amount1 > 0n ? amount1 : undefined,
+    token0Decimals,
+    token1Decimals,
+  });
+
+  return Position.fromAmounts({
     pool,
     tickLower,
     tickUpper,
-    amount1: amount1.toString(),
+    amount0: resolvedAmount0.toString(),
+    amount1: resolvedAmount1.toString(),
+    useFullPrecision: true,
   });
 }
 
@@ -489,14 +419,14 @@ export function getNearestLimitOrderPrice(
   tickSpacing = 60,
 ): { tick: number; nearestPrice: number } {
   const tick = probabilityToTick(limitPrice, outcomeIsToken0, tickSpacing);
-  const [price0, price1] = tickToPrice(tick);
-  const nearestPrice = outcomeIsToken0 ? Number(price0) : Number(price1);
+  const [price0, price1] = tickToPrice(tick, 18, true);
+  const nearestPrice = Number(outcomeIsToken0 ? price0 : price1);
   return { tick, nearestPrice };
 }
 
 export function getOutcomePriceAtTick(tick: number, outcomeIsToken0: boolean): number {
-  const [price0, price1] = tickToPrice(tick);
-  return outcomeIsToken0 ? Number(price0) : Number(price1);
+  const [price0, price1] = tickToPrice(tick, 18, true);
+  return Number(outcomeIsToken0 ? price0 : price1);
 }
 
 export function getLimitOrderPriceRule(

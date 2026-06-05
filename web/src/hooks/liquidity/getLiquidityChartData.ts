@@ -1,5 +1,5 @@
 import { isTwoStringsEqual } from "@/lib/utils";
-import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk";
+import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
 import { Address, formatUnits } from "viem";
 
 const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001

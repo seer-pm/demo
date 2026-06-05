@@ -7,7 +7,7 @@ import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { formatBigNumbers } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
 

@@ -8,13 +8,14 @@ import {
 } from "@seer-pm/sdk";
 import {
   computePositionAmounts,
-  deriveSqrtPriceX96FromAmounts,
   ensurePermit2Allowance,
   initializeOrderBookPool,
   mintV4Position,
   probabilityRangeToTicks,
+  probabilityToTick,
   resolveLiquiditySqrtPriceX96,
 } from "@seer-pm/sdk/order-book";
+import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
 import type { Address } from "viem";
@@ -30,6 +31,7 @@ export interface AddV4LiquidityParams {
   maxPrice: number;
   amount0: bigint;
   amount1: bigint;
+  initialPrice?: number;
 }
 
 export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
@@ -38,7 +40,7 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
 
   return useMutation({
     mutationFn: async (params: AddV4LiquidityParams) => {
-      const { market, outcomeIndex, account, minPrice, maxPrice, amount0, amount1 } = params;
+      const { market, outcomeIndex, account, minPrice, maxPrice, amount0, amount1, initialPrice } = params;
       const poolParams = getOrderBookPoolParams(market, outcomeIndex);
       const { poolKey, outcomeIsToken0, token0, token1 } = poolParams;
       const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
@@ -53,14 +55,10 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
         }
         sqrtPriceX96 = state.sqrtPriceX96;
       } else {
-        sqrtPriceX96 = deriveSqrtPriceX96FromAmounts({
-          chainId: market.chainId,
-          poolKey,
-          amount0,
-          amount1,
-          tickLower,
-          tickUpper,
-        });
+        if (initialPrice === undefined) {
+          throw new Error("initialPrice is required when creating a new pool");
+        }
+        sqrtPriceX96 = getSqrtRatioAtTick(probabilityToTick(initialPrice, outcomeIsToken0, poolKey.tickSpacing));
       }
 
       const positionManager = getV4PositionManagerAddress(market.chainId);
@@ -174,13 +172,19 @@ export function computeV4DerivedAmounts(
     maxPrice,
     amount0,
     amount1,
+    initialPrice,
     poolSqrtPriceX96,
+    token0Decimals = 18,
+    token1Decimals = 18,
   }: {
     minPrice: number;
     maxPrice: number;
     amount0?: bigint;
     amount1?: bigint;
+    initialPrice?: number;
     poolSqrtPriceX96?: bigint;
+    token0Decimals?: number;
+    token1Decimals?: number;
   },
 ) {
   const poolParams = getOrderBookPoolParams(market, outcomeIndex);
@@ -193,8 +197,7 @@ export function computeV4DerivedAmounts(
     outcomeIsToken0,
     minPrice,
     maxPrice,
-    amount0,
-    amount1,
+    initialPrice,
     poolSqrtPriceX96,
   });
 
@@ -206,5 +209,7 @@ export function computeV4DerivedAmounts(
     tickUpper,
     amount0,
     amount1,
+    token0Decimals,
+    token1Decimals,
   });
 }

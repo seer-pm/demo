@@ -14,6 +14,18 @@ import type { Market } from "./market-types";
 export const V4_POOL_FEE = 3000;
 export const V4_TICK_SPACING = 60;
 
+/** Uniswap V3 fee tier → tick spacing (no @uniswap/v3-sdk import; safe for SSR). */
+const FEE_TIER_TICK_SPACING: Record<number, number> = {
+  100: 1,
+  500: 10,
+  3000: 60,
+  10000: 200,
+};
+
+export function tickSpacingForFeeTier(feeTier: number): number {
+  return FEE_TIER_TICK_SPACING[feeTier] ?? V4_TICK_SPACING;
+}
+
 export const V4_POSITION_MANAGER_ADDRESS = {
   [base.id]: "0x7c5f5a4bbd8fd63184577525326123b519429bdc",
 } as const;

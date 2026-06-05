@@ -19,22 +19,18 @@ import {
   useTokensInfo,
 } from "@seer-pm/react";
 import {
-  getActivePrimaryCollateral,
-  getLiquidityUrl,
-  getLiquidityUrlByMarket,
-  marketSupportsOrderBook,
-} from "@seer-pm/sdk";
-import type { SupportedChain } from "@seer-pm/sdk";
-import {
   Market,
   MarketStatus,
   MarketTypes,
   displayScalarBound,
+  getActivePrimaryCollateral,
+  getLiquidityUrl,
   getMarketStatus,
   getMarketType,
   getMultiScalarEstimate,
   isInvalidOutcome,
   isOdd,
+  marketSupportsOrderBook,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
@@ -48,7 +44,7 @@ import { Spinner } from "../Spinner";
 import { DisplayOdds } from "./DisplayOdds";
 import { FarmingActions } from "./FarmingActions";
 import { OutcomeImage } from "./OutcomeImage";
-import PoolDetails from "./PoolDetails/PoolDetails";
+const PoolDetails = clientOnly(() => import("./PoolDetails/PoolDetails"));
 
 const AddLiquidityV4Adapter = clientOnly(async () => {
   const mod = await import("./AddLiquidity/AddLiquidityV4Adapter");
@@ -96,14 +92,17 @@ function poolRewardsInfo(pool: PoolInfo) {
 }
 
 function AddLiquidityInfo({
-  chainId,
+  market,
+  outcomeIndex,
   pools,
   closeModal,
 }: {
-  chainId: SupportedChain;
+  market: Market;
+  outcomeIndex: number;
   pools: PoolInfo[];
   closeModal: () => void;
 }) {
+  const chainId = market.chainId;
   const { address } = useAccount();
   const { data: deposits } = usePoolsDeposits(
     chainId,
@@ -141,7 +140,7 @@ function AddLiquidityInfo({
                     <span className="text-black-secondary text-[13px]">Use the V4 form above</span>
                   ) : (
                     <a
-                      href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
+                      href={getLiquidityUrl(market, outcomeIndex)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary flex items-center space-x-2"
@@ -260,7 +259,7 @@ function AddLiquidityLinks({
         </button>
       ) : (
         <a
-          href={getLiquidityUrlByMarket(market, outcomeIndex)}
+          href={getLiquidityUrl(market, outcomeIndex)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
@@ -610,14 +609,20 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                 />
                 {(pools[activeOutcome]?.length ?? 0) > 0 && (
                   <AddLiquidityInfo
-                    chainId={market.chainId}
+                    market={market}
+                    outcomeIndex={activeOutcome}
                     pools={pools[activeOutcome] || []}
                     closeModal={closeModal}
                   />
                 )}
               </div>
             ) : (
-              <AddLiquidityInfo chainId={market.chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />
+              <AddLiquidityInfo
+                market={market}
+                outcomeIndex={activeOutcome}
+                pools={pools[activeOutcome] || []}
+                closeModal={closeModal}
+              />
             )
           }
         />

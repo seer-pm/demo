@@ -76,7 +76,7 @@ For any Seer-related behavior, refer to the **integration docs** hosted in the `
 | Resolve a market | `useResolveMarket` from `@seer-pm/react` (pass `txNotifier`, optional `onSuccess`; mutation accepts `ResolveMarketProps` with `market`) |
 | Split / merge / redeem positions | `useSplitPosition`, `useMergePositions`, and `useRedeemPositions` from `@seer-pm/react` |
 | Trading via AMMs | `useQuoteTrade` and `useTrade` from `@seer-pm/react` |
-| Block explorer / pool URLs | `getBlockExplorerUrl`, `getTokenExplorerUrl`, `getLiquidityUrlByMarket`, `getPoolExplorerUrl` from `@seer-pm/sdk` |
+| Block explorer / pool URLs | `getBlockExplorerUrl`, `getTokenExplorerUrl`, `getLiquidityUrl`, `getPoolExplorerUrl` from `@seer-pm/sdk` |
 | Collateral profiles (multi-primary, white-label) | [9-collateral-profiles.md](https://github.com/seer-pm/demo/raw/main/integration-docs/9-collateral-profiles.md) — `getCollateralProfiles`, `configureCollateral`, `collateralProfile` API param |
 
 Treat these documents as the **authoritative reference** for:

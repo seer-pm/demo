@@ -18,12 +18,11 @@ import {
   type Token,
   TradeType,
   UniswapTrade,
-  decimalToFraction,
-  encodeSqrtRatioX96,
   getActivePrimaryCollateral,
   getCollateralPerShare,
-  getSqrtRatioAtTick,
 } from "@seer-pm/sdk";
+import { decimalToFraction } from "@seer-pm/sdk/liquidity-utils";
+import { encodeSqrtRatioX96, getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";

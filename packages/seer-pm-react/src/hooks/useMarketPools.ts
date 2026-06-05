@@ -1,9 +1,5 @@
-import {
-  type Market as BaseMarket,
-  getMarketPoolsPairs,
-  sqrtPriceX96ToPrice,
-  uniswapV3TickSpacing,
-} from "@seer-pm/sdk";
+import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { tickSpacingForFeeTier } from "@seer-pm/sdk";
 import {
   V4_POOL_FEE,
   V4_TICK_SPACING,
@@ -18,6 +14,7 @@ import {
   EternalFarmingCreatedEvent,
   EternalFarmingRewardsRatesChangedEvent,
 } from "@seer-pm/sdk/abis/eternal-farming";
+import { sqrtPriceX96ToPrice } from "@seer-pm/sdk/liquidity-utils";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -354,7 +351,7 @@ async function getUniswapV3Pools(chainId: number, tokens: { token0: Address; tok
       token1Price: Number(pool.token1Price),
       liquidity: BigInt(pool.liquidity),
       tick: Number(pool.tick),
-      tickSpacing: uniswapV3TickSpacing(Number(pool.feeTier)),
+      tickSpacing: tickSpacingForFeeTier(Number(pool.feeTier)),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),

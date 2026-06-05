@@ -6,7 +6,6 @@ import {
   type Market,
   getActivePrimaryCollateral,
   getOrderBookPoolParams,
-  getSqrtRatioAtTick,
   getV4PoolId,
   orderBookGraphQLClient,
 } from "@seer-pm/sdk";
@@ -18,6 +17,7 @@ import {
   getOutcomePriceAtTick,
 } from "@seer-pm/sdk/order-book";
 import { UserOrderStatus, getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Position } from "@uniswap/v4-sdk";
 import { writeContract } from "@wagmi/core";
