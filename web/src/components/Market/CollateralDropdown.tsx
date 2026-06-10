@@ -47,9 +47,9 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
   }
 
   // TODO: allow to swap using multple alternative tokens
-  /*   if (getActiveCollateralProfile(market.chainId).swap) {
-    options.push(...getActiveCollateralProfile(market.chainId).swap!.map(t => t.address));
-  } */
+  if (getActiveCollateralProfile(market.chainId).swap) {
+    options.push(...getActiveCollateralProfile(market.chainId).swap!.map((t) => t.address));
+  }
 
   return options;
 }

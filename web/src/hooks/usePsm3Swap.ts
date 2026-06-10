@@ -1,15 +1,23 @@
-import { PSM3_ABI, PSM3_REFERRAL_CODE } from "@/abi/psm3";
-import { useApproveTokens } from "@/hooks/useApproveTokens";
-import { useCheck7702Support } from "@/hooks/useCheck7702Support";
-import { PSM3_ADDRESS } from "@/lib/config";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
-import { Execution, SupportedChain, fetchNeededApprovals, getApprovals7702 } from "@seer-pm/sdk";
+import {
+  Execution,
+  PSM3_ABI,
+  PSM3_ADDRESS,
+  SupportedChain,
+  buildPsm3SwapExactInExecution,
+  fetchNeededApprovals,
+  getApprovals7702,
+  getPsm3Address,
+  previewPsm3SwapExactIn,
+} from "@seer-pm/sdk";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { getConnectorClient, readContract, sendCalls, writeContract } from "@wagmi/core";
-import { Address, Client, encodeFunctionData, erc20Abi } from "viem";
+import { getConnectorClient, getPublicClient, readContract, sendCalls, writeContract } from "@wagmi/core";
+import { Address, Client, erc20Abi } from "viem";
 import { useAccount } from "wagmi";
+import { useApproveTokens } from "./useApproveTokens";
+import { useCheck7702Support } from "./useCheck7702Support";
 
 export function usePsm3Preview(
   chainId: SupportedChain,
@@ -23,13 +31,11 @@ export function usePsm3Preview(
     queryKey: ["psm3Preview", chainId, assetIn, assetOut, amountIn?.toString()],
     enabled: !!psm3Address && !!assetIn && !!assetOut && !!amountIn && amountIn > 0n,
     queryFn: async () => {
-      return await readContract(config, {
-        address: psm3Address!,
-        abi: PSM3_ABI,
-        functionName: "previewSwapExactIn",
-        args: [assetIn!, assetOut!, amountIn!],
-        chainId,
-      });
+      const publicClient = getPublicClient(config, { chainId });
+      if (!publicClient) {
+        throw new Error("Public client not available");
+      }
+      return previewPsm3SwapExactIn(publicClient, chainId, assetIn!, assetOut!, amountIn!);
     },
   });
 }
@@ -42,26 +48,6 @@ type Psm3SwapParams = {
   minAmountOut: bigint;
 };
 
-function swapExactInExecution(psm3Address: Address, params: Psm3SwapParams & { receiver: Address }): Execution {
-  return {
-    to: psm3Address,
-    value: 0n,
-    data: encodeFunctionData({
-      abi: PSM3_ABI,
-      functionName: "swapExactIn",
-      args: [
-        params.assetIn,
-        params.assetOut,
-        params.amountIn,
-        params.minAmountOut,
-        params.receiver,
-        PSM3_REFERRAL_CODE,
-      ],
-    }),
-    chainId: params.chainId,
-  };
-}
-
 const usePsm3SwapLegacy = () => {
   const { address } = useAccount();
   const approveTokens = useApproveTokens();
@@ -71,10 +57,7 @@ const usePsm3SwapLegacy = () => {
       if (!address) {
         throw new Error("Wallet not connected");
       }
-      const psm3Address = PSM3_ADDRESS[params.chainId];
-      if (!psm3Address) {
-        throw new Error("PSM3 not available");
-      }
+      const psm3Address = getPsm3Address(params.chainId);
 
       const allowance = await readContract(config, {
         address: params.assetIn,
@@ -99,7 +82,7 @@ const usePsm3SwapLegacy = () => {
             address: psm3Address,
             abi: PSM3_ABI,
             functionName: "swapExactIn",
-            args: [params.assetIn, params.assetOut, params.amountIn, params.minAmountOut, address, PSM3_REFERRAL_CODE],
+            args: [params.assetIn, params.assetOut, params.amountIn, params.minAmountOut, address, 1n],
             chainId: params.chainId,
           }),
         {
@@ -121,10 +104,7 @@ const usePsm3SwapLegacy = () => {
 
 async function psm3Swap7702(params: Psm3SwapParams, client: Client): Promise<unknown> {
   const { chainId, assetIn, amountIn } = params;
-  const psm3Address = PSM3_ADDRESS[chainId];
-  if (!psm3Address) {
-    throw new Error("PSM3 not available");
-  }
+  const psm3Address = getPsm3Address(chainId);
   const address = client.account?.address;
   if (!address) {
     throw new Error("Wallet account not connected");
@@ -139,7 +119,16 @@ async function psm3Swap7702(params: Psm3SwapParams, client: Client): Promise<unk
     chainId,
   });
 
-  calls.push(swapExactInExecution(psm3Address, { ...params, receiver: address }));
+  calls.push(
+    buildPsm3SwapExactInExecution({
+      chainId,
+      assetIn: params.assetIn,
+      assetOut: params.assetOut,
+      amountIn: params.amountIn,
+      minAmountOut: params.minAmountOut,
+      receiver: address,
+    }),
+  );
 
   const result = await toastifyTx(
     () =>

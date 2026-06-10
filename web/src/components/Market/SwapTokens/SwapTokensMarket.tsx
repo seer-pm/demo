@@ -202,10 +202,16 @@ export function SwapTokensMarket({
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
-  } = useTrade(account, quoteData?.trade, isSeerCreditsCollateral, async () => {
-    reset();
-    closeConfirmSwapModal();
-  });
+  } = useTrade(
+    account,
+    quoteData?.trade,
+    isSeerCreditsCollateral,
+    async () => {
+      reset();
+      closeConfirmSwapModal();
+    },
+    quoteData?.psm3Leg,
+  );
 
   const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
     await tradeTokens.mutateAsync({
@@ -214,6 +220,7 @@ export function SwapTokensMarket({
       isBuyExactOutputNative,
       isSellToNative,
       isSeerCredits: isSeerCreditsCollateral,
+      psm3Leg: quoteData?.psm3Leg,
     });
   };
 

@@ -9,67 +9,29 @@ import {
   type SupportedChainId,
   type UnsignedOrder,
 } from "@cowprotocol/cow-sdk";
-import { CoWTrade, SwaprV3Trade, Trade, TradeType, UniswapTrade } from "@swapr/sdk";
+import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import { Contract, providers } from "ethers";
 import type { Signer } from "ethers";
 import type { Address, Client, Hex } from "viem";
-import { decodeFunctionData, encodeFunctionData, parseUnits, zeroAddress } from "viem";
+import { encodeFunctionData, parseUnits, zeroAddress } from "viem";
 import { sendTransaction } from "viem/actions";
 import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
 import { NATIVE_TOKEN } from "./collateral";
-import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI, UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
+import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI } from "./execute-trade-abis";
 import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
+import type { TradeTokensProps } from "./trade-utils";
+import { getMaximumAmountIn } from "./trade-utils";
 import { getSwapRouterAddress } from "./trading";
 
-export const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
+export type { TradeTokensProps } from "./trade-utils";
 
-export interface TradeTokensProps {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
-  account: Address;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
-  isSeerCredits: boolean;
-}
+export const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
 
 /**
  * Get maximum amount in for approval (handles Uniswap multicall encoding).
  */
-export function getMaximumAmountIn(trade: Trade): bigint {
-  let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
-  if (trade instanceof UniswapTrade) {
-    const callData = trade.swapRoute.methodParameters?.calldata;
-    if (callData) {
-      try {
-        const decodedMulticall = decodeFunctionData({
-          abi: UNISWAP_ROUTER_ABI,
-          data: callData as Hex,
-        });
-        if (decodedMulticall.functionName === "multicall" && decodedMulticall.args?.[1]) {
-          const innerData = (decodedMulticall.args[1] as readonly Hex[])[0];
-          const decoded = decodeFunctionData({
-            abi: UNISWAP_ROUTER_ABI,
-            data: innerData,
-          });
-          if (decoded.args?.[0]) {
-            const params = decoded.args[0] as {
-              amountIn?: bigint;
-              amountInMaximum?: bigint;
-            };
-            const callDataAmountIn =
-              trade.tradeType === TradeType.EXACT_INPUT ? params.amountIn : params.amountInMaximum;
-            if (callDataAmountIn && callDataAmountIn > maximumAmountIn) {
-              maximumAmountIn = callDataAmountIn;
-            }
-          }
-        }
-      } catch {
-        /* keep maximumAmountIn */
-      }
-    }
-  }
-  return maximumAmountIn;
-}
+export { getMaximumAmountIn } from "./trade-utils";
 
 export interface GetTradeApprovals7702Params {
   tokensAddresses: Address[];
@@ -420,20 +382,33 @@ export async function tradeTokens(
   }
 
   if (trade instanceof UniswapTrade) {
+    if (props.psm3Leg) {
+      return executePsm3CompositeTradeWrapper(client, props);
+    }
     return executeUniswapTrade(client, trade, account, isSeerCredits);
   }
 
   return executeSwaprTrade(client, trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
 }
 
+async function executePsm3CompositeTradeWrapper(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
+  const { executePsm3CompositeTrade } = await import("./psm3-composite-trade");
+  return executePsm3CompositeTrade(client, props);
+}
+
 /**
  * Build calls for 7702 batch (approvals + swap).
  */
 export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const { trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits, psm3Leg } = props;
 
   if (trade instanceof CoWTrade) {
     throw new Error("buildTradeCalls7702 does not support CoW trades; use tradeTokens instead");
+  }
+
+  if (psm3Leg && trade instanceof UniswapTrade) {
+    const { buildPsm3CompositeTradeCalls7702 } = await import("./psm3-composite-trade");
+    return buildPsm3CompositeTradeCalls7702(props);
   }
 
   const calls: Execution[] = isSeerCredits
