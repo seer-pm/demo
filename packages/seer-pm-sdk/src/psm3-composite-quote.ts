@@ -68,7 +68,7 @@ async function quoteBuyExactIn(
     TradeType.EXACT_INPUT,
     chainId,
     account,
-    formatUnits(sUsdsOut, primary.decimals),
+    formatUnits(psm3Leg.limitAmount, primary.decimals),
     outcomeToken,
     primary,
     "buy",

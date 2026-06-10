@@ -2,6 +2,7 @@ import {
   applySlippageToleranceDown,
   applySlippageToleranceUp,
   buildPsm3SwapExactOutExecution,
+  getPsm3Address,
   isPsm3SwapToken,
 } from "@seer-pm/sdk";
 import { TOKENS_BY_CHAIN } from "@seer-pm/sdk";
@@ -38,7 +39,7 @@ describe("psm3 helpers", () => {
       maxAmountIn: 1005000n,
       receiver: "0x0000000000000000000000000000000000000001",
     });
-    expect(exec.to).toBe("0x1601843c5E9bC251A3272907010AFa41Fa18347E");
+    expect(exec.to).toBe(getPsm3Address(base.id));
     expect(exec.data.startsWith("0x")).toBe(true);
   });
 });

@@ -5,6 +5,7 @@ import {
   Execution,
   PSM3_ABI,
   PSM3_ADDRESS,
+  PSM3_REFERRAL_CODE,
   SupportedChain,
   buildPsm3SwapExactInExecution,
   fetchNeededApprovals,
@@ -82,7 +83,7 @@ const usePsm3SwapLegacy = () => {
             address: psm3Address,
             abi: PSM3_ABI,
             functionName: "swapExactIn",
-            args: [params.assetIn, params.assetOut, params.amountIn, params.minAmountOut, address, 1n],
+            args: [params.assetIn, params.assetOut, params.amountIn, params.minAmountOut, address, PSM3_REFERRAL_CODE],
             chainId: params.chainId,
           }),
         {

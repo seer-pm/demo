@@ -31,6 +31,21 @@ function isPsm3BeforeUniswap(psm3Leg: Psm3Leg, chainId: number): boolean {
   return isTwoStringsEqual(psm3Leg.assetOut, primary.address);
 }
 
+function getPsm3GuaranteedSusdsOutput(psm3Leg: Psm3Leg): bigint {
+  return psm3Leg.tradeType === "exactIn" ? psm3Leg.limitAmount : psm3Leg.amountOut;
+}
+
+function assertUniswapInputWithinPsm3Output(trade: UniswapTrade, psm3Leg: Psm3Leg): bigint {
+  const guaranteedSusds = getPsm3GuaranteedSusdsOutput(psm3Leg);
+  const maxAmountIn = getMaximumAmountIn(trade);
+  if (maxAmountIn > guaranteedSusds) {
+    throw new Error(
+      `Uniswap maximum input (${maxAmountIn}) exceeds PSM3 guaranteed sUSDS output (${guaranteedSusds}); re-quote using the PSM3 slippage-adjusted amount`,
+    );
+  }
+  return guaranteedSusds;
+}
+
 export async function buildPsm3CompositeTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
   const { trade, account, psm3Leg } = props;
   if (!psm3Leg || !(trade instanceof UniswapTrade)) {
@@ -53,13 +68,13 @@ export async function buildPsm3CompositeTradeCalls7702(props: TradeTokensProps):
     calls.push(...psm3Approvals);
     calls.push(buildPsm3SwapExecution(psm3Leg, chainId, account));
 
-    const sUsdsAmount = psm3Leg.tradeType === "exactIn" ? psm3Leg.limitAmount : psm3Leg.amountOut;
+    const sUsdsAmount = assertUniswapInputWithinPsm3Output(trade, psm3Leg);
     calls.push(
       ...getTradeApprovals7702({
         tokensAddresses: [psm3Leg.assetOut],
         account,
         spender: uniswapSpender,
-        amounts: getMaximumAmountIn(trade) > sUsdsAmount ? getMaximumAmountIn(trade) : sUsdsAmount,
+        amounts: sUsdsAmount,
         chainId: chainId as SupportedChain,
       }),
     );
@@ -125,10 +140,8 @@ export async function executePsm3CompositeTrade(client: Client, props: TradeToke
 
     await sendTransaction(client, { ...psm3Execution, account, chain: client.chain });
 
-    const sUsdsAmount = psm3Leg.tradeType === "exactIn" ? psm3Leg.limitAmount : psm3Leg.amountOut;
-    const neededSUsds = await fetchNeededApprovals(client, [psm3Leg.assetOut], account, uniswapSpender, [
-      getMaximumAmountIn(trade) > sUsdsAmount ? getMaximumAmountIn(trade) : sUsdsAmount,
-    ]);
+    const sUsdsAmount = assertUniswapInputWithinPsm3Output(trade, psm3Leg);
+    const neededSUsds = await fetchNeededApprovals(client, [psm3Leg.assetOut], account, uniswapSpender, [sUsdsAmount]);
     for (const approval of neededSUsds) {
       const [approvalCall] = getApprovals7702({
         tokensAddresses: [approval.tokenAddress],
@@ -206,10 +219,18 @@ export function getPsm3CompositeApprovalTokens(props: TradeTokensProps): {
     tokensAddresses.push(psm3Leg.assetIn);
     spenders.push(psm3Address);
     amounts.push(psm3Leg.tradeType === "exactIn" ? psm3Leg.amountIn : psm3Leg.limitAmount);
+
+    tokensAddresses.push(psm3Leg.assetOut);
+    spenders.push(uniswapSpender);
+    amounts.push(getPsm3GuaranteedSusdsOutput(psm3Leg));
   } else {
     tokensAddresses.push(trade.executionPrice.baseCurrency.address as Address);
     spenders.push(uniswapSpender);
     amounts.push(getMaximumAmountIn(trade));
+
+    tokensAddresses.push(psm3Leg.assetIn);
+    spenders.push(psm3Address);
+    amounts.push(psm3Leg.tradeType === "exactIn" ? psm3Leg.amountIn : psm3Leg.limitAmount);
   }
 
   return { tokensAddresses, spenders, amounts };

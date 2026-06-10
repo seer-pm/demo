@@ -31,20 +31,36 @@ export function useMissingTradeApproval(account: Address | undefined, trade: Tra
         },
   );
 
-  const composite = useMissingApprovals(
-    !compositeApproval || compositeApproval.tokensAddresses.length === 0
-      ? undefined
-      : {
+  const composite0 = useMissingApprovals(
+    compositeApproval?.tokensAddresses[0]
+      ? {
           tokensAddresses: [compositeApproval.tokensAddresses[0]],
           account,
           spender: compositeApproval.spenders[0],
           amounts: compositeApproval.amounts[0],
           chainId: trade!.chainId as SupportedChain,
-        },
+        }
+      : undefined,
+  );
+
+  const composite1 = useMissingApprovals(
+    compositeApproval?.tokensAddresses[1]
+      ? {
+          tokensAddresses: [compositeApproval.tokensAddresses[1]],
+          account,
+          spender: compositeApproval.spenders[1],
+          amounts: compositeApproval.amounts[1],
+          chainId: trade!.chainId as SupportedChain,
+        }
+      : undefined,
   );
 
   if (compositeApproval && compositeApproval.tokensAddresses.length > 0) {
-    return composite;
+    return {
+      ...composite0,
+      data: [...(composite0.data ?? []), ...(composite1.data ?? [])],
+      isLoading: composite0.isLoading || composite1.isLoading,
+    };
   }
 
   return standard;
