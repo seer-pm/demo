@@ -56,10 +56,20 @@ export function useMissingTradeApproval(account: Address | undefined, trade: Tra
   );
 
   if (compositeApproval && compositeApproval.tokensAddresses.length > 0) {
+    const isError = composite0.isError || composite1.isError;
+    const isLoading = composite0.isLoading || composite1.isLoading;
+    const isFetching = composite0.isFetching || composite1.isFetching;
+    const isSuccess = composite0.isSuccess && composite1.isSuccess;
+
     return {
       ...composite0,
       data: [...(composite0.data ?? []), ...(composite1.data ?? [])],
-      isLoading: composite0.isLoading || composite1.isLoading,
+      error: composite0.error ?? composite1.error,
+      isError,
+      isLoading,
+      isFetching,
+      isSuccess,
+      status: isError ? "error" : isSuccess ? "success" : "pending",
     };
   }
 
