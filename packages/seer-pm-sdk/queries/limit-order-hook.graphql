@@ -1,0 +1,77 @@
+query GetUserOrders(
+  $skip: Int = 0
+  $first: Int = 100
+  $where: UserOrder_filter
+  $orderBy: UserOrder_orderBy = placedAtBlock
+  $orderDirection: OrderDirection = desc
+) {
+  userOrders(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+    id
+    orderId
+    owner
+    pool {
+      id
+      currency0
+      currency1
+      fee
+      tickSpacing
+      hooks
+      initialized
+    }
+    tickLower
+    zeroForOne
+    liquidity
+    status
+    placedAtBlock
+    updatedAtBlock
+  }
+}
+
+query GetOrderLevels(
+  $skip: Int = 0
+  $first: Int = 1000
+  $where: OrderLevel_filter
+  $orderBy: OrderLevel_orderBy = updatedAtBlock
+  $orderDirection: OrderDirection = desc
+) {
+  orderLevels(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+    id
+    pool {
+      id
+    }
+    orderId
+    tickLower
+    zeroForOne
+    liquidityTotal
+    price0AtTick
+    price1AtTick
+    side
+    updatedAtBlock
+    participants
+  }
+}
+
+query GetOrderEvents(
+  $skip: Int = 0
+  $first: Int = 100
+  $where: OrderEvent_filter
+  $orderBy: OrderEvent_orderBy = blockNumber
+  $orderDirection: OrderDirection = desc
+) {
+  orderEvents(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+    id
+    type
+    blockNumber
+    timestamp
+    transactionHash
+    owner
+    orderId
+    pool {
+      id
+    }
+    tickLower
+    zeroForOne
+    liquidity
+  }
+}
+

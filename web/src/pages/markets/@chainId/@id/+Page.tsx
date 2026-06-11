@@ -9,7 +9,6 @@ import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
-import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
@@ -34,8 +33,14 @@ import {
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
+import { clientOnly } from "vike-react/clientOnly";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useSwitchChain } from "wagmi";
+
+const SwapTokens = clientOnly(async () => {
+  const mod = await import("@/components/Market/SwapTokens/SwapTokens");
+  return mod.SwapTokens;
+});
 
 function SwapWidget({
   market,

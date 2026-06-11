@@ -1,6 +1,6 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Market } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk";
+import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import { Address } from "viem";
 import { useTicksData } from "./useTicksData";
 import { getVolumeUntilPrice } from "./useVolumeUntilPrice";

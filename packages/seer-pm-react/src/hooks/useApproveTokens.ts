@@ -41,6 +41,7 @@ export function useApproveTokens(txNotifier: TxNotifierFn) {
     mutationFn: approveTokens,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["useMissingApprovals"] });
+      queryClient.invalidateQueries({ queryKey: ["limitOrderApproval"] });
     },
   });
 }

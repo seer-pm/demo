@@ -3301,7 +3301,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/bignumber@npm:5.8.0, @ethersproject/bignumber@npm:^5.4.0, @ethersproject/bignumber@npm:^5.7.0, @ethersproject/bignumber@npm:^5.8.0":
+"@ethersproject/bignumber@npm:5.8.0, @ethersproject/bignumber@npm:^5.4.0, @ethersproject/bignumber@npm:^5.5.0, @ethersproject/bignumber@npm:^5.7.0, @ethersproject/bignumber@npm:^5.8.0":
   version: 5.8.0
   resolution: "@ethersproject/bignumber@npm:5.8.0"
   dependencies:
@@ -8592,7 +8592,9 @@ __metadata:
     "@graphql-codegen/typescript-operations": "npm:^4.2.0"
     "@graphql-codegen/typescript-react-query": "npm:^6.1.0"
     "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af"
+    "@uniswap/sdk-core": "npm:^7.7.2"
     "@uniswap/v3-sdk": "npm:^3.19.0"
+    "@uniswap/v4-sdk": "npm:^1.20.0"
     "@wagmi/cli": "npm:^2.1.22"
     ethers: "npm:^5.7.2"
     graphql: "npm:16.11.0"
@@ -10957,7 +10959,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@uniswap/sdk-core@npm:^7.6.0, @uniswap/sdk-core@npm:^7.7.1":
+"@uniswap/sdk-core@npm:^7.16.1, @uniswap/sdk-core@npm:^7.6.0, @uniswap/sdk-core@npm:^7.7.2":
+  version: 7.16.1
+  resolution: "@uniswap/sdk-core@npm:7.16.1"
+  dependencies:
+    "@ethersproject/address": "npm:^5.0.2"
+    "@ethersproject/bignumber": "npm:^5.5.0"
+    "@ethersproject/bytes": "npm:^5.7.0"
+    "@ethersproject/keccak256": "npm:5.7.0"
+    "@ethersproject/strings": "npm:5.7.0"
+    big.js: "npm:^5.2.2"
+    decimal.js-light: "npm:^2.5.0"
+    jsbi: "npm:^3.1.4"
+    tiny-invariant: "npm:^1.1.0"
+    toformat: "npm:^2.0.0"
+    tslib: "npm:^2.3.0"
+  checksum: 10c0/cc8fdc5107e9c029e578c45174efc3ff1fdf43fa117c34f96c45f74bd9ac8766778934c09c43e45b55d3e01161e308d775e423baa899824a8ae94e2e57816b97
+  languageName: node
+  linkType: hard
+
+"@uniswap/sdk-core@npm:^7.7.1":
   version: 7.7.2
   resolution: "@uniswap/sdk-core@npm:7.7.2"
   dependencies:
@@ -11064,15 +11085,18 @@ __metadata:
   linkType: hard
 
 "@uniswap/v2-sdk@npm:^4.14.0, @uniswap/v2-sdk@npm:^4.3.0":
-  version: 4.15.2
-  resolution: "@uniswap/v2-sdk@npm:4.15.2"
+  version: 4.20.3
+  resolution: "@uniswap/v2-sdk@npm:4.20.3"
   dependencies:
     "@ethersproject/address": "npm:^5.0.2"
+    "@ethersproject/bignumber": "npm:^5.5.0"
     "@ethersproject/solidity": "npm:^5.0.9"
-    "@uniswap/sdk-core": "npm:^7.7.1"
+    "@uniswap/sdk-core": "npm:^7.16.1"
+    jsbi: "npm:^3.1.4"
     tiny-invariant: "npm:^1.1.0"
     tiny-warning: "npm:^1.0.3"
-  checksum: 10c0/f4536a751f3333dc189cfdc1611b702d13419e7cfb93dc89f0c97d8b5bae3987e0a8244a165a0aee033df9a93e70771c0f973add6e148e094dd8490bc0e74445
+    tslib: "npm:^2.3.0"
+  checksum: 10c0/3de1e5561ad2343a9eaeb824cc30da2e1d8045a530d89411c99d03c881db7dfd164c0e756ed2ba205706c623a96fd4d34f71daf424578338a7e51eeb4f7487d4
   languageName: node
   linkType: hard
 
@@ -11103,7 +11127,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@uniswap/v3-sdk@npm:3.25.2, @uniswap/v3-sdk@npm:^3.11.0, @uniswap/v3-sdk@npm:^3.19.0, @uniswap/v3-sdk@npm:^3.24.1":
+"@uniswap/v3-sdk@npm:3.25.2, @uniswap/v3-sdk@npm:^3.19.0":
   version: 3.25.2
   resolution: "@uniswap/v3-sdk@npm:3.25.2"
   dependencies:
@@ -11116,6 +11140,26 @@ __metadata:
     tiny-invariant: "npm:^1.1.0"
     tiny-warning: "npm:^1.0.3"
   checksum: 10c0/3935b95f7ed8630bb5df31b0ccb12039409f27f89e2e0c57a458e11bff97d558e2f4487e16f93c5f41da408c80d061d3f5ff35df38d97b29b28c5de8817ebe34
+  languageName: node
+  linkType: hard
+
+"@uniswap/v3-sdk@npm:^3.11.0, @uniswap/v3-sdk@npm:^3.24.1":
+  version: 3.30.3
+  resolution: "@uniswap/v3-sdk@npm:3.30.3"
+  dependencies:
+    "@ethersproject/abi": "npm:^5.5.0"
+    "@ethersproject/abstract-signer": "npm:^5.7.0"
+    "@ethersproject/address": "npm:^5.0.2"
+    "@ethersproject/solidity": "npm:^5.0.9"
+    "@uniswap/sdk-core": "npm:^7.16.1"
+    "@uniswap/swap-router-contracts": "npm:^1.3.0"
+    "@uniswap/v3-periphery": "npm:^1.1.1"
+    "@uniswap/v3-staker": "npm:1.0.0"
+    jsbi: "npm:^3.1.4"
+    tiny-invariant: "npm:^1.1.0"
+    tiny-warning: "npm:^1.0.3"
+    tslib: "npm:^2.3.0"
+  checksum: 10c0/d70deb6156bce0e08367f7b59087463209b13c1d18c84a266e39c3375de7fee66a27c3cf09e2b62a4c190067b748ab927ec40e5a28464bb33fea16e9f2192f23
   languageName: node
   linkType: hard
 
@@ -35121,7 +35165,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.0, tslib@npm:^2.0.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.5.0, tslib@npm:^2.6.0, tslib@npm:^2.6.3, tslib@npm:^2.7.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
+"tslib@npm:^2.0.0, tslib@npm:^2.0.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.5.0, tslib@npm:^2.6.0, tslib@npm:^2.6.3, tslib@npm:^2.7.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
