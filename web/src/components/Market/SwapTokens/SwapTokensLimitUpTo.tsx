@@ -108,6 +108,7 @@ export function SwapTokensLimitUpto({
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
+    isPsm3Collateral,
     isFetchingBalance,
     balance,
     selectedCollateral,
@@ -166,10 +167,16 @@ export function SwapTokensLimitUpto({
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
-  } = useTrade(account, quoteData?.trade, isSeerCreditsCollateral, async () => {
-    reset();
-    closeConfirmSwapModal();
-  });
+  } = useTrade(
+    account,
+    quoteData?.trade,
+    isSeerCreditsCollateral,
+    async () => {
+      reset();
+      closeConfirmSwapModal();
+    },
+    quoteData?.psm3Leg,
+  );
 
   const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
     await tradeTokens.mutateAsync({
@@ -178,6 +185,7 @@ export function SwapTokensLimitUpto({
       isBuyExactOutputNative,
       isSellToNative,
       isSeerCredits: isSeerCreditsCollateral,
+      psm3Leg: quoteData?.psm3Leg,
     });
   };
 
@@ -567,6 +575,12 @@ export function SwapTokensLimitUpto({
             }}
           />
         </div>
+
+        {isPsm3Collateral && (
+          <Alert type="info">
+            Limit orders are not available with {selectedCollateral.symbol}. Use market swap instead.
+          </Alert>
+        )}
 
         {isPriceTooHigh && (
           <Alert type="warning">

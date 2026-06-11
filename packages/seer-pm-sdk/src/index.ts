@@ -170,7 +170,7 @@ export {
   getCollateralPerShare,
   getOutcomeTokenVolume,
 } from "./quote";
-export type { QuoteTradeResult, QuoteTradeFn } from "./quote";
+export type { QuoteTradeResult, QuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
 export {
   cancelCowOrder,
   cancelEthFlowOrder,
@@ -195,6 +195,26 @@ export type {
   TradeTokensProps,
   GetTradeApprovals7702Params,
 } from "./execute-trade";
+export {
+  PSM3_ADDRESS,
+  PSM3_ABI,
+  PSM3_REFERRAL_CODE,
+  isPsm3SwapToken,
+  previewPsm3SwapExactIn,
+  previewPsm3SwapExactOut,
+  buildPsm3SwapExactInExecution,
+  buildPsm3SwapExactOutExecution,
+  buildPsm3SwapExecution,
+  applySlippageToleranceDown,
+  applySlippageToleranceUp,
+  getPsm3Address,
+} from "./psm3";
+export { fetchPsm3UniswapQuote } from "./psm3-composite-quote";
+export {
+  buildPsm3CompositeTradeCalls7702,
+  executePsm3CompositeTrade,
+  getPsm3CompositeApprovalTokens,
+} from "./psm3-composite-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";

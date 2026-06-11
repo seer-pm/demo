@@ -20,6 +20,17 @@ import { isTwoStringsEqual, parseFraction } from "./quote-utils";
 import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
 
+export type Psm3TradeType = "exactIn" | "exactOut";
+
+export interface Psm3Leg {
+  tradeType: Psm3TradeType;
+  assetIn: Address;
+  assetOut: Address;
+  amountIn: bigint;
+  amountOut: bigint;
+  limitAmount: bigint;
+}
+
 export interface QuoteTradeResult {
   value: bigint;
   decimals: number;
@@ -28,6 +39,7 @@ export interface QuoteTradeResult {
   sellAmount: string;
   swapType: "buy" | "sell";
   trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  psm3Leg?: Psm3Leg;
 }
 
 export type QuoteTradeFn = (

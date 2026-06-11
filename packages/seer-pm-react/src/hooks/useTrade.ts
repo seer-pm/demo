@@ -1,10 +1,10 @@
 import {
   CoWTrade,
   type NotifierFn,
-  SwaprV3Trade,
+  type Psm3Leg,
+  type TradeTokensProps as SdkTradeTokensProps,
   Trade,
   type TxNotifierFn,
-  UniswapTrade,
   buildTradeCalls7702,
   tradeTokens as sdkTradeTokens,
   viemClientToSigner,
@@ -20,13 +20,7 @@ const EMPTY_APPROVALS = {
   isLoading: false,
 };
 
-export interface TradeTokensProps {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
-  account: Address;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
-  isSeerCredits: boolean;
-}
+export type TradeTokensProps = SdkTradeTokensProps;
 
 async function tradeTokens(
   props: TradeTokensProps,
@@ -92,6 +86,7 @@ function useTradeLegacy(
   account: Address | undefined,
   trade: Trade | undefined,
   isSeerCredits: boolean,
+  psm3Leg: Psm3Leg | undefined,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
@@ -104,7 +99,7 @@ function useTradeLegacy(
     },
   });
   const queryClient = useQueryClient();
-  const approvals = useMissingTradeApproval(account, trade);
+  const approvals = useMissingTradeApproval(account, trade, psm3Leg);
 
   return {
     approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
@@ -178,12 +173,14 @@ export const useTrade = (
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
   onOrderPlaced?: (orderUid: string) => void,
+  psm3Leg?: Psm3Leg,
 ) => {
   const trade7702 = useTrade7702(trade, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
   const tradeLegacy = useTradeLegacy(
     account,
     trade,
     isSeerCredits,
+    psm3Leg,
     onSuccess,
     orderNotifier,
     txNotifier,

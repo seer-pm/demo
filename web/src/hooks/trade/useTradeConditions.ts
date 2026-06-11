@@ -4,7 +4,14 @@ import { useTokenBalance } from "@seer-pm/react";
 
 import { isTwoStringsEqual } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
-import { Market, NATIVE_TOKEN, TradeType, getActiveCollateralProfile, getActivePrimaryCollateral } from "@seer-pm/sdk";
+import {
+  Market,
+  NATIVE_TOKEN,
+  TradeType,
+  getActiveCollateralProfile,
+  getActivePrimaryCollateral,
+  isPsm3SwapToken,
+} from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { FieldErrors } from "react-hook-form";
 import { gnosis } from "viem/chains";
@@ -62,6 +69,8 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
 
   const isSellToNative = isCollateralNative && swapType === "sell";
 
+  const isPsm3Collateral = isPsm3SwapToken(market.chainId, selectedCollateral.address);
+
   return {
     maxSlippage,
     isInstantSwap,
@@ -79,6 +88,7 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     isSecondaryCollateral,
     isBuyExactOutputNative,
     isSellToNative,
+    isPsm3Collateral,
     amountErrorMessage,
   };
 }
