@@ -303,9 +303,7 @@ export function useQuoteTrade(
   }, [chainId, isCowResultOk, cowResult, swaprResult, uniswapResult, psm3UniswapResult, isPsm3Collateral]);
 
   const completeSetEnabled = Boolean(
-    market &&
-      outcomeIndex !== undefined &&
-      isCompleteSetRoutingEnabled(market, outcomeIndex, realCollateralToken.address),
+    market && outcomeIndex !== undefined && isCompleteSetRoutingEnabled(market, outcomeIndex, collateralToken.address),
   );
 
   useEffect(() => {
@@ -313,7 +311,7 @@ export function useQuoteTrade(
       return;
     }
 
-    const disabledReasons = getCompleteSetRoutingDisabledReasons(market, outcomeIndex, realCollateralToken.address);
+    const disabledReasons = getCompleteSetRoutingDisabledReasons(market, outcomeIndex, collateralToken.address);
 
     if (disabledReasons.length > 0) {
       console.log("[complete-set] routing skipped in UI", {
@@ -321,12 +319,12 @@ export function useQuoteTrade(
         outcomeIndex,
         swapType,
         tradeType: tradeType === TradeType.EXACT_INPUT ? "exactIn" : "exactOut",
-        selectedCollateral: realCollateralToken.address,
+        selectedCollateral: collateralToken.address,
         marketCollateral: market.collateralToken,
         disabledReasons,
       });
     }
-  }, [market, outcomeIndex, amount, realCollateralToken.address, swapType, tradeType]);
+  }, [market, outcomeIndex, amount, collateralToken.address, swapType, tradeType]);
 
   const completeSetQuery = useQuery<CompleteSetQuoteResult | undefined, Error>({
     queryKey: [
@@ -358,7 +356,7 @@ export function useQuoteTrade(
         client: publicClient,
         maxSlippage,
         directQuote: directQuery.data,
-        selectedCollateralToken: realCollateralToken.address,
+        selectedCollateralToken: collateralToken.address,
       });
       return best ?? (directQuery.data ? toCompleteSetQuote(directQuery.data) : undefined);
     },

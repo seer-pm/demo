@@ -15,6 +15,64 @@ import { getSplitExecution } from "./split-position";
 import type { TradeTokensProps } from "./trade-utils";
 import { getMaximumAmountIn } from "./trade-utils";
 
+type ValidatedCompleteSetTrade = {
+  completeSetLeg: NonNullable<TradeTokensProps["completeSetLeg"]>;
+  trade: SwaprV3Trade | UniswapTrade;
+  swapSpender: Address;
+} & ({ route: "mintSell"; splitAmount: bigint } | { route: "buyMerge"; mergeAmount: bigint; maxBuyIn: bigint });
+
+function getValidatedMaximumAmountIn(trade: SwaprV3Trade | UniswapTrade): bigint {
+  let maxBuyIn: bigint;
+  try {
+    maxBuyIn = getMaximumAmountIn(trade);
+  } catch {
+    throw new Error("Complete-set trade requires a valid maximum amount in from trade");
+  }
+  if (maxBuyIn <= 0n) {
+    throw new Error("Complete-set trade requires a positive maximum amount in");
+  }
+  return maxBuyIn;
+}
+
+function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedCompleteSetTrade {
+  const { completeSetLeg, trade } = props;
+  if (!completeSetLeg) {
+    throw new Error("Complete-set trade requires completeSetLeg");
+  }
+  if (!(trade instanceof UniswapTrade) && !(trade instanceof SwaprV3Trade)) {
+    throw new Error("Complete-set trade requires Swapr or Uniswap secondary trade");
+  }
+  if (!trade.approveAddress) {
+    throw new Error("Complete-set trade requires trade.approveAddress");
+  }
+  const swapSpender = trade.approveAddress as Address;
+
+  if (completeSetLeg.route === "mintSell") {
+    const splitAmount = completeSetLeg.splitAmount;
+    if (!splitAmount) {
+      throw new Error("mintSell route requires splitAmount");
+    }
+    return { completeSetLeg, trade, swapSpender, route: "mintSell", splitAmount };
+  }
+
+  if (completeSetLeg.route === "buyMerge") {
+    const mergeAmount = completeSetLeg.mergeAmount;
+    if (!mergeAmount) {
+      throw new Error("buyMerge route requires mergeAmount");
+    }
+    return {
+      completeSetLeg,
+      trade,
+      swapSpender,
+      route: "buyMerge",
+      mergeAmount,
+      maxBuyIn: getValidatedMaximumAmountIn(trade),
+    };
+  }
+
+  throw new Error(`Unsupported complete-set route: ${completeSetLeg.route as string}`);
+}
+
 async function getSecondarySwapExecution(
   trade: SwaprV3Trade | UniswapTrade,
   account: Address,
@@ -29,23 +87,16 @@ async function getSecondarySwapExecution(
 }
 
 export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { completeSetLeg, account, trade, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
-  if (!completeSetLeg) {
-    throw new Error("Complete-set trade requires completeSetLeg");
-  }
-  if (!(trade instanceof UniswapTrade) && !(trade instanceof SwaprV3Trade)) {
-    throw new Error("Complete-set trade requires Swapr or Uniswap secondary trade");
-  }
+  const { account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const validated = validateCompleteSetTradeProps(props);
+  const { completeSetLeg, trade, swapSpender } = validated;
 
   const router = getRouterAddress(completeSetLeg.market);
   const chainId = completeSetLeg.market.chainId as SupportedChain;
   const calls: Execution[] = [];
 
-  if (completeSetLeg.route === "mintSell") {
-    const splitAmount = completeSetLeg.splitAmount;
-    if (!splitAmount) {
-      throw new Error("mintSell route requires splitAmount");
-    }
+  if (validated.route === "mintSell") {
+    const { splitAmount } = validated;
 
     calls.push(
       ...getTradeApprovals7702({
@@ -68,7 +119,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
       ...getTradeApprovals7702({
         tokensAddresses: [completeSetLeg.oppositeOutcomeToken.address],
         account,
-        spender: trade.approveAddress as Address,
+        spender: swapSpender,
         amounts: splitAmount,
         chainId,
       }),
@@ -77,17 +128,14 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
     return calls;
   }
 
-  const mergeAmount = completeSetLeg.mergeAmount;
-  if (!mergeAmount) {
-    throw new Error("buyMerge route requires mergeAmount");
-  }
+  const { mergeAmount, maxBuyIn } = validated;
 
   calls.push(
     ...getTradeApprovals7702({
       tokensAddresses: [completeSetLeg.collateralToken],
       account,
-      spender: trade.approveAddress as Address,
-      amounts: getMaximumAmountIn(trade),
+      spender: swapSpender,
+      amounts: maxBuyIn,
       chainId,
     }),
   );
@@ -125,16 +173,15 @@ async function sendApprovalCalls(client: Client, account: Address, calls: Execut
 }
 
 export async function executeCompleteSetTrade(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
-  const { completeSetLeg, account, trade, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
-  if (!completeSetLeg) {
-    throw new Error("Complete-set trade requires completeSetLeg");
-  }
+  const { account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const validated = validateCompleteSetTradeProps(props);
+  const { completeSetLeg, trade, swapSpender } = validated;
 
   const router = getRouterAddress(completeSetLeg.market);
   const chainId = completeSetLeg.market.chainId as SupportedChain;
 
-  if (completeSetLeg.route === "mintSell") {
-    const splitAmount = completeSetLeg.splitAmount!;
+  if (validated.route === "mintSell") {
+    const { splitAmount } = validated;
     const neededSplit = await fetchNeededApprovals(client, [completeSetLeg.collateralToken], account, router, [
       splitAmount,
     ]);
@@ -163,7 +210,6 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
       chain: client.chain,
     });
 
-    const swapSpender = trade.approveAddress as Address;
     const neededSell = await fetchNeededApprovals(
       client,
       [completeSetLeg.oppositeOutcomeToken.address],
@@ -186,21 +232,13 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
     }
 
     return sendTransaction(client, {
-      ...(await getSecondarySwapExecution(
-        trade as SwaprV3Trade | UniswapTrade,
-        account,
-        isBuyExactOutputNative,
-        isSellToNative,
-        isSeerCredits,
-      )),
+      ...(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits)),
       account,
       chain: client.chain,
     });
   }
 
-  const mergeAmount = completeSetLeg.mergeAmount!;
-  const swapSpender = trade.approveAddress as Address;
-  const maxBuyIn = getMaximumAmountIn(trade);
+  const { mergeAmount, maxBuyIn } = validated;
   const neededBuy = await fetchNeededApprovals(client, [completeSetLeg.collateralToken], account, swapSpender, [
     maxBuyIn,
   ]);
@@ -219,13 +257,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
   }
 
   await sendTransaction(client, {
-    ...(await getSecondarySwapExecution(
-      trade as SwaprV3Trade | UniswapTrade,
-      account,
-      isBuyExactOutputNative,
-      isSellToNative,
-      isSeerCredits,
-    )),
+    ...(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits)),
     account,
     chain: client.chain,
   });

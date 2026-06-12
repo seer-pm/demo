@@ -9,6 +9,7 @@ import {
 } from "@seer-pm/sdk";
 import { REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk";
+import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import { TradeType } from "@swapr/sdk";
 import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
@@ -108,6 +109,12 @@ describe("isCompleteSetRoutingEnabled", () => {
   it("returns false for invalid outcome index", () => {
     const market = createMinimalMarket({});
     expect(isCompleteSetRoutingEnabled(market, 2, market.collateralToken as `0x${string}`)).toBe(false);
+  });
+
+  it("returns false for Seer Credits collateral", () => {
+    const market = createMinimalMarket({ chainId: 100 });
+    const credits = seerCreditsAddress[100];
+    expect(isCompleteSetRoutingEnabled(market, 0, credits)).toBe(false);
   });
 });
 

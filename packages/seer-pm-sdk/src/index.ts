@@ -220,6 +220,7 @@ export {
   getInvalidOutcomeIndex,
   getCompleteSetRoutingDisabledReasons,
   isCompleteSetRoutingEnabled,
+  searchMinimalAmountForTargetNetOut,
 } from "./complete-set-quote";
 export type { CompleteSetLeg, CompleteSetQuoteResult, CompleteSetRoute } from "./complete-set-quote";
 export {

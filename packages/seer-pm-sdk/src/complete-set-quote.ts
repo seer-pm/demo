@@ -564,6 +564,151 @@ async function quoteBuyMergeSellExactInput(params: {
   };
 }
 
+const BUY_MERGE_SEARCH_MAX_EXPONENTIAL_STEPS = 32;
+const BUY_MERGE_SEARCH_MAX_BINARY_STEPS = 32;
+
+/** Minimal amount such that evaluate(amount).netOut >= desiredOut (exponential + binary search). */
+export async function searchMinimalAmountForTargetNetOut<T>(params: {
+  desiredOut: bigint;
+  initialGuess: bigint;
+  evaluate: (amount: bigint) => Promise<{ netOut: bigint; payload: T } | undefined>;
+  maxExponentialSteps?: number;
+  maxBinarySteps?: number;
+}): Promise<{ amount: bigint; netOut: bigint; payload: T } | undefined> {
+  const {
+    desiredOut,
+    initialGuess,
+    evaluate,
+    maxExponentialSteps = BUY_MERGE_SEARCH_MAX_EXPONENTIAL_STEPS,
+    maxBinarySteps = BUY_MERGE_SEARCH_MAX_BINARY_STEPS,
+  } = params;
+
+  if (desiredOut <= 0n || initialGuess <= 0n) {
+    return undefined;
+  }
+
+  let lowerBound = 0n;
+  let upperBound = initialGuess;
+
+  let upperEval = await evaluate(upperBound);
+  if (!upperEval) {
+    return undefined;
+  }
+
+  if (upperEval.netOut < desiredOut) {
+    lowerBound = upperBound;
+    let found = false;
+
+    for (let step = 0; step < maxExponentialSteps; step++) {
+      const nextUpper = upperBound * 2n;
+      if (nextUpper <= upperBound) {
+        break;
+      }
+      upperBound = nextUpper;
+
+      upperEval = await evaluate(upperBound);
+      if (!upperEval) {
+        break;
+      }
+      if (upperEval.netOut >= desiredOut) {
+        found = true;
+        break;
+      }
+      lowerBound = upperBound;
+    }
+
+    if (!found || !upperEval) {
+      return undefined;
+    }
+  }
+
+  let bestEval = upperEval;
+  let bestAmount = upperBound;
+
+  for (let step = 0; step < maxBinarySteps && upperBound - lowerBound > 1n; step++) {
+    const mid = (lowerBound + upperBound) / 2n;
+    const midEval = await evaluate(mid);
+    if (!midEval || midEval.netOut < desiredOut) {
+      lowerBound = mid;
+      continue;
+    }
+    upperBound = mid;
+    bestEval = midEval;
+    bestAmount = mid;
+  }
+
+  return { amount: bestAmount, netOut: bestEval.netOut, payload: bestEval.payload };
+}
+
+type BuyMergeNetEval = {
+  buyQuote: QuoteTradeResult;
+  netCollateralOut: bigint;
+};
+
+async function evalBuyMergeNetOut(params: {
+  mergeAmount: bigint;
+  market: Market;
+  account: Address | undefined;
+  oppositeOutcomeToken: Token;
+  poolCollateral: Token;
+  maxSlippage: string;
+}): Promise<BuyMergeNetEval | undefined> {
+  const { mergeAmount, market, account, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
+  if (mergeAmount <= 0n) {
+    return undefined;
+  }
+
+  const buyQuote = await fetchAmmQuote(
+    TradeType.EXACT_OUTPUT,
+    market.chainId,
+    account,
+    formatUnits(mergeAmount, oppositeOutcomeToken.decimals),
+    oppositeOutcomeToken,
+    poolCollateral,
+    "buy",
+    maxSlippage,
+  );
+  const buyCost = buyQuote.value;
+  const netCollateralOut = mergeAmount > buyCost ? mergeAmount - buyCost : 0n;
+
+  return { buyQuote, netCollateralOut };
+}
+
+/** Minimal mergeAmount such that mergeAmount - buyCost(mergeAmount) >= desiredOut. */
+async function findMinimalMergeAmountForDesiredOut(params: {
+  desiredOut: bigint;
+  market: Market;
+  account: Address | undefined;
+  oppositeOutcomeToken: Token;
+  poolCollateral: Token;
+  maxSlippage: string;
+}): Promise<(BuyMergeNetEval & { mergeAmount: bigint }) | undefined> {
+  const { desiredOut, market, account, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
+  const evalCtx = { market, account, oppositeOutcomeToken, poolCollateral, maxSlippage };
+
+  const searchResult = await searchMinimalAmountForTargetNetOut({
+    desiredOut,
+    initialGuess: desiredOut,
+    evaluate: async (mergeAmount) => {
+      const result = await evalBuyMergeNetOut({ mergeAmount, ...evalCtx });
+      if (!result) {
+        return undefined;
+      }
+      return { netOut: result.netCollateralOut, payload: result.buyQuote };
+    },
+  });
+
+  if (!searchResult) {
+    return undefined;
+  }
+
+  return {
+    mergeAmount: searchResult.amount,
+    buyQuote: searchResult.payload,
+    netCollateralOut: searchResult.netOut,
+  };
+}
+
 async function quoteBuyMergeSellExactOutput(params: {
   market: Market;
   targetOutcomeIndex: 0 | 1;
@@ -588,32 +733,20 @@ async function quoteBuyMergeSellExactOutput(params: {
     return undefined;
   }
 
-  let mergeAmount = desiredOut;
-  let buyQuote: QuoteTradeResult | undefined;
-  let netCollateralOut = 0n;
+  const searchResult = await findMinimalMergeAmountForDesiredOut({
+    desiredOut,
+    market,
+    account,
+    oppositeOutcomeToken,
+    poolCollateral,
+    maxSlippage,
+  });
 
-  for (let attempt = 0; attempt < 8; attempt++) {
-    buyQuote = await fetchAmmQuote(
-      TradeType.EXACT_OUTPUT,
-      market.chainId,
-      account,
-      formatUnits(mergeAmount, oppositeOutcomeToken.decimals),
-      oppositeOutcomeToken,
-      poolCollateral,
-      "buy",
-      maxSlippage,
-    );
-    const buyCost = buyQuote.value;
-    netCollateralOut = mergeAmount > buyCost ? mergeAmount - buyCost : 0n;
-    if (netCollateralOut >= desiredOut) {
-      break;
-    }
-    mergeAmount = (mergeAmount * 11n) / 10n + 1n;
-  }
-
-  if (!buyQuote || netCollateralOut < desiredOut) {
+  if (!searchResult || searchResult.netCollateralOut < desiredOut) {
     return undefined;
   }
+
+  const { mergeAmount, buyQuote } = searchResult;
 
   const buyTrade = buyQuote.trade as SwaprV3Trade | UniswapTrade;
   const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));

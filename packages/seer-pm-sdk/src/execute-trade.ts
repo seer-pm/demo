@@ -382,6 +382,9 @@ export async function tradeTokens(
   }
 
   if (props.completeSetLeg) {
+    if (isSeerCredits) {
+      throw new Error("Complete-set trades are not supported with Seer Credits");
+    }
     const { executeCompleteSetTrade } = await import("./complete-set-trade");
     return executeCompleteSetTrade(client, props);
   }
@@ -412,6 +415,9 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
   }
 
   if (props.completeSetLeg) {
+    if (isSeerCredits) {
+      throw new Error("Complete-set trades are not supported with Seer Credits");
+    }
     const { buildCompleteSetTradeCalls7702 } = await import("./complete-set-trade");
     return buildCompleteSetTradeCalls7702(props);
   }
