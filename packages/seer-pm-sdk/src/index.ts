@@ -50,6 +50,7 @@ export {
   getTemplateByMarketType,
   isMarketReliable,
   isInvalidOutcome,
+  isCompleteSetMarket,
   getMultiScalarEstimate,
   getRedeemedPrice,
 } from "./market";
@@ -211,10 +212,26 @@ export {
 } from "./psm3";
 export { fetchPsm3UniswapQuote } from "./psm3-composite-quote";
 export {
+  compareCompleteSetRoutes,
+  MIN_COMPLETE_SET_SAVINGS_PERCENT,
+  fetchBestCompleteSetQuote,
+  fetchCompleteSetAlternativeQuote,
+  getOppositeOutcomeIndex,
+  getInvalidOutcomeIndex,
+  getCompleteSetRoutingDisabledReasons,
+  isCompleteSetRoutingEnabled,
+} from "./complete-set-quote";
+export type { CompleteSetLeg, CompleteSetQuoteResult, CompleteSetRoute } from "./complete-set-quote";
+export {
   buildPsm3CompositeTradeCalls7702,
   executePsm3CompositeTrade,
   getPsm3CompositeApprovalTokens,
 } from "./psm3-composite-trade";
+export {
+  buildCompleteSetTradeCalls7702,
+  executeCompleteSetTrade,
+  getCompleteSetApprovalTokens,
+} from "./complete-set-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";

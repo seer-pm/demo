@@ -1,5 +1,6 @@
 import {
   CoWTrade,
+  type CompleteSetLeg,
   type NotifierFn,
   type Psm3Leg,
   type TradeTokensProps as SdkTradeTokensProps,
@@ -87,6 +88,7 @@ function useTradeLegacy(
   trade: Trade | undefined,
   isSeerCredits: boolean,
   psm3Leg: Psm3Leg | undefined,
+  completeSetLeg: CompleteSetLeg | undefined,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
@@ -99,7 +101,7 @@ function useTradeLegacy(
     },
   });
   const queryClient = useQueryClient();
-  const approvals = useMissingTradeApproval(account, trade, psm3Leg);
+  const approvals = useMissingTradeApproval(account, trade, psm3Leg, completeSetLeg);
 
   return {
     approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
@@ -174,6 +176,7 @@ export const useTrade = (
   txNotifier: TxNotifierFn,
   onOrderPlaced?: (orderUid: string) => void,
   psm3Leg?: Psm3Leg,
+  completeSetLeg?: CompleteSetLeg,
 ) => {
   const trade7702 = useTrade7702(trade, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
   const tradeLegacy = useTradeLegacy(
@@ -181,6 +184,7 @@ export const useTrade = (
     trade,
     isSeerCredits,
     psm3Leg,
+    completeSetLeg,
     onSuccess,
     orderNotifier,
     txNotifier,

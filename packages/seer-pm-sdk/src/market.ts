@@ -137,6 +137,18 @@ export function isInvalidOutcome(market: Market, outcomeIndex: number): boolean 
   return hasInvalidOutcome && outcomeIndex === market.wrappedTokens.length - 1;
 }
 
+/** Binary Generic market with two tradeable outcomes plus Invalid (3 wrapped tokens). */
+export function isCompleteSetMarket(market: Market): boolean {
+  if (market.type !== "Generic") {
+    return false;
+  }
+  const marketType = getMarketType(market);
+  if (marketType !== MarketTypes.SCALAR && marketType !== MarketTypes.CATEGORICAL) {
+    return false;
+  }
+  return market.wrappedTokens.length === 3;
+}
+
 /**
  * Estimates an absolute value for multi‑scalar markets from percentage odds.
  *

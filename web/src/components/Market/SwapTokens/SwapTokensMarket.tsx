@@ -14,7 +14,7 @@ import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
@@ -195,6 +195,8 @@ export function SwapTokensMarket({
     tradeType,
     maxSlippage,
     !isInstantSwap,
+    market,
+    outcomeIndex,
   );
 
   const trade = quoteData?.trade;
@@ -211,6 +213,7 @@ export function SwapTokensMarket({
       closeConfirmSwapModal();
     },
     quoteData?.psm3Leg,
+    quoteData?.completeSetLeg,
   );
 
   const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
@@ -221,6 +224,7 @@ export function SwapTokensMarket({
       isSellToNative,
       isSeerCredits: isSeerCreditsCollateral,
       psm3Leg: quoteData?.psm3Leg,
+      completeSetLeg: quoteData?.completeSetLeg,
     });
   };
 
@@ -232,7 +236,21 @@ export function SwapTokensMarket({
         : 0
       : Number(amountOut);
 
-  const collateralPerShare = getCollateralPerShare(quoteData, swapType);
+  const collateralPerShare = useMemo(() => {
+    if (!quoteData) {
+      return 0;
+    }
+    if (quoteData.route === "mintSell" && swapType === "buy") {
+      const tokensOut = Number(formatUnits(quoteData.value, quoteData.decimals));
+      return tokensOut > 0 ? Number(quoteData.sellAmount) / tokensOut : 0;
+    }
+    if (quoteData.route === "buyMerge" && swapType === "sell") {
+      const tokensIn = Number(quoteData.sellAmount);
+      const collateralOut = Number(formatUnits(quoteData.value, quoteData.decimals));
+      return tokensIn > 0 ? collateralOut / tokensIn : 0;
+    }
+    return getCollateralPerShare(quoteData, swapType);
+  }, [quoteData, swapType]);
 
   const outcomeText = market.outcomes[outcomeIndex];
   // check if current token price higher than 1 (primary) collateral per token
@@ -330,6 +348,7 @@ export function SwapTokensMarket({
         content={
           <SwapTokensConfirmation
             trade={quoteData?.trade}
+            quoteData={quoteData}
             closeModal={closeConfirmSwapModal}
             reset={() => reset()}
             isLoading={tradeTokens.isPending}
