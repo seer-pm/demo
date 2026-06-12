@@ -78,9 +78,16 @@ export function SwapTokensFillToEstimate({
 
   const [targetEstimateInput, maxCollateralInput] = watch(["targetEstimate", "maxCollateralToUse"]);
   const parsedTargetEstimate = targetEstimateInput ? Number(targetEstimateInput.replace(/,/g, "")) : undefined;
-  const parsedMaxCollateralToUse = maxCollateralInput
-    ? parseUnits(maxCollateralInput, selectedCollateral.decimals)
-    : undefined;
+  const parsedMaxCollateralToUse = useMemo(() => {
+    if (!maxCollateralInput) {
+      return undefined;
+    }
+    try {
+      return parseUnits(maxCollateralInput, selectedCollateral.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [maxCollateralInput, selectedCollateral.decimals]);
 
   const plan = useFillToEstimatePlan({
     market,

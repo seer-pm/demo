@@ -217,6 +217,10 @@ export async function executeFillToEstimate(client: Client, params: FillToEstima
     });
   }
 
+  if (lastHash === "0x") {
+    throw new Error("No transactions executed for empty/no-op plan");
+  }
+
   return lastHash;
 }
 
@@ -241,7 +245,7 @@ export function getFillToEstimateApprovalTokens(params: FillToEstimateTradeParam
 
     const legTrade = findLegTrade(legTrades, leg);
     if (!legTrade) {
-      continue;
+      throw new Error(`Missing quoted trade for ${leg.kind} leg on outcome ${leg.outcomeIndex}`);
     }
 
     const outcomeToken = market.wrappedTokens[leg.outcomeIndex] as Address;

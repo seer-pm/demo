@@ -109,6 +109,10 @@ export function getPriceFromVolume(
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
   const currentPrice = Number(tickToPrice(pool.tick, 18, true)[isOutcomeToken0 ? 0 : 1]);
 
+  if (targetVolume <= 0) {
+    return currentPrice;
+  }
+
   let low = 0.001;
   let high = 1;
   let mid = currentPrice;

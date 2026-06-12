@@ -3,12 +3,14 @@ import {
   buildFillToEstimatePlan,
   estimateFromOdds,
   getPoolLegDirection,
+  getPriceFromVolume,
   isFillToEstimateEnabled,
   targetOddsFromEstimate,
+  tickToPrice,
 } from "@seer-pm/sdk";
 import { REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk";
-import { parseUnits, zeroAddress } from "viem";
+import { Address, parseUnits, zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
 
 const createMinimalMarket = (overrides: Partial<Market> = {}): Market => ({
@@ -125,11 +127,10 @@ describe("fill-to-estimate plan", () => {
       pools: [undefined, undefined],
     });
 
-    if (plan.legs.length > 0) {
-      expect(plan.isBudgetConstrained).toBe(true);
-      expect(plan.userMaxCollateralToUse).toBe(parseUnits("3", 18));
-      expect(plan.estimatedPeakCollateralUse).toBeLessThanOrEqual(parseUnits("3", 18));
-    }
+    expect(plan.legs.length).toBeGreaterThan(0);
+    expect(plan.isBudgetConstrained).toBe(true);
+    expect(plan.userMaxCollateralToUse).toBe(parseUnits("3", 18));
+    expect(plan.estimatedPeakCollateralUse).toBeLessThanOrEqual(parseUnits("3", 18));
   });
 
   it("does not mark budget constrained when max collateral to use exceeds ideal peak use", () => {
@@ -148,6 +149,36 @@ describe("fill-to-estimate plan", () => {
     }
   });
 
+  it("treats maxCollateralToUse 0n as zero budget, not unlimited", () => {
+    const plan = buildFillToEstimatePlan({
+      market,
+      targetEstimate: 70,
+      currentOdds: [30, 70],
+      balances: { collateral: parseUnits("100", 18), outcome0: 0n, outcome1: 0n },
+      maxCollateralToUse: 0n,
+      pools: [undefined, undefined],
+    });
+
+    expect(plan.userMaxCollateralToUse).toBe(0n);
+    expect(plan.estimatedPeakCollateralUse).toBeLessThanOrEqual(0n);
+  });
+
+  it("derives poolsTouched from returned legs", () => {
+    const plan = buildFillToEstimatePlan({
+      market,
+      targetEstimate: 70,
+      currentOdds: [30, 70],
+      balances: { collateral: parseUnits("100", 18), outcome0: 0n, outcome1: 0n },
+      maxCollateralToUse: parseUnits("3", 18),
+      pools: [undefined, undefined],
+    });
+
+    const expectedPoolsTouched = [
+      ...new Set(plan.legs.filter((leg) => leg.kind !== "split").map((leg) => leg.outcomeIndex)),
+    ];
+    expect(plan.poolsTouched).toEqual(expectedPoolsTouched);
+  });
+
   it("estimates sell proceeds from current odds", () => {
     const estimates = buildFillToEstimateLegEstimates(
       [
@@ -161,5 +192,23 @@ describe("fill-to-estimate plan", () => {
     expect(estimates[0].estimatedSpend).toBe(parseUnits("10", 18));
     expect(estimates[1].estimatedProceeds).toBe(parseUnits("4", 18));
     expect(estimates[2].estimatedSpend).toBe(parseUnits("3", 18));
+  });
+});
+
+describe("pool-volume", () => {
+  it("returns current price when target volume is non-positive", () => {
+    const token0: Address = "0x00000000000000000000000000000000000000aa";
+    const token1: Address = "0x00000000000000000000000000000000000000bb";
+    const pool = {
+      liquidity: 10n ** 18n,
+      tickSpacing: 60,
+      tick: 0,
+      token0,
+      token1,
+    };
+    const currentPrice = Number(tickToPrice(0, 18, true)[0]);
+
+    expect(getPriceFromVolume(pool, [], 0, token0, "buy")).toBe(currentPrice);
+    expect(getPriceFromVolume(pool, [], -1, token0, "sell")).toBe(currentPrice);
   });
 });

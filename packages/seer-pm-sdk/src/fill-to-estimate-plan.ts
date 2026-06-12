@@ -304,6 +304,10 @@ function scaleLegs(legs: FillToEstimateLeg[], scale: number): FillToEstimateLeg[
   );
 }
 
+function getPoolsTouchedFromLegs(legs: FillToEstimateLeg[]): (0 | 1)[] {
+  return [...new Set(legs.filter((leg) => leg.kind !== "split").map((leg) => leg.outcomeIndex))];
+}
+
 function simulateAchievableEstimate(
   market: Market,
   currentOdds: number[],
@@ -394,7 +398,6 @@ export function buildFillToEstimatePlan(params: BuildFillToEstimatePlanParams): 
 
   const inventoryCap = getInventoryCollateralCap(balances, maxCollateralToUse);
   const { legs: idealLegs, missingCollateralForInventory } = appendInventoryLegs(draftLegs, balances, inventoryCap);
-  const poolsTouched = [...new Set(draftLegs.map((leg) => leg.outcomeIndex))];
   const idealNetSpend = estimateSequentialNetSpend(idealLegs, currentOdds);
   const idealPeakCollateralUse = estimatePeakCollateralUse(idealLegs, currentOdds, balances.collateral);
 
@@ -402,7 +405,7 @@ export function buildFillToEstimatePlan(params: BuildFillToEstimatePlanParams): 
   const isBudgetConstrained = false;
   let scaledForBudget = false;
 
-  if (maxCollateralToUse !== undefined && maxCollateralToUse > 0n) {
+  if (maxCollateralToUse !== undefined) {
     let estimatedPeakCollateralUse = estimatePeakCollateralUse(finalLegs, currentOdds, balances.collateral);
     let estimatedNetSpend = estimateSequentialNetSpend(finalLegs, currentOdds);
 
@@ -433,7 +436,7 @@ export function buildFillToEstimatePlan(params: BuildFillToEstimatePlanParams): 
       isPartial: isBudgetConstrained || isTargetConstrained,
       legs: finalLegs,
       legEstimates: buildFillToEstimateLegEstimates(finalLegs, currentOdds),
-      poolsTouched,
+      poolsTouched: getPoolsTouchedFromLegs(finalLegs),
       missingCollateralForInventory: missingCollateralForInventory > 0n ? missingCollateralForInventory : undefined,
     };
   }
@@ -458,7 +461,7 @@ export function buildFillToEstimatePlan(params: BuildFillToEstimatePlanParams): 
     isPartial: isBudgetConstrained || isTargetConstrained,
     legs: finalLegs,
     legEstimates: buildFillToEstimateLegEstimates(finalLegs, currentOdds),
-    poolsTouched,
+    poolsTouched: getPoolsTouchedFromLegs(finalLegs),
     missingCollateralForInventory: missingCollateralForInventory > 0n ? missingCollateralForInventory : undefined,
   };
 }
