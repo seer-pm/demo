@@ -293,7 +293,7 @@ function getDirectNetCollateral(quote: QuoteTradeResult, swapType: "buy" | "sell
   if (swapType === "buy") {
     return tradeType === TradeType.EXACT_INPUT ? parseUnits(quote.sellAmount, 18) : quote.value;
   }
-  return tradeType === TradeType.EXACT_INPUT ? quote.value : quote.value;
+  return quote.value;
 }
 
 function computeSavingsPercent(

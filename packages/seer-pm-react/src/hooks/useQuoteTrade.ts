@@ -218,6 +218,8 @@ function toCompleteSetQuote(direct: QuoteTradeResult): CompleteSetQuoteResult {
   return {
     ...direct,
     route: "direct",
+    // Placeholder: netCollateral is only used for complete-set route breakdowns.
+    // Direct routes don't display this value in the UI.
     netCollateral: 0n,
   };
 }
