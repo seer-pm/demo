@@ -1,14 +1,17 @@
 import { Dropdown } from "@/components/Dropdown";
-import { getLiquidityUrlByMarket } from "@seer-pm/sdk";
+import { getLiquidityUrlByMarket, isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
+import { SwapTokensFillToEstimate } from "./SwapTokensFillToEstimate";
 import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
+
+type SwapOrderType = "market" | "limit" | "fill-to-estimate";
 
 interface SwapTokensProps {
   market: Market;
@@ -29,11 +32,19 @@ export function SwapTokens({
   fixedCollateral,
   onOutcomeChange,
 }: SwapTokensProps) {
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
+  const [orderType, setOrderType] = useState<SwapOrderType>("market");
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const outcomeText = market.outcomes[outcomeIndex];
   const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
+  const showFillToEstimate = isFillToEstimateEnabled(market);
+
+  const orderTypeOptions = [
+    { text: "Market", value: "market" as const },
+    { text: "Fill-to-price", value: "limit" as const },
+    ...(showFillToEstimate ? [{ text: "Fill-to-estimate", value: "fill-to-estimate" as const }] : []),
+  ];
+
   return (
     <div className="space-y-5 bg-base-100 p-[24px] shadow-md">
       <div className="flex items-center space-x-[12px]">
@@ -62,14 +73,11 @@ export function SwapTokens({
             hasEnoughLiquidity === false && orderType === "market" && "grayscale opacity-40 pointer-events-none",
           )}
         >
-          {/* Futarchy markets only support Market orders, while Generic markets support both Market and Fill-to-price orders */}
+          {/* Futarchy markets only support Market orders */}
           {market.type === "Generic" && (
             <div className="flex items-center justify-between">
               <Dropdown
-                options={[
-                  { text: "Market", value: "market" },
-                  { text: "Fill-to-price", value: "limit" },
-                ]}
+                options={orderTypeOptions}
                 value={orderType}
                 onClick={(type) => setOrderType(type)}
                 defaultLabel="Order Type"
@@ -97,6 +105,13 @@ export function SwapTokens({
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
               isInvalidOutcome={isInvalidOutcome}
+            />
+          )}
+          {orderType === "fill-to-estimate" && (
+            <SwapTokensFillToEstimate
+              market={market}
+              fixedCollateral={fixedCollateral}
+              setShowMaxSlippage={setShowMaxSlippage}
             />
           )}
         </div>

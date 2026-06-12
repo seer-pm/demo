@@ -162,6 +162,7 @@ export {
   fetchCowQuote,
   fetchSwaprQuote,
   fetchUniswapQuote,
+  fetchAmmQuote,
   getTradeArgsExactIn,
   getTradeArgsExactOut,
   getUniswapTrade,
@@ -250,6 +251,47 @@ export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
 export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
 export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+export {
+  getVolumeUntilPrice,
+  getPriceFromVolume,
+  type PoolVolumeInfo,
+  type PoolTick,
+} from "./pool-volume";
+export {
+  estimateFromOdds,
+  targetOddsFromEstimate,
+  getCurrentEstimateFromOdds,
+  simulateEstimateFromPrices,
+  isEstimateReached,
+  isPriceReached,
+  getPoolLegDirection,
+  FILL_TO_ESTIMATE_EPSILON,
+  FILL_TO_ESTIMATE_PRICE_TOLERANCE,
+} from "./fill-to-estimate-math";
+export type { TargetOddsResult, PoolLegDirection } from "./fill-to-estimate-math";
+export {
+  buildFillToEstimatePlan,
+  buildFillToEstimateLegEstimates,
+  estimatePeakCollateralUse,
+  isFillToEstimateEnabled,
+  getNormalizedTradeableOdds,
+  getEstimateFromNormalizedOdds,
+} from "./fill-to-estimate-plan";
+export type {
+  FillToEstimateLeg,
+  FillToEstimateLegEstimate,
+  FillToEstimatePlan,
+  FillToEstimateBalances,
+  FillToEstimatePoolData,
+  BuildFillToEstimatePlanParams,
+  FillToEstimateLegKind,
+} from "./fill-to-estimate-plan";
+export {
+  buildFillToEstimateCalls7702,
+  executeFillToEstimate,
+  getFillToEstimateApprovalTokens,
+} from "./fill-to-estimate-trade";
+export type { FillToEstimateLegTrade, FillToEstimateTradeParams } from "./fill-to-estimate-trade";
 export { isSeerCredits } from "./seer-credits";
 
 // Curate / TCR

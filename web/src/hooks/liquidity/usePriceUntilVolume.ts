@@ -1,51 +1,9 @@
 import { isTwoStringsEqual } from "@/lib/utils";
-import { Market } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk";
+import { Market, getPriceFromVolume } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { useTicksData } from "./useTicksData";
-import { getVolumeUntilPrice } from "./useVolumeUntilPrice";
 
-export function getPriceFromVolume(
-  pool: {
-    liquidity: bigint;
-    tickSpacing: number;
-    tick: number;
-    token0: Address;
-    token1: Address;
-  },
-  ticks: { liquidityNet: string; tickIdx: string }[],
-  targetVolume: number,
-  outcome: Address,
-  swapType: "buy" | "sell",
-): number {
-  const tolerance = 1e-12;
-
-  const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
-
-  const currentPrice = Number(tickToPrice(pool.tick, 18, true)[isOutcomeToken0 ? 0 : 1]);
-
-  // Search bounds
-  let low = 0.001;
-  let high = 1;
-  let mid = currentPrice;
-
-  for (let i = 0; i < 60; i++) {
-    mid = (low + high) / 2;
-    const vol = getVolumeUntilPrice(pool, ticks, mid, outcome, swapType);
-
-    if (Math.abs(vol - targetVolume) <= tolerance) break;
-
-    if (swapType === "buy") {
-      if (vol < targetVolume) low = mid;
-      else high = mid;
-    } else {
-      if (vol < targetVolume) high = mid;
-      else low = mid;
-    }
-  }
-
-  return mid;
-}
+export { getPriceFromVolume } from "@seer-pm/sdk";
 
 export function usePriceFromVolume(
   market: Market,
