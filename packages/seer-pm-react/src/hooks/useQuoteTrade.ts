@@ -1,18 +1,24 @@
+import { TradeType } from "@swapr/sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPublicClient } from "@wagmi/core";
+import { useEffect, useMemo } from "react";
 import type { Address } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
 import { useConfig } from "wagmi";
 
 import {
+  type CompleteSetQuoteResult,
+  type Market,
   type QuoteTradeResult,
   type Token,
-  type TradeType,
+  fetchBestCompleteSetQuote,
   fetchCowQuote,
   fetchPsm3UniswapQuote,
   fetchSwaprQuote,
   fetchUniswapQuote,
   getActivePrimaryCollateral,
+  getCompleteSetRoutingDisabledReasons,
+  isCompleteSetRoutingEnabled,
   isPsm3SwapToken,
   isSeerCredits,
 } from "@seer-pm/sdk";
@@ -208,6 +214,16 @@ export function usePsm3UniswapQuote(
   });
 }
 
+function toCompleteSetQuote(direct: QuoteTradeResult): CompleteSetQuoteResult {
+  return {
+    ...direct,
+    route: "direct",
+    // Placeholder: netCollateral is only used for complete-set route breakdowns.
+    // Direct routes don't display this value in the UI.
+    netCollateral: 0n,
+  };
+}
+
 export function useQuoteTrade(
   chainId: number,
   account: Address | undefined,
@@ -218,7 +234,10 @@ export function useQuoteTrade(
   tradeType: TradeType,
   maxSlippage: string,
   isCowQuoteEnabled: boolean,
+  market?: Market,
+  outcomeIndex?: number,
 ) {
+  const config = useConfig();
   const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken.address);
   const isPsm3Collateral = isPsm3SwapToken(chainId, collateralToken.address);
 
@@ -272,16 +291,97 @@ export function useQuoteTrade(
     maxSlippage,
   );
 
-  if (isPsm3Collateral && (chainId === optimism.id || chainId === base.id)) {
-    return psm3UniswapResult;
-  }
+  const directQuery = useMemo(() => {
+    if (isPsm3Collateral && (chainId === optimism.id || chainId === base.id)) {
+      return psm3UniswapResult;
+    }
+    if (isCowResultOk) {
+      return cowResult;
+    }
+    if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
+      return uniswapResult;
+    }
+    return swaprResult;
+  }, [chainId, isCowResultOk, cowResult, swaprResult, uniswapResult, psm3UniswapResult, isPsm3Collateral]);
 
-  if (isCowResultOk) {
-    return cowResult;
-  }
+  const completeSetEnabled = Boolean(
+    market && outcomeIndex !== undefined && isCompleteSetRoutingEnabled(market, outcomeIndex, collateralToken.address),
+  );
 
-  if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
-    return uniswapResult;
-  }
-  return swaprResult;
+  useEffect(() => {
+    if (!market || outcomeIndex === undefined || Number(amount) <= 0) {
+      return;
+    }
+
+    const disabledReasons = getCompleteSetRoutingDisabledReasons(market, outcomeIndex, collateralToken.address);
+
+    if (disabledReasons.length > 0) {
+      console.log("[complete-set] routing skipped in UI", {
+        marketId: market.id,
+        outcomeIndex,
+        swapType,
+        tradeType: tradeType === TradeType.EXACT_INPUT ? "exactIn" : "exactOut",
+        selectedCollateral: collateralToken.address,
+        marketCollateral: market.collateralToken,
+        disabledReasons,
+      });
+    }
+  }, [market, outcomeIndex, amount, collateralToken.address, swapType, tradeType]);
+
+  const completeSetQuery = useQuery<CompleteSetQuoteResult | undefined, Error>({
+    queryKey: [
+      "useQuote",
+      "completeSet",
+      market?.id,
+      outcomeIndex,
+      chainId,
+      account,
+      amount.toString(),
+      outcomeToken,
+      realCollateralToken,
+      swapType,
+      tradeType,
+      maxSlippage,
+      directQuery.dataUpdatedAt,
+    ],
+    enabled: completeSetEnabled && Number(amount) > 0 && Boolean(directQuery.data),
+    retry: false,
+    queryFn: async () => {
+      const publicClient = getPublicClient(config, { chainId });
+      const best = await fetchBestCompleteSetQuote({
+        market: market!,
+        targetOutcomeIndex: outcomeIndex!,
+        tradeType,
+        swapType,
+        amount,
+        account,
+        client: publicClient,
+        maxSlippage,
+        directQuote: directQuery.data,
+        selectedCollateralToken: collateralToken.address,
+      });
+      return best ?? (directQuery.data ? toCompleteSetQuote(directQuery.data) : undefined);
+    },
+    refetchInterval: QUOTE_REFETCH_INTERVAL,
+  });
+
+  const data = useMemo(() => {
+    if (completeSetEnabled && completeSetQuery.data) {
+      return completeSetQuery.data;
+    }
+    if (directQuery.data) {
+      return toCompleteSetQuote(directQuery.data);
+    }
+    return undefined;
+  }, [completeSetEnabled, completeSetQuery.data, directQuery.data]);
+
+  return {
+    ...directQuery,
+    data,
+    isLoading: directQuery.isLoading || (completeSetEnabled && completeSetQuery.isLoading),
+    isFetching: directQuery.isFetching || completeSetQuery.isFetching,
+    error: directQuery.error ?? completeSetQuery.error,
+  };
 }
+
+export type { CompleteSetQuoteResult };

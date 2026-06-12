@@ -381,6 +381,14 @@ export async function tradeTokens(
     return executeCoWTrade(signer, trade);
   }
 
+  if (props.completeSetLeg) {
+    if (isSeerCredits) {
+      throw new Error("Complete-set trades are not supported with Seer Credits");
+    }
+    const { executeCompleteSetTrade } = await import("./complete-set-trade");
+    return executeCompleteSetTrade(client, props);
+  }
+
   if (trade instanceof UniswapTrade) {
     if (props.psm3Leg) {
       return executePsm3CompositeTradeWrapper(client, props);
@@ -404,6 +412,14 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
 
   if (trade instanceof CoWTrade) {
     throw new Error("buildTradeCalls7702 does not support CoW trades; use tradeTokens instead");
+  }
+
+  if (props.completeSetLeg) {
+    if (isSeerCredits) {
+      throw new Error("Complete-set trades are not supported with Seer Credits");
+    }
+    const { buildCompleteSetTradeCalls7702 } = await import("./complete-set-trade");
+    return buildCompleteSetTradeCalls7702(props);
   }
 
   if (psm3Leg && trade instanceof UniswapTrade) {

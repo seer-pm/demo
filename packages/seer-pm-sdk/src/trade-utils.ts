@@ -1,6 +1,7 @@
 import { Trade, TradeType, UniswapTrade } from "@swapr/sdk";
 import type { Address, Hex } from "viem";
 import { decodeFunctionData } from "viem";
+import type { CompleteSetLeg } from "./complete-set-quote";
 import { UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
 import type { Psm3Leg } from "./quote";
 
@@ -11,6 +12,7 @@ export interface TradeTokensProps {
   isSellToNative: boolean;
   isSeerCredits: boolean;
   psm3Leg?: Psm3Leg;
+  completeSetLeg?: CompleteSetLeg;
 }
 
 export function getMaximumAmountIn(trade: Trade): bigint {
