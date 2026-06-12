@@ -77,6 +77,9 @@ function getOutcomeColor(
 }
 
 function formatOutcomePercent(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
   const rounded = Math.round(value * 10) / 10;
   return rounded % 1 === 0 ? `${rounded}%` : `${rounded.toFixed(1)}%`;
 }
@@ -212,11 +215,39 @@ function ScalarGauge({
   );
 }
 
-function OutcomesDonut({ segments, size = DONUT_SIZE }: { segments: OutcomeSegment[]; size?: number }) {
+function OutcomesDonut({
+  segments,
+  size = DONUT_SIZE,
+  disabled = false,
+}: {
+  segments: OutcomeSegment[];
+  size?: number;
+  disabled?: boolean;
+}) {
   const cx = size / 2;
   const cy = size / 2;
   const outerRadius = size / 2 - 1;
   const innerRadius = outerRadius * 0.6;
+
+  if (disabled) {
+    const ringRadius = (outerRadius + innerRadius) / 2;
+    const ringWidth = outerRadius - innerRadius;
+
+    return (
+      <svg width={size} height={size} className="flex-shrink-0" aria-hidden="true">
+        <circle
+          cx={cx}
+          cy={cy}
+          r={ringRadius}
+          fill="none"
+          stroke="#EEEEEE"
+          strokeWidth={ringWidth}
+          className="dark:stroke-base-200"
+        />
+      </svg>
+    );
+  }
+
   const totalPadAngle = segments.length * DONUT_PAD_ANGLE;
   const availableAngle = 360 - totalPadAngle;
   let currentAngle = 0;
@@ -278,6 +309,7 @@ export function OutcomesInfo({
   const sumVisibleOdds = visibleIndexes
     .map((index) => (isOdd(odds[index]) ? odds[index] : 0))
     .reduce((acc, curr) => acc + curr, 0);
+  const hasUsableOdds = sumVisibleOdds > 0;
 
   if (odds.length === 0) {
     if (marketType === MarketTypes.SCALAR) {
@@ -306,12 +338,18 @@ export function OutcomesInfo({
     return <ScalarGauge value={marketEstimate} min={lowerBound} max={upperBound} unit={unit || undefined} />;
   }
   const segments = visibleIndexes.reduce<OutcomeSegment[]>((acc, i, order) => {
-    if (!isOdd(odds[i])) {
-      return acc;
-    }
     const outcome = market.outcomes[i];
     const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
     const color = getOutcomeColor(marketType, order, originalIndex, visibleOutcomesCount);
+
+    if (!hasUsableOdds) {
+      acc.push({ outcome, color, percent: 0, key: `${outcome}_${i}` });
+      return acc;
+    }
+
+    if (!isOdd(odds[i])) {
+      return acc;
+    }
     const percent = (odds[i] / sumVisibleOdds) * 100;
     acc.push({ outcome, color, percent, key: `${outcome}_${i}` });
     return acc;
@@ -323,7 +361,7 @@ export function OutcomesInfo({
 
   return (
     <div className="flex items-center gap-3 w-full">
-      <OutcomesDonut segments={segments} />
+      <OutcomesDonut segments={segments} disabled={!hasUsableOdds} />
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         {segments.map((segment) => (
           <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
