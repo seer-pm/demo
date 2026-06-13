@@ -291,7 +291,12 @@ export {
   executeFillToEstimate,
   getFillToEstimateApprovalTokens,
 } from "./fill-to-estimate-trade";
-export type { FillToEstimateLegTrade, FillToEstimateTradeParams } from "./fill-to-estimate-trade";
+export type {
+  FillToEstimateExecutionOptions,
+  FillToEstimateLegExecutionStatus,
+  FillToEstimateLegTrade,
+  FillToEstimateTradeParams,
+} from "./fill-to-estimate-trade";
 export { isSeerCredits } from "./seer-credits";
 
 // Curate / TCR

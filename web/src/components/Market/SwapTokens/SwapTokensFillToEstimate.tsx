@@ -163,6 +163,7 @@ export function SwapTokensFillToEstimate({
     closeConfirmModal();
     reset();
   });
+  const { legExecutionStatuses } = fillToEstimateTrade;
 
   const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
   const isPsm3Collateral = isPsm3SwapToken(market.chainId, selectedCollateral.address);
@@ -454,6 +455,7 @@ export function SwapTokensFillToEstimate({
               plan={plan}
               collateral={selectedCollateral}
               isLoading={fillToEstimateTrade.isPending || isQuoting}
+              legExecutionStatuses={legExecutionStatuses}
               onSubmit={onConfirm}
             />
           ) : null

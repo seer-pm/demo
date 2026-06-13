@@ -4,7 +4,7 @@
 
 import { SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import type { Address, Client } from "viem";
-import { sendTransaction } from "viem/actions";
+import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
 import { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 import type { SupportedChain } from "./chains";
 import { buildSwaprTradeExecution, buildUniswapTradeExecution, getTradeApprovals7702 } from "./execute-trade";
@@ -30,6 +30,12 @@ export interface FillToEstimateTradeParams {
   isBuyExactOutputNative: boolean;
   isSellToNative: boolean;
   isSeerCredits: boolean;
+}
+
+export type FillToEstimateLegExecutionStatus = "pending" | "awaiting_wallet" | "confirming" | "complete" | "failed";
+
+export interface FillToEstimateExecutionOptions {
+  onLegStatusChange?: (legIndex: number, status: FillToEstimateLegExecutionStatus) => void;
 }
 
 function findLegTrade(legTrades: FillToEstimateLegTrade[], leg: FillToEstimateLeg): FillToEstimateLegTrade | undefined {
@@ -123,98 +129,138 @@ export async function buildFillToEstimateCalls7702(params: FillToEstimateTradePa
   return calls;
 }
 
-async function sendApprovalCalls(client: Client, account: Address, calls: Execution[]): Promise<void> {
+type LegStatusReporter = (status: FillToEstimateLegExecutionStatus) => void;
+
+async function sendAndWait(
+  client: Client,
+  account: Address,
+  call: Execution,
+  reportStatus: LegStatusReporter,
+): Promise<`0x${string}`> {
+  reportStatus("awaiting_wallet");
+  const hash = await sendTransaction(client, { ...call, account, chain: client.chain });
+  reportStatus("confirming");
+  await waitForTransactionReceipt(client, { hash });
+  return hash;
+}
+
+async function sendApprovalCalls(
+  client: Client,
+  account: Address,
+  calls: Execution[],
+  reportStatus: LegStatusReporter,
+): Promise<void> {
   for (const call of calls) {
-    await sendTransaction(client, { ...call, account, chain: client.chain });
+    await sendAndWait(client, account, call, reportStatus);
   }
 }
 
-export async function executeFillToEstimate(client: Client, params: FillToEstimateTradeParams): Promise<`0x${string}`> {
+export async function executeFillToEstimate(
+  client: Client,
+  params: FillToEstimateTradeParams,
+  options?: FillToEstimateExecutionOptions,
+): Promise<`0x${string}`> {
   const { plan, market, account, collateralToken, legTrades, isBuyExactOutputNative, isSellToNative, isSeerCredits } =
     params;
+  const { onLegStatusChange } = options ?? {};
 
   const router = getRouterAddress(market);
   const chainId = market.chainId as SupportedChain;
   let lastHash: `0x${string}` = "0x";
 
-  for (const leg of plan.legs) {
-    if (leg.kind === "split") {
-      const neededSplit = await fetchNeededApprovals(client, [collateralToken], account, router, [leg.amount]);
-      for (const approval of neededSplit) {
-        await sendApprovalCalls(
+  for (let legIndex = 0; legIndex < plan.legs.length; legIndex++) {
+    const leg = plan.legs[legIndex];
+    const reportStatus: LegStatusReporter = (status) => onLegStatusChange?.(legIndex, status);
+
+    try {
+      if (leg.kind === "split") {
+        const neededSplit = await fetchNeededApprovals(client, [collateralToken], account, router, [leg.amount]);
+        for (const approval of neededSplit) {
+          await sendApprovalCalls(
+            client,
+            account,
+            getApprovals7702({
+              tokensAddresses: [approval.tokenAddress],
+              account,
+              spender: router,
+              amounts: approval.amount,
+              chainId,
+            }),
+            reportStatus,
+          );
+        }
+
+        lastHash = await sendAndWait(
           client,
           account,
-          getApprovals7702({
-            tokensAddresses: [approval.tokenAddress],
-            account,
-            spender: router,
-            amounts: approval.amount,
-            chainId,
+          getSplitExecution({
+            router,
+            market,
+            collateralToken,
+            amount: leg.amount,
           }),
+          reportStatus,
         );
+        onLegStatusChange?.(legIndex, "complete");
+        continue;
       }
 
-      lastHash = await sendTransaction(client, {
-        ...getSplitExecution({
-          router,
-          market,
-          collateralToken,
-          amount: leg.amount,
-        }),
+      const legTrade = findLegTrade(legTrades, leg);
+      if (!legTrade) {
+        throw new Error(`Missing quoted trade for ${leg.kind} leg on outcome ${leg.outcomeIndex}`);
+      }
+
+      const { trade } = legTrade;
+      const swapSpender = trade.approveAddress as Address;
+      const outcomeToken = market.wrappedTokens[leg.outcomeIndex] as Address;
+
+      if (leg.kind === "sell") {
+        const neededSell = await fetchNeededApprovals(client, [outcomeToken], account, swapSpender, [leg.amount]);
+        for (const approval of neededSell) {
+          await sendApprovalCalls(
+            client,
+            account,
+            getApprovals7702({
+              tokensAddresses: [approval.tokenAddress],
+              account,
+              spender: swapSpender,
+              amounts: approval.amount,
+              chainId,
+            }),
+            reportStatus,
+          );
+        }
+      } else {
+        const neededBuy = await fetchNeededApprovals(client, [collateralToken], account, swapSpender, [
+          getMaximumAmountIn(trade),
+        ]);
+        for (const approval of neededBuy) {
+          await sendApprovalCalls(
+            client,
+            account,
+            getApprovals7702({
+              tokensAddresses: [approval.tokenAddress],
+              account,
+              spender: swapSpender,
+              amounts: approval.amount,
+              chainId,
+            }),
+            reportStatus,
+          );
+        }
+      }
+
+      lastHash = await sendAndWait(
+        client,
         account,
-        chain: client.chain,
-      });
-      continue;
+        await getSwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits),
+        reportStatus,
+      );
+      onLegStatusChange?.(legIndex, "complete");
+    } catch (error) {
+      onLegStatusChange?.(legIndex, "failed");
+      throw error;
     }
-
-    const legTrade = findLegTrade(legTrades, leg);
-    if (!legTrade) {
-      throw new Error(`Missing quoted trade for ${leg.kind} leg on outcome ${leg.outcomeIndex}`);
-    }
-
-    const { trade } = legTrade;
-    const swapSpender = trade.approveAddress as Address;
-    const outcomeToken = market.wrappedTokens[leg.outcomeIndex] as Address;
-
-    if (leg.kind === "sell") {
-      const neededSell = await fetchNeededApprovals(client, [outcomeToken], account, swapSpender, [leg.amount]);
-      for (const approval of neededSell) {
-        await sendApprovalCalls(
-          client,
-          account,
-          getApprovals7702({
-            tokensAddresses: [approval.tokenAddress],
-            account,
-            spender: swapSpender,
-            amounts: approval.amount,
-            chainId,
-          }),
-        );
-      }
-    } else {
-      const neededBuy = await fetchNeededApprovals(client, [collateralToken], account, swapSpender, [
-        getMaximumAmountIn(trade),
-      ]);
-      for (const approval of neededBuy) {
-        await sendApprovalCalls(
-          client,
-          account,
-          getApprovals7702({
-            tokensAddresses: [approval.tokenAddress],
-            account,
-            spender: swapSpender,
-            amounts: approval.amount,
-            chainId,
-          }),
-        );
-      }
-    }
-
-    lastHash = await sendTransaction(client, {
-      ...(await getSwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits)),
-      account,
-      chain: client.chain,
-    });
   }
 
   if (lastHash === "0x") {

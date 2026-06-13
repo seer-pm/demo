@@ -1,5 +1,6 @@
 import { toastifyTx } from "@/lib/toastify";
 import {
+  type FillToEstimateLegExecutionStatus,
   type FillToEstimateLegTrade,
   type FillToEstimatePlan,
   type FillToEstimateTradeParams,
@@ -8,6 +9,7 @@ import {
 } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import type { Address, Client } from "viem";
 import { sendCalls } from "viem/actions";
 import { useConnectorClient } from "wagmi";
@@ -41,6 +43,7 @@ export function useFillToEstimateTrade(onSuccess: () => unknown) {
   const supports7702 = useCheck7702Support();
   const queryClient = useQueryClient();
   const { data: walletClient } = useConnectorClient();
+  const [legExecutionStatuses, setLegExecutionStatuses] = useState<FillToEstimateLegExecutionStatus[] | null>(null);
 
   const invalidateAfterTrade = () => {
     queryClient.invalidateQueries({ queryKey: ["useQuote"] });
@@ -52,7 +55,7 @@ export function useFillToEstimateTrade(onSuccess: () => unknown) {
     onSuccess();
   };
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: ExecuteFillToEstimateParams) => {
       if (!walletClient) {
         throw new Error("No wallet client connected");
@@ -80,15 +83,37 @@ export function useFillToEstimateTrade(onSuccess: () => unknown) {
         return result.receipt;
       }
 
-      const result = await toastifyTx(() => executeFillToEstimate(walletClient as Client, tradeParams), {
-        txSent: { title: "Executing fill-to-estimate..." },
-        txSuccess: { title: "Fill-to-estimate executed!" },
-      });
+      setLegExecutionStatuses(params.plan.legs.map(() => "pending" as const));
+
+      const result = await toastifyTx(
+        () =>
+          executeFillToEstimate(walletClient as Client, tradeParams, {
+            onLegStatusChange: (legIndex, status) => {
+              setLegExecutionStatuses((prev) => {
+                if (!prev) {
+                  return prev;
+                }
+                const next = [...prev];
+                next[legIndex] = status;
+                return next;
+              });
+            },
+          }),
+        {
+          txSent: { title: "Executing fill-to-estimate..." },
+          txSuccess: { title: "Fill-to-estimate executed!" },
+        },
+      );
       if (!result.status) {
         throw result.error;
       }
       return result.receipt;
     },
     onSuccess: invalidateAfterTrade,
+    onSettled: () => {
+      setLegExecutionStatuses(null);
+    },
   });
+
+  return { ...mutation, legExecutionStatuses };
 }
