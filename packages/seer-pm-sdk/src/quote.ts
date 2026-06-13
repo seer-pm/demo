@@ -15,6 +15,7 @@ import {
   UniswapTrade,
 } from "@swapr/sdk";
 import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
+import { gnosis } from "viem/chains";
 import { getActivePrimaryCollateral } from "./collateral";
 import { isTwoStringsEqual, parseFraction } from "./quote-utils";
 import type { Token } from "./tokens";
@@ -561,4 +562,21 @@ export async function fetchUniswapQuote(
   return tradeType === TradeType.EXACT_INPUT
     ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
     : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+}
+
+/** Route AMM quotes to Swapr (Gnosis) or Uniswap (EVM L1/L2). */
+export async function fetchAmmQuote(
+  tradeType: TradeType,
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  maxSlippage: string,
+): Promise<QuoteTradeResult> {
+  if (chainId === gnosis.id) {
+    return fetchSwaprQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+  }
+  return fetchUniswapQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
 }

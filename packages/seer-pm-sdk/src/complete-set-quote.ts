@@ -6,12 +6,11 @@ import { type SwaprV3Trade, TradeType, type UniswapTrade } from "@swapr/sdk";
 import type { Address, Client } from "viem";
 import { erc20Abi, formatUnits, parseUnits } from "viem";
 import { multicall } from "viem/actions";
-import { gnosis } from "viem/chains";
 import { isCompleteSetMarket } from "./market";
 import type { Market } from "./market-types";
 import { isPsm3SwapToken } from "./psm3";
 import type { QuoteTradeResult } from "./quote";
-import { fetchSwaprQuote, fetchUniswapQuote } from "./quote";
+import { fetchAmmQuote } from "./quote";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { MarketLike } from "./router-addresses";
 import { isSeerCredits } from "./seer-credits";
@@ -271,22 +270,6 @@ function getOutcomeToken(market: Market, outcomeIndex: number): Token {
     decimals: 18,
     symbol: market.outcomes[outcomeIndex] ?? `OUTCOME_${outcomeIndex}`,
   };
-}
-
-async function fetchAmmQuote(
-  tradeType: TradeType,
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  maxSlippage: string,
-): Promise<QuoteTradeResult> {
-  if (chainId === gnosis.id) {
-    return fetchSwaprQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-  }
-  return fetchUniswapQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
 }
 
 function getDirectNetCollateral(quote: QuoteTradeResult, swapType: "buy" | "sell", tradeType: TradeType): bigint {
