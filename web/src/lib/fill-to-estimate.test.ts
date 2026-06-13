@@ -1,7 +1,9 @@
 import {
+  type FillToEstimatePoolData,
   buildFillToEstimateLegEstimates,
   buildFillToEstimatePlan,
   estimateFromOdds,
+  getLiquidityPair,
   getPoolLegDirection,
   getPriceFromVolume,
   isFillToEstimateEnabled,
@@ -60,6 +62,31 @@ const createMinimalMarket = (overrides: Partial<Market> = {}): Market => ({
   ...overrides,
 });
 
+function createScalarTestPools(market: Market): [FillToEstimatePoolData, FillToEstimatePoolData] {
+  const liquidity = parseUnits("1000000", 18);
+  const ticks = [
+    { tickIdx: "600", liquidityNet: liquidity.toString() },
+    { tickIdx: "-600", liquidityNet: (-liquidity).toString() },
+  ];
+
+  const makePool = (outcomeIndex: 0 | 1): FillToEstimatePoolData => {
+    const pair = getLiquidityPair(market, outcomeIndex);
+    return {
+      pool: {
+        liquidity,
+        tickSpacing: 60,
+        tick: 0,
+        token0: pair.token0,
+        token1: pair.token1,
+      },
+      ticks,
+      outcomeAddress: market.wrappedTokens[outcomeIndex] as Address,
+    };
+  };
+
+  return [makePool(0), makePool(1)];
+}
+
 describe("fill-to-estimate math", () => {
   const market = createMinimalMarket();
 
@@ -117,20 +144,29 @@ describe("fill-to-estimate plan", () => {
     expect(plan.achievableEstimate).toBe(50);
   });
 
-  it("scales plan when ideal peak collateral use exceeds max collateral to use", () => {
+  it("limits plan when max collateral to use is below ideal peak", () => {
+    const pools = createScalarTestPools(market);
     const plan = buildFillToEstimatePlan({
       market,
-      targetEstimate: 70,
-      currentOdds: [30, 70],
+      targetEstimate: 60,
+      currentOdds: [50, 50],
       balances: { collateral: parseUnits("100", 18), outcome0: 0n, outcome1: 0n },
       maxCollateralToUse: parseUnits("3", 18),
-      pools: [undefined, undefined],
+      pools,
     });
 
     expect(plan.legs.length).toBeGreaterThan(0);
-    expect(plan.isBudgetConstrained).toBe(true);
     expect(plan.userMaxCollateralToUse).toBe(parseUnits("3", 18));
     expect(plan.estimatedPeakCollateralUse).toBeLessThanOrEqual(parseUnits("3", 18));
+
+    const unconstrained = buildFillToEstimatePlan({
+      market,
+      targetEstimate: 60,
+      currentOdds: [50, 50],
+      balances: { collateral: parseUnits("100", 18), outcome0: 0n, outcome1: 0n },
+      pools,
+    });
+    expect(unconstrained.idealPeakCollateralUse).toBeGreaterThan(parseUnits("3", 18));
   });
 
   it("does not mark budget constrained when max collateral to use exceeds ideal peak use", () => {

@@ -20,6 +20,11 @@ export function usePriceFromVolume(
     return;
   }
 
-  const { ticks, poolInfo } = Object.values(ticksByPool)[0];
+  const firstPool = Object.values(ticksByPool)[0];
+  if (!firstPool) {
+    return;
+  }
+
+  const { ticks, poolInfo } = firstPool;
   return getPriceFromVolume(poolInfo, ticks, targetVolume, outcome, swapType);
 }

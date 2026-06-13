@@ -19,7 +19,12 @@ export function useVolumeUntilPrice(
     return;
   }
 
-  const { ticks, poolInfo } = Object.values(ticksByPool)[0];
+  const firstPool = Object.values(ticksByPool)[0];
+  if (!firstPool) {
+    return;
+  }
+
+  const { ticks, poolInfo } = firstPool;
   const currentPrice = Number(tickToPrice(poolInfo.tick)[isTwoStringsEqual(poolInfo.token0, outcome) ? 0 : 1]);
   if (currentPrice === targetPrice) {
     return;
