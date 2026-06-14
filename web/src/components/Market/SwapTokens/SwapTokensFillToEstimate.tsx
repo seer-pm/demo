@@ -1,9 +1,5 @@
 import { FillToEstimateConfirmation } from "@/components/Market/SwapTokens/FillToEstimateConfirmation";
-import {
-  getOutcomeTokenForIndex,
-  useFillToEstimateCollateralToken,
-  useFillToEstimatePlan,
-} from "@/hooks/fill-to-estimate/useFillToEstimatePlan";
+import { getOutcomeTokenForIndex, useFillToEstimatePlan } from "@/hooks/fill-to-estimate/useFillToEstimatePlan";
 import { useFillToEstimateTrade } from "@/hooks/fill-to-estimate/useFillToEstimateTrade";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
@@ -16,6 +12,7 @@ import {
   Market,
   fetchAmmQuote,
   fetchPsm3UniswapQuote,
+  getFillToEstimateCollateral,
   getMarketEstimate,
   getMarketUnit,
   isFillToEstimateEnabled,
@@ -53,7 +50,10 @@ export function SwapTokensFillToEstimate({
   const { address: account } = useAccount();
   const wagmiConfig = useConfig();
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
-  const selectedCollateral = useFillToEstimateCollateralToken(market, fixedCollateral);
+  const selectedCollateral = useMemo(
+    () => getFillToEstimateCollateral(market, fixedCollateral),
+    [market, fixedCollateral],
+  );
   const { data: odds = [] } = useMarketOdds(market, isFillToEstimateEnabled(market));
   const { data: collateralBalance = 0n, isFetching: isFetchingBalance } = useTokenBalance(
     account,
@@ -236,9 +236,6 @@ export function SwapTokensFillToEstimate({
         account,
         collateralToken: selectedCollateral,
         legTrades,
-        isBuyExactOutputNative: false,
-        isSellToNative: false,
-        isSeerCredits: isSeerCreditsCollateral,
       });
     } finally {
       setIsQuoting(false);

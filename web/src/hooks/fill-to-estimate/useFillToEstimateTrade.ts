@@ -21,9 +21,6 @@ interface ExecuteFillToEstimateParams {
   account: Address;
   collateralToken: Token;
   legTrades: FillToEstimateLegTrade[];
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
-  isSeerCredits: boolean;
 }
 
 function buildTradeParams(params: ExecuteFillToEstimateParams): FillToEstimateTradeParams {
@@ -33,9 +30,6 @@ function buildTradeParams(params: ExecuteFillToEstimateParams): FillToEstimateTr
     account: params.account,
     collateralToken: params.collateralToken.address,
     legTrades: params.legTrades,
-    isBuyExactOutputNative: params.isBuyExactOutputNative,
-    isSellToNative: params.isSellToNative,
-    isSeerCredits: params.isSeerCredits,
   };
 }
 

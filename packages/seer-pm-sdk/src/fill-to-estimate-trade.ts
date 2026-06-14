@@ -1,5 +1,6 @@
 /**
  * Fill-to-estimate multi-leg trade execution.
+ * Uses primary ERC20 collateral only (e.g. sDAI) — splitPosition + AMM swaps.
  */
 
 import { SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
@@ -12,6 +13,7 @@ import type { Execution } from "./execution";
 import type { FillToEstimateLeg, FillToEstimatePlan } from "./fill-to-estimate-plan";
 import type { Market } from "./market-types";
 import { getRouterAddress } from "./router-addresses";
+import { isSeerCredits } from "./seer-credits";
 import { getSplitExecution } from "./split-position";
 import { getMaximumAmountIn } from "./trade-utils";
 
@@ -27,9 +29,6 @@ export interface FillToEstimateTradeParams {
   account: Address;
   collateralToken: Address;
   legTrades: FillToEstimateLegTrade[];
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
-  isSeerCredits: boolean;
 }
 
 export type FillToEstimateLegExecutionStatus = "pending" | "awaiting_wallet" | "confirming" | "complete" | "failed";
@@ -48,21 +47,21 @@ function findLegTrade(legTrades: FillToEstimateLegTrade[], leg: FillToEstimateLe
 async function getSwapExecution(
   trade: SwaprV3Trade | UniswapTrade,
   account: Address,
-  isBuyExactOutputNative: boolean,
-  isSellToNative: boolean,
-  isSeerCredits: boolean,
+  collateralToken: Address,
+  chainId: number,
 ): Promise<Execution> {
+  const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken);
+
   if (trade instanceof UniswapTrade) {
-    return buildUniswapTradeExecution(trade, account, isSeerCredits);
+    return buildUniswapTradeExecution(trade, account, isSeerCreditsCollateral);
   }
-  return buildSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  return buildSwaprTradeExecution(trade, account, false, false, isSeerCreditsCollateral);
 }
 
 export async function buildFillToEstimateCalls7702(params: FillToEstimateTradeParams): Promise<Execution[]> {
-  const { plan, market, account, collateralToken, legTrades, isBuyExactOutputNative, isSellToNative, isSeerCredits } =
-    params;
+  const { plan, market, account, collateralToken, legTrades } = params;
 
-  if (isSeerCredits) {
+  if (isSeerCredits(market.chainId, collateralToken)) {
     throw new Error("Fill-to-estimate is not supported with Seer Credits");
   }
 
@@ -123,7 +122,7 @@ export async function buildFillToEstimateCalls7702(params: FillToEstimateTradePa
       );
     }
 
-    calls.push(await getSwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits));
+    calls.push(await getSwapExecution(trade, account, collateralToken, chainId));
   }
 
   return calls;
@@ -160,9 +159,12 @@ export async function executeFillToEstimate(
   params: FillToEstimateTradeParams,
   options?: FillToEstimateExecutionOptions,
 ): Promise<`0x${string}`> {
-  const { plan, market, account, collateralToken, legTrades, isBuyExactOutputNative, isSellToNative, isSeerCredits } =
-    params;
+  const { plan, market, account, collateralToken, legTrades } = params;
   const { onLegStatusChange } = options ?? {};
+
+  if (isSeerCredits(market.chainId, collateralToken)) {
+    throw new Error("Fill-to-estimate is not supported with Seer Credits");
+  }
 
   const router = getRouterAddress(market);
   const chainId = market.chainId as SupportedChain;
@@ -253,7 +255,7 @@ export async function executeFillToEstimate(
       lastHash = await sendAndWait(
         client,
         account,
-        await getSwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits),
+        await getSwapExecution(trade, account, collateralToken, chainId),
         reportStatus,
       );
       onLegStatusChange?.(legIndex, "complete");

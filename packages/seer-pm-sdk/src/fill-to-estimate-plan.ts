@@ -1,5 +1,6 @@
 import { parseUnits } from "viem";
 import type { Address } from "viem";
+import { getActivePrimaryCollateral } from "./collateral";
 import {
   getCurrentEstimateFromOdds,
   getPoolLegDirection,
@@ -11,6 +12,7 @@ import { MarketTypes, getMarketType } from "./market";
 import { getMarketEstimate, normalizeOdds } from "./market-odds";
 import type { Market } from "./market-types";
 import { type PoolTick, type PoolVolumeInfo, getPriceFromVolume, getVolumeUntilPrice } from "./pool-volume";
+import type { Token } from "./tokens";
 
 export type FillToEstimateLegKind = "split" | "sell" | "buy";
 
@@ -336,6 +338,10 @@ function simulateAchievableEstimate(
   }
 
   return simulateEstimateFromPrices(simulatedPrices, market);
+}
+
+export function getFillToEstimateCollateral(market: Market, fixedCollateral?: Token): Token {
+  return fixedCollateral ?? getActivePrimaryCollateral(market.chainId);
 }
 
 export function isFillToEstimateEnabled(market: Market): boolean {

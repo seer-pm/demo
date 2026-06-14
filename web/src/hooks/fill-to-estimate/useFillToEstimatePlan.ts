@@ -1,12 +1,9 @@
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
-import { useGlobalState } from "@/hooks/useGlobalState";
-import { isTwoStringsEqual } from "@/lib/utils";
 import { useMarketOdds, useTokenBalance } from "@seer-pm/react";
 import {
   type FillToEstimatePlan,
   type FillToEstimatePoolData,
   buildFillToEstimatePlan,
-  getActivePrimaryCollateral,
   isFillToEstimateEnabled,
 } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
@@ -93,12 +90,6 @@ export function useFillToEstimatePlan({
   ]);
 }
 
-export function useFillToEstimateCollateralToken(market: Market, fixedCollateral: Token | undefined) {
-  const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId, "buy"));
-  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
-  return fixedCollateral || preferredCollateral || primaryCollateral;
-}
-
 export function getOutcomeTokenForIndex(market: Market, outcomeIndex: 0 | 1): Token {
   return {
     address: market.wrappedTokens[outcomeIndex] as Address,
@@ -106,11 +97,4 @@ export function getOutcomeTokenForIndex(market: Market, outcomeIndex: 0 | 1): To
     decimals: 18,
     symbol: market.outcomes[outcomeIndex],
   };
-}
-
-export function isSameCollateralToken(a: Token | undefined, b: Token | undefined): boolean {
-  if (!a || !b) {
-    return false;
-  }
-  return isTwoStringsEqual(a.address, b.address);
 }

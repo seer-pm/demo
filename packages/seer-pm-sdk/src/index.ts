@@ -274,6 +274,7 @@ export {
   buildFillToEstimateLegEstimates,
   estimatePeakCollateralUse,
   isFillToEstimateEnabled,
+  getFillToEstimateCollateral,
   getNormalizedTradeableOdds,
   getEstimateFromNormalizedOdds,
 } from "./fill-to-estimate-plan";
