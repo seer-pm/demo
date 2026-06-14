@@ -37,6 +37,7 @@ import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
 import { NotificationsForm } from "../Market/Header/NotificationsForm";
 import { ThemeToggleButton } from "./ThemeToggleButton";
+import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -257,16 +258,13 @@ export default function Header() {
 
   const buildAndRender = (isMobile: boolean) => {
     const nestedLinkClassName = getNestedLinkClassName(isMobile);
+    const profileMenuLinkClassName = clsx(nestedLinkClassName, !isMobile && "text-[14px] w-full");
     const render = useNavRenderer(isMobile, isConnected);
 
     const deposit = isMobile ? (
       <Button type="button" text="Deposit" onClick={openModal} />
     ) : (
-      <button
-        type="button"
-        onClick={openModal}
-        className="w-full flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary"
-      >
+      <button type="button" onClick={openModal} className={profileMenuLinkClassName}>
         Deposit
       </button>
     );
@@ -362,21 +360,26 @@ export default function Header() {
                     type: "link",
                     url: "/portfolio",
                     title: "Portfolio",
-                    className: nestedLinkClassName,
+                    className: profileMenuLinkClassName,
                   },
                   {
                     id: "collections",
                     type: "link",
                     url: "/collections/default",
                     title: "Market Collections",
-                    className: nestedLinkClassName,
+                    className: profileMenuLinkClassName,
                   },
                   {
                     id: "trade-collateral",
                     type: "link",
                     url: paths.tradeCollateral(),
                     title: "Trade Collateral",
-                    className: nestedLinkClassName,
+                    className: profileMenuLinkClassName,
+                  },
+                  {
+                    id: "use-smart-account",
+                    type: "custom",
+                    element: <UseSmartAccountToggle className={profileMenuLinkClassName} />,
                   },
                 ],
               },
