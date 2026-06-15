@@ -352,9 +352,10 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-        <div className="text-[16px] flex items-center gap-1">
+        <div className="text-[15px] font-semibold flex items-center gap-1">
           <p>
-            {market.type === "Generic" && <>#{loopIndex + 1}</>} {market.outcomes[outcomeIndex]}{" "}
+            {market.type === "Generic" && <span className="text-ink-4">#{loopIndex + 1}</span>}{" "}
+            {market.outcomes[outcomeIndex]}{" "}
             {outcomeIndex <= 1 &&
               getMarketType(market) === MarketTypes.SCALAR &&
               `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}{" "}
@@ -364,7 +365,7 @@ function OutcomeDetails({
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
                 {getTooltipContent(market, outcomeIndex)}
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" />
             </span>
           )}
           {_isInvalidOutcome && (
@@ -373,7 +374,7 @@ function OutcomeDetails({
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
                 invalid.
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" />
             </span>
           )}
 
@@ -473,15 +474,15 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
   }, [indexesOrderedByOdds, onOutcomeChange]);
 
   return (
-    <div>
+    <div className="card-box p-[22px]">
       <PoolDetailsModal
         title="Pool details"
         titleClassName="text-[24px] font-semibold text-center"
         className="!max-w-[99vw] min-[400px]:!max-w-[80vw]"
         content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
       />
-      <div className="text-[16px] font-semibold mb-[24px]">Outcomes</div>
-      <div className="space-y-3">
+      <div className="font-display text-[18px] font-semibold tracking-tight mb-[18px]">Outcomes</div>
+      <div className="space-y-2.5">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
@@ -494,8 +495,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                 onOutcomeChange(i, !isClickOnLinkOrButton);
               }}
               className={clsx(
-                "card flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
-                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2) ? "card-active" : "",
+                "card flex-row justify-between items-center p-[14px] lg:p-[18px] cursor-pointer transition-colors hover:bg-bg-2",
+                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
+                  ? "card-active hover:!bg-transparent"
+                  : "",
                 market.type === "Futarchy" && "max-md:space-y-[12px]",
               )}
             >
@@ -550,7 +553,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
               )}
               <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
                 {market.type === "Generic" && (
-                  <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
+                  <div className="font-display text-[20px] min-[400px]:text-[24px] font-medium tracking-tight tabular-nums text-right">
                     {isLoading ? (
                       <Spinner />
                     ) : (

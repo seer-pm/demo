@@ -62,7 +62,7 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           <p className="tooltiptext w-[300px] !whitespace-break-spaces">
             Your transaction will revert if the price changes unfavorably by more than this percentage
           </p>
-          <QuestionIcon fill="#9747FF" />
+          <QuestionIcon fill="var(--blue)" />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -114,7 +114,7 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
         <p>Instant Swap</p>
         <div className="tooltip">
           <p className="tooltiptext w-[200px] !whitespace-break-spaces">Swap directly without using Cowswap</p>
-          <QuestionIcon fill="#9747FF" />
+          <QuestionIcon fill="var(--blue)" />
         </div>
         <Toggle
           className="checked:bg-purple-primary ml-3"

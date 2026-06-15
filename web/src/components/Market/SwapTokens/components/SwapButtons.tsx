@@ -32,7 +32,7 @@ export default function SwapButtons({
           disabled={isDisabled}
           isLoading={isLoading}
           text={text ?? "Swap"}
-          className="w-full"
+          className="w-full !rounded-[8px]"
         />
       )}
       {isShowApproval && (

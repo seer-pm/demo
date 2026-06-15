@@ -4,7 +4,6 @@ import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import MarketCategories from "@/components/Market/MarketCategories";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
@@ -150,7 +149,7 @@ function MarketPage() {
 
   if (isMarketError) {
     return (
-      <div className="container py-10">
+      <div className="container-fluid py-10">
         <Alert type="error" className="mb-5">
           Market not found
         </Alert>
@@ -221,7 +220,6 @@ function MarketPage() {
         />
 
         <MarketHeader market={market} images={market.images} />
-        {market.categories?.length > 0 && <MarketCategories market={market} />}
         {!reliableMarket && (
           <Alert
             type="error"

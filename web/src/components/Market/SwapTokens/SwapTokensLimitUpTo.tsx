@@ -550,7 +550,7 @@ export function SwapTokensLimitUpto({
                     <p className="tooltiptext">
                       {(collateralPerShare * sharesToAssets).toFixed(3)} {primaryCollateral.symbol}
                     </p>
-                    <QuestionIcon fill="#9747FF" />
+                    <QuestionIcon fill="var(--blue)" />
                   </span>
                 )}
               </div>

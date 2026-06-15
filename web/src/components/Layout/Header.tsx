@@ -130,6 +130,7 @@ type NavItem = {
   icon?: ReactElement;
   element?: ReactElement;
   className?: string;
+  active?: boolean;
   children?: NavItem[];
 };
 
@@ -164,8 +165,17 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
           <Link
             key={item.id}
             to={item.url ?? ""}
+            aria-current={item.active ? "page" : undefined}
             className={
-              item.className ?? (isMobile ? "hover:font-semibold block" : "whitespace-nowrap hover:opacity-85 py-3")
+              item.className ??
+              (isMobile
+                ? clsx("hover:font-semibold block", item.active && "font-semibold")
+                : clsx(
+                    "whitespace-nowrap px-[14px] py-[8px] rounded-[6px] transition-colors relative",
+                    item.active
+                      ? "text-ink after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[12px] after:h-[2px] after:bg-blue after:rounded-t"
+                      : "text-ink-3 hover:bg-bg-2 hover:text-ink",
+                  ))
             }
           >
             {item.icon} {item.title}
@@ -182,7 +192,11 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
         ) : (
           <div key={item.id} className={item.className ?? "dropdown dropdown-end"}>
             {item.element ?? (
-              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
+              <button
+                type="button"
+                tabIndex={0}
+                className="flex items-center gap-1.5 px-[14px] py-[8px] rounded-[6px] text-ink-3 hover:bg-bg-2 hover:text-ink transition-colors"
+              >
                 <span>{item.title}</span> {item.icon}
               </button>
             )}
@@ -260,6 +274,7 @@ export default function Header() {
     const nestedLinkClassName = getNestedLinkClassName(isMobile);
     const profileMenuLinkClassName = clsx(nestedLinkClassName, !isMobile && "text-[14px] w-full");
     const render = useNavRenderer(isMobile, isConnected);
+    const currentPath = urlParsed.pathname;
 
     const deposit = isMobile ? (
       <Button type="button" text="Deposit" onClick={openModal} />
@@ -295,15 +310,21 @@ export default function Header() {
         type: "container",
         className: isMobile
           ? "space-y-[24px]"
-          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[8px]",
         children: [
-          { id: "market", type: "link", url: "/", title: "Markets" },
-          { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
+          { id: "market", type: "link", url: "/", title: "Markets", active: currentPath === "/" },
+          {
+            id: "create-market",
+            type: "link",
+            url: "/create-market",
+            title: "Create Market",
+            active: currentPath.startsWith("/create-market"),
+          },
           {
             id: "policies-dropdown",
             type: "nested_links",
             title: "Policies",
-            icon: <DownArrow />,
+            icon: <DownArrow width={9} height={9} fill="var(--ink-5)" />,
             children: [
               {
                 id: "verified-policy",
@@ -327,7 +348,7 @@ export default function Header() {
             id: "app-dropdown",
             type: "nested_links",
             title: "App",
-            icon: <DownArrow />,
+            icon: <DownArrow width={9} height={9} fill="var(--ink-5)" />,
             children: [
               appLink("futarchy", "futarchy", "Futarchy.fi", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
@@ -394,6 +415,16 @@ export default function Header() {
                 id: "notification-dropdown",
                 type: "nested_links",
                 icon: <NotificationIcon />,
+                element: isMobile ? undefined : (
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    aria-label="Email notifications"
+                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
+                  >
+                    <NotificationIcon />
+                  </button>
+                ),
                 children: [
                   {
                     id: "notification-settings",
@@ -406,6 +437,16 @@ export default function Header() {
                 id: "information",
                 type: "nested_links",
                 icon: <QuestionIcon />,
+                element: isMobile ? undefined : (
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    aria-label="Help"
+                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
+                  >
+                    <QuestionIcon />
+                  </button>
+                ),
                 children: [
                   {
                     id: "help",
@@ -454,13 +495,13 @@ export default function Header() {
                 type: "custom",
                 element: isMobile ? (
                   <div className="py-[16px]">
-                    <ThemeToggleButton iconFill="#9747FF" iconSize="17" showLabel />
+                    <ThemeToggleButton iconFill="var(--blue)" iconSize="17" showLabel />
                   </div>
                 ) : (
                   <ThemeToggleButton
-                    iconFill="white"
-                    iconSize="20"
-                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
+                    iconFill="currentColor"
+                    iconSize="18"
+                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
                   />
                 ),
               },
@@ -487,7 +528,7 @@ export default function Header() {
   };
 
   return (
-    <header id="header" className="bg-purple-dark">
+    <header id="header" className="bg-surface border-b border-[var(--border)] sticky top-0 z-50 text-ink">
       <Modal
         title="Deposit"
         className="w-[400px]"
@@ -496,11 +537,11 @@ export default function Header() {
       <BetaWarning />
       <nav
         ref={navRef}
-        className="navbar container-fluid text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
+        className="navbar container-fluid text-ink-3 gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
       >
         <div className="absolute left-[24px] lg:left-[12px]">
-          <Link className="text-white hover:opacity-85" to="/">
-            <SeerLogo width="99.2px" height="46px" />
+          <Link className="text-ink hover:text-blue transition-colors" to="/">
+            <SeerLogo width="73px" height="34px" fill="currentColor" />
           </Link>
         </div>
         {buildAndRender(mobileOpen)}

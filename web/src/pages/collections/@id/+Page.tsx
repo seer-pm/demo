@@ -199,7 +199,7 @@ function CollectionsPage() {
       {currentCollection && (
         <div>
           <div className="flex gap-2 items-center">
-            <p className="text-[24px] font-semibold">
+            <p className="font-display text-[24px] font-semibold tracking-tight">
               {currentCollection.name}
               {isTwoStringsEqual(currentCollection.userId, address)
                 ? ""

@@ -21,7 +21,7 @@ export function UseSmartAccountToggle({ className }: UseSmartAccountToggleProps)
           <p className="tooltiptext w-[200px] !whitespace-break-spaces">
             Uses the smart account for batching transactions via EIP-7702 if available
           </p>
-          <QuestionIcon fill="#9747FF" />
+          <QuestionIcon fill="var(--blue)" />
         </div>
       </div>
       <Toggle

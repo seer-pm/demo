@@ -73,7 +73,7 @@ export function PotentialReturn({
             {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
             market resolves to {outcomeText}.
           </p>
-          <QuestionIcon fill="#9747FF" />
+          <QuestionIcon fill="var(--blue)" />
         </span>
       </div>
       <PotentialReturnResult

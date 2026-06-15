@@ -1,4 +1,5 @@
 import { Market } from "@seer-pm/sdk";
+import clsx from "clsx";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import Activity from "./Activity";
@@ -11,12 +12,12 @@ export default function MarketTabs({ market }: { market: Market }) {
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
   return (
-    <div>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
+    <div className="card-box p-[22px]">
+      <div role="tablist" className="flex gap-1.5 flex-wrap mb-[24px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] ${activeTab === "comments" && "tab-active"}`}
+          className={clsx("tab-pill", activeTab === "comments" && "active")}
           onClick={() => setActiveTab("comments")}
         >
           Comments
@@ -24,15 +25,16 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
+          className={clsx("tab-pill whitespace-nowrap", activeTab === "conditionalMarkets" && "active")}
           onClick={() => setActiveTab("conditionalMarkets")}
         >
-          Related Conditional Markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
+          Related Conditional Markets
+          {relatedMarketsCount > 0 ? <span className="count">{relatedMarketsCount}</span> : ""}
         </button>
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "topHolders" && "tab-active"}`}
+          className={clsx("tab-pill whitespace-nowrap", activeTab === "topHolders" && "active")}
           onClick={() => setActiveTab("topHolders")}
         >
           Top Holders
@@ -40,7 +42,7 @@ export default function MarketTabs({ market }: { market: Market }) {
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "activity" && "tab-active"}`}
+          className={clsx("tab-pill whitespace-nowrap", activeTab === "activity" && "active")}
           onClick={() => setActiveTab("activity")}
         >
           Activity

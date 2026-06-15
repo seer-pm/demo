@@ -50,47 +50,13 @@ function MarketCategories({ market }: { market: Market }) {
     }
     setLoading(false);
   };
-  return (
-    <div className="text-left flex items-center gap-2 flex-wrap">
-      <div className="w-full flex items-center gap-2 font-semibold">
-        {isEdit ? "Edit Categories" : "Categories"}{" "}
-        {isEdit ? (
-          <>
-            {isLoading ? (
-              <Spinner className="w-[20px] bg-purple-primary" />
-            ) : (
-              <div className="flex items-center gap-1">
-                <button className="fill-purple-primary group tooltip" onClick={() => saveCategories()} type="button">
-                  <p className="tooltiptext">Save</p>
-                  <div className="group-hover:opacity-80">
-                    <SaveIcon />
-                  </div>
-                </button>
-                <button className="fill-purple-primary group tooltip" onClick={() => setEdit(false)} type="button">
-                  <p className="tooltiptext">Cancel</p>
-                  <div className="group-hover:opacity-80">
-                    <CloseIcon fill="#9747ff" width="20px" />
-                  </div>
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {isTwoStringsEqual(address, market.creator) && (
-              <button className="fill-purple-primary group tooltip" onClick={() => setEdit(true)} type="button">
-                <p className="tooltiptext">Edit</p>
-                <div className="group-hover:opacity-80">
-                  <EditIcon />
-                </div>
-              </button>
-            )}
-          </>
-        )}
-      </div>
+  const isCreator = isTwoStringsEqual(address, market.creator);
+  const categoryTexts = MARKET_CATEGORIES.filter((c) => market.categories?.includes(c.value)).map((c) => c.text);
 
-      {isEdit ? (
-        <div className="w-[300px]">
+  if (isEdit) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className="w-[240px]">
           <MultiSelect
             options={MARKET_CATEGORIES}
             useFormReturn={useFormReturn}
@@ -103,20 +69,48 @@ function MarketCategories({ market }: { market: Market }) {
             onChange={(values) => useFormReturn.setValue("marketCategories", values)}
             placeholder="Select one or more options"
           />
-        </div>
-      ) : (
-        MARKET_CATEGORIES.map((category) => {
-          if (market.categories?.includes(category.value)) {
-            return (
-              <div className="pill" key={category.value}>
-                {category.text}
-              </div>
-            );
-          }
-          return null;
-        })
+        </span>
+        {isLoading ? (
+          <Spinner className="w-[20px] bg-blue" />
+        ) : (
+          <span className="inline-flex items-center gap-1 fill-blue text-blue">
+            <button className="group tooltip" onClick={() => saveCategories()} type="button">
+              <p className="tooltiptext">Save</p>
+              <span className="group-hover:opacity-80">
+                <SaveIcon />
+              </span>
+            </button>
+            <button className="group tooltip" onClick={() => setEdit(false)} type="button">
+              <p className="tooltiptext">Cancel</p>
+              <span className="group-hover:opacity-80">
+                <CloseIcon fill="var(--blue)" width="18px" />
+              </span>
+            </button>
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  if (categoryTexts.length === 0 && !isCreator) {
+    return null;
+  }
+
+  return (
+    <span className="tag">
+      <span className="k">Category</span>
+      <span className="v capitalize">{categoryTexts.length > 0 ? categoryTexts.join(", ") : "—"}</span>
+      {isCreator && (
+        <button
+          className="group tooltip ml-1 flex items-center text-ink-4 hover:text-blue [&_svg]:w-[13px] [&_svg]:h-[13px] [&_*]:fill-current"
+          onClick={() => setEdit(true)}
+          type="button"
+        >
+          <p className="tooltiptext">Edit categories</p>
+          <EditIcon />
+        </button>
       )}
-    </div>
+    </span>
   );
 }
 

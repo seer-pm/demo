@@ -76,7 +76,7 @@ function MarkeVerifyPage() {
 
   if (isMarketError) {
     return (
-      <div className="py-10 px-10">
+      <div className="container-fluid py-10 px-10">
         <Alert type="error" className="mb-5">
           Market not found
         </Alert>

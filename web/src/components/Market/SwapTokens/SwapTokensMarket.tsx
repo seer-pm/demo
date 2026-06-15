@@ -278,13 +278,21 @@ export function SwapTokensMarket({
           type="button"
           disabled={true}
           isLoading={true}
-          className="w-full"
+          className="w-full !rounded-[8px]"
           text="Calculating best price..."
         />
       );
     }
     if (amountErrorMessage && amountErrorMessage !== "This field is required.") {
-      return <Button variant="primary" className="w-full" type="button" disabled={true} text={amountErrorMessage} />;
+      return (
+        <Button
+          variant="primary"
+          className="w-full !rounded-[8px]"
+          type="button"
+          disabled={true}
+          text={amountErrorMessage}
+        />
+      );
     }
     if (quoteData?.trade) {
       return (
@@ -312,9 +320,26 @@ export function SwapTokensMarket({
     }
 
     if (quoteIsLoading && quoteFetchStatus === "fetching") {
-      return <Button variant="primary" type="button" className="w-full" disabled={true} isLoading={true} text="" />;
+      return (
+        <Button
+          variant="primary"
+          type="button"
+          className="w-full !rounded-[8px]"
+          disabled={true}
+          isLoading={true}
+          text=""
+        />
+      );
     }
-    return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter an amount" />;
+    return (
+      <Button
+        variant="primary"
+        className="w-full !rounded-[8px]"
+        type="button"
+        disabled={true}
+        text="Enter an amount"
+      />
+    );
   };
 
   // useEffects
@@ -370,11 +395,13 @@ export function SwapTokensMarket({
               setFocus("amount");
             }}
             className={clsx(
-              "rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
-              focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
+              "rounded-[8px] p-[14px] space-y-2 cursor-pointer border transition-all",
+              focusContainer === 0
+                ? "border-blue shadow-[0_0_0_3px_rgba(45,107,247,0.12)]"
+                : "border-[var(--border)] hover:bg-bg-2",
             )}
           >
-            <p className="text-base-content/70">You pay</p>
+            <p className="text-ink-4 text-[12.5px] font-medium">You pay</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -412,7 +439,7 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
                   }}
-                  className="w-full min-w-[50px] p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full min-w-[50px] p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                   errorClassName="hidden"
@@ -439,13 +466,13 @@ export function SwapTokensMarket({
               {isFetchingBalance ? (
                 <div className="shimmer-container w-[80px] h-[13px]" />
               ) : (
-                <div className="flex items-center gap-1">
-                  <p className="text-[14px] font-semibold text-base-content/70">
+                <div className="flex items-center gap-2">
+                  <p className="text-[13px] text-ink-4 tabular-nums">
                     {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
                   </p>
                   <button
                     type="button"
-                    className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
+                    className="max-btn"
                     onClick={() => {
                       setTradeType(TradeType.EXACT_INPUT);
                       setValue("amount", formatUnits(balance, sellToken.decimals), {
@@ -484,11 +511,13 @@ export function SwapTokensMarket({
               setFocus("amountOut");
             }}
             className={clsx(
-              "rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
-              focusContainer === 1 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
+              "rounded-[8px] p-[14px] space-y-2 cursor-pointer border transition-all",
+              focusContainer === 1
+                ? "border-blue shadow-[0_0_0_3px_rgba(45,107,247,0.12)]"
+                : "border-[var(--border)] hover:bg-bg-2",
             )}
           >
-            <p className="text-base-content/70">You will get</p>
+            <p className="text-ink-4 text-[12.5px] font-medium">You will get</p>
             <div className="flex justify-between items-start">
               <div>
                 <Input
@@ -511,7 +540,7 @@ export function SwapTokensMarket({
                       amountOutRef.current?.focus({ preventScroll: true });
                     });
                   }}
-                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                 />
@@ -536,8 +565,8 @@ export function SwapTokensMarket({
           </div>
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[#828282] text-[14px]">
+        <div className="space-y-2 bg-bg-2 rounded-[8px] p-[14px]">
+          <div className="flex justify-between text-ink-4 text-[13px]">
             Avg price
             {quoteIsLoading || isFetching ? (
               <div className="shimmer-container ml-2 w-[100px]" />
@@ -559,7 +588,7 @@ export function SwapTokensMarket({
                     <p className="tooltiptext">
                       {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
                     </p>
-                    <QuestionIcon fill="#9747FF" />
+                    <QuestionIcon fill="var(--blue)" />
                   </span>
                 )}
               </div>
@@ -567,7 +596,7 @@ export function SwapTokensMarket({
           </div>
 
           {!!limitPriceFromVolume && (
-            <div className="flex justify-between text-[#828282] text-[14px]">
+            <div className="flex justify-between text-ink-4 text-[13px]">
               Price after {swapType}
               {quoteIsLoading || isFetching ? (
                 <div className="shimmer-container ml-2 w-[100px]" />
@@ -580,7 +609,7 @@ export function SwapTokensMarket({
                       <p className="tooltiptext">
                         {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
                       </p>
-                      <QuestionIcon fill="#9747FF" />
+                      <QuestionIcon fill="var(--blue)" />
                     </span>
                   )}
                 </div>
@@ -624,22 +653,22 @@ export function SwapTokensMarket({
           </Alert>
         )}
 
-        <div className="flex justify-between flex-wrap gap-4">
+        <div className="space-y-3">
           {market.type === "Futarchy" && (
             <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} onOutcomeChange={onOutcomeChange} />
           )}
-          <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
-            Parameters:{" "}
-            <div
-              className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
+          <div className="flex items-center justify-between gap-2 px-[12px] py-[10px] border border-[var(--border)] rounded-[8px] text-[12.5px] text-ink-3">
+            <span className="flex items-center gap-1.5">
+              <Parameter width="14px" height="14px" />
+              Max slippage {maxSlippage}%{isInstantSwap && " — Instant"}
+            </span>
+            <button
+              type="button"
+              className="text-blue font-semibold text-[12px] hover:text-blue-hover"
               onClick={() => setShowMaxSlippage(true)}
             >
-              <p>
-                Max slippage {maxSlippage}%{isInstantSwap && " - Instant"}
-              </p>
-
-              <Parameter width="16px" height="16px" />
-            </div>
+              More
+            </button>
           </div>
         </div>
         {renderButtons()}

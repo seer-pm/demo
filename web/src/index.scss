@@ -5,7 +5,7 @@
 
 /* increase root specificity */
 :root:root {
-  --rounded-btn: 3px;
+  --rounded-btn: 999px;
 
   /* Color variables in OKLCH format for alpha support */
   --blue-primary: 78.99% 0.143 224.17; /* #24CDFE */
@@ -13,11 +13,59 @@
   --blue-medium: 95.5% 0.012 255.5; /* #EAF1FF */
   --blue-light: 98.5% 0.006 255.5; /* #F8FAFF */
 
-  --purple-primary: 59.81% 0.254 298.01; /* #9747FF */
-  --purple-secondary: 72.91% 0.161 297.06; /* #B38FFF */
-  --purple-medium: 98.34% 0.01 305.41; /* #FBF8FF */
-  --purple-light: 99.5% 0.005 305.41; /* #FDFBFF */
-  --purple-dark: 32.5% 0.18 305; /* #59097E */
+  /* Brand accent repointed to seerbeta blue (#2D6BF7). Kept as OKLCH triplet so
+     existing `text-purple-primary` / `oklch(var(--purple-primary) / a)` usages
+     become blue app-wide without renaming classes. */
+  --purple-primary: 56.1% 0.211 261.6; /* #2D6BF7 (was #9747FF) */
+  --purple-secondary: 48.8% 0.217 264; /* #1D4ED8 blue-hover (was #B38FFF) */
+  --purple-medium: 96.8% 0.018 256; /* #E8F0FF blue-soft (was #FBF8FF) */
+  --purple-light: 98.8% 0.008 256; /* very light blue (was #FDFBFF) */
+  --purple-dark: 32.5% 0.18 305; /* #59097E (footer/header legacy) */
+
+  /* ============================================================
+     seerbeta design tokens — LIGHT (raw hex/rgb, used directly)
+     ============================================================ */
+  --bg: #fbfaf7;
+  --bg-2: #f3f2ec;
+  --bg-3: #eceae2;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --ink: #0f1115;
+  --ink-2: #1f2937;
+  --ink-3: #4b5563;
+  --ink-4: #6b7280;
+  --ink-5: #9ca3af;
+  --border: #ece8dc;
+  --border-2: #f4f1e7;
+  --border-strong: #d8d2c0;
+  --blue: #2d6bf7;
+  --blue-hover: #1d4ed8;
+  --blue-soft: #e8f0ff;
+  --blue-text: #1e48c2;
+  --pos: #00b955;
+  --pos-text: #15803d;
+  --pos-bar: #2bb673;
+  --neg: #e5484d;
+  --neg-text: #b91c1c;
+  --neg-bar: #e5484d;
+  --cat-1: #6366f1;
+  --cat-2: #f59e0b;
+  --cat-3: #8b5cf6;
+  --cat-4: #06b6d4;
+  --cat-5: #ec4899;
+  --verified: #1d9bf0;
+  --r-sm: 6px;
+  --r: 8px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.025);
+  --shadow: 0 1px 2px rgba(15, 17, 21, 0.04);
+  --shadow-md: 0 10px 24px -12px rgba(15, 17, 21, 0.1);
+
+  /* remap legacy surface/separator vars to the new tokens */
+  --card-bg: var(--surface);
+  --separator-100: var(--border);
 
   --black: 0% 0 0; /* #000000 */
   --black-primary: 23.5% 0 0; /* #333333 */
@@ -50,6 +98,50 @@
   --toastify-icon-color-error: oklch(var(--white));
 }
 
+/* ============================================================
+   seerbeta design tokens — DARK (Kleros-purple accent)
+   ============================================================ */
+:root:root[data-theme="dark"] {
+  --bg: #0a0612;
+  --bg-2: #20183c;
+  --bg-3: #2b2150;
+  --surface: #130c24;
+  --surface-2: #1a1230;
+  --ink: #f4f1ff;
+  --ink-2: #ded7f2;
+  --ink-3: #b2a8d0;
+  --ink-4: #897fa8;
+  --ink-5: #685e86;
+  --border: #261c46;
+  --border-2: #1c1438;
+  --border-strong: #3d2f68;
+  --blue: #7b2bff;
+  --blue-hover: #9457ff;
+  --blue-soft: rgba(123, 43, 255, 0.16);
+  --blue-text: #c7abff;
+  --pos: #22c55e;
+  --pos-text: #4ade80;
+  --pos-bar: #34d399;
+  --neg: #f43f5e;
+  --neg-text: #fb7185;
+  --neg-bar: #f43f5e;
+  --cat-1: #818cf8;
+  --cat-2: #fbbf24;
+  --cat-3: #a78bfa;
+  --cat-4: #22d3ee;
+  --cat-5: #f472b6;
+  --verified: #38bdf8;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 16px 34px -16px rgba(0, 0, 0, 0.78);
+  --card-bg: var(--surface);
+  --separator-100: var(--border);
+
+  /* brand accent → Kleros purple in dark (#7B2BFF) */
+  --purple-primary: 51.5% 0.293 296.5;
+  --purple-secondary: 62% 0.22 296;
+}
+
 #root {
   @apply flex flex-col min-h-screen;
 }
@@ -75,14 +167,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Light mode gradient (default) */
+/* Flat surface background (seerbeta) */
 body {
-  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
-}
-
-/* Dark mode gradient */
-:root[data-theme="dark"] body {
-  background: linear-gradient(247.18deg, #0b0e11 0%, #1a1f26 100%);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, -apple-system, "Helvetica Neue", sans-serif;
 }
 
 .border-separator-100 {
@@ -94,26 +183,311 @@ body {
   background-color: var(--card-bg);
 }
 
-/* Card component classes */
-.card {
-  @apply bg-base-100 border rounded-[3px] border-separator-100;
+/* Card component classes (seerbeta: surface + soft border + rounded-lg) */
+.card,
+.card-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
 }
 
 .card-active {
-  border-color: oklch(var(--purple-primary));
+  border-color: var(--blue);
 }
 
 /* Pill component classes */
 .pill {
-  @apply border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
+  @apply rounded-[300px] px-[14px] py-[6px] text-[13.5px] text-center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
 }
 
 .pill-button {
-  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+  @apply rounded-[300px] px-[14px] py-[6px] text-[13.5px] text-center cursor-pointer transition-all;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+
+  &:hover {
+    background: var(--bg-2);
+  }
 
   &.pill-button-active {
-    @apply bg-purple-primary text-white;
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
   }
+}
+
+/* ============================================================
+   seerbeta reusable component classes
+   ============================================================ */
+
+/* Segmented control (chart timeframe, etc.) */
+.timeframe {
+  display: inline-flex;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+  padding: 3px;
+}
+.timeframe button {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-4);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.timeframe button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.timeframe button:not(.active):hover {
+  color: var(--ink-2);
+}
+
+/* Category pill (homepage) */
+.cat {
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+.cat:hover {
+  background: var(--bg-2);
+}
+.cat.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+/* Metadata tags (market header) */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-2);
+  border-radius: var(--r);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.tag .k {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.tag .v {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.tag.verified {
+  background: var(--blue-soft);
+  color: var(--blue-text);
+}
+.tag.reward {
+  background: rgba(255, 165, 0, 0.2);
+  color: #e76f51;
+}
+.tag.deadline {
+  background: #f1ecfe;
+  color: #7c3aed;
+}
+
+/* Preview card tag row (type / conditional / reward) */
+.card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.card-tags .type-tag {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 2px 6px;
+  background: var(--bg-2);
+  border-radius: 4px;
+}
+.card-tags .conditional-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.card-tags .conditional-tag::before {
+  content: "⇢";
+  opacity: 0.7;
+}
+.card-tags .card-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.card-tags .card-reward::before {
+  content: "✦";
+  opacity: 0.7;
+}
+
+/* Status pill (market header) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  background: rgba(0, 185, 85, 0.1);
+  color: var(--pos-text);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(0, 185, 85, 0.2);
+}
+
+/* Tab pills (market tabs) */
+.tab-pill {
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+.tab-pill:hover {
+  background: var(--bg-3);
+  color: var(--ink-2);
+}
+.tab-pill.active {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.tab-pill .count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  border-radius: var(--r-pill);
+  color: var(--ink-4);
+  background: var(--bg-2);
+}
+.tab-pill.active .count {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Swap panel io-row + token pill */
+.io-row {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+.io-row:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
+}
+.io-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.max-btn {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--blue-soft);
+}
+
+/* Outcome row (market page) */
+.outcome-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: transparent;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+  cursor: pointer;
+}
+.outcome-row:hover {
+  background: var(--bg-2);
+  border-color: var(--border-strong);
+}
+.outcome-row.outcome-row-active {
+  border-color: var(--blue);
 }
 
 
@@ -146,6 +520,13 @@ body {
   &:hover {
     --btn-color: var(--blue-primary);
   }
+}
+
+/* Inputs keep a sane radius even though buttons are pill-shaped */
+.input,
+.select,
+.textarea {
+  border-radius: var(--r);
 }
 
 /* RADIO */

@@ -1,6 +1,7 @@
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { useTokenInfo } from "@seer-pm/react";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
+import clsx from "clsx";
 import { useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
@@ -26,12 +27,12 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
   const [isShow, setShow] = useState(false);
   const renderActionBox = () => (
     <div className="card p-[24px] shadow-md">
-      <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
+      <div className="font-display text-[22px] font-semibold tracking-tight mb-[20px]">{titles[activeTab]}</div>
+      <div role="tablist" className="flex gap-1.5 flex-wrap mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
           role="tab"
-          className={`tab ${activeTab === "mint" && "tab-active"}`}
+          className={clsx("tab-pill", activeTab === "mint" && "active")}
           onClick={() => setActiveTab("mint")}
         >
           Mint
@@ -39,7 +40,7 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
         <button
           type="button"
           role="tab"
-          className={`tab ${activeTab === "merge" && "tab-active"}`}
+          className={clsx("tab-pill", activeTab === "merge" && "active")}
           onClick={() => setActiveTab("merge")}
         >
           Merge
@@ -47,7 +48,7 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
         <button
           type="button"
           role="tab"
-          className={`tab ${activeTab === "redeem" && "tab-active"}`}
+          className={clsx("tab-pill", activeTab === "redeem" && "active")}
           onClick={() => setActiveTab("redeem")}
         >
           Redeem

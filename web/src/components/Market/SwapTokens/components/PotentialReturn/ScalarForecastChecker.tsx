@@ -278,7 +278,7 @@ export default function ScalarForecastChecker({
           [forecast, Math.max(chartData[0].data[0][1], chartData[1].data.slice(-1)[0][1])],
         ],
         lineStyle: {
-          color: "#9747ff",
+          color: "var(--blue)",
           type: "dotted",
           width: 2,
         },
@@ -294,7 +294,7 @@ export default function ScalarForecastChecker({
           label: {
             show: true,
             position: "end",
-            color: "#9747ff",
+            color: "var(--blue)",
             fontWeight: "bold",
           },
           data: [

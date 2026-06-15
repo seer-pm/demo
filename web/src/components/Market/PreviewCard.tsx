@@ -9,7 +9,6 @@ import {
   ConditionalMarketIcon,
   ExclamationCircleIcon,
   LawBalanceIcon,
-  PresentIcon,
   SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
@@ -34,11 +33,9 @@ import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
-import { clientOnly } from "vike-react/clientOnly";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { BAR_COLOR, COLORS } from "./Header";
-import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
 
@@ -48,7 +45,7 @@ const GAUGE_WIDTH = 100;
 const GAUGE_STROKE_WIDTH = 6;
 const GAUGE_KNOB_RADIUS = 4;
 const GAUGE_DISPLAY_HEIGHT = 74;
-const GAUGE_COLOR = "#B38FFF";
+const GAUGE_COLOR = "var(--blue)";
 
 type OutcomeSegment = {
   outcome: string;
@@ -203,8 +200,10 @@ function ScalarGauge({
           <circle cx={knobPos.x} cy={knobPos.y} r={GAUGE_KNOB_RADIUS} fill={color} stroke="white" strokeWidth={2} />
         </svg>
         <div className="absolute inset-x-0 bottom-[18%] text-center pointer-events-none">
-          <p className="font-semibold text-[14px] text-base-content leading-tight">{value.toLocaleString()}</p>
-          {unit && <p className="text-[9px] text-black-secondary uppercase leading-tight">{unit}</p>}
+          <p className="font-display font-medium text-[16px] tracking-tight tabular-nums text-ink leading-tight">
+            {value.toLocaleString()}
+          </p>
+          {unit && <p className="font-mono text-[9px] text-ink-4 uppercase leading-tight">{unit}</p>}
         </div>
       </div>
       <div className="flex justify-between text-[9px] text-black-secondary px-0.5 leading-tight">
@@ -366,10 +365,10 @@ export function OutcomesInfo({
         {segments.map((segment) => (
           <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: segment.color }} />
-            <span className="truncate text-black-secondary flex-1" title={segment.outcome}>
+            <span className="truncate text-ink-3 font-medium flex-1" title={segment.outcome}>
               {segment.outcome}
             </span>
-            <span className="font-semibold text-base-content flex-shrink-0">
+            <span className="font-mono font-semibold tabular-nums text-ink flex-shrink-0">
               {formatOutcomePercent(segment.percent)}
             </span>
           </div>
@@ -378,27 +377,6 @@ export function OutcomesInfo({
     </div>
   );
 }
-
-const ConditionalMarketTooltipInner = ({
-  parentMarket,
-  market,
-}: {
-  market: Market;
-  parentMarket: Market;
-}) => (
-  <div className="tooltip">
-    <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
-      <p className="text-purple-primary">Conditional Market:</p>
-      <p className="text-base-content/70">
-        Conditional on <span className="text-base-content">"{parentMarket.marketName}"</span> being{" "}
-        <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
-      </p>
-    </div>
-    <ConditionalMarketIcon fill="currentColor" />
-  </div>
-);
-
-const ConditionalMarketTooltip = clientOnly(async () => ConditionalMarketTooltipInner);
 
 function MarketResult({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
@@ -449,12 +427,12 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "bg-base-100 rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "card-box text-left flex flex-col transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] hover:-translate-y-px",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] @container">
-        <div className={clsx("flex space-x-3 px-4 pt-3")}>
+      <div className="min-h-[100px] @container px-4 pt-3">
+        <div className="flex space-x-3">
           <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
               <img
@@ -469,12 +447,16 @@ export function PreviewCard({ market }: { market: Market }) {
           <div className="grow min-w-0">
             <Link
               title={market.marketName}
-              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
+              className="hover:text-blue transition-colors font-display font-medium tracking-tight @[340px]:text-[15px] @[315px]:text-[14px] text-[13px] leading-snug line-clamp-3"
               to={paths.market(market)}
             >
               {market.marketName}
             </Link>
           </div>
+        </div>
+        <div className="card-tags mt-2">
+          <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
+          {market.incentive > 0 && <span className="card-reward">{incentive} SEER/day</span>}
         </div>
       </div>
 
@@ -491,13 +473,13 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
-        <div className="flex items-center gap-2">
+      <div className="border-t border-[var(--border-2)] px-[16px] h-[44px] flex items-center justify-between w-full">
+        <span className="flex items-center gap-2.5 min-w-0">
+          <SeerLogo fill="currentColor" className="text-ink-4 shrink-0" width="46px" />
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
               trigger={
-                <p className="text-[12px]">
+                <p className="font-display text-[14px] tabular-nums text-ink font-medium tracking-tight">
                   $
                   {market.liquidityUSD > 0
                     ? liquidityUSD
@@ -522,19 +504,20 @@ export function PreviewCard({ market }: { market: Market }) {
               }
             />
           ) : (
-            <p className="text-[12px]">${liquidityUSD}</p>
+            <p className="font-display text-[14px] tabular-nums text-ink font-medium tracking-tight">${liquidityUSD}</p>
           )}
-          <div className="tooltip">
-            <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
-            {MARKET_TYPES_ICONS[marketType]}
-          </div>
-          {parentMarket && <ConditionalMarketTooltip parentMarket={parentMarket} market={market} />}
-          {market.incentive > 0 && (
-            <div className="tooltip">
-              <p className="tooltiptext">
-                Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
-              </p>
-              <PresentIcon width="16px" />
+        </span>
+        <div className="flex items-center gap-2 text-ink-4">
+          {parentMarket && (
+            <div className="tooltip !flex">
+              <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
+                <p className="text-purple-primary">Conditional Market:</p>
+                <p className="text-base-content/70">
+                  Conditional on <span className="text-base-content">"{parentMarket.marketName}"</span> being{" "}
+                  <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                </p>
+              </div>
+              <ConditionalMarketIcon fill="currentColor" />
             </div>
           )}
           <div className="tooltip !flex">
@@ -559,7 +542,7 @@ export function PreviewCard({ market }: { market: Market }) {
                 market.verification.status === "verified" && "text-success-primary",
                 market.verification.status === "verifying" && "text-blue-primary",
                 market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
+                market.verification.status === "not_verified" && "text-[#9747FF]",
               )}
               to={
                 market.verification.status === "not_verified"

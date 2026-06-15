@@ -35,13 +35,16 @@ import {
   getMarketStatus,
   getMarketType,
   getQuestionStatus,
+  getRealityLink,
 } from "@seer-pm/sdk";
 import { MARKET_TYPES_DESCRIPTION, MARKET_TYPES_TEXTS, STATUS_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
+import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { type Address, formatUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { DisplayOdds } from "../DisplayOdds.tsx";
+import MarketCategories from "../MarketCategories.tsx";
 import { OutcomeImage } from "../OutcomeImage.tsx";
 import { MARKET_TYPES_ICONS } from "./Icons.tsx";
 import MarketFavorite from "./MarketFavorite";
@@ -53,6 +56,30 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
+}
+
+// Pill base for the hero meta tags (icons inherit the tag's text color)
+const HERO_TAG =
+  "inline-flex items-center gap-1.5 px-[10px] py-[5px] rounded-[8px] text-[12px] font-medium whitespace-nowrap [&_svg]:w-[13px] [&_svg]:h-[13px] [&_svg]:fill-current [&_svg_path]:fill-current";
+
+const VERIFICATION_TAG: Record<string, { label: string; cls: string }> = {
+  verified: { label: "Verified", cls: "text-success-primary bg-success-primary/10" },
+  verifying: { label: "Verifying", cls: "text-blue-primary bg-blue-primary/10" },
+  challenged: { label: "Challenged", cls: "text-warning-primary bg-warning-primary/10" },
+  not_verified: { label: "Verify it", cls: "text-[#9747FF] bg-[#9747FF]/10" },
+};
+
+function VerificationIcon({ status }: { status: string }) {
+  switch (status) {
+    case "verified":
+      return <CheckCircleIcon />;
+    case "verifying":
+      return <ClockIcon />;
+    case "challenged":
+      return <LawBalanceIcon />;
+    default:
+      return <ExclamationCircleIcon width={14} height={14} />;
+  }
 }
 
 function MarketPnL({
@@ -250,6 +277,144 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const hasBalance = market.poolBalance.some(
     (pool) => (pool?.token0?.balance ?? 0) > 0.01 || (pool?.token1.balance ?? 0) > 0.01,
   );
+
+  // ── seerbeta hero layout (market detail page) ────────────────────────────────
+  if (type === "default") {
+    const liquidityDisplay =
+      market.liquidityUSD > 0
+        ? `$${liquidityUSD}`
+        : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
+          ? "$?"
+          : "$0.00";
+    return (
+      <div className="card-box text-left p-[24px] lg:p-[28px]">
+        {/* status row */}
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-[16px]">
+          <span
+            className={clsx(
+              "inline-flex items-center gap-[7px] px-3 py-1 rounded-full font-mono text-[10.5px] font-semibold uppercase tracking-wider",
+              colors?.pillBg,
+              colors?.text,
+            )}
+          >
+            <span className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)} />
+            {marketStatus && STATUS_TEXTS[marketStatus](hasLiquidity)}
+          </span>
+          <div className="flex items-center gap-4 text-[13px] text-ink-3">
+            <a
+              href={blockExplorerUrl ? `${blockExplorerUrl}/address/${market.id}` : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-ink transition-colors"
+            >
+              <img alt="" className="w-[14px] h-[14px] rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+              <span className="max-sm:hidden">View contract on explorer</span>
+            </a>
+            {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
+              <span className="tooltip flex items-center">
+                <p className="tooltiptext">Market created by this account</p>
+                <MyMarket />
+              </span>
+            )}
+            {market.id !== "0x000" && <MarketFavorite market={market} />}
+          </div>
+        </div>
+
+        {/* title row */}
+        <div className="flex items-start gap-[18px]">
+          <div className="w-[56px] h-[56px] rounded-[10px] overflow-hidden flex-shrink-0 bg-purple-primary">
+            {images?.market && (
+              <img src={images.market} alt={market.marketName} className="w-full h-full object-cover" />
+            )}
+          </div>
+          <h1 className="font-display font-medium tracking-tight leading-[1.2] text-[22px] lg:text-[26px] grow min-w-0 break-words">
+            {market.marketName}
+          </h1>
+          {market.questions?.[0]?.id && (
+            <a
+              href={getRealityLink(market.chainId, market.questions[0].id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-[9px] rounded-full border border-[var(--border-strong)] bg-surface text-[13px] font-semibold text-ink-2 hover:bg-bg-2 transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              Answer on Reality.eth
+              <span className="text-blue">→</span>
+            </a>
+          )}
+        </div>
+
+        {/* market type description */}
+        <p className="mt-[14px] text-[12px] text-ink-3 leading-[1.5] max-w-[70ch]">
+          {MARKET_TYPES_DESCRIPTION[marketType]}
+        </p>
+
+        {/* tags */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-[16px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="tag">
+              <span className="k">Type</span>
+              <span className="v">{MARKET_TYPES_TEXTS[marketType]}</span>
+            </span>
+            <span className="tag">
+              <span className="k">Liquidity</span>
+              <span className="v">{liquidityDisplay}</span>
+            </span>
+            <MarketCategories market={market} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {market.questions?.[0]?.opening_ts > 0 && (
+              <span className={clsx(HERO_TAG, "bg-[#f1ecfe] text-[#7c3aed]")}>
+                <ClockIcon />
+                {format(new Date(market.questions[0].opening_ts * 1000), "MMM d, yyyy")}
+              </span>
+            )}
+            {market.incentive > 0 && (
+              <span className={clsx(HERO_TAG, "bg-[rgba(255,165,0,0.18)] text-[#e76f51]")}>
+                <PresentIcon width="13px" />
+                {incentive} SEER/day
+              </span>
+            )}
+            {isVerificationEnabled(market.chainId) &&
+              (() => {
+                // a market with no verification record is treated as not_verified
+                const status = market.verification?.status ?? "not_verified";
+                const cfg = VERIFICATION_TAG[status];
+                const itemID = market.verification?.itemID;
+                const to =
+                  status === "not_verified" || !itemID
+                    ? paths.verifyMarket(market.id, market.chainId)
+                    : paths.curateVerifiedList(market.chainId, itemID);
+                return (
+                  <Link
+                    to={to}
+                    {...(status === "not_verified" ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+                    className={clsx(HERO_TAG, cfg?.cls)}
+                  >
+                    <VerificationIcon status={status} />
+                    {cfg?.label}
+                  </Link>
+                );
+              })()}
+          </div>
+        </div>
+
+        {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
+          <div className="mt-[18px] pt-[18px] border-t border-[var(--border-2)] font-semibold flex items-center gap-2">
+            Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
+            {odds.length > 0 && (
+              <span className="tooltip">
+                <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px]">
+                  The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
+                </p>
+                <QuestionIcon fill="var(--blue)" />
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={clsx(
@@ -294,43 +459,25 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
       <div className={clsx("flex space-x-3 p-[24px]", market.questions.length > 1 && "pb-[16px]")}>
         <div>
-          {type === "default" && (
-            <div>
-              {images?.market ? (
-                <img
-                  src={images.market}
-                  alt={market.marketName}
-                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full dark:bg-neutral"
-                />
-              ) : (
-                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary dark:bg-neutral"></div>
-              )}
-            </div>
-          )}
-          {type !== "default" && (
-            <Link to={paths.market(market)}>
-              {images?.market ? (
-                <img
-                  src={images.market}
-                  alt={market.marketName}
-                  className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full dark:bg-neutral"
-                />
-              ) : (
-                <div className="w-[65px] h-[65px] rounded-full bg-purple-primary dark:bg-neutral"></div>
-              )}
-            </Link>
-          )}
+          <Link to={paths.market(market)}>
+            {images?.market ? (
+              <img
+                src={images.market}
+                alt={market.marketName}
+                className="w-[65px] h-[65px] min-w-[65px] min-h-[65px] rounded-full dark:bg-neutral"
+              />
+            ) : (
+              <div className="w-[65px] h-[65px] rounded-full bg-purple-primary dark:bg-neutral"></div>
+            )}
+          </Link>
         </div>
         <div className="grow min-w-0">
-          <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
-            {type === "default" && market.marketName}
-            {type !== "default" && (
-              <Link className="hover:underline" to={paths.market(market)}>
-                {market.marketName}
-              </Link>
-            )}
+          <div className="font-display font-semibold tracking-tight mb-1 text-[18px] break-words">
+            <Link className="hover:underline" to={paths.market(market)}>
+              {market.marketName}
+            </Link>
           </div>
-          {parentMarket && type !== "default" && (
+          {parentMarket && (
             <p className="text-[14px] my-2">
               Conditional on{" "}
               <Link to={paths.market(parentMarket)} target="_blank" className="text-purple-primary font-medium">
@@ -383,7 +530,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" />
             </span>
           )}
         </div>
@@ -426,7 +573,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <USDIcon />
               {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01) && (
                 <Popover
-                  trigger={<QuestionIcon fill="#9747FF" />}
+                  trigger={<QuestionIcon fill="var(--blue)" />}
                   content={
                     <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                       <p className="text-purple-primary">Open interest:</p>

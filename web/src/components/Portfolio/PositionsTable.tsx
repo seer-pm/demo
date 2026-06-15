@@ -130,7 +130,7 @@ function PositionsTableInner({
                 <Popover
                   trigger={
                     <div title="Conditional Market">
-                      <ConditionalMarketIcon width="24" fill="#9747ff" />
+                      <ConditionalMarketIcon width="24" fill="var(--blue)" />
                     </div>
                   }
                   content={
@@ -198,7 +198,7 @@ function PositionsTableInner({
                 <p>{formatSmallNumber(position.redeemedPrice)}</p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="var(--blue)" />
                 </span>
               </div>
             );
@@ -211,7 +211,7 @@ function PositionsTableInner({
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                     = relative price to parent outcome &times; parent's {primarySymbol} price
                   </p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="var(--blue)" />
                 </span>
               </div>
             );

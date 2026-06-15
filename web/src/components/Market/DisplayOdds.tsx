@@ -14,7 +14,7 @@ export function DisplayOdds({
       <div className="flex space-x-2 items-center">
         <div>NA</div>
         <Tooltip
-          trigger={<QuestionIcon fill="#9747FF" />}
+          trigger={<QuestionIcon fill="var(--blue)" />}
           content={
             <div>
               The odds cannot be displayed because the outcome's current price is far above 1. This typically happens

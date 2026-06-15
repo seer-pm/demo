@@ -46,12 +46,12 @@ export function SwapTokens({
   ];
 
   return (
-    <div className="space-y-5 bg-base-100 p-[24px] shadow-md">
+    <div className="space-y-5 card-box p-[24px]">
       <div className="flex items-center space-x-[12px]">
         <div className="flex-shrink-0">
           <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />
         </div>
-        <div className="text-[16px]">{outcomeText}</div>
+        <div className="font-display text-[18px] font-medium tracking-tight">{outcomeText}</div>
       </div>
       {hasEnoughLiquidity === false && (
         <Alert type="warning">

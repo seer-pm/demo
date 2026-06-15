@@ -3,14 +3,19 @@ import { paths } from "@/lib/paths";
 
 export default function Footer() {
   return (
-    <div className="bg-purple-dark mt-auto">
-      <div className="container-fluid flex flex-col lg:flex-row justify-between min-h-[64px] items-center max-lg:py-[24px] max-lg:space-y-[24px] text-white mt-auto">
+    <div className="bg-surface border-t border-[var(--border)] mt-auto">
+      <div className="container-fluid flex flex-col lg:flex-row justify-between min-h-[64px] items-center max-lg:py-[24px] max-lg:space-y-[24px] text-ink-3 mt-auto">
         <div>
-          <a href="https://kleros.io/" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://kleros.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink-2 [&_svg_path]:fill-current hover:text-ink"
+          >
             <SecuredByKleros />
           </a>
         </div>
-        <div className="flex items-center space-x-[16px] text-white">
+        <div className="flex items-center space-x-[16px] text-ink-4 [&_svg_path]:fill-current [&_a:hover]:text-ink transition-colors">
           {/*<a href={paths.etherscan()} target="_blank" rel="noopener noreferrer">
           <EtherscanIcon />
         </a>*/}

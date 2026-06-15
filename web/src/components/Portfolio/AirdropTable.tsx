@@ -54,7 +54,7 @@ export default function AirdropTable({ data }: { data: AirdropDataByUser[] }) {
               <div className="flex items-center gap-2">
                 <p className="text-[14px]">0</p>
                 <Tooltip
-                  trigger={<QuestionIcon fill="#9747FF" />}
+                  trigger={<QuestionIcon fill="var(--blue)" />}
                   content={
                     <div className="text-[14px] flex flex-col gap-2 p-4">
                       <p>Register Proof of Humanity for additional SEER allocation.</p>

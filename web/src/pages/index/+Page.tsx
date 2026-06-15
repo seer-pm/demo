@@ -118,17 +118,17 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
       <div className="container-fluid py-[24px]">
         {isPending && (
-          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
+          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
+            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
           </div>
         )}
 
         {!isPending && data.markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
-        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
           {data.markets.map((market) => (
             <PreviewCard key={`${market.id}_${market.chainId}`} market={market} />
           ))}
