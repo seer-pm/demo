@@ -186,7 +186,7 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
                 <span>{item.title}</span> {item.icon}
               </button>
             )}
-            <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
+            <ul tabIndex={0} className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
               {renderChildren()}
             </ul>
           </div>
