@@ -1,12 +1,11 @@
 import { isUndefined } from "@/lib/utils";
+import { getUsePoolHourDataSetsKey } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { Market, type PoolHourDatasSets, fetchChartData } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import type { ChartData } from "./utils";
 import { buildChartData } from "./utils";
-
-export { fetchChartData } from "@seer-pm/sdk";
 
 const getUseChartDataKey = (
   chainId: SupportedChain,
@@ -15,12 +14,6 @@ const getUseChartDataKey = (
   intervalSeconds: number,
   endDate: Date | undefined,
 ) => ["useChartData", chainId, marketId, dayCount, intervalSeconds, endDate || "latest"];
-
-export const getUsePoolHourDataSetsKey = (chainId: SupportedChain, marketId: Address) => [
-  "usePoolHourDataSets",
-  chainId,
-  marketId,
-];
 
 const usePoolHourDataSets = (market: Market) => {
   return useQuery<PoolHourDatasSets | undefined, Error>({

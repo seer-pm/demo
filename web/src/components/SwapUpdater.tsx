@@ -2,6 +2,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastInfo, toastSuccess } from "@/lib/toastify";
 import { displayBalance } from "@/lib/utils";
+import { invalidateAfterTrade } from "@seer-pm/react";
 import { getTokensInfo } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { OrderBookApi, OrderStatus, type SupportedChainId } from "@seer-pm/sdk";
@@ -48,12 +49,9 @@ async function updateOrders(
       } else if (order.status === OrderStatus.CANCELLED) {
         toastInfo({ title: "Swap cancelled" });
       }
+
       queryClient.invalidateQueries({ queryKey: ["useCowOrders"] }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["usePortfolioPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["portfolioValue"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
+        invalidateAfterTrade(queryClient);
       });
       removePendingOrder(pendingOrderId);
     }),
