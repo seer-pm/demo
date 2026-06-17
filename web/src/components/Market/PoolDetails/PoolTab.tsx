@@ -38,7 +38,7 @@ function PoolTabContent({
   ]);
 
   return (
-    <div key={poolId} className="space-y-2">
+    <div className="space-y-2">
       <div className="flex flex-col lg:flex-row justify-between">
         <div className="flex items-center gap-2">
           <p className="font-semibold text-[14px]">Pool Id:</p>
@@ -139,7 +139,7 @@ function PoolTab({
     Error
   >({
     enabled: !!pools?.length,
-    queryKey: ["usePoolTokensBalances", pools?.map((x) => x.id)],
+    queryKey: ["usePoolTokensBalances", market.chainId, pools?.map((x) => x.id)],
     queryFn: async () => {
       return await Promise.all(
         pools!.map(async ({ id, token0, token1 }) => {
@@ -186,6 +186,7 @@ function PoolTab({
       )}
       {currentPool && (
         <PoolTabContent
+          key={currentPool.id}
           market={market}
           outcomeIndex={outcomeIndex}
           dataPerPool={currentPool}
