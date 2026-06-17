@@ -4,7 +4,6 @@ import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import MarketCategories from "@/components/Market/MarketCategories";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
@@ -221,7 +220,6 @@ function MarketPage() {
         />
 
         <MarketHeader market={market} images={market.images} />
-        {market.categories?.length > 0 && <MarketCategories market={market} />}
         {!reliableMarket && (
           <Alert
             type="error"
@@ -230,9 +228,10 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <MarketChart market={market} />
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
+          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
+            <MarketChart market={market} />
+
             <Outcomes
               market={market}
               images={market?.images?.outcomes}
