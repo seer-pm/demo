@@ -41,12 +41,10 @@ export async function fetchCachedChartData(
     .single();
 
   // Determine if we should update the cache
-  const shouldUpdate = forceFresh
-    ? true
-    : checkTimestamp
-      ? cacheError?.code === "PGRST116" ||
-        (cachedData?.value && Date.now() - cachedData.value.timestamp > 5 * 60 * 1000)
-      : cacheError?.code === "PGRST116";
+  const isCacheMiss = cacheError?.code === "PGRST116";
+  const isCacheStale = cachedData?.value != null && Date.now() - cachedData?.value.timestamp > 5 * 60 * 1000;
+
+  const shouldUpdate = forceFresh || isCacheMiss || (checkTimestamp && isCacheStale);
 
   if (shouldUpdate) {
     // Cache miss or (if checkTimestamp) stale data: generate fresh chart data
