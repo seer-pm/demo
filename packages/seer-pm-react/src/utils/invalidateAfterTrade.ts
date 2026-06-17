@@ -6,7 +6,7 @@ export const getUsePoolHourDataSetsKey = (chainId: SupportedChain, marketId: Add
   ["usePoolHourDataSets", chainId, marketId] as const;
 
 export type InvalidateAfterTradeOptions = {
-  market?: Pick<Market, "id" | "chainId">;
+  market?: Market;
   onSuccess?: () => unknown;
 };
 
@@ -19,12 +19,14 @@ export function invalidateAfterTrade(queryClient: QueryClient, options?: Invalid
   queryClient.invalidateQueries({ queryKey: ["useTicksData"] });
   queryClient.invalidateQueries({ queryKey: ["usePortfolioPositions"] });
   queryClient.invalidateQueries({ queryKey: ["portfolioValue"] });
-
   if (options?.market) {
     const market = options.market;
-    void queryClient.fetchQuery({
-      queryKey: getUsePoolHourDataSetsKey(market.chainId, market.id),
-      queryFn: () => fetchChartData(market as Market, { fresh: true }),
+    // Fetch directly — do not invalidate this key or active observers refetch without fresh=true.
+    void fetchChartData(market, { fresh: true }).then(async (chartData) => {
+      queryClient.setQueryData(getUsePoolHourDataSetsKey(market.chainId, market.id), chartData);
+      await queryClient.invalidateQueries({
+        queryKey: ["useChartData", market.chainId, market.id],
+      });
     });
   }
 
