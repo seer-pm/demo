@@ -15,9 +15,15 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
  * @param chainId - The chain ID where the market exists
  * @param checkTimestamp - If true, only updates cache when data is older than 5 minutes.
  *                        If false, always returns cached data and generates on cache miss.
+ * @param forceFresh - If true, always regenerates chart data and updates the cache.
  * @returns The chart data (either from cache or newly generated)
  */
-export async function fetchCachedChartData(marketId: Address, chainId: SupportedChain, checkTimestamp = true) {
+export async function fetchCachedChartData(
+  marketId: Address,
+  chainId: SupportedChain,
+  checkTimestamp = true,
+  forceFresh = false,
+) {
   // Fetch market information
   const market = await getMarketByChainAndId(chainId, marketId);
 
@@ -35,9 +41,12 @@ export async function fetchCachedChartData(marketId: Address, chainId: Supported
     .single();
 
   // Determine if we should update the cache
-  const shouldUpdate = checkTimestamp
-    ? cacheError?.code === "PGRST116" || (cachedData?.value && Date.now() - cachedData.value.timestamp > 5 * 60 * 1000)
-    : cacheError?.code === "PGRST116";
+  const shouldUpdate = forceFresh
+    ? true
+    : checkTimestamp
+      ? cacheError?.code === "PGRST116" ||
+        (cachedData?.value && Date.now() - cachedData.value.timestamp > 5 * 60 * 1000)
+      : cacheError?.code === "PGRST116";
 
   if (shouldUpdate) {
     // Cache miss or (if checkTimestamp) stale data: generate fresh chart data

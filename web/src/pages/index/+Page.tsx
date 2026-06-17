@@ -2,11 +2,16 @@ import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
-import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { getAppUrl } from "@/lib/utils";
-import { UseMarketsProps, getUseGraphMarketsKey, useGraphMarketsQueryFn, useMarkets } from "@seer-pm/react";
+import {
+  UseMarketsProps,
+  getUseGraphMarketsKey,
+  getUsePoolHourDataSetsKey,
+  useGraphMarketsQueryFn,
+  useMarkets,
+} from "@seer-pm/react";
 import type { FetchMarketParams, Market, PoolHourDatasSets } from "@seer-pm/sdk";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";

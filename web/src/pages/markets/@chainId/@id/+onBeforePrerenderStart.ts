@@ -1,7 +1,6 @@
-import { getUsePoolHourDataSetsKey } from "@/hooks/chart/useChartData";
 import { formatDate } from "@/lib/date";
 import { getAppUrl } from "@/lib/utils";
-import { getUseGraphMarketKey, getUseGraphMarketsKey } from "@seer-pm/react";
+import { getUseGraphMarketKey, getUseGraphMarketsKey, getUsePoolHourDataSetsKey } from "@seer-pm/react";
 import { type PoolHourDatasSets, fetchMarkets, unescapeJson } from "@seer-pm/sdk";
 import { QueryClient, dehydrate } from "@tanstack/react-query";
 import { Address } from "viem";

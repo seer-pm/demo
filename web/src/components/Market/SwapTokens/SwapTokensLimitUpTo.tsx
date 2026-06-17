@@ -175,6 +175,7 @@ export function SwapTokensLimitUpto({
       reset();
       closeConfirmSwapModal();
     },
+    market,
     quoteData?.psm3Leg,
   );
 

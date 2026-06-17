@@ -212,6 +212,7 @@ export function SwapTokensMarket({
       reset();
       closeConfirmSwapModal();
     },
+    market,
     quoteData?.psm3Leg,
     quoteData?.completeSetLeg,
   );

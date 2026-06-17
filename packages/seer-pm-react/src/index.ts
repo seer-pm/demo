@@ -1,4 +1,5 @@
 export * from "./utils";
+export * from "./utils/invalidateAfterTrade";
 export * from "./hooks/useComputedPoolAddresses";
 export * from "./hooks/useMarket";
 export * from "./hooks/useMarkets";
