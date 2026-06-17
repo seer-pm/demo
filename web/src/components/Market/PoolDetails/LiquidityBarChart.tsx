@@ -41,7 +41,6 @@ export default function LiquidityBarChart({
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
