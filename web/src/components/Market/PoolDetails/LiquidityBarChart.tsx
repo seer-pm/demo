@@ -41,7 +41,6 @@ export default function LiquidityBarChart({
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
@@ -230,19 +229,17 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
-        <div className="flex items-center ml-auto gap-2">
-          <p className="text-[14px] whitespace-nowrap">Ticks display</p>
-          <div className="min-w-[100px]">
-            <Slider
-              value={zoomCount}
-              min={1}
-              max={maxZoomCount}
-              onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
-            />
-          </div>
-          <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
+      <div className="font-semibold text-[14px] flex items-center align-center justify-center gap-2 w-full">
+        <p className="text-[14px] whitespace-nowrap">Ticks display</p>
+        <div className="min-w-[100px]">
+          <Slider
+            value={zoomCount}
+            min={1}
+            max={maxZoomCount}
+            onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
+          />
         </div>
+        <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
       </div>
       <div
         className="h-[400px] flex justify-center"
