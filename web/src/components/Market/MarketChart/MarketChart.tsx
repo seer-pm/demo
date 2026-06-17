@@ -271,7 +271,7 @@ function MarketChart({
 
   return (
     <>
-      <div className={clsx("w-full bg-base-100 text-[12px]", embedded ? "p-4" : "p-5 drop-shadow")}>
+      <div className={clsx("w-full bg-base-100 text-[12px]", !embedded && "p-5 drop-shadow")}>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {Object.keys(CHART_OPTION_PERIODS).map((option) => (
             <div
