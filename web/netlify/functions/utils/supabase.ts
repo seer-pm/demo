@@ -330,6 +330,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      market_events: {
+        Row: {
+          chain_id: number;
+          created_at: string | null;
+          created_by: string | null;
+          description: string | null;
+          event_at: string;
+          id: string;
+          market_id: string;
+          title: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          chain_id: number;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          event_at: string;
+          id?: string;
+          market_id: string;
+          title: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          chain_id?: number;
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          event_at?: string;
+          id?: string;
+          market_id?: string;
+          title?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "market_events_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "market_events_market_id_chain_id_fkey";
+            columns: ["market_id", "chain_id"];
+            isOneToOne: false;
+            referencedRelation: "markets";
+            referencedColumns: ["id", "chain_id"];
+          },
+        ];
+      };
       notifications_queue: {
         Row: {
           created_at: string;

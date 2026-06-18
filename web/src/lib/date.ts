@@ -18,6 +18,39 @@ export function utcToLocalTime(utcTime: Date | string | number) {
   return new Date(utcTime.getTime() - tzOffset);
 }
 
+/** Map a UTC instant to a Date whose local getters match UTC (for react-datepicker without utc prop). */
+export function utcToPickerDate(utcTime: Date | string | number): Date {
+  if (typeof utcTime === "string" || typeof utcTime === "number") {
+    // biome-ignore lint/style/noParameterAssign:
+    utcTime = new Date(utcTime);
+  }
+
+  return new Date(
+    utcTime.getUTCFullYear(),
+    utcTime.getUTCMonth(),
+    utcTime.getUTCDate(),
+    utcTime.getUTCHours(),
+    utcTime.getUTCMinutes(),
+    utcTime.getUTCSeconds(),
+    utcTime.getUTCMilliseconds(),
+  );
+}
+
+/** Map a picker Date (UTC wall time in local getters) back to a UTC instant. */
+export function pickerDateToUtc(pickerTime: Date): Date {
+  return new Date(
+    Date.UTC(
+      pickerTime.getFullYear(),
+      pickerTime.getMonth(),
+      pickerTime.getDate(),
+      pickerTime.getHours(),
+      pickerTime.getMinutes(),
+      pickerTime.getSeconds(),
+      pickerTime.getMilliseconds(),
+    ),
+  );
+}
+
 export function formatDate(timestamp: number, formatString?: string) {
   const date = fromUnixTime(timestamp);
   return formatInTimeZone(date, "UTC", formatString ?? "MMMM d yyyy, HH:mm");

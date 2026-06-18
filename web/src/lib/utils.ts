@@ -154,7 +154,7 @@ export async function fetchAuth(
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: method === "POST" || method === "PATCH" ? JSON.stringify(body) : undefined,
+    body: method === "GET" ? undefined : body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   const json = await response.json();

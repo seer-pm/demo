@@ -46,7 +46,7 @@ async function startServer() {
           "Content-Type": req.headers["content-type"],
           Authorization: req.headers.authorization
         },
-        body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? JSON.stringify(req.body) : undefined
+        body: ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) ? JSON.stringify(req.body ?? {}) : undefined,
       });
 
       const data = await response.text();
