@@ -62,7 +62,12 @@ function buildDisplayEvents(market: Market, dbEvents: MarketEvent[], nowMs: numb
   return events.sort((a, b) => a.eventAt.getTime() - b.eventAt.getTime());
 }
 
-function formatEventDate(date: Date): string {
+function formatEventDate(date: Date, isFirst = false): string {
+  if (isFirst) {
+    const datePart = formatInTimeZone(date, "UTC", "MMM d, yyyy");
+    return `${datePart} · ${formatInTimeZone(date, "UTC", "HH:mm")} UTC`;
+  }
+
   const datePart = formatInTimeZone(date, "UTC", "MMM d, yyyy").toUpperCase();
   const isMidnightUtc = date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0;
 
@@ -93,12 +98,14 @@ function TimelineDot({ active }: { active: boolean }) {
 function EventRow({
   event,
   active,
+  isFirst,
   canManage,
   onEdit,
   onDelete,
 }: {
   event: DisplayMarketEvent;
   active: boolean;
+  isFirst?: boolean;
   canManage?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -113,7 +120,7 @@ function EventRow({
             active ? "text-purple-primary" : "text-base-content/40",
           )}
         >
-          {formatEventDate(event.eventAt)}
+          {formatEventDate(event.eventAt, isFirst)}
         </p>
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <h3 className="text-[15px] font-semibold leading-snug">{event.title}</h3>
@@ -263,10 +270,11 @@ export function MajorEvents({ market }: { market: Market }) {
         )}
         {events.length > 0 && (
           <ol className="list-none m-0 p-0 divide-y divide-base-content/10">
-            {events.map((event) => (
+            {events.map((event, index) => (
               <EventRow
                 key={event.id}
                 event={event}
+                isFirst={index === 0}
                 active={isEventActive(event.eventAt, now)}
                 canManage={showAdminActions && !event.isResolution}
                 onEdit={() => openEditEvent(event.id)}
