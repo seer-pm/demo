@@ -154,10 +154,10 @@ export async function fetchAuth(
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: method === "POST" || method === "PATCH" ? JSON.stringify(body) : undefined,
+    body: method === "GET" ? undefined : body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  const json = await response.json();
+  const json = response.status === 204 ? undefined : await response.json();
 
   if (!response.ok) {
     throw new Error(json?.error || `Failed to fetch: ${response.statusText}`);
