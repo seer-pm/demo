@@ -42,6 +42,11 @@ function serializeAdminMarketEvent(row: MarketEventRow) {
   };
 }
 
+function parseChainId(chainId: string | number): number | null {
+  const n = Number(chainId);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function marketExists(marketId: string, chainId: number) {
   const { data } = await supabase
     .from("markets")
@@ -79,7 +84,11 @@ export default async (req: Request) => {
         .order("event_at", { ascending: true });
 
       if (chainId) {
-        query = query.eq("chain_id", Number(chainId));
+        const parsedChainId = parseChainId(chainId);
+        if (parsedChainId === null) {
+          return new Response(JSON.stringify({ error: "Invalid chainId" }), { status: 400, headers: jsonHeaders });
+        }
+        query = query.eq("chain_id", parsedChainId);
       }
       if (marketId) {
         query = query.eq("market_id", marketId.toLowerCase());
@@ -107,7 +116,10 @@ export default async (req: Request) => {
       }
 
       const normalizedMarketId = marketId.toLowerCase();
-      const normalizedChainId = Number(chainId);
+      const normalizedChainId = parseChainId(chainId);
+      if (normalizedChainId === null) {
+        return new Response(JSON.stringify({ error: "Invalid chainId" }), { status: 400, headers: jsonHeaders });
+      }
 
       if (!(await marketExists(normalizedMarketId, normalizedChainId))) {
         return new Response(JSON.stringify({ error: "Market not found" }), { status: 404, headers: jsonHeaders });
@@ -146,9 +158,24 @@ export default async (req: Request) => {
       if (description !== undefined) updates.description = description;
       if (eventAt !== undefined) updates.event_at = eventAt;
 
-      if (marketId !== undefined && chainId !== undefined) {
+      const hasMarketId = marketId !== undefined;
+      const hasChainId = chainId !== undefined;
+      if (hasMarketId !== hasChainId) {
+        return new Response(
+          JSON.stringify({ error: "marketId and chainId must both be provided to reassign a market" }),
+          {
+            status: 400,
+            headers: jsonHeaders,
+          },
+        );
+      }
+
+      if (hasMarketId && hasChainId) {
         const normalizedMarketId = marketId.toLowerCase();
-        const normalizedChainId = Number(chainId);
+        const normalizedChainId = parseChainId(chainId);
+        if (normalizedChainId === null) {
+          return new Response(JSON.stringify({ error: "Invalid chainId" }), { status: 400, headers: jsonHeaders });
+        }
         if (!(await marketExists(normalizedMarketId, normalizedChainId))) {
           return new Response(JSON.stringify({ error: "Market not found" }), { status: 404, headers: jsonHeaders });
         }
@@ -156,7 +183,7 @@ export default async (req: Request) => {
         updates.chain_id = normalizedChainId;
       }
 
-      const { data, error } = await supabase.from("market_events").update(updates).eq("id", id).select().single();
+      const { data, error } = await supabase.from("market_events").update(updates).eq("id", id).select().maybeSingle();
 
       if (error) {
         throw error;

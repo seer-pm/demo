@@ -95,7 +95,7 @@ export function MarketEventFormContent({
   }));
 
   const handleSubmit = () => {
-    if (!form.marketId || !form.title || !form.eventAt) {
+    if (!form.marketId || !form.title.trim() || !form.eventAt) {
       return;
     }
 
@@ -224,7 +224,7 @@ export function MarketEventFormContent({
         <Button
           text={isEditing ? "Save" : "Create"}
           type="button"
-          disabled={!form.marketId || !form.title || !form.eventAt || isPending}
+          disabled={!form.marketId || !form.title.trim() || !form.eventAt || isPending}
           onClick={handleSubmit}
         />
       </div>

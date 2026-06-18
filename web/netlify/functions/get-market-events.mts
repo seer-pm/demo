@@ -27,11 +27,19 @@ export default async (req: Request) => {
       });
     }
 
+    const parsedChainId = Number(chainId);
+    if (!Number.isFinite(parsedChainId)) {
+      return new Response(JSON.stringify({ error: "Invalid chainId" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("market_events")
       .select("id, market_id, chain_id, title, description, event_at")
-      .eq("chain_id", Number(chainId))
+      .eq("chain_id", parsedChainId)
       .eq("market_id", marketId.toLowerCase())
       .gte("event_at", now)
       .order("event_at", { ascending: true });
@@ -46,7 +54,7 @@ export default async (req: Request) => {
     });
   } catch (error) {
     console.error("get-market-events error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

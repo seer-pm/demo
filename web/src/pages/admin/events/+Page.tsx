@@ -11,7 +11,7 @@ import { useSignIn } from "@/hooks/useSignIn";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { paths } from "@/lib/paths";
 import { isAccessTokenExpired } from "@/lib/utils";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -55,12 +55,12 @@ function AdminEventsPage() {
         <h1 className="text-2xl font-semibold mb-4">Major Events Admin</h1>
         <p className="text-base-content/70 mb-4">Connect your wallet and sign in to manage market events.</p>
         {!address && <p className="text-sm">Use the Connect Wallet button in the header.</p>}
-        {address && isAccessTokenExpired(accessToken) && (
+        {address && chainId && isAccessTokenExpired(accessToken) && (
           <Button
             text="Sign in"
             type="button"
             disabled={signIn.isPending}
-            onClick={() => signIn.mutate({ address, chainId: chainId! })}
+            onClick={() => signIn.mutate({ address, chainId })}
           />
         )}
       </div>
@@ -152,7 +152,9 @@ function AdminEventsPage() {
             )}
             {events.map((event) => (
               <tr key={event.id}>
-                <td className="whitespace-nowrap">{format(new Date(event.event_at), "yyyy-MM-dd HH:mm")}</td>
+                <td className="whitespace-nowrap">
+                  {formatInTimeZone(new Date(event.event_at), "UTC", "yyyy-MM-dd HH:mm")}
+                </td>
                 <td>{event.title}</td>
                 <td>
                   <Link

@@ -9,12 +9,19 @@ async function fetchMarketEvents(chainId: number, marketId: string): Promise<Mar
   url.searchParams.set("marketId", marketId);
 
   const response = await fetch(url.toString());
-  const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(json?.error || "Failed to fetch market events");
+    let message = "Failed to fetch market events";
+    try {
+      const json = await response.json();
+      message = json?.error || message;
+    } catch {
+      // non-JSON error response
+    }
+    throw new Error(message);
   }
 
+  const json = await response.json();
   return json.data ?? [];
 }
 
