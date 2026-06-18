@@ -54,9 +54,25 @@ export const COLORS: Record<MarketStatus, ColorConfig> = {
   },
 };
 
+// Theme-aware palette: values are CSS variables so light/dark resolve automatically.
+// Yes/No categorical -> green/red; multi cycles through the brand blue + category hues.
 export const BAR_COLOR = {
-  [MarketTypes.CATEGORICAL]: ["#13C0CB", "#FF458C"],
-  [MarketTypes.MULTI_CATEGORICAL]: ["#9747FF", "#24CDFE", "#13C0CB"],
-  [MarketTypes.SCALAR]: ["#FF458C", "#13C0CB"],
-  [MarketTypes.MULTI_SCALAR]: ["#9747FF", "#24CDFE", "#13C0CB"],
+  [MarketTypes.CATEGORICAL]: ["var(--pos-bar)", "var(--neg-bar)"],
+  [MarketTypes.MULTI_CATEGORICAL]: [
+    "var(--blue)",
+    "var(--cat-2)",
+    "var(--cat-3)",
+    "var(--cat-4)",
+    "var(--cat-5)",
+    "var(--cat-1)",
+  ],
+  [MarketTypes.SCALAR]: ["var(--blue)", "var(--cat-2)"],
+  [MarketTypes.MULTI_SCALAR]: [
+    "var(--blue)",
+    "var(--cat-2)",
+    "var(--cat-3)",
+    "var(--cat-4)",
+    "var(--cat-5)",
+    "var(--cat-1)",
+  ],
 };

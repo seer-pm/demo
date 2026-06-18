@@ -152,7 +152,7 @@ function MarketFavorite({
         }
       >
         {isFavorite ? (
-          <div className="tooltip cursor-pointer">
+          <div className={clsx(colorClassName, "tooltip cursor-pointer")}>
             <p className="tooltiptext">Remove from collection</p>
             <StarFilled width={iconWidth} />
           </div>

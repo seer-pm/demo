@@ -54,6 +54,9 @@
   --cat-4: #06b6d4;
   --cat-5: #ec4899;
   --verified: #1d9bf0;
+  /* Kleros brand gradient — used for primary CTAs and active pills in dark mode */
+  --kleros-grad: linear-gradient(135deg, #4d00b4 0%, #7b2bff 100%);
+  --kleros-grad-hover: linear-gradient(135deg, #5a0bd0 0%, #8e44ff 100%);
   --r-sm: 6px;
   --r: 8px;
   --r-md: 10px;
@@ -147,19 +150,10 @@
 }
 
 .container-fluid {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding-left: 12px;
-  padding-right: 12px;
-
-  @media (min-width: 1600px) {
-    & {
-      max-width: 75%;
-      margin: 0 auto;
-      padding-left: 0;
-      padding-right: 0;
-    }
-  }
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 body {
@@ -272,6 +266,39 @@ body {
   background: var(--blue);
   color: #fff;
   border-color: var(--blue);
+}
+
+/* "My collections" link (homepage category row) */
+.collections-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Instrument Serif", "Times New Roman", serif;
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink-3);
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+.collections-link:hover {
+  color: var(--ink);
+}
+.collections-link .ico {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-4);
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+}
+.collections-link .ico::before {
+  content: "";
+  position: absolute;
+  inset: 2px 50% 2px 2px;
+  background: var(--ink-4);
+  border-radius: 50% 0 0 50%;
 }
 
 /* Metadata tags (market header) */
@@ -519,6 +546,114 @@ body {
 
   &:hover {
     --btn-color: var(--blue-primary);
+  }
+}
+
+/* Brand CTA pill (Connect / Create New Market) — blue pill with hover lift/glow.
+   Defined after .btn.btn-primary so it wins on equal specificity. */
+.btn.btn-cta {
+  background-color: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+  transition:
+    background-color 140ms ease,
+    transform 180ms ease,
+    box-shadow 200ms ease;
+
+  &:hover {
+    background-color: var(--blue-hover);
+    border-color: var(--blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -4px rgba(45, 107, 247, 0.35);
+  }
+}
+html[data-theme="dark"] .btn.btn-cta {
+  background: var(--kleros-grad);
+  border-color: transparent;
+  box-shadow: 0 6px 18px -8px rgba(123, 43, 255, 0.6);
+
+  &:hover {
+    background: var(--kleros-grad-hover);
+    box-shadow: 0 10px 26px -8px rgba(123, 43, 255, 0.7);
+  }
+}
+
+/* Pagination — current page (blue in light, Kleros gradient in dark) */
+.paginator .paginator-active {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.paginator .paginator-active a {
+  color: #fff;
+}
+html[data-theme="dark"] .paginator .paginator-active {
+  background: var(--kleros-grad);
+  border-color: transparent;
+}
+
+/* ---------- Footer (seerbeta: logo + socials + links + copyright) ---------- */
+.foot {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 28px 0;
+  margin-top: auto;
+}
+.foot .foot-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.foot .brand-mini-svg {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+}
+.foot .socials {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink-5);
+}
+.foot .socials a {
+  display: inline-flex;
+  transition: color 140ms ease;
+}
+.foot .socials a:hover {
+  color: var(--ink);
+}
+.foot .socials svg {
+  width: 15px;
+  height: 15px;
+}
+.foot .links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-5);
+}
+.foot .links a:hover {
+  color: var(--ink);
+}
+.foot .copy {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-5);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.foot .copy a:hover {
+  color: var(--ink);
+}
+@media (max-width: 1024px) {
+  .foot .foot-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
   }
 }
 

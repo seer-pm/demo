@@ -29,7 +29,7 @@ const Input = React.forwardRef<HTMLInputElement | null, InputProps>((props, ref)
         <input
           {...restProps}
           className={clsx(
-            "input input-bordered bg-base-100 focus:outline-purple-primary",
+            "input input-bordered bg-base-100 focus:outline-none focus:border-blue focus:shadow-[0_0_0_3px_rgba(45,107,247,0.15)] dark:focus:shadow-[0_0_0_3px_rgba(123,43,255,0.25)]",
             className,
             icon && "pl-[40px]",
             hasError && "border-error-primary",

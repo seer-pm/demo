@@ -15,7 +15,7 @@ export const isUndefined = (maybeObject: any): maybeObject is undefined | null =
   return typeof maybeObject === "undefined" || maybeObject === null;
 };
 
-export function formatBigNumbers(amount: number): string {
+export function formatBigNumbers(amount: number, decimals = 2): string {
   const quantifiers: [number, string][] = [
     [1e9, "B"],
     [1e6, "M"],
@@ -24,11 +24,11 @@ export function formatBigNumbers(amount: number): string {
 
   for (const [denominator, letter] of quantifiers) {
     if (amount >= denominator) {
-      return `${(amount / denominator).toFixed(2)}${letter}`;
+      return `${(amount / denominator).toFixed(decimals)}${letter}`;
     }
   }
 
-  return amount.toFixed(2);
+  return amount.toFixed(decimals);
 }
 
 /**

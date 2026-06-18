@@ -269,6 +269,23 @@ export const EthIcon = () => (
   </svg>
 );
 
+export const KlerosIcon = ({ width = 14, height = 14, fill = "currentColor", className = "" }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="83.5 0 27.2 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M91.5278 0L105.116 0.607306L110.618 12.8297L102.856 24L89.1939 23.1252L83.5928 9.88237L91.5278 0ZM101.49 7.04523L91.6419 11.3475L100.061 17.8565L101.49 7.04523ZM100.35 4.88942L92.4796 1.50108L90.8263 8.62522L100.35 4.88942ZM98.3549 19.4943L89.8016 13.3873L90.0085 21.6626L98.3549 19.4943ZM109.252 12.8027L103.423 6.88869L101.884 18.261L109.252 12.8027ZM100.36 20.8245L93.1467 22.7097L101.63 23.2528L100.36 20.8245ZM108.112 15.4858L101.798 20.1893L103.053 22.6411L108.112 15.4858ZM105.126 2.315L103.899 4.83252L108.464 9.47253L105.126 2.315ZM103.598 1.11028L95.5811 0.784918L102.194 3.67694L103.598 1.11028ZM90.3572 2.27448L84.7422 9.36387L88.4963 10.159L90.3572 2.27448ZM88.2699 11.5497L84.4977 10.7511L88.4337 20.0227L88.2699 11.5497Z"
+      fill={fill}
+    />
+  </svg>
+);
 export const SecuredByKleros = () => (
   <svg width={179} height={24} viewBox="0 0 179 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_7764_14467)">
@@ -532,8 +549,8 @@ export const PolicyIcon = () => (
     />
   </svg>
 );
-export const ExternalLinkIcon = ({ fill = "#3992dd" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width={17} height={16} viewBox="0,0,256,256">
+export const ExternalLinkIcon = ({ fill = "#3992dd", width = 17, height = 16 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width={width} height={height} viewBox="0,0,256,256">
     <g
       fill={fill}
       fillRule="nonzero"
@@ -554,6 +571,72 @@ export const ExternalLinkIcon = ({ fill = "#3992dd" }) => (
         <path d="M25.98047,2.99023c-0.03726,0.00118 -0.07443,0.00444 -0.11133,0.00977h-5.86914c-0.36064,-0.0051 -0.69608,0.18438 -0.87789,0.49587c-0.18181,0.3115 -0.18181,0.69676 0,1.00825c0.18181,0.3115 0.51725,0.50097 0.87789,0.49587h3.58594l-10.29297,10.29297c-0.26124,0.25082 -0.36648,0.62327 -0.27512,0.97371c0.09136,0.35044 0.36503,0.62411 0.71547,0.71547c0.35044,0.09136 0.72289,-0.01388 0.97371,-0.27512l10.29297,-10.29297v3.58594c-0.0051,0.36064 0.18438,0.69608 0.49587,0.87789c0.3115,0.18181 0.69676,0.18181 1.00825,0c0.3115,-0.18181 0.50097,-0.51725 0.49587,-0.87789v-5.87305c0.04031,-0.29141 -0.04973,-0.58579 -0.24615,-0.80479c-0.19643,-0.219 -0.47931,-0.34042 -0.77338,-0.33192zM6,7c-1.09306,0 -2,0.90694 -2,2v15c0,1.09306 0.90694,2 2,2h15c1.09306,0 2,-0.90694 2,-2v-10v-2.57812l-2,2v2.57813v8h-15v-15h8h2h0.57813l2,-2h-2.57812h-2z"></path>
       </g>
     </g>
+  </svg>
+);
+export const ShareIcon = ({ width = 14, height = 14, fill = "currentColor" }: SVGAttributes<SVGElement>) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={fill}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" />
+  </svg>
+);
+export const SearchLineIcon = ({ width = 16, height = 16, fill = "currentColor" }: SVGAttributes<SVGElement>) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={fill}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+export const FilterLineIcon = ({ width = 14, height = 14, fill = "currentColor" }: SVGAttributes<SVGElement>) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={fill}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
+export const ExplorerLinkIcon = ({ width = 14, height = 14, fill = "currentColor" }: SVGAttributes<SVGElement>) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={fill}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
   </svg>
 );
 export const SettingsIcon = () => (
@@ -590,7 +673,7 @@ export const ChevronLeft = ({ fill = "#333333" }) => (
   </svg>
 );
 
-export const StarOutlined = ({ fill = "var(--blue)", width = "14" }) => (
+export const StarOutlined = ({ fill = "currentColor", width = "14" }) => (
   <svg width={width} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_24994_11593)">
       <path

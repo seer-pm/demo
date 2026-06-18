@@ -112,17 +112,17 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
   return (
     <div>
-      <div className="container-fluid py-[16px]">
+      <div className="container-fluid pt-[16px] pb-[8px]">
         <MarketsFilter />
       </div>
 
-      <div className="container-fluid py-[24px]">
+      <div className="container-fluid pt-[8px] pb-[80px]">
         {isPending && (
           <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
-            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
-            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
-            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
-            <div className="shimmer-container h-[225px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
           </div>
         )}
 

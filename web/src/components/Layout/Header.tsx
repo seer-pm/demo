@@ -10,7 +10,6 @@ import {
   CloseCircleOutlineIcon,
   CloseIcon,
   DiscordIcon,
-  DownArrow,
   EthIcon,
   Menu,
   NotificationIcon,
@@ -110,10 +109,10 @@ function BetaWarning() {
     setVisible(false);
   };
   return (
-    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
+    <div className="bg-[#fbfaf7] text-[#4b5563] dark:bg-surface-2 dark:text-ink-3 text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2 border-b border-[var(--border)]">
       <span>Note that this is a Beta version and can still be unstable</span>
       <button type="button" className="hover:opacity-80" onClick={dismiss}>
-        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+        <CloseCircleOutlineIcon width={12} height={12} fill="currentColor" />
       </button>
     </div>
   );
@@ -173,7 +172,7 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
                 : clsx(
                     "whitespace-nowrap px-[14px] py-[8px] rounded-[6px] transition-colors relative",
                     item.active
-                      ? "text-ink after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[12px] after:h-[2px] after:bg-blue after:rounded-t"
+                      ? "text-ink after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[1px] after:h-[2px] after:bg-blue after:rounded-t"
                       : "text-ink-3 hover:bg-bg-2 hover:text-ink",
                   ))
             }
@@ -310,7 +309,7 @@ export default function Header() {
         type: "container",
         className: isMobile
           ? "space-y-[24px]"
-          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[8px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[10%] [@media(min-width:1000px)]:ml-[16%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[8px]",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets", active: currentPath === "/" },
           {
@@ -324,7 +323,7 @@ export default function Header() {
             id: "policies-dropdown",
             type: "nested_links",
             title: "Policies",
-            icon: <DownArrow width={9} height={9} fill="var(--ink-5)" />,
+            icon: <span className="text-[9px] text-ink-5 -translate-y-px leading-none">▾</span>,
             children: [
               {
                 id: "verified-policy",
@@ -348,7 +347,7 @@ export default function Header() {
             id: "app-dropdown",
             type: "nested_links",
             title: "App",
-            icon: <DownArrow width={9} height={9} fill="var(--ink-5)" />,
+            icon: <span className="text-[9px] text-ink-5 -translate-y-px leading-none">▾</span>,
             children: [
               appLink("futarchy", "futarchy", "Futarchy.fi", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
@@ -537,7 +536,7 @@ export default function Header() {
       <BetaWarning />
       <nav
         ref={navRef}
-        className="navbar container-fluid text-ink-3 gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
+        className="navbar container-fluid text-ink-3 gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center [@media(min-width:1200px)]:pr-[180px] relative"
       >
         <div className="absolute left-[24px] lg:left-[12px]">
           <Link className="text-ink hover:text-blue transition-colors" to="/">

@@ -1,15 +1,17 @@
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
+import { isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
   ClockIcon,
   ConditionalMarketIcon,
   ExclamationCircleIcon,
+  ExplorerLinkIcon,
   LawBalanceIcon,
   SeerLogo,
+  ShareIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
@@ -31,20 +33,20 @@ import {
 } from "@seer-pm/sdk";
 import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatUnits } from "viem";
 import { Link } from "../Link";
 import Popover from "../Popover";
-import { BAR_COLOR, COLORS } from "./Header";
+import { BAR_COLOR } from "./Header";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
 
-const DONUT_SIZE = 56;
+const DONUT_SIZE = 64;
 const DONUT_PAD_ANGLE = 2;
-const GAUGE_WIDTH = 100;
+const GAUGE_WIDTH = 140;
 const GAUGE_STROKE_WIDTH = 6;
 const GAUGE_KNOB_RADIUS = 4;
-const GAUGE_DISPLAY_HEIGHT = 74;
+const GAUGE_DISPLAY_HEIGHT = 84;
 const GAUGE_COLOR = "var(--blue)";
 
 type OutcomeSegment = {
@@ -79,6 +81,21 @@ function formatOutcomePercent(value: number): string {
   }
   const rounded = Math.round(value * 10) / 10;
   return rounded % 1 === 0 ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
+// Compact outcome label for cards: drop parenthetical content and cap to the first 3 words.
+function formatOutcomeLabel(outcome: string): string {
+  const withoutParens = outcome.replace(/\s*\([^)]*\)/g, "").trim();
+  const words = withoutParens.split(/\s+/).filter(Boolean);
+  return words.slice(0, 3).join(" ");
+}
+
+// Yes/No categorical outcomes get green/red treatment.
+function getYesNoKind(outcome: string): "yes" | "no" | null {
+  const normalized = outcome.trim().toLowerCase();
+  if (normalized === "yes") return "yes";
+  if (normalized === "no") return "no";
+  return null;
 }
 
 function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
@@ -123,8 +140,8 @@ function describeGaugeArc(cx: number, cy: number, radius: number, startAngle: nu
 
 function ScalarGaugeShimmer() {
   return (
-    <div className="w-full max-w-[110px] mx-auto">
-      <div className="relative h-[74px] flex items-end justify-center">
+    <div className="w-full max-w-[140px] mx-auto">
+      <div className="relative h-[84px] flex items-end justify-center">
         <div className="shimmer-container w-[80px] h-[70px] rounded-t-full" />
         <div className="absolute bottom-[4px] shimmer-container w-[8px] h-[8px] rounded-full" />
       </div>
@@ -173,7 +190,7 @@ function ScalarGauge({
   const bgArc = describeGaugeArc(cx, cy, radius, 270, 90);
 
   return (
-    <div className="w-full max-w-[110px] mx-auto">
+    <div className="w-full max-w-[140px] mx-auto">
       <div className="relative" style={{ height: GAUGE_DISPLAY_HEIGHT }}>
         <svg
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
@@ -200,13 +217,16 @@ function ScalarGauge({
           <circle cx={knobPos.x} cy={knobPos.y} r={GAUGE_KNOB_RADIUS} fill={color} stroke="white" strokeWidth={2} />
         </svg>
         <div className="absolute inset-x-0 bottom-[18%] text-center pointer-events-none">
-          <p className="font-display font-medium text-[16px] tracking-tight tabular-nums text-ink leading-tight">
+          <p
+            className="font-display font-medium text-[26px] tracking-[-0.025em] tabular-nums text-ink leading-tight"
+            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
+          >
             {value.toLocaleString()}
           </p>
           {unit && <p className="font-mono text-[9px] text-ink-4 uppercase leading-tight">{unit}</p>}
         </div>
       </div>
-      <div className="flex justify-between text-[9px] text-black-secondary px-0.5 leading-tight">
+      <div className="flex justify-between text-[11px] text-black-secondary px-0.5 leading-tight">
         <span>{min.toLocaleString()}</span>
         <span>{max.toLocaleString()}</span>
       </div>
@@ -316,7 +336,7 @@ export function OutcomesInfo({
     }
     return (
       <div className="flex items-center gap-3 w-full">
-        <div className="shimmer-container w-[56px] h-[56px] rounded-full flex-shrink-0" />
+        <div className="shimmer-container w-[64px] h-[64px] rounded-full flex-shrink-0" />
         <div className="flex flex-col gap-1 flex-1">
           <div className="shimmer-container h-[12px] rounded-[4px] w-full" />
           <div className="shimmer-container h-[12px] rounded-[4px] w-4/5" />
@@ -362,17 +382,27 @@ export function OutcomesInfo({
     <div className="flex items-center gap-3 w-full">
       <OutcomesDonut segments={segments} disabled={!hasUsableOdds} />
       <div className="flex flex-col gap-1 flex-1 min-w-0">
-        {segments.map((segment) => (
-          <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: segment.color }} />
-            <span className="truncate text-ink-3 font-medium flex-1" title={segment.outcome}>
-              {segment.outcome}
-            </span>
-            <span className="font-mono font-semibold tabular-nums text-ink flex-shrink-0">
-              {formatOutcomePercent(segment.percent)}
-            </span>
-          </div>
-        ))}
+        {segments.map((segment) => {
+          const yesNo = getYesNoKind(segment.outcome);
+          const nameColor =
+            yesNo === "yes" ? "text-[var(--pos-text)]" : yesNo === "no" ? "text-[var(--neg-text)]" : "text-ink-3";
+          const pctColor =
+            yesNo === "yes" ? "text-[var(--pos-text)]" : yesNo === "no" ? "text-[var(--neg-text)]" : "text-ink";
+          return (
+            <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: segment.color }} />
+              <span
+                className={clsx("truncate font-medium flex-1 tracking-[-0.005em]", nameColor)}
+                title={segment.outcome}
+              >
+                {formatOutcomeLabel(segment.outcome)}
+              </span>
+              <span className={clsx("font-mono font-semibold tabular-nums flex-shrink-0", pctColor)}>
+                {formatOutcomePercent(segment.percent)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -390,7 +420,10 @@ function MarketResult({ market }: { market: Market }) {
   return (
     <Link
       className="h-[24px] block rounded-[3px] text-[12px] leading-[24px] relative"
-      style={{ background: `${BAR_COLOR[marketType][0]}29`, color: BAR_COLOR[marketType][0] }}
+      style={{
+        background: `color-mix(in srgb, ${BAR_COLOR[marketType][0]} 16%, transparent)`,
+        color: BAR_COLOR[marketType][0],
+      }}
       to={paths.market(market)}
     >
       <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
@@ -407,18 +440,41 @@ function MarketResult({ market }: { market: Market }) {
   );
 }
 
+function ShareButton({ market, className }: { market: Market; className: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleShare = () => {
+    const url =
+      typeof window !== "undefined" ? `${window.location.origin}${paths.market(market)}` : paths.market(market);
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button type="button" className={clsx(className, "relative")} aria-label="Share market" onClick={handleShare}>
+      {copied && (
+        <span className="absolute bottom-[125%] left-1/2 -translate-x-1/2 text-[10px] leading-none text-ink-4 whitespace-nowrap pointer-events-none">
+          Link copied
+        </span>
+      )}
+      <ShareIcon fill="currentColor" width={14} height={14} />
+    </button>
+  );
+}
+
 export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
-  const incentive = formatBigNumbers(market.incentive);
+  const incentive = formatBigNumbers(market.incentive, 1);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const footIcoBase = "w-[22px] h-[22px] !flex items-center justify-center rounded-[6px] transition-colors";
+  const footIcoClass = clsx(footIcoBase, "text-ink-5 hover:text-ink-2 hover:bg-bg-2");
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,
   );
   const marketType = getMarketType(market);
-  const colors = marketStatus && COLORS[marketStatus];
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   const hasBalance = market.poolBalance.some(
@@ -427,11 +483,11 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "card-box text-left flex flex-col transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] hover:-translate-y-px",
+        "card-box group relative @container text-left flex flex-col transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[0_10px_24px_-12px_rgba(15,17,21,0.18)] dark:hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)]",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="min-h-[100px] @container px-4 pt-3">
+      <div className="min-h-[100px] px-4 pt-3">
         <div className="flex space-x-3">
           <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
@@ -447,7 +503,8 @@ export function PreviewCard({ market }: { market: Market }) {
           <div className="grow min-w-0">
             <Link
               title={market.marketName}
-              className="hover:text-blue transition-colors font-display font-medium tracking-tight @[340px]:text-[15px] @[315px]:text-[14px] text-[13px] leading-snug line-clamp-3"
+              className="font-display font-medium tracking-[-0.012em] text-[14.5px] leading-snug line-clamp-3 before:absolute before:inset-0 before:z-0 before:content-['']"
+              style={{ fontVariationSettings: '"opsz" 36, "SOFT" 30' }}
               to={paths.market(market)}
             >
               {market.marketName}
@@ -460,7 +517,7 @@ export function PreviewCard({ market }: { market: Market }) {
         </div>
       </div>
 
-      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
+      <div className="px-4 mt-2 h-[112px] flex flex-col justify-center overflow-y-auto custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
@@ -473,9 +530,9 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="border-t border-[var(--border-2)] px-[16px] h-[44px] flex items-center justify-between w-full">
+      <div className="relative z-[1] border-t border-[var(--border-2)] mx-4 h-[44px] flex items-center justify-between">
         <span className="flex items-center gap-2.5 min-w-0">
-          <SeerLogo fill="currentColor" className="text-ink-4 shrink-0" width="46px" />
+          <SeerLogo fill="currentColor" className="text-ink-4 shrink-0 h-[14px] w-auto" />
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
               trigger={
@@ -507,9 +564,9 @@ export function PreviewCard({ market }: { market: Market }) {
             <p className="font-display text-[14px] tabular-nums text-ink font-medium tracking-tight">${liquidityUSD}</p>
           )}
         </span>
-        <div className="flex items-center gap-2 text-ink-4">
+        <div className="flex items-center gap-0.5 text-ink-5">
           {parentMarket && (
-            <div className="tooltip !flex">
+            <div className={clsx(footIcoClass, "tooltip")}>
               <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
                 <p className="text-purple-primary">Conditional Market:</p>
                 <p className="text-base-content/70">
@@ -517,32 +574,29 @@ export function PreviewCard({ market }: { market: Market }) {
                   <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
                 </p>
               </div>
-              <ConditionalMarketIcon fill="currentColor" />
+              <ConditionalMarketIcon fill="currentColor" width="14" />
             </div>
           )}
-          <div className="tooltip !flex">
+          <ShareButton market={market} className={footIcoClass} />
+          <a
+            href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={clsx(footIcoClass, "tooltip")}
+            aria-label="View on explorer"
+          >
             <p className="tooltiptext">View contract on explorer</p>
-            <a
-              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0"
-            >
-              <img
-                alt="network-icon"
-                className="w-[14px] h-[14px] rounded-full"
-                src={NETWORK_ICON_MAPPING[market.chainId]}
-              />
-            </a>
-          </div>
+            <ExplorerLinkIcon fill="currentColor" width={14} height={14} />
+          </a>
           {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
             <Link
               className={clsx(
+                footIcoBase,
                 "tooltip",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-[#9747FF]",
+                market.verification.status === "verified" && "text-success-primary hover:bg-success-primary/10",
+                market.verification.status === "verifying" && "text-blue-primary hover:bg-blue-primary/10",
+                market.verification.status === "challenged" && "text-warning-primary hover:bg-warning-primary/10",
+                market.verification.status === "not_verified" && "text-[#9747FF] hover:bg-[#9747FF]/10",
               )}
               to={
                 market.verification.status === "not_verified"
@@ -582,7 +636,7 @@ export function PreviewCard({ market }: { market: Market }) {
               )}
             </Link>
           )}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={footIcoClass} />}
         </div>
       </div>
     </div>

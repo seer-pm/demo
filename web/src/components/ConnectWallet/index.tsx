@@ -28,7 +28,15 @@ type ConnectButtonProps = {
 
 const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
   const { open } = useWeb3Modal();
-  return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
+  return (
+    <Button
+      text={"Connect"}
+      variant="primary"
+      size={size}
+      className="btn-cta !h-[36px] !min-h-[36px] !px-[18px] !rounded-full !text-[14px] !font-semibold"
+      onClick={async () => open({ view: "Connect" })}
+    />
+  );
 };
 
 type ConnectWallerProps = ConnectButtonProps & {

@@ -1,18 +1,16 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { Collections, Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
+import { FilterLineIcon, SearchLineIcon } from "@/lib/icons";
 import { MARKET_CATEGORIES } from "@seer-pm/sdk";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 import { LinkButton } from "../Form/Button";
 import Input from "../Form/Input";
 import { Link } from "../Link";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
 export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
-  const { address } = useAccount();
   const [searchParams] = useSearchParams();
   const {
     setMarketName: setMarketNameParam,
@@ -50,8 +48,8 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <div className="grow @container">
           <Input
             placeholder="Search by market, outcome or collection"
-            className="w-full h-[44px] !rounded-full text-[14px] @[400px]:text-[15px]"
-            icon={<SearchIcon fill="var(--ink-5)" />}
+            className="w-full h-[44px] !rounded-full !border-[var(--border)] text-[13px] @[400px]:text-[14px] placeholder:text-ink-5"
+            icon={<SearchLineIcon fill="var(--ink-5)" />}
             value={marketName}
             onChange={onChangeName}
             isClearable
@@ -65,14 +63,14 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <button
           type="button"
           className={clsx(
-            "h-[44px] px-[18px] rounded-full border border-[var(--border)] bg-surface text-ink-2 text-[14px] font-medium flex items-center justify-center gap-2 w-full lg:w-[160px] transition-colors hover:bg-bg-2 hover:border-[var(--ink-5)]",
+            "h-[44px] px-[18px] rounded-full border border-[var(--border)] bg-surface text-ink-2 text-[14px] font-medium flex items-center justify-center gap-2 w-full lg:w-auto transition-colors hover:bg-bg-2 hover:border-[var(--ink-5)]",
             isShowFilters && "!border-blue",
           )}
           onClick={() => setShowFilters((state) => !state)}
         >
           <div className="relative flex items-center">
             {hasFilters && <div className="absolute w-2 h-2 bg-error-primary rounded-full right-[-5px] top-[-5px]" />}
-            <Filter fill="var(--ink-3)" />
+            <FilterLineIcon fill="var(--ink-3)" />
           </div>
           Filters
           <span className="text-[9px] text-ink-5">▾</span>
@@ -86,12 +84,16 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <LinkButton
           to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
           text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
-          icon={<PlusCircleIcon width={18} />}
-          className="max-lg:w-full !min-w-0 !h-[44px] !min-h-[44px] !text-[14px] !px-[20px] gap-1.5 whitespace-nowrap"
+          icon={
+            <span className="w-[18px] h-[18px] rounded-full bg-white/20 inline-flex items-center justify-center text-[14px] font-semibold leading-none">
+              +
+            </span>
+          }
+          className="btn-cta !rounded-full max-lg:w-full !min-w-0 !h-[44px] !min-h-[44px] !text-[14px] !px-[20px] gap-2 whitespace-nowrap"
         />
       </div>
-      <div className="flex mt-8">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex mt-5 items-center">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
             if (category.value === "all") {
               return (
@@ -117,15 +119,10 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
             );
           })}
         </div>
-        {address && (
-          <Link
-            to={"/collections/default"}
-            className="whitespace-nowrap flex items-center gap-2 ml-auto hover:opacity-80"
-          >
-            <Collections />
-            <p className="font-italic italic text-[16px] text-ink-3 hover:text-ink">My collections</p>
-          </Link>
-        )}
+        <Link to={"/collections/default"} className="collections-link ml-auto">
+          <span className="ico" />
+          My collections
+        </Link>
       </div>
     </div>
   );
