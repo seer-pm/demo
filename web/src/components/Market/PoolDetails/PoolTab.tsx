@@ -1,8 +1,8 @@
 import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { BarChartIcon, DensitySmallIcon, SwapIcon } from "@/lib/icons";
-import { displayBalance, isTwoStringsEqual } from "@/lib/utils";
+import { BarChartIcon, DensitySmallIcon } from "@/lib/icons";
+import { displayBalance } from "@/lib/utils";
 import { PoolInfo, fetchTokenBalance, useMarketPools } from "@seer-pm/react";
 import { Market, getPoolExplorerUrl } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
@@ -29,9 +29,8 @@ function PoolTabContent({
     balance1: string;
   }[];
 }) {
-  const outcome = market.wrappedTokens[outcomeIndex];
-  const { id: poolId, token0Symbol, token1Symbol, token0 } = dataPerPool;
-  const [isShowToken0Price, setShowToken0Price] = useState(!!isTwoStringsEqual(token0, outcome));
+  const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
+
   const [liquidityChartLayout, setLiquidityChartLayout] = useGlobalState((state) => [
     state.liquidityChartLayout,
     state.setLiquidityChartLayout,
@@ -39,7 +38,7 @@ function PoolTabContent({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col lg:flex-row justify-between">
+      <div className="flex flex-col lg:flex-row justify-between gap-2">
         <div className="flex items-center gap-2">
           <p className="font-semibold text-[14px]">Pool Id:</p>
           <Link
@@ -53,7 +52,7 @@ function PoolTabContent({
           </Link>
           <CopyButton textToCopy={poolId} size={18} />
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <p className="font-semibold text-[14px]">Pool Balances:</p>
           {isLoading ? (
             <div className="shimmer-container w-20 h-4"></div>
@@ -66,54 +65,35 @@ function PoolTabContent({
             </div>
           )}
         </div>
-      </div>
-      <div>
-        <div className="text-[14px] flex items-center gap-2 flex-wrap">
-          <span className="font-semibold">Liquidity Distribution:</span>{" "}
-          {isShowToken0Price ? token0Symbol : token1Symbol}/{isShowToken0Price ? token1Symbol : token0Symbol}{" "}
-          <button type="button" onClick={() => setShowToken0Price((state) => !state)}>
-            <SwapIcon />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setLiquidityChartLayout("horizontal")}
+            className={`p-2 rounded ${
+              liquidityChartLayout === "horizontal"
+                ? "fill-white bg-purple-primary"
+                : "fill-black-secondary border border-black-secondary"
+            }`}
+          >
+            <BarChartIcon />
           </button>
-          <div className="flex gap-1 lg:ml-auto">
-            <button
-              type="button"
-              onClick={() => setLiquidityChartLayout("horizontal")}
-              className={`p-2 rounded ${
-                liquidityChartLayout === "horizontal"
-                  ? "fill-white bg-purple-primary"
-                  : "fill-black-secondary border border-black-secondary"
-              }`}
-            >
-              <BarChartIcon />
-            </button>
-            <button
-              type="button"
-              onClick={() => setLiquidityChartLayout("vertical")}
-              className={`p-2 rounded ${
-                liquidityChartLayout === "vertical"
-                  ? "fill-white bg-purple-primary"
-                  : "fill-black-secondary border border-black-secondary"
-              }`}
-            >
-              <DensitySmallIcon />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setLiquidityChartLayout("vertical")}
+            className={`p-2 rounded ${
+              liquidityChartLayout === "vertical"
+                ? "fill-white bg-purple-primary"
+                : "fill-black-secondary border border-black-secondary"
+            }`}
+          >
+            <DensitySmallIcon />
+          </button>
         </div>
       </div>
       {liquidityChartLayout === "horizontal" ? (
-        <LiquidityBarChart
-          market={market}
-          outcomeTokenIndex={outcomeIndex}
-          poolInfo={dataPerPool}
-          isShowToken0Price={isShowToken0Price}
-        />
+        <LiquidityBarChart market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
       ) : (
-        <LiquidityBarChartVertical
-          market={market}
-          outcomeTokenIndex={outcomeIndex}
-          poolInfo={dataPerPool}
-          isShowToken0Price={isShowToken0Price}
-        />
+        <LiquidityBarChartVertical market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
       )}
     </div>
   );

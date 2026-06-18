@@ -4,7 +4,7 @@ import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
-import { formatBigNumbers } from "@/lib/utils";
+import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk";
@@ -15,21 +15,19 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
-  isShowToken0Price,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
-  isShowToken0Price: boolean;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { token0Symbol, token1Symbol, tick, id } = poolInfo;
+  const { token0Symbol, token1Symbol, tick, id, token0 } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
+  const isShowToken0Price = !!isTwoStringsEqual(token0, outcome);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
-
   if (isError) {
     return (
       <Alert type="error" className="mb-5">

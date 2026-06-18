@@ -2,6 +2,7 @@ import { Alert } from "@/components/Alert";
 import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk";
@@ -12,16 +13,15 @@ export default function LiquidityBarChartVertical({
   market,
   outcomeTokenIndex,
   poolInfo,
-  isShowToken0Price,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
-  isShowToken0Price: boolean;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { tick, id } = poolInfo;
+  const { tick, id, token0 } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
+  const isShowToken0Price = !!isTwoStringsEqual(token0, outcome);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const containerRef = useRef<HTMLDivElement>(null);
