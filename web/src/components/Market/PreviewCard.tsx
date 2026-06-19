@@ -44,9 +44,9 @@ import { PoolTokensInfo } from "./Header/MarketHeader";
 const DONUT_SIZE = 64;
 const DONUT_PAD_ANGLE = 2;
 const GAUGE_WIDTH = 140;
-const GAUGE_STROKE_WIDTH = 6;
-const GAUGE_KNOB_RADIUS = 4;
-const GAUGE_DISPLAY_HEIGHT = 84;
+const GAUGE_STROKE_WIDTH = 8;
+const GAUGE_KNOB_RADIUS = 6;
+const GAUGE_DISPLAY_HEIGHT = 78;
 const GAUGE_COLOR = "var(--blue)";
 
 type OutcomeSegment = {
@@ -141,7 +141,7 @@ function describeGaugeArc(cx: number, cy: number, radius: number, startAngle: nu
 function ScalarGaugeShimmer() {
   return (
     <div className="w-full max-w-[140px] mx-auto">
-      <div className="relative h-[84px] flex items-end justify-center">
+      <div className="relative h-[78px] flex items-end justify-center">
         <div className="shimmer-container w-[80px] h-[70px] rounded-t-full" />
         <div className="absolute bottom-[4px] shimmer-container w-[8px] h-[8px] rounded-full" />
       </div>
@@ -174,24 +174,19 @@ function ScalarGauge({
 }) {
   const range = max - min;
   const percentage = range === 0 ? 0 : Math.max(0, Math.min(100, ((value - min) / range) * 100));
+  // Fixed geometry mirrors the approved preview (140×78 viewBox, arc center 70,60 r 50).
   const cx = width / 2;
-  const radius = width / 2 - GAUGE_STROKE_WIDTH - GAUGE_KNOB_RADIUS;
-  const cy = radius + GAUGE_STROKE_WIDTH / 2;
-  const arcPadding = GAUGE_KNOB_RADIUS + GAUGE_STROKE_WIDTH / 2;
-  const viewBox = {
-    x: cx - radius - arcPadding,
-    y: cy - radius - arcPadding,
-    width: 2 * (radius + arcPadding),
-    height: radius + 2 * arcPadding,
-  };
+  const cy = 60;
+  const radius = 50;
+  const viewBox = { x: 0, y: 0, width: GAUGE_WIDTH, height: GAUGE_DISPLAY_HEIGHT };
   const valueAngle = 270 + (percentage / 100) * 180;
   const knobAngle = valueAngle >= 360 ? valueAngle - 360 : valueAngle;
   const knobPos = polarToCartesian(cx, cy, radius, knobAngle);
   const bgArc = describeGaugeArc(cx, cy, radius, 270, 90);
 
   return (
-    <div className="w-full max-w-[140px] mx-auto">
-      <div className="relative" style={{ height: GAUGE_DISPLAY_HEIGHT }}>
+    <div className="w-full">
+      <div className="relative mx-auto max-w-[140px]" style={{ height: GAUGE_DISPLAY_HEIGHT }}>
         <svg
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           className="absolute inset-0 h-full w-full"
@@ -214,19 +209,31 @@ function ScalarGauge({
               strokeLinecap="round"
             />
           )}
-          <circle cx={knobPos.x} cy={knobPos.y} r={GAUGE_KNOB_RADIUS} fill={color} stroke="white" strokeWidth={2} />
+          <circle
+            cx={knobPos.x}
+            cy={knobPos.y}
+            r={GAUGE_KNOB_RADIUS}
+            fill={color}
+            stroke="white"
+            strokeWidth={2.5}
+            style={{ filter: "drop-shadow(0 1px 2px rgba(45, 107, 247, 0.35))" }}
+          />
         </svg>
-        <div className="absolute inset-x-0 bottom-[18%] text-center pointer-events-none">
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 text-center pointer-events-none">
           <p
-            className="font-display font-medium text-[26px] tracking-[-0.025em] tabular-nums text-ink leading-tight"
+            className="font-display font-medium text-[26px] tracking-[-0.025em] tabular-nums text-ink leading-none"
             style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
           >
             {value.toLocaleString()}
           </p>
-          {unit && <p className="font-mono text-[9px] text-ink-4 uppercase leading-tight">{unit}</p>}
+          {unit && (
+            <p className="font-mono font-medium text-[9.5px] tracking-[0.08em] text-ink-4 uppercase leading-none">
+              {unit}
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex justify-between text-[11px] text-black-secondary px-0.5 leading-tight">
+      <div className="flex justify-between font-mono font-medium text-[11px] text-ink-4 tabular-nums leading-tight">
         <span>{min.toLocaleString()}</span>
         <span>{max.toLocaleString()}</span>
       </div>
