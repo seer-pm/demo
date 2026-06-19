@@ -243,7 +243,7 @@ function MarketPage() {
           </div>
           {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
           <div className="hidden [@media(min-width:1200px)]:block space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
-            <MajorEvents />
+            <MajorEvents market={market} />
             <SwapWidget
               market={market}
               outcomeIndex={outcomeIndex}

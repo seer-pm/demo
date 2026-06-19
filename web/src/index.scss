@@ -932,6 +932,51 @@ html[data-theme="dark"] .io-swap:focus-visible {
   border-radius: 3px;
   vertical-align: middle;
 }
+.events-card .section-h .events-admin-add {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.events-card .section-h .events-admin-add:hover {
+  text-decoration: underline;
+}
+.events-empty {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.event-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.event-actions button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.event-actions .event-edit {
+  color: var(--blue);
+}
+.event-actions .event-delete {
+  color: var(--neg);
+}
+.event-actions button:hover {
+  text-decoration: underline;
+}
 
 /* =====================================================================
    Rules note (placeholder, under the chart) — ported from market.html
