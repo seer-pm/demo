@@ -11,13 +11,12 @@ import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isSeerCredits } from "@seer-pm/sdk";
-import { Market } from "@seer-pm/sdk";
+import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
-import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
@@ -213,13 +212,21 @@ export function SwapTokensLimitUpto({
           type="button"
           disabled={true}
           isLoading={true}
-          className="w-full"
+          className="w-full !rounded-[8px]"
           text="Calculating best price..."
         />
       );
     }
     if (limitErrorMessage && limitErrorMessage !== "This field is required." && !isUseMax) {
-      return <Button variant="primary" className="w-full" type="button" disabled={true} text={limitErrorMessage} />;
+      return (
+        <Button
+          variant="primary"
+          className="w-full !rounded-[8px]"
+          type="button"
+          disabled={true}
+          text={limitErrorMessage}
+        />
+      );
     }
     if (quoteData?.trade) {
       const parsedAmount = parseUnits(amount, sellToken.decimals);
@@ -249,9 +256,26 @@ export function SwapTokensLimitUpto({
     }
 
     if (quoteIsLoading && quoteFetchStatus === "fetching") {
-      return <Button variant="primary" type="button" className="w-full" disabled={true} isLoading={true} text="" />;
+      return (
+        <Button
+          variant="primary"
+          type="button"
+          className="w-full !rounded-[8px]"
+          disabled={true}
+          isLoading={true}
+          text=""
+        />
+      );
     }
-    return <Button variant="primary" className="w-full" type="button" disabled={true} text="Enter target price" />;
+    return (
+      <Button
+        variant="primary"
+        className="w-full !rounded-[8px]"
+        type="button"
+        disabled={true}
+        text="Enter target price"
+      />
+    );
   };
 
   const checkPriceDirection = (value: number) => {
@@ -358,13 +382,14 @@ export function SwapTokensLimitUpto({
         }
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal, handleOpenConfirmPartialSwap)} className="space-y-5">
-        <div className="space-y-2">
-          <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
-            <div className="flex items-center justify-between">
-              <p className="text-base-content/70">Target price</p>
+        <div className="space-y-3">
+          {/* Target price */}
+          <div>
+            <div className="io-label">
+              <span>Target price</span>
             </div>
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
                 <Input
                   autoComplete="off"
                   type="number"
@@ -403,28 +428,39 @@ export function SwapTokensLimitUpto({
                     });
                   }}
                   value={isUseMax ? (limitPriceFromVolume?.toFixed(8) ?? "") : limitPrice}
-                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                   errorClassName="hidden"
                 />
               </div>
-              <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-                <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+              <div className="io-token">
+                <div className="token-img rounded-full w-4 h-4 overflow-hidden flex-shrink-0">
                   <img
                     className="w-full h-full"
                     alt={primaryCollateral.symbol}
                     src={paths.tokenImage(primaryCollateral.address, market.chainId)}
                   />
                 </div>
-                <p className="font-semibold text-[16px]">{primaryCollateral.symbol}</p>
+                <p>{primaryCollateral.symbol}</p>
               </div>
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
-            <p className="text-base-content/70">You will sell</p>
-            <div className="flex justify-between items-start">
-              <div>
+
+          {/* You will sell */}
+          <div>
+            <div className="io-label">
+              <span>You will sell</span>
+              {isFetchingBalance ? (
+                <span className="shimmer-container w-[80px] h-[13px] inline-block" />
+              ) : (
+                <span className="tabular-nums">
+                  Balance: {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
+                </span>
+              )}
+            </div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
                 <Input
                   autoComplete="off"
                   type="number"
@@ -451,7 +487,7 @@ export function SwapTokensLimitUpto({
                     },
                   })}
                   disabled
-                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                   errorClassName="absolute"
@@ -474,33 +510,23 @@ export function SwapTokensLimitUpto({
                 }}
               />
             </div>
-            <div className="flex justify-end">
-              {isFetchingBalance ? (
-                <div className="shimmer-container w-[80px] h-[13px]" />
-              ) : (
-                <div className="flex items-center gap-1">
-                  <p className="text-[12px] font-semibold text-base-content/70">
-                    {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
-                  </p>
-                  {balance > 0 && (
-                    <button
-                      type="button"
-                      className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
-                      onClick={() => {
-                        swapMax();
-                      }}
-                    >
-                      Max
-                    </button>
-                  )}
-                </div>
+            <div className="io-balance">
+              <span />
+              {balance > 0 && (
+                <button type="button" className="max-btn" onClick={() => swapMax()}>
+                  MAX
+                </button>
               )}
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
-            <p className="text-base-content/70">To receive</p>
-            <div className="flex justify-between items-start">
-              <div>
+
+          {/* To receive */}
+          <div>
+            <div className="io-label">
+              <span>To receive</span>
+            </div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
                 <Input
                   autoComplete="off"
                   type="number"
@@ -511,7 +537,7 @@ export function SwapTokensLimitUpto({
                       setTradeType(TradeType.EXACT_OUTPUT);
                     },
                   })}
-                  className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0"
                   placeholder="0"
                   disabled
                   useFormReturn={useFormReturn}
@@ -537,43 +563,55 @@ export function SwapTokensLimitUpto({
           </div>
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[#828282] text-[14px]">
-            Avg price
-            {quoteIsLoading || isFetching ? (
-              <div className="shimmer-container ml-2 w-[100px]" />
-            ) : (
-              <div className="flex items-center gap-2">
-                {collateralPerShare} {selectedCollateral.symbol}
-                {isSecondaryCollateral && (
-                  <span className="tooltip">
-                    <p className="tooltiptext">
-                      {(collateralPerShare * sharesToAssets).toFixed(3)} {primaryCollateral.symbol}
-                    </p>
-                    <QuestionIcon fill="var(--blue)" />
-                  </span>
-                )}
-              </div>
-            )}
+        <div>
+          <div className="space-y-2 bg-bg-2 rounded-[8px] p-[14px]">
+            <div className="flex justify-between items-baseline text-[13px]">
+              <span className="text-ink-4 font-medium">Avg price</span>
+              {quoteIsLoading || isFetching ? (
+                <div className="shimmer-container ml-2 w-[100px]" />
+              ) : (
+                <div className="flex items-center gap-2 font-mono tabular-nums font-semibold text-ink">
+                  {collateralPerShare} {selectedCollateral.symbol}
+                  {isSecondaryCollateral && (
+                    <span className="tooltip">
+                      <p className="tooltiptext">
+                        {(collateralPerShare * sharesToAssets).toFixed(3)} {primaryCollateral.symbol}
+                      </p>
+                      <QuestionIcon fill="var(--blue)" />
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <PotentialReturn
+              {...{
+                swapType,
+                isSecondaryCollateral,
+                selectedCollateral,
+                sharesToAssets,
+                assetsToShares,
+                outcomeText,
+                outcomeToken,
+                market,
+                quoteIsLoading,
+                isFetching,
+                amount,
+                receivedAmount,
+                collateralPerShare,
+                tradeType,
+              }}
+            />
           </div>
-          <PotentialReturn
-            {...{
-              swapType,
-              isSecondaryCollateral,
-              selectedCollateral,
-              sharesToAssets,
-              assetsToShares,
-              outcomeText,
-              outcomeToken,
-              market,
-              quoteIsLoading,
-              isFetching,
-              amount,
-              receivedAmount,
-              collateralPerShare,
-              tradeType,
-            }}
-          />
+          {swapType === "buy" &&
+            market.type !== "Futarchy" &&
+            (getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID") && (
+              <p className="return-note">
+                Each token can be redeemed for 1{" "}
+                {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
+                {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
+                market resolves to {outcomeText}.
+              </p>
+            )}
         </div>
 
         {isPsm3Collateral && (
@@ -598,20 +636,19 @@ export function SwapTokensLimitUpto({
           </Alert>
         )}
 
-        <div className="flex justify-between flex-wrap gap-4">
-          {/* market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} /> */}
-          <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
-            Parameters:{" "}
-            <div
-              className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 px-[12px] py-[10px] border border-[var(--border)] rounded-[8px] text-[12.5px] text-ink-3">
+            <span className="flex items-center gap-1.5">
+              <Parameter width="14px" height="14px" />
+              Max slippage {maxSlippage}%{isInstantSwap && " — Instant"}
+            </span>
+            <button
+              type="button"
+              className="text-blue font-semibold text-[12px] hover:text-blue-hover"
               onClick={() => setShowMaxSlippage(true)}
             >
-              <p>
-                Max slippage {maxSlippage}%{isInstantSwap && " - Instant"}
-              </p>
-
-              <Parameter width="16px" height="16px" />
-            </div>
+              More
+            </button>
           </div>
         </div>
         {renderButtons()}

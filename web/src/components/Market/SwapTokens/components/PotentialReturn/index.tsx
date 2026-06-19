@@ -1,7 +1,5 @@
-import { QuestionIcon } from "@/lib/icons";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import PotentialReturnConfig from "./PotentialReturnConfig";
 import { PotentialReturnResult } from "./PotentialReturnResult";
 
@@ -36,7 +34,6 @@ export function PotentialReturn({
   receivedAmount,
   collateralPerShare,
 }: PotentialReturnProps) {
-  const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   if (swapType !== "buy" || market.type === "Futarchy") {
     return null;
   }
@@ -63,19 +60,8 @@ export function PotentialReturn({
   }
 
   return (
-    <div className="flex justify-between text-[#828282] text-[14px]">
-      <div className="flex items-center gap-2 relative">
-        Potential return{" "}
-        <span className="tooltip">
-          <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
-            Each token can be redeemed for 1{" "}
-            {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
-            {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
-            market resolves to {outcomeText}.
-          </p>
-          <QuestionIcon fill="var(--blue)" />
-        </span>
-      </div>
+    <div className="flex justify-between items-baseline text-[13px]">
+      <span className="text-ink-4 font-medium">Potential return</span>
       <PotentialReturnResult
         quoteIsLoading={quoteIsLoading}
         isFetching={isFetching}

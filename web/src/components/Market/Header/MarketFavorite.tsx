@@ -16,14 +16,34 @@ import { Market } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
 
+function BookmarkIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 function MarketFavorite({
   market,
   colorClassName,
   iconWidth = "14",
+  showLabel = false,
 }: {
   market: Market;
   colorClassName?: string;
   iconWidth?: string;
+  showLabel?: boolean;
 }) {
   const accessToken = useGlobalState((state) => state.accessToken);
   const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
@@ -151,7 +171,18 @@ function MarketFavorite({
           </>
         }
       >
-        {isFavorite ? (
+        {showLabel ? (
+          <div className="flex items-center gap-1.5 cursor-pointer hover:text-ink transition-colors [&_svg]:text-ink-5">
+            <BookmarkIcon />
+            <span className="max-sm:hidden">
+              {isFavorite
+                ? "Remove from collection"
+                : isAccountConnectedAndSignedIn
+                  ? "Add to collection"
+                  : "Sign in to add to collection"}
+            </span>
+          </div>
+        ) : isFavorite ? (
           <div className={clsx(colorClassName, "tooltip cursor-pointer")}>
             <p className="tooltiptext">Remove from collection</p>
             <StarFilled width={iconWidth} />

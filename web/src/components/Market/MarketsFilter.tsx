@@ -76,7 +76,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
           <span className="text-[9px] text-ink-5">▾</span>
         </button>
         {isShowFilters && (
-          <div className="absolute lg:top-[60px] top-[110px] left-0 w-full !ml-0 z-[1]">
+          <div className="absolute lg:top-[60px] top-[110px] left-0 w-full !ml-0 z-30">
             <MarketsFilterBox setShowFilters={setShowFilters} />
           </div>
         )}

@@ -8,12 +8,13 @@ import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
-import { LineSeries, LineStyle, UTCTimestamp, createChart } from "lightweight-charts";
+import { LineSeries, LineStyle, type Time, UTCTimestamp, createChart } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import slug from "slug";
 import DateRangePicker from "../../Portfolio/DateRangePicker";
 import { Spinner } from "../../Spinner";
 import Legend from "./Legend";
+import RulesNote from "./RulesNote";
 
 export interface IOutcomeData {
   outcome: {
@@ -333,6 +334,7 @@ function MarketChart({ market }: { market: Market }) {
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
+        <RulesNote />
       </div>
     </>
   );
@@ -352,13 +354,6 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
   useEffect(() => {
     setVisibleOutcomes(new Set(outcomeNames));
   }, [outcomeNames]);
-  const truncateOutcomeName = (name: string, maxLength = 12) => {
-    if (!name) return "";
-
-    if (name.length <= maxLength) return name;
-
-    return `${name.slice(0, maxLength - 2)}…`;
-  };
   const handleToggleOutcome = (outcomeName: string) => {
     setVisibleOutcomes((prev) => {
       const newSet = new Set(prev);
@@ -386,6 +381,12 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
       renderMarkers();
     };
 
+    // Categorical/Generic markets are scored 0–100%. We pin the scale to a fixed
+    // 0–100 range and draw our own gridlines/labels at 0/25/50/75/100% (see
+    // renderMarkers) so the chart matches the seerbeta mockup. Futarchy markets
+    // use raw prices, so we keep the library's native auto scale there.
+    const isPercentScale = market.type !== "Futarchy";
+
     const chart = createChart(chartContainerRef?.current, {
       layout: {
         background: {
@@ -398,7 +399,8 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
       autoSize: true,
       rightPriceScale: {
         borderVisible: false,
-        visible: true,
+        // Hidden for percent markets — replaced by our own 0/25/50/75/100% labels.
+        visible: !isPercentScale,
       },
       leftPriceScale: {
         borderVisible: false,
@@ -406,20 +408,23 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
       },
       timeScale: {
         borderVisible: false,
-        timeVisible: true,
+        timeVisible: false,
+        secondsVisible: false,
         minBarSpacing: 0.001,
+        tickMarkFormatter: (time: Time) => format(new Date((time as number) * 1000), "MMM d"),
       },
       grid: {
         vertLines: {
           visible: false,
         },
         horzLines: {
+          // Native gridlines are replaced by the custom overlay for percent markets.
+          visible: !isPercentScale,
           color: gridLinesColor,
           style: LineStyle.Solid,
         },
       },
     });
-    chart.timeScale().fitContent();
 
     const seriesInstances: Array<{
       data: IOutcomeData;
@@ -433,12 +438,13 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
           lineWidth: 2,
           lastValueVisible: false,
           priceLineVisible: false,
-          title: truncateOutcomeName(outcomeData.outcome.name),
           priceFormat: {
             type: "price",
             precision: market.type === "Futarchy" ? 3 : 2,
             minMove: 0.001,
           },
+          // Pin percent markets to a fixed 0–100 range so the custom gridlines align.
+          ...(isPercentScale ? { autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) } : {}),
         });
         lineSeries.setData(outcomeData.data);
         seriesInstances.push({
@@ -449,23 +455,57 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
       }
     }
 
-    // Glowing terminal dot markers at each visible line's latest point
+    // Default view: show the full series but leave a small margin on the right so
+    // the terminal dot marker isn't clipped by the chart's right edge. The offset is
+    // proportional to the point count so the margin stays consistent across periods.
+    const maxDataLength = Math.max(0, ...seriesInstances.map(({ data }) => data.data.length));
+    if (maxDataLength > 0) {
+      const rightOffsetBars = Math.max(1, Math.round(maxDataLength * 0.025));
+      chart.timeScale().setVisibleLogicalRange({ from: 0, to: maxDataLength - 1 + rightOffsetBars });
+    } else {
+      chart.timeScale().fitContent();
+    }
+
+    // Custom overlay: 0/25/50/75/100% gridlines + labels (percent markets only),
+    // and a white-center terminal dot at each visible line's latest point.
     const renderMarkers = () => {
       const container = markersRef.current;
       if (!container) return;
       const timeScale = chart.timeScale();
-      const dots: string[] = [];
+      const parts: string[] = [];
+
+      if (isPercentScale && seriesInstances.length > 0) {
+        const refApi = seriesInstances[0].api;
+        for (const pct of [100, 75, 50, 25, 0]) {
+          const gy = refApi.priceToCoordinate(pct);
+          if (gy === null) continue;
+          parts.push(
+            `<span style="position:absolute;left:0;right:0;top:${gy}px;height:1px;background:var(--border-2);"></span>`,
+          );
+          parts.push(
+            `<span style="position:absolute;right:0;top:${gy}px;transform:translateY(-50%);padding-left:6px;background:var(--surface);font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;font-weight:500;color:var(--ink-4);font-variant-numeric:tabular-nums;">${pct}%</span>`,
+          );
+        }
+      }
+
       for (const { data, color, api } of seriesInstances) {
         const last = data.data[data.data.length - 1];
         if (!last) continue;
         const x = timeScale.timeToCoordinate(last.time);
         const y = api.priceToCoordinate(last.value);
         if (x === null || y === null) continue;
-        dots.push(
-          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 0 4px ${color}40, 0 0 6px ${color};"></span>`,
+        // Outer translucent halo + solid core + white inner dot (seerbeta marker).
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:${color};opacity:0.25;"></span>`,
+        );
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:${color};opacity:0.85;"></span>`,
+        );
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:var(--surface);"></span>`,
         );
       }
-      container.innerHTML = dots.join("");
+      container.innerHTML = parts.join("");
     };
     chart.timeScale().subscribeVisibleTimeRangeChange(renderMarkers);
 
@@ -525,9 +565,9 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
 
   return (
     <div className="mt-6 flex size-full flex-col relative">
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <div ref={chartContainerRef} />
-        <div ref={markersRef} className="absolute inset-0 pointer-events-none z-[5]" />
+        <div ref={markersRef} className="absolute inset-0 pointer-events-none z-[5] overflow-hidden" />
       </div>
       <Legend
         outcomesData={series}

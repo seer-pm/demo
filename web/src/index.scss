@@ -464,10 +464,6 @@ body {
     border-color 140ms ease,
     background 140ms ease;
 }
-.io-row:focus-within {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
-}
 .io-token {
   display: inline-flex;
   align-items: center;
@@ -515,6 +511,519 @@ body {
 }
 .outcome-row.outcome-row-active {
   border-color: var(--blue);
+}
+
+/* Token logo inside the swap io-token chip (ported from market.html) */
+.io-token .token-img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Purchase card tab bar (outcome + Market/Fill-to-price) — ported from market.html */
+.purchase-card {
+  padding: 0;
+}
+.purchase-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 4px;
+}
+.purchase-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-4);
+  position: relative;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.purchase-tab.active {
+  color: var(--ink);
+}
+.purchase-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--blue);
+  border-radius: 2px 2px 0 0;
+}
+.purchase-card .buy-body {
+  padding: 18px 20px;
+}
+
+/* Market / Fill-to-price dropdown (in the purchase tab bar) — ported from market.html */
+.market-dd {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
+.market-dd-trigger {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-4);
+  cursor: pointer;
+  position: relative;
+  transition: color 140ms ease;
+}
+.market-dd-trigger:hover {
+  color: var(--ink-2);
+}
+.market-dd-trigger:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+.market-dd-chev {
+  width: 10px;
+  height: 10px;
+  color: var(--ink-5);
+  transition:
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 140ms ease;
+}
+.market-dd-trigger:hover .market-dd-chev {
+  color: var(--ink-3);
+}
+.market-dd.open .market-dd-trigger {
+  color: var(--ink-2);
+}
+.market-dd.open .market-dd-chev {
+  transform: rotate(180deg);
+  color: var(--ink-3);
+}
+.market-dd-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 4px;
+  right: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 180ms;
+  list-style: none;
+  margin: 0;
+}
+.market-dd.open .market-dd-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.market-dd-opt {
+  list-style: none;
+}
+.market-dd-opt > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.market-dd-opt > button:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.market-dd-opt[data-selected="true"] > button {
+  color: var(--ink);
+}
+.market-dd-opt[data-selected="true"] > button .opt-check {
+  opacity: 1;
+}
+.opt-check {
+  width: 12px;
+  height: 12px;
+  color: var(--blue);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+/* Swap io-block (You pay / You will get) — ported from market.html */
+.io-block {
+  margin-bottom: 28px;
+}
+.io-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.io-row input {
+  flex: 1;
+  min-width: 0;
+}
+.io-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+/* Redeem note under the swap summary — ported from market.html */
+.return-note {
+  margin: 8px 2px 0;
+  font-family: "Inter", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, sans-serif;
+  font-size: 10px;
+  font-weight: 100;
+  color: var(--ink-4);
+  line-height: 1.4;
+}
+
+/* =====================================================================
+   Swap direction button — sits between "You pay" and "You will get".
+   A 34px circle whose 4px surface-colored shadow ring "punches through"
+   the seam between the two io blocks. Each click rotates the icon another
+   180° (rotation is applied inline from React state). Ported from
+   ui-fix/market.html.
+   ===================================================================== */
+.io-swap-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 28px;
+  z-index: 5;
+}
+.io-block + .io-swap-wrap {
+  margin-top: -28px;
+}
+.io-swap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    var(--shadow-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 240ms ease;
+}
+.io-swap:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 4px 12px -4px rgba(45, 107, 247, 0.3);
+}
+.io-swap:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 6px rgba(45, 107, 247, 0.18);
+}
+.io-swap:active {
+  transform: scale(0.92);
+}
+.io-swap-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+html[data-theme="dark"] .io-swap:hover {
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 4px 14px -4px rgba(123, 43, 255, 0.4);
+}
+html[data-theme="dark"] .io-swap:focus-visible {
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 6px rgba(123, 43, 255, 0.25);
+}
+
+/* =====================================================================
+   Section header (Outcomes / Major Events) — ported from market.html
+   ===================================================================== */
+.section-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-h h3 {
+  font-family: var(--display, "Fraunces", serif);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* =====================================================================
+   Major Events card (placeholder) — ported from ui-fix/market.html
+   ===================================================================== */
+.events-card {
+  padding: 22px;
+  background: var(--surface);
+}
+.events-card .section-h h3 .badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  vertical-align: middle;
+}
+.events-list {
+  display: grid;
+  gap: 14px;
+}
+.event {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-2);
+  transition: opacity 200ms ease;
+}
+.event:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.event-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+  background: var(--ink-5);
+  flex-shrink: 0;
+}
+.event-info {
+  min-width: 0;
+}
+.event-date {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 2px;
+}
+.event-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+.event-detail {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  line-height: 1.4;
+  font-weight: 500;
+}
+.event.is-next .event-marker {
+  background: var(--beacon, #ff6b1a);
+  position: relative;
+}
+.event.is-next .event-marker::before,
+.event.is-next .event-marker::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--beacon, #ff6b1a);
+  opacity: 0.5;
+  animation: beacon-pulse 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+.event.is-next .event-marker::after {
+  opacity: 0.3;
+  animation-delay: 0.6s;
+}
+.event.is-next .event-date {
+  color: var(--beacon, #ff6b1a);
+}
+.event.is-next .event-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+@keyframes beacon-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+.event.is-future-1 {
+  opacity: 0.62;
+}
+.event.is-future-2 {
+  opacity: 0.48;
+}
+.event.is-future-3 {
+  opacity: 0.36;
+}
+.event.is-future-4 {
+  opacity: 0.26;
+}
+.event.is-resolution .event-name::after {
+  content: "Resolution";
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* =====================================================================
+   Rules note (placeholder, under the chart) — ported from market.html
+   ===================================================================== */
+.chart-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-radius: var(--r);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  font-weight: 500;
+}
+.chart-note .rules-lead {
+  margin: 0;
+}
+.chart-note .rules-label {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.rules-more-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms ease;
+}
+.rules-more {
+  overflow: hidden;
+  min-height: 0;
+}
+.rules-more p {
+  margin: 6px 0 0;
+}
+.chart-note.rules-open .rules-more-wrap {
+  grid-template-rows: 1fr;
+}
+.rules-toggle {
+  margin-top: 6px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+}
+.rules-toggle:hover {
+  color: var(--blue-hover);
+  text-decoration: underline;
+}
+.chart-note a {
+  color: var(--blue-text);
+  text-decoration: underline;
+}
+.chart-note a:hover {
+  color: var(--blue-hover);
+}
+
+/* =====================================================================
+   "Open Social with" row (comments section) — ported from market.html
+   ===================================================================== */
+.social-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--ink-4);
+}
+.social-icons {
+  display: inline-flex;
+  gap: 6px;
+}
+.social-icons a {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-2);
+  border-radius: 50%;
+  color: var(--ink-4);
+  transition:
+    color 140ms ease,
+    background 140ms ease;
+}
+.social-icons a:hover {
+  color: var(--ink);
+  background: var(--bg-3);
+}
+.social-icons a svg {
+  width: 14px;
+  height: 14px;
 }
 
 
@@ -1042,8 +1551,24 @@ html[data-theme="dark"] .paginator .paginator-active {
   display: none;
 }
 
-:root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
-  fill: oklch(var(--b2));
+/* Empty comments state — match seerbeta design (web/ui-fix/coment-fix.png):
+   no bordered box, no skeleton placeholder cards, just the centered line.
+   Scoped via :has(._1LQjG) so markets that have comments are untouched. */
+._MBDTd:has(._1LQjG) {
+  border-width: 0;
+}
+._3vbCv:has(._1LQjG) {
+  border-width: 0;
+}
+._1LQjG svg {
+  display: none;
+}
+._1LQjG p {
+  font-style: italic;
+  font-size: 11.5px !important;
+  color: var(--ink-4) !important;
+  font-weight: 100;
+  margin: 24px 0 8px !important;
 }
 
 ._lajK0 {

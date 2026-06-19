@@ -11,6 +11,7 @@ import {
   ClockIcon,
   ExclamationCircleIcon,
   EyeIcon,
+  HourglassIcon,
   LawBalanceIcon,
   MyMarket,
   PresentIcon,
@@ -69,10 +70,19 @@ const VERIFICATION_TAG: Record<string, { label: string; cls: string }> = {
   not_verified: { label: "Verify it", cls: "text-[#9747FF] bg-[#9747FF]/10" },
 };
 
+// Seerbeta-style verified badge: a solid disc (in the tag's color) with a white check.
+function VerifiedBadge() {
+  return (
+    <span className="inline-flex items-center justify-center w-[14px] h-[14px] rounded-full bg-current shrink-0">
+      <span className="text-white text-[9px] font-extrabold leading-none">✓</span>
+    </span>
+  );
+}
+
 function VerificationIcon({ status }: { status: string }) {
   switch (status) {
     case "verified":
-      return <CheckCircleIcon />;
+      return <VerifiedBadge />;
     case "verifying":
       return <ClockIcon />;
     case "challenged":
@@ -287,7 +297,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           ? "$?"
           : "$0.00";
     return (
-      <div className="card-box text-left p-[24px] lg:p-[28px]">
+      <div className="card-box text-left px-[24px] pt-[18px] pb-[22px] lg:px-[28px] lg:pt-[20px] lg:pb-[24px]">
         {/* status row */}
         <div className="flex items-center justify-between gap-4 flex-wrap mb-[16px]">
           <span
@@ -297,17 +307,34 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               colors?.text,
             )}
           >
-            <span className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)} />
+            <span
+              className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)}
+              style={{ boxShadow: "0 0 0 3px color-mix(in srgb, currentColor 20%, transparent)" }}
+            />
             {marketStatus && STATUS_TEXTS[marketStatus](hasLiquidity)}
           </span>
-          <div className="flex items-center gap-4 text-[13px] text-ink-3">
+          <div className="flex items-center gap-4 text-[12px] text-ink-3">
             <a
               href={blockExplorerUrl ? `${blockExplorerUrl}/address/${market.id}` : undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-ink transition-colors"
+              className="flex items-center gap-1.5 hover:text-ink transition-colors [&_svg]:text-ink-5"
             >
-              <img alt="" className="w-[14px] h-[14px] rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
               <span className="max-sm:hidden">View contract on explorer</span>
             </a>
             {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
@@ -316,7 +343,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <MyMarket />
               </span>
             )}
-            {market.id !== "0x000" && <MarketFavorite market={market} />}
+            {market.id !== "0x000" && <MarketFavorite market={market} showLabel />}
           </div>
         </div>
 
@@ -364,7 +391,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           <div className="flex flex-wrap items-center gap-2">
             {market.questions?.[0]?.opening_ts > 0 && (
               <span className={clsx(HERO_TAG, "bg-[#f1ecfe] text-[#7c3aed]")}>
-                <ClockIcon />
+                <HourglassIcon />
                 {format(new Date(market.questions[0].opening_ts * 1000), "MMM d, yyyy")}
               </span>
             )}

@@ -425,6 +425,12 @@ export const ClockIcon = ({ width = 14, height = 14 }: SVGAttributes<SVGElement>
   </svg>
 );
 
+export const HourglassIcon = ({ width = 14, height = 14 }: SVGAttributes<SVGElement>) => (
+  <svg width={width} height={height} viewBox="0 0 384 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 32C0 14.3 14.3 0 32 0L352 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l0 11c0 42-16.6 82.3-46.3 112L237.3 256l68.4 68.4c29.7 29.7 46.3 70 46.3 112l0 11c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 512c-17.7 0-32-14.3-32-32s14.3-32 32-32l0-11c0-42 16.6-82.3 46.3-112L146.7 256 78.3 187.7C48.6 157.4 32 117 32 75l0-11C14.3 64 0 49.7 0 32zM96 75c0 25.5 10.1 49.9 28.1 67.9L192 210.7l67.9-67.9c18-18 28.1-42.4 28.1-67.9l0-11L96 64l0 11z" />
+  </svg>
+);
+
 export const CloseCircleOutlineIcon = ({ width = 24, height = 24, fill = "#F60C36" }: SVGAttributes<SVGElement>) => (
   <svg width={width} height={height} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_18785_48426)">

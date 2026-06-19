@@ -4,6 +4,7 @@ import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
+import MajorEvents from "@/components/Market/MajorEvents";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
@@ -159,7 +160,7 @@ function MarketPage() {
 
   if ((isMarketLoading && !isPlaceholderData) || !market) {
     return (
-      <div className="container-fluid py-10 space-y-5">
+      <div className="container-fluid pt-4 pb-10 space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         <div className="shimmer-container w-full h-[200px]"></div>
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-10">
@@ -181,9 +182,11 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
 
   return (
-    <div className="container-fluid py-10">
+    <div className="container-fluid pt-4 pb-10">
+      <div className="mb-3">
+        <Breadcrumb links={[{ title: market.marketName }]} />
+      </div>
       <div className="space-y-5">
-        <Breadcrumb links={[{ title: "Market" }]} />
         {marketStatus !== MarketStatus.CLOSED && !isOfficialMarketFactory(market.factory, market.chainId) && (
           <Alert type="warning" title="This market was not created through an official Seer factory.">
             It could be malicious or contain misleading information. Proceed with extreme caution.
@@ -228,9 +231,9 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <MarketChart market={market} />
-        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-16">
+        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-[minmax(0,1fr)_360px] [@media(min-width:1200px)]:grid-rows-[auto_1fr] gap-x-4 gap-y-5">
+          <div className="h-fit space-y-5 min-w-0">
+            <MarketChart market={market} />
             <Outcomes
               market={market}
               images={market?.images?.outcomes}
@@ -239,7 +242,8 @@ function MarketPage() {
             />
           </div>
           {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
-          <div className="hidden [@media(min-width:1200px)]:block col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+          <div className="hidden [@media(min-width:1200px)]:block space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+            <MajorEvents />
             <SwapWidget
               market={market}
               outcomeIndex={outcomeIndex}
@@ -248,7 +252,7 @@ function MarketPage() {
             />
             <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
+          <div className="space-y-16 min-w-0">
             <MarketTabs market={market} />
           </div>
         </div>

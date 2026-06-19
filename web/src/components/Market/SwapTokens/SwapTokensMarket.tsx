@@ -5,15 +5,14 @@ import { useModal } from "@/hooks/useModal";
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
+import { Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isSeerCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
-import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { MarketTypes, getActivePrimaryCollateral, getMarketType } from "@seer-pm/sdk";
 import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
-import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
@@ -116,7 +115,8 @@ export function SwapTokensMarket({
   const amountOutRef = useRef<HTMLInputElement | null>(null);
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
-  const [focusContainer, setFocusContainer] = useState(0);
+  // Accumulating rotation for the swap-direction button (180° per click).
+  const [swapRotation, setSwapRotation] = useState(0);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const useFormReturn = useForm<SwapFormValues>({
@@ -389,21 +389,20 @@ export function SwapTokensMarket({
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
         <div>
-          <div
-            onClick={() => {
-              setFocusContainer(0);
-              setFocus("amount");
-            }}
-            className={clsx(
-              "rounded-[8px] p-[14px] space-y-2 cursor-pointer border transition-all",
-              focusContainer === 0
-                ? "border-blue shadow-[0_0_0_3px_rgba(45,107,247,0.12)]"
-                : "border-[var(--border)] hover:bg-bg-2",
-            )}
-          >
-            <p className="text-ink-4 text-[12.5px] font-medium">You pay</p>
-            <div className="flex justify-between items-start">
-              <div>
+          {/* You pay */}
+          <div className="io-block">
+            <div className="io-label">
+              <span>You pay</span>
+              {isFetchingBalance ? (
+                <span className="shimmer-container w-[80px] h-[13px] inline-block" />
+              ) : (
+                <span className="tabular-nums">
+                  Balance: {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
+                </span>
+              )}
+            </div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
                 <Input
                   autoComplete="off"
                   type="number"
@@ -439,7 +438,7 @@ export function SwapTokensMarket({
                     setTradeType(TradeType.EXACT_INPUT);
                     register("amount").onChange(e);
                   }}
-                  className="w-full min-w-[50px] p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                   errorClassName="hidden"
@@ -462,64 +461,74 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
-            <div className="flex justify-end">
-              {isFetchingBalance ? (
-                <div className="shimmer-container w-[80px] h-[13px]" />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-[13px] text-ink-4 tabular-nums">
-                    {displayBalance(balance, sellToken.decimals)} {sellToken.symbol}
-                  </p>
-                  <button
-                    type="button"
-                    className="max-btn"
-                    onClick={() => {
-                      setTradeType(TradeType.EXACT_INPUT);
-                      setValue("amount", formatUnits(balance, sellToken.decimals), {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      });
-                      requestAnimationFrame(() => {
-                        if (amountRef.current) {
-                          amountRef.current.scrollLeft = 0;
-                        }
-                      });
-                    }}
-                  >
-                    Max
-                  </button>
-                </div>
-              )}
+            <div className="io-balance">
+              <span />
+              <button
+                type="button"
+                className="max-btn"
+                onClick={() => {
+                  setTradeType(TradeType.EXACT_INPUT);
+                  setValue("amount", formatUnits(balance, sellToken.decimals), {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                  requestAnimationFrame(() => {
+                    if (amountRef.current) {
+                      amountRef.current.scrollLeft = 0;
+                    }
+                  });
+                }}
+              >
+                MAX
+              </button>
             </div>
           </div>
-          <div className="my-1 relative">
+
+          {/* Swap direction button: rotates 180° on each click */}
+          <div className="io-swap-wrap">
             <button
               type="button"
+              aria-label="Swap pay and receive"
               onClick={() => {
                 setSwapType((state) => (state === "buy" ? "sell" : "buy"));
-                setFocusContainer(0);
+                setSwapRotation((r) => r + 180);
                 setFocus("amount");
               }}
-              className="absolute border-[4px] border-base-100 rounded-[16px] p-2 bg-base-200/80 hover:bg-base-300/60 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+              className="io-swap"
             >
-              <ArrowDown fill="currentColor" />
+              <svg
+                className="io-swap-icon"
+                viewBox="0 0 18 18"
+                fill="none"
+                aria-hidden="true"
+                style={{ transform: `rotate(${swapRotation}deg)` }}
+              >
+                <path
+                  d="M5.25 13.5V4.5M5.25 4.5L2.5 7.25M5.25 4.5L8 7.25"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M12.75 4.5V13.5M12.75 13.5L10 10.75M12.75 13.5L15.5 10.75"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
-          <div
-            onClick={() => {
-              setFocusContainer(1);
-              setFocus("amountOut");
-            }}
-            className={clsx(
-              "rounded-[8px] p-[14px] space-y-2 cursor-pointer border transition-all",
-              focusContainer === 1
-                ? "border-blue shadow-[0_0_0_3px_rgba(45,107,247,0.12)]"
-                : "border-[var(--border)] hover:bg-bg-2",
-            )}
-          >
-            <p className="text-ink-4 text-[12.5px] font-medium">You will get</p>
-            <div className="flex justify-between items-start">
-              <div>
+
+          {/* You will get */}
+          <div className="io-block !mb-0">
+            <div className="io-label">
+              <span>You will get</span>
+              <span>≈</span>
+            </div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
                 <Input
                   autoComplete="off"
                   type="number"
@@ -540,7 +549,7 @@ export function SwapTokensMarket({
                       amountOutRef.current?.focus({ preventScroll: true });
                     });
                   }}
-                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+                  className="w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0"
                   placeholder="0"
                   useFormReturn={useFormReturn}
                 />
@@ -565,49 +574,29 @@ export function SwapTokensMarket({
           </div>
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
-        <div className="space-y-2 bg-bg-2 rounded-[8px] p-[14px]">
-          <div className="flex justify-between text-ink-4 text-[13px]">
-            Avg price
-            {quoteIsLoading || isFetching ? (
-              <div className="shimmer-container ml-2 w-[100px]" />
-            ) : market.type === "Futarchy" ? (
-              <FutarchyPricePerShare
-                {...{
-                  swapType,
-                  collateralPerShare,
-                  buyToken,
-                  sellToken,
-                  outcomeIndex,
-                }}
-              />
-            ) : (
-              <div className="flex items-center gap-2">
-                {collateralPerShare.toFixed(3)} {selectedCollateral.symbol}
-                {isSecondaryCollateral && (
-                  <span className="tooltip">
-                    <p className="tooltiptext">
-                      {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
-                    </p>
-                    <QuestionIcon fill="var(--blue)" />
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {!!limitPriceFromVolume && (
-            <div className="flex justify-between text-ink-4 text-[13px]">
-              Price after {swapType}
+        <div>
+          <div className="space-y-2 bg-bg-2 rounded-[8px] p-[14px]">
+            <div className="flex justify-between items-baseline text-[13px]">
+              <span className="text-ink-4 font-medium">Avg price</span>
               {quoteIsLoading || isFetching ? (
                 <div className="shimmer-container ml-2 w-[100px]" />
+              ) : market.type === "Futarchy" ? (
+                <FutarchyPricePerShare
+                  {...{
+                    swapType,
+                    collateralPerShare,
+                    buyToken,
+                    sellToken,
+                    outcomeIndex,
+                  }}
+                />
               ) : (
-                <div className="flex items-center gap-2">
-                  {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
-                  {selectedCollateral.symbol}
+                <div className="flex items-center gap-2 font-mono tabular-nums font-semibold text-ink">
+                  {collateralPerShare.toFixed(3)} {selectedCollateral.symbol}
                   {isSecondaryCollateral && (
                     <span className="tooltip">
                       <p className="tooltiptext">
-                        {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                        {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
                       </p>
                       <QuestionIcon fill="var(--blue)" />
                     </span>
@@ -615,26 +604,59 @@ export function SwapTokensMarket({
                 </div>
               )}
             </div>
-          )}
 
-          <PotentialReturn
-            {...{
-              swapType,
-              isSecondaryCollateral,
-              selectedCollateral,
-              sharesToAssets,
-              assetsToShares,
-              outcomeText,
-              outcomeToken,
-              market,
-              quoteIsLoading,
-              isFetching,
-              amount,
-              receivedAmount,
-              collateralPerShare,
-              tradeType,
-            }}
-          />
+            {!!limitPriceFromVolume && (
+              <div className="flex justify-between items-baseline text-[13px]">
+                <span className="text-ink-4 font-medium">Price after {swapType}</span>
+                {quoteIsLoading || isFetching ? (
+                  <div className="shimmer-container ml-2 w-[100px]" />
+                ) : (
+                  <div className="flex items-center gap-2 font-mono tabular-nums font-semibold text-ink">
+                    {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
+                    {selectedCollateral.symbol}
+                    {isSecondaryCollateral && (
+                      <span className="tooltip">
+                        <p className="tooltiptext">
+                          {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                        </p>
+                        <QuestionIcon fill="var(--blue)" />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <PotentialReturn
+              {...{
+                swapType,
+                isSecondaryCollateral,
+                selectedCollateral,
+                sharesToAssets,
+                assetsToShares,
+                outcomeText,
+                outcomeToken,
+                market,
+                quoteIsLoading,
+                isFetching,
+                amount,
+                receivedAmount,
+                collateralPerShare,
+                tradeType,
+              }}
+            />
+          </div>
+
+          {swapType === "buy" &&
+            market.type !== "Futarchy" &&
+            (getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID") && (
+              <p className="return-note">
+                Each token can be redeemed for 1{" "}
+                {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
+                {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
+                market resolves to {outcomeText}.
+              </p>
+            )}
         </div>
 
         {isPriceTooHigh && (

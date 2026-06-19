@@ -1,5 +1,4 @@
 import type { Token } from "@seer-pm/sdk";
-import clsx from "clsx";
 import { getPotentialReturn } from "./utils";
 
 interface PotentialReturnResultProps {
@@ -42,9 +41,9 @@ export function PotentialReturnResult({
   );
 
   return (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
-      {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
-      %)
+    <span className="font-mono tabular-nums font-semibold text-ink text-right text-[13px]">
+      {potentialReturn.toFixed(3)} {selectedCollateral.symbol}
+      <span className="font-sans font-medium text-ink-4 ml-1 text-[12px]">({returnPercentage.toFixed(2)}%)</span>
     </span>
   );
 }

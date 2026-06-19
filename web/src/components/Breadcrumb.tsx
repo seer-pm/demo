@@ -20,7 +20,7 @@ export default function Breadcrumb({ links }: BreadcrumbProps) {
                 {link.title}
               </Link>
             ) : (
-              <span className="text-ink-3">{link.title}</span>
+              <span className="text-ink-4">{link.title}</span>
             )}
           </React.Fragment>
         );

@@ -5,7 +5,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
-import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { CheckCircleIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import {
@@ -238,7 +238,7 @@ function AddLiquidityLinks({
           onClick={() => {
             openLiquidityModal();
           }}
-          className="text-purple-primary hover:underline text-left"
+          className="text-blue hover:text-blue-hover transition-colors text-left"
         >
           Add Liquidity
         </button>
@@ -247,13 +247,17 @@ function AddLiquidityLinks({
           href={getLiquidityUrlByMarket(market, outcomeIndex)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
+          className="text-blue flex items-center space-x-2 hover:text-blue-hover transition-colors text-left"
         >
           Add Liquidity
         </a>
       )}
       {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
-        <button className="text-purple-primary hover:underline text-left" type="button" onClick={openPoolDetailsModal}>
+        <button
+          className="text-blue hover:text-blue-hover transition-colors text-left"
+          type="button"
+          onClick={openPoolDetailsModal}
+        >
           View pool details
         </button>
       )}
@@ -349,6 +353,7 @@ function OutcomeDetails({
           image={images?.[outcomeIndex]}
           isInvalidOutcome={_isInvalidOutcome}
           title={market.outcomes[outcomeIndex]}
+          className="w-[38px] h-[38px] rounded-full dark:bg-neutral"
         />
       </div>
       <div className="space-y-1">
@@ -392,12 +397,9 @@ function OutcomeDetails({
             href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-purple-primary tooltip"
+            className="text-ink-4 hover:text-blue transition-colors"
           >
-            <p className="tooltiptext">
-              View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
-            </p>
-            <EtherscanIcon width="12" height="12" />
+            View on {SUPPORTED_CHAINS?.[market.chainId]?.name} ↗
           </a>
 
           {market.type === "Generic" && (
@@ -415,7 +417,7 @@ function OutcomeDetails({
               to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
                 market.outcomes[outcomeIndex],
               )}`}
-              className="text-purple-primary hover:underline"
+              className="text-blue hover:text-blue-hover transition-colors"
             >
               New conditional market
             </Link>
@@ -495,7 +497,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                 onOutcomeChange(i, !isClickOnLinkOrButton);
               }}
               className={clsx(
-                "card flex-row justify-between items-center p-[14px] lg:p-[18px] cursor-pointer transition-colors hover:bg-bg-2",
+                "card flex-row justify-between items-center p-[14px] cursor-pointer transition-colors hover:bg-bg-2",
                 activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
                   ? "card-active hover:!bg-transparent"
                   : "",
@@ -551,9 +553,9 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   />
                 </div>
               )}
-              <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
+              <div className="flex items-center">
                 {market.type === "Generic" && (
-                  <div className="font-display text-[20px] min-[400px]:text-[24px] font-medium tracking-tight tabular-nums text-right">
+                  <div className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right">
                     {isLoading ? (
                       <Spinner />
                     ) : (
@@ -564,14 +566,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                     )}
                   </div>
                 )}
-
-                <input
-                  type="radio"
-                  name="outcome"
-                  className="radio max-lg:hidden"
-                  readOnly
-                  checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
-                />
               </div>
             </div>
           );

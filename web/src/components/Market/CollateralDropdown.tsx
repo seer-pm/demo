@@ -17,6 +17,8 @@ type CollateralDropdownProps = {
   setSelectedCollateral: (selectedCollateral: Token) => void;
   collateralTokens: GetTokenResult[] | undefined;
   showChainLogo?: boolean;
+  // Compact seerbeta `.io-token` chip used in the market purchase panel.
+  compact?: boolean;
 };
 
 type MarketCollateralDropdownProps = {
@@ -55,7 +57,7 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
 }
 
 export function CollateralDropdown(props: CollateralDropdownProps) {
-  const { collateralTokens, selectedCollateral, setSelectedCollateral, showChainLogo = false } = props;
+  const { collateralTokens, selectedCollateral, setSelectedCollateral, showChainLogo = false, compact = false } = props;
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -102,8 +104,14 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
         </div>
       }
     >
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
-        <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
+      <div
+        className={clsx(
+          compact
+            ? "io-token cursor-pointer"
+            : "flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer",
+        )}
+      >
+        <div className={clsx("overflow-hidden flex-shrink-0 relative", compact ? "token-img w-4 h-4" : "w-6 h-6")}>
           <img
             className="w-full h-full rounded-full"
             alt={selectedCollateral.symbol}
@@ -117,7 +125,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
             />
           )}
         </div>
-        <p className="font-semibold text-[16px]">{selectedCollateral.symbol}</p>
+        <p className={clsx(!compact && "font-semibold text-[16px]")}>{selectedCollateral.symbol}</p>
         <ArrowDropDown />
       </div>
     </DropdownWrapper>
@@ -134,5 +142,5 @@ export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
     return null;
   }
 
-  return <CollateralDropdown {...props} collateralTokens={collateralTokens} />;
+  return <CollateralDropdown {...props} collateralTokens={collateralTokens} compact />;
 }
