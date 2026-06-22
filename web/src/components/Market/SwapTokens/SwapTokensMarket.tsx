@@ -270,6 +270,26 @@ export function SwapTokensMarket({
     resetField("amountOut");
   };
 
+  // CONTRIBUTORS: shared className for ALL disabled CTA states in the
+  // purchase panel (the "Enter an amount" default, error messages like
+  // "Not enough balance.", the "Calculating..." loading state, etc.). It
+  // mirrors the sample's disabled action:
+  //   • red background (#ea1d21), white text, no border, no opacity dim
+  //   • 14px font (sample uses 14px regardless of the parent .btn size)
+  //   • drop-shadow ONLY on hover (the resting state is flat like the sample)
+  //   • `!` prefixes win over daisyUI's `.btn-disabled { @apply bg-base-200/70 ... }`
+  //   • `!pointer-events-auto` is REQUIRED because daisyUI sets
+  //     `.btn:disabled { pointer-events: none }` which would prevent the
+  //     hover shadow from firing. Click is still blocked by the HTML
+  //     `disabled` attribute, so we don't lose the disabled semantics.
+  // Use this constant for every disabled-button branch below so the look
+  // is consistent across error texts.
+  const disabledCtaClassName =
+    // `!cursor-pointer` is the hand cursor (not the "blocked" circle).
+    // The CTA is disabled but the design treats it as actionable-looking
+    // (red + hover lift), so the hand cursor matches the visual affordance.
+    "w-full !rounded-[8px] !bg-[#ea1d21] !text-white !text-[14px] !border-transparent !opacity-100 !pointer-events-auto !cursor-pointer shadow-none hover:!shadow-[0_4px_12px_-4px_rgba(234,29,33,0.35)] transition-shadow duration-150";
+
   const renderButtons = () => {
     if (isCowFastQuote) {
       return (
@@ -278,7 +298,7 @@ export function SwapTokensMarket({
           type="button"
           disabled={true}
           isLoading={true}
-          className="w-full !rounded-[8px]"
+          className={disabledCtaClassName}
           text="Calculating best price..."
         />
       );
@@ -287,7 +307,7 @@ export function SwapTokensMarket({
       return (
         <Button
           variant="primary"
-          className="w-full !rounded-[8px]"
+          className={disabledCtaClassName}
           type="button"
           disabled={true}
           text={amountErrorMessage}
@@ -324,7 +344,7 @@ export function SwapTokensMarket({
         <Button
           variant="primary"
           type="button"
-          className="w-full !rounded-[8px]"
+          className={disabledCtaClassName}
           disabled={true}
           isLoading={true}
           text=""
@@ -334,7 +354,7 @@ export function SwapTokensMarket({
     return (
       <Button
         variant="primary"
-        className="w-full !rounded-[8px]"
+        className={disabledCtaClassName}
         type="button"
         disabled={true}
         text="Enter an amount"

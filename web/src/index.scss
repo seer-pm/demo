@@ -187,6 +187,11 @@ body {
 
 .card-active {
   border-color: var(--blue);
+  /* Sample uses a 3px soft blue halo on selected outcomes. */
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
+}
+html[data-theme="dark"] .card-active {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.20);
 }
 
 /* Pill component classes */
@@ -343,6 +348,10 @@ body {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  /* Sample uses -4px to tighten the title → tags gap inside the card grid
+     (which otherwise has a 12px row gap). Keeps the tags visually attached
+     to the title block. */
+  margin-top: -4px;
 }
 .card-tags .type-tag {
   font-family: "Geist Mono", ui-monospace, monospace;
@@ -355,8 +364,21 @@ body {
   background: var(--bg-2);
   border-radius: 4px;
 }
+/* CONTRIBUTORS — conditional-market chip (homepage only).
+   • Mirrors the sample (Seer New Redesign/index.html `.conditional-tag`):
+     violet on tinted violet in light mode, amber on tinted amber in dark
+     mode. These exact hex values are taken straight from the sample, NOT
+     remapped to brand blue — the sample uses violet/amber specifically so
+     conditional markets pop out from the otherwise blue-themed page.
+   • DISPLAY SCOPE: hidden by default, shown only when an ancestor carries
+     the `.home-markets-grid` class (set on the homepage's market grid in
+     web/src/pages/index/+Page.tsx). Same PreviewCard on the collections
+     page therefore stays without the chip — no JS prop plumbing needed.
+   • The `↳` branch-arrow icon lives inside the JSX (inline SVG), not as
+     a `::before` pseudo — keeps the icon crisp and gives us currentColor
+     stroke control across light/dark themes. */
 .card-tags .conditional-tag {
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 4px;
   font-family: "Geist Mono", ui-monospace, monospace;
@@ -364,12 +386,23 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--blue);
-  background: var(--blue-soft);
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
   padding: 2px 6px;
   border-radius: 4px;
 }
-.card-tags .conditional-tag::before {
+html[data-theme="dark"] .card-tags .conditional-tag {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+}
+.home-markets-grid .card-tags .conditional-tag {
+  display: inline-flex;
+}
+/* Icon: verbatim from the sample (Seer New Redesign/index.html).
+   U+21E2 RIGHTWARDS DASHED ARROW at 0.7 opacity, rendered via a
+   `::before` pseudo so the icon stays inside the tag's currentColor
+   (theme-aware: violet light → amber dark) without any JSX glyph. */
+.home-markets-grid .card-tags .conditional-tag::before {
   content: "⇢";
   opacity: 0.7;
 }
@@ -389,6 +422,44 @@ body {
 .card-tags .card-reward::before {
   content: "✦";
   opacity: 0.7;
+}
+
+/* =====================================================================
+   EXPERIMENT — homepage market-card question font.
+   Scope is deliberately tight: this rule ONLY fires for the
+   `.card-question-title` element when it sits inside the homepage's
+   `.home-markets-grid` wrapper (see web/src/pages/index/+Page.tsx). The
+   exact same <PreviewCard> on the collections page has no
+   `.home-markets-grid` ancestor, so it keeps its default `font-display`
+   (Fraunces) look — nothing else on the site is touched.
+
+   Two-class specificity (0,2,0) beats the element's `.font-display`
+   Tailwind utility (0,1,0), so no !important is needed. Geist is loaded
+   in +Head.tsx; if it ever fails to load, the chain degrades to Inter
+   (still clean) rather than a serif. `font-variation-settings: normal`
+   clears the Fraunces-specific opsz/SOFT axes the inline style sets —
+   Geist ignores them anyway, this is just hygiene.
+
+   To try a different face, change ONLY the family name here and the
+   matching `family=` in +Head.tsx (e.g. Space Grotesk, Hanken Grotesk,
+   Instrument Sans). To end the experiment, delete this block + the
+   Geist <link> + the two marker classes. */
+.home-markets-grid .card-question-title {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-variation-settings: normal;
+  font-size: 13.5px;
+  letter-spacing: -0.041em;
+  line-height: 1.475;
+}
+
+/* Homepage-only: nudge the market thumbnail 2px down so it sits a touch
+   below the title's first-line cap height (optical balance with the new
+   Inter title font). `transform: translateY` is deliberate — it does NOT
+   reflow the row, so the card's overall height stays exactly the same.
+   Scoped to `.home-markets-grid` so the same PreviewCard rendered on the
+   collections page is untouched. */
+.home-markets-grid .card-market-photo {
+  transform: translateY(2px);
 }
 
 /* Status pill (market header) */
@@ -462,7 +533,15 @@ body {
   padding: 12px 14px;
   transition:
     border-color 140ms ease,
-    background 140ms ease;
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+.io-row:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
+}
+html[data-theme="dark"] .io-row:focus-within {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.22);
 }
 .io-token {
   display: inline-flex;
@@ -540,10 +619,18 @@ body {
   font-weight: 600;
   color: var(--ink-4);
   position: relative;
-  text-align: left;
+  /* CONTRIBUTORS:
+     - `text-align: center`: title is centered like the sample.
+     - No `overflow` constraint: the JSX caps the title to 3 words (clean,
+       no "…"), so the text always fits. An earlier `overflow: hidden`
+       was clipping the bottom 1px of the active-tab `::after` underline
+       (it sits at `bottom: -1px`), making the 2px line read as 1px;
+       and `overflow: hidden visible` re-introduced a stray scroll thumb
+       in some browsers because Chrome promotes the `visible` axis to
+       `auto` when the other axis is `hidden`. Leaving overflow at the
+       default `visible` solves both issues. */
+  text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .purchase-tab.active {
   color: var(--ink);
@@ -560,6 +647,331 @@ body {
 }
 .purchase-card .buy-body {
   padding: 18px 20px;
+}
+
+/* CONTRIBUTORS — Mint / Merge / Redeem action strip:
+   Sits at the bottom of the same `.card-box.purchase-card` as the buy
+   form, separated by a top border and a slightly different bg (surface-2)
+   so it reads as a "footer toolbar". Three equal-width buttons divided
+   by vertical 1px lines; the active button takes the blue accent. When
+   a button is clicked, `.action-form-panel` (below) mounts BELOW this
+   strip — still inside the same card-box — and the strip's bottom
+   corners go square so the panel can flush against it. The `:last-child`
+   rule keeps the rounded corners when no panel is open. */
+.actions-row {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+/* CONTRIBUTORS: `.action-form-panel` is always mounted (even when closed)
+   so the haze-out animation has a target to fade. That means
+   `actions-row:last-child` never matches. We use `:has(+ .is-closed)` to
+   give the strip its rounded bottom when the panel below is invisible,
+   and remove it when the panel opens (the panel then owns the bottom
+   curve). Supported in Chrome 105+ / Safari 15.4+ / Firefox 121+. */
+.actions-row:has(+ .action-form-panel.is-closed) {
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+.actions-row button {
+  flex: 1;
+  padding: 14px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-4);
+  letter-spacing: 0.02em;
+  border-right: 1px solid var(--border);
+  transition:
+    color 140ms ease,
+    background 140ms ease;
+}
+.actions-row button:last-child {
+  border-right: 0;
+}
+.actions-row button:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.actions-row button.active {
+  color: var(--blue);
+}
+
+/* CONTRIBUTORS — expansion panel for the active Mint / Merge / Redeem.
+   Mounts directly below `.actions-row` INSIDE the same purchase-card, so
+   it reads as a continuation of the active toolbar button. Default state
+   (`.is-closed`) is zero-height / blurred / transparent so the purchase
+   panel keeps the sample's compact height when nothing is clicked. When
+   the user clicks Mint/Merge/Redeem the `.is-open` class triggers the
+   transition: max-height grows toward the bottom of the comments column
+   (capped at the viewport), opacity 0→1, and blur 14px→0 — a "haze into
+   reality" fade. On close the same transition runs in reverse, then
+   ConditionalTokenActions unmounts the inner form after PANEL_TRANSITION_MS.
+
+   ⚠ TIMING — ASYMMETRIC. Open and close use the SAME easing but
+   DIFFERENT durations:
+     • OPEN  (.is-closed → .is-open):  920ms — the destination class
+       owns the transition that runs, so adding .is-open switches the
+       transition spec to the longer one. Slow bloom feels designed.
+     • CLOSE (.is-open → .is-closed):  520ms — the destination is the
+       base rule with the shorter transition; the haze-out is brisk
+       (the designer wanted close to feel quick once you decide to
+       dismiss).
+
+   The JS side (PANEL_TRANSITION_MS in ConditionalTokenActions.tsx) is
+   540ms (20ms buffer over the close duration) so the form stays
+   mounted through the full haze-out. Open doesn't need an unmount
+   delay because the form is mounted immediately on activeAction set.
+
+   ⚠ EASING CHOICE: one easing for all properties — `easeOutQuint`
+   (cubic-bezier(0.22, 1, 0.36, 1)) — so blur, height, and opacity
+   finish in lockstep. (Staggered durations across properties read as
+   "multiple stages" on close and made an earlier version of this feel
+   broken.)
+
+   Max-height cap: 100vh - 240px keeps the bottom of the open form
+   roughly even with the bottom of the comment-section column on the
+   left (the designer's constraint). `overflow-y: auto` lets long forms
+   scroll within the cap. */
+.action-form-panel {
+  /* layout */
+  background: var(--surface);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  /* default (closed): collapsed, hazy, invisible — no border-top so the
+     actions-row above keeps its own rounded bottom in that state. */
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-top: 0 solid var(--border);
+  opacity: 0;
+  filter: blur(10px);
+  overflow: hidden;
+  transform: translateY(-4px);
+  /* Used on CLOSE (animating BACK to this state). 520ms = brisk. */
+  transition:
+    max-height 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-top-width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Hint to the compositor: these properties will change. Keeps the
+     blur + transform on the GPU instead of triggering main-thread
+     paints every frame — what makes the fade actually feel smooth. */
+  will-change: max-height, opacity, filter, transform;
+}
+.action-form-panel.is-open {
+  max-height: calc(100vh - 240px);
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-top: 1px solid var(--border);
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+  overflow-y: auto;
+  /* Used on OPEN (animating INTO this state). 920ms = slow, deliberate
+     reveal. CSS transitions use the destination rule's spec, so this
+     920ms runs only when adding .is-open; removing it falls back to
+     the base rule's 520ms above. */
+  transition:
+    max-height 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-top-width 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 920ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* CONTRIBUTORS — typography overrides scoped to the action panel so the
+   Mint/Merge/Redeem form fields read at the same scale as the buy form
+   above (the underlying form components were intentionally not touched,
+   so this acts as a thin "skin" layer):
+     • plain `text-[14px]` labels → 12.5px ink-4 (matches .io-label)
+     • the inline "Max" link → small mono blue chip (mirrors .max-btn)
+     • `text-[12px]` balance row → ink-4 for color consistency
+     • Inputs and buttons → 14px so they don't visually dwarf the
+       12.5px labels around them. */
+.action-form-panel .text-\[14px\] {
+  font-size: 12.5px;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.action-form-panel .text-\[12px\] {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.action-form-panel .text-purple-primary.cursor-pointer {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.action-form-panel .input.input-bordered {
+  font-size: 14px;
+}
+.action-form-panel .btn {
+  font-size: 14px;
+}
+
+/* CONTRIBUTORS — Max slippage panel typography.
+   <SwapTokensMaxSlippage> replaces .buy-body in place when the user
+   clicks "More". Its underlying React component is unchanged; this
+   layer tones the heading, labels, pill buttons, inputs, and buttons
+   down to the rhythm of the buy form so the swap feels like one
+   continuous panel rather than two different sub-designs.
+   The toggle inside picks up the custom .purchase-card .toggle rules
+   below automatically (white track, blue knob, light drop shadow). */
+.slippage-panel {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.slippage-panel p.font-semibold.text-\[18px\] {
+  /* "Parameters" heading — was 18px, drop to 14px display-weight so
+     it doesn't dwarf the form labels below. */
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.slippage-panel p {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.slippage-panel .pill-button {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.slippage-panel .input.input-bordered {
+  font-size: 14px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+.slippage-panel .btn {
+  font-size: 13px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 18px;
+}
+
+/* CONTRIBUTORS — sDAI / xDAI labels around the toggle.
+   AltCollateralSwitch renders a `<div className="flex space-x-2">` with
+   the token symbols on either side of the toggle. We shrink those
+   labels here (instead of editing AltCollateralSwitch) so the change
+   only applies inside the action panel — other places that use the same
+   switch (e.g. mobile drawer) keep their original size. Font INHERITS
+   from .action-form-panel (Inter — same as the buy form's io-label
+   and the rest of the purchase panel) instead of overriding to mono. */
+.action-form-panel .flex.space-x-2 > div {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* CONTRIBUTORS — custom toggle for the action panel.
+   Two-part design:
+     1. The TRACK (the <input> itself) is a tiny neutral pill — bg-3 in
+        light theme, soft surface-2 in dark. We override daisyUI's tangle
+        of inset box-shadows that normally fake the knob (they paint over
+        the input bg using --tglbg) so we can draw the knob cleanly with
+        a single `::before` pseudo-element instead.
+     2. The KNOB is `::before`. It's always blue (`var(--blue)`) on BOTH
+        sides — the user asked for an identical knob whether sDAI or
+        xDAI is selected, so the only visual change between states is
+        the knob's horizontal position. A two-layer blue shadow gives it
+        a "lively" glow (one soft drop-shadow underneath + a faint blue
+        halo around it that pulses larger on hover).
+
+   Why pseudo-elements work on <input>: daisyUI already sets
+   `appearance: none` on `.toggle`, which lets modern browsers
+   (Chrome, Firefox, Safari 15.4+) render ::before/::after on inputs.
+   We don't need to wrap the input in a span.
+
+   Timing: the knob uses a slight overshoot easing
+   (`cubic-bezier(0.34, 1.56, 0.64, 1)` — easeOutBack) so the slide has
+   a little "snap" — feels tactile without being bouncy. */
+.purchase-card .toggle {
+  /* RESET daisyUI defaults — kill the inset-shadow knob, drop borders,
+     resize the track to a slim 18px × 32px. White track on both themes
+     (Tailwind `#fff` literal, not `var(--surface)`) per the designer —
+     keeps the toggle reading clean against any panel background. */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2rem;             /* 32px */
+  height: 1.125rem;        /* 18px */
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition:
+    background 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.purchase-card .toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--blue);
+  border-radius: 50%;
+  /* CONTRIBUTORS: light, single-layer drop shadow. The earlier two-layer
+     (drop + halo) shadow read as too heavy — bigger than the knob
+     itself. Here we keep just a soft 4px drop at low opacity so the
+     knob has the suggestion of lift without a halo. Keep the alpha
+     under 0.20 in light mode and under 0.28 in dark mode; anything
+     stronger makes the toggle look like a button. */
+  box-shadow: 0 1px 4px rgba(45, 107, 247, 0.18);
+  transform: translateY(-50%);
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 200ms ease;
+}
+.purchase-card .toggle:checked::before {
+  /* Slide right: 32 (track) − 2 (left inset) − 2 (right inset) − 12 (knob) = 16px */
+  transform: translateY(-50%) translateX(16px);
+}
+.purchase-card .toggle:hover::before {
+  /* Hover lifts the drop slightly — still single-layer, still light. */
+  box-shadow: 0 2px 6px rgba(45, 107, 247, 0.26);
+}
+.purchase-card .toggle:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+/* Dark theme: --blue resolves to the Kleros purple #7B2BFF, so the knob
+   recolors automatically. Slightly stronger alphas because shadows
+   read fainter against the deeper dark surface. */
+html[data-theme="dark"] .purchase-card .toggle::before {
+  box-shadow: 0 1px 4px rgba(123, 43, 255, 0.22);
+}
+html[data-theme="dark"] .purchase-card .toggle:hover::before {
+  box-shadow: 0 2px 6px rgba(123, 43, 255, 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-form-panel,
+  .action-form-panel.is-open {
+    transition: none;
+    filter: none;
+    will-change: auto;
+  }
 }
 
 /* Market / Fill-to-price dropdown (in the purchase tab bar) — ported from market.html */
@@ -689,6 +1101,18 @@ body {
 .io-row input {
   flex: 1;
   min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: var(--display, "Fraunces", serif);
+  font-variation-settings: "opsz" 96, "SOFT" 30;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.io-row input::placeholder {
+  color: var(--ink-5);
 }
 .io-balance {
   display: flex;
@@ -807,13 +1231,19 @@ html[data-theme="dark"] .io-swap:focus-visible {
   background: var(--surface);
 }
 .events-card .section-h h3 .badge {
-  display: inline-block;
+  /* `inline-flex` instead of `inline-block` so the badge text centers
+     vertically within the pill background (was sitting at the baseline,
+     making the text look off-center inside the chip). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 6px;
-  padding: 2px 8px;
+  padding: 3px 8px;
   background: var(--bg-2);
   border-radius: var(--r-pill);
   font-family: "Geist Mono", ui-monospace, monospace;
   font-size: 10px;
+  line-height: 1;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -917,8 +1347,15 @@ html[data-theme="dark"] .io-swap:focus-visible {
 .event.is-future-4 {
   opacity: 0.26;
 }
-.event.is-resolution .event-name::after {
-  content: "Resolution";
+/* CONTRIBUTORS: blue-soft "Resolution" badge that sits next to the
+   event title on resolution events. Sample uses a CSS ::after with the
+   same styling; we render a real <span class="resolution-tag"> in JSX
+   (see MajorEvents.tsx) and style it here so React owns the DOM node
+   and the badge can't be hidden by CSS load order. The class is scoped
+   under .event-name so it only ever matches inside the events list.
+   The old `.event.is-resolution .event-name::after` rule has been
+   removed — there's a single source of truth now. */
+.event-name .resolution-tag {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 6px;
@@ -1104,13 +1541,23 @@ html[data-theme="dark"] .io-swap:focus-visible {
 }
 
 /* Brand CTA pill (Connect / Create New Market) — blue pill with hover lift/glow.
-   Defined after .btn.btn-primary so it wins on equal specificity. */
+   Defined after .btn.btn-primary so it wins on equal specificity.
+   daisyUI's .btn defaults `text-transform: uppercase` via `--btn-text-case`,
+   which made "Connect" render as "CONNECT". Sample uses sentence case, so we
+   force it back here for every CTA pill. */
 .btn.btn-cta {
   background-color: var(--blue);
   border-color: var(--blue);
   color: #fff;
   border-radius: var(--r-pill);
   box-shadow: var(--shadow-sm);
+  /* Sample uses no border and a default line-height; daisyUI's .btn forces
+     `border-width:1px`, `line-height:1em`, and `text-transform:uppercase`,
+     which made "Connect" render as "CONNECT" and the pill 1px wider than
+     the sample. Reset all three here. */
+  text-transform: none;
+  line-height: 1.5;
+  border-width: 0;
   transition:
     background-color 140ms ease,
     transform 180ms ease,
@@ -1189,6 +1636,7 @@ html[data-theme="dark"] .paginator .paginator-active {
   flex-wrap: wrap;
   font-size: 13px;
   color: var(--ink-5);
+  margin-right: 120px;
 }
 .foot .links a:hover {
   color: var(--ink);
@@ -1217,6 +1665,48 @@ html[data-theme="dark"] .paginator .paginator-active {
 .textarea {
   border-radius: var(--r);
 }
+
+/* daisyUI's .input:focus sets box-shadow:none AND we add the
+   `!border-[var(--border)]` (= border-color !important) on the homepage
+   search to enforce the resting border. To restore the sample's blue focus
+   halo, this rule needs !important too — same importance, higher
+   specificity than the .!border-... utility, so it wins on focus. */
+.input.input-bordered:focus,
+.input.input-bordered:focus-within {
+  outline: none !important;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.15) !important;
+}
+html[data-theme="dark"] .input.input-bordered:focus,
+html[data-theme="dark"] .input.input-bordered:focus-within {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.25) !important;
+}
+
+/* Swap panel: the io-row parent owns the focus halo (see .io-row:focus-within
+   above). Cancel the homepage halo on the inner input AND the daisyUI
+   default `outline: 2px solid` (which read as an extra inner border on
+   dark surfaces only — light mode hid it because of currentColor matching
+   the white bg). */
+.io-row .input.input-bordered:focus,
+.io-row .input.input-bordered:focus-within {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+/* Dark-mode override: the `html[data-theme="dark"] .input.input-bordered:focus`
+   rule earlier in this file wins on specificity (it has the extra `html`
+   element selector → 0,4,1 vs 0,4,0 here), so even with !important on both
+   sides it still painted a purple 3px halo on every swap input in dark mode.
+   This duplicate rule prefixed with `html[data-theme="dark"]` lifts our
+   specificity to 0,5,1 and beats it. */
+html[data-theme="dark"] .io-row .input.input-bordered:focus,
+html[data-theme="dark"] .io-row .input.input-bordered:focus-within {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
 
 /* RADIO */
 .radio:checked,
@@ -1373,8 +1863,29 @@ html[data-theme="dark"] .paginator .paginator-active {
   }
 }
 
+/* daisyUI dropdown menu container — restyled to match the sample's `.menu`:
+   surface bg, soft border, 10px radius (var(--r-md)), 6px inner padding,
+   medium drop shadow, at least 220px wide. Replaces the old 3px-radius +
+   default Tailwind shadow. */
 .dropdown-content {
-  @apply shadow bg-base-100 rounded-[3px] text-base-content text-[16px];
+  @apply text-base-content;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  min-width: 220px;
+}
+
+/* Hover-only dropdowns must ignore click/keyboard focus so the menu doesn't
+   stay open after click. daisyUI's base rule shows the menu via :focus and
+   :focus-within (so a click sticks it open until you click elsewhere). Hide
+   it whenever the trigger is merely focused without being hovered — :hover
+   still wins through the existing daisyUI rule. */
+.dropdown.dropdown-hover:focus-within:not(:hover) .dropdown-content,
+.dropdown.dropdown-hover:focus:not(:hover) .dropdown-content {
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 /* CHECKBOX */

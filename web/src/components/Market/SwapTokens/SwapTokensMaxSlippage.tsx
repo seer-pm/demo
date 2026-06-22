@@ -51,7 +51,11 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
   const maxSlippage = watch("maxSlippage");
   const isInstantSwap = watch("isInstantSwap");
   return (
-    <div className="space-y-5">
+    // CONTRIBUTORS: `slippage-panel` class scopes typography overrides
+    // (see index.scss). Without it, the default font sizes from
+    // <Button>/<Input>/<p> read noticeably larger than the buy panel and
+    // make the "More" view feel like a different design.
+    <div className="space-y-5 slippage-panel">
       <div className="flex items-center gap-2">
         <p className="font-semibold text-[18px]">Parameters</p>
         <Parameter />
@@ -116,8 +120,13 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           <p className="tooltiptext w-[200px] !whitespace-break-spaces">Swap directly without using Cowswap</p>
           <QuestionIcon fill="var(--blue)" />
         </div>
+        {/* CONTRIBUTORS: `checked:bg-purple-primary` removed — the
+            custom `.purchase-card .toggle` (see index.scss) keeps the
+            track white in both states; only the blue knob slides to
+            indicate on/off. Don't reintroduce a track-color change
+            here, it'd conflict with the global toggle design. */}
         <Toggle
-          className="checked:bg-purple-primary ml-3"
+          className="ml-3"
           checked={isInstantSwap}
           onChange={(e) => setValue("isInstantSwap", e.target.checked)}
         />

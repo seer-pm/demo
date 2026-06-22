@@ -1,102 +1,84 @@
-import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
-import { useTokenInfo } from "@seer-pm/react";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
 
+export type TokenAction = "mint" | "merge" | "redeem";
+
 interface ConditionalTokenActionsProps {
   account?: Address;
   market: Market;
   outcomeIndex: number;
+  /** Currently open action (Mint/Merge/Redeem), or null to render nothing. */
+  activeAction: TokenAction | null;
 }
 
-const titles = {
-  mint: "Mint",
-  merge: "Merge",
-  redeem: "Redeem",
-};
+// Must be ≥ the unified `transition-duration` on `.action-form-panel` in
+// index.scss (currently 520ms on every animated property). Set to 540ms
+// (20ms buffer) so the form stays mounted through the FULL haze-out —
+// without the buffer, the inner fields disappear before the wrapper has
+// finished blurring back into nothing. If you tune the CSS, sync this.
+const PANEL_TRANSITION_MS = 540;
 
-export function ConditionalTokenActions({ account, market, outcomeIndex }: ConditionalTokenActionsProps) {
-  const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
-  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+/**
+ * CONTRIBUTORS — what this panel does and why it works the way it does:
+ *
+ *   • CONTROLLED: `activeAction` is owned by <SwapWidget> in `+Page.tsx`.
+ *     Default state is `null` → the wrapper renders but stays collapsed
+ *     (max-height 0, opacity 0, blur 10px) so the purchase panel keeps
+ *     the sample's compact height. Only on click does the wrapper expand
+ *     to the bottom of the viewport (capped, see `.action-form-panel.is-open`
+ *     in index.scss) and the form fades in from haze to reality.
+ *   • EXIT ANIMATION: React unmounts a removed child immediately, which
+ *     would yank the form's content before the haze-out can finish.
+ *     We solve this by tracking `renderedAction` separately from
+ *     `activeAction`: on close, we drop `is-open` (which triggers the CSS
+ *     transition), then unmount the inner form after PANEL_TRANSITION_MS.
+ *   • The trigger buttons live in <SwapWidget>'s `.actions-row`. The
+ *     active button is blue and clicking it again clears `activeAction`.
+ *
+ *  Add a new action: extend `TokenAction`, add a sibling trigger in
+ *  <SwapWidget>'s actionsRow, then add a conditional render below.
+ */
+export function ConditionalTokenActions({
+  account,
+  market,
+  outcomeIndex: _outcomeIndex,
+  activeAction,
+}: ConditionalTokenActionsProps) {
   const marketStatus = getMarketStatus(market);
-  const [isShow, setShow] = useState(false);
-  const renderActionBox = () => (
-    <div className="card p-[24px] shadow-md">
-      <div className="font-display text-[22px] font-semibold tracking-tight mb-[20px]">{titles[activeTab]}</div>
-      <div role="tablist" className="flex gap-1.5 flex-wrap mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={clsx("tab-pill", activeTab === "mint" && "active")}
-          onClick={() => setActiveTab("mint")}
-        >
-          Mint
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={clsx("tab-pill", activeTab === "merge" && "active")}
-          onClick={() => setActiveTab("merge")}
-        >
-          Merge
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={clsx("tab-pill", activeTab === "redeem" && "active")}
-          onClick={() => setActiveTab("redeem")}
-        >
-          Redeem
-        </button>
-      </div>
+  const [renderedAction, setRenderedAction] = useState<TokenAction | null>(activeAction);
+  const [isOpen, setIsOpen] = useState(false);
 
-      {activeTab === "mint" && <SplitForm account={account} market={market} />}
+  useEffect(() => {
+    if (activeAction !== null) {
+      // Opening (or switching to another action): mount the form first,
+      // then add `is-open` on the next frame so the transition actually
+      // runs (toggling the class same-frame as mount = no transition).
+      setRenderedAction(activeAction);
+      const raf = requestAnimationFrame(() => setIsOpen(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    // Closing: drop the class first; keep the form mounted until the
+    // haze-out animation finishes, then unmount.
+    setIsOpen(false);
+    const timer = window.setTimeout(() => setRenderedAction(null), PANEL_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeAction]);
 
-      {activeTab === "merge" && <MergeForm account={account} market={market} />}
-
-      {activeTab === "redeem" &&
+  return (
+    <div className={clsx("action-form-panel", isOpen ? "is-open" : "is-closed")} aria-hidden={!isOpen}>
+      {renderedAction === "mint" && <SplitForm account={account} market={market} />}
+      {renderedAction === "merge" && <MergeForm account={account} market={market} />}
+      {renderedAction === "redeem" &&
         (marketStatus === MarketStatus.CLOSED ? (
           <RedeemForm account={account} market={market} />
         ) : (
-          "Redemptions are not available yet."
+          <p className="text-[13px] text-ink-3">Redemptions are not available yet.</p>
         ))}
-    </div>
-  );
-
-  if (marketStatus === MarketStatus.CLOSED) {
-    if (isPending) {
-      return <div className="shimmer-container w-full h-[400px]"></div>;
-    }
-    return renderActionBox();
-  }
-  if (!outcomeToken) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="card shadow-md">
-        <button
-          type="button"
-          onClick={() => setShow((state) => !state)}
-          className="w-full p-2 flex items-center justify-center gap-2"
-        >
-          <p className="font-semibold">More</p>
-          <div>{isShow ? <ArrowDropUp /> : <ArrowDropDown />}</div>
-        </button>
-      </div>
-      <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isShow ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        {renderActionBox()}
-      </div>
     </div>
   );
 }

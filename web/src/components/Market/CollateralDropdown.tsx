@@ -5,7 +5,7 @@ import type { GetTokenResult } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { WRAPPED_OUTCOME_TOKEN_DECIMALS, getActiveCollateralProfile } from "@seer-pm/sdk";
 import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import clsx from "clsx";
 import { useState } from "react";
@@ -69,8 +69,13 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
     <DropdownWrapper
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      // `auto` keeps the menu inside the viewport — when there's not enough
+      // room on the right (e.g. the sDAI selector sits near the right edge
+      // of the purchase panel), the menu flips left instead of overflowing.
+      direction="auto"
+      className="rounded-[var(--r-md)] !border-[var(--border)] bg-[var(--surface)] !shadow-[var(--shadow-md)] p-[6px] min-w-[200px]"
       content={
-        <div className="p-2">
+        <div>
           {collateralTokens.map((collateralToken) => (
             <li
               key={collateralToken.address}
@@ -79,14 +84,17 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                 setIsOpen(false);
               }}
               className={clsx(
-                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
+                // Match seerbeta submenu styling: tighter padding, 6px radius,
+                // soft bg-2 hover, no left-border accent. Smaller logo (20px)
+                // and text (13.5px / medium) to match surrounding chip scale.
+                "flex items-center gap-2 px-[12px] py-[9px] rounded-[6px] cursor-pointer hover:bg-bg-2 transition-colors",
                 isTwoStringsEqual(collateralToken.address, selectedCollateral.address) &&
-                  "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
+                  "bg-bg-2 text-ink",
               )}
             >
-              <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
+              <div className="w-5 h-5 overflow-hidden flex-shrink-0 relative">
                 <img
-                  className="w-full h-full rounded-full "
+                  className="w-full h-full rounded-full"
                   alt={collateralToken.symbol}
                   src={paths.tokenImage(collateralToken.address, collateralToken.chainId)}
                 />
@@ -98,7 +106,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                   />
                 )}
               </div>
-              <p className="font-semibold text-[16px]">{collateralToken.symbol}</p>
+              <p className="font-medium text-[13.5px] text-ink-2">{collateralToken.symbol}</p>
             </li>
           ))}
         </div>
@@ -126,14 +134,51 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
           )}
         </div>
         <p className={clsx(!compact && "font-semibold text-[16px]")}>{selectedCollateral.symbol}</p>
-        <ArrowDropDown />
+        {/* Smaller chev in compact (in-row) mode so it matches the
+            surrounding sDAI logo size. Was rendering at 24px which made
+            the caret dwarf the token icon and inflate the chip. */}
+        <ArrowDropDown fill="var(--ink-5)" size={compact ? "10px" : "24px"} />
       </div>
     </DropdownWrapper>
   );
 }
 
+/**
+ * CONTRIBUTORS — fallback collateral list built from the SDK's static
+ * `CollateralProfile` (every field already known at compile time:
+ * address, chainId, symbol, decimals). Used when the live `useTokensInfo`
+ * multicall returns nothing — same Base-specific bug that affects the
+ * outcomeToken lookup in `+Page.tsx`. The profile data is the source
+ * of truth for which collaterals a chain supports, so synthesising
+ * from it is safe — we're not inventing tokens, just bypassing the
+ * on-chain fetch that should've returned the same info.
+ *
+ * Futarchy markets are intentionally not handled here: their
+ * collateralToken1/2 are arbitrary per-market ERC20s whose full Token
+ * info (symbol/decimals) we can't derive without an on-chain call. If
+ * a Futarchy market loads on a flaky chain we leave that path to the
+ * live hook (better than synthesising wrong decimals).
+ */
+function buildFallbackCollateralTokens(market: Market, _type: "buy" | "sell"): Token[] {
+  if (market.type === "Futarchy") {
+    return [];
+  }
+  const profile = getActiveCollateralProfile(market.chainId);
+  const tokens: Token[] = [profile.primary];
+  if (profile.secondary) {
+    tokens.push(profile.secondary);
+  }
+  if (profile.secondary?.wrapped) {
+    tokens.push(profile.secondary.wrapped);
+  }
+  if (profile.swap) {
+    tokens.push(...profile.swap);
+  }
+  return tokens;
+}
+
 export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
-  const { data: collateralTokens } = useTokensInfo(
+  const { data: liveCollateralTokens } = useTokensInfo(
     getCollateralOptions(props.market, props.type),
     props.market.chainId,
   );
@@ -142,5 +187,30 @@ export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
     return null;
   }
 
+  // CONTRIBUTORS — On Base the live useTokensInfo multicall reliably
+  // returns an empty/undefined result, which used to mean
+  // <CollateralDropdown> would render null and the user had no way to
+  // pick sUSDS / USDC / USDS. We now fall back to the static collateral
+  // profile (every Token field is already known statically) so the
+  // dropdown ALWAYS mounts when the chain is supported.
+  // Cast through unknown because GetTokenResult is a superset of Token
+  // — the dropdown only reads address / chainId / symbol, which are
+  // identical between the two shapes.
+  const hasLive = !!liveCollateralTokens && liveCollateralTokens.length > 0;
+  const collateralTokens = (
+    hasLive ? liveCollateralTokens : (buildFallbackCollateralTokens(props.market, props.type) as unknown as GetTokenResult[])
+  ) as GetTokenResult[];
+
+  if (!hasLive && collateralTokens.length > 0 && typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[MarketCollateralDropdown] live token multicall returned empty for chainId=${props.market.chainId} ` +
+        `— using profile-derived fallback (${collateralTokens.map((t) => t.symbol).join(", ")}).`,
+    );
+  }
+
   return <CollateralDropdown {...props} collateralTokens={collateralTokens} compact />;
 }
+
+// Silence unused-import warnings when the chain has no native wrapped-token decimals lookup.
+void WRAPPED_OUTCOME_TOKEN_DECIMALS;

@@ -3,8 +3,6 @@ import { useIsAccountConnected } from "@/hooks/useIsConnectedAndSignedIn";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
 import { useTheme } from "@/hooks/useTheme";
 import SEER_ENV from "@/lib/env";
-import { DiscordIcon, TelegramIcon, TwitterIcon } from "@/lib/icons";
-import { paths } from "@/lib/paths";
 import { Discussion, defaultTheme } from "@orbisclub/components";
 import { Market } from "@seer-pm/sdk";
 import "@orbisclub/components/dist/index.modern.css";
@@ -78,20 +76,8 @@ function Comments({ market }: { market: Market }) {
           context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`}
         />
       </ErrorBoundary>
-      <div className="social-row">
-        <span>Open Social with</span>
-        <span className="social-icons [&_svg_path]:fill-current">
-          <a href={paths.twitter()} target="_blank" rel="noopener noreferrer" aria-label="Twitter / X">
-            <TwitterIcon />
-          </a>
-          <a href={paths.telegram()} target="_blank" rel="noopener noreferrer" aria-label="Telegram">
-            <TelegramIcon />
-          </a>
-          <a href={paths.discord()} target="_blank" rel="noopener noreferrer" aria-label="Discord">
-            <DiscordIcon />
-          </a>
-        </span>
-      </div>
+      {/* The "Open Social with" row + duplicate social icons were removed —
+          the footer already shows the social links. */}
     </>
   );
 }

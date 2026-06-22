@@ -33,7 +33,7 @@ const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
       text={"Connect"}
       variant="primary"
       size={size}
-      className="btn-cta !h-[36px] !min-h-[36px] !px-[18px] !rounded-full !text-[14px] !font-semibold"
+      className="btn-cta !h-auto !min-h-0 !min-w-0 !py-[9px] !px-[18px] !rounded-full !text-[14px] !font-semibold"
       onClick={async () => open({ view: "Connect" })}
     />
   );

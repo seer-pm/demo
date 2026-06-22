@@ -2,7 +2,7 @@ import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
-import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
+import { ConditionalTokenActions, type TokenAction } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import MajorEvents from "@/components/Market/MajorEvents";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
@@ -26,12 +26,15 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import {
   Market,
   MarketStatus,
+  type Token,
+  WRAPPED_OUTCOME_TOKEN_DECIMALS,
   getLiquidityPairForToken,
   getMarketStatus,
   isMarketReliable,
   isOfficialMarketFactory,
 } from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
+import clsx from "clsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
@@ -42,12 +45,40 @@ function SwapWidget({
   outcomeIndex,
   images,
   onOutcomeChange,
+  account,
 }: {
   market: Market;
   outcomeIndex: number;
   images?: string[];
   onOutcomeChange: (i: number, openDrawer: boolean) => void;
+  account?: Address;
 }) {
+  // CONTRIBUTORS — Mint/Merge/Redeem state lives here so two children stay
+  // in sync:
+  //   1. <SwapTokens> renders the `.actions-row` of 3 buttons attached to
+  //      the bottom of its `.card-box.purchase-card`. Click toggles the
+  //      action in this state (click the active one again to close).
+  //   2. <ConditionalTokenActions> mounts the matching form ONLY when
+  //      `activeAction` is non-null, in its own purchase-card shell below.
+  // Default state is `null` → no window open, exactly like the sample.
+  const [activeAction, setActiveAction] = useState<TokenAction | null>(null);
+  const toggleAction = (a: TokenAction) => setActiveAction((current) => (current === a ? null : a));
+  const actionsRow = (
+    <div className="actions-row" role="tablist">
+      {(["mint", "merge", "redeem"] as const).map((a) => (
+        <button
+          key={a}
+          type="button"
+          role="tab"
+          aria-pressed={activeAction === a}
+          className={clsx(activeAction === a && "active")}
+          onClick={() => toggleAction(a)}
+        >
+          {a.charAt(0).toUpperCase() + a.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
@@ -75,19 +106,67 @@ function SwapWidget({
     );
   }
 
-  if (!outcomeToken) {
+  // CONTRIBUTORS — Base markets reliably miss the multicall lookup that
+  // populates the live `outcomeToken` (`useTokenInfo` returns undefined
+  // indefinitely). The previous "return null + loading placeholder"
+  // paths both made the panel unusable. Instead, when the live lookup
+  // misses, synthesise a fallback Token from the market data we already
+  // have (subgraph-loaded `wrappedTokens` + outcome labels + standard
+  // 18 decimals for wrapped outcome tokens) so the purchase panel
+  // ALWAYS mounts. Downstream balance/quote hooks fire normally once
+  // they have an address — symbol is cosmetic and gets corrected when
+  // the live lookup eventually resolves. A console.warn fires so we
+  // can still trace which markets are hitting the fallback path.
+  const fallbackOutcomeToken: Token | undefined =
+    market.wrappedTokens[outcomeIndex] != null
+      ? {
+          address: market.wrappedTokens[outcomeIndex],
+          chainId: market.chainId,
+          symbol: market.outcomes?.[outcomeIndex] ?? `Outcome ${outcomeIndex + 1}`,
+          decimals: WRAPPED_OUTCOME_TOKEN_DECIMALS,
+        }
+      : undefined;
+  const effectiveOutcomeToken: Token | undefined = outcomeToken ?? fallbackOutcomeToken;
+  if (!outcomeToken && effectiveOutcomeToken && typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[SwapWidget] outcomeToken multicall missed for market=${market.id} chainId=${market.chainId} ` +
+        `outcomeIndex=${outcomeIndex} wrappedTokens[${outcomeIndex}]=${market.wrappedTokens[outcomeIndex]} ` +
+        `— using subgraph-derived fallback token so the panel still mounts.`,
+    );
+  }
+  if (!effectiveOutcomeToken) {
+    // Only happens when even the subgraph data is missing the wrapped
+    // token address — true "no data" state, not a Base flake.
     return null;
   }
+
+  // CONTRIBUTORS: the action form is now passed INTO <SwapTokens> as a
+  // slot so it can render INSIDE the same `.card-box.purchase-card` as
+  // the buy form — looking like a continuation of the actions-row strip
+  // above (no separate card, no tab header). Animation lives on the
+  // `.action-form-panel` CSS class. See ConditionalTokenActions for the
+  // controlled-prop contract.
+  const actionFormPanel = (
+    <ConditionalTokenActions
+      market={market}
+      account={account}
+      outcomeIndex={outcomeIndex}
+      activeAction={activeAction}
+    />
+  );
 
   return (
     <SwapTokens
       market={market}
       outcomeIndex={outcomeIndex}
-      outcomeToken={outcomeToken}
+      outcomeToken={effectiveOutcomeToken}
       fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
       onOutcomeChange={onOutcomeChange}
+      actionsRow={actionsRow}
+      actionFormPanel={actionFormPanel}
     />
   );
 }
@@ -249,8 +328,12 @@ function MarketPage() {
               outcomeIndex={outcomeIndex}
               images={market?.images?.outcomes}
               onOutcomeChange={onOutcomeChange}
+              account={account}
             />
-            <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
+            {/* CONTRIBUTORS: <ConditionalTokenActions> moved INSIDE
+                <SwapWidget> so the trigger buttons (`.actions-row`) live
+                inside the same purchase-card and the opened form mounts
+                directly below it. Don't re-add it as a sibling here. */}
           </div>
           <div className="space-y-16 min-w-0">
             <MarketTabs market={market} />
@@ -269,6 +352,7 @@ function MarketPage() {
                     outcomeIndex={outcomeIndex}
                     images={market?.images?.outcomes}
                     onOutcomeChange={onOutcomeChange}
+                    account={account}
                   />
                 }
                 onTabsChange={setDrawerTabs}

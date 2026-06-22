@@ -238,7 +238,7 @@ function AddLiquidityLinks({
           onClick={() => {
             openLiquidityModal();
           }}
-          className="text-blue hover:text-blue-hover transition-colors text-left"
+          className="text-blue hover:text-blue-hover transition-colors text-left font-medium"
         >
           Add Liquidity
         </button>
@@ -247,14 +247,14 @@ function AddLiquidityLinks({
           href={getLiquidityUrlByMarket(market, outcomeIndex)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue flex items-center space-x-2 hover:text-blue-hover transition-colors text-left"
+          className="text-blue flex items-center space-x-2 hover:text-blue-hover transition-colors text-left font-medium"
         >
           Add Liquidity
         </a>
       )}
       {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
         <button
-          className="text-blue hover:text-blue-hover transition-colors text-left"
+          className="text-blue hover:text-blue-hover transition-colors text-left font-medium"
           type="button"
           onClick={openPoolDetailsModal}
         >
@@ -357,9 +357,15 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-        <div className="text-[15px] font-semibold flex items-center gap-1">
+        {/* CONTRIBUTORS: outcome name styling pulled from sample's
+            `.outcome-name { font-weight: 600; font-size: 15px;
+            letter-spacing: -0.005em; margin-bottom: 4px }`. Tailwind
+            equivalents: text-[15px] font-semibold tracking-[-0.005em]
+            mb-1. Keep these together — removing one will throw the row
+            out of sync with the sample. */}
+        <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1">
           <p>
-            {market.type === "Generic" && <span className="text-ink-4">#{loopIndex + 1}</span>}{" "}
+            {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}
             {market.outcomes[outcomeIndex]}{" "}
             {outcomeIndex <= 1 &&
               getMarketType(market) === MarketTypes.SCALAR &&
@@ -370,7 +376,7 @@ function OutcomeDetails({
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
                 {getTooltipContent(market, outcomeIndex)}
               </p>
-              <QuestionIcon fill="var(--blue)" />
+              <QuestionIcon fill="var(--blue)" width={12} height={12} />
             </span>
           )}
           {_isInvalidOutcome && (
@@ -379,7 +385,7 @@ function OutcomeDetails({
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
                 invalid.
               </p>
-              <QuestionIcon fill="var(--blue)" />
+              <QuestionIcon fill="var(--blue)" width={12} height={12} />
             </span>
           )}
 
@@ -417,7 +423,7 @@ function OutcomeDetails({
               to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
                 market.outcomes[outcomeIndex],
               )}`}
-              className="text-blue hover:text-blue-hover transition-colors"
+              className="text-blue hover:text-blue-hover transition-colors font-medium"
             >
               New conditional market
             </Link>
@@ -555,7 +561,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
               )}
               <div className="flex items-center">
                 {market.type === "Generic" && (
-                  <div className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right">
+                  <div
+                    className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right"
+                    style={{ fontVariationSettings: '"opsz" 96, "SOFT" 30' }}
+                  >
                     {isLoading ? (
                       <Spinner />
                     ) : (

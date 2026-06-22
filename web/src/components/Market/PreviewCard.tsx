@@ -34,7 +34,7 @@ import {
 import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
-import { formatUnits } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { BAR_COLOR } from "./Header";
@@ -473,7 +473,16 @@ export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
-  const incentive = formatBigNumbers(market.incentive, 1);
+  // Reward (SEER/day) is shown as a whole number — always round UP so
+  // 55.5 → 56 and 1.2k → 2k (a user shouldn't see a smaller value than
+  // what they'll actually earn).
+  const incentive = (() => {
+    const v = market.incentive;
+    if (v >= 1e9) return `${Math.ceil(v / 1e9)}B`;
+    if (v >= 1e6) return `${Math.ceil(v / 1e6)}M`;
+    if (v >= 1e3) return `${Math.ceil(v / 1e3)}k`;
+    return `${Math.ceil(v)}`;
+  })();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const footIcoBase = "w-[22px] h-[22px] !flex items-center justify-center rounded-[6px] transition-colors";
   const footIcoClass = clsx(footIcoBase, "text-ink-5 hover:text-ink-2 hover:bg-bg-2");
@@ -490,41 +499,62 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "card-box group relative @container text-left flex flex-col transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[0_10px_24px_-12px_rgba(15,17,21,0.18)] dark:hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)]",
+        "card-box group relative @container text-left grid grid-rows-[auto_auto_1fr_auto] gap-3 p-4 min-h-[200px] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[0_10px_24px_-12px_rgba(15,17,21,0.18)] dark:hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)]",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="min-h-[100px] px-4 pt-3">
-        <div className="flex space-x-3">
-          <Link to={paths.market(market)} className="flex-shrink-0">
-            {market.images?.market ? (
-              <img
-                src={market.images.market}
-                alt={market.marketName}
-                className="aspect-square rounded-full @[340px]:w-[38px] @[315px]:w-[35px] w-[32px]"
-              />
-            ) : (
-              <div className="aspect-square rounded-full bg-purple-primary w-[38px]"></div>
-            )}
+      <div className="flex items-start gap-[7px]">
+        {/* `card-market-photo` is a stable hook for the scoped homepage-only
+            2px down-shift in index.scss. The class carries no styling on
+            its own; the shift is a `transform: translateY` so layout flow
+            (and therefore the card's overall height) is unaffected. */}
+        <Link to={paths.market(market)} className="card-market-photo flex-shrink-0 block w-[32px] h-[32px]">
+          {market.images?.market ? (
+            <img
+              src={market.images.market}
+              alt={market.marketName}
+              className="block rounded-full w-[32px] h-[32px] object-cover"
+            />
+          ) : (
+            <div className="rounded-full bg-purple-primary w-[32px] h-[32px]"></div>
+          )}
+        </Link>
+        <div className="grow min-w-0">
+          {/* `card-question-title` is a stable hook used by the homepage-only
+              font experiment (see `.home-markets-grid .card-question-title`
+              in index.scss). It carries NO styling on its own — the default
+              look is still `font-display` (Fraunces). Only when this card is
+              rendered inside the homepage grid does the scoped rule swap the
+              font. Collections-page cards are unaffected. */}
+          <Link
+            title={market.marketName}
+            className="card-question-title font-display font-medium tracking-[-0.012em] text-[14.5px] leading-snug line-clamp-3 before:absolute before:inset-0 before:z-0 before:content-['']"
+            style={{ fontVariationSettings: '"opsz" 36, "SOFT" 30' }}
+            to={paths.market(market)}
+          >
+            {market.marketName}
           </Link>
-          <div className="grow min-w-0">
-            <Link
-              title={market.marketName}
-              className="font-display font-medium tracking-[-0.012em] text-[14.5px] leading-snug line-clamp-3 before:absolute before:inset-0 before:z-0 before:content-['']"
-              style={{ fontVariationSettings: '"opsz" 36, "SOFT" 30' }}
-              to={paths.market(market)}
-            >
-              {market.marketName}
-            </Link>
-          </div>
-        </div>
-        <div className="card-tags mt-2">
-          <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
-          {market.incentive > 0 && <span className="card-reward">{incentive} SEER/day</span>}
         </div>
       </div>
 
-      <div className="px-4 mt-2 h-[112px] flex flex-col justify-center overflow-y-auto custom-scrollbar">
+      <div className="card-tags">
+        <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
+        {/* CONTRIBUTORS — conditional-market chip.
+            Visible ONLY inside `.home-markets-grid` (scoped via CSS in
+            index.scss); the same PreviewCard rendered on the collections
+            page has no `.home-markets-grid` ancestor so the chip stays
+            hidden there. The icon (`⇢`, U+21E2 rightwards dashed arrow
+            at 0.7 opacity) lives in the `::before` pseudo-element on
+            `.card-tags .conditional-tag` in index.scss — verbatim copy
+            of the sample's implementation. Don't render the glyph here
+            in JSX or you'll get a double icon. */}
+        {market.parentMarket?.id && market.parentMarket.id !== zeroAddress && (
+          <span className="conditional-tag">Conditional Market</span>
+        )}
+        {market.incentive > 0 && <span className="card-reward">{incentive} SEER/day</span>}
+      </div>
+
+      <div className="self-center py-1 overflow-y-auto custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
@@ -537,7 +567,7 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="relative z-[1] border-t border-[var(--border-2)] mx-4 h-[44px] flex items-center justify-between">
+      <div className="relative z-[1] border-t border-[var(--border-2)] pt-3 flex items-center justify-between">
         <span className="flex items-center gap-2.5 min-w-0">
           <SeerLogo fill="currentColor" className="text-ink-4 shrink-0 h-[14px] w-auto" />
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (

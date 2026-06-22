@@ -13,11 +13,80 @@ import {
   EthIcon,
   Menu,
   NotificationIcon,
-  PersonAdd,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
+import { useTheme } from "@/hooks/useTheme";
+
+// Sample-matched stroke icons for the header (16×16, fill:none, stroke
+// currentColor 2px, rounded caps/joins). Match the .icon-button glyphs in
+// `Seer New Redesign/index.html` exactly. Kept inline so other consumers of
+// NotificationIcon / QuestionIcon (filled Material style) are unaffected.
+const HeaderBellIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </svg>
+);
+const HeaderHelpIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const HeaderMoonIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+const HeaderSunIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </svg>
+);
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
@@ -67,11 +136,11 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const isAuthValid = !isAccessTokenExpired(accessToken);
 
   return (
-    <div className={clsx(isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6")}>
-      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[20px] text-center")}>
+    <div className={clsx(isMobile ? "space-y-2" : "w-[280px] max-w-[90vw] px-[16px] py-[16px] space-y-4")}>
+      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[15px]")}>
         Email Notifications
       </div>
-      <p className="text-[14px] text-black-secondary">
+      <p className="text-[12.5px] text-ink-3 leading-snug">
         Receive email notifications for your followed markets and important updates.
       </p>
       {isConnected ? (
@@ -136,7 +205,9 @@ type NavItem = {
 const getNestedLinkClassName = (isMobile: boolean) =>
   isMobile
     ? "flex gap-2 items-center py-[16px] hover:font-semibold whitespace-nowrap"
-    : "flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary";
+    : // Sample `.menu a` — text-[13.5px] medium, ink-2 color, padded 9/12,
+      // 6px radius, soft bg-2 hover. No left border accent.
+      "flex items-center gap-2 px-[12px] py-[9px] rounded-[6px] text-[13.5px] font-medium text-ink-2 hover:bg-bg-2 hover:text-ink transition-colors";
 
 const appLink = (id: string, key: keyof typeof paths, label: string, isMobile: boolean): NavItem => ({
   id,
@@ -144,7 +215,7 @@ const appLink = (id: string, key: keyof typeof paths, label: string, isMobile: b
   url: (paths[key] as () => string)(),
   title: label,
   className: getNestedLinkClassName(isMobile),
-  icon: <img className="h-[32px] w-auto" src={paths.logoImage(id)} alt={label} />,
+  icon: <img className="h-[18px] w-auto" src={paths.logoImage(id)} alt={label} />,
 });
 
 // ── Renderer ──────────────────────────────────────────────────────────────────
@@ -171,8 +242,14 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
                 ? clsx("hover:font-semibold block", item.active && "font-semibold")
                 : clsx(
                     "whitespace-nowrap px-[14px] py-[8px] rounded-[6px] transition-colors relative",
+                    // Sample applies `.nav a:hover { background: var(--bg-2) }`
+                    // to BOTH active and non-active links. The 2px underline
+                    // sits at `bottom: -1px` with `border-radius: 2px 2px 0 0`
+                    // — Tailwind's default `rounded-t` is 4px which made the
+                    // line's rounded ends bulge above its 2px height and
+                    // read as thicker than the sample's.
                     item.active
-                      ? "text-ink after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[1px] after:h-[2px] after:bg-blue after:rounded-t"
+                      ? "text-ink hover:bg-bg-2 after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[1px] after:h-[2px] after:bg-blue after:rounded-t-[2px]"
                       : "text-ink-3 hover:bg-bg-2 hover:text-ink",
                   ))
             }
@@ -189,7 +266,7 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
             <ul>{renderChildren()}</ul>
           </div>
         ) : (
-          <div key={item.id} className={item.className ?? "dropdown dropdown-end"}>
+          <div key={item.id} className={item.className ?? "dropdown dropdown-hover"}>
             {item.element ?? (
               <button
                 type="button"
@@ -199,7 +276,7 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
                 <span>{item.title}</span> {item.icon}
               </button>
             )}
-            <ul tabIndex={0} className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
+            <ul tabIndex={0} className="dropdown-content z-20 [&_svg]:text-blue">
               {renderChildren()}
             </ul>
           </div>
@@ -219,6 +296,7 @@ export default function Header() {
   const { urlParsed } = usePageContext();
   const { isConnected } = useAccount();
   const { balance, isFetching, symbol, chainId } = useWalletBalance();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topOffset, setTopOffset] = useState(0);
   const navRef = useRef<HTMLDivElement>(null);
@@ -293,8 +371,35 @@ export default function Header() {
         )}
       </>
     ) : (
-      <button type="button" tabIndex={0} className="flex flex-col items-center hover:opacity-85">
-        <PersonAdd />
+      <button
+        type="button"
+        tabIndex={0}
+        // CONTRIBUTORS: `relative top-[5px]` nudges the person icon + balance
+        // text 5px down as a unit without affecting the parent flex's
+        // alignment of its other children (bell / help / theme).
+        className="relative top-[5px] flex flex-col items-center hover:opacity-85 text-ink-3"
+      >
+        {/* CONTRIBUTORS — thin-stroke person glyph matching the FA-style
+            bell / help icons used in the same header strip. Replaces the
+            old Material-style filled <PersonAdd> SVG (24×24 thick body
+            with a plus-mark variant) so the connected-state icon reads
+            as part of the same icon set as its neighbours. Sized 18×18
+            with stroke-width 1.75 to feel slightly lighter than the
+            neighbours, since this icon doesn't sit inside a 36×36 chip. */}
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
         {!isFetching && (
           <p className="text-[10px]">
             {displayBalance(balance, 18, true)} {symbol}
@@ -303,13 +408,20 @@ export default function Header() {
       </button>
     );
 
+    // Shared className for the round header icon buttons (notification, help, theme).
+    // Matches the sample model's `.icon-button` spec: 36×36 circle, bg-2 surface,
+    // transparent placeholder border, ink-3 → ink on hover. `relative` allows
+    // an optional unread/notification badge dot to absolute-position inside.
+    const iconButtonClassName =
+      "relative inline-flex items-center justify-center w-[36px] h-[36px] rounded-full border border-transparent bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors";
+
     const items: NavItem[] = [
       {
         id: "container-1",
         type: "container",
         className: isMobile
           ? "space-y-[24px]"
-          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[10%] [@media(min-width:1000px)]:ml-[16%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[8px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[10%] [@media(min-width:1000px)]:ml-[16%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[4px]",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets", active: currentPath === "/" },
           {
@@ -361,7 +473,7 @@ export default function Header() {
         type: "container",
         className: isMobile
           ? "space-y-[24px] mt-5"
-          : "hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[12px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[24px]",
         children: [
           { id: "connect-wallet", type: "custom", element: <ConnectWallet isMobile={isMobile} /> },
           {
@@ -371,7 +483,10 @@ export default function Header() {
               {
                 id: "connected-dropdown",
                 type: "nested_links",
-                className: isMobile ? "space-y-[12px]" : undefined,
+                // dropdown-end keeps the menu anchored to the trigger's
+                // right edge so it doesn't extend off the right of the
+                // viewport (this trigger sits near right-[24px]).
+                className: isMobile ? "space-y-[12px]" : "dropdown dropdown-end dropdown-hover",
                 element: balanceDisplay,
                 children: [
                   { id: "deposit", type: "custom", element: deposit },
@@ -413,15 +528,16 @@ export default function Header() {
               {
                 id: "notification-dropdown",
                 type: "nested_links",
+                className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <NotificationIcon />,
                 element: isMobile ? undefined : (
                   <button
                     type="button"
                     tabIndex={0}
                     aria-label="Email notifications"
-                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
+                    className={iconButtonClassName}
                   >
-                    <NotificationIcon />
+                    <HeaderBellIcon />
                   </button>
                 ),
                 children: [
@@ -435,15 +551,16 @@ export default function Header() {
               {
                 id: "information",
                 type: "nested_links",
+                className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <QuestionIcon />,
                 element: isMobile ? undefined : (
                   <button
                     type="button"
                     tabIndex={0}
                     aria-label="Help"
-                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
+                    className={iconButtonClassName}
                   >
-                    <QuestionIcon />
+                    <HeaderHelpIcon />
                   </button>
                 ),
                 children: [
@@ -497,11 +614,15 @@ export default function Header() {
                     <ThemeToggleButton iconFill="var(--blue)" iconSize="17" showLabel />
                   </div>
                 ) : (
-                  <ThemeToggleButton
-                    iconFill="currentColor"
-                    iconSize="18"
-                    className="flex items-center justify-center w-[36px] h-[36px] rounded-full bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors"
-                  />
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                    title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                    className={iconButtonClassName}
+                  >
+                    {theme === "light" ? <HeaderMoonIcon /> : <HeaderSunIcon />}
+                  </button>
                 ),
               },
             ],
@@ -538,9 +659,9 @@ export default function Header() {
         ref={navRef}
         className="navbar container-fluid text-ink-3 gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center [@media(min-width:1200px)]:pr-[180px] relative"
       >
-        <div className="absolute left-[24px] lg:left-[12px]">
+        <div className="absolute left-[24px]">
           <Link className="text-ink hover:text-blue transition-colors" to="/">
-            <SeerLogo width="73px" height="34px" fill="currentColor" />
+            <SeerLogo width="69px" height="32px" fill="currentColor" />
           </Link>
         </div>
         {buildAndRender(mobileOpen)}

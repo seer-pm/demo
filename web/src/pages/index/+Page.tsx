@@ -128,7 +128,11 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
         {!isPending && data.markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
-        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
+        {/* EXPERIMENT — `home-markets-grid` marks THIS grid (homepage only)
+            so the scoped `.home-markets-grid .card-question-title` rule in
+            index.scss can swap the card question font to Geist here without
+            touching the same PreviewCard used on the collections page. */}
+        <div className="home-markets-grid mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
           {data.markets.map((market) => (
             <PreviewCard key={`${market.id}_${market.chainId}`} market={market} />
           ))}

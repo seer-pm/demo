@@ -37,10 +37,22 @@ export default function Footer() {
             href="https://kleros.io"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 hover:text-ink"
+            className="hover:text-ink"
           >
-            Secured by Kleros
-            <KlerosIcon width={14} height={14} />
+            {/* Sample: `SECURED BY KLEROS <img style="margin-left:6px; vertical-align:-2px"/>`.
+                The HTML keeps a literal space between "KLEROS" and the
+                image — collapsed-whitespace ~3-4px plus the 6px margin
+                gives the visible ~9-10px gap. Match that by emitting an
+                explicit {" "} alongside ml-1.5 (6px). Fill uses var(--blue)
+                so the K renders blue in light mode and Kleros purple in
+                dark mode, instead of our brand purple in both. */}
+            Secured by Kleros{" "}
+            <KlerosIcon
+              width={14}
+              height={14}
+              fill="var(--blue)"
+              className="inline-block ml-1.5 align-[-2px]"
+            />
           </a>
         </span>
       </div>

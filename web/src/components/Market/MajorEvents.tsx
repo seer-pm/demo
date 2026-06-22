@@ -11,49 +11,32 @@ import { useMarketEvents } from "@/hooks/useMarketEvents";
 import { useModal } from "@/hooks/useModal";
 import type { DisplayMarketEvent, MarketEvent } from "@/types/market-events";
 import type { Market } from "@seer-pm/sdk";
-import { MarketTypes, getMarketType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
 import { useEffect, useMemo, useState } from "react";
 
-function getResolutionDescription(market: Market, questionIndex: number): string | null {
-  const marketType = getMarketType(market);
-  if (marketType === MarketTypes.MULTI_SCALAR || market.questions.length > 1) {
-    return market.outcomes[questionIndex] ?? null;
+// CONTRIBUTORS — the events list contains ONLY admin-entered db events
+// (no auto-generated "Reality.eth Resolution" entry — that previous
+// behaviour duplicated curated entries). We treat the curator's LATEST
+// event (the chronologically last one) as the resolution event and
+// flip `isResolution: true` on it so the blue "Resolution" pill renders
+// next to it in the JSX. This matches the curator mental model the
+// designer asked for: "the last event is when the market resolves".
+function buildDisplayEvents(_market: Market, dbEvents: MarketEvent[], _nowMs: number): DisplayMarketEvent[] {
+  const sorted = dbEvents
+    .map(
+      (event): DisplayMarketEvent => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        eventAt: new Date(event.event_at),
+      }),
+    )
+    .sort((a, b) => a.eventAt.getTime() - b.eventAt.getTime());
+  if (sorted.length > 0) {
+    sorted[sorted.length - 1].isResolution = true;
   }
-
-  return null;
-}
-
-function buildDisplayEvents(market: Market, dbEvents: MarketEvent[], nowMs: number): DisplayMarketEvent[] {
-  const now = new Date(nowMs);
-  const events: DisplayMarketEvent[] = dbEvents.map((event) => ({
-    id: event.id,
-    title: event.title,
-    description: event.description,
-    eventAt: new Date(event.event_at),
-  }));
-
-  market.questions.forEach((question, questionIndex) => {
-    if (question.finalize_ts <= 0) {
-      return;
-    }
-
-    const resolutionDate = new Date(question.finalize_ts * 1000);
-    if (resolutionDate < now) {
-      return;
-    }
-
-    events.push({
-      id: `resolution-${question.id}`,
-      title: "Reality.eth Resolution",
-      description: getResolutionDescription(market, questionIndex),
-      eventAt: resolutionDate,
-      isResolution: true,
-    });
-  });
-
-  return events.sort((a, b) => a.eventAt.getTime() - b.eventAt.getTime());
+  return sorted;
 }
 
 function formatEventDate(date: Date, isFirst = false): string {
@@ -199,7 +182,19 @@ export default function MajorEvents({ market }: { market: Market }) {
                 <div className="event-marker" />
                 <div className="event-info">
                   <div className="event-date">{formatEventDate(event.eventAt, index === 0)}</div>
-                  <div className="event-name">{event.title}</div>
+                  <div className="event-name">
+                    {event.title}
+                    {/* CONTRIBUTORS: render the "Resolution" badge as a JSX
+                        span (was a CSS ::after on `.event.is-resolution
+                        .event-name::after`). Pseudo-element content on
+                        React-managed nodes is harder for HMR/build to
+                        guarantee, and the spec asked for the badge to
+                        ALWAYS appear next to a resolution event — a real
+                        DOM node is the safe way. The `.resolution-tag`
+                        class carries the sample's exact styling (blue-soft
+                        bg, mono 9px caps, 3px radius). */}
+                    {event.isResolution && <span className="resolution-tag">Resolution</span>}
+                  </div>
                   {event.description && <div className="event-detail">{event.description}</div>}
                   {showAdminActions && !event.isResolution && (
                     <div className="event-actions">

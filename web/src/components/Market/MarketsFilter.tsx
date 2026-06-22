@@ -48,7 +48,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <div className="grow @container">
           <Input
             placeholder="Search by market, outcome or collection"
-            className="w-full h-[44px] !rounded-full !border-[var(--border)] text-[13px] @[400px]:text-[14px] placeholder:text-ink-5"
+            className="w-full !h-[44px] !rounded-full !border-[var(--border)] !pl-[46px] !text-[14px] placeholder:text-ink-5"
             icon={<SearchLineIcon fill="var(--ink-5)" />}
             value={marketName}
             onChange={onChangeName}
@@ -73,7 +73,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
             <FilterLineIcon fill="var(--ink-3)" />
           </div>
           Filters
-          <span className="text-[9px] text-ink-5">▾</span>
+          <span className="text-[9px] text-ink-5 ml-1">▾</span>
         </button>
         {isShowFilters && (
           <div className="absolute lg:top-[60px] top-[110px] left-0 w-full !ml-0 z-30">

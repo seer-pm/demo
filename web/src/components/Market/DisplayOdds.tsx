@@ -11,10 +11,15 @@ export function DisplayOdds({
 }) {
   if (!isOdd(odd)) {
     return (
-      <div className="flex space-x-2 items-center">
-        <div>NA</div>
+      // CONTRIBUTORS: `justify-end` puts the "NA" + help icon flush
+      // against the right edge of the parent's text-right column so the
+      // baseline lines up with the % prices on other outcome rows. The
+      // QuestionIcon is shrunk to 12×12 so it doesn't tower over the
+      // tiny "NA" label.
+      <div className="flex space-x-1.5 items-center justify-end">
+        <div className="pr-0.5">NA</div>
         <Tooltip
-          trigger={<QuestionIcon fill="var(--blue)" />}
+          trigger={<QuestionIcon fill="var(--blue)" width={12} height={12} />}
           content={
             <div>
               The odds cannot be displayed because the outcome's current price is far above 1. This typically happens

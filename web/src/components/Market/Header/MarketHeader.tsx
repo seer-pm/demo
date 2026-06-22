@@ -1,6 +1,7 @@
 import { Link } from "@/components/Link";
 import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
+import { useMarketEvents } from "@/hooks/useMarketEvents";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
@@ -11,10 +12,8 @@ import {
   ClockIcon,
   ExclamationCircleIcon,
   EyeIcon,
-  HourglassIcon,
   LawBalanceIcon,
   MyMarket,
-  PresentIcon,
   QuestionIcon,
   SeerLogo,
   USDIcon,
@@ -59,9 +58,13 @@ interface MarketHeaderProps {
   outcomesCount?: number;
 }
 
-// Pill base for the hero meta tags (icons inherit the tag's text color)
+// Pill base for the hero meta tags (icons inherit the tag's text color).
+// CONTRIBUTORS: icons are pinned at 11×11 — small enough to read as part
+// of the 12px label rather than dominating it. The two `[&_svg]` rules
+// also force fill→currentColor so the FA6 clock and gift inherit the
+// chip's text color (light: theme color, dark: theme dark color).
 const HERO_TAG =
-  "inline-flex items-center gap-1.5 px-[10px] py-[5px] rounded-[8px] text-[12px] font-medium whitespace-nowrap [&_svg]:w-[13px] [&_svg]:h-[13px] [&_svg]:fill-current [&_svg_path]:fill-current";
+  "inline-flex items-center gap-1.5 px-[10px] py-[5px] rounded-[8px] text-[12px] font-medium whitespace-nowrap [&_svg]:w-[11px] [&_svg]:h-[11px] [&_svg]:fill-current [&_svg_path]:fill-current";
 
 const VERIFICATION_TAG: Record<string, { label: string; cls: string }> = {
   verified: { label: "Verified", cls: "text-success-primary bg-success-primary/10" },
@@ -75,6 +78,68 @@ function VerifiedBadge() {
   return (
     <span className="inline-flex items-center justify-center w-[14px] h-[14px] rounded-full bg-current shrink-0">
       <span className="text-white text-[9px] font-extrabold leading-none">✓</span>
+    </span>
+  );
+}
+
+/**
+ * CONTRIBUTORS — per-chain branding palette for <NetworkTag>.
+ *
+ *   `label`: rendered uppercase via CSS (status-pill has text-transform).
+ *           Keep it short — the pill is rendered next to the status one,
+ *           so anything past ~14 visible chars wraps awkwardly.
+ *   `fg`:   foreground (text + ring + logo border). Picked from each
+ *           network's primary brand color so the pill feels native to
+ *           the chain. Kept saturated enough to read against the soft bg.
+ *   `bg`:   background, the same brand color at low alpha (~10%) to keep
+ *           the pill quiet next to the status pill. Don't go above 0.14
+ *           or the contrast crushes the foreground text.
+ *
+ * Adding a new chain: add its id → entry here. NETWORK_ICON_MAPPING in
+ * lib/config.ts must also have the logo path, otherwise <NetworkTag>
+ * returns null (defensive — no broken-image icon).
+ */
+const NETWORK_TAG_THEME: Record<number, { label: string; fg: string; bg: string }> = {
+  // Gnosis Chain — official brand teal/dark-green (gnosis.io).
+  100: { label: "Gnosis Network", fg: "#04795B", bg: "rgba(4, 121, 91, 0.10)" },
+  // Ethereum Mainnet — Ethereum Foundation slate-blue.
+  1: { label: "Ethereum Network", fg: "#627EEA", bg: "rgba(98, 126, 234, 0.12)" },
+  // OP Mainnet — Optimism red.
+  10: { label: "Optimism Network", fg: "#FF0420", bg: "rgba(255, 4, 32, 0.10)" },
+  // Base — Coinbase blue.
+  8453: { label: "Base Network", fg: "#0052FF", bg: "rgba(0, 82, 255, 0.10)" },
+  // Sepolia testnet — reuse Ethereum slate-blue (it's an ETH testnet).
+  11155111: { label: "Sepolia Network", fg: "#627EEA", bg: "rgba(98, 126, 234, 0.12)" },
+};
+
+/**
+ * Per-chain network pill, sized and typed to match the adjacent status
+ * pill (`status-pill` styling in index.scss + the inline Tailwind on the
+ * status `<span>`). Renders next to the status pill in the market hero
+ * so the user can see at a glance which chain a market lives on, even
+ * before they look at the contract link.
+ *
+ * Returns null for unknown chain ids or if the logo asset is missing,
+ * so a misconfigured chainId never produces a broken pill.
+ */
+function NetworkTag({ chainId }: { chainId: number }) {
+  const theme = NETWORK_TAG_THEME[chainId];
+  const logo = NETWORK_ICON_MAPPING[chainId];
+  if (!theme || !logo) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-[7px] pl-[6px] pr-3 py-1 rounded-full font-mono text-[10.5px] font-semibold uppercase tracking-wider"
+      style={{ color: theme.fg, backgroundColor: theme.bg }}
+    >
+      <img
+        src={logo}
+        alt=""
+        width={14}
+        height={14}
+        className="rounded-full shrink-0"
+        style={{ boxShadow: `0 0 0 1px color-mix(in srgb, ${theme.fg} 30%, transparent)` }}
+      />
+      {theme.label}
     </span>
   );
 }
@@ -266,6 +331,24 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
 
+  // CONTRIBUTORS — resolution-date chip source.
+  // We fetch the curator-entered Major Events for this market and take
+  // the LATEST event date as the displayed resolution date. If no
+  // events are entered, `resolutionDate` is null and the chip is
+  // hidden (see JSX below). This matches the curator's mental model
+  // ("the last major event is when the market resolves") and avoids
+  // surfacing on-chain reality.eth timestamps that often don't match
+  // what was advertised elsewhere on the page.
+  const { data: marketEvents = [] } = useMarketEvents(market);
+  const resolutionDate = useMemo(() => {
+    if (marketEvents.length === 0) return null;
+    const latestMs = marketEvents.reduce(
+      (max, event) => Math.max(max, new Date(event.event_at).getTime()),
+      0,
+    );
+    return latestMs > 0 ? new Date(latestMs) : null;
+  }, [marketEvents]);
+
   const [showMarketInfo, setShowMarketInfo] = useState(
     type === "default" &&
       market.questions.some((question) => {
@@ -300,19 +383,22 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       <div className="card-box text-left px-[24px] pt-[18px] pb-[22px] lg:px-[28px] lg:pt-[20px] lg:pb-[24px]">
         {/* status row */}
         <div className="flex items-center justify-between gap-4 flex-wrap mb-[16px]">
-          <span
-            className={clsx(
-              "inline-flex items-center gap-[7px] px-3 py-1 rounded-full font-mono text-[10.5px] font-semibold uppercase tracking-wider",
-              colors?.pillBg,
-              colors?.text,
-            )}
-          >
+          <div className="flex items-center gap-2 flex-wrap">
             <span
-              className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)}
-              style={{ boxShadow: "0 0 0 3px color-mix(in srgb, currentColor 20%, transparent)" }}
-            />
-            {marketStatus && STATUS_TEXTS[marketStatus](hasLiquidity)}
-          </span>
+              className={clsx(
+                "inline-flex items-center gap-[7px] px-3 py-1 rounded-full font-mono text-[10.5px] font-semibold uppercase tracking-wider",
+                colors?.pillBg,
+                colors?.text,
+              )}
+            >
+              <span
+                className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)}
+                style={{ boxShadow: "0 0 0 3px color-mix(in srgb, currentColor 20%, transparent)" }}
+              />
+              {marketStatus && STATUS_TEXTS[marketStatus](hasLiquidity)}
+            </span>
+            <NetworkTag chainId={market.chainId} />
+          </div>
           <div className="flex items-center gap-4 text-[12px] text-ink-3">
             <a
               href={blockExplorerUrl ? `${blockExplorerUrl}/address/${market.id}` : undefined}
@@ -349,7 +435,23 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
         {/* title row */}
         <div className="flex items-start gap-[18px]">
-          <div className="w-[56px] h-[56px] rounded-[10px] overflow-hidden flex-shrink-0 bg-purple-primary">
+          {/* CONTRIBUTORS — main market hero photo box.
+              • WITH photo: white background sits behind the image (looks
+                clean for images with transparent edges).
+              • WITHOUT photo: brand `bg-blue` placeholder — `var(--blue)`
+                = seerbeta blue (#2D6BF7) in light mode and the dominant
+                Kleros purple (#7B2BFF) in dark mode, so the empty box
+                reads as a Seer-branded chip on either theme.
+              Scoped to THIS hero block ONLY — outcomes keep their own
+              `bg-purple-primary` placeholder in OutcomeImage. Other
+              market-photo spots (PreviewCard, slide variant) are also
+              intentionally unchanged. */}
+          <div
+            className={clsx(
+              "w-[56px] h-[56px] rounded-[10px] overflow-hidden flex-shrink-0",
+              images?.market ? "bg-white" : "bg-blue",
+            )}
+          >
             {images?.market && (
               <img src={images.market} alt={market.marketName} className="w-full h-full object-cover" />
             )}
@@ -370,8 +472,14 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           )}
         </div>
 
-        {/* market type description */}
-        <p className="mt-[14px] text-[12px] text-ink-3 leading-[1.5] max-w-[70ch]">
+        {/* market type description. CONTRIBUTORS: scalar and multi-scalar
+            descriptions are the longest variants and the previous 100ch
+            cap was still wrapping to a second line on standard desktop
+            widths. Dropping the cap entirely on md+ lets the line use
+            the full card-box width (~700-800px in the left column),
+            which fits every description on one line. Narrow viewports
+            stay uncapped (`max-w-none`) so they wrap naturally. */}
+        <p className="mt-[14px] text-[12px] text-ink-3 leading-[1.5] max-w-none">
           {MARKET_TYPES_DESCRIPTION[marketType]}
         </p>
 
@@ -389,15 +497,56 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <MarketCategories market={market} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {market.questions?.[0]?.opening_ts > 0 && (
-              <span className={clsx(HERO_TAG, "bg-[#f1ecfe] text-[#7c3aed]")}>
-                <HourglassIcon />
-                {format(new Date(market.questions[0].opening_ts * 1000), "MMM d, yyyy")}
+            {/* CONTRIBUTORS — resolution-date chip:
+                The date displayed here is NOT a reality.eth timestamp.
+                It is sourced from the admin-curated "Major Events" box:
+                the latest event date a curator entered for this market
+                is taken as the resolution date. If no curator has
+                entered any events, the chip is hidden — there's no
+                automatic fallback.
+
+                Why: the previous source (`market.questions[0].opening_ts`)
+                is when reality.eth opens for answering on-chain — for
+                many markets that's a date the curator never picked, so
+                it surfaced "random" dates in the header that didn't
+                match what was advertised on the market card or in the
+                events panel. Sourcing from the curated events list
+                guarantees the chip date matches what the curator chose.
+
+                Implementation: useMarketEvents returns the same dbEvents
+                array MajorEvents.tsx renders below; we pick max(event_at)
+                as the resolution date. Mirrors the curator's mental
+                model that "the last major event is the resolution". */}
+            {resolutionDate && (
+              <span
+                className={clsx(
+                  HERO_TAG,
+                  // Sample `.tag.deadline` in light + dark.
+                  "bg-[#f1ecfe] text-[#7c3aed] dark:bg-[rgba(123,43,255,0.16)] dark:text-[#C7ABFF]",
+                )}
+              >
+                {/* Exact FA6 fa-clock path (\f017). The HERO_TAG selector
+                    pins width/height to 11px, so the icon scales the FA
+                    viewBox (0 0 512 512) down cleanly. */}
+                <svg viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+                  <path d="M256 0a256 256 0 1 0 0 512A256 256 0 1 0 256 0zM232 120c0-13.3 10.7-24 24-24s24 10.7 24 24V243.2l81.4 54.3c11 7.4 14 22.3 6.7 33.3s-22.3 14-33.3 6.7l-92.4-61.6c-6.7-4.5-10.7-12-10.7-20V120z" />
+                </svg>
+                {format(resolutionDate, "MMM d, yyyy")}
               </span>
             )}
             {market.incentive > 0 && (
-              <span className={clsx(HERO_TAG, "bg-[rgba(255,165,0,0.18)] text-[#e76f51]")}>
-                <PresentIcon width="13px" />
+              <span
+                className={clsx(
+                  HERO_TAG,
+                  // Sample `.tag.reward` in light + dark.
+                  "bg-[rgba(255,165,0,0.20)] text-[#e76f51] dark:bg-[rgba(251,191,36,0.10)] dark:text-[#FBBF24]",
+                )}
+              >
+                {/* CONTRIBUTORS: exact FA6 fa-gift path (\f06b). Box with
+                    bow + ribbon — sized via HERO_TAG (13px). */}
+                <svg viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+                  <path d="M190.5 68.8L225.3 128H224 152c-22.1 0-40-17.9-40-40s17.9-40 40-40h2.2c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40H32c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32H480c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32H438.4c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88h-2.2c-31.9 0-61.5 16.9-77.8 44.4L256 85.5l-24-40.1C215.7 17.9 186.1 1 154.2 1H152C103.4 1 64 40.4 64 88zm336 0c0 22.1-17.9 40-40 40H288 286.7l34.8-59.2C329 55.9 342.9 48 357.8 48H360c22.1 0 40 17.9 40 40zM32 288V464c0 26.5 21.5 48 48 48H224V288H32zM288 512H432c26.5 0 48-21.5 48-48V288H288V512z" />
+                </svg>
                 {incentive} SEER/day
               </span>
             )}
@@ -628,7 +777,18 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <p className="tooltiptext">
                   Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
                 </p>
-                <PresentIcon width="16px" />
+                {/* CONTRIBUTORS: inline FA6 fa-gift (\f06b) — replaces the
+                    old <PresentIcon> Material-style outline so this matches
+                    the reward chip used elsewhere on the page. */}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 512 512"
+                  fill="var(--blue)"
+                  aria-hidden="true"
+                >
+                  <path d="M190.5 68.8L225.3 128H224 152c-22.1 0-40-17.9-40-40s17.9-40 40-40h2.2c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40H32c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32H480c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32H438.4c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88h-2.2c-31.9 0-61.5 16.9-77.8 44.4L256 85.5l-24-40.1C215.7 17.9 186.1 1 154.2 1H152C103.4 1 64 40.4 64 88zm336 0c0 22.1-17.9 40-40 40H288 286.7l34.8-59.2C329 55.9 342.9 48 357.8 48H360c22.1 0 40 17.9 40 40zM32 288V464c0 26.5 21.5 48 48 48H224V288H32zM288 512H432c26.5 0 48-21.5 48-48V288H288V512z" />
+                </svg>
               </div>
             )}
             {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
