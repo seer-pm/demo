@@ -300,6 +300,8 @@ interface OutcomeDetailProps {
   pools: PoolInfo[][];
   loopIndex: number;
   images?: string[];
+  isPoolDetailsOpen?: boolean;
+  onTogglePoolDetails?: () => void;
 }
 
 function OutcomeDetails({
@@ -311,6 +313,8 @@ function OutcomeDetails({
   pools,
   loopIndex,
   images,
+  isPoolDetailsOpen,
+  onTogglePoolDetails,
 }: OutcomeDetailProps) {
   const { address } = useAccount();
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
@@ -399,6 +403,19 @@ function OutcomeDetails({
             />
           )}
 
+          {market.type === "Generic" && onTogglePoolDetails && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePoolDetails();
+              }}
+              className="text-purple-primary hover:underline"
+            >
+              {isPoolDetailsOpen ? "Hide pool details" : "View pool details"}
+            </button>
+          )}
+
           {market.type === "Generic" && (
             <Link
               to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
@@ -440,6 +457,14 @@ function MultiScalarEstimate({
   );
 }
 
+const OUTCOME_CARD_SCROLL_OFFSET = 24;
+const OUTCOME_ACTIVE_PANEL_ANIMATION_MS = 300;
+
+const isOutcomeCardFullyVisible = (element: HTMLElement) => {
+  const { top, bottom } = element.getBoundingClientRect();
+  return top >= OUTCOME_CARD_SCROLL_OFFSET && bottom <= window.innerHeight;
+};
+
 export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: OutcomesProps) {
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
@@ -449,17 +474,35 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
 
   const hasInitializedRef = useRef(false);
   const outcomeCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [poolDetailsOutcomeIndex, setPoolDetailsOutcomeIndex] = useState<number | null>(null);
 
-  const scrollOutcomeCardIntoView = (outcomeIndex: number) => {
+  const scrollOutcomeCardIntoView = (outcomeIndex: number, waitForPanelAnimation = false) => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    const delay = waitForPanelAnimation ? OUTCOME_ACTIVE_PANEL_ANIMATION_MS : 0;
+
     requestAnimationFrame(() => {
-      const element = outcomeCardRefs.current[outcomeIndex];
-      if (!element) return;
+      scrollTimeoutRef.current = setTimeout(() => {
+        const element = outcomeCardRefs.current[outcomeIndex];
+        if (!element) return;
+        if (isOutcomeCardFullyVisible(element)) return;
 
-      const offset = 24;
-      const top = element.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        const top = element.getBoundingClientRect().top + window.scrollY - OUTCOME_CARD_SCROLL_OFFSET;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      }, delay);
     });
   };
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (indexesOrderedByOdds && !hasInitializedRef.current) {
@@ -491,6 +534,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
                   onOutcomeChange(i, !isClickOnLinkOrButton);
                   if (!isClickOnLinkOrButton) {
+                    setPoolDetailsOutcomeIndex(null);
                     scrollOutcomeCardIntoView(i);
                   }
                 }}
@@ -509,6 +553,14 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                     pools={pools}
                     loopIndex={j}
                     images={images}
+                    isPoolDetailsOpen={poolDetailsOutcomeIndex === i}
+                    onTogglePoolDetails={() => {
+                      const willOpen = poolDetailsOutcomeIndex !== i;
+                      setPoolDetailsOutcomeIndex((prev) => (prev === i ? null : i));
+                      if (willOpen) {
+                        scrollOutcomeCardIntoView(i, true);
+                      }
+                    }}
                   />
                 ) : (
                   <div className="grid grid-cols-2 min-w-[50%]">
@@ -562,7 +614,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   />
                 </div>
               </div>
-              {isActive && <OutcomeActivePanel market={market} outcomeIndex={activeOutcome} />}
+              {poolDetailsOutcomeIndex === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}
             </div>
           );
         })}
