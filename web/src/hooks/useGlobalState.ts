@@ -5,6 +5,8 @@ import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+type LiquidityChartLayout = "horizontal" | "vertical";
+
 type State = {
   accessToken: string;
   pendingOrders: string[];
@@ -15,6 +17,7 @@ type State = {
   maxSlippage: string;
   isInstantSwap: boolean;
   useSmartAccount: boolean;
+  liquidityChartLayout: LiquidityChartLayout;
   preferredCollaterals: {
     [chainId: number]: Token | undefined;
   };
@@ -28,6 +31,7 @@ type Action = {
   setMaxSlippage: (value: string) => void;
   setInstantSwap: (value: boolean) => void;
   setUseSmartAccount: (value: boolean) => void;
+  setLiquidityChartLayout: (layout: LiquidityChartLayout) => void;
   setPreferredCollateral: (token: Token, chainId: number) => void;
   getPreferredCollateral: (chainId: number, swapType: "buy" | "sell") => Token | undefined;
 };
@@ -41,6 +45,7 @@ const useGlobalState = create<State & Action>()(
       maxSlippage: "1",
       isInstantSwap: true,
       useSmartAccount: true,
+      liquidityChartLayout: "vertical",
       preferredCollaterals: {},
       setAccessToken: (accessToken: string) =>
         set(() => ({
@@ -71,6 +76,10 @@ const useGlobalState = create<State & Action>()(
       setUseSmartAccount: (useSmartAccount: boolean) =>
         set(() => ({
           useSmartAccount,
+        })),
+      setLiquidityChartLayout: (liquidityChartLayout: LiquidityChartLayout) =>
+        set(() => ({
+          liquidityChartLayout,
         })),
       setPreferredCollateral: (token: Token, chainId: number) =>
         set((state) => ({

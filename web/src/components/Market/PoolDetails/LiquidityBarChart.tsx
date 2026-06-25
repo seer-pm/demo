@@ -4,7 +4,7 @@ import { Spinner } from "@/components/Spinner";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
-import { formatBigNumbers } from "@/lib/utils";
+import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk";
@@ -15,21 +15,19 @@ export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
-  isShowToken0Price,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
-  isShowToken0Price: boolean;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
-  const { token0Symbol, token1Symbol, tick, id } = poolInfo;
+  const { token0Symbol, token1Symbol, tick, id, token0 } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
+  const isShowToken0Price = !!isTwoStringsEqual(token0, outcome);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
-
   if (isError) {
     return (
       <Alert type="error" className="mb-5">
@@ -41,7 +39,6 @@ export default function LiquidityBarChart({
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
       <div>
-        <p className="font-semibold text-[14px] flex items-center gap-2">Liquidity Distribution</p>
         <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
       </div>
     );
@@ -230,19 +227,17 @@ export default function LiquidityBarChart({
     : undefined;
   return (
     <div>
-      <div className="font-semibold text-[14px] flex items-center gap-2 flex-wrap">
-        <div className="flex items-center ml-auto gap-2">
-          <p className="text-[14px] whitespace-nowrap">Ticks display</p>
-          <div className="min-w-[100px]">
-            <Slider
-              value={zoomCount}
-              min={1}
-              max={maxZoomCount}
-              onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
-            />
-          </div>
-          <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
+      <div className="font-semibold text-[14px] flex items-center align-center justify-center gap-2 w-full">
+        <p className="text-[14px] whitespace-nowrap">Ticks display</p>
+        <div className="min-w-[100px]">
+          <Slider
+            value={zoomCount}
+            min={1}
+            max={maxZoomCount}
+            onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
+          />
         </div>
+        <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
       </div>
       <div
         className="h-[400px] flex justify-center"

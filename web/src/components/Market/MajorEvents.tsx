@@ -1,19 +1,35 @@
 import Button from "@/components/Form/Button";
 import { MarketEventFormContent } from "@/components/admin/MarketEventForm";
+import { MarketEventSuggestionsModalContent } from "@/components/admin/MarketEventSuggestionsModal";
 import {
   type EventFormState,
   createEventFormForMarket,
+  createEventFormFromSuggestion,
   marketEventToForm,
 } from "@/components/admin/marketEventFormState";
-import { useDeleteMarketEvent, useIsAdmin } from "@/hooks/admin/useAdminMarketEvents";
+import { useDeleteMarketEvent, useIsAdmin, useRecommendMarketEvents } from "@/hooks/admin/useAdminMarketEvents";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useMarketEvents } from "@/hooks/useMarketEvents";
 import { useModal } from "@/hooks/useModal";
-import type { DisplayMarketEvent, MarketEvent } from "@/types/market-events";
+import type {
+  DisplayMarketEvent,
+  KnownMarketEventDate,
+  MarketEvent,
+  MarketEventSuggestion,
+  RecommendMarketEventsResponse,
+} from "@/types/market-events";
 import type { Market } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
 import { useEffect, useMemo, useState } from "react";
+
+function buildKnownDates(events: DisplayMarketEvent[]): KnownMarketEventDate[] {
+  return events.map((event) => ({
+    date: `${formatInTimeZone(event.eventAt, "UTC", "yyyy-MM-dd HH:mm:ss")} UTC`,
+    title: event.title,
+    ...(event.description ? { description: event.description } : {}),
+  }));
+}
 
 function buildDisplayEvents(_market: Market, dbEvents: MarketEvent[], _nowMs: number): DisplayMarketEvent[] {
   const sorted = dbEvents
@@ -76,10 +92,17 @@ export default function MajorEvents({ market }: { market: Market }) {
     openModal: openDeleteEventModal,
     closeModal: closeDeleteEventModal,
   } = useModal("market-page-delete-event-modal");
+  const {
+    Modal: SuggestionsModal,
+    openModal: openSuggestionsModal,
+    closeModal: closeSuggestionsModal,
+  } = useModal("market-page-suggest-events-modal");
   const deleteEvent = useDeleteMarketEvent(closeDeleteEventModal);
+  const recommendEvents = useRecommendMarketEvents();
   const [createFormInitial, setCreateFormInitial] = useState<EventFormState | null>(null);
   const [editFormInitial, setEditFormInitial] = useState<EventFormState | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<MarketEvent | null>(null);
+  const [suggestionResult, setSuggestionResult] = useState<RecommendMarketEventsResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -110,6 +133,33 @@ export default function MajorEvents({ market }: { market: Market }) {
     }
     setDeletingEvent(dbEvent);
     openDeleteEventModal();
+  };
+
+  const closeSuggestions = () => {
+    closeSuggestionsModal();
+    setSuggestionResult(null);
+    recommendEvents.reset();
+  };
+
+  const openSuggestEvents = () => {
+    setSuggestionResult(null);
+    recommendEvents.reset();
+    openSuggestionsModal();
+    recommendEvents.mutate(
+      {
+        marketQuestion: market.marketName,
+        knownDates: buildKnownDates(events),
+      },
+      {
+        onSuccess: (data) => setSuggestionResult(data),
+      },
+    );
+  };
+
+  const openCreateFromSuggestion = (suggestion: MarketEventSuggestion) => {
+    closeSuggestions();
+    setCreateFormInitial(createEventFormFromSuggestion(market, suggestion));
+    openCreateEventModal();
   };
 
   if (isEventsLoading || (events.length === 0 && !showAdminActions)) {
@@ -155,6 +205,19 @@ export default function MajorEvents({ market }: { market: Market }) {
           )
         }
       />
+      <SuggestionsModal
+        className="max-w-[640px]"
+        title="AI event suggestions"
+        content={
+          <MarketEventSuggestionsModalContent
+            isLoading={recommendEvents.isPending}
+            result={suggestionResult}
+            errorMessage={recommendEvents.error?.message}
+            onClose={closeSuggestions}
+            onAddSuggestion={openCreateFromSuggestion}
+          />
+        }
+      />
       <section className="card-box events-card">
         <div className="section-h">
           <h3>
@@ -177,7 +240,7 @@ export default function MajorEvents({ market }: { market: Market }) {
                   <div className="event-date">{formatEventDate(event.eventAt, index === 0)}</div>
                   <div className="event-name">
                     {event.title}
-                    
+
                     {event.isResolution && <span className="resolution-tag">Resolution</span>}
                   </div>
                   {event.description && <div className="event-detail">{event.description}</div>}
@@ -194,6 +257,19 @@ export default function MajorEvents({ market }: { market: Market }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {showAdminActions && (
+          <div className="events-ai">
+            <Button
+              text="Get AI suggestions"
+              type="button"
+              size="small"
+              variant="secondary"
+              isLoading={recommendEvents.isPending}
+              title="Use AI to find important future dates for this market"
+              onClick={openSuggestEvents}
+            />
           </div>
         )}
       </section>
