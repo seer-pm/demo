@@ -1,7 +1,7 @@
 import { useTrade } from "@/hooks/trade/useTrade";
-import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
+import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
@@ -220,6 +220,7 @@ export function SwapTokensMarket({
       reset();
       closeConfirmSwapModal();
     },
+    market,
     quoteData?.psm3Leg,
     quoteData?.completeSetLeg,
   );
@@ -396,13 +397,7 @@ export function SwapTokensMarket({
       );
     }
     return (
-      <Button
-        variant="primary"
-        className={disabledCtaClassName}
-        type="button"
-        disabled={true}
-        text="Enter an amount"
-      />
+      <Button variant="primary" className={disabledCtaClassName} type="button" disabled={true} text="Enter an amount" />
     );
   };
 
@@ -525,8 +520,7 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
-            
-            
+
             <div className="io-balance">
               <span className="tabular-nums">
                 {(() => {
@@ -576,11 +570,7 @@ export function SwapTokensMarket({
                     key={`amount-${n}`}
                     type="button"
                     className="quick-btn quick-btn--dollar"
-                    onClick={() =>
-                      isSellingCollateral
-                        ? addUsdAmount(n)
-                        : setAmountTokens(currentAmountFloat() + n)
-                    }
+                    onClick={() => (isSellingCollateral ? addUsdAmount(n) : setAmountTokens(currentAmountFloat() + n))}
                   >
                     {isSellingCollateral ? `+$${n}` : `+${n}`}
                   </button>

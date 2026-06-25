@@ -88,8 +88,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                 // soft bg-2 hover, no left-border accent. Smaller logo (20px)
                 // and text (13.5px / medium) to match surrounding chip scale.
                 "flex items-center gap-2 px-[12px] py-[9px] rounded-[6px] cursor-pointer hover:bg-bg-2 transition-colors",
-                isTwoStringsEqual(collateralToken.address, selectedCollateral.address) &&
-                  "bg-bg-2 text-ink",
+                isTwoStringsEqual(collateralToken.address, selectedCollateral.address) && "bg-bg-2 text-ink",
               )}
             >
               <div className="w-5 h-5 overflow-hidden flex-shrink-0 relative">
@@ -143,7 +142,6 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
   );
 }
 
-
 function buildFallbackCollateralTokens(market: Market, _type: "buy" | "sell"): Token[] {
   if (market.type === "Futarchy") {
     return [];
@@ -174,7 +172,9 @@ export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
 
   const hasLive = !!liveCollateralTokens && liveCollateralTokens.length > 0;
   const collateralTokens = (
-    hasLive ? liveCollateralTokens : (buildFallbackCollateralTokens(props.market, props.type) as unknown as GetTokenResult[])
+    hasLive
+      ? liveCollateralTokens
+      : (buildFallbackCollateralTokens(props.market, props.type) as unknown as GetTokenResult[])
   ) as GetTokenResult[];
 
   if (!hasLive && collateralTokens.length > 0 && typeof window !== "undefined") {

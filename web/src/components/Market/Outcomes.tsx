@@ -348,7 +348,6 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-
         <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1 flex-wrap">
           <p>
             {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}

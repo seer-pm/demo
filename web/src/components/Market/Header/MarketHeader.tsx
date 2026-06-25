@@ -78,7 +78,6 @@ function VerifiedBadge() {
   );
 }
 
-
 const NETWORK_TAG_THEME: Record<number, { label: string; fg: string; bg: string }> = {
   // Gnosis Chain — official brand teal/dark-green (gnosis.io).
   100: { label: "Gnosis Network", fg: "#04795B", bg: "rgba(4, 121, 91, 0.10)" },
@@ -314,10 +313,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const { data: marketEvents = [] } = useMarketEvents(market);
   const resolutionDate = useMemo(() => {
     if (marketEvents.length === 0) return null;
-    const latestMs = marketEvents.reduce(
-      (max, event) => Math.max(max, new Date(event.event_at).getTime()),
-      0,
-    );
+    const latestMs = marketEvents.reduce((max, event) => Math.max(max, new Date(event.event_at).getTime()), 0);
     return latestMs > 0 ? new Date(latestMs) : null;
   }, [marketEvents]);
 
@@ -407,7 +403,6 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
 
         {/* title row */}
         <div className="flex items-start gap-[18px]">
-          
           <div
             className={clsx(
               "w-[56px] h-[56px] rounded-[10px] overflow-hidden flex-shrink-0",
@@ -434,7 +429,6 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
           )}
         </div>
 
-        
         <p className="mt-[14px] text-[12px] text-ink-3 leading-[1.5] max-w-none">
           {MARKET_TYPES_DESCRIPTION[marketType]}
         </p>
@@ -453,7 +447,6 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
             <MarketCategories market={market} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            
             {resolutionDate && (
               <span
                 className={clsx(
@@ -479,7 +472,6 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                   "bg-[rgba(255,165,0,0.20)] text-[#e76f51] dark:bg-[rgba(251,191,36,0.10)] dark:text-[#FBBF24]",
                 )}
               >
-                
                 <svg viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
                   <path d="M190.5 68.8L225.3 128H224 152c-22.1 0-40-17.9-40-40s17.9-40 40-40h2.2c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40H32c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32H480c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32H438.4c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88h-2.2c-31.9 0-61.5 16.9-77.8 44.4L256 85.5l-24-40.1C215.7 17.9 186.1 1 154.2 1H152C103.4 1 64 40.4 64 88zm336 0c0 22.1-17.9 40-40 40H288 286.7l34.8-59.2C329 55.9 342.9 48 357.8 48H360c22.1 0 40 17.9 40 40zM32 288V464c0 26.5 21.5 48 48 48H224V288H32zM288 512H432c26.5 0 48-21.5 48-48V288H288V512z" />
                 </svg>
@@ -713,14 +705,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                 <p className="tooltiptext">
                   Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
                 </p>
-                
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 512 512"
-                  fill="var(--blue)"
-                  aria-hidden="true"
-                >
+
+                <svg width="16" height="16" viewBox="0 0 512 512" fill="var(--blue)" aria-hidden="true">
                   <path d="M190.5 68.8L225.3 128H224 152c-22.1 0-40-17.9-40-40s17.9-40 40-40h2.2c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40H32c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32H480c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32H438.4c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88h-2.2c-31.9 0-61.5 16.9-77.8 44.4L256 85.5l-24-40.1C215.7 17.9 186.1 1 154.2 1H152C103.4 1 64 40.4 64 88zm336 0c0 22.1-17.9 40-40 40H288 286.7l34.8-59.2C329 55.9 342.9 48 357.8 48H360c22.1 0 40 17.9 40 40zM32 288V464c0 26.5 21.5 48 48 48H224V288H32zM288 512H432c26.5 0 48-21.5 48-48V288H288V512z" />
                 </svg>
               </div>

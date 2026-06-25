@@ -2,11 +2,11 @@ import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { useTrade } from "@/hooks/trade/useTrade";
-import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
+import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -175,6 +175,7 @@ export function SwapTokensLimitUpto({
       reset();
       closeConfirmSwapModal();
     },
+    market,
     quoteData?.psm3Leg,
   );
 
@@ -536,7 +537,7 @@ export function SwapTokensLimitUpto({
                 }}
               />
             </div>
-            
+
             <div className="io-balance">
               <span className="tabular-nums">
                 {(() => {
@@ -570,9 +571,7 @@ export function SwapTokensLimitUpto({
                       type="button"
                       className="quick-btn quick-btn--dollar"
                       onClick={() =>
-                        isSellingCollateral
-                          ? addUsdAmount(n)
-                          : setAmountTokens(currentAmountFloat() + n)
+                        isSellingCollateral ? addUsdAmount(n) : setAmountTokens(currentAmountFloat() + n)
                       }
                     >
                       {isSellingCollateral ? `+$${n}` : `+${n}`}

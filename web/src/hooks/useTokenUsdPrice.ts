@@ -26,9 +26,7 @@ type CoinGeckoPriceMap = Record<string, { usd?: number }>;
 async function fetchCoinGeckoPrices(): Promise<CoinGeckoPriceMap | null> {
   const ids = Object.values(COINGECKO_IDS).join(",");
   try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
-    );
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
     if (!res.ok) return null;
     return (await res.json()) as CoinGeckoPriceMap;
   } catch {

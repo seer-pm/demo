@@ -43,14 +43,20 @@ export default async (req: Request) => {
   }
 
   try {
+    const fresh = params.get("fresh") === "true";
+
     // Fetch chart data (always returns cached data, generates on first request if not cached)
-    const chartData = await fetchCachedChartData(marketId, chainId, false);
+    const chartData = await fetchCachedChartData(marketId, chainId, false, fresh);
 
     console.log(`Fetching chart data for market ${marketId} on chain ${chainId}`);
 
-    // Trigger background function to update chart data if it's older than 5 minutes
-    // This ensures fresh data for future requests while maintaining fast response times
-    await fetch(`https://app.seer.pm/.netlify/functions/market-chart-background?${params.toString()}`);
+    if (!fresh) {
+      // Trigger background function to update chart data if it's older than 5 minutes.
+      // This ensures fresh data for future requests while maintaining fast response times.
+      // Skipped when fresh=true: the request already regenerated and upserted the cache
+      // synchronously, so a background refresh would be redundant.
+      await fetch(`https://app.seer.pm/.netlify/functions/market-chart-background?${params.toString()}`);
+    }
 
     return new Response(JSON.stringify(chartData), {
       status: 200,

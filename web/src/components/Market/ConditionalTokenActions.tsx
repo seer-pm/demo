@@ -23,7 +23,6 @@ interface ConditionalTokenActionsProps {
 // finished blurring back into nothing. If you tune the CSS, sync this.
 const PANEL_TRANSITION_MS = 540;
 
-
 export function ConditionalTokenActions({
   account,
   market,
