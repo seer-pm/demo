@@ -9,12 +9,14 @@ export function ApproveButton({
   spender,
   amount,
   chainId,
+  className,
 }: {
   tokenAddress: Address;
   tokenName: string;
   spender: Address;
   amount: bigint;
   chainId: SupportedChain;
+  className?: string;
 }) {
   const approveTokens = useApproveTokens();
 
@@ -34,7 +36,7 @@ export function ApproveButton({
       onClick={approveTokensHandler}
       isLoading={approveTokens.isPending}
       text={`Approve ${tokenName}`}
-      className="w-full h-auto"
+      className={className ?? "w-full h-auto"}
     />
   );
 }

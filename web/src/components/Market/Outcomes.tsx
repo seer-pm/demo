@@ -357,8 +357,8 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-        
-        <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1">
+
+        <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1 flex-wrap">
           <p>
             {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}
             {market.outcomes[outcomeIndex]}{" "}
@@ -385,12 +385,10 @@ function OutcomeDetails({
           )}
 
           {winningOutcomes?.[outcomeIndex] === true && <CheckCircleIcon className="text-success-primary" />}
-        </div>
-        <div className="text-[12px] text-black-secondary">
           {balances && balances[outcomeIndex] > 0n && (
-            <div className="w-full">
+            <span className="quick-btn quick-btn--pct !cursor-default">
               {displayBalance(balances[outcomeIndex], 18, true)} {tokensInfo?.[outcomeIndex]?.symbol}
-            </div>
+            </span>
           )}
         </div>
         <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-row justify-start">

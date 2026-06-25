@@ -102,6 +102,13 @@ function FutarchyPricePerShare({
   );
 }
 
+function truncateToTwoDecimals(value: string): string {
+  if (!value) return value;
+  const dotIdx = value.indexOf(".");
+  if (dotIdx === -1) return value;
+  return value.slice(0, dotIdx + 3);
+}
+
 export function SwapTokensMarket({
   market,
   outcomeIndex,
@@ -322,11 +329,9 @@ export function SwapTokensMarket({
     setAmountTokens(currentAmountFloat() + usd / price);
   };
 
-  const disabledCtaClassName =
-    // `!cursor-pointer` is the hand cursor (not the "blocked" circle).
-    // The CTA is disabled but the design treats it as actionable-looking
-    // (red + hover lift), so the hand cursor matches the visual affordance.
-    "w-full !rounded-[8px] !bg-[#ea1d21] !text-white !text-[14px] !border-transparent !opacity-100 !pointer-events-auto !cursor-pointer shadow-none hover:!shadow-[0_4px_12px_-4px_rgba(234,29,33,0.35)] transition-shadow duration-150";
+  const ctaClassName =
+    "w-full !rounded-[8px] !bg-[#ea1d21] hover:!bg-[#d11a1e] !text-white !text-[14px] !border-transparent !opacity-100 !pointer-events-auto !cursor-pointer shadow-none hover:!shadow-[0_4px_12px_-4px_rgba(234,29,33,0.35)] transition-shadow duration-150";
+  const disabledCtaClassName = ctaClassName;
 
   const renderButtons = () => {
     if (isCowFastQuote) {
@@ -373,6 +378,7 @@ export function SwapTokensMarket({
             isFetching ||
             isLoadingApprovals
           }
+          className={ctaClassName}
         />
       );
     }
@@ -412,12 +418,12 @@ export function SwapTokensMarket({
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
-      setValue("amountOut", receivedAmount ? receivedAmount.toString() : "", {
+      setValue("amountOut", receivedAmount ? truncateToTwoDecimals(receivedAmount.toString()) : "", {
         shouldValidate: true,
         shouldDirty: true,
       });
     } else {
-      setValue("amount", quoteData ? formatUnits(quoteData.value, quoteData.decimals) : "", {
+      setValue("amount", quoteData ? truncateToTwoDecimals(formatUnits(quoteData.value, quoteData.decimals)) : "", {
         shouldValidate: true,
         shouldDirty: true,
       });
