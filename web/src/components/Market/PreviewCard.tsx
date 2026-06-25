@@ -539,15 +539,7 @@ export function PreviewCard({ market }: { market: Market }) {
 
       <div className="card-tags">
         <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
-        {/* CONTRIBUTORS — conditional-market chip.
-            Visible ONLY inside `.home-markets-grid` (scoped via CSS in
-            index.scss); the same PreviewCard rendered on the collections
-            page has no `.home-markets-grid` ancestor so the chip stays
-            hidden there. The icon (`⇢`, U+21E2 rightwards dashed arrow
-            at 0.7 opacity) lives in the `::before` pseudo-element on
-            `.card-tags .conditional-tag` in index.scss — verbatim copy
-            of the sample's implementation. Don't render the glyph here
-            in JSX or you'll get a double icon. */}
+        
         {market.parentMarket?.id && market.parentMarket.id !== zeroAddress && (
           <span className="conditional-tag">Conditional Market</span>
         )}

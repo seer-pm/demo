@@ -1,4 +1,5 @@
 import { useTrade } from "@/hooks/trade/useTrade";
+import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 
@@ -270,20 +271,57 @@ export function SwapTokensMarket({
     resetField("amountOut");
   };
 
-  // CONTRIBUTORS: shared className for ALL disabled CTA states in the
-  // purchase panel (the "Enter an amount" default, error messages like
-  // "Not enough balance.", the "Calculating..." loading state, etc.). It
-  // mirrors the sample's disabled action:
-  //   • red background (#ea1d21), white text, no border, no opacity dim
-  //   • 14px font (sample uses 14px regardless of the parent .btn size)
-  //   • drop-shadow ONLY on hover (the resting state is flat like the sample)
-  //   • `!` prefixes win over daisyUI's `.btn-disabled { @apply bg-base-200/70 ... }`
-  //   • `!pointer-events-auto` is REQUIRED because daisyUI sets
-  //     `.btn:disabled { pointer-events: none }` which would prevent the
-  //     hover shadow from firing. Click is still blocked by the HTML
-  //     `disabled` attribute, so we don't lose the disabled semantics.
-  // Use this constant for every disabled-button branch below so the look
-  // is consistent across error texts.
+  const usdPrice = useTokenUsdPrice(sellToken?.symbol);
+  const collateralUsdPrice = useTokenUsdPrice(selectedCollateral?.symbol);
+  const isSellingCollateral = swapType === "buy";
+
+  // Current input as a float (defaults to 0 if blank / non-numeric so
+  // the additive buttons start from a known number, not NaN).
+  const currentAmountFloat = (): number => {
+    const n = Number(amount);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+
+  // Full balance as a float in token units (formatUnits → string → Number).
+  const balanceTokens = (): number => Number(formatUnits(balance, sellToken.decimals));
+
+  // Single-write helper for all quick actions: clamps to [0, balance],
+  // sets trade-type to EXACT_INPUT (the quote should size off our input,
+  // not derive backwards from output), and resets the input's scroll
+  // position so the start of the number stays visible after large jumps.
+  const setAmountTokens = (next: number) => {
+    setTradeType(TradeType.EXACT_INPUT);
+    const max = balanceTokens();
+    const clamped = Math.max(0, Math.min(next, max));
+    // Trim trailing zeros so the input doesn't look messy (e.g. "5.00000000")
+    // but keep enough precision that small percent increments aren't lost
+    // (1% of a 100-token balance must still read as 1, not 0).
+    const formatted = clamped.toFixed(sellToken.decimals).replace(/\.?0+$/, "") || "0";
+    setValue("amount", formatted, { shouldValidate: true, shouldDirty: true });
+    requestAnimationFrame(() => {
+      if (amountRef.current) {
+        amountRef.current.scrollLeft = 0;
+      }
+    });
+  };
+
+  // Additive: clicking +10% three times → 30% added on top of the
+  // current input, NOT a re-set to 30% (the "+" in the label is the
+  // promise to the user that these accumulate).
+  const addPercentOfBalance = (pct: number) => {
+    const inc = balanceTokens() * (pct / 100);
+    setAmountTokens(currentAmountFloat() + inc);
+  };
+
+  // Additive: +$X / per-token-USD-price → tokens to add. If price
+  // somehow isn't known we treat 1:1 ($X ≈ X tokens) — every collateral
+  // we currently support is within ~10 % of 1.0 USD anyway, so the
+  // fallback is "off by at most a tenth" rather than broken.
+  const addUsdAmount = (usd: number) => {
+    const price = usdPrice && usdPrice > 0 ? usdPrice : 1;
+    setAmountTokens(currentAmountFloat() + usd / price);
+  };
+
   const disabledCtaClassName =
     // `!cursor-pointer` is the hand cursor (not the "blocked" circle).
     // The CTA is disabled but the design treats it as actionable-looking
@@ -481,26 +519,79 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
+            
+            
             <div className="io-balance">
-              <span />
-              <button
-                type="button"
-                className="max-btn"
-                onClick={() => {
-                  setTradeType(TradeType.EXACT_INPUT);
-                  setValue("amount", formatUnits(balance, sellToken.decimals), {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  });
-                  requestAnimationFrame(() => {
-                    if (amountRef.current) {
-                      amountRef.current.scrollLeft = 0;
+              <span className="tabular-nums">
+                {(() => {
+                  // BUY mode → USD eq = input × sellToken (collateral) USD price.
+                  // SELL mode → USD eq = amountOut (collateral the user
+                  //   will receive) × collateral USD price. This is what
+                  //   "fed from the same number as 'You will get'" means:
+                  //   we read the receive-side value and convert that.
+                  const usd = isSellingCollateral
+                    ? Number(amount || 0) * (usdPrice || 1)
+                    : Number(amountOut || 0) * (collateralUsdPrice || 1);
+                  return usd > 0 ? `$${usd.toFixed(2)}` : "$0.00";
+                })()}
+              </span>
+              <div className="quick-group">
+                <button
+                  type="button"
+                  className="quick-btn quick-btn--full"
+                  onClick={() => setAmountTokens(balanceTokens() / 2)}
+                >
+                  HALF
+                </button>
+                <button
+                  type="button"
+                  className="quick-btn quick-btn--full"
+                  onClick={() => {
+                    setTradeType(TradeType.EXACT_INPUT);
+                    setValue("amount", formatUnits(balance, sellToken.decimals), {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                    requestAnimationFrame(() => {
+                      if (amountRef.current) {
+                        amountRef.current.scrollLeft = 0;
+                      }
+                    });
+                  }}
+                >
+                  MAX
+                </button>
+              </div>
+            </div>
+            <div className="io-quick-actions">
+              <div className="quick-group">
+                {[1, 5, 10].map((n) => (
+                  <button
+                    key={`amount-${n}`}
+                    type="button"
+                    className="quick-btn quick-btn--dollar"
+                    onClick={() =>
+                      isSellingCollateral
+                        ? addUsdAmount(n)
+                        : setAmountTokens(currentAmountFloat() + n)
                     }
-                  });
-                }}
-              >
-                MAX
-              </button>
+                  >
+                    {isSellingCollateral ? `+$${n}` : `+${n}`}
+                  </button>
+                ))}
+              </div>
+              <div className="quick-group">
+                {[1, 5, 10].map((pct) => (
+                  <button
+                    key={`pct-${pct}`}
+                    type="button"
+                    className="quick-btn quick-btn--pct"
+                    onClick={() => addPercentOfBalance(pct)}
+                  >
+                    +{pct}%
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

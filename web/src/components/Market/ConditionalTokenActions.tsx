@@ -23,26 +23,7 @@ interface ConditionalTokenActionsProps {
 // finished blurring back into nothing. If you tune the CSS, sync this.
 const PANEL_TRANSITION_MS = 540;
 
-/**
- * CONTRIBUTORS — what this panel does and why it works the way it does:
- *
- *   • CONTROLLED: `activeAction` is owned by <SwapWidget> in `+Page.tsx`.
- *     Default state is `null` → the wrapper renders but stays collapsed
- *     (max-height 0, opacity 0, blur 10px) so the purchase panel keeps
- *     the sample's compact height. Only on click does the wrapper expand
- *     to the bottom of the viewport (capped, see `.action-form-panel.is-open`
- *     in index.scss) and the form fades in from haze to reality.
- *   • EXIT ANIMATION: React unmounts a removed child immediately, which
- *     would yank the form's content before the haze-out can finish.
- *     We solve this by tracking `renderedAction` separately from
- *     `activeAction`: on close, we drop `is-open` (which triggers the CSS
- *     transition), then unmount the inner form after PANEL_TRANSITION_MS.
- *   • The trigger buttons live in <SwapWidget>'s `.actions-row`. The
- *     active button is blue and clicking it again clears `activeAction`.
- *
- *  Add a new action: extend `TokenAction`, add a sibling trigger in
- *  <SwapWidget>'s actionsRow, then add a conditional render below.
- */
+
 export function ConditionalTokenActions({
   account,
   market,

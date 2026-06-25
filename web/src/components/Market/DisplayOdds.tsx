@@ -11,11 +11,6 @@ export function DisplayOdds({
 }) {
   if (!isOdd(odd)) {
     return (
-      // CONTRIBUTORS: `justify-end` puts the "NA" + help icon flush
-      // against the right edge of the parent's text-right column so the
-      // baseline lines up with the % prices on other outcome rows. The
-      // QuestionIcon is shrunk to 12×12 so it doesn't tower over the
-      // tiny "NA" label.
       <div className="flex space-x-1.5 items-center justify-end">
         <div className="pr-0.5">NA</div>
         <Tooltip

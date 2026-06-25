@@ -217,10 +217,6 @@ export const HourGlassIcon = () => (
   </svg>
 );
 
-// CONTRIBUTORS: width/height are overridable so callers can shrink the
-// glyph (e.g. the "NA" tooltip / invalid-outcome row use 12×12 so the
-// icon doesn't dwarf the price text and the row stays vertically aligned
-// with other outcomes).
 export const QuestionIcon = ({
   fill = "currentColor",
   width = 17,

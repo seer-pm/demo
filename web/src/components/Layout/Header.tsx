@@ -374,18 +374,9 @@ export default function Header() {
       <button
         type="button"
         tabIndex={0}
-        // CONTRIBUTORS: `relative top-[5px]` nudges the person icon + balance
-        // text 5px down as a unit without affecting the parent flex's
-        // alignment of its other children (bell / help / theme).
         className="relative top-[5px] flex flex-col items-center hover:opacity-85 text-ink-3"
       >
-        {/* CONTRIBUTORS — thin-stroke person glyph matching the FA-style
-            bell / help icons used in the same header strip. Replaces the
-            old Material-style filled <PersonAdd> SVG (24×24 thick body
-            with a plus-mark variant) so the connected-state icon reads
-            as part of the same icon set as its neighbours. Sized 18×18
-            with stroke-width 1.75 to feel slightly lighter than the
-            neighbours, since this icon doesn't sit inside a 36×36 chip. */}
+        
         <svg
           width="18"
           height="18"

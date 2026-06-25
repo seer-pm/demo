@@ -357,12 +357,7 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-        {/* CONTRIBUTORS: outcome name styling pulled from sample's
-            `.outcome-name { font-weight: 600; font-size: 15px;
-            letter-spacing: -0.005em; margin-bottom: 4px }`. Tailwind
-            equivalents: text-[15px] font-semibold tracking-[-0.005em]
-            mb-1. Keep these together — removing one will throw the row
-            out of sync with the sample. */}
+        
         <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1">
           <p>
             {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}

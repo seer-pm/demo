@@ -15,13 +15,6 @@ import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
 import { useEffect, useMemo, useState } from "react";
 
-// CONTRIBUTORS — the events list contains ONLY admin-entered db events
-// (no auto-generated "Reality.eth Resolution" entry — that previous
-// behaviour duplicated curated entries). We treat the curator's LATEST
-// event (the chronologically last one) as the resolution event and
-// flip `isResolution: true` on it so the blue "Resolution" pill renders
-// next to it in the JSX. This matches the curator mental model the
-// designer asked for: "the last event is when the market resolves".
 function buildDisplayEvents(_market: Market, dbEvents: MarketEvent[], _nowMs: number): DisplayMarketEvent[] {
   const sorted = dbEvents
     .map(
@@ -184,15 +177,7 @@ export default function MajorEvents({ market }: { market: Market }) {
                   <div className="event-date">{formatEventDate(event.eventAt, index === 0)}</div>
                   <div className="event-name">
                     {event.title}
-                    {/* CONTRIBUTORS: render the "Resolution" badge as a JSX
-                        span (was a CSS ::after on `.event.is-resolution
-                        .event-name::after`). Pseudo-element content on
-                        React-managed nodes is harder for HMR/build to
-                        guarantee, and the spec asked for the badge to
-                        ALWAYS appear next to a resolution event — a real
-                        DOM node is the safe way. The `.resolution-tag`
-                        class carries the sample's exact styling (blue-soft
-                        bg, mono 9px caps, 3px radius). */}
+                    
                     {event.isResolution && <span className="resolution-tag">Resolution</span>}
                   </div>
                   {event.description && <div className="event-detail">{event.description}</div>}

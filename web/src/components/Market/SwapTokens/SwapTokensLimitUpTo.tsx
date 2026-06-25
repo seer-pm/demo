@@ -2,6 +2,7 @@ import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useVolumeUntilPrice } from "@/hooks/liquidity/useVolumeUntilPrice";
 import { useTrade } from "@/hooks/trade/useTrade";
+import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -298,6 +299,31 @@ export function SwapTokensLimitUpto({
     });
   };
 
+  const usdPrice = useTokenUsdPrice(sellToken?.symbol);
+  const collateralUsdPrice = useTokenUsdPrice(selectedCollateral?.symbol);
+  const isSellingCollateral = swapType === "buy";
+
+  const currentAmountFloat = (): number => {
+    const n = Number(amount);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  const balanceTokens = (): number => Number(formatUnits(balance, sellToken.decimals));
+  const setAmountTokens = (next: number) => {
+    setUseMax(false);
+    setTradeType(TradeType.EXACT_INPUT);
+    const max = balanceTokens();
+    const clamped = Math.max(0, Math.min(next, max));
+    const formatted = clamped.toFixed(sellToken.decimals).replace(/\.?0+$/, "") || "0";
+    setValue("amount", formatted, { shouldValidate: true, shouldDirty: true });
+  };
+  const addPercentOfBalance = (pct: number) => {
+    setAmountTokens(currentAmountFloat() + balanceTokens() * (pct / 100));
+  };
+  const addUsdAmount = (usd: number) => {
+    const price = usdPrice && usdPrice > 0 ? usdPrice : 1;
+    setAmountTokens(currentAmountFloat() + usd / price);
+  };
+
   const handleOpenConfirmPartialSwap = () => {
     const parsedAmount = parseUnits(amount, sellToken.decimals);
     const usePartialSwap = parsedAmount > balance;
@@ -510,14 +536,63 @@ export function SwapTokensLimitUpto({
                 }}
               />
             </div>
+            
             <div className="io-balance">
-              <span />
+              <span className="tabular-nums">
+                {(() => {
+                  const usd = isSellingCollateral
+                    ? Number(amount || 0) * (usdPrice || 1)
+                    : Number(amountOut || 0) * (collateralUsdPrice || 1);
+                  return usd > 0 ? `$${usd.toFixed(2)}` : "$0.00";
+                })()}
+              </span>
               {balance > 0 && (
-                <button type="button" className="max-btn" onClick={() => swapMax()}>
-                  MAX
-                </button>
+                <div className="quick-group">
+                  <button
+                    type="button"
+                    className="quick-btn quick-btn--full"
+                    onClick={() => setAmountTokens(balanceTokens() / 2)}
+                  >
+                    HALF
+                  </button>
+                  <button type="button" className="quick-btn quick-btn--full" onClick={() => swapMax()}>
+                    MAX
+                  </button>
+                </div>
               )}
             </div>
+            {balance > 0 && (
+              <div className="io-quick-actions">
+                <div className="quick-group">
+                  {[1, 5, 10].map((n) => (
+                    <button
+                      key={`amount-${n}`}
+                      type="button"
+                      className="quick-btn quick-btn--dollar"
+                      onClick={() =>
+                        isSellingCollateral
+                          ? addUsdAmount(n)
+                          : setAmountTokens(currentAmountFloat() + n)
+                      }
+                    >
+                      {isSellingCollateral ? `+$${n}` : `+${n}`}
+                    </button>
+                  ))}
+                </div>
+                <div className="quick-group">
+                  {[1, 5, 10].map((pct) => (
+                    <button
+                      key={`pct-${pct}`}
+                      type="button"
+                      className="quick-btn quick-btn--pct"
+                      onClick={() => addPercentOfBalance(pct)}
+                    >
+                      +{pct}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* To receive */}

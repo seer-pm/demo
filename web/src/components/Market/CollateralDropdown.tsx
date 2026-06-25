@@ -143,22 +143,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
   );
 }
 
-/**
- * CONTRIBUTORS — fallback collateral list built from the SDK's static
- * `CollateralProfile` (every field already known at compile time:
- * address, chainId, symbol, decimals). Used when the live `useTokensInfo`
- * multicall returns nothing — same Base-specific bug that affects the
- * outcomeToken lookup in `+Page.tsx`. The profile data is the source
- * of truth for which collaterals a chain supports, so synthesising
- * from it is safe — we're not inventing tokens, just bypassing the
- * on-chain fetch that should've returned the same info.
- *
- * Futarchy markets are intentionally not handled here: their
- * collateralToken1/2 are arbitrary per-market ERC20s whose full Token
- * info (symbol/decimals) we can't derive without an on-chain call. If
- * a Futarchy market loads on a flaky chain we leave that path to the
- * live hook (better than synthesising wrong decimals).
- */
+
 function buildFallbackCollateralTokens(market: Market, _type: "buy" | "sell"): Token[] {
   if (market.type === "Futarchy") {
     return [];
@@ -187,15 +172,6 @@ export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
     return null;
   }
 
-  // CONTRIBUTORS — On Base the live useTokensInfo multicall reliably
-  // returns an empty/undefined result, which used to mean
-  // <CollateralDropdown> would render null and the user had no way to
-  // pick sUSDS / USDC / USDS. We now fall back to the static collateral
-  // profile (every Token field is already known statically) so the
-  // dropdown ALWAYS mounts when the chain is supported.
-  // Cast through unknown because GetTokenResult is a superset of Token
-  // — the dropdown only reads address / chainId / symbol, which are
-  // identical between the two shapes.
   const hasLive = !!liveCollateralTokens && liveCollateralTokens.length > 0;
   const collateralTokens = (
     hasLive ? liveCollateralTokens : (buildFallbackCollateralTokens(props.market, props.type) as unknown as GetTokenResult[])

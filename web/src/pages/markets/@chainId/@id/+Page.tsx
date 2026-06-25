@@ -53,14 +53,6 @@ function SwapWidget({
   onOutcomeChange: (i: number, openDrawer: boolean) => void;
   account?: Address;
 }) {
-  // CONTRIBUTORS — Mint/Merge/Redeem state lives here so two children stay
-  // in sync:
-  //   1. <SwapTokens> renders the `.actions-row` of 3 buttons attached to
-  //      the bottom of its `.card-box.purchase-card`. Click toggles the
-  //      action in this state (click the active one again to close).
-  //   2. <ConditionalTokenActions> mounts the matching form ONLY when
-  //      `activeAction` is non-null, in its own purchase-card shell below.
-  // Default state is `null` → no window open, exactly like the sample.
   const [activeAction, setActiveAction] = useState<TokenAction | null>(null);
   const toggleAction = (a: TokenAction) => setActiveAction((current) => (current === a ? null : a));
   const actionsRow = (
@@ -106,17 +98,6 @@ function SwapWidget({
     );
   }
 
-  // CONTRIBUTORS — Base markets reliably miss the multicall lookup that
-  // populates the live `outcomeToken` (`useTokenInfo` returns undefined
-  // indefinitely). The previous "return null + loading placeholder"
-  // paths both made the panel unusable. Instead, when the live lookup
-  // misses, synthesise a fallback Token from the market data we already
-  // have (subgraph-loaded `wrappedTokens` + outcome labels + standard
-  // 18 decimals for wrapped outcome tokens) so the purchase panel
-  // ALWAYS mounts. Downstream balance/quote hooks fire normally once
-  // they have an address — symbol is cosmetic and gets corrected when
-  // the live lookup eventually resolves. A console.warn fires so we
-  // can still trace which markets are hitting the fallback path.
   const fallbackOutcomeToken: Token | undefined =
     market.wrappedTokens[outcomeIndex] != null
       ? {
@@ -141,12 +122,6 @@ function SwapWidget({
     return null;
   }
 
-  // CONTRIBUTORS: the action form is now passed INTO <SwapTokens> as a
-  // slot so it can render INSIDE the same `.card-box.purchase-card` as
-  // the buy form — looking like a continuation of the actions-row strip
-  // above (no separate card, no tab header). Animation lives on the
-  // `.action-form-panel` CSS class. See ConditionalTokenActions for the
-  // controlled-prop contract.
   const actionFormPanel = (
     <ConditionalTokenActions
       market={market}
@@ -330,10 +305,7 @@ function MarketPage() {
               onOutcomeChange={onOutcomeChange}
               account={account}
             />
-            {/* CONTRIBUTORS: <ConditionalTokenActions> moved INSIDE
-                <SwapWidget> so the trigger buttons (`.actions-row`) live
-                inside the same purchase-card and the opened form mounts
-                directly below it. Don't re-add it as a sibling here. */}
+            
           </div>
           <div className="space-y-16 min-w-0">
             <MarketTabs market={market} />

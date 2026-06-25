@@ -124,9 +124,6 @@ function PotentialReturnConfig({
     <div>
       <button
         type="button"
-        // CONTRIBUTORS: dropped from 15px → 12.5px so this label reads at
-        // the same scale as the surrounding .io-label / balance-row text
-        // in the scalar / multi-scalar purchase panels (was visibly larger).
         className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[12.5px]"
         onClick={openModal}
       >

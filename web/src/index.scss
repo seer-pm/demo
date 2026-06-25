@@ -364,19 +364,7 @@ html[data-theme="dark"] .card-active {
   background: var(--bg-2);
   border-radius: 4px;
 }
-/* CONTRIBUTORS — conditional-market chip (homepage only).
-   • Mirrors the sample (Seer New Redesign/index.html `.conditional-tag`):
-     violet on tinted violet in light mode, amber on tinted amber in dark
-     mode. These exact hex values are taken straight from the sample, NOT
-     remapped to brand blue — the sample uses violet/amber specifically so
-     conditional markets pop out from the otherwise blue-themed page.
-   • DISPLAY SCOPE: hidden by default, shown only when an ancestor carries
-     the `.home-markets-grid` class (set on the homepage's market grid in
-     web/src/pages/index/+Page.tsx). Same PreviewCard on the collections
-     page therefore stays without the chip — no JS prop plumbing needed.
-   • The `↳` branch-arrow icon lives inside the JSX (inline SVG), not as
-     a `::before` pseudo — keeps the icon crisp and gives us currentColor
-     stroke control across light/dark themes. */
+
 .card-tags .conditional-tag {
   display: none;
   align-items: center;
@@ -569,6 +557,71 @@ html[data-theme="dark"] .io-row:focus-within {
   background: var(--blue-soft);
 }
 
+
+.io-quick-actions {
+  /* Row 2 = additive chips only ($ on the left, % on the right).
+     `space-between` pushes the two `.quick-group` containers to opposite
+     edges of the panel; gap is the minimum guaranteed inset if the row
+     ever wraps on a narrow viewport. */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.quick-group {
+  /* Used in BOTH row 1 (Half/MAX) and row 2 ($/% groups) — cluster a
+     small set of chips at consistent 4px gap so each group reads as
+     one visual unit. */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.quick-btn {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+.quick-btn:hover {
+  opacity: 0.85;
+}
+.quick-btn:active {
+  opacity: 1;
+  filter: brightness(0.95);
+}
+
+.quick-btn--dollar {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+}
+.quick-btn--pct {
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.12);
+}
+.quick-btn--full {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+html[data-theme="dark"] .quick-btn--dollar {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+}
+html[data-theme="dark"] .quick-btn--pct {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.18);
+}
+
 /* Outcome row (market page) */
 .outcome-row {
   display: grid;
@@ -619,16 +672,7 @@ html[data-theme="dark"] .io-row:focus-within {
   font-weight: 600;
   color: var(--ink-4);
   position: relative;
-  /* CONTRIBUTORS:
-     - `text-align: center`: title is centered like the sample.
-     - No `overflow` constraint: the JSX caps the title to 3 words (clean,
-       no "…"), so the text always fits. An earlier `overflow: hidden`
-       was clipping the bottom 1px of the active-tab `::after` underline
-       (it sits at `bottom: -1px`), making the 2px line read as 1px;
-       and `overflow: hidden visible` re-introduced a stray scroll thumb
-       in some browsers because Chrome promotes the `visible` axis to
-       `auto` when the other axis is `hidden`. Leaving overflow at the
-       default `visible` solves both issues. */
+  
   text-align: center;
   white-space: nowrap;
 }
@@ -649,27 +693,14 @@ html[data-theme="dark"] .io-row:focus-within {
   padding: 18px 20px;
 }
 
-/* CONTRIBUTORS — Mint / Merge / Redeem action strip:
-   Sits at the bottom of the same `.card-box.purchase-card` as the buy
-   form, separated by a top border and a slightly different bg (surface-2)
-   so it reads as a "footer toolbar". Three equal-width buttons divided
-   by vertical 1px lines; the active button takes the blue accent. When
-   a button is clicked, `.action-form-panel` (below) mounts BELOW this
-   strip — still inside the same card-box — and the strip's bottom
-   corners go square so the panel can flush against it. The `:last-child`
-   rule keeps the rounded corners when no panel is open. */
+
 .actions-row {
   display: flex;
   border-top: 1px solid var(--border);
   background: var(--surface-2);
   overflow: hidden;
 }
-/* CONTRIBUTORS: `.action-form-panel` is always mounted (even when closed)
-   so the haze-out animation has a target to fade. That means
-   `actions-row:last-child` never matches. We use `:has(+ .is-closed)` to
-   give the strip its rounded bottom when the panel below is invisible,
-   and remove it when the panel opens (the panel then owns the bottom
-   curve). Supported in Chrome 105+ / Safari 15.4+ / Firefox 121+. */
+
 .actions-row:has(+ .action-form-panel.is-closed) {
   border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
@@ -696,42 +727,7 @@ html[data-theme="dark"] .io-row:focus-within {
   color: var(--blue);
 }
 
-/* CONTRIBUTORS — expansion panel for the active Mint / Merge / Redeem.
-   Mounts directly below `.actions-row` INSIDE the same purchase-card, so
-   it reads as a continuation of the active toolbar button. Default state
-   (`.is-closed`) is zero-height / blurred / transparent so the purchase
-   panel keeps the sample's compact height when nothing is clicked. When
-   the user clicks Mint/Merge/Redeem the `.is-open` class triggers the
-   transition: max-height grows toward the bottom of the comments column
-   (capped at the viewport), opacity 0→1, and blur 14px→0 — a "haze into
-   reality" fade. On close the same transition runs in reverse, then
-   ConditionalTokenActions unmounts the inner form after PANEL_TRANSITION_MS.
 
-   ⚠ TIMING — ASYMMETRIC. Open and close use the SAME easing but
-   DIFFERENT durations:
-     • OPEN  (.is-closed → .is-open):  920ms — the destination class
-       owns the transition that runs, so adding .is-open switches the
-       transition spec to the longer one. Slow bloom feels designed.
-     • CLOSE (.is-open → .is-closed):  520ms — the destination is the
-       base rule with the shorter transition; the haze-out is brisk
-       (the designer wanted close to feel quick once you decide to
-       dismiss).
-
-   The JS side (PANEL_TRANSITION_MS in ConditionalTokenActions.tsx) is
-   540ms (20ms buffer over the close duration) so the form stays
-   mounted through the full haze-out. Open doesn't need an unmount
-   delay because the form is mounted immediately on activeAction set.
-
-   ⚠ EASING CHOICE: one easing for all properties — `easeOutQuint`
-   (cubic-bezier(0.22, 1, 0.36, 1)) — so blur, height, and opacity
-   finish in lockstep. (Staggered durations across properties read as
-   "multiple stages" on close and made an earlier version of this feel
-   broken.)
-
-   Max-height cap: 100vh - 240px keeps the bottom of the open form
-   roughly even with the bottom of the comment-section column on the
-   left (the designer's constraint). `overflow-y: auto` lets long forms
-   scroll within the cap. */
 .action-form-panel {
   /* layout */
   background: var(--surface);
@@ -785,15 +781,7 @@ html[data-theme="dark"] .io-row:focus-within {
     transform 920ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* CONTRIBUTORS — typography overrides scoped to the action panel so the
-   Mint/Merge/Redeem form fields read at the same scale as the buy form
-   above (the underlying form components were intentionally not touched,
-   so this acts as a thin "skin" layer):
-     • plain `text-[14px]` labels → 12.5px ink-4 (matches .io-label)
-     • the inline "Max" link → small mono blue chip (mirrors .max-btn)
-     • `text-[12px]` balance row → ink-4 for color consistency
-     • Inputs and buttons → 14px so they don't visually dwarf the
-       12.5px labels around them. */
+
 .action-form-panel .text-\[14px\] {
   font-size: 12.5px;
   color: var(--ink-4);
@@ -823,14 +811,7 @@ html[data-theme="dark"] .io-row:focus-within {
   font-size: 14px;
 }
 
-/* CONTRIBUTORS — Max slippage panel typography.
-   <SwapTokensMaxSlippage> replaces .buy-body in place when the user
-   clicks "More". Its underlying React component is unchanged; this
-   layer tones the heading, labels, pill buttons, inputs, and buttons
-   down to the rhythm of the buy form so the swap feels like one
-   continuous panel rather than two different sub-designs.
-   The toggle inside picks up the custom .purchase-card .toggle rules
-   below automatically (white track, blue knob, light drop shadow). */
+
 .slippage-panel {
   font-size: 13px;
   color: var(--ink-2);
@@ -864,14 +845,7 @@ html[data-theme="dark"] .io-row:focus-within {
   padding: 0 18px;
 }
 
-/* CONTRIBUTORS — sDAI / xDAI labels around the toggle.
-   AltCollateralSwitch renders a `<div className="flex space-x-2">` with
-   the token symbols on either side of the toggle. We shrink those
-   labels here (instead of editing AltCollateralSwitch) so the change
-   only applies inside the action panel — other places that use the same
-   switch (e.g. mobile drawer) keep their original size. Font INHERITS
-   from .action-form-panel (Inter — same as the buy form's io-label
-   and the rest of the purchase panel) instead of overriding to mono. */
+
 .action-form-panel .flex.space-x-2 > div {
   font-size: 11.5px;
   font-weight: 500;
@@ -880,28 +854,7 @@ html[data-theme="dark"] .io-row:focus-within {
   align-items: center;
 }
 
-/* CONTRIBUTORS — custom toggle for the action panel.
-   Two-part design:
-     1. The TRACK (the <input> itself) is a tiny neutral pill — bg-3 in
-        light theme, soft surface-2 in dark. We override daisyUI's tangle
-        of inset box-shadows that normally fake the knob (they paint over
-        the input bg using --tglbg) so we can draw the knob cleanly with
-        a single `::before` pseudo-element instead.
-     2. The KNOB is `::before`. It's always blue (`var(--blue)`) on BOTH
-        sides — the user asked for an identical knob whether sDAI or
-        xDAI is selected, so the only visual change between states is
-        the knob's horizontal position. A two-layer blue shadow gives it
-        a "lively" glow (one soft drop-shadow underneath + a faint blue
-        halo around it that pulses larger on hover).
 
-   Why pseudo-elements work on <input>: daisyUI already sets
-   `appearance: none` on `.toggle`, which lets modern browsers
-   (Chrome, Firefox, Safari 15.4+) render ::before/::after on inputs.
-   We don't need to wrap the input in a span.
-
-   Timing: the knob uses a slight overshoot easing
-   (`cubic-bezier(0.34, 1.56, 0.64, 1)` — easeOutBack) so the slide has
-   a little "snap" — feels tactile without being bouncy. */
 .purchase-card .toggle {
   /* RESET daisyUI defaults — kill the inset-shadow knob, drop borders,
      resize the track to a slim 18px × 32px. White track on both themes
@@ -931,12 +884,7 @@ html[data-theme="dark"] .io-row:focus-within {
   height: 12px;
   background: var(--blue);
   border-radius: 50%;
-  /* CONTRIBUTORS: light, single-layer drop shadow. The earlier two-layer
-     (drop + halo) shadow read as too heavy — bigger than the knob
-     itself. Here we keep just a soft 4px drop at low opacity so the
-     knob has the suggestion of lift without a halo. Keep the alpha
-     under 0.20 in light mode and under 0.28 in dark mode; anything
-     stronger makes the toggle look like a button. */
+  
   box-shadow: 0 1px 4px rgba(45, 107, 247, 0.18);
   transform: translateY(-50%);
   transition:
@@ -1347,14 +1295,7 @@ html[data-theme="dark"] .io-swap:focus-visible {
 .event.is-future-4 {
   opacity: 0.26;
 }
-/* CONTRIBUTORS: blue-soft "Resolution" badge that sits next to the
-   event title on resolution events. Sample uses a CSS ::after with the
-   same styling; we render a real <span class="resolution-tag"> in JSX
-   (see MajorEvents.tsx) and style it here so React owns the DOM node
-   and the badge can't be hidden by CSS load order. The class is scoped
-   under .event-name so it only ever matches inside the events list.
-   The old `.event.is-resolution .event-name::after` rule has been
-   removed — there's a single source of truth now. */
+
 .event-name .resolution-tag {
   display: inline-block;
   margin-left: 6px;

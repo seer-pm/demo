@@ -20,20 +20,9 @@ interface SwapTokensProps {
   outcomeImage?: string;
   fixedCollateral: Token | undefined;
   onOutcomeChange: (i: number, isClick: boolean) => void;
-  /**
-   * CONTRIBUTORS — optional Mint / Merge / Redeem strip. When provided,
-   * rendered INSIDE the same `.card-box.purchase-card` as the buy form,
-   * after `.buy-body`. Sample's `.actions-row` styling (see index.scss)
-   * gives it the bottom-attached toolbar look. Leave undefined to hide.
-   */
+  
   actionsRow?: React.ReactNode;
-  /**
-   * CONTRIBUTORS — optional expansion panel that mounts BELOW the
-   * actions-row, inside the same `.card-box.purchase-card`. Used to
-   * show the Mint/Merge/Redeem form once the user clicks one of the
-   * action buttons. Renders nothing if undefined or null. Styling +
-   * slide-in animation comes from `.action-form-panel` in index.scss.
-   */
+  
   actionFormPanel?: React.ReactNode;
 }
 
@@ -52,17 +41,6 @@ export function SwapTokens({
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const outcomeText = market.outcomes[outcomeIndex];
-  // CONTRIBUTORS: the purchase-tab title is cleaned up in two passes:
-  //   1. STRIP PARENS: cut everything from the first "(" onward — including
-  //      the paren itself — and keep complete preceding words. This
-  //      handles cases like "Sergio Fajardo (Centro Esperanza)" where the
-  //      parenthesised qualifier was being awkwardly cut mid-word by the
-  //      old truncation (e.g. "Sergio Fajardo (Centro").
-  //   2. WORD CAP: cap to 2 words AFTER the paren strip so very
-  //      long labels without parens (e.g. "Coalición Pacto Histórico
-  //      Frente Amplio") don't blow out the tab width. We do NOT append
-  //      "…" — the sample keeps the tab clean and the full text is on
-  //      the `title` attribute for a hover tooltip.
   const beforeParen = outcomeText.split("(")[0].trim();
   const cleaned = beforeParen.length > 0 ? beforeParen : outcomeText.trim();
   const outcomeWords = cleaned.split(/\s+/);
