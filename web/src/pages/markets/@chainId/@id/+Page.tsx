@@ -4,7 +4,7 @@ import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions, type TokenAction } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
+import MajorEvents from "@/components/Market/MajorEvents";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";

@@ -19,9 +19,24 @@ import type {
   RecommendMarketEventsResponse,
 } from "@/types/market-events";
 import type { Market } from "@seer-pm/sdk";
+import { MarketTypes, getMarketType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
 import { useEffect, useMemo, useState } from "react";
+
+const ACTIVE_EVENT_WINDOW_MS = 10 * 60 * 1000;
+
+function isEventActive(eventAt: Date, nowMs: number): boolean {
+  return Math.abs(eventAt.getTime() - nowMs) <= ACTIVE_EVENT_WINDOW_MS;
+}
+
+function getResolutionDescription(market: Market, questionIndex: number): string | null {
+  const marketType = getMarketType(market);
+  if (marketType === MarketTypes.MULTI_SCALAR || market.questions.length > 1) {
+    return market.outcomes[questionIndex] ?? null;
+  }
+  return null;
+}
 
 function buildKnownDates(events: DisplayMarketEvent[]): KnownMarketEventDate[] {
   return events.map((event) => ({
@@ -31,21 +46,36 @@ function buildKnownDates(events: DisplayMarketEvent[]): KnownMarketEventDate[] {
   }));
 }
 
-function buildDisplayEvents(_market: Market, dbEvents: MarketEvent[], _nowMs: number): DisplayMarketEvent[] {
-  const sorted = dbEvents
-    .map(
-      (event): DisplayMarketEvent => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        eventAt: new Date(event.event_at),
-      }),
-    )
-    .sort((a, b) => a.eventAt.getTime() - b.eventAt.getTime());
-  if (sorted.length > 0) {
-    sorted[sorted.length - 1].isResolution = true;
-  }
-  return sorted;
+function buildDisplayEvents(market: Market, dbEvents: MarketEvent[], nowMs: number): DisplayMarketEvent[] {
+  const now = new Date(nowMs);
+  const events: DisplayMarketEvent[] = dbEvents.map((event) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    eventAt: new Date(event.event_at),
+    isResolution: event.title.trim().toLowerCase() === "reality.eth resolution" || undefined,
+  }));
+
+  market.questions.forEach((question, questionIndex) => {
+    if (question.finalize_ts <= 0) {
+      return;
+    }
+
+    const resolutionDate = new Date(question.finalize_ts * 1000);
+    if (resolutionDate < now) {
+      return;
+    }
+
+    events.push({
+      id: `resolution-${question.id}`,
+      title: "Reality.eth Resolution",
+      description: getResolutionDescription(market, questionIndex),
+      eventAt: resolutionDate,
+      isResolution: true,
+    });
+  });
+
+  return events.sort((a, b) => a.eventAt.getTime() - b.eventAt.getTime());
 }
 
 function formatEventDate(date: Date, isFirst = false): string {
@@ -64,11 +94,12 @@ function formatEventDate(date: Date, isFirst = false): string {
   return `${datePart} · ${formatInTimeZone(date, "UTC", "HH:mm")} UTC`;
 }
 
-function eventClassName(event: DisplayMarketEvent, index: number): string {
+function eventClassName(event: DisplayMarketEvent, index: number, active: boolean): string {
   return clsx(
     "event",
     index === 0 ? "is-next" : `is-future-${Math.min(index, 4)}`,
     event.isResolution && "is-resolution",
+    active && "is-active",
   );
 }
 
@@ -234,7 +265,7 @@ export default function MajorEvents({ market }: { market: Market }) {
         {events.length > 0 && (
           <div className="events-list">
             {events.map((event, index) => (
-              <div key={event.id} className={eventClassName(event, index)}>
+              <div key={event.id} className={eventClassName(event, index, isEventActive(event.eventAt, now))}>
                 <div className="event-marker" />
                 <div className="event-info">
                   <div className="event-date">{formatEventDate(event.eventAt, index === 0)}</div>
