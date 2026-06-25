@@ -20,9 +20,9 @@ interface SwapTokensProps {
   outcomeImage?: string;
   fixedCollateral: Token | undefined;
   onOutcomeChange: (i: number, isClick: boolean) => void;
-  
+
   actionsRow?: React.ReactNode;
-  
+
   actionFormPanel?: React.ReactNode;
 }
 

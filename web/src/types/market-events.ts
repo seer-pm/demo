@@ -14,3 +14,20 @@ export type DisplayMarketEvent = {
   eventAt: Date;
   isResolution?: boolean;
 };
+
+export type MarketEventSuggestion = {
+  eventAt: string;
+  title: string;
+  description?: string;
+};
+
+export type KnownMarketEventDate = {
+  date: string;
+  title: string;
+  description?: string;
+};
+
+export type RecommendMarketEventsResponse = {
+  content: string;
+  suggestions: MarketEventSuggestion[];
+};

@@ -9,8 +9,8 @@ import { getAddress, isAddress } from "viem";
 import { getPublicClientByChainId } from "./utils/config";
 import { searchAllMarkets } from "./utils/markets";
 
-/** Only count swaps strictly after this Unix timestamp (seconds). */
-const MIN_SWAP_TIMESTAMP = 1776773809;
+/** Only count swaps on or after 2026-06-17 00:00:00 UTC (Unix seconds). */
+const MIN_SWAP_TIMESTAMP = 1781654400;
 
 /**
  * Subgraph Swap amounts are signed decimal strings (token units), e.g. '-0.2286...', '0.1'.
@@ -147,7 +147,6 @@ export default async (req: Request) => {
       JSON.stringify({
         result: {
           point: Math.floor(primaryVolume),
-          sinceTimestamp: MIN_SWAP_TIMESTAMP,
         },
       }),
       {

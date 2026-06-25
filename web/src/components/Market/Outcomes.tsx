@@ -42,8 +42,8 @@ import Button from "../Form/Button";
 import { Spinner } from "../Spinner";
 import { DisplayOdds } from "./DisplayOdds";
 import { FarmingActions } from "./FarmingActions";
+import { OutcomeActivePanel } from "./OutcomeActivePanel";
 import { OutcomeImage } from "./OutcomeImage";
-import PoolDetails from "./PoolDetails/PoolDetails";
 
 interface OutcomesProps {
   market: Market;
@@ -222,13 +222,11 @@ function AddLiquidityLinks({
   outcomeIndex,
   pools,
   openLiquidityModal,
-  openPoolDetailsModal,
 }: {
   market: Market;
   outcomeIndex: number;
   pools: PoolInfo[][];
   openLiquidityModal?: () => void;
-  openPoolDetailsModal: () => void;
 }) {
   return (
     <>
@@ -251,15 +249,6 @@ function AddLiquidityLinks({
         >
           Add Liquidity
         </a>
-      )}
-      {!isUndefined(pools[outcomeIndex]) && pools[outcomeIndex].length > 0 && (
-        <button
-          className="text-blue hover:text-blue-hover transition-colors text-left font-medium"
-          type="button"
-          onClick={openPoolDetailsModal}
-        >
-          View pool details
-        </button>
       )}
     </>
   );
@@ -307,11 +296,12 @@ interface OutcomeDetailProps {
   marketStatus?: MarketStatus;
   wrappedAddress: Address;
   openModal?: () => void;
-  openPoolDetailsModal: () => void;
   outcomeIndex: number;
   pools: PoolInfo[][];
   loopIndex: number;
   images?: string[];
+  isPoolDetailsOpen?: boolean;
+  onTogglePoolDetails?: () => void;
 }
 
 function OutcomeDetails({
@@ -319,11 +309,12 @@ function OutcomeDetails({
   marketStatus,
   wrappedAddress,
   openModal,
-  openPoolDetailsModal,
   outcomeIndex,
   pools,
   loopIndex,
   images,
+  isPoolDetailsOpen,
+  onTogglePoolDetails,
 }: OutcomeDetailProps) {
   const { address } = useAccount();
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
@@ -357,7 +348,6 @@ function OutcomeDetails({
         />
       </div>
       <div className="space-y-1">
-        
         <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1">
           <p>
             {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}
@@ -409,8 +399,20 @@ function OutcomeDetails({
               outcomeIndex={outcomeIndex}
               pools={pools}
               openLiquidityModal={openModal}
-              openPoolDetailsModal={openPoolDetailsModal}
             />
+          )}
+
+          {market.type === "Generic" && onTogglePoolDetails && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePoolDetails();
+              }}
+              className="text-purple-primary hover:underline"
+            >
+              {isPoolDetailsOpen ? "Hide pool details" : "View pool details"}
+            </button>
           )}
 
           {market.type === "Generic" && (
@@ -454,19 +456,52 @@ function MultiScalarEstimate({
   );
 }
 
+const OUTCOME_CARD_SCROLL_OFFSET = 24;
+const OUTCOME_ACTIVE_PANEL_ANIMATION_MS = 300;
+
+const isOutcomeCardFullyVisible = (element: HTMLElement) => {
+  const { top, bottom } = element.getBoundingClientRect();
+  return top >= OUTCOME_CARD_SCROLL_OFFSET && bottom <= window.innerHeight;
+};
+
 export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: OutcomesProps) {
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
-  const {
-    Modal: PoolDetailsModal,
-    openModal: openPoolDetailsModal,
-    closeModal: closePoolDetailsModal,
-  } = useModal("pool-details-modal", true);
 
   const hasInitializedRef = useRef(false);
+  const outcomeCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [poolDetailsOutcomeIndex, setPoolDetailsOutcomeIndex] = useState<number | null>(null);
+
+  const scrollOutcomeCardIntoView = (outcomeIndex: number, waitForPanelAnimation = false) => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    const delay = waitForPanelAnimation ? OUTCOME_ACTIVE_PANEL_ANIMATION_MS : 0;
+
+    requestAnimationFrame(() => {
+      scrollTimeoutRef.current = setTimeout(() => {
+        const element = outcomeCardRefs.current[outcomeIndex];
+        if (!element) return;
+        if (isOutcomeCardFullyVisible(element)) return;
+
+        const top = element.getBoundingClientRect().top + window.scrollY - OUTCOME_CARD_SCROLL_OFFSET;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      }, delay);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (indexesOrderedByOdds && !hasInitializedRef.current) {
@@ -478,99 +513,102 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
 
   return (
     <div className="card-box p-[22px]">
-      <PoolDetailsModal
-        title="Pool details"
-        titleClassName="text-[24px] font-semibold text-center"
-        className="!max-w-[99vw] min-[400px]:!max-w-[80vw]"
-        content={<PoolDetails market={market} outcomeIndex={activeOutcome} closeModal={closePoolDetailsModal} />}
-      />
       <div className="font-display text-[18px] font-semibold tracking-tight mb-[18px]">Outcomes</div>
       <div className="space-y-2.5">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
+          const isActive = activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2);
           return (
             <div
               key={market.wrappedTokens[i]}
-              onClick={(e) => {
-                const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
-                onOutcomeChange(i, !isClickOnLinkOrButton);
+              ref={(el) => {
+                outcomeCardRefs.current[i] = el;
               }}
-              className={clsx(
-                "card flex-row justify-between items-center p-[14px] cursor-pointer transition-colors hover:bg-bg-2",
-                activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)
-                  ? "card-active hover:!bg-transparent"
-                  : "",
-                market.type === "Futarchy" && "max-md:space-y-[12px]",
-              )}
+              className={clsx("card", isActive ? "card-active" : "")}
             >
-              {market.type === "Generic" ? (
-                <OutcomeDetails
-                  market={market}
-                  wrappedAddress={market.wrappedTokens[i]}
-                  marketStatus={marketStatus}
-                  openModal={openModalCallback}
-                  openPoolDetailsModal={openPoolDetailsModal}
-                  outcomeIndex={i}
-                  pools={pools}
-                  loopIndex={j}
-                  images={images}
-                />
-              ) : (
-                <div className="grid grid-cols-2 min-w-[50%]">
+              <div
+                onClick={(e) => {
+                  const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
+                  onOutcomeChange(i, !isClickOnLinkOrButton);
+                  if (!isClickOnLinkOrButton) {
+                    setPoolDetailsOutcomeIndex(null);
+                    scrollOutcomeCardIntoView(i);
+                  }
+                }}
+                className={clsx(
+                  "card flex-row justify-between items-center p-[14px] cursor-pointer transition-colors hover:bg-bg-2",
+                  market.type === "Futarchy" && "max-md:space-y-[12px]",
+                )}
+              >
+                {market.type === "Generic" ? (
                   <OutcomeDetails
                     market={market}
                     wrappedAddress={market.wrappedTokens[i]}
                     marketStatus={marketStatus}
                     openModal={openModalCallback}
-                    openPoolDetailsModal={openPoolDetailsModal}
                     outcomeIndex={i}
                     pools={pools}
                     loopIndex={j}
                     images={images}
+                    isPoolDetailsOpen={poolDetailsOutcomeIndex === i}
+                    onTogglePoolDetails={() => {
+                      const willOpen = poolDetailsOutcomeIndex !== i;
+                      setPoolDetailsOutcomeIndex((prev) => (prev === i ? null : i));
+                      if (willOpen) {
+                        scrollOutcomeCardIntoView(i, true);
+                      }
+                    }}
                   />
-                  <OutcomeDetails
-                    market={market}
-                    wrappedAddress={market.wrappedTokens[i + 2]}
-                    marketStatus={marketStatus}
-                    openModal={openModalCallback}
-                    openPoolDetailsModal={openPoolDetailsModal}
-                    outcomeIndex={i + 2}
-                    pools={pools}
-                    loopIndex={j}
-                    images={images}
-                  />
-                </div>
-              )}
-              {market.type === "Futarchy" && (
-                <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
-                  <AddLiquidityLinks
-                    market={market}
-                    outcomeIndex={i}
-                    pools={pools}
-                    openLiquidityModal={openModal}
-                    openPoolDetailsModal={openPoolDetailsModal}
-                  />
-                </div>
-              )}
-              <div className="flex items-center">
-                {market.type === "Generic" && (
-                  <div
-                    className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right"
-                    style={{ fontVariationSettings: '"opsz" 96, "SOFT" 30' }}
-                  >
-                    {isLoading ? (
-                      <Spinner />
-                    ) : (
-                      <>
-                        <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-                        {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
-                      </>
-                    )}
+                ) : (
+                  <div className="grid grid-cols-2 min-w-[50%]">
+                    <OutcomeDetails
+                      market={market}
+                      wrappedAddress={market.wrappedTokens[i]}
+                      marketStatus={marketStatus}
+                      openModal={openModalCallback}
+                      outcomeIndex={i}
+                      pools={pools}
+                      loopIndex={j}
+                      images={images}
+                    />
+                    <OutcomeDetails
+                      market={market}
+                      wrappedAddress={market.wrappedTokens[i + 2]}
+                      marketStatus={marketStatus}
+                      openModal={openModalCallback}
+                      outcomeIndex={i + 2}
+                      pools={pools}
+                      loopIndex={j}
+                      images={images}
+                    />
                   </div>
                 )}
+                {market.type === "Futarchy" && (
+                  <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
+                    <AddLiquidityLinks market={market} outcomeIndex={i} pools={pools} openLiquidityModal={openModal} />
+                  </div>
+                )}
+                <div className="flex items-center">
+                  {market.type === "Generic" && (
+                    <div
+                      className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right"
+                      style={{ fontVariationSettings: '"opsz" 96, "SOFT" 30' }}
+                    >
+                      {isLoading ? (
+                        <Spinner />
+                      ) : (
+                        <>
+                          <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+                          {!isInvalidOutcome(market, i) && <MultiScalarEstimate market={market} odds={odds[i]} />}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
+              {poolDetailsOutcomeIndex === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}
             </div>
           );
         })}

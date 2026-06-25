@@ -1,4 +1,5 @@
 import { toastifyTx } from "@/lib/toastify";
+import { invalidateAfterTrade } from "@seer-pm/react";
 import {
   type FillToEstimateLegExecutionStatus,
   type FillToEstimateLegTrade,
@@ -38,16 +39,6 @@ export function useFillToEstimateTrade(onSuccess: () => unknown) {
   const queryClient = useQueryClient();
   const { data: walletClient } = useConnectorClient();
   const [legExecutionStatuses, setLegExecutionStatuses] = useState<FillToEstimateLegExecutionStatus[] | null>(null);
-
-  const invalidateAfterTrade = () => {
-    queryClient.invalidateQueries({ queryKey: ["useQuote"] });
-    queryClient.invalidateQueries({ queryKey: ["useMarketOdds"] });
-    queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-    queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-    queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-    queryClient.invalidateQueries({ queryKey: ["useTicksData"] });
-    onSuccess();
-  };
 
   const mutation = useMutation({
     mutationFn: async (params: ExecuteFillToEstimateParams) => {
@@ -103,7 +94,9 @@ export function useFillToEstimateTrade(onSuccess: () => unknown) {
       }
       return result.receipt;
     },
-    onSuccess: invalidateAfterTrade,
+    onSuccess: (_data, variables) => {
+      invalidateAfterTrade(queryClient, { market: variables.market, onSuccess });
+    },
     onSettled: () => {
       setLegExecutionStatuses(null);
     },

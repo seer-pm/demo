@@ -1,7 +1,7 @@
 import type { AdminMarketEvent } from "@/hooks/admin/useAdminMarketEvents";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { utcToPickerDate } from "@/lib/date";
-import type { MarketEvent } from "@/types/market-events";
+import type { MarketEvent, MarketEventSuggestion } from "@/types/market-events";
 import type { Market } from "@seer-pm/sdk";
 
 export type EventFormState = {
@@ -43,5 +43,15 @@ export function marketEventToForm(event: MarketEvent): EventFormState {
     title: event.title,
     description: event.description ?? "",
     eventAt: utcToPickerDate(event.event_at),
+  };
+}
+
+export function createEventFormFromSuggestion(market: Market, suggestion: MarketEventSuggestion): EventFormState {
+  return {
+    marketId: market.id,
+    chainId: market.chainId,
+    title: suggestion.title.trim(),
+    description: suggestion.description?.trim() ?? "",
+    eventAt: utcToPickerDate(suggestion.eventAt),
   };
 }

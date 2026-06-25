@@ -3,6 +3,7 @@ import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
+import { useTheme } from "@/hooks/useTheme";
 import { filterChain } from "@/lib/chains";
 import {
   BookIcon,
@@ -17,7 +18,6 @@ import {
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
-import { useTheme } from "@/hooks/useTheme";
 
 // Sample-matched stroke icons for the header (16×16, fill:none, stroke
 // currentColor 2px, rounded caps/joins). Match the .icon-button glyphs in
@@ -137,9 +137,7 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
 
   return (
     <div className={clsx(isMobile ? "space-y-2" : "w-[280px] max-w-[90vw] px-[16px] py-[16px] space-y-4")}>
-      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[15px]")}>
-        Email Notifications
-      </div>
+      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[15px]")}>Email Notifications</div>
       <p className="text-[12.5px] text-ink-3 leading-snug">
         Receive email notifications for your followed markets and important updates.
       </p>
@@ -376,7 +374,6 @@ export default function Header() {
         tabIndex={0}
         className="relative top-[5px] flex flex-col items-center hover:opacity-85 text-ink-3"
       >
-        
         <svg
           width="18"
           height="18"
@@ -522,12 +519,7 @@ export default function Header() {
                 className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <NotificationIcon />,
                 element: isMobile ? undefined : (
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    aria-label="Email notifications"
-                    className={iconButtonClassName}
-                  >
+                  <button type="button" tabIndex={0} aria-label="Email notifications" className={iconButtonClassName}>
                     <HeaderBellIcon />
                   </button>
                 ),
@@ -545,12 +537,7 @@ export default function Header() {
                 className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <QuestionIcon />,
                 element: isMobile ? undefined : (
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    aria-label="Help"
-                    className={iconButtonClassName}
-                  >
+                  <button type="button" tabIndex={0} aria-label="Help" className={iconButtonClassName}>
                     <HeaderHelpIcon />
                   </button>
                 ),

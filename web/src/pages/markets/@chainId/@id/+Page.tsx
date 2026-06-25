@@ -4,7 +4,7 @@ import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions, type TokenAction } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import MajorEvents from "@/components/Market/MajorEvents";
+import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
@@ -111,9 +111,7 @@ function SwapWidget({
   if (!outcomeToken && effectiveOutcomeToken && typeof window !== "undefined") {
     // eslint-disable-next-line no-console
     console.warn(
-      `[SwapWidget] outcomeToken multicall missed for market=${market.id} chainId=${market.chainId} ` +
-        `outcomeIndex=${outcomeIndex} wrappedTokens[${outcomeIndex}]=${market.wrappedTokens[outcomeIndex]} ` +
-        `— using subgraph-derived fallback token so the panel still mounts.`,
+      `[SwapWidget]·outcomeToken·multicall·missed·for·market=${market.id}·chainId=${market.chainId}·outcomeIndex=${outcomeIndex}·wrappedTokens[${outcomeIndex}]=${market.wrappedTokens[outcomeIndex]}·—·using·subgraph-derived·fallback·token·so·the·panel·still·mounts.`,
     );
   }
   if (!effectiveOutcomeToken) {
@@ -295,17 +293,18 @@ function MarketPage() {
               onOutcomeChange={onOutcomeChange}
             />
           </div>
-          {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
-          <div className="hidden [@media(min-width:1200px)]:block space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+          <div className="[@media(min-width:1200px)]:block space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
             <MajorEvents market={market} />
-            <SwapWidget
-              market={market}
-              outcomeIndex={outcomeIndex}
-              images={market?.images?.outcomes}
-              onOutcomeChange={onOutcomeChange}
-              account={account}
-            />
-            
+            {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
+            {!isMobile && (
+              <SwapWidget
+                market={market}
+                outcomeIndex={outcomeIndex}
+                images={market?.images?.outcomes}
+                onOutcomeChange={onOutcomeChange}
+                account={account}
+              />
+            )}
           </div>
           <div className="space-y-16 min-w-0">
             <MarketTabs market={market} />

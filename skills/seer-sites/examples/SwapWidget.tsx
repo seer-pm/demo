@@ -170,6 +170,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
     false,
     toastify,
     toastifyTx,
+    market,
   );
 
   const needsTokenApproval =

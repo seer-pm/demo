@@ -116,7 +116,7 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           <p className="tooltiptext w-[200px] !whitespace-break-spaces">Swap directly without using Cowswap</p>
           <QuestionIcon fill="var(--blue)" />
         </div>
-        
+
         <Toggle
           className="ml-3"
           checked={isInstantSwap}

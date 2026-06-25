@@ -539,7 +539,7 @@ export function PreviewCard({ market }: { market: Market }) {
 
       <div className="card-tags">
         <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
-        
+
         {market.parentMarket?.id && market.parentMarket.id !== zeroAddress && (
           <span className="conditional-tag">Conditional Market</span>
         )}

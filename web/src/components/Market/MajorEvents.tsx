@@ -177,7 +177,7 @@ export default function MajorEvents({ market }: { market: Market }) {
                   <div className="event-date">{formatEventDate(event.eventAt, index === 0)}</div>
                   <div className="event-name">
                     {event.title}
-                    
+
                     {event.isResolution && <span className="resolution-tag">Resolution</span>}
                   </div>
                   {event.description && <div className="event-detail">{event.description}</div>}

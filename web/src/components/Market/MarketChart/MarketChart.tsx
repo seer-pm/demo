@@ -1,9 +1,9 @@
-import { fetchChartData, useChartData } from "@/hooks/chart/useChartData";
+import { useChartData } from "@/hooks/chart/useChartData";
 import { type ChartData, buildChartData } from "@/hooks/chart/utils";
 import { formatDate } from "@/lib/date";
 import { QuestionIcon } from "@/lib/icons";
 import { downloadCsv } from "@/lib/utils";
-import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
+import { Market, MarketTypes, fetchChartData, getMarketType } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -156,6 +156,12 @@ function getFilteredSeries(market: Market, chartData: ChartData["chartData"]) {
   return rawSeries;
 }
 
+function filterSeriesByOutcome(market: Market, series: ChartData["chartData"], outcomeIndex: number | undefined) {
+  if (outcomeIndex === undefined) return series;
+  const name = market.outcomes[outcomeIndex];
+  return series.filter((s) => s.name === name);
+}
+
 async function fetchDailyChartHistory(market: Market) {
   const poolHourDataSets = await fetchChartData(market);
   return await buildChartData(market, poolHourDataSets!, 365 * 10, 60 * 60 * 24, undefined);
@@ -213,7 +219,15 @@ function getChartTimeConfig(period: ChartOptionPeriod, startDate: Date | undefin
   };
 }
 
-function MarketChart({ market }: { market: Market }) {
+function MarketChart({
+  market,
+  outcomeIndex,
+  embedded,
+}: {
+  market: Market;
+  outcomeIndex?: number;
+  embedded?: boolean;
+}) {
   const [period, setPeriod] = useState<ChartOptionPeriod>("All");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -238,13 +252,27 @@ function MarketChart({ market }: { market: Market }) {
 
   const { chartData = [] } = data ?? {};
 
-  const series = useMemo(() => getFilteredSeries(market, chartData), [market, chartData]);
+  const series = useMemo(() => {
+    const filtered = getFilteredSeries(market, chartData);
+    return filterSeriesByOutcome(market, filtered, outcomeIndex);
+  }, [market, chartData, outcomeIndex]);
 
   const mutateExport = useMutation({ mutationFn: () => exportData(market) });
 
+  const chartSeries = useMemo(() => {
+    const fullSeries = getFilteredSeries(market, chartData);
+    return series.map((serie) => {
+      const colorIndex = fullSeries.findIndex((s) => s.name === serie.name);
+      return {
+        outcome: { name: serie.name, color: CHART_COLORS?.[colorIndex] || "#000" },
+        data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
+      };
+    });
+  }, [market, chartData, series]);
+
   return (
     <>
-      <div className="card-box w-full p-[20px] text-[12px]">
+      <div className={clsx("card-box w-full p-[20px] text-[12px]", !embedded && "p-5 drop-shadow")}>
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="timeframe" role="tablist">
             {Object.keys(CHART_OPTION_PERIODS).map((option) => (
@@ -292,45 +320,41 @@ function MarketChart({ market }: { market: Market }) {
             </p>
             <QuestionIcon fill="var(--blue)" />
           </div>
-          <button
-            type="button"
-            className="ml-auto flex items-center gap-1.5 text-ink-4 hover:text-ink-2 transition-colors"
-            onClick={() => mutateExport.mutate()}
-            disabled={mutateExport.isPending}
-          >
-            {mutateExport.isPending ? (
-              <Spinner className="bg-black-secondary" />
-            ) : (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="block shrink-0"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            )}
-            <span className="text-[12px] font-medium leading-none">Export Data</span>
-          </button>
+          {!embedded && (
+            <button
+              type="button"
+              className="ml-auto flex items-center gap-1.5 text-ink-4 hover:text-ink-2 transition-colors"
+              onClick={() => mutateExport.mutate()}
+              disabled={mutateExport.isPending}
+            >
+              {mutateExport.isPending ? (
+                <Spinner className="bg-black-secondary" />
+              ) : (
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="block shrink-0"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              )}
+              <span className="text-[12px] font-medium leading-none">Export Data</span>
+            </button>
+          )}
         </div>
         {isPendingChart ? (
           <div className="w-full mt-3 h-[200px] shimmer-container" />
         ) : series.length > 0 ? (
-          <LightweightChart
-            series={series.map((serie, index) => ({
-              outcome: { name: serie.name, color: CHART_COLORS?.[index] || "#000" },
-              data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
-            }))}
-            market={market}
-          />
+          <LightweightChart series={chartSeries} market={market} showLegend={outcomeIndex === undefined} />
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
@@ -340,7 +364,15 @@ function MarketChart({ market }: { market: Market }) {
   );
 }
 
-function LightweightChart({ series, market }: { series: IOutcomeData[]; market: Market }) {
+function LightweightChart({
+  series,
+  market,
+  showLegend = true,
+}: {
+  series: IOutcomeData[];
+  market: Market;
+  showLegend?: boolean;
+}) {
   const outcomeNames = useMemo(() => series.map(({ outcome }) => outcome.name), [series]);
 
   const [visibleOutcomes, setVisibleOutcomes] = useState<Set<string>>(new Set(outcomeNames));
@@ -569,12 +601,14 @@ function LightweightChart({ series, market }: { series: IOutcomeData[]; market: 
         <div ref={chartContainerRef} />
         <div ref={markersRef} className="absolute inset-0 pointer-events-none z-[5] overflow-hidden" />
       </div>
-      <Legend
-        outcomesData={series}
-        visibleOutcomes={visibleOutcomes}
-        onToggleOutcome={handleToggleOutcome}
-        market={market}
-      />
+      {showLegend && (
+        <Legend
+          outcomesData={series}
+          visibleOutcomes={visibleOutcomes}
+          onToggleOutcome={handleToggleOutcome}
+          market={market}
+        />
+      )}
       {tooltipData && (
         <div
           className="absolute bg-base-100 border border-[var(--border)] rounded-lg shadow-lg p-3 z-10 pointer-events-none"

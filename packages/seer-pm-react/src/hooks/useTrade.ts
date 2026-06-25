@@ -1,6 +1,7 @@
 import {
   CoWTrade,
   type CompleteSetLeg,
+  type Market,
   type NotifierFn,
   type Psm3Leg,
   type TradeTokensProps as SdkTradeTokensProps,
@@ -14,6 +15,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Address, Client, TransactionReceipt } from "viem";
 import { sendCalls } from "viem/actions";
 import { useConnectorClient } from "wagmi";
+import { invalidateAfterTrade } from "../utils/invalidateAfterTrade";
 import { useMissingTradeApproval } from "./useMissingTradeApproval";
 
 const EMPTY_APPROVALS = {
@@ -89,6 +91,7 @@ function useTradeLegacy(
   isSeerCredits: boolean,
   psm3Leg: Psm3Leg | undefined,
   completeSetLeg: CompleteSetLeg | undefined,
+  market: Market,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
@@ -113,15 +116,15 @@ function useTradeLegacy(
         return tradeTokens(props, walletClient, orderNotifier, txNotifier);
       },
       onSuccess: (result: string | TransactionReceipt) => {
-        if (typeof result === "string") {
+        const isCowOrder = typeof result === "string";
+        if (isCowOrder) {
           onOrderPlaced?.(result);
           queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
         }
-        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        onSuccess();
+        invalidateAfterTrade(queryClient, {
+          market,
+          onSuccess,
+        });
       },
     }),
   };
@@ -129,6 +132,7 @@ function useTradeLegacy(
 
 function useTrade7702(
   trade: Trade | undefined,
+  market: Market,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
@@ -152,15 +156,15 @@ function useTrade7702(
         return tradeTokens7702(props, walletClient, orderNotifier, txNotifier);
       },
       onSuccess: (result: string | TransactionReceipt) => {
-        if (typeof result === "string") {
+        const isCowOrder = typeof result === "string";
+        if (isCowOrder) {
           onOrderPlaced?.(result);
           queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
         }
-        queryClient.invalidateQueries({ queryKey: ["useQuote"] });
-        queryClient.invalidateQueries({ queryKey: ["useMarketPositions"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
-        queryClient.invalidateQueries({ queryKey: ["useTokenBalances"] });
-        onSuccess();
+        invalidateAfterTrade(queryClient, {
+          market,
+          onSuccess,
+        });
       },
     }),
   };
@@ -174,17 +178,19 @@ export const useTrade = (
   supports7702: boolean,
   orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
+  market: Market,
   onOrderPlaced?: (orderUid: string) => void,
   psm3Leg?: Psm3Leg,
   completeSetLeg?: CompleteSetLeg,
 ) => {
-  const trade7702 = useTrade7702(trade, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
+  const trade7702 = useTrade7702(trade, market, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
   const tradeLegacy = useTradeLegacy(
     account,
     trade,
     isSeerCredits,
     psm3Leg,
     completeSetLeg,
+    market,
     onSuccess,
     orderNotifier,
     txNotifier,
