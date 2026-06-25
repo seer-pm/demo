@@ -1,11 +1,12 @@
 import { queryClient } from "@/lib/query-client";
 import { toastError } from "@/lib/toastify";
 import { fetchAuth, getAppUrl, isAccessTokenExpired } from "@/lib/utils";
-import type { MarketEvent } from "@/types/market-events";
+import type { KnownMarketEventDate, MarketEvent, RecommendMarketEventsResponse } from "@/types/market-events";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useGlobalState } from "../useGlobalState";
 
 const ADMIN_EVENTS_URL = `${getAppUrl()}/.netlify/functions/admin-market-events`;
+const RECOMMEND_EVENTS_URL = `${getAppUrl()}/.netlify/functions/recommend-market-events`;
 
 export type AdminMarketEvent = MarketEvent & {
   created_at: string | null;
@@ -111,5 +112,26 @@ export function useDeleteMarketEvent(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["useMarketEvents"] });
       onSuccess?.();
     },
+  });
+}
+
+type RecommendEventsPayload = {
+  marketQuestion: string;
+  knownDates: KnownMarketEventDate[];
+};
+
+export function useRecommendMarketEvents() {
+  const accessToken = useGlobalState((state) => state.accessToken);
+
+  return useMutation({
+    mutationKey: ["useRecommendMarketEvents"],
+    mutationFn: (payload: RecommendEventsPayload) =>
+      fetchAuth(
+        accessToken,
+        RECOMMEND_EVENTS_URL,
+        "POST",
+        payload as unknown as Record<string, string | string[] | number | undefined | null>,
+      ) as Promise<RecommendMarketEventsResponse>,
+    onError: (error) => toastError({ title: error.message }),
   });
 }
