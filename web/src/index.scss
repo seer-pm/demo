@@ -782,16 +782,19 @@ html[data-theme="dark"] .quick-btn--pct {
 }
 
 
-.action-form-panel .text-\[14px\] {
+.action-form-panel .text-\[14px\],
+.mobile-action-panel .text-\[14px\] {
   font-size: 12.5px;
   color: var(--ink-4);
   font-weight: 500;
 }
-.action-form-panel .text-\[12px\] {
+.action-form-panel .text-\[12px\],
+.mobile-action-panel .text-\[12px\] {
   font-size: 12px;
   color: var(--ink-4);
 }
-.action-form-panel .text-purple-primary.cursor-pointer {
+.action-form-panel .text-purple-primary.cursor-pointer,
+.mobile-action-panel .text-purple-primary.cursor-pointer {
   font-family: "Geist Mono", ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 600;
@@ -804,10 +807,12 @@ html[data-theme="dark"] .quick-btn--pct {
   text-decoration: none;
   line-height: 1.4;
 }
-.action-form-panel .input.input-bordered {
+.action-form-panel .input.input-bordered,
+.mobile-action-panel .input.input-bordered {
   font-size: 14px;
 }
-.action-form-panel .btn {
+.action-form-panel .btn,
+.mobile-action-panel .btn {
   font-size: 14px;
 }
 
@@ -855,7 +860,8 @@ html[data-theme="dark"] .quick-btn--pct {
 }
 
 
-.purchase-card .toggle {
+.purchase-card .toggle,
+.mobile-action-panel .toggle {
   /* RESET daisyUI defaults — kill the inset-shadow knob, drop borders,
      resize the track to a slim 18px × 32px. White track on both themes
      (Tailwind `#fff` literal, not `var(--surface)`) per the designer —
@@ -875,7 +881,8 @@ html[data-theme="dark"] .quick-btn--pct {
     background 240ms cubic-bezier(0.4, 0, 0.2, 1),
     border-color 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.purchase-card .toggle::before {
+.purchase-card .toggle::before,
+.mobile-action-panel .toggle::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -884,32 +891,37 @@ html[data-theme="dark"] .quick-btn--pct {
   height: 12px;
   background: var(--blue);
   border-radius: 50%;
-  
+
   box-shadow: 0 1px 4px rgba(45, 107, 247, 0.18);
   transform: translateY(-50%);
   transition:
     transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 200ms ease;
 }
-.purchase-card .toggle:checked::before {
+.purchase-card .toggle:checked::before,
+.mobile-action-panel .toggle:checked::before {
   /* Slide right: 32 (track) − 2 (left inset) − 2 (right inset) − 12 (knob) = 16px */
   transform: translateY(-50%) translateX(16px);
 }
-.purchase-card .toggle:hover::before {
+.purchase-card .toggle:hover::before,
+.mobile-action-panel .toggle:hover::before {
   /* Hover lifts the drop slightly — still single-layer, still light. */
   box-shadow: 0 2px 6px rgba(45, 107, 247, 0.26);
 }
-.purchase-card .toggle:focus-visible {
+.purchase-card .toggle:focus-visible,
+.mobile-action-panel .toggle:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 /* Dark theme: --blue resolves to the Kleros purple #7B2BFF, so the knob
    recolors automatically. Slightly stronger alphas because shadows
    read fainter against the deeper dark surface. */
-html[data-theme="dark"] .purchase-card .toggle::before {
+html[data-theme="dark"] .purchase-card .toggle::before,
+html[data-theme="dark"] .mobile-action-panel .toggle::before {
   box-shadow: 0 1px 4px rgba(123, 43, 255, 0.22);
 }
-html[data-theme="dark"] .purchase-card .toggle:hover::before {
+html[data-theme="dark"] .purchase-card .toggle:hover::before,
+html[data-theme="dark"] .mobile-action-panel .toggle:hover::before {
   box-shadow: 0 2px 6px rgba(123, 43, 255, 0.32);
 }
 

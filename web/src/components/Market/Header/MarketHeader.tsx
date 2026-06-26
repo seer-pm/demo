@@ -522,44 +522,65 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   return (
     <div
       className={clsx(
-        "card shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "card text-left flex flex-col",
+        type !== "preview" && "shadow-[0_2px_3px_0_rgba(0,0,0,0.06)]",
+        type === "preview" && "!rounded-[8px]",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div
-        className={clsx(
-          "flex justify-between border-t border-t-[5px] text-[14px] px-[25px] h-[45px] items-center",
-          colors?.border,
-          colors?.bg,
-          colors?.text,
-        )}
-      >
-        <div className="flex items-center gap-2 w-full">
-          <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
-          {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
-          <div className="flex items-center gap-4 ml-auto">
-            {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
-              <div className="tooltip">
-                <p className="tooltiptext">Market created by this account</p>
-                <MyMarket />
-              </div>
+      {type === "preview" ? (
+        <div className="px-[24px] pt-[18px] pb-[14px] flex items-center justify-between gap-2 flex-wrap">
+          <span
+            className={clsx(
+              "inline-flex items-center gap-[7px] px-3 py-1 rounded-full font-mono text-[10.5px] font-semibold uppercase tracking-wider",
+              colors?.pillBg,
+              colors?.text,
             )}
-
-            <div className="tooltip">
-              <p className="tooltiptext">View contract on explorer</p>
-              <a
-                href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
-              </a>
-            </div>
-            {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
-          </div>
+          >
+            <span
+              className={clsx("w-1.5 h-1.5 rounded-full", colors?.dot)}
+              style={{ boxShadow: "0 0 0 3px color-mix(in srgb, currentColor 20%, transparent)" }}
+            />
+            {marketStatus && STATUS_TEXTS[marketStatus](hasLiquidity)}
+          </span>
+          <NetworkTag chainId={market.chainId} />
         </div>
-        <div>{market.index && `#${market.index}`}</div>
-      </div>
+      ) : (
+        <div
+          className={clsx(
+            "flex justify-between border-t text-[14px] px-[25px] h-[45px] items-center",
+            colors?.border,
+            colors?.bg,
+            colors?.text,
+          )}
+        >
+          <div className="flex items-center gap-2 w-full">
+            <div className={clsx("w-[8px] h-[8px] rounded-full", colors?.dot)}></div>
+            {marketStatus && <div>{STATUS_TEXTS[marketStatus](hasLiquidity)}</div>}
+            <div className="flex items-center gap-4 ml-auto">
+              {address && market.creator?.toLocaleLowerCase() === address.toLocaleLowerCase() && (
+                <div className="tooltip">
+                  <p className="tooltiptext">Market created by this account</p>
+                  <MyMarket />
+                </div>
+              )}
+
+              <div className="tooltip">
+                <p className="tooltiptext">View contract on explorer</p>
+                <a
+                  href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img alt="network-icon" className="w-5 h-5 rounded-full" src={NETWORK_ICON_MAPPING[market.chainId]} />
+                </a>
+              </div>
+              {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+            </div>
+          </div>
+          <div>{market.index && `#${market.index}`}</div>
+        </div>
+      )}
 
       <div className={clsx("flex space-x-3 p-[24px]", market.questions.length > 1 && "pb-[16px]")}>
         <div>

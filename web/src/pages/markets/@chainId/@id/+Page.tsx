@@ -263,7 +263,11 @@ function MarketPage() {
           </Alert>
         )}
         {market.verification?.status === "not_verified" && (
-          <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
+          <Alert
+            type="warning"
+            title="This market is unverified (it didn't go through the curation process)"
+            className="[&_.alert-title]:!text-[14px] [&_.alert-title+div]:!text-[12px]"
+          >
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
           </Alert>
         )}

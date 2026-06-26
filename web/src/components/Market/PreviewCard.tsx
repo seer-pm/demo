@@ -157,6 +157,25 @@ function ScalarGaugeShimmer() {
   );
 }
 
+function fmtScalarCorner(n: number): string {
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) >= 1000) return formatBigNumbers(n, 1);
+  const s = n.toFixed(3);
+  return s.includes(".") ? s.replace(/\.?0+$/, "") : s;
+}
+
+function fmtScalarValue(n: number): string {
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) >= 1000) return formatBigNumbers(n, 1);
+  let s = n.toFixed(3);
+  if (s.includes(".")) s = s.replace(/\.?0+$/, "");
+  if (s.length > 5) {
+    s = s.slice(0, 5);
+    if (s.endsWith(".")) s = s.slice(0, -1);
+  }
+  return s;
+}
+
 function ScalarGauge({
   value,
   min,
@@ -224,18 +243,22 @@ function ScalarGauge({
             className="font-display font-medium text-[26px] tracking-[-0.025em] tabular-nums text-ink leading-none"
             style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
           >
-            {value.toLocaleString()}
+            {fmtScalarValue(value)}
           </p>
-          {unit && (
-            <p className="font-mono font-medium text-[9.5px] tracking-[0.08em] text-ink-4 uppercase leading-none">
-              {unit}
-            </p>
-          )}
+          <p
+            className={clsx(
+              "font-mono font-medium text-[9.5px] tracking-[0.08em] text-ink-4 uppercase leading-none",
+              !unit && "invisible",
+            )}
+            aria-hidden={!unit}
+          >
+            {unit || "·"}
+          </p>
         </div>
       </div>
       <div className="flex justify-between font-mono font-medium text-[11px] text-ink-4 tabular-nums leading-tight">
-        <span>{min.toLocaleString()}</span>
-        <span>{max.toLocaleString()}</span>
+        <span>{fmtScalarCorner(min)}</span>
+        <span>{fmtScalarCorner(max)}</span>
       </div>
     </div>
   );

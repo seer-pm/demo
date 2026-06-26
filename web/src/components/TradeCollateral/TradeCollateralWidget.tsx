@@ -10,7 +10,6 @@ import { useTokenBalance, useTokensInfo } from "@seer-pm/react";
 import { PSM3_ADDRESS } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { GetTokenResult, SupportedChain, Token } from "@seer-pm/sdk";
-import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
@@ -146,123 +145,138 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
     return null;
   }
 
+  const ctaClassName =
+    "w-full !rounded-[8px] !bg-[#ea1d21] hover:!bg-[#d11a1e] !text-white !text-[14px] !border-transparent !opacity-100 !pointer-events-auto !cursor-pointer shadow-none hover:!shadow-[0_4px_12px_-4px_rgba(234,29,33,0.35)] transition-shadow duration-150";
+  const inputClassName =
+    "w-full p-0 h-auto font-display text-[22px] tracking-tight tabular-nums !bg-transparent !border-0 !rounded-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:!border-transparent focus:!shadow-none focus:ring-0";
+
   return (
-    <div className="rounded-2xl border border-[#2222220d] dark:border-neutral bg-base-100 p-5 space-y-5 max-w-[480px]">
-      <form className="space-y-5">
-        <div className={clsx("rounded-[12px] p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
-          <p className="text-base-content/70">You pay</p>
-          <div className="flex justify-between items-start">
-            <Input
-              autoComplete="off"
-              type="number"
-              step="any"
-              min="0"
-              {...register("amount")}
-              className="w-full min-w-[50px] p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0"
-              placeholder="0"
-              useFormReturn={useFormReturn}
-            />
-            {payToken && (
-              <CollateralDropdown
-                selectedCollateral={payToken}
-                setSelectedCollateral={setPayToken}
-                collateralTokens={collateralTokens}
-              />
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div>
+    <div className="card-box purchase-card max-w-[480px] mx-auto">
+      <div className="buy-body space-y-5">
+        <form className="space-y-5">
+          <div className="io-block">
+            <div className="io-label">
+              <span>You pay</span>
               {isFetchingPayBalance ? (
-                <div className="shimmer-container w-[80px] h-[13px]" />
+                <span className="shimmer-container w-[80px] h-[13px] inline-block" />
               ) : (
                 payToken && (
-                  <p className="text-[14px] font-semibold text-base-content/70">
-                    {displayBalance(payBalance, payToken.decimals)} {payToken.symbol}
-                  </p>
+                  <span className="tabular-nums">
+                    Balance: {displayBalance(payBalance, payToken.decimals)} {payToken.symbol}
+                  </span>
                 )
               )}
             </div>
-            <div className="flex items-center gap-1">
-              {([25, 50, 100] as const).map((pct) => (
-                <button
-                  key={pct}
-                  type="button"
-                  onClick={() => {
-                    if (!payToken || !payBalance || payBalance === 0n) return;
-                    const amount = (payBalance * BigInt(pct)) / 100n;
-                    setValue("amount", formatUnits(amount, payToken.decimals));
-                  }}
-                  disabled={!payToken || !payBalance || payBalance === 0n}
-                  className="text-[12px] font-semibold text-base-content/70 rounded-lg border border-[#2222220d] dark:border-neutral py-1.5 px-2.5 bg-base-200/80 hover:bg-base-300/60 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {pct}%
-                </button>
-              ))}
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  {...register("amount")}
+                  className={inputClassName}
+                  placeholder="0"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              {payToken && (
+                <CollateralDropdown
+                  selectedCollateral={payToken}
+                  setSelectedCollateral={setPayToken}
+                  collateralTokens={collateralTokens}
+                />
+              )}
+            </div>
+            <div className="io-balance">
+              <span />
+              <div className="quick-group">
+                {([25, 50, 100] as const).map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => {
+                      if (!payToken || !payBalance || payBalance === 0n) return;
+                      const amount = (payBalance * BigInt(pct)) / 100n;
+                      setValue("amount", formatUnits(amount, payToken.decimals));
+                    }}
+                    disabled={!payToken || !payBalance || payBalance === 0n}
+                    className="quick-btn quick-btn--pct disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className={clsx("rounded-[12px] p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
-          <p className="text-base-content/70">You will get</p>
-          <div className="flex justify-between items-start">
-            <Input
-              autoComplete="off"
-              type="number"
-              step="any"
-              min="0"
-              readOnly={canUsePsm3}
-              {...register("amountOut")}
-              className="w-full min-w-[50px] p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0"
-              placeholder="0"
-              useFormReturn={useFormReturn}
-            />
-            {getToken && (
-              <CollateralDropdown
-                selectedCollateral={getToken}
-                setSelectedCollateral={setGetToken}
-                collateralTokens={getOptions}
-              />
-            )}
+          <div className="io-block !mb-0">
+            <div className="io-label">
+              <span>You will get</span>
+              <span>≈</span>
+            </div>
+            <div className="io-row">
+              <div className="flex-1 min-w-0">
+                <Input
+                  autoComplete="off"
+                  type="number"
+                  step="any"
+                  min="0"
+                  readOnly={canUsePsm3}
+                  {...register("amountOut")}
+                  className={inputClassName}
+                  placeholder="0"
+                  useFormReturn={useFormReturn}
+                />
+              </div>
+              {getToken && (
+                <CollateralDropdown
+                  selectedCollateral={getToken}
+                  setSelectedCollateral={setGetToken}
+                  collateralTokens={getOptions}
+                />
+              )}
+            </div>
           </div>
-        </div>
 
-        <Button
-          variant="primary"
-          type="button"
-          className="w-full"
-          disabled={
-            !address ||
-            !amountInBigInt ||
-            !previewAmountOut ||
-            !payToken ||
-            !getToken ||
-            isPreviewFetching ||
-            psm3Swap.isPending ||
-            (payBalance !== undefined && amountInBigInt > payBalance)
-          }
-          isLoading={psm3Swap.isPending || isPreviewLoading || isPreviewFetching}
-          text="Swap"
-          onClick={() => {
-            if (!address || !amountInBigInt || !previewAmountOut || !payToken || !getToken || isPreviewFetching) return;
-            const minAmountOut = (previewAmountOut * (10000n - SLIPPAGE_BPS)) / 10000n;
-            psm3Swap
-              .mutateAsync({
-                chainId,
-                assetIn: payToken.address,
-                assetOut: getToken.address,
-                amountIn: amountInBigInt,
-                minAmountOut,
-              })
-              .then(() => {
-                setValue("amount", "");
-                setValue("amountOut", "");
-              })
-              .catch(() => {
-                // errors are already handled by toastifyTx
-              });
-          }}
-        />
-      </form>
+          <Button
+            variant="primary"
+            type="button"
+            className={ctaClassName}
+            disabled={
+              !address ||
+              !amountInBigInt ||
+              !previewAmountOut ||
+              !payToken ||
+              !getToken ||
+              isPreviewFetching ||
+              psm3Swap.isPending ||
+              (payBalance !== undefined && amountInBigInt > payBalance)
+            }
+            isLoading={psm3Swap.isPending || isPreviewLoading || isPreviewFetching}
+            text="Swap"
+            onClick={() => {
+              if (!address || !amountInBigInt || !previewAmountOut || !payToken || !getToken || isPreviewFetching) return;
+              const minAmountOut = (previewAmountOut * (10000n - SLIPPAGE_BPS)) / 10000n;
+              psm3Swap
+                .mutateAsync({
+                  chainId,
+                  assetIn: payToken.address,
+                  assetOut: getToken.address,
+                  amountIn: amountInBigInt,
+                  minAmountOut,
+                })
+                .then(() => {
+                  setValue("amount", "");
+                  setValue("amountOut", "");
+                })
+                .catch(() => {
+                  // errors are already handled by toastifyTx
+                });
+            }}
+          />
+        </form>
+      </div>
     </div>
   );
 }

@@ -37,6 +37,13 @@ interface SwapFormValues {
   limitPrice: string;
 }
 
+function truncateToTwoDecimals(value: string): string {
+  if (!value) return value;
+  const dotIdx = value.indexOf(".");
+  if (dotIdx === -1) return value;
+  return value.slice(0, dotIdx + 3);
+}
+
 interface SwapTokensLimitUptoProps {
   market: Market;
   outcomeIndex: number;
@@ -294,7 +301,7 @@ export function SwapTokensLimitUpto({
   const swapMax = () => {
     setUseMax(true);
     setTradeType(TradeType.EXACT_INPUT);
-    setValue("amount", formatUnits(balance, sellToken.decimals), {
+    setValue("amount", truncateToTwoDecimals(formatUnits(balance, sellToken.decimals)), {
       shouldValidate: true,
       shouldDirty: true,
     });
@@ -315,7 +322,7 @@ export function SwapTokensLimitUpto({
     const max = balanceTokens();
     const clamped = Math.max(0, Math.min(next, max));
     const formatted = clamped.toFixed(sellToken.decimals).replace(/\.?0+$/, "") || "0";
-    setValue("amount", formatted, { shouldValidate: true, shouldDirty: true });
+    setValue("amount", truncateToTwoDecimals(formatted), { shouldValidate: true, shouldDirty: true });
   };
   const addPercentOfBalance = (pct: number) => {
     setAmountTokens(currentAmountFloat() + balanceTokens() * (pct / 100));
@@ -348,12 +355,12 @@ export function SwapTokensLimitUpto({
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {
-      setValue("amountOut", receivedAmount ? receivedAmount.toString() : "", {
+      setValue("amountOut", receivedAmount ? truncateToTwoDecimals(receivedAmount.toString()) : "", {
         shouldValidate: true,
         shouldDirty: true,
       });
     } else {
-      setValue("amount", quoteData ? formatUnits(quoteData.value, quoteData.decimals) : "", {
+      setValue("amount", quoteData ? truncateToTwoDecimals(formatUnits(quoteData.value, quoteData.decimals)) : "", {
         shouldValidate: true,
         shouldDirty: true,
       });
@@ -364,7 +371,7 @@ export function SwapTokensLimitUpto({
     if (isUseMax) return;
     if (volume) {
       setTradeType(swapType === "buy" ? TradeType.EXACT_OUTPUT : TradeType.EXACT_INPUT);
-      setValue(swapType === "buy" ? "amountOut" : "amount", volume.toString(), {
+      setValue(swapType === "buy" ? "amountOut" : "amount", truncateToTwoDecimals(volume.toString()), {
         shouldValidate: true,
         shouldDirty: true,
       });

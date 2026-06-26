@@ -302,10 +302,11 @@ export function SwapTokensMarket({
     const max = balanceTokens();
     const clamped = Math.max(0, Math.min(next, max));
     // Trim trailing zeros so the input doesn't look messy (e.g. "5.00000000")
+    // (truncation to 2 display decimals happens below via truncateToTwoDecimals)
     // but keep enough precision that small percent increments aren't lost
     // (1% of a 100-token balance must still read as 1, not 0).
     const formatted = clamped.toFixed(sellToken.decimals).replace(/\.?0+$/, "") || "0";
-    setValue("amount", formatted, { shouldValidate: true, shouldDirty: true });
+    setValue("amount", truncateToTwoDecimals(formatted), { shouldValidate: true, shouldDirty: true });
     requestAnimationFrame(() => {
       if (amountRef.current) {
         amountRef.current.scrollLeft = 0;
@@ -548,7 +549,7 @@ export function SwapTokensMarket({
                   className="quick-btn quick-btn--full"
                   onClick={() => {
                     setTradeType(TradeType.EXACT_INPUT);
-                    setValue("amount", formatUnits(balance, sellToken.decimals), {
+                    setValue("amount", truncateToTwoDecimals(formatUnits(balance, sellToken.decimals)), {
                       shouldValidate: true,
                       shouldDirty: true,
                     });
