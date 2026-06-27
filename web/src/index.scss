@@ -2130,9 +2130,10 @@ html[data-theme="dark"] .io-row .input.input-bordered:focus-within {
   display: none;  /* Safari and Chrome */
 }
 
-/* COMMENTS (Orbis Discussion) — shrink fonts + drop comment-card borders. */
+/* Comments (Orbis) */
 .comments-tab {
   font-size: 12px;
+  margin-left: -20px;
 }
 .comments-tab *,
 .comments-tab p,
@@ -2146,13 +2147,18 @@ html[data-theme="dark"] .io-row .input.input-bordered:focus-within {
 .comments-tab textarea {
   font-size: 12px !important;
 }
-.comments-tab > div > div,
-.comments-tab > div > div > div,
-.comments-tab article,
-.comments-tab [class*="post"],
-.comments-tab [class*="Post"],
-.comments-tab [class*="comment"],
-.comments-tab [class*="Comment"] {
+.comments-tab,
+.comments-tab * {
   border: 0 !important;
   border-color: transparent !important;
+}
+.comments-tab input,
+.comments-tab textarea {
+  border: 1px solid var(--border) !important;
+}
+.comments-tab [style*="max-width"],
+.comments-tab > div,
+.comments-tab > div > div,
+.comments-tab > div > div > div {
+  max-width: 100% !important;
 }
