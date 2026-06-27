@@ -92,7 +92,7 @@ export const paths = {
 
     return `https://raw.githubusercontent.com/cowprotocol/token-lists/main/src/public/images/${chainId}/${address}/logo.png`;
   },
-  futarchy: () => "https://app.futarchy.fi/",
+  futarchy: () => "https://futarchy.fi/companies",
   deepfund: () => "https://deep.seer.pm/",
   foresight: () => "https://foresight.kleros.io/",
   chainImage: (chainId: number) => {
