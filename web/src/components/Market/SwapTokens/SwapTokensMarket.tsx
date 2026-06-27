@@ -765,6 +765,24 @@ export function SwapTokensMarket({
                 market resolves to {outcomeText}.
               </p>
             )}
+          {swapType === "buy" &&
+            market.type !== "Futarchy" &&
+            getMarketType(market) === MarketTypes.SCALAR &&
+            outcomeToken.symbol !== "SER-INVALID" &&
+            (outcomeIndex === 0 || outcomeIndex === 1) && (
+              <p className="return-note">
+                Gains and losses are proportional and depend on how far the final answer is from the market estimate.
+              </p>
+            )}
+          {swapType === "buy" &&
+            market.type !== "Futarchy" &&
+            getMarketType(market) === MarketTypes.MULTI_CATEGORICAL &&
+            outcomeToken.symbol !== "SER-INVALID" && (
+              <p className="return-note">
+                If there are n final outcomes, the payout is split equally, so each winning token is worth 1/n{" "}
+                {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}.
+              </p>
+            )}
         </div>
 
         {isPriceTooHigh && (

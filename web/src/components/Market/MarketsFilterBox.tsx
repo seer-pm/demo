@@ -165,7 +165,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
   };
   const isDefaultOrder = watch("orderBy") === "default" || !watch("orderBy");
   return (
-    <div className="card-box shadow-[var(--shadow-md)] w-full py-5 @container">
+    <div className="card-box shadow-[var(--shadow-md)] w-full py-5 @container text-[14px]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 [&>*]:border-separator-100 [&>*]:border-r-0 sm:[&>*]:border-r sm:[&>*:nth-child(2n)]:border-r-0 lg:[&>*]:border-r lg:[&>*:nth-child(2n)]:border-r lg:[&>*:nth-child(3n)]:border-r-0">
         <div className="px-10">
           <div className="font-semibold flex items-center gap-2 pb-3">

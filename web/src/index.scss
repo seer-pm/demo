@@ -2126,6 +2126,33 @@ html[data-theme="dark"] .io-row .input.input-bordered:focus-within {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar { 
+.scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* COMMENTS (Orbis Discussion) — shrink fonts + drop comment-card borders. */
+.comments-tab {
+  font-size: 12px;
+}
+.comments-tab *,
+.comments-tab p,
+.comments-tab span,
+.comments-tab div,
+.comments-tab a {
+  font-size: 12px !important;
+}
+.comments-tab button,
+.comments-tab input,
+.comments-tab textarea {
+  font-size: 12px !important;
+}
+.comments-tab > div > div,
+.comments-tab > div > div > div,
+.comments-tab article,
+.comments-tab [class*="post"],
+.comments-tab [class*="Post"],
+.comments-tab [class*="comment"],
+.comments-tab [class*="Comment"] {
+  border: 0 !important;
+  border-color: transparent !important;
 }

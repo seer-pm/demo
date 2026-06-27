@@ -54,7 +54,7 @@ function Comments({ market }: { market: Market }) {
     }
   };
   return (
-    <>
+    <div className="comments-tab">
       {!ceramicSession && (
         <button
           type="button"
@@ -78,7 +78,7 @@ function Comments({ market }: { market: Market }) {
       </ErrorBoundary>
       {/* The "Open Social with" row + duplicate social icons were removed —
           the footer already shows the social links. */}
-    </>
+    </div>
   );
 }
 

@@ -503,7 +503,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
 
         {marketType === MarketTypes.SCALAR && market.id !== "0x000" && marketEstimate !== "NA" && (
-          <div className="mt-[18px] pt-[18px] border-t border-[var(--border-2)] font-semibold flex items-center gap-2">
+          <div className="mt-[12px] pt-[12px] -mb-[10px] lg:-mb-[10px] border-t border-[var(--border-2)] font-semibold text-[12px] flex items-center gap-2">
             Market Estimate: {odds.length === 0 ? <Spinner /> : marketEstimate}
             {odds.length > 0 && (
               <span className="tooltip">
