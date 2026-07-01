@@ -7,7 +7,8 @@ type EnvKeys =
   | "VITE_WC_PROJECT_ID"
   | "VITE_ADD_HARDHAT_NETWORK"
   | "VITE_TESTNET_WEBSITE"
-  | "VITE_IS_FAST_TESTNET";
+  | "VITE_IS_FAST_TESTNET"
+  | "VITE_SEER_CREDITS_DISABLED";
 let SEER_ENV: Partial<Record<EnvKeys, string | undefined>> = {};
 
 if (import.meta.env) {
@@ -23,6 +24,7 @@ if (import.meta.env) {
       VITE_ADD_HARDHAT_NETWORK: import.meta.env.VITE_ADD_HARDHAT_NETWORK,
       VITE_TESTNET_WEBSITE: import.meta.env.VITE_TESTNET_WEBSITE,
       VITE_IS_FAST_TESTNET: import.meta.env.VITE_IS_FAST_TESTNET,
+      VITE_SEER_CREDITS_DISABLED: import.meta.env.VITE_SEER_CREDITS_DISABLED,
     },
   );
 } else {
@@ -38,6 +40,7 @@ if (import.meta.env) {
       VITE_ADD_HARDHAT_NETWORK: process.env.VITE_ADD_HARDHAT_NETWORK,
       VITE_TESTNET_WEBSITE: process.env.VITE_TESTNET_WEBSITE,
       VITE_IS_FAST_TESTNET: process.env.VITE_IS_FAST_TESTNET,
+      VITE_SEER_CREDITS_DISABLED: process.env.VITE_SEER_CREDITS_DISABLED,
     },
   );
 }

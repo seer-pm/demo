@@ -1,6 +1,6 @@
-import type { SupportedChain } from "@seer-pm/sdk";
+import { isSeerCreditsDisabled } from "@/lib/seer-credits";
+import type { SupportedChain, Token } from "@seer-pm/sdk";
 import { isSeerCredits } from "@seer-pm/sdk";
-import type { Token } from "@seer-pm/sdk";
 import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -90,6 +90,14 @@ const useGlobalState = create<State & Action>()(
         })),
       getPreferredCollateral: (chainId: number, swapType: "buy" | "sell"): Token | undefined => {
         const preferredCollateral = useGlobalState.getState().preferredCollaterals[chainId];
+
+        if (
+          preferredCollateral &&
+          isSeerCreditsDisabled() &&
+          isSeerCredits(chainId as SupportedChain, preferredCollateral.address)
+        ) {
+          return undefined;
+        }
 
         if (
           preferredCollateral &&

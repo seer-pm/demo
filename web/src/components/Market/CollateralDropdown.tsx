@@ -1,5 +1,6 @@
 import { ArrowDropDown } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { isSeerCreditsDisabled } from "@/lib/seer-credits";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { GetTokenResult } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
@@ -42,7 +43,7 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
     options.push(profile.secondary.wrapped.address);
   }
 
-  if (type === "sell" && market.chainId in seerCreditsAddress) {
+  if (type === "sell" && !isSeerCreditsDisabled() && market.chainId in seerCreditsAddress) {
     options.push(seerCreditsAddress[market.chainId as keyof typeof seerCreditsAddress]);
   }
 
