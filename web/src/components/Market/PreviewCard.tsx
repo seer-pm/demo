@@ -1,16 +1,17 @@
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING, isVerificationEnabled } from "@/lib/config";
+import { isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
 import {
   CheckCircleIcon,
   ClockIcon,
   ConditionalMarketIcon,
   ExclamationCircleIcon,
+  ExplorerLinkIcon,
   LawBalanceIcon,
-  PresentIcon,
   SeerLogo,
+  ShareIcon,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
@@ -32,23 +33,21 @@ import {
 } from "@seer-pm/sdk";
 import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useMemo } from "react";
-import { formatUnits } from "viem";
-import { clientOnly } from "vike-react/clientOnly";
+import { useMemo, useState } from "react";
+import { formatUnits, zeroAddress } from "viem";
 import { Link } from "../Link";
 import Popover from "../Popover";
-import { BAR_COLOR, COLORS } from "./Header";
-import { MARKET_TYPES_ICONS } from "./Header/Icons";
+import { BAR_COLOR } from "./Header";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
 
-const DONUT_SIZE = 56;
+const DONUT_SIZE = 64;
 const DONUT_PAD_ANGLE = 2;
-const GAUGE_WIDTH = 100;
-const GAUGE_STROKE_WIDTH = 6;
-const GAUGE_KNOB_RADIUS = 4;
-const GAUGE_DISPLAY_HEIGHT = 74;
-const GAUGE_COLOR = "#B38FFF";
+const GAUGE_WIDTH = 140;
+const GAUGE_STROKE_WIDTH = 8;
+const GAUGE_KNOB_RADIUS = 6;
+const GAUGE_DISPLAY_HEIGHT = 78;
+const GAUGE_COLOR = "var(--blue)";
 
 type OutcomeSegment = {
   outcome: string;
@@ -82,6 +81,21 @@ function formatOutcomePercent(value: number): string {
   }
   const rounded = Math.round(value * 10) / 10;
   return rounded % 1 === 0 ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
+// Compact outcome label for cards: drop parenthetical content and cap to the first 3 words.
+function formatOutcomeLabel(outcome: string): string {
+  const withoutParens = outcome.replace(/\s*\([^)]*\)/g, "").trim();
+  const words = withoutParens.split(/\s+/).filter(Boolean);
+  return words.slice(0, 3).join(" ");
+}
+
+// Yes/No categorical outcomes get green/red treatment.
+function getYesNoKind(outcome: string): "yes" | "no" | null {
+  const normalized = outcome.trim().toLowerCase();
+  if (normalized === "yes") return "yes";
+  if (normalized === "no") return "no";
+  return null;
 }
 
 function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
@@ -126,8 +140,8 @@ function describeGaugeArc(cx: number, cy: number, radius: number, startAngle: nu
 
 function ScalarGaugeShimmer() {
   return (
-    <div className="w-full max-w-[110px] mx-auto">
-      <div className="relative h-[74px] flex items-end justify-center">
+    <div className="w-full max-w-[140px] mx-auto">
+      <div className="relative h-[78px] flex items-end justify-center">
         <div className="shimmer-container w-[80px] h-[70px] rounded-t-full" />
         <div className="absolute bottom-[4px] shimmer-container w-[8px] h-[8px] rounded-full" />
       </div>
@@ -141,6 +155,25 @@ function ScalarGaugeShimmer() {
       </div>
     </div>
   );
+}
+
+function fmtScalarCorner(n: number): string {
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) >= 1000) return formatBigNumbers(n, 1);
+  const s = n.toFixed(3);
+  return s.includes(".") ? s.replace(/\.?0+$/, "") : s;
+}
+
+function fmtScalarValue(n: number): string {
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) >= 1000) return formatBigNumbers(n, 1);
+  let s = n.toFixed(3);
+  if (s.includes(".")) s = s.replace(/\.?0+$/, "");
+  if (s.length > 5) {
+    s = s.slice(0, 5);
+    if (s.endsWith(".")) s = s.slice(0, -1);
+  }
+  return s;
 }
 
 function ScalarGauge({
@@ -160,24 +193,19 @@ function ScalarGauge({
 }) {
   const range = max - min;
   const percentage = range === 0 ? 0 : Math.max(0, Math.min(100, ((value - min) / range) * 100));
+  // Fixed geometry mirrors the approved preview (140×78 viewBox, arc center 70,60 r 50).
   const cx = width / 2;
-  const radius = width / 2 - GAUGE_STROKE_WIDTH - GAUGE_KNOB_RADIUS;
-  const cy = radius + GAUGE_STROKE_WIDTH / 2;
-  const arcPadding = GAUGE_KNOB_RADIUS + GAUGE_STROKE_WIDTH / 2;
-  const viewBox = {
-    x: cx - radius - arcPadding,
-    y: cy - radius - arcPadding,
-    width: 2 * (radius + arcPadding),
-    height: radius + 2 * arcPadding,
-  };
+  const cy = 60;
+  const radius = 50;
+  const viewBox = { x: 0, y: 0, width: GAUGE_WIDTH, height: GAUGE_DISPLAY_HEIGHT };
   const valueAngle = 270 + (percentage / 100) * 180;
   const knobAngle = valueAngle >= 360 ? valueAngle - 360 : valueAngle;
   const knobPos = polarToCartesian(cx, cy, radius, knobAngle);
   const bgArc = describeGaugeArc(cx, cy, radius, 270, 90);
 
   return (
-    <div className="w-full max-w-[110px] mx-auto">
-      <div className="relative" style={{ height: GAUGE_DISPLAY_HEIGHT }}>
+    <div className="w-full">
+      <div className="relative mx-auto max-w-[140px]" style={{ height: GAUGE_DISPLAY_HEIGHT }}>
         <svg
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           className="absolute inset-0 h-full w-full"
@@ -200,16 +228,37 @@ function ScalarGauge({
               strokeLinecap="round"
             />
           )}
-          <circle cx={knobPos.x} cy={knobPos.y} r={GAUGE_KNOB_RADIUS} fill={color} stroke="white" strokeWidth={2} />
+          <circle
+            cx={knobPos.x}
+            cy={knobPos.y}
+            r={GAUGE_KNOB_RADIUS}
+            fill={color}
+            stroke="white"
+            strokeWidth={2.5}
+            style={{ filter: "drop-shadow(0 1px 2px rgba(45, 107, 247, 0.35))" }}
+          />
         </svg>
-        <div className="absolute inset-x-0 bottom-[18%] text-center pointer-events-none">
-          <p className="font-semibold text-[14px] text-base-content leading-tight">{value.toLocaleString()}</p>
-          {unit && <p className="text-[9px] text-black-secondary uppercase leading-tight">{unit}</p>}
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 text-center pointer-events-none">
+          <p
+            className="font-display font-medium text-[26px] tracking-[-0.025em] tabular-nums text-ink leading-none"
+            style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
+          >
+            {fmtScalarValue(value)}
+          </p>
+          <p
+            className={clsx(
+              "font-mono font-medium text-[9.5px] tracking-[0.08em] text-ink-4 uppercase leading-none",
+              !unit && "invisible",
+            )}
+            aria-hidden={!unit}
+          >
+            {unit || "·"}
+          </p>
         </div>
       </div>
-      <div className="flex justify-between text-[9px] text-black-secondary px-0.5 leading-tight">
-        <span>{min.toLocaleString()}</span>
-        <span>{max.toLocaleString()}</span>
+      <div className="flex justify-between font-mono font-medium text-[11px] text-ink-4 tabular-nums leading-tight">
+        <span>{fmtScalarCorner(min)}</span>
+        <span>{fmtScalarCorner(max)}</span>
       </div>
     </div>
   );
@@ -317,7 +366,7 @@ export function OutcomesInfo({
     }
     return (
       <div className="flex items-center gap-3 w-full">
-        <div className="shimmer-container w-[56px] h-[56px] rounded-full flex-shrink-0" />
+        <div className="shimmer-container w-[64px] h-[64px] rounded-full flex-shrink-0" />
         <div className="flex flex-col gap-1 flex-1">
           <div className="shimmer-container h-[12px] rounded-[4px] w-full" />
           <div className="shimmer-container h-[12px] rounded-[4px] w-4/5" />
@@ -363,42 +412,31 @@ export function OutcomesInfo({
     <div className="flex items-center gap-3 w-full">
       <OutcomesDonut segments={segments} disabled={!hasUsableOdds} />
       <div className="flex flex-col gap-1 flex-1 min-w-0">
-        {segments.map((segment) => (
-          <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: segment.color }} />
-            <span className="truncate text-black-secondary flex-1" title={segment.outcome}>
-              {segment.outcome}
-            </span>
-            <span className="font-semibold text-base-content flex-shrink-0">
-              {formatOutcomePercent(segment.percent)}
-            </span>
-          </div>
-        ))}
+        {segments.map((segment) => {
+          const yesNo = getYesNoKind(segment.outcome);
+          const nameColor =
+            yesNo === "yes" ? "text-[var(--pos-text)]" : yesNo === "no" ? "text-[var(--neg-text)]" : "text-ink-3";
+          const pctColor =
+            yesNo === "yes" ? "text-[var(--pos-text)]" : yesNo === "no" ? "text-[var(--neg-text)]" : "text-ink";
+          return (
+            <div className="flex items-center gap-1.5 text-[12px] min-w-0" key={segment.key}>
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: segment.color }} />
+              <span
+                className={clsx("truncate font-medium flex-1 tracking-[-0.005em]", nameColor)}
+                title={segment.outcome}
+              >
+                {formatOutcomeLabel(segment.outcome)}
+              </span>
+              <span className={clsx("font-mono font-semibold tabular-nums flex-shrink-0", pctColor)}>
+                {formatOutcomePercent(segment.percent)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-
-const ConditionalMarketTooltipInner = ({
-  parentMarket,
-  market,
-}: {
-  market: Market;
-  parentMarket: Market;
-}) => (
-  <div className="tooltip">
-    <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
-      <p className="text-purple-primary">Conditional Market:</p>
-      <p className="text-base-content/70">
-        Conditional on <span className="text-base-content">"{parentMarket.marketName}"</span> being{" "}
-        <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
-      </p>
-    </div>
-    <ConditionalMarketIcon fill="currentColor" />
-  </div>
-);
-
-const ConditionalMarketTooltip = clientOnly(async () => ConditionalMarketTooltipInner);
 
 function MarketResult({ market }: { market: Market }) {
   const marketStatus = getMarketStatus(market);
@@ -412,7 +450,10 @@ function MarketResult({ market }: { market: Market }) {
   return (
     <Link
       className="h-[24px] block rounded-[3px] text-[12px] leading-[24px] relative"
-      style={{ background: `${BAR_COLOR[marketType][0]}29`, color: BAR_COLOR[marketType][0] }}
+      style={{
+        background: `color-mix(in srgb, ${BAR_COLOR[marketType][0]} 16%, transparent)`,
+        color: BAR_COLOR[marketType][0],
+      }}
       to={paths.market(market)}
     >
       <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
@@ -429,18 +470,50 @@ function MarketResult({ market }: { market: Market }) {
   );
 }
 
+function ShareButton({ market, className }: { market: Market; className: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleShare = () => {
+    const url =
+      typeof window !== "undefined" ? `${window.location.origin}${paths.market(market)}` : paths.market(market);
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button type="button" className={clsx(className, "relative")} aria-label="Share market" onClick={handleShare}>
+      {copied && (
+        <span className="absolute bottom-[125%] left-1/2 -translate-x-1/2 text-[10px] leading-none text-ink-4 whitespace-nowrap pointer-events-none">
+          Link copied
+        </span>
+      )}
+      <ShareIcon fill="currentColor" width={14} height={14} />
+    </button>
+  );
+}
+
 export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
-  const incentive = formatBigNumbers(market.incentive);
+  // Reward (SEER/day) is shown as a whole number — always round UP so
+  // 55.5 → 56 and 1.2k → 2k (a user shouldn't see a smaller value than
+  // what they'll actually earn).
+  const incentive = (() => {
+    const v = market.incentive;
+    if (v >= 1e9) return `${Math.ceil(v / 1e9)}B`;
+    if (v >= 1e6) return `${Math.ceil(v / 1e6)}M`;
+    if (v >= 1e3) return `${Math.ceil(v / 1e3)}k`;
+    return `${Math.ceil(v)}`;
+  })();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const footIcoBase = "w-[22px] h-[22px] !flex items-center justify-center rounded-[6px] transition-colors";
+  const footIcoClass = clsx(footIcoBase, "text-ink-5 hover:text-ink-2 hover:bg-bg-2");
   const { data: parentCollateral } = useTokenInfo(
     parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
     market.chainId,
   );
   const marketType = getMarketType(market);
-  const colors = marketStatus && COLORS[marketStatus];
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   const hasBalance = market.poolBalance.some(
@@ -449,36 +522,54 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "bg-base-100 rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "card-box group relative @container text-left grid grid-rows-[auto_auto_1fr_auto] gap-3 p-4 min-h-[200px] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[0_10px_24px_-12px_rgba(15,17,21,0.18)] dark:hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)]",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] @container">
-        <div className={clsx("flex space-x-3 px-4 pt-3")}>
-          <Link to={paths.market(market)} className="flex-shrink-0">
-            {market.images?.market ? (
-              <img
-                src={market.images.market}
-                alt={market.marketName}
-                className="aspect-square rounded-full @[340px]:w-[38px] @[315px]:w-[35px] w-[32px]"
-              />
-            ) : (
-              <div className="aspect-square rounded-full bg-purple-primary w-[38px]"></div>
-            )}
+      <div className="flex items-start gap-[7px]">
+        {/* `card-market-photo` is a stable hook for the scoped homepage-only
+            2px down-shift in index.scss. The class carries no styling on
+            its own; the shift is a `transform: translateY` so layout flow
+            (and therefore the card's overall height) is unaffected. */}
+        <Link to={paths.market(market)} className="card-market-photo flex-shrink-0 block w-[32px] h-[32px]">
+          {market.images?.market ? (
+            <img
+              src={market.images.market}
+              alt={market.marketName}
+              className="block rounded-full w-[32px] h-[32px] object-cover"
+            />
+          ) : (
+            <div className="rounded-full bg-purple-primary w-[32px] h-[32px]"></div>
+          )}
+        </Link>
+        <div className="grow min-w-0">
+          {/* `card-question-title` is a stable hook used by the homepage-only
+              font experiment (see `.home-markets-grid .card-question-title`
+              in index.scss). It carries NO styling on its own — the default
+              look is still `font-display` (Fraunces). Only when this card is
+              rendered inside the homepage grid does the scoped rule swap the
+              font. Collections-page cards are unaffected. */}
+          <Link
+            title={market.marketName}
+            className="card-question-title font-display font-medium tracking-[-0.012em] text-[14.5px] leading-snug line-clamp-3 before:absolute before:inset-0 before:z-0 before:content-['']"
+            style={{ fontVariationSettings: '"opsz" 36, "SOFT" 30' }}
+            to={paths.market(market)}
+          >
+            {market.marketName}
           </Link>
-          <div className="grow min-w-0">
-            <Link
-              title={market.marketName}
-              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
-              to={paths.market(market)}
-            >
-              {market.marketName}
-            </Link>
-          </div>
         </div>
       </div>
 
-      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
+      <div className="card-tags">
+        <span className="type-tag">{MARKET_TYPES_TEXTS[marketType]}</span>
+
+        {market.parentMarket?.id && market.parentMarket.id !== zeroAddress && (
+          <span className="conditional-tag">Conditional Market</span>
+        )}
+        {market.incentive > 0 && <span className="card-reward">{incentive} SEER/day</span>}
+      </div>
+
+      <div className="self-center py-1 overflow-y-auto custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
@@ -491,13 +582,13 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
-        <div className="flex items-center gap-2">
+      <div className="relative z-[1] border-t border-[var(--border-2)] pt-3 flex items-center justify-between">
+        <span className="flex items-center gap-2.5 min-w-0">
+          <SeerLogo fill="currentColor" className="text-ink-4 shrink-0 h-[14px] w-auto" />
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
               trigger={
-                <p className="text-[12px]">
+                <p className="font-display text-[14px] tabular-nums text-ink font-medium tracking-tight">
                   $
                   {market.liquidityUSD > 0
                     ? liquidityUSD
@@ -522,44 +613,42 @@ export function PreviewCard({ market }: { market: Market }) {
               }
             />
           ) : (
-            <p className="text-[12px]">${liquidityUSD}</p>
+            <p className="font-display text-[14px] tabular-nums text-ink font-medium tracking-tight">${liquidityUSD}</p>
           )}
-          <div className="tooltip">
-            <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
-            {MARKET_TYPES_ICONS[marketType]}
-          </div>
-          {parentMarket && <ConditionalMarketTooltip parentMarket={parentMarket} market={market} />}
-          {market.incentive > 0 && (
-            <div className="tooltip">
-              <p className="tooltiptext">
-                Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
-              </p>
-              <PresentIcon width="16px" />
+        </span>
+        <div className="flex items-center gap-0.5 text-ink-5">
+          {parentMarket && (
+            <div className={clsx(footIcoClass, "tooltip")}>
+              <div className="tooltiptext !text-left w-[300px] max-sm:w-[220px] !whitespace-pre-wrap">
+                <p className="text-purple-primary">Conditional Market:</p>
+                <p className="text-base-content/70">
+                  Conditional on <span className="text-base-content">"{parentMarket.marketName}"</span> being{" "}
+                  <span className="text-base-content">"{parentMarket.outcomes[Number(market.parentOutcome)]}"</span>
+                </p>
+              </div>
+              <ConditionalMarketIcon fill="currentColor" width="14" />
             </div>
           )}
-          <div className="tooltip !flex">
+          <ShareButton market={market} className={footIcoClass} />
+          <a
+            href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={clsx(footIcoClass, "tooltip")}
+            aria-label="View on explorer"
+          >
             <p className="tooltiptext">View contract on explorer</p>
-            <a
-              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0"
-            >
-              <img
-                alt="network-icon"
-                className="w-[14px] h-[14px] rounded-full"
-                src={NETWORK_ICON_MAPPING[market.chainId]}
-              />
-            </a>
-          </div>
+            <ExplorerLinkIcon fill="currentColor" width={14} height={14} />
+          </a>
           {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
             <Link
               className={clsx(
+                footIcoBase,
                 "tooltip",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
+                market.verification.status === "verified" && "text-success-primary hover:bg-success-primary/10",
+                market.verification.status === "verifying" && "text-blue-primary hover:bg-blue-primary/10",
+                market.verification.status === "challenged" && "text-warning-primary hover:bg-warning-primary/10",
+                market.verification.status === "not_verified" && "text-[#9747FF] hover:bg-[#9747FF]/10",
               )}
               to={
                 market.verification.status === "not_verified"
@@ -599,7 +688,7 @@ export function PreviewCard({ market }: { market: Market }) {
               )}
             </Link>
           )}
-          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
+          {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={footIcoClass} />}
         </div>
       </div>
     </div>

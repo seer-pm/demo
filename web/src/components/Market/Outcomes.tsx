@@ -5,7 +5,7 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
-import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { CheckCircleIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import {
@@ -236,7 +236,7 @@ function AddLiquidityLinks({
           onClick={() => {
             openLiquidityModal();
           }}
-          className="text-purple-primary hover:underline text-left"
+          className="text-blue hover:text-blue-hover transition-colors text-left font-medium"
         >
           Add Liquidity
         </button>
@@ -245,7 +245,7 @@ function AddLiquidityLinks({
           href={getLiquidityUrlByMarket(market, outcomeIndex)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
+          className="text-blue flex items-center space-x-2 hover:text-blue-hover transition-colors text-left font-medium"
         >
           Add Liquidity
         </a>
@@ -344,12 +344,14 @@ function OutcomeDetails({
           image={images?.[outcomeIndex]}
           isInvalidOutcome={_isInvalidOutcome}
           title={market.outcomes[outcomeIndex]}
+          className="w-[38px] h-[38px] rounded-full dark:bg-neutral"
         />
       </div>
       <div className="space-y-1">
-        <div className="text-[16px] flex items-center gap-1">
+        <div className="text-[15px] font-semibold tracking-[-0.005em] mb-1 flex items-center gap-1 flex-wrap">
           <p>
-            {market.type === "Generic" && <>#{loopIndex + 1}</>} {market.outcomes[outcomeIndex]}{" "}
+            {market.type === "Generic" && <span className="text-ink">#{loopIndex + 1}</span>}{" "}
+            {market.outcomes[outcomeIndex]}{" "}
             {outcomeIndex <= 1 &&
               getMarketType(market) === MarketTypes.SCALAR &&
               `[${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}{" "}
@@ -359,7 +361,7 @@ function OutcomeDetails({
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
                 {getTooltipContent(market, outcomeIndex)}
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" width={12} height={12} />
             </span>
           )}
           {_isInvalidOutcome && (
@@ -368,17 +370,15 @@ function OutcomeDetails({
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
                 invalid.
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" width={12} height={12} />
             </span>
           )}
 
           {winningOutcomes?.[outcomeIndex] === true && <CheckCircleIcon className="text-success-primary" />}
-        </div>
-        <div className="text-[12px] text-black-secondary">
           {balances && balances[outcomeIndex] > 0n && (
-            <div className="w-full">
+            <span className="quick-btn quick-btn--pct !cursor-default">
               {displayBalance(balances[outcomeIndex], 18, true)} {tokensInfo?.[outcomeIndex]?.symbol}
-            </div>
+            </span>
           )}
         </div>
         <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-row justify-start">
@@ -386,12 +386,9 @@ function OutcomeDetails({
             href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-purple-primary tooltip"
+            className="text-ink-4 hover:text-blue transition-colors"
           >
-            <p className="tooltiptext">
-              View {tokensInfo?.[outcomeIndex]?.symbol} on {SUPPORTED_CHAINS?.[market.chainId]?.name}
-            </p>
-            <EtherscanIcon width="12" height="12" />
+            View on {SUPPORTED_CHAINS?.[market.chainId]?.name} ↗
           </a>
 
           {market.type === "Generic" && (
@@ -410,7 +407,7 @@ function OutcomeDetails({
                 e.stopPropagation();
                 onTogglePoolDetails();
               }}
-              className="text-purple-primary hover:underline"
+              className="text-blue hover:text-blue-hover transition-colors font-medium"
             >
               {isPoolDetailsOpen ? "Hide pool details" : "View pool details"}
             </button>
@@ -421,7 +418,7 @@ function OutcomeDetails({
               to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
                 market.outcomes[outcomeIndex],
               )}`}
-              className="text-purple-primary hover:underline"
+              className="text-blue hover:text-blue-hover transition-colors font-medium"
             >
               New conditional market
             </Link>
@@ -513,9 +510,9 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
   }, [indexesOrderedByOdds, onOutcomeChange]);
 
   return (
-    <div>
-      <div className="text-[16px] font-semibold mb-[24px]">Outcomes</div>
-      <div className="space-y-3">
+    <div className="card-box p-[22px]">
+      <div className="font-display text-[18px] font-semibold tracking-tight mb-[18px]">Outcomes</div>
+      <div className="space-y-2.5">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
@@ -527,7 +524,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
               ref={(el) => {
                 outcomeCardRefs.current[i] = el;
               }}
-              className={clsx("card", isActive ? "card-active" : "")}
             >
               <div
                 onClick={(e) => {
@@ -539,7 +535,8 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   }
                 }}
                 className={clsx(
-                  "flex flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
+                  "card flex-row justify-between items-center p-[14px] cursor-pointer transition-colors hover:bg-bg-2",
+                  isActive ? "card-active hover:!bg-transparent" : "",
                   market.type === "Futarchy" && "max-md:space-y-[12px]",
                 )}
               >
@@ -588,12 +585,20 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                 )}
                 {market.type === "Futarchy" && (
                   <div className="flex justify-center gap-x-4 w-full text-[12px] pt-[12px] pr-[64px]">
-                    <AddLiquidityLinks market={market} outcomeIndex={i} pools={pools} openLiquidityModal={openModal} />
+                    <AddLiquidityLinks
+                      market={market}
+                      outcomeIndex={i}
+                      pools={pools}
+                      openLiquidityModal={openModal}
+                    />
                   </div>
                 )}
-                <div className="flex space-x-2 min-[400px]:space-x-10 items-center">
+                <div className="flex items-center">
                   {market.type === "Generic" && (
-                    <div className="text-[20px] min-[400px]:text-[24px] font-semibold text-right">
+                    <div
+                      className="font-display text-[20px] min-[400px]:text-[22px] font-medium tracking-tight tabular-nums text-right"
+                      style={{ fontVariationSettings: '"opsz" 96, "SOFT" 30' }}
+                    >
                       {isLoading ? (
                         <Spinner />
                       ) : (
@@ -604,14 +609,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                       )}
                     </div>
                   )}
-
-                  <input
-                    type="radio"
-                    name="outcome"
-                    className="radio max-lg:hidden"
-                    readOnly
-                    checked={activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2)}
-                  />
                 </div>
               </div>
               {poolDetailsOutcomeIndex === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}

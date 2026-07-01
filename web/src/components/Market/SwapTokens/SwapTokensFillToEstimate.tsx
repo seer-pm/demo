@@ -269,7 +269,7 @@ export function SwapTokensFillToEstimate({
             Target estimate{marketUnit ? ` (${marketUnit})` : ""}
           </label>
           <div className="tooltip">
-            <QuestionIcon fill="#9747FF" />
+            <QuestionIcon fill="var(--blue)" />
             <p className="tooltiptext">Same unit as the market estimate shown in the header.</p>
           </div>
         </div>
@@ -301,7 +301,7 @@ export function SwapTokensFillToEstimate({
               Max collateral to use
             </label>
             <div className="tooltip">
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="var(--blue)" />
               <p className="tooltiptext">
                 Maximum {selectedCollateral.symbol} from your wallet for this plan (e.g. split lock). Estimated net
                 spend below may be lower after sell proceeds.

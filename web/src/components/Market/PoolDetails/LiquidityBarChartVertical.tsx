@@ -111,19 +111,23 @@ export default function LiquidityBarChartVertical({
   }
   return (
     <div className="overflow-hidden">
-      <div className="py-3 border-t border-b border-black-secondary grid grid-cols-12 gap-0 bg-gray-50 text-xs font-medium text-base-content pr-4">
+      <div className="py-3 border-t border-b border-black-secondary grid grid-cols-12 gap-0 bg-gray-50 dark:bg-[var(--bg-2)] text-xs font-medium text-base-content">
         <div className="col-span-6"></div>
         <div className="col-span-3 text-center text-black-secondary font-semibold">SHARES</div>
         <div className="col-span-3 text-center text-black-secondary font-semibold">TOTAL</div>
       </div>
 
-      <div ref={containerRef} className="overflow-y-auto h-[380px]">
+      <div ref={containerRef} className="overflow-y-auto scrollbar-hide h-[380px]">
         {rows.map((r) => (
           <div
             key={r.id}
             className={clsx(
               "group cursor-pointer relative grid grid-cols-12 items-center text-sm",
-              r.side === "sell" ? "hover:bg-[#fcebeb]" : r.side === "buy" ? "hover:bg-[#eaf5ee]" : "hover:bg-[#f4f5f6]",
+              r.side === "sell"
+                ? "hover:bg-[#fcebeb] dark:hover:bg-[rgba(226,57,57,0.18)]"
+                : r.side === "buy"
+                  ? "hover:bg-[#eaf5ee] dark:hover:bg-[rgba(48,161,89,0.18)]"
+                  : "hover:bg-[#f4f5f6] dark:hover:bg-[rgba(255,255,255,0.06)]",
               r.side === "mid" ? "border-t border-b border-black-secondary" : "",
             )}
           >
@@ -133,15 +137,19 @@ export default function LiquidityBarChartVertical({
                   style={{ width: `${Math.min(100, r.pct * 100)}%` }}
                   className={`absolute flex items-center pl-2 inset-y-0 left-0 ${
                     r.side === "sell"
-                      ? "group-hover:bg-[#f9d1d1] bg-[#fcebeb]"
+                      ? "bg-[#fcebeb] group-hover:bg-[#f9d1d1] dark:bg-[rgba(226,57,57,0.15)] dark:group-hover:bg-[rgba(226,57,57,0.28)]"
                       : r.side === "buy"
-                        ? "group-hover:bg-[#cee9d8] bg-[#eaf5ee]"
+                        ? "bg-[#eaf5ee] group-hover:bg-[#cee9d8] dark:bg-[rgba(48,161,89,0.15)] dark:group-hover:bg-[rgba(48,161,89,0.28)]"
                         : ""
                   }`}
                 >
                   <p
                     className={clsx(
-                      r.side === "sell" ? "text-[#e23939]" : r.side === "buy" ? "text-[#30a159]" : "text-[#77808d]",
+                      r.side === "sell"
+                        ? "text-[#e23939]"
+                        : r.side === "buy"
+                          ? "text-[#30a159]"
+                          : "text-black dark:text-white font-semibold",
                       "whitespace-nowrap",
                     )}
                   >

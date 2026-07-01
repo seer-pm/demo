@@ -29,16 +29,16 @@ export const Slider = ({ value, min = 0, max = 100, step = 1, onChange }: Slider
               [&::-webkit-slider-thumb]:w-4
               [&::-webkit-slider-thumb]:h-4
               [&::-webkit-slider-thumb]:rounded-full
-              [&::-webkit-slider-thumb]:bg-[#9747ff]
+              [&::-webkit-slider-thumb]:bg-[var(--blue)]
               [&::-moz-range-thumb]:w-4
               [&::-moz-range-thumb]:h-4
               [&::-moz-range-thumb]:rounded-full
-              [&::-moz-range-thumb]:bg-[#9747ff]
+              [&::-moz-range-thumb]:bg-[var(--blue)]
               [&::-moz-range-thumb]:border-0
               relative
             "
           style={{
-            background: `linear-gradient(to right, #9747ff ${percentage}%, #E5E7EB ${percentage}%)`,
+            background: `linear-gradient(to right, var(--blue) ${percentage}%, #E5E7EB ${percentage}%)`,
           }}
         />
       </div>

@@ -117,23 +117,27 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
   return (
     <div>
-      <div className="container-fluid py-[16px]">
+      <div className="container-fluid pt-[16px] pb-[8px]">
         <MarketsFilter />
       </div>
 
-      <div className="container-fluid py-[24px]">
+      <div className="container-fluid pt-[8px] pb-[80px]">
         {isPending && (
-          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
-            <div className="shimmer-container h-[225px]"></div>
+          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
+            <div className="shimmer-container h-[250px] rounded-[12px]"></div>
           </div>
         )}
 
         {!isPending && data.markets.length === 0 && <Alert type="warning">No results found.</Alert>}
 
-        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+        {/* EXPERIMENT — `home-markets-grid` marks THIS grid (homepage only)
+            so the scoped `.home-markets-grid .card-question-title` rule in
+            index.scss can swap the card question font to Geist here without
+            touching the same PreviewCard used on the collections page. */}
+        <div className="home-markets-grid mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-4">
           {data.markets.map((market) => (
             <PreviewCard key={`${market.id}_${market.chainId}`} market={market} />
           ))}

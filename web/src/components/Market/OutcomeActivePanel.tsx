@@ -39,7 +39,7 @@ export function OutcomeActivePanel({
 
   return (
     <div
-      className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out border-t border-purple-primary rounded-b-[3px] bg-base-100"
+      className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out border-t border-purple-primary border-opacity-0 rounded-b-[3px] bg-base-100 text-[12.5px] [&_*]:text-[12.5px]"
       style={{
         maxHeight: isOpen ? maxHeight : 0,
         opacity: isOpen ? 1 : 0,

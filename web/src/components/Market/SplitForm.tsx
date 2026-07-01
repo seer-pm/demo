@@ -3,13 +3,14 @@ import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
+import { useTokenUsdPrice } from "@/hooks/useTokenUsdPrice";
 import { displayBalance } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { NATIVE_TOKEN, getRouterAddress } from "@seer-pm/sdk";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
 import { SwitchChainButtonWrapper } from "../Form/SwitchChainButtonWrapper";
 
@@ -75,6 +76,30 @@ export function SplitForm({ account, market }: SplitFormProps) {
     },
   );
 
+  const usdPrice = useTokenUsdPrice(selectedCollateral?.symbol);
+  const showDollar = market.parentMarket.id === zeroAddress;
+
+  const currentAmountFloat = (): number => {
+    const n = Number(amount);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  const balanceTokens = (): number => Number(formatUnits(balance, selectedCollateral.decimals));
+  const setAmountTokens = (next: number) => {
+    const max = balanceTokens();
+    const clamped = Math.max(0, Math.min(next, max));
+    const formatted = clamped.toFixed(selectedCollateral.decimals).replace(/\.?0+$/, "") || "0";
+    const dot = formatted.indexOf(".");
+    const truncated = dot === -1 ? formatted : formatted.slice(0, dot + 3);
+    setValue("amount", truncated, { shouldValidate: true, shouldDirty: true });
+  };
+  const addPercentOfBalance = (pct: number) => {
+    setAmountTokens(currentAmountFloat() + balanceTokens() * (pct / 100));
+  };
+  const addUsdAmount = (usd: number) => {
+    const price = usdPrice && usdPrice > 0 ? usdPrice : 1;
+    setAmountTokens(currentAmountFloat() + usd / price);
+  };
+
   const onSubmit = async (/*values: SplitFormValues*/) => {
     await splitPosition.mutateAsync({
       router: router,
@@ -88,30 +113,61 @@ export function SplitForm({ account, market }: SplitFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <div className="flex justify-between items-center">
-          <div className="text-[14px]">Amount</div>
-          <div
-            className="text-purple-primary cursor-pointer"
-            onClick={() => {
-              setValue("amount", formatUnits(balance, selectedCollateral.decimals), {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-            }}
-          >
-            Max
+        <div className="text-[14px] mb-2">Amount</div>
+        <div className="flex justify-between items-center gap-2">
+          <div className="text-[12px] text-black-secondary flex items-center gap-1">
+            Balance:{" "}
+            <div>
+              {isFetchingBalance ? (
+                <div className="shimmer-container w-[80px] h-[13px]" />
+              ) : (
+                <>
+                  {displayBalance(balance, selectedCollateral.decimals)} {selectedCollateral.symbol}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="quick-group">
+            <button
+              type="button"
+              className="quick-btn quick-btn--full"
+              onClick={() => setAmountTokens(balanceTokens() / 2)}
+            >
+              HALF
+            </button>
+            <button
+              type="button"
+              className="quick-btn quick-btn--full"
+              onClick={() => setAmountTokens(balanceTokens())}
+            >
+              MAX
+            </button>
           </div>
         </div>
-        <div className="text-[12px] text-black-secondary mb-2 flex items-center gap-1">
-          Balance:{" "}
-          <div>
-            {isFetchingBalance ? (
-              <div className="shimmer-container w-[80px] h-[13px]" />
-            ) : (
-              <>
-                {displayBalance(balance, selectedCollateral.decimals)} {selectedCollateral.symbol}
-              </>
-            )}
+        <div className="io-quick-actions mb-2">
+          <div className="quick-group">
+            {[1, 5, 10].map((n) => (
+              <button
+                key={`amount-${n}`}
+                type="button"
+                className="quick-btn quick-btn--dollar"
+                onClick={() => (showDollar ? addUsdAmount(n) : setAmountTokens(currentAmountFloat() + n))}
+              >
+                {showDollar ? `+$${n}` : `+${n}`}
+              </button>
+            ))}
+          </div>
+          <div className="quick-group">
+            {[1, 5, 10].map((pct) => (
+              <button
+                key={`pct-${pct}`}
+                type="button"
+                className="quick-btn quick-btn--pct"
+                onClick={() => addPercentOfBalance(pct)}
+              >
+                +{pct}%
+              </button>
+            ))}
           </div>
         </div>
         <Input
@@ -121,7 +177,6 @@ export function SplitForm({ account, market }: SplitFormProps) {
           step="any"
           {...register("amount", {
             required: "This field is required.",
-            // valueAsNumber: true,
             validate: (v) => {
               if (Number.isNaN(Number(v)) || Number(v) < 0) {
                 return "Amount must be greater than 0.";

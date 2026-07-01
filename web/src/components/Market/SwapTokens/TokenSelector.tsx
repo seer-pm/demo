@@ -100,9 +100,9 @@ export const TokenSelector = ({
     isTokenCollateral && parentMarket && !isUndefined(fixedCollateral) && market.type !== "Futarchy" && hasSameSymbol;
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-      <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">{imageElement}</div>
-      <p className="font-semibold text-[16px]">
+    <div className="io-token">
+      <div className="token-img rounded-full w-4 h-4 overflow-hidden flex-shrink-0">{imageElement}</div>
+      <p>
         {currentToken.symbol}
         {isParentToken && <span className="text-[12px] italic text-base-content/70 font-normal ml-1">(parent)</span>}
       </p>
@@ -112,11 +112,11 @@ export const TokenSelector = ({
 
 export function TokenImage({ token }: { token: Token }) {
   return (
-    <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)]">
-      <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
+    <div className="io-token">
+      <div className="token-img rounded-full w-4 h-4 overflow-hidden flex-shrink-0">
         <img className="w-full h-full" alt={token.symbol} src={paths.tokenImage(token.address, token.chainId)} />
       </div>
-      <p className="font-semibold text-[16px]">{token.symbol}</p>
+      <p>{token.symbol}</p>
     </div>
   );
 }

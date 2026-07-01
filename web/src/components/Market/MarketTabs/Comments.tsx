@@ -1,5 +1,4 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
-import Button from "@/components/Form/Button";
 import { useIsAccountConnected } from "@/hooks/useIsConnectedAndSignedIn";
 import { useLocalStorageKey } from "@/hooks/useLocalStorageKey";
 import { useTheme } from "@/hooks/useTheme";
@@ -55,15 +54,20 @@ function Comments({ market }: { market: Market }) {
     }
   };
   return (
-    <>
+    <div className="comments-tab">
       {!ceramicSession && (
-        <Button
-          isLoading={isLoading}
-          className="w-[250px] mb-4"
+        <button
           type="button"
-          text="Leave a comment"
+          disabled={isLoading}
           onClick={() => signOrbis()}
-        />
+          aria-label="Leave a comment"
+          className="w-full mb-4 grid grid-cols-[1fr_auto] gap-[10px] items-center p-[8px] pl-[14px] bg-bg-2 rounded-[8px] text-left cursor-pointer hover:bg-bg-3 transition-colors disabled:opacity-70"
+        >
+          <span className="font-italic italic text-[15px] text-ink-5 truncate">
+            {isLoading ? "Connecting…" : "Leave a comment…"}
+          </span>
+          <span className="px-[14px] py-[8px] bg-blue text-white rounded-full text-[13px] font-semibold">Connect</span>
+        </button>
       )}
       <ErrorBoundary fallback={<p>Something went wrong.</p>}>
         <Discussion
@@ -72,7 +76,9 @@ function Comments({ market }: { market: Market }) {
           context={`${SEER_ENV.VITE_ORBIS_CONTEXT}:${market.id.toLowerCase()}`}
         />
       </ErrorBoundary>
-    </>
+      {/* The "Open Social with" row + duplicate social icons were removed —
+          the footer already shows the social links. */}
+    </div>
   );
 }
 

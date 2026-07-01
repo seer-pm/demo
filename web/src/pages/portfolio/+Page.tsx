@@ -36,7 +36,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
       {isLoading ? (
         <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
       ) : (
-        <p className="text-[32px] text-base-content font-semibold">
+        <p className="font-display text-[32px] text-base-content font-medium tracking-tight tabular-nums">
           {Number(currentPortfolioValue).toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol}
         </p>
       )}

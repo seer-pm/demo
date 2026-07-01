@@ -53,11 +53,11 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
   }, [outcomesData]);
 
   return (
-    <div className="relative flex items-center pr-16">
+    <div className="relative flex items-center pr-16 mt-[14px] pt-[14px] border-t border-[var(--border)]">
       {/* Scrollable container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide"
+        className="flex gap-4 overflow-x-auto scrollbar-hide"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {outcomesData.map(({ outcome, data }, index) => {
@@ -74,17 +74,17 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
             <div
               key={`item-${index}`}
               onClick={() => onToggleOutcome(outcome.name)}
-              className="flex items-center justify-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs whitespace-nowrap transition-colors hover:bg-gray-50"
+              className="flex items-center justify-center gap-2 py-0.5 cursor-pointer text-[12.5px] whitespace-nowrap transition-opacity hover:opacity-80"
             >
               <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{
                   backgroundColor: isVisible ? outcome.color : "#d1d5db",
                   opacity: isVisible ? 1 : 0.6,
                 }}
               />
-              <span className="truncate max-w-[200px]">{outcome.name}</span>
-              <span className="text-base-content">{formattedValue}</span>
+              <span className="truncate max-w-[200px] font-medium text-ink-2">{outcome.name}</span>
+              <span className="font-mono font-semibold tabular-nums text-ink">{formattedValue}</span>
             </div>
           );
         })}

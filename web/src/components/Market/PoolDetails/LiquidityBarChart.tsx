@@ -65,7 +65,7 @@ export default function LiquidityBarChart({
               rich: {
                 bold: {
                   fontWeight: "bold",
-                  color: "#9747ff",
+                  color: "var(--blue)",
                 },
               },
             },
@@ -191,7 +191,7 @@ export default function LiquidityBarChart({
               [currentOutcomePriceIndex, maxYValue * 1.2], //make it higher than the rest of the data
             ],
             lineStyle: {
-              color: "#9747ff",
+              color: "var(--blue)",
               type: "dotted",
               width: 2,
             },
@@ -207,7 +207,7 @@ export default function LiquidityBarChart({
               label: {
                 show: true,
                 position: "end",
-                color: "#9747ff",
+                color: "var(--blue)",
                 fontWeight: "bold",
               },
               data: [

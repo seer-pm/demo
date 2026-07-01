@@ -3,6 +3,7 @@ import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useSignIn } from "@/hooks/useSignIn";
+import { useTheme } from "@/hooks/useTheme";
 import { filterChain } from "@/lib/chains";
 import {
   BookIcon,
@@ -10,15 +11,82 @@ import {
   CloseCircleOutlineIcon,
   CloseIcon,
   DiscordIcon,
-  DownArrow,
   EthIcon,
   Menu,
   NotificationIcon,
-  PersonAdd,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
+
+// Sample-matched stroke icons for the header (16×16, fill:none, stroke
+// currentColor 2px, rounded caps/joins). Match the .icon-button glyphs in
+// `Seer New Redesign/index.html` exactly. Kept inline so other consumers of
+// NotificationIcon / QuestionIcon (filled Material style) are unaffected.
+const HeaderBellIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </svg>
+);
+const HeaderHelpIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const HeaderMoonIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+const HeaderSunIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </svg>
+);
 import { paths } from "@/lib/paths";
 import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
@@ -68,11 +136,9 @@ function AccountSettings({ isMobile }: { isMobile?: boolean }) {
   const isAuthValid = !isAccessTokenExpired(accessToken);
 
   return (
-    <div className={clsx(isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6")}>
-      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[20px] text-center")}>
-        Email Notifications
-      </div>
-      <p className="text-[14px] text-black-secondary">
+    <div className={clsx(isMobile ? "space-y-2" : "w-[280px] max-w-[90vw] px-[16px] py-[16px] space-y-4")}>
+      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[15px]")}>Email Notifications</div>
+      <p className="text-[12.5px] text-ink-3 leading-snug">
         Receive email notifications for your followed markets and important updates.
       </p>
       {isConnected ? (
@@ -110,10 +176,10 @@ function BetaWarning() {
     setVisible(false);
   };
   return (
-    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
+    <div className="bg-[#fbfaf7] text-[#4b5563] dark:bg-surface-2 dark:text-ink-3 text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2 border-b border-[var(--border)]">
       <span>Note that this is a Beta version and can still be unstable</span>
       <button type="button" className="hover:opacity-80" onClick={dismiss}>
-        <CloseCircleOutlineIcon width={12} height={12} fill="white" />
+        <CloseCircleOutlineIcon width={12} height={12} fill="currentColor" />
       </button>
     </div>
   );
@@ -130,13 +196,16 @@ type NavItem = {
   icon?: ReactElement;
   element?: ReactElement;
   className?: string;
+  active?: boolean;
   children?: NavItem[];
 };
 
 const getNestedLinkClassName = (isMobile: boolean) =>
   isMobile
     ? "flex gap-2 items-center py-[16px] hover:font-semibold whitespace-nowrap"
-    : "flex items-center gap-2 px-[16px] py-[16px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary";
+    : // Sample `.menu a` — text-[13.5px] medium, ink-2 color, padded 9/12,
+      // 6px radius, soft bg-2 hover. No left border accent.
+      "flex items-center gap-2 px-[12px] py-[9px] rounded-[6px] text-[13.5px] font-medium text-ink-2 hover:bg-bg-2 hover:text-ink transition-colors";
 
 const appLink = (id: string, key: keyof typeof paths, label: string, isMobile: boolean): NavItem => ({
   id,
@@ -144,7 +213,7 @@ const appLink = (id: string, key: keyof typeof paths, label: string, isMobile: b
   url: (paths[key] as () => string)(),
   title: label,
   className: getNestedLinkClassName(isMobile),
-  icon: <img className="h-[32px] w-auto" src={paths.logoImage(id)} alt={label} />,
+  icon: <img className="h-[18px] w-auto" src={paths.logoImage(id)} alt={label} />,
 });
 
 // ── Renderer ──────────────────────────────────────────────────────────────────
@@ -164,8 +233,23 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
           <Link
             key={item.id}
             to={item.url ?? ""}
+            aria-current={item.active ? "page" : undefined}
             className={
-              item.className ?? (isMobile ? "hover:font-semibold block" : "whitespace-nowrap hover:opacity-85 py-3")
+              item.className ??
+              (isMobile
+                ? clsx("hover:font-semibold block", item.active && "font-semibold")
+                : clsx(
+                    "whitespace-nowrap px-[14px] py-[8px] rounded-[6px] transition-colors relative",
+                    // Sample applies `.nav a:hover { background: var(--bg-2) }`
+                    // to BOTH active and non-active links. The 2px underline
+                    // sits at `bottom: -1px` with `border-radius: 2px 2px 0 0`
+                    // — Tailwind's default `rounded-t` is 4px which made the
+                    // line's rounded ends bulge above its 2px height and
+                    // read as thicker than the sample's.
+                    item.active
+                      ? "text-ink hover:bg-bg-2 after:content-[''] after:absolute after:left-[14px] after:right-[14px] after:-bottom-[1px] after:h-[2px] after:bg-blue after:rounded-t-[2px]"
+                      : "text-ink-3 hover:bg-bg-2 hover:text-ink",
+                  ))
             }
           >
             {item.icon} {item.title}
@@ -180,13 +264,17 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
             <ul>{renderChildren()}</ul>
           </div>
         ) : (
-          <div key={item.id} className={item.className ?? "dropdown dropdown-end"}>
+          <div key={item.id} className={item.className ?? "dropdown dropdown-hover"}>
             {item.element ?? (
-              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
+              <button
+                type="button"
+                tabIndex={0}
+                className="flex items-center gap-1.5 px-[14px] py-[8px] rounded-[6px] text-ink-3 hover:bg-bg-2 hover:text-ink transition-colors"
+              >
                 <span>{item.title}</span> {item.icon}
               </button>
             )}
-            <ul tabIndex={0} className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
+            <ul tabIndex={0} className="dropdown-content z-20 [&_svg]:text-blue">
               {renderChildren()}
             </ul>
           </div>
@@ -206,6 +294,7 @@ export default function Header() {
   const { urlParsed } = usePageContext();
   const { isConnected } = useAccount();
   const { balance, isFetching, symbol, chainId } = useWalletBalance();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topOffset, setTopOffset] = useState(0);
   const navRef = useRef<HTMLDivElement>(null);
@@ -260,6 +349,7 @@ export default function Header() {
     const nestedLinkClassName = getNestedLinkClassName(isMobile);
     const profileMenuLinkClassName = clsx(nestedLinkClassName, !isMobile && "text-[14px] w-full");
     const render = useNavRenderer(isMobile, isConnected);
+    const currentPath = urlParsed.pathname;
 
     const deposit = isMobile ? (
       <Button type="button" text="Deposit" onClick={openModal} />
@@ -279,8 +369,25 @@ export default function Header() {
         )}
       </>
     ) : (
-      <button type="button" tabIndex={0} className="flex flex-col items-center hover:opacity-85">
-        <PersonAdd />
+      <button
+        type="button"
+        tabIndex={0}
+        className="relative top-[5px] flex flex-col items-center hover:opacity-85 text-ink-3"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
         {!isFetching && (
           <p className="text-[10px]">
             {displayBalance(balance, 18, true)} {symbol}
@@ -289,21 +396,34 @@ export default function Header() {
       </button>
     );
 
+    // Shared className for the round header icon buttons (notification, help, theme).
+    // Matches the sample model's `.icon-button` spec: 36×36 circle, bg-2 surface,
+    // transparent placeholder border, ink-3 → ink on hover. `relative` allows
+    // an optional unread/notification badge dot to absolute-position inside.
+    const iconButtonClassName =
+      "relative inline-flex items-center justify-center w-[36px] h-[36px] rounded-full border border-transparent bg-bg-2 text-ink-3 hover:text-ink hover:bg-bg-3 transition-colors";
+
     const items: NavItem[] = [
       {
         id: "container-1",
         type: "container",
         className: isMobile
           ? "space-y-[24px]"
-          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[10%] [@media(min-width:1000px)]:ml-[16%] [@media(min-width:1200px)]:!ml-[0] text-[14px] font-medium space-x-[4px]",
         children: [
-          { id: "market", type: "link", url: "/", title: "Markets" },
-          { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
+          { id: "market", type: "link", url: "/", title: "Markets", active: currentPath === "/" },
+          {
+            id: "create-market",
+            type: "link",
+            url: "/create-market",
+            title: "Create Market",
+            active: currentPath.startsWith("/create-market"),
+          },
           {
             id: "policies-dropdown",
             type: "nested_links",
             title: "Policies",
-            icon: <DownArrow />,
+            icon: <span className="text-[9px] text-ink-5 -translate-y-px leading-none">▾</span>,
             children: [
               {
                 id: "verified-policy",
@@ -327,7 +447,7 @@ export default function Header() {
             id: "app-dropdown",
             type: "nested_links",
             title: "App",
-            icon: <DownArrow />,
+            icon: <span className="text-[9px] text-ink-5 -translate-y-px leading-none">▾</span>,
             children: [
               appLink("futarchy", "futarchy", "Futarchy.fi", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
@@ -341,7 +461,7 @@ export default function Header() {
         type: "container",
         className: isMobile
           ? "space-y-[24px] mt-5"
-          : "hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[12px]",
+          : "hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[24px]",
         children: [
           { id: "connect-wallet", type: "custom", element: <ConnectWallet isMobile={isMobile} /> },
           {
@@ -351,7 +471,10 @@ export default function Header() {
               {
                 id: "connected-dropdown",
                 type: "nested_links",
-                className: isMobile ? "space-y-[12px]" : undefined,
+                // dropdown-end keeps the menu anchored to the trigger's
+                // right edge so it doesn't extend off the right of the
+                // viewport (this trigger sits near right-[24px]).
+                className: isMobile ? "space-y-[12px]" : "dropdown dropdown-end dropdown-hover",
                 element: balanceDisplay,
                 children: [
                   { id: "deposit", type: "custom", element: deposit },
@@ -393,7 +516,13 @@ export default function Header() {
               {
                 id: "notification-dropdown",
                 type: "nested_links",
+                className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <NotificationIcon />,
+                element: isMobile ? undefined : (
+                  <button type="button" tabIndex={0} aria-label="Email notifications" className={iconButtonClassName}>
+                    <HeaderBellIcon />
+                  </button>
+                ),
                 children: [
                   {
                     id: "notification-settings",
@@ -405,13 +534,19 @@ export default function Header() {
               {
                 id: "information",
                 type: "nested_links",
+                className: isMobile ? undefined : "dropdown dropdown-end dropdown-hover",
                 icon: <QuestionIcon />,
+                element: isMobile ? undefined : (
+                  <button type="button" tabIndex={0} aria-label="Help" className={iconButtonClassName}>
+                    <HeaderHelpIcon />
+                  </button>
+                ),
                 children: [
                   {
                     id: "help",
                     type: "link",
                     title: "Get Help",
-                    icon: <DiscordIcon />,
+                    icon: <DiscordIcon fill="var(--blue)" />,
                     url: paths.getHelp(),
                     className: nestedLinkClassName,
                   },
@@ -443,7 +578,7 @@ export default function Header() {
                     id: "faq",
                     type: "link",
                     title: "FAQ",
-                    icon: <QuestionIcon />,
+                    icon: <QuestionIcon fill="var(--blue)" />,
                     url: paths.faq(),
                     className: nestedLinkClassName,
                   },
@@ -454,14 +589,18 @@ export default function Header() {
                 type: "custom",
                 element: isMobile ? (
                   <div className="py-[16px]">
-                    <ThemeToggleButton iconFill="#9747FF" iconSize="17" showLabel />
+                    <ThemeToggleButton iconFill="var(--blue)" iconSize="17" showLabel />
                   </div>
                 ) : (
-                  <ThemeToggleButton
-                    iconFill="white"
-                    iconSize="20"
-                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
-                  />
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                    title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                    className={iconButtonClassName}
+                  >
+                    {theme === "light" ? <HeaderMoonIcon /> : <HeaderSunIcon />}
+                  </button>
                 ),
               },
             ],
@@ -487,7 +626,7 @@ export default function Header() {
   };
 
   return (
-    <header id="header" className="bg-purple-dark">
+    <header id="header" className="bg-surface border-b border-[var(--border)] sticky top-0 z-50 text-ink">
       <Modal
         title="Deposit"
         className="w-[400px]"
@@ -496,11 +635,11 @@ export default function Header() {
       <BetaWarning />
       <nav
         ref={navRef}
-        className="navbar container-fluid text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
+        className="navbar container-fluid text-ink-3 gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center [@media(min-width:1200px)]:pr-[180px] relative"
       >
-        <div className="absolute left-[24px] lg:left-[12px]">
-          <Link className="text-white hover:opacity-85" to="/">
-            <SeerLogo width="99.2px" height="46px" />
+        <div className="absolute left-[24px]">
+          <Link className="text-ink hover:text-blue transition-colors" to="/">
+            <SeerLogo width="69px" height="32px" fill="currentColor" />
           </Link>
         </div>
         {buildAndRender(mobileOpen)}

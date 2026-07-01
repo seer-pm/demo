@@ -11,10 +11,10 @@ export function DisplayOdds({
 }) {
   if (!isOdd(odd)) {
     return (
-      <div className="flex space-x-2 items-center">
-        <div>NA</div>
+      <div className="flex space-x-1.5 items-center justify-end">
+        <div className="pr-0.5">NA</div>
         <Tooltip
-          trigger={<QuestionIcon fill="#9747FF" />}
+          trigger={<QuestionIcon fill="var(--blue)" width={12} height={12} />}
           content={
             <div>
               The odds cannot be displayed because the outcome's current price is far above 1. This typically happens

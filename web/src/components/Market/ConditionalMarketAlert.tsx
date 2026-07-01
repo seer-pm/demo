@@ -21,7 +21,11 @@ export function ConditionalMarketAlert({
   }
   const parentOutcomeText = parentMarket.outcomes[Number(parentOutcome)];
   return (
-    <Alert type="info" title="Conditional Market">
+    <Alert
+      type="info"
+      title="Conditional Market"
+      className="[&_.alert-title]:!text-[14px] [&_.alert-title+div]:!text-[12px]"
+    >
       This market is conditional on the resolution of{" "}
       <Link to={paths.market(parentMarket.id, chainId)} target="_blank" className="text-purple-primary font-medium">
         "{parentMarket.marketName}"

@@ -1,101 +1,64 @@
-import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
-import { useTokenInfo } from "@seer-pm/react";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
-import { useState } from "react";
+import clsx from "clsx";
+import { useEffect, useState } from "react";
 import { Address } from "viem";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
 
+export type TokenAction = "mint" | "merge" | "redeem";
+
 interface ConditionalTokenActionsProps {
   account?: Address;
   market: Market;
   outcomeIndex: number;
+  /** Currently open action (Mint/Merge/Redeem), or null to render nothing. */
+  activeAction: TokenAction | null;
 }
 
-const titles = {
-  mint: "Mint",
-  merge: "Merge",
-  redeem: "Redeem",
-};
+// Must be ≥ the unified `transition-duration` on `.action-form-panel` in
+// index.scss (currently 520ms on every animated property). Set to 540ms
+// (20ms buffer) so the form stays mounted through the FULL haze-out —
+// without the buffer, the inner fields disappear before the wrapper has
+// finished blurring back into nothing. If you tune the CSS, sync this.
+const PANEL_TRANSITION_MS = 540;
 
-export function ConditionalTokenActions({ account, market, outcomeIndex }: ConditionalTokenActionsProps) {
-  const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
-  const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+export function ConditionalTokenActions({
+  account,
+  market,
+  outcomeIndex: _outcomeIndex,
+  activeAction,
+}: ConditionalTokenActionsProps) {
   const marketStatus = getMarketStatus(market);
-  const [isShow, setShow] = useState(false);
-  const renderActionBox = () => (
-    <div className="card p-[24px] shadow-md">
-      <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "mint" && "tab-active"}`}
-          onClick={() => setActiveTab("mint")}
-        >
-          Mint
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "merge" && "tab-active"}`}
-          onClick={() => setActiveTab("merge")}
-        >
-          Merge
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "redeem" && "tab-active"}`}
-          onClick={() => setActiveTab("redeem")}
-        >
-          Redeem
-        </button>
-      </div>
+  const [renderedAction, setRenderedAction] = useState<TokenAction | null>(activeAction);
+  const [isOpen, setIsOpen] = useState(false);
 
-      {activeTab === "mint" && <SplitForm account={account} market={market} />}
+  useEffect(() => {
+    if (activeAction !== null) {
+      // Opening (or switching to another action): mount the form first,
+      // then add `is-open` on the next frame so the transition actually
+      // runs (toggling the class same-frame as mount = no transition).
+      setRenderedAction(activeAction);
+      const raf = requestAnimationFrame(() => setIsOpen(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    // Closing: drop the class first; keep the form mounted until the
+    // haze-out animation finishes, then unmount.
+    setIsOpen(false);
+    const timer = window.setTimeout(() => setRenderedAction(null), PANEL_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeAction]);
 
-      {activeTab === "merge" && <MergeForm account={account} market={market} />}
-
-      {activeTab === "redeem" &&
+  return (
+    <div className={clsx("action-form-panel", isOpen ? "is-open" : "is-closed")} aria-hidden={!isOpen}>
+      {renderedAction === "mint" && <SplitForm account={account} market={market} />}
+      {renderedAction === "merge" && <MergeForm account={account} market={market} />}
+      {renderedAction === "redeem" &&
         (marketStatus === MarketStatus.CLOSED ? (
           <RedeemForm account={account} market={market} />
         ) : (
-          "Redemptions are not available yet."
+          <p className="text-[13px] text-ink-3">Redemptions are not available yet.</p>
         ))}
-    </div>
-  );
-
-  if (marketStatus === MarketStatus.CLOSED) {
-    if (isPending) {
-      return <div className="shimmer-container w-full h-[400px]"></div>;
-    }
-    return renderActionBox();
-  }
-  if (!outcomeToken) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="card shadow-md">
-        <button
-          type="button"
-          onClick={() => setShow((state) => !state)}
-          className="w-full p-2 flex items-center justify-center gap-2"
-        >
-          <p className="font-semibold">More</p>
-          <div>{isShow ? <ArrowDropUp /> : <ArrowDropDown />}</div>
-        </button>
-      </div>
-      <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isShow ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        {renderActionBox()}
-      </div>
     </div>
   );
 }

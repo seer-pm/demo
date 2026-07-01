@@ -2,9 +2,9 @@ import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
-import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
+import { ConditionalTokenActions, type TokenAction } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
-import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
+import MajorEvents from "@/components/Market/MajorEvents";
 import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
@@ -26,12 +26,15 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import {
   Market,
   MarketStatus,
+  type Token,
+  WRAPPED_OUTCOME_TOKEN_DECIMALS,
   getLiquidityPairForToken,
   getMarketStatus,
   isMarketReliable,
   isOfficialMarketFactory,
 } from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
+import clsx from "clsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
@@ -42,12 +45,32 @@ function SwapWidget({
   outcomeIndex,
   images,
   onOutcomeChange,
+  account,
 }: {
   market: Market;
   outcomeIndex: number;
   images?: string[];
   onOutcomeChange: (i: number, openDrawer: boolean) => void;
+  account?: Address;
 }) {
+  const [activeAction, setActiveAction] = useState<TokenAction | null>(null);
+  const toggleAction = (a: TokenAction) => setActiveAction((current) => (current === a ? null : a));
+  const actionsRow = (
+    <div className="actions-row" role="tablist">
+      {(["mint", "merge", "redeem"] as const).map((a) => (
+        <button
+          key={a}
+          type="button"
+          role="tab"
+          aria-pressed={activeAction === a}
+          className={clsx(activeAction === a && "active")}
+          onClick={() => toggleAction(a)}
+        >
+          {a.charAt(0).toUpperCase() + a.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
   // Preload all outcome tokens to populate cache and avoid flicker while loading
   useTokensInfo(market.wrappedTokens, market.chainId);
   const { data: outcomeToken } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
@@ -75,19 +98,48 @@ function SwapWidget({
     );
   }
 
-  if (!outcomeToken) {
+  const fallbackOutcomeToken: Token | undefined =
+    market.wrappedTokens[outcomeIndex] != null
+      ? {
+          address: market.wrappedTokens[outcomeIndex],
+          chainId: market.chainId,
+          symbol: market.outcomes?.[outcomeIndex] ?? `Outcome ${outcomeIndex + 1}`,
+          decimals: WRAPPED_OUTCOME_TOKEN_DECIMALS,
+        }
+      : undefined;
+  const effectiveOutcomeToken: Token | undefined = outcomeToken ?? fallbackOutcomeToken;
+  if (!outcomeToken && effectiveOutcomeToken && typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[SwapWidget]·outcomeToken·multicall·missed·for·market=${market.id}·chainId=${market.chainId}·outcomeIndex=${outcomeIndex}·wrappedTokens[${outcomeIndex}]=${market.wrappedTokens[outcomeIndex]}·—·using·subgraph-derived·fallback·token·so·the·panel·still·mounts.`,
+    );
+  }
+  if (!effectiveOutcomeToken) {
+    // Only happens when even the subgraph data is missing the wrapped
+    // token address — true "no data" state, not a Base flake.
     return null;
   }
+
+  const actionFormPanel = (
+    <ConditionalTokenActions
+      market={market}
+      account={account}
+      outcomeIndex={outcomeIndex}
+      activeAction={activeAction}
+    />
+  );
 
   return (
     <SwapTokens
       market={market}
       outcomeIndex={outcomeIndex}
-      outcomeToken={outcomeToken}
+      outcomeToken={effectiveOutcomeToken}
       fixedCollateral={fixedCollateral}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
       onOutcomeChange={onOutcomeChange}
+      actionsRow={actionsRow}
+      actionFormPanel={actionFormPanel}
     />
   );
 }
@@ -150,7 +202,7 @@ function MarketPage() {
 
   if (isMarketError) {
     return (
-      <div className="container py-10">
+      <div className="container-fluid py-10">
         <Alert type="error" className="mb-5">
           Market not found
         </Alert>
@@ -160,7 +212,7 @@ function MarketPage() {
 
   if ((isMarketLoading && !isPlaceholderData) || !market) {
     return (
-      <div className="container-fluid py-10 space-y-5">
+      <div className="container-fluid pt-4 pb-10 space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         <div className="shimmer-container w-full h-[200px]"></div>
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-10">
@@ -182,9 +234,11 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
 
   return (
-    <div className="container-fluid py-10">
+    <div className="container-fluid pt-4 pb-10">
+      <div className="mb-3">
+        <Breadcrumb links={[{ title: market.marketName }]} />
+      </div>
       <div className="space-y-5">
-        <Breadcrumb links={[{ title: "Market" }]} />
         {marketStatus !== MarketStatus.CLOSED && !isOfficialMarketFactory(market.factory, market.chainId) && (
           <Alert type="warning" title="This market was not created through an official Seer factory.">
             It could be malicious or contain misleading information. Proceed with extreme caution.
@@ -209,7 +263,11 @@ function MarketPage() {
           </Alert>
         )}
         {market.verification?.status === "not_verified" && (
-          <Alert type="warning" title="This market is unverified (it didn't go through the curation process)">
+          <Alert
+            type="warning"
+            title="This market is unverified (it didn't go through the curation process)"
+            className="[&_.alert-title]:!text-[14px] [&_.alert-title+div]:!text-[12px]"
+          >
             It may be invalid, tricky and have misleading token names. Exercise caution while interacting with it.
           </Alert>
         )}
@@ -229,10 +287,9 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
+        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-[minmax(0,1fr)_360px] [@media(min-width:1200px)]:grid-rows-[auto_1fr] gap-x-4 gap-y-5">
+          <div className="h-fit space-y-5 min-w-0">
             <MarketChart market={market} />
-
             <Outcomes
               market={market}
               images={market?.images?.outcomes}
@@ -240,22 +297,20 @@ function MarketPage() {
               onOutcomeChange={onOutcomeChange}
             />
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+          <div className="[@media(min-width:1200px)]:block space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
             <MajorEvents market={market} />
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
-              <>
-                <SwapWidget
-                  market={market}
-                  outcomeIndex={outcomeIndex}
-                  images={market?.images?.outcomes}
-                  onOutcomeChange={onOutcomeChange}
-                />
-                <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
-              </>
+              <SwapWidget
+                market={market}
+                outcomeIndex={outcomeIndex}
+                images={market?.images?.outcomes}
+                onOutcomeChange={onOutcomeChange}
+                account={account}
+              />
             )}
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
+          <div className="space-y-16 min-w-0">
             <MarketTabs market={market} />
           </div>
         </div>
@@ -272,6 +327,7 @@ function MarketPage() {
                     outcomeIndex={outcomeIndex}
                     images={market?.images?.outcomes}
                     onOutcomeChange={onOutcomeChange}
+                    account={account}
                   />
                 }
                 onTabsChange={setDrawerTabs}

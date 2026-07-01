@@ -13,6 +13,7 @@ export default function SwapButtons({
   isBuyExactOutputNative,
   missingApprovals,
   text,
+  className,
 }: {
   account?: Address;
   trade: Trade;
@@ -21,6 +22,7 @@ export default function SwapButtons({
   isBuyExactOutputNative: boolean;
   missingApprovals: UseMissingApprovalsReturn[] | undefined;
   text?: string;
+  className?: string;
 }) {
   const isShowApproval = !isBuyExactOutputNative && missingApprovals && missingApprovals.length > 0;
   return (
@@ -32,7 +34,7 @@ export default function SwapButtons({
           disabled={isDisabled}
           isLoading={isLoading}
           text={text ?? "Swap"}
-          className="w-full"
+          className={className ?? "w-full !rounded-[8px]"}
         />
       )}
       {isShowApproval && (
@@ -45,6 +47,7 @@ export default function SwapButtons({
               spender={approval.spender}
               amount={approval.amount}
               chainId={trade.chainId as SupportedChain}
+              className={className}
             />
           ))}
         </div>

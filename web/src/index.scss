@@ -5,7 +5,7 @@
 
 /* increase root specificity */
 :root:root {
-  --rounded-btn: 3px;
+  --rounded-btn: 999px;
 
   /* Color variables in OKLCH format for alpha support */
   --blue-primary: 78.99% 0.143 224.17; /* #24CDFE */
@@ -13,11 +13,62 @@
   --blue-medium: 95.5% 0.012 255.5; /* #EAF1FF */
   --blue-light: 98.5% 0.006 255.5; /* #F8FAFF */
 
-  --purple-primary: 59.81% 0.254 298.01; /* #9747FF */
-  --purple-secondary: 72.91% 0.161 297.06; /* #B38FFF */
-  --purple-medium: 98.34% 0.01 305.41; /* #FBF8FF */
-  --purple-light: 99.5% 0.005 305.41; /* #FDFBFF */
-  --purple-dark: 32.5% 0.18 305; /* #59097E */
+  /* Brand accent repointed to seerbeta blue (#2D6BF7). Kept as OKLCH triplet so
+     existing `text-purple-primary` / `oklch(var(--purple-primary) / a)` usages
+     become blue app-wide without renaming classes. */
+  --purple-primary: 56.1% 0.211 261.6; /* #2D6BF7 (was #9747FF) */
+  --purple-secondary: 48.8% 0.217 264; /* #1D4ED8 blue-hover (was #B38FFF) */
+  --purple-medium: 96.8% 0.018 256; /* #E8F0FF blue-soft (was #FBF8FF) */
+  --purple-light: 98.8% 0.008 256; /* very light blue (was #FDFBFF) */
+  --purple-dark: 32.5% 0.18 305; /* #59097E (footer/header legacy) */
+
+  /* ============================================================
+     seerbeta design tokens — LIGHT (raw hex/rgb, used directly)
+     ============================================================ */
+  --bg: #fbfaf7;
+  --bg-2: #f3f2ec;
+  --bg-3: #eceae2;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --ink: #0f1115;
+  --ink-2: #1f2937;
+  --ink-3: #4b5563;
+  --ink-4: #6b7280;
+  --ink-5: #9ca3af;
+  --border: #ece8dc;
+  --border-2: #f4f1e7;
+  --border-strong: #d8d2c0;
+  --blue: #2d6bf7;
+  --blue-hover: #1d4ed8;
+  --blue-soft: #e8f0ff;
+  --blue-text: #1e48c2;
+  --pos: #00b955;
+  --pos-text: #15803d;
+  --pos-bar: #2bb673;
+  --neg: #e5484d;
+  --neg-text: #b91c1c;
+  --neg-bar: #e5484d;
+  --cat-1: #6366f1;
+  --cat-2: #f59e0b;
+  --cat-3: #8b5cf6;
+  --cat-4: #06b6d4;
+  --cat-5: #ec4899;
+  --verified: #1d9bf0;
+  /* Kleros brand gradient — used for primary CTAs and active pills in dark mode */
+  --kleros-grad: linear-gradient(135deg, #4d00b4 0%, #7b2bff 100%);
+  --kleros-grad-hover: linear-gradient(135deg, #5a0bd0 0%, #8e44ff 100%);
+  --r-sm: 6px;
+  --r: 8px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.025);
+  --shadow: 0 1px 2px rgba(15, 17, 21, 0.04);
+  --shadow-md: 0 10px 24px -12px rgba(15, 17, 21, 0.1);
+
+  /* remap legacy surface/separator vars to the new tokens */
+  --card-bg: var(--surface);
+  --separator-100: var(--border);
 
   --black: 0% 0 0; /* #000000 */
   --black-primary: 23.5% 0 0; /* #333333 */
@@ -50,24 +101,59 @@
   --toastify-icon-color-error: oklch(var(--white));
 }
 
+/* ============================================================
+   seerbeta design tokens — DARK (Kleros-purple accent)
+   ============================================================ */
+:root:root[data-theme="dark"] {
+  --bg: #0a0612;
+  --bg-2: #20183c;
+  --bg-3: #2b2150;
+  --surface: #130c24;
+  --surface-2: #1a1230;
+  --ink: #f4f1ff;
+  --ink-2: #ded7f2;
+  --ink-3: #b2a8d0;
+  --ink-4: #897fa8;
+  --ink-5: #685e86;
+  --border: #261c46;
+  --border-2: #1c1438;
+  --border-strong: #3d2f68;
+  --blue: #7b2bff;
+  --blue-hover: #9457ff;
+  --blue-soft: rgba(123, 43, 255, 0.16);
+  --blue-text: #c7abff;
+  --pos: #22c55e;
+  --pos-text: #4ade80;
+  --pos-bar: #34d399;
+  --neg: #f43f5e;
+  --neg-text: #fb7185;
+  --neg-bar: #f43f5e;
+  --cat-1: #818cf8;
+  --cat-2: #fbbf24;
+  --cat-3: #a78bfa;
+  --cat-4: #22d3ee;
+  --cat-5: #f472b6;
+  --verified: #38bdf8;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 16px 34px -16px rgba(0, 0, 0, 0.78);
+  --card-bg: var(--surface);
+  --separator-100: var(--border);
+
+  /* brand accent → Kleros purple in dark (#7B2BFF) */
+  --purple-primary: 51.5% 0.293 296.5;
+  --purple-secondary: 62% 0.22 296;
+}
+
 #root {
   @apply flex flex-col min-h-screen;
 }
 
 .container-fluid {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding-left: 12px;
-  padding-right: 12px;
-
-  @media (min-width: 1600px) {
-    & {
-      max-width: 75%;
-      margin: 0 auto;
-      padding-left: 0;
-      padding-right: 0;
-    }
-  }
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 body {
@@ -75,14 +161,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Light mode gradient (default) */
+/* Flat surface background (seerbeta) */
 body {
-  background: linear-gradient(247.18deg, #f4f0fd 0%, #fdfff7 100%);
-}
-
-/* Dark mode gradient */
-:root[data-theme="dark"] body {
-  background: linear-gradient(247.18deg, #0b0e11 0%, #1a1f26 100%);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, -apple-system, "Helvetica Neue", sans-serif;
 }
 
 .border-separator-100 {
@@ -94,26 +177,1288 @@ body {
   background-color: var(--card-bg);
 }
 
-/* Card component classes */
-.card {
-  @apply bg-base-100 border rounded-[3px] border-separator-100;
+/* Card component classes (seerbeta: surface + soft border + rounded-lg) */
+.card,
+.card-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
 }
 
 .card-active {
-  border-color: oklch(var(--purple-primary));
+  border-color: var(--blue);
+  /* Sample uses a 3px soft blue halo on selected outcomes. */
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
+}
+html[data-theme="dark"] .card-active {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.20);
 }
 
 /* Pill component classes */
 .pill {
-  @apply border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
+  @apply rounded-[300px] px-[14px] py-[6px] text-[13.5px] text-center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
 }
 
 .pill-button {
-  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+  @apply rounded-[300px] px-[14px] py-[6px] text-[13.5px] text-center cursor-pointer transition-all;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+
+  &:hover {
+    background: var(--bg-2);
+  }
 
   &.pill-button-active {
-    @apply bg-purple-primary text-white;
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
   }
+}
+
+/* ============================================================
+   seerbeta reusable component classes
+   ============================================================ */
+
+/* Segmented control (chart timeframe, etc.) */
+.timeframe {
+  display: inline-flex;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+  padding: 3px;
+}
+.timeframe button {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-4);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.timeframe button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.timeframe button:not(.active):hover {
+  color: var(--ink-2);
+}
+
+/* Category pill (homepage) */
+.cat {
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+.cat:hover {
+  background: var(--bg-2);
+}
+.cat.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+/* "My collections" link (homepage category row) */
+.collections-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Instrument Serif", "Times New Roman", serif;
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink-3);
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+.collections-link:hover {
+  color: var(--ink);
+}
+.collections-link .ico {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-4);
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+}
+.collections-link .ico::before {
+  content: "";
+  position: absolute;
+  inset: 2px 50% 2px 2px;
+  background: var(--ink-4);
+  border-radius: 50% 0 0 50%;
+}
+
+/* Metadata tags (market header) */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-2);
+  border-radius: var(--r);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.tag .k {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.tag .v {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.tag.verified {
+  background: var(--blue-soft);
+  color: var(--blue-text);
+}
+.tag.reward {
+  background: rgba(255, 165, 0, 0.2);
+  color: #e76f51;
+}
+.tag.deadline {
+  background: #f1ecfe;
+  color: #7c3aed;
+}
+
+/* Preview card tag row (type / conditional / reward) */
+.card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  /* Sample uses -4px to tighten the title → tags gap inside the card grid
+     (which otherwise has a 12px row gap). Keeps the tags visually attached
+     to the title block. */
+  margin-top: -4px;
+}
+.card-tags .type-tag {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 2px 6px;
+  background: var(--bg-2);
+  border-radius: 4px;
+}
+
+.card-tags .conditional-tag {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+html[data-theme="dark"] .card-tags .conditional-tag {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+}
+.home-markets-grid .card-tags .conditional-tag {
+  display: inline-flex;
+}
+/* Icon: verbatim from the sample (Seer New Redesign/index.html).
+   U+21E2 RIGHTWARDS DASHED ARROW at 0.7 opacity, rendered via a
+   `::before` pseudo so the icon stays inside the tag's currentColor
+   (theme-aware: violet light → amber dark) without any JSX glyph. */
+.home-markets-grid .card-tags .conditional-tag::before {
+  content: "⇢";
+  opacity: 0.7;
+}
+.card-tags .card-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.card-tags .card-reward::before {
+  content: "✦";
+  opacity: 0.7;
+}
+
+/* =====================================================================
+   EXPERIMENT — homepage market-card question font.
+   Scope is deliberately tight: this rule ONLY fires for the
+   `.card-question-title` element when it sits inside the homepage's
+   `.home-markets-grid` wrapper (see web/src/pages/index/+Page.tsx). The
+   exact same <PreviewCard> on the collections page has no
+   `.home-markets-grid` ancestor, so it keeps its default `font-display`
+   (Fraunces) look — nothing else on the site is touched.
+
+   Two-class specificity (0,2,0) beats the element's `.font-display`
+   Tailwind utility (0,1,0), so no !important is needed. Geist is loaded
+   in +Head.tsx; if it ever fails to load, the chain degrades to Inter
+   (still clean) rather than a serif. `font-variation-settings: normal`
+   clears the Fraunces-specific opsz/SOFT axes the inline style sets —
+   Geist ignores them anyway, this is just hygiene.
+
+   To try a different face, change ONLY the family name here and the
+   matching `family=` in +Head.tsx (e.g. Space Grotesk, Hanken Grotesk,
+   Instrument Sans). To end the experiment, delete this block + the
+   Geist <link> + the two marker classes. */
+.home-markets-grid .card-question-title {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-variation-settings: normal;
+  font-size: 13.5px;
+  letter-spacing: -0.041em;
+  line-height: 1.475;
+}
+
+/* Homepage-only: nudge the market thumbnail 2px down so it sits a touch
+   below the title's first-line cap height (optical balance with the new
+   Inter title font). `transform: translateY` is deliberate — it does NOT
+   reflow the row, so the card's overall height stays exactly the same.
+   Scoped to `.home-markets-grid` so the same PreviewCard rendered on the
+   collections page is untouched. */
+.home-markets-grid .card-market-photo {
+  transform: translateY(2px);
+}
+
+/* Status pill (market header) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  background: rgba(0, 185, 85, 0.1);
+  color: var(--pos-text);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(0, 185, 85, 0.2);
+}
+
+/* Tab pills (market tabs) */
+.tab-pill {
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+.tab-pill:hover {
+  background: var(--bg-3);
+  color: var(--ink-2);
+}
+.tab-pill.active {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.tab-pill .count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  border-radius: var(--r-pill);
+  color: var(--ink-4);
+  background: var(--bg-2);
+}
+.tab-pill.active .count {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Swap panel io-row + token pill */
+.io-row {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+.io-row:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
+}
+html[data-theme="dark"] .io-row:focus-within {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.22);
+}
+.io-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.max-btn {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--blue-soft);
+}
+
+
+.io-quick-actions {
+  /* Row 2 = additive chips only ($ on the left, % on the right).
+     `space-between` pushes the two `.quick-group` containers to opposite
+     edges of the panel; gap is the minimum guaranteed inset if the row
+     ever wraps on a narrow viewport. */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.quick-group {
+  /* Used in BOTH row 1 (Half/MAX) and row 2 ($/% groups) — cluster a
+     small set of chips at consistent 4px gap so each group reads as
+     one visual unit. */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.quick-btn {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+.quick-btn:hover {
+  opacity: 0.85;
+}
+.quick-btn:active {
+  opacity: 1;
+  filter: brightness(0.95);
+}
+
+.quick-btn--dollar {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+}
+.quick-btn--pct {
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.12);
+}
+.quick-btn--full {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+html[data-theme="dark"] .quick-btn--dollar {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+}
+html[data-theme="dark"] .quick-btn--pct {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.18);
+}
+
+/* Outcome row (market page) */
+.outcome-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: transparent;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+  cursor: pointer;
+}
+.outcome-row:hover {
+  background: var(--bg-2);
+  border-color: var(--border-strong);
+}
+.outcome-row.outcome-row-active {
+  border-color: var(--blue);
+}
+
+/* Token logo inside the swap io-token chip (ported from market.html) */
+.io-token .token-img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Purchase card tab bar (outcome + Market/Fill-to-price) — ported from market.html */
+.purchase-card {
+  padding: 0;
+}
+.purchase-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 4px;
+}
+.purchase-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-4);
+  position: relative;
+  
+  text-align: center;
+  white-space: nowrap;
+}
+.purchase-tab.active {
+  color: var(--ink);
+}
+.purchase-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--blue);
+  border-radius: 2px 2px 0 0;
+}
+.purchase-card .buy-body {
+  padding: 18px 20px;
+}
+
+
+.actions-row {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.actions-row:has(+ .action-form-panel.is-closed) {
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+.actions-row button {
+  flex: 1;
+  padding: 14px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-4);
+  letter-spacing: 0.02em;
+  border-right: 1px solid var(--border);
+  transition:
+    color 140ms ease,
+    background 140ms ease;
+}
+.actions-row button:last-child {
+  border-right: 0;
+}
+.actions-row button:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.actions-row button.active {
+  color: var(--blue);
+}
+
+
+.action-form-panel {
+  /* layout */
+  background: var(--surface);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  /* default (closed): collapsed, hazy, invisible — no border-top so the
+     actions-row above keeps its own rounded bottom in that state. */
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-top: 0 solid var(--border);
+  opacity: 0;
+  filter: blur(10px);
+  overflow: hidden;
+  transform: translateY(-4px);
+  /* Used on CLOSE (animating BACK to this state). 520ms = brisk. */
+  transition:
+    max-height 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-top-width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Hint to the compositor: these properties will change. Keeps the
+     blur + transform on the GPU instead of triggering main-thread
+     paints every frame — what makes the fade actually feel smooth. */
+  will-change: max-height, opacity, filter, transform;
+}
+.action-form-panel.is-open {
+  max-height: calc(100vh - 240px);
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-top: 1px solid var(--border);
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+  overflow-y: auto;
+  /* Used on OPEN (animating INTO this state). 920ms = slow, deliberate
+     reveal. CSS transitions use the destination rule's spec, so this
+     920ms runs only when adding .is-open; removing it falls back to
+     the base rule's 520ms above. */
+  transition:
+    max-height 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-top-width 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 920ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 920ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+.action-form-panel .text-\[14px\],
+.mobile-action-panel .text-\[14px\] {
+  font-size: 12.5px;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.action-form-panel .text-\[12px\],
+.mobile-action-panel .text-\[12px\] {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.action-form-panel .text-purple-primary.cursor-pointer,
+.mobile-action-panel .text-purple-primary.cursor-pointer {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.action-form-panel .input.input-bordered,
+.mobile-action-panel .input.input-bordered {
+  font-size: 14px;
+}
+.action-form-panel .btn,
+.mobile-action-panel .btn {
+  font-size: 14px;
+}
+
+
+.slippage-panel {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.slippage-panel p.font-semibold.text-\[18px\] {
+  /* "Parameters" heading — was 18px, drop to 14px display-weight so
+     it doesn't dwarf the form labels below. */
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.slippage-panel p {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.slippage-panel .pill-button {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.slippage-panel .input.input-bordered {
+  font-size: 14px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+.slippage-panel .btn {
+  font-size: 13px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 18px;
+}
+
+
+.action-form-panel .flex.space-x-2 > div {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+}
+
+
+.purchase-card .toggle,
+.mobile-action-panel .toggle {
+  /* RESET daisyUI defaults — kill the inset-shadow knob, drop borders,
+     resize the track to a slim 18px × 32px. White track on both themes
+     (Tailwind `#fff` literal, not `var(--surface)`) per the designer —
+     keeps the toggle reading clean against any panel background. */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2rem;             /* 32px */
+  height: 1.125rem;        /* 18px */
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition:
+    background 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.purchase-card .toggle::before,
+.mobile-action-panel .toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--blue);
+  border-radius: 50%;
+
+  box-shadow: 0 1px 4px rgba(45, 107, 247, 0.18);
+  transform: translateY(-50%);
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 200ms ease;
+}
+.purchase-card .toggle:checked::before,
+.mobile-action-panel .toggle:checked::before {
+  /* Slide right: 32 (track) − 2 (left inset) − 2 (right inset) − 12 (knob) = 16px */
+  transform: translateY(-50%) translateX(16px);
+}
+.purchase-card .toggle:hover::before,
+.mobile-action-panel .toggle:hover::before {
+  /* Hover lifts the drop slightly — still single-layer, still light. */
+  box-shadow: 0 2px 6px rgba(45, 107, 247, 0.26);
+}
+.purchase-card .toggle:focus-visible,
+.mobile-action-panel .toggle:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+/* Dark theme: --blue resolves to the Kleros purple #7B2BFF, so the knob
+   recolors automatically. Slightly stronger alphas because shadows
+   read fainter against the deeper dark surface. */
+html[data-theme="dark"] .purchase-card .toggle::before,
+html[data-theme="dark"] .mobile-action-panel .toggle::before {
+  box-shadow: 0 1px 4px rgba(123, 43, 255, 0.22);
+}
+html[data-theme="dark"] .purchase-card .toggle:hover::before,
+html[data-theme="dark"] .mobile-action-panel .toggle:hover::before {
+  box-shadow: 0 2px 6px rgba(123, 43, 255, 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-form-panel,
+  .action-form-panel.is-open {
+    transition: none;
+    filter: none;
+    will-change: auto;
+  }
+}
+
+/* Market / Fill-to-price dropdown (in the purchase tab bar) — ported from market.html */
+.market-dd {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
+.market-dd-trigger {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-4);
+  cursor: pointer;
+  position: relative;
+  transition: color 140ms ease;
+}
+.market-dd-trigger:hover {
+  color: var(--ink-2);
+}
+.market-dd-trigger:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+.market-dd-chev {
+  width: 10px;
+  height: 10px;
+  color: var(--ink-5);
+  transition:
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 140ms ease;
+}
+.market-dd-trigger:hover .market-dd-chev {
+  color: var(--ink-3);
+}
+.market-dd.open .market-dd-trigger {
+  color: var(--ink-2);
+}
+.market-dd.open .market-dd-chev {
+  transform: rotate(180deg);
+  color: var(--ink-3);
+}
+.market-dd-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 4px;
+  right: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 180ms;
+  list-style: none;
+  margin: 0;
+}
+.market-dd.open .market-dd-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.market-dd-opt {
+  list-style: none;
+}
+.market-dd-opt > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.market-dd-opt > button:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.market-dd-opt[data-selected="true"] > button {
+  color: var(--ink);
+}
+.market-dd-opt[data-selected="true"] > button .opt-check {
+  opacity: 1;
+}
+.opt-check {
+  width: 12px;
+  height: 12px;
+  color: var(--blue);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+/* Swap io-block (You pay / You will get) — ported from market.html */
+.io-block {
+  margin-bottom: 28px;
+}
+.io-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+.io-row input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: var(--display, "Fraunces", serif);
+  font-variation-settings: "opsz" 96, "SOFT" 30;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.io-row input::placeholder {
+  color: var(--ink-5);
+}
+.io-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+/* Redeem note under the swap summary — ported from market.html */
+.return-note {
+  margin: 8px 2px 0;
+  font-family: "Inter", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, sans-serif;
+  font-size: 10px;
+  font-weight: 100;
+  color: var(--ink-4);
+  line-height: 1.4;
+}
+
+/* =====================================================================
+   Swap direction button — sits between "You pay" and "You will get".
+   A 34px circle whose 4px surface-colored shadow ring "punches through"
+   the seam between the two io blocks. Each click rotates the icon another
+   180° (rotation is applied inline from React state). Ported from
+   ui-fix/market.html.
+   ===================================================================== */
+.io-swap-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 28px;
+  z-index: 5;
+}
+.io-block + .io-swap-wrap {
+  margin-top: -28px;
+}
+.io-swap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    var(--shadow-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 240ms ease;
+}
+.io-swap:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 4px 12px -4px rgba(45, 107, 247, 0.3);
+}
+.io-swap:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 6px rgba(45, 107, 247, 0.18);
+}
+.io-swap:active {
+  transform: scale(0.92);
+}
+.io-swap-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+html[data-theme="dark"] .io-swap:hover {
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 4px 14px -4px rgba(123, 43, 255, 0.4);
+}
+html[data-theme="dark"] .io-swap:focus-visible {
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 6px rgba(123, 43, 255, 0.25);
+}
+
+/* =====================================================================
+   Section header (Outcomes / Major Events) — ported from market.html
+   ===================================================================== */
+.section-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-h h3 {
+  font-family: var(--display, "Fraunces", serif);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* =====================================================================
+   Major Events card (placeholder) — ported from ui-fix/market.html
+   ===================================================================== */
+.events-card {
+  padding: 22px;
+  background: var(--surface);
+}
+.events-card .section-h h3 .badge {
+  /* `inline-flex` instead of `inline-block` so the badge text centers
+     vertically within the pill background (was sitting at the baseline,
+     making the text look off-center inside the chip). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  vertical-align: middle;
+}
+.events-list {
+  display: grid;
+  gap: 14px;
+}
+.event {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-2);
+  transition: opacity 200ms ease;
+}
+.event:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.event-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+  background: var(--ink-5);
+  flex-shrink: 0;
+}
+.event-info {
+  min-width: 0;
+}
+.event-date {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 2px;
+}
+.event-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+.event-detail {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  line-height: 1.4;
+  font-weight: 500;
+}
+.event.is-next .event-marker {
+  background: var(--beacon, #ff6b1a);
+  position: relative;
+}
+.event.is-next .event-marker::before,
+.event.is-next .event-marker::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--beacon, #ff6b1a);
+  opacity: 0.5;
+  animation: beacon-pulse 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+.event.is-next .event-marker::after {
+  opacity: 0.3;
+  animation-delay: 0.6s;
+}
+.event.is-next .event-date {
+  color: var(--beacon, #ff6b1a);
+}
+.event.is-next .event-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+@keyframes beacon-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+.event.is-future-1 {
+  opacity: 0.62;
+}
+.event.is-future-2 {
+  opacity: 0.48;
+}
+.event.is-future-3 {
+  opacity: 0.36;
+}
+.event.is-future-4 {
+  opacity: 0.26;
+}
+
+.event-name .resolution-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.events-card .section-h .events-admin-add {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.events-card .section-h .events-admin-add:hover {
+  text-decoration: underline;
+}
+.events-empty {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.event-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.event-actions button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.event-actions .event-edit {
+  color: var(--blue);
+}
+.event-actions .event-delete {
+  color: var(--neg);
+}
+.event-actions button:hover {
+  text-decoration: underline;
+}
+
+/* =====================================================================
+   Rules note (placeholder, under the chart) — ported from market.html
+   ===================================================================== */
+.chart-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-radius: var(--r);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  font-weight: 500;
+}
+.chart-note .rules-lead {
+  margin: 0;
+}
+.chart-note .rules-label {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.rules-more-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms ease;
+}
+.rules-more {
+  overflow: hidden;
+  min-height: 0;
+}
+.rules-more p {
+  margin: 6px 0 0;
+}
+.chart-note.rules-open .rules-more-wrap {
+  grid-template-rows: 1fr;
+}
+.rules-toggle {
+  margin-top: 6px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+}
+.rules-toggle:hover {
+  color: var(--blue-hover);
+  text-decoration: underline;
+}
+.chart-note a {
+  color: var(--blue-text);
+  text-decoration: underline;
+}
+.chart-note a:hover {
+  color: var(--blue-hover);
+}
+
+/* =====================================================================
+   "Open Social with" row (comments section) — ported from market.html
+   ===================================================================== */
+.social-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--ink-4);
+}
+.social-icons {
+  display: inline-flex;
+  gap: 6px;
+}
+.social-icons a {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-2);
+  border-radius: 50%;
+  color: var(--ink-4);
+  transition:
+    color 140ms ease,
+    background 140ms ease;
+}
+.social-icons a:hover {
+  color: var(--ink);
+  background: var(--bg-3);
+}
+.social-icons a svg {
+  width: 14px;
+  height: 14px;
 }
 
 
@@ -147,6 +1492,174 @@ body {
     --btn-color: var(--blue-primary);
   }
 }
+
+/* Brand CTA pill (Connect / Create New Market) — blue pill with hover lift/glow.
+   Defined after .btn.btn-primary so it wins on equal specificity.
+   daisyUI's .btn defaults `text-transform: uppercase` via `--btn-text-case`,
+   which made "Connect" render as "CONNECT". Sample uses sentence case, so we
+   force it back here for every CTA pill. */
+.btn.btn-cta {
+  background-color: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+  /* Sample uses no border and a default line-height; daisyUI's .btn forces
+     `border-width:1px`, `line-height:1em`, and `text-transform:uppercase`,
+     which made "Connect" render as "CONNECT" and the pill 1px wider than
+     the sample. Reset all three here. */
+  text-transform: none;
+  line-height: 1.5;
+  border-width: 0;
+  transition:
+    background-color 140ms ease,
+    transform 180ms ease,
+    box-shadow 200ms ease;
+
+  &:hover {
+    background-color: var(--blue-hover);
+    border-color: var(--blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -4px rgba(45, 107, 247, 0.35);
+  }
+}
+html[data-theme="dark"] .btn.btn-cta {
+  background: var(--kleros-grad);
+  border-color: transparent;
+  box-shadow: 0 6px 18px -8px rgba(123, 43, 255, 0.6);
+
+  &:hover {
+    background: var(--kleros-grad-hover);
+    box-shadow: 0 10px 26px -8px rgba(123, 43, 255, 0.7);
+  }
+}
+
+/* Pagination — current page (blue in light, Kleros gradient in dark) */
+.paginator .paginator-active {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.paginator .paginator-active a {
+  color: #fff;
+}
+html[data-theme="dark"] .paginator .paginator-active {
+  background: var(--kleros-grad);
+  border-color: transparent;
+}
+
+/* ---------- Footer (seerbeta: logo + socials + links + copyright) ---------- */
+.foot {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 28px 0;
+  margin-top: auto;
+}
+.foot .foot-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.foot .brand-mini-svg {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+}
+.foot .socials {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink-5);
+}
+.foot .socials a {
+  display: inline-flex;
+  transition: color 140ms ease;
+}
+.foot .socials a:hover {
+  color: var(--ink);
+}
+.foot .socials svg {
+  width: 15px;
+  height: 15px;
+}
+.foot .links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-5);
+  margin-right: 120px;
+}
+.foot .links a:hover {
+  color: var(--ink);
+}
+.foot .copy {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-5);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.foot .copy a:hover {
+  color: var(--ink);
+}
+@media (max-width: 1024px) {
+  .foot .foot-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+
+/* Inputs keep a sane radius even though buttons are pill-shaped */
+.input,
+.select,
+.textarea {
+  border-radius: var(--r);
+}
+
+/* daisyUI's .input:focus sets box-shadow:none AND we add the
+   `!border-[var(--border)]` (= border-color !important) on the homepage
+   search to enforce the resting border. To restore the sample's blue focus
+   halo, this rule needs !important too — same importance, higher
+   specificity than the .!border-... utility, so it wins on focus. */
+.input.input-bordered:focus,
+.input.input-bordered:focus-within {
+  outline: none !important;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.15) !important;
+}
+html[data-theme="dark"] .input.input-bordered:focus,
+html[data-theme="dark"] .input.input-bordered:focus-within {
+  box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.25) !important;
+}
+
+/* Swap panel: the io-row parent owns the focus halo (see .io-row:focus-within
+   above). Cancel the homepage halo on the inner input AND the daisyUI
+   default `outline: 2px solid` (which read as an extra inner border on
+   dark surfaces only — light mode hid it because of currentColor matching
+   the white bg). */
+.io-row .input.input-bordered:focus,
+.io-row .input.input-bordered:focus-within {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+/* Dark-mode override: the `html[data-theme="dark"] .input.input-bordered:focus`
+   rule earlier in this file wins on specificity (it has the extra `html`
+   element selector → 0,4,1 vs 0,4,0 here), so even with !important on both
+   sides it still painted a purple 3px halo on every swap input in dark mode.
+   This duplicate rule prefixed with `html[data-theme="dark"]` lifts our
+   specificity to 0,5,1 and beats it. */
+html[data-theme="dark"] .io-row .input.input-bordered:focus,
+html[data-theme="dark"] .io-row .input.input-bordered:focus-within {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
 
 /* RADIO */
 .radio:checked,
@@ -303,8 +1816,29 @@ body {
   }
 }
 
+/* daisyUI dropdown menu container — restyled to match the sample's `.menu`:
+   surface bg, soft border, 10px radius (var(--r-md)), 6px inner padding,
+   medium drop shadow, at least 220px wide. Replaces the old 3px-radius +
+   default Tailwind shadow. */
 .dropdown-content {
-  @apply shadow bg-base-100 rounded-[3px] text-base-content text-[16px];
+  @apply text-base-content;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  min-width: 220px;
+}
+
+/* Hover-only dropdowns must ignore click/keyboard focus so the menu doesn't
+   stay open after click. daisyUI's base rule shows the menu via :focus and
+   :focus-within (so a click sticks it open until you click elsewhere). Hide
+   it whenever the trigger is merely focused without being hovered — :hover
+   still wins through the existing daisyUI rule. */
+.dropdown.dropdown-hover:focus-within:not(:hover) .dropdown-content,
+.dropdown.dropdown-hover:focus:not(:hover) .dropdown-content {
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 /* CHECKBOX */
@@ -526,8 +2060,24 @@ body {
   display: none;
 }
 
-:root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
-  fill: oklch(var(--b2));
+/* Empty comments state — match seerbeta design (web/ui-fix/coment-fix.png):
+   no bordered box, no skeleton placeholder cards, just the centered line.
+   Scoped via :has(._1LQjG) so markets that have comments are untouched. */
+._MBDTd:has(._1LQjG) {
+  border-width: 0;
+}
+._3vbCv:has(._1LQjG) {
+  border-width: 0;
+}
+._1LQjG svg {
+  display: none;
+}
+._1LQjG p {
+  font-style: italic;
+  font-size: 11.5px !important;
+  color: var(--ink-4) !important;
+  font-weight: 100;
+  margin: 24px 0 8px !important;
 }
 
 ._lajK0 {
@@ -576,6 +2126,38 @@ body {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar { 
+.scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* Comments (Orbis) */
+.comments-tab {
+  font-size: 12px;
+}
+.comments-tab *,
+.comments-tab p,
+.comments-tab span,
+.comments-tab div,
+.comments-tab a {
+  font-size: 12px !important;
+}
+.comments-tab button,
+.comments-tab input,
+.comments-tab textarea {
+  font-size: 12px !important;
+}
+.comments-tab,
+.comments-tab * {
+  border: 0 !important;
+  border-color: transparent !important;
+}
+.comments-tab input,
+.comments-tab textarea {
+  border: 1px solid var(--border) !important;
+}
+.comments-tab [style*="max-width"],
+.comments-tab > div,
+.comments-tab > div > div,
+.comments-tab > div > div > div {
+  max-width: 100% !important;
 }

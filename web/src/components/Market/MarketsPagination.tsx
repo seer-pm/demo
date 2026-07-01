@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from "@/lib/icons";
 import ReactPaginate from "react-paginate";
 
 function MarketsPagination({
@@ -13,18 +12,20 @@ function MarketsPagination({
   return (
     <ReactPaginate
       breakLabel="..."
-      nextLabel={<ChevronRight fill="currentColor" />}
+      nextLabel={<span className="text-[13px] leading-none">→</span>}
       onPageChange={handlePageClick}
       forcePage={page - 1}
       pageCount={pageCount}
-      previousLabel={<ChevronLeft fill="currentColor" />}
+      previousLabel={<span className="text-[13px] leading-none">←</span>}
       renderOnZeroPageCount={null}
-      className="flex gap-2 items-center justify-center"
-      activeClassName="!border-purple-primary text-purple-primary"
-      pageClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
-      nextClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
-      previousClassName="w-[32px] h-[32px] border border-solid border-separator-100 flex items-center justify-center rounded-[3px]"
-      disabledLinkClassName="text-black-medium"
+      marginPagesDisplayed={3}
+      pageRangeDisplayed={5}
+      className="paginator flex gap-1 items-center justify-center font-mono text-[13px] font-medium tabular-nums"
+      activeClassName="paginator-active pointer-events-none"
+      pageClassName="min-w-[36px] h-[36px] border border-transparent flex items-center justify-center rounded-[8px] text-ink-3 hover:border-[var(--border)] hover:text-ink hover:bg-surface transition-colors"
+      nextClassName="min-w-[36px] h-[36px] border border-transparent flex items-center justify-center rounded-[8px] text-ink-4 hover:border-[var(--border)] hover:text-ink hover:bg-surface transition-colors"
+      previousClassName="min-w-[36px] h-[36px] border border-transparent flex items-center justify-center rounded-[8px] text-ink-4 hover:border-[var(--border)] hover:text-ink hover:bg-surface transition-colors"
+      disabledLinkClassName="text-ink-5"
       pageLinkClassName="w-full h-full flex items-center justify-center"
       previousLinkClassName="w-full h-full flex items-center justify-center"
       nextLinkClassName="w-full h-full flex items-center justify-center"

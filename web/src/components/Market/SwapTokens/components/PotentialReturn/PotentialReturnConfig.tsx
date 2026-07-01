@@ -124,7 +124,7 @@ function PotentialReturnConfig({
     <div>
       <button
         type="button"
-        className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[15px]"
+        className="hover:opacity-80 text-purple-primary font-medium text-center w-full text-[12.5px]"
         onClick={openModal}
       >
         Calculate your potential return

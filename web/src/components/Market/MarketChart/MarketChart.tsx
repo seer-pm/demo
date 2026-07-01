@@ -1,19 +1,21 @@
 import { useChartData } from "@/hooks/chart/useChartData";
 import { type ChartData, buildChartData } from "@/hooks/chart/utils";
 import { formatDate } from "@/lib/date";
-import { ExportIcon, QuestionIcon } from "@/lib/icons";
+import { QuestionIcon } from "@/lib/icons";
 import { downloadCsv } from "@/lib/utils";
 import { Market, MarketTypes, fetchChartData, getMarketType } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
-import { LineSeries, LineStyle, UTCTimestamp, createChart } from "lightweight-charts";
+import { LineSeries, LineStyle, type Time, UTCTimestamp, createChart } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import slug from "slug";
 import DateRangePicker from "../../Portfolio/DateRangePicker";
 import { Spinner } from "../../Spinner";
 import Legend from "./Legend";
+// HIDDEN — uncomment together with <RulesNote /> below when on-chain rules description is wired up.
+// import RulesNote from "./RulesNote";
 
 export interface IOutcomeData {
   outcome: {
@@ -271,60 +273,82 @@ function MarketChart({
 
   return (
     <>
-      <div className={clsx("w-full bg-base-100 text-[12px]", !embedded && "p-5 drop-shadow")}>
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          {Object.keys(CHART_OPTION_PERIODS).map((option) => (
-            <div
-              key={option}
-              onClick={() => {
-                setPeriod(option as ChartOptionPeriod);
-                setStartDate(undefined);
-                setEndDate(undefined);
-              }}
-              className={clsx("pill-button", !startDate && !endDate && period === option && "pill-button-active")}
-            >
-              {option}
+      <div className="card-box w-full p-[20px] text-[12px]">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="timeframe" role="tablist">
+            {Object.keys(CHART_OPTION_PERIODS).map((option) => (
+              <button
+                type="button"
+                key={option}
+                onClick={() => {
+                  setPeriod(option as ChartOptionPeriod);
+                  setStartDate(undefined);
+                  setEndDate(undefined);
+                }}
+                className={clsx(!startDate && !endDate && period === option && "active")}
+              >
+                {option}
+              </button>
+            ))}
+            <div className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => setShowDateRangePicker((state) => !state)}
+                className={clsx((startDate || endDate) && "active")}
+              >
+                {!startDate && !endDate
+                  ? "Custom"
+                  : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
+                      endDate ? format(endDate, "MMM d, yyyy") : "_"
+                    }`}
+              </button>
+              {isShowDateRangePicker && (
+                <div className="absolute left-0 top-[44px] z-10">
+                  <DateRangePicker
+                    startDate={startDate}
+                    endDate={endDate}
+                    onChange={onChangeDate}
+                    onClose={() => setShowDateRangePicker(false)}
+                  />
+                </div>
+              )}
             </div>
-          ))}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowDateRangePicker((state) => !state)}
-              className={clsx("pill-button", (startDate || endDate) && "pill-button-active")}
-            >
-              {!startDate && !endDate
-                ? "Custom"
-                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
-                    endDate ? format(endDate, "MMM d, yyyy") : "_"
-                  }`}
-            </button>
-            {isShowDateRangePicker && (
-              <div className="absolute left-0 top-[60px] z-10">
-                <DateRangePicker
-                  startDate={startDate}
-                  endDate={endDate}
-                  onChange={onChangeDate}
-                  onClose={() => setShowDateRangePicker(false)}
-                />
-              </div>
-            )}
           </div>
-          <div className="tooltip">
+          <div className="tooltip flex items-center">
             <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] ">
               The chart represents the token distribution in the liquidity pool over time and may not fully align with
               the outcome odds, which are calculated based on potential token purchases.
             </p>
-            <QuestionIcon fill="#9747FF" />
+            <QuestionIcon fill="var(--blue)" />
           </div>
           {!embedded && (
             <button
               type="button"
-              className="hover:opacity-80 ml-auto tooltip"
+              className="ml-auto flex items-center gap-1.5 text-ink-4 hover:text-ink-2 transition-colors"
               onClick={() => mutateExport.mutate()}
               disabled={mutateExport.isPending}
             >
-              {!mutateExport.isPending && <span className="tooltiptext">Export Data</span>}
-              {mutateExport.isPending ? <Spinner className="bg-black-secondary" /> : <ExportIcon />}
+              {mutateExport.isPending ? (
+                <Spinner className="bg-black-secondary" />
+              ) : (
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="block shrink-0"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              )}
+              <span className="text-[12px] font-medium leading-none">Export Data</span>
             </button>
           )}
         </div>
@@ -335,6 +359,9 @@ function MarketChart({
         ) : (
           <p className="mt-3 text-[16px]">No chart data.</p>
         )}
+        {/* HIDDEN — bring back when on-chain rules description is wired up.
+            Uncomment the line below (and re-enable the RulesNote import above) to restore. */}
+        {/* <RulesNote /> */}
       </div>
     </>
   );
@@ -362,13 +389,6 @@ function LightweightChart({
   useEffect(() => {
     setVisibleOutcomes(new Set(outcomeNames));
   }, [outcomeNames]);
-  const truncateOutcomeName = (name: string, maxLength = 12) => {
-    if (!name) return "";
-
-    if (name.length <= maxLength) return name;
-
-    return `${name.slice(0, maxLength - 2)}…`;
-  };
   const handleToggleOutcome = (outcomeName: string) => {
     setVisibleOutcomes((prev) => {
       const newSet = new Set(prev);
@@ -381,18 +401,26 @@ function LightweightChart({
     });
   };
 
-  const accentColor = "#999";
-
-  const gridLinesColor = "#e5e5e5";
-
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const accentColor = rootStyles.getPropertyValue("--ink-4").trim() || "#6b7280";
+    const gridLinesColor = rootStyles.getPropertyValue("--border").trim() || "#ece8dc";
+
     const handleResize = () => {
       chart.applyOptions({ width: chartContainerRef?.current?.clientWidth });
+      renderMarkers();
     };
+
+    // Categorical/Generic markets are scored 0–100%. We pin the scale to a fixed
+    // 0–100 range and draw our own gridlines/labels at 0/25/50/75/100% (see
+    // renderMarkers) so the chart matches the seerbeta mockup. Futarchy markets
+    // use raw prices, so we keep the library's native auto scale there.
+    const isPercentScale = market.type !== "Futarchy";
 
     const chart = createChart(chartContainerRef?.current, {
       layout: {
@@ -406,7 +434,8 @@ function LightweightChart({
       autoSize: true,
       rightPriceScale: {
         borderVisible: false,
-        visible: true,
+        // Hidden for percent markets — replaced by our own 0/25/50/75/100% labels.
+        visible: !isPercentScale,
       },
       leftPriceScale: {
         borderVisible: false,
@@ -414,39 +443,106 @@ function LightweightChart({
       },
       timeScale: {
         borderVisible: false,
-        timeVisible: true,
+        timeVisible: false,
+        secondsVisible: false,
         minBarSpacing: 0.001,
+        tickMarkFormatter: (time: Time) => format(new Date((time as number) * 1000), "MMM d"),
       },
       grid: {
         vertLines: {
-          color: gridLinesColor,
-          style: LineStyle.SparseDotted,
+          visible: false,
         },
         horzLines: {
+          // Native gridlines are replaced by the custom overlay for percent markets.
+          visible: !isPercentScale,
           color: gridLinesColor,
-          style: LineStyle.SparseDotted,
+          style: LineStyle.Solid,
         },
       },
     });
-    chart.timeScale().fitContent();
 
-    const seriesInstances: Array<{ data: IOutcomeData; color: string }> = [];
+    const seriesInstances: Array<{
+      data: IOutcomeData;
+      color: string;
+      api: ReturnType<typeof chart.addSeries>;
+    }> = [];
     for (const outcomeData of series) {
       if (visibleOutcomes.has(outcomeData.outcome.name)) {
-        const series = chart.addSeries(LineSeries, {
+        const lineSeries = chart.addSeries(LineSeries, {
           color: outcomeData.outcome.color,
           lineWidth: 2,
-          title: truncateOutcomeName(outcomeData.outcome.name),
+          lastValueVisible: false,
+          priceLineVisible: false,
           priceFormat: {
             type: "price",
             precision: market.type === "Futarchy" ? 3 : 2,
             minMove: 0.001,
           },
+          // Pin percent markets to a fixed 0–100 range so the custom gridlines align.
+          ...(isPercentScale ? { autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) } : {}),
         });
-        series.setData(outcomeData.data);
-        seriesInstances.push({ data: outcomeData, color: outcomeData.outcome.color });
+        lineSeries.setData(outcomeData.data);
+        seriesInstances.push({
+          data: outcomeData,
+          color: outcomeData.outcome.color,
+          api: lineSeries,
+        });
       }
     }
+
+    // Default view: show the full series but leave a small margin on the right so
+    // the terminal dot marker isn't clipped by the chart's right edge. The offset is
+    // proportional to the point count so the margin stays consistent across periods.
+    const maxDataLength = Math.max(0, ...seriesInstances.map(({ data }) => data.data.length));
+    if (maxDataLength > 0) {
+      const rightOffsetBars = Math.max(1, Math.round(maxDataLength * 0.025));
+      chart.timeScale().setVisibleLogicalRange({ from: 0, to: maxDataLength - 1 + rightOffsetBars });
+    } else {
+      chart.timeScale().fitContent();
+    }
+
+    // Custom overlay: 0/25/50/75/100% gridlines + labels (percent markets only),
+    // and a white-center terminal dot at each visible line's latest point.
+    const renderMarkers = () => {
+      const container = markersRef.current;
+      if (!container) return;
+      const timeScale = chart.timeScale();
+      const parts: string[] = [];
+
+      if (isPercentScale && seriesInstances.length > 0) {
+        const refApi = seriesInstances[0].api;
+        for (const pct of [100, 75, 50, 25, 0]) {
+          const gy = refApi.priceToCoordinate(pct);
+          if (gy === null) continue;
+          parts.push(
+            `<span style="position:absolute;left:0;right:0;top:${gy}px;height:1px;background:var(--border-2);"></span>`,
+          );
+          parts.push(
+            `<span style="position:absolute;right:0;top:${gy}px;transform:translateY(-50%);padding-left:6px;background:var(--surface);font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;font-weight:500;color:var(--ink-4);font-variant-numeric:tabular-nums;">${pct}%</span>`,
+          );
+        }
+      }
+
+      for (const { data, color, api } of seriesInstances) {
+        const last = data.data[data.data.length - 1];
+        if (!last) continue;
+        const x = timeScale.timeToCoordinate(last.time);
+        const y = api.priceToCoordinate(last.value);
+        if (x === null || y === null) continue;
+        // Outer translucent halo + solid core + white inner dot (seerbeta marker).
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:${color};opacity:0.25;"></span>`,
+        );
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:${color};opacity:0.85;"></span>`,
+        );
+        parts.push(
+          `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:var(--surface);"></span>`,
+        );
+      }
+      container.innerHTML = parts.join("");
+    };
+    chart.timeScale().subscribeVisibleTimeRangeChange(renderMarkers);
 
     // Add crosshair move event listener for tooltip
     chart.subscribeCrosshairMove((param) => {
@@ -491,8 +587,11 @@ function LightweightChart({
     });
 
     window.addEventListener("resize", handleResize);
+    // markers need a frame for coordinates to be available
+    const raf = requestAnimationFrame(renderMarkers);
 
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", handleResize);
 
       chart.remove();
@@ -500,7 +599,11 @@ function LightweightChart({
   }, [series, Array.from(visibleOutcomes).join(",")]);
 
   return (
-    <div className="mt-6 flex size-full flex-col px-[10px] relative">
+    <div className="mt-6 flex size-full flex-col relative">
+      <div className="relative overflow-hidden">
+        <div ref={chartContainerRef} />
+        <div ref={markersRef} className="absolute inset-0 pointer-events-none z-[5] overflow-hidden" />
+      </div>
       {showLegend && (
         <Legend
           outcomesData={series}
@@ -509,15 +612,14 @@ function LightweightChart({
           market={market}
         />
       )}
-      <div ref={chartContainerRef} />
       {tooltipData && (
         <div
-          className="absolute bg-base-100 rounded-lg shadow-lg p-3 z-10 pointer-events-none"
+          className="absolute bg-base-100 border border-[var(--border)] rounded-lg shadow-lg p-3 z-10 pointer-events-none"
           style={{
             left: `${tooltipData.x + 10}px`,
             top: `${tooltipData.y - 10}px`,
             transform: "translateY(-100%)",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            boxShadow: "var(--shadow-md)",
           }}
         >
           <div className="text-sm text-base-content mb-2">

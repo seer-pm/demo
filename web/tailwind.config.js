@@ -8,7 +8,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Open Sans', 'sans-serif'],
+        sans: ['Inter', 'Open Sans', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Times New Roman', 'serif'],
+        italic: ['Instrument Serif', 'Times New Roman', 'serif'],
+        mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
     },
     colors: {
@@ -38,6 +41,34 @@ export default {
       'tint-blue-primary': 'oklch(var(--tint-blue-primary) / <alpha-value>)',
       'tint-blue-light': 'oklch(var(--tint-blue-light) / <alpha-value>)',
       'gray-light': 'oklch(var(--gray-light) / <alpha-value>)',
+      // seerbeta tokens (plain hex/rgb vars — no alpha channel)
+      surface: 'var(--surface)',
+      'surface-2': 'var(--surface-2)',
+      'bg-page': 'var(--bg)',
+      'bg-2': 'var(--bg-2)',
+      'bg-3': 'var(--bg-3)',
+      ink: 'var(--ink)',
+      'ink-2': 'var(--ink-2)',
+      'ink-3': 'var(--ink-3)',
+      'ink-4': 'var(--ink-4)',
+      'ink-5': 'var(--ink-5)',
+      'border-soft': 'var(--border)',
+      'border-soft-2': 'var(--border-2)',
+      'border-strong': 'var(--border-strong)',
+      blue: 'var(--blue)',
+      'blue-hover': 'var(--blue-hover)',
+      'blue-soft': 'var(--blue-soft)',
+      'blue-text': 'var(--blue-text)',
+      pos: 'var(--pos)',
+      'pos-text': 'var(--pos-text)',
+      neg: 'var(--neg)',
+      'neg-text': 'var(--neg-text)',
+      'cat-1': 'var(--cat-1)',
+      'cat-2': 'var(--cat-2)',
+      'cat-3': 'var(--cat-3)',
+      'cat-4': 'var(--cat-4)',
+      'cat-5': 'var(--cat-5)',
+      verified: 'var(--verified)',
     },
   },
   plugins: [require("daisyui"), require('@tailwindcss/container-queries'),],
@@ -46,18 +77,26 @@ export default {
       {
         light: {
           ...require("daisyui/src/theming/themes")["light"],
-          // Custom CSS variables for light theme
+          // seerbeta light palette
+          "base-100": "#ffffff", // surface
+          "base-200": "#f3f2ec", // bg-2
+          "base-300": "#ece8dc", // border
+          "base-content": "#0f1115", // ink
           "--card-bg": "#ffffff",
-          "--separator-100": "#e5e5e5",
+          "--separator-100": "#ece8dc",
         },
       },
       {
         dark: {
           ...require("daisyui/src/theming/themes")["dark"],
-          "--bc": "100% 0 0", // white in oklch format
-          // Custom CSS variables for dark theme
-          "--card-bg": "#1e2329",
-          "--separator-100": "#323942",
+          // seerbeta dark palette
+          "base-100": "#130c24", // surface
+          "base-200": "#20183c", // bg-2
+          "base-300": "#261c46", // border
+          "base-content": "#f4f1ff", // ink
+          "neutral": "#20183c",
+          "--card-bg": "#130c24",
+          "--separator-100": "#261c46",
         },
       },
     ],

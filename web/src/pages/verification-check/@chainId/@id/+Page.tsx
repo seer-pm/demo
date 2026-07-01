@@ -28,7 +28,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
 
   if (isMarketError) {
     return (
-      <div className="py-10 px-10">
+      <div className="container-fluid py-10 px-10">
         <Alert type="error" className="mb-5">
           Market not found
         </Alert>
@@ -181,7 +181,7 @@ function VerificationCheckPage() {
             />
           </div>
 
-          <div className="space-x-[24px]">
+          <div className="space-x-[24px] mt-[24px]">
             <Button type="submit" text="Submit" />
           </div>
         </form>
