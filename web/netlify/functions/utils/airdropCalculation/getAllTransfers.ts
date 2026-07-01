@@ -5,6 +5,7 @@ import pLimit from "p-limit";
 import { Address, formatUnits, zeroAddress } from "viem";
 
 import type { Database } from "../supabase";
+import { withRetry } from "./utils";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,
@@ -18,31 +19,36 @@ function isAllChains(chainId: SupportedChain | 0): chainId is 0 {
 export async function getAllTransfers(chainId: SupportedChain | 0, token?: Address | string) {
   const tokenFilter = token ? String(token).toLowerCase() : undefined;
 
-  let qMin = supabase.from("tokens_transfers").select("timestamp");
-  let qMax = supabase.from("tokens_transfers").select("timestamp");
-  if (!isAllChains(chainId)) {
-    qMin = qMin.eq("chain_id", Number(chainId));
-    qMax = qMax.eq("chain_id", Number(chainId));
-  }
-  if (tokenFilter) {
-    qMin = qMin.eq("token", tokenFilter);
-    qMax = qMax.eq("token", tokenFilter);
-  }
+  const buildMinQuery = () => {
+    let q = supabase.from("tokens_transfers").select("timestamp");
+    if (!isAllChains(chainId)) {
+      q = q.eq("chain_id", Number(chainId));
+    }
+    if (tokenFilter) {
+      q = q.eq("token", tokenFilter);
+    }
+    return q.order("timestamp", { ascending: true }).limit(1).maybeSingle();
+  };
 
-  const [{ data: minRow }, { data: maxRow }] = await Promise.all([
-    qMin.order("timestamp", { ascending: true }).limit(1).maybeSingle(),
-    qMax.order("timestamp", { ascending: false }).limit(1).maybeSingle(),
-  ]);
+  const minRow = await withRetry(async () => {
+    const res = await buildMinQuery();
+    if (res.error) throw res.error;
+    return res.data;
+  }, "transfers.min");
 
+  // Upper bound is "now" rather than an `ORDER BY timestamp DESC LIMIT 1` scan. That descending
+  // scan is prohibitively slow (statement timeout) for chains whose latest activity is not at the
+  // table's global tip, and the max is only needed to size the chunk loop — trailing empty chunks
+  // over an already-covered range are harmless.
   const startTime = Number(minRow?.timestamp ?? 0);
-  const endTime = Number(maxRow?.timestamp ?? 0);
-  if (minRow?.timestamp == null || maxRow?.timestamp == null) {
+  const endTime = Math.floor(Date.now() / 1000);
+  if (minRow?.timestamp == null) {
     return [];
   }
 
   const CHUNK_SIZE = 24 * 60 * 60 * 7; // 7 days in seconds
   const chunks: Promise<TokenTransfer[]>[] = [];
-  const limit = pLimit(10);
+  const limit = pLimit(4);
   const exclusiveEndTime = endTime + 1;
 
   for (let time = startTime; time < exclusiveEndTime; time += CHUNK_SIZE) {
@@ -94,41 +100,45 @@ async function fetchDatabaseTimeRange(
   const allChains = isAllChains(chainId);
 
   while (!cursor || cursor.timestamp < chunkEnd) {
-    let q = client
-      .from("tokens_transfers")
-      .select("block_number,chain_id,from,to,timestamp,token,tx_hash,value,log_index")
-      .gte("timestamp", chunkStart)
-      .lt("timestamp", chunkEnd)
-      .order("timestamp", { ascending: true })
-      .order("chain_id", { ascending: true })
-      .order("block_number", { ascending: true })
-      .order("tx_hash", { ascending: true })
-      .order("log_index", { ascending: true })
-      .limit(1000);
+    const runQuery = () => {
+      let q = client
+        .from("tokens_transfers")
+        .select("block_number,chain_id,from,to,timestamp,token,tx_hash,value,log_index")
+        .gte("timestamp", chunkStart)
+        .lt("timestamp", chunkEnd)
+        .order("timestamp", { ascending: true })
+        .order("chain_id", { ascending: true })
+        .order("block_number", { ascending: true })
+        .order("tx_hash", { ascending: true })
+        .order("log_index", { ascending: true })
+        .limit(1000);
 
-    if (!allChains) {
-      q = q.eq("chain_id", Number(chainId));
-    }
-    if (tokenFilter) {
-      q = q.eq("token", tokenFilter);
-    }
+      if (!allChains) {
+        q = q.eq("chain_id", Number(chainId));
+      }
+      if (tokenFilter) {
+        q = q.eq("token", tokenFilter);
+      }
 
-    if (cursor) {
-      q = q.or(
-        [
-          `timestamp.gt.${cursor.timestamp}`,
-          `and(timestamp.eq.${cursor.timestamp},chain_id.gt.${cursor.chainId})`,
-          `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.gt.${cursor.blockNumber})`,
-          `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.eq.${cursor.blockNumber},tx_hash.gt.${cursor.txHash})`,
-          `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.eq.${cursor.blockNumber},tx_hash.eq.${cursor.txHash},log_index.gt.${cursor.logIndex})`,
-        ].join(","),
-      );
-    }
+      if (cursor) {
+        q = q.or(
+          [
+            `timestamp.gt.${cursor.timestamp}`,
+            `and(timestamp.eq.${cursor.timestamp},chain_id.gt.${cursor.chainId})`,
+            `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.gt.${cursor.blockNumber})`,
+            `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.eq.${cursor.blockNumber},tx_hash.gt.${cursor.txHash})`,
+            `and(timestamp.eq.${cursor.timestamp},chain_id.eq.${cursor.chainId},block_number.eq.${cursor.blockNumber},tx_hash.eq.${cursor.txHash},log_index.gt.${cursor.logIndex})`,
+          ].join(","),
+        );
+      }
+      return q;
+    };
 
-    const { data: rows, error } = await q;
-    if (error) {
-      throw error;
-    }
+    const { data: rows } = await withRetry(async () => {
+      const res = await runQuery();
+      if (res.error) throw res.error;
+      return res;
+    }, "transfers.range");
 
     if (!rows?.length) {
       break;

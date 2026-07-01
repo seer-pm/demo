@@ -6,6 +6,7 @@ import pLimit from "p-limit";
 import type { Address } from "viem";
 import { Database } from "../supabase";
 import { START_TIME } from "./constants";
+import { withRetry } from "./utils";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,
@@ -59,7 +60,7 @@ function mapRowToPoolHourData(row: Database["public"]["Tables"]["dex_pool_hour_p
 export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
   let allData: PoolHourData[] = [];
 
-  const initialPeriodStartUnix = START_TIME[chainId as 1 | 100];
+  const initialPeriodStartUnix = START_TIME[chainId] ?? 0;
   let currentPeriodStartUnix = initialPeriodStartUnix;
 
   const PAGE_SIZE = 1000;
@@ -126,31 +127,31 @@ export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, token
 export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartTime?: number) {
   const PAGE_SIZE = 1000;
 
-  const [{ data: earliestData, error: earliestError }, { data: latestData, error: latestError }] = await Promise.all([
-    supabase
-      .from("dex_pool_hour_prices")
-      .select("period_start_unix")
-      .eq("chain_id", chainId)
-      .order("period_start_unix", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+  const [earliestData, latestData] = await Promise.all([
+    withRetry(async () => {
+      const res = await supabase
+        .from("dex_pool_hour_prices")
+        .select("period_start_unix")
+        .eq("chain_id", chainId)
+        .order("period_start_unix", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (res.error) throw res.error;
+      return res.data;
+    }, "poolhour.earliest"),
 
-    supabase
-      .from("dex_pool_hour_prices")
-      .select("period_start_unix")
-      .eq("chain_id", chainId)
-      .order("period_start_unix", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    withRetry(async () => {
+      const res = await supabase
+        .from("dex_pool_hour_prices")
+        .select("period_start_unix")
+        .eq("chain_id", chainId)
+        .order("period_start_unix", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (res.error) throw res.error;
+      return res.data;
+    }, "poolhour.latest"),
   ]);
-
-  if (earliestError) {
-    throw earliestError;
-  }
-
-  if (latestError) {
-    throw latestError;
-  }
 
   const startTime = initialStartTime ?? earliestData?.period_start_unix ?? 0;
 
@@ -159,7 +160,7 @@ export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartT
   const CHUNK_SIZE = 24 * 60 * 60;
 
   const chunks: Promise<PoolHourData[]>[] = [];
-  const limit = pLimit(10);
+  const limit = pLimit(4);
 
   for (let time = startTime; time < endTime; time += CHUNK_SIZE) {
     chunks.push(
@@ -186,18 +187,18 @@ async function fetchPoolHourDatasTimeRange(
   let currentTimestamp = startTime;
 
   while (currentTimestamp < endTime) {
-    const { data, error } = await supabase
-      .from("dex_pool_hour_prices")
-      .select("*")
-      .eq("chain_id", chainId)
-      .gte("period_start_unix", currentTimestamp)
-      .lt("period_start_unix", endTime)
-      .order("period_start_unix", { ascending: true })
-      .limit(pageSize);
-
-    if (error) {
-      throw error;
-    }
+    const data = await withRetry(async () => {
+      const res = await supabase
+        .from("dex_pool_hour_prices")
+        .select("*")
+        .eq("chain_id", chainId)
+        .gte("period_start_unix", currentTimestamp)
+        .lt("period_start_unix", endTime)
+        .order("period_start_unix", { ascending: true })
+        .limit(pageSize);
+      if (res.error) throw res.error;
+      return res.data;
+    }, "poolhour.range");
 
     const mappedData = (data ?? []).map(mapRowToPoolHourData);
 

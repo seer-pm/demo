@@ -2,44 +2,47 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Address } from "viem";
-import { gnosis } from "viem/chains";
-import { PoolHourData, getAllPoolHourDatas, getPoolHourDatasByTokenPairs } from "./getPoolHourDatas";
+import { PoolHourData, getAllPoolHourDatas } from "./getPoolHourDatas";
 
-async function getLatestPoolHourDataMap(
-  tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
-  chainId: SupportedChain,
-  startTime: number,
-) {
+type TokenPair = { tokenId: Address; parentTokenId?: Address; collateralToken: Address };
+
+/**
+ * Fetches the full pool-hour price history for the chain once (time-chunked, not per token pair —
+ * chains like Optimism have tens of thousands of outcome tokens, so a per-pair fetch does not
+ * scale). `computePrices` filters this array in memory, so extra pools are harmless. The result
+ * can be reused to compute prices at many timestamps (see backfill), avoiding per-day fetches.
+ */
+export async function fetchPoolHourDatas(chainId: SupportedChain) {
+  return getAllPoolHourDatas(chainId);
+}
+
+// `poolHourDatas` is sorted by periodStartUnix desc, so the first entry per pool with
+// periodStartUnix <= startTime is the latest price at/ before that time.
+function getLatestPoolHourDataMap(poolHourDatas: PoolHourData[], startTime: number) {
   const resolvedMap = new Map<string, PoolHourData>();
-  const poolHourDatas =
-    chainId === gnosis.id ? await getAllPoolHourDatas(chainId) : await getPoolHourDatasByTokenPairs(chainId, tokens);
   for (const entry of poolHourDatas) {
     const key = entry.pool.token0.id + entry.pool.token1.id;
     if (!resolvedMap.has(key) && Number(entry.periodStartUnix) <= startTime) {
-      // since we sorted poolHourDatas by periodStartUnix desc already
       resolvedMap.set(key, entry);
     }
   }
   return resolvedMap;
 }
 
-export async function getPrices(
-  tokens: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[] | undefined,
-  chainId: SupportedChain,
-  startTime: number,
-) {
+/**
+ * Computes the price (in collateral terms) of each outcome token at `startTime` from a
+ * pre-fetched `poolHourDatas` array. Pure — no network — so it is safe to call once per day
+ * over the same fetched data.
+ */
+export function computePrices(poolHourDatas: PoolHourData[], tokens: TokenPair[] | undefined, startTime: number) {
   if (!tokens?.length) return {};
-  const latestPoolHourDataMap = await getLatestPoolHourDataMap(tokens, chainId, startTime);
+  const latestPoolHourDataMap = getLatestPoolHourDataMap(poolHourDatas, startTime);
   const [simpleTokens, conditionalTokens] = tokens.reduce(
     (acc, curr) => {
       acc[curr.parentTokenId ? 1 : 0].push(curr);
       return acc;
     },
-    [[], []] as {
-      tokenId: Address;
-      parentTokenId?: Address;
-      collateralToken: Address;
-    }[][],
+    [[], []] as TokenPair[][],
   );
 
   const simpleTokensMapping = simpleTokens.reduce(
@@ -73,4 +76,11 @@ export async function getPrices(
     {} as { [key: string]: number },
   );
   return { ...simpleTokensMapping, ...conditionalTokensMapping };
+}
+
+/** Convenience: fetch + compute for a single timestamp. */
+export async function getPrices(tokens: TokenPair[] | undefined, chainId: SupportedChain, startTime: number) {
+  if (!tokens?.length) return {};
+  const poolHourDatas = await fetchPoolHourDatas(chainId);
+  return computePrices(poolHourDatas, tokens, startTime);
 }

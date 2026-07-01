@@ -1,8 +1,12 @@
-import { gnosis, mainnet } from "viem/chains";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
 
-export const START_TIME = {
+// Earliest period we scan pool-hour prices from, per chain. Optimism/Base launched
+// later than the Oct 2024 genesis; 0 is a safe floor (extra empty rows are harmless).
+export const START_TIME: Record<number, number> = {
   [gnosis.id]: 1728416320,
   [mainnet.id]: 1728082727,
+  [optimism.id]: 0,
+  [base.id]: 0,
 };
 
 export const SER_LPP = {
