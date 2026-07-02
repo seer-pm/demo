@@ -241,7 +241,6 @@ function MarketPage() {
             />
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
-            <MajorEvents market={market} />
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
               <>
@@ -254,6 +253,7 @@ function MarketPage() {
                 <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
               </>
             )}
+            <MajorEvents market={market} />
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
             <MarketTabs market={market} />
