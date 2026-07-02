@@ -2,7 +2,6 @@ import { Dropdown } from "@/components/Dropdown";
 import { getLiquidityUrlByMarket, isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import clsx from "clsx";
 import { useState } from "react";
 import { Alert } from "../../Alert";
 import { OutcomeImage } from "../OutcomeImage";
@@ -67,12 +66,7 @@ export function SwapTokens({
         </Alert>
       )}
       {!isShowMaxSlippage && (
-        <div
-          className={clsx(
-            "space-y-5",
-            hasEnoughLiquidity === false && orderType === "market" && "grayscale opacity-40 pointer-events-none",
-          )}
-        >
+        <div className="space-y-5">
           {/* Futarchy markets only support Market orders */}
           {market.type === "Generic" && (
             <div className="flex items-center justify-between">
@@ -105,6 +99,7 @@ export function SwapTokens({
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
               isInvalidOutcome={isInvalidOutcome}
+              onOutcomeChange={onOutcomeChange}
             />
           )}
           {orderType === "fill-to-estimate" && (

@@ -97,7 +97,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                   />
                 )}
               </div>
-              <p className="font-semibold text-[16px]">{collateralToken.symbol}</p>
+              <p className="font-semibold text-[16px] whitespace-nowrap">{collateralToken.symbol}</p>
             </li>
           ))}
         </div>
@@ -118,7 +118,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
             />
           )}
         </div>
-        <p className="font-semibold text-[16px]">{selectedCollateral.symbol}</p>
+        <p className="font-semibold text-[16px] whitespace-nowrap">{selectedCollateral.symbol}</p>
         <ArrowDropDown />
       </div>
     </DropdownWrapper>
