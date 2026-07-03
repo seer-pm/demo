@@ -20,7 +20,7 @@ export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProp
       setIsOpen={setIsOpen}
       className="w-[200px]"
       content={
-        <div className="p-2">
+        <ul className="p-2">
           {options.map((option) => (
             <li
               key={option.value.toString()}
@@ -38,7 +38,7 @@ export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProp
               <span>{option.text}</span>
             </li>
           ))}
-        </div>
+        </ul>
       }
     >
       <div className="text-[14px] font-semibold cursor-pointer flex items-center whitespace-nowrap">

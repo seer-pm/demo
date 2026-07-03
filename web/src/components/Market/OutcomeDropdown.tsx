@@ -50,7 +50,7 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
       setIsOpen={setIsOpen}
       direction="auto"
       content={
-        <div className="p-2">
+        <ul className="p-2">
           {outcomeTokens.map((token, index) => (
             <li
               key={token.address}
@@ -75,7 +75,7 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
               <p className="font-semibold text-[16px] whitespace-nowrap">{token.symbol}</p>
             </li>
           ))}
-        </div>
+        </ul>
       }
     >
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">

@@ -41,7 +41,7 @@ export const TokenSelector = ({
     type === "sell" ? sellToken.address : buyToken.address,
     selectedCollateral.address,
   );
-  if (!isTokenCollateral && onOutcomeChange) {
+  if (!isTokenCollateral && onOutcomeChange && market.type !== "Futarchy") {
     return <OutcomeDropdown market={market} outcomeIndex={outcomeIndex} onOutcomeChange={onOutcomeChange} />;
   }
   if (isTokenCollateral && isUndefined(fixedCollateral)) {
