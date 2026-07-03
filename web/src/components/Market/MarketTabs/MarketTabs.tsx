@@ -1,3 +1,4 @@
+import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { Market } from "@seer-pm/sdk";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
@@ -8,6 +9,9 @@ import TopHolders from "./TopHolders";
 const Comments = clientOnly(() => import("./Comments"));
 
 export default function MarketTabs({ market }: { market: Market }) {
+  // Prefetch holders + activity data while user is on other tabs to avoid Netlify cold start on first request
+  useMarketHolders(market);
+
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
   return (
