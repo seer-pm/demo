@@ -69,7 +69,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       content={
-        <div className="p-2">
+        <ul className="p-2">
           {collateralTokens.map((collateralToken) => (
             <li
               key={collateralToken.address}
@@ -97,10 +97,10 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
                   />
                 )}
               </div>
-              <p className="font-semibold text-[16px]">{collateralToken.symbol}</p>
+              <p className="font-semibold text-[16px] whitespace-nowrap">{collateralToken.symbol}</p>
             </li>
           ))}
-        </div>
+        </ul>
       }
     >
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
@@ -118,7 +118,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
             />
           )}
         </div>
-        <p className="font-semibold text-[16px]">{selectedCollateral.symbol}</p>
+        <p className="font-semibold text-[16px] whitespace-nowrap">{selectedCollateral.symbol}</p>
         <ArrowDropDown />
       </div>
     </DropdownWrapper>

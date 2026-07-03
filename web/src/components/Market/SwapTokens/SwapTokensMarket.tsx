@@ -433,6 +433,7 @@ export function SwapTokensMarket({
                   outcomeImage,
                   isInvalidOutcome,
                   outcomeText,
+                  onOutcomeChange,
                 }}
               />
             </div>
@@ -531,6 +532,7 @@ export function SwapTokensMarket({
                   outcomeImage,
                   isInvalidOutcome,
                   outcomeText,
+                  onOutcomeChange,
                 }}
               />
             </div>

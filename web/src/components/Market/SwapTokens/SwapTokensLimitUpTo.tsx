@@ -45,6 +45,7 @@ interface SwapTokensLimitUptoProps {
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
+  onOutcomeChange: (i: number, isClick: boolean) => void;
 }
 
 export function SwapTokensLimitUpto({
@@ -55,6 +56,7 @@ export function SwapTokensLimitUpto({
   fixedCollateral,
   outcomeImage,
   isInvalidOutcome,
+  onOutcomeChange,
 }: SwapTokensLimitUptoProps) {
   const limitPriceRef = useRef<HTMLInputElement | null>(null);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -418,7 +420,7 @@ export function SwapTokensLimitUpto({
                     src={paths.tokenImage(primaryCollateral.address, market.chainId)}
                   />
                 </div>
-                <p className="font-semibold text-[16px]">{primaryCollateral.symbol}</p>
+                <p className="font-semibold text-[16px] whitespace-nowrap">{primaryCollateral.symbol}</p>
               </div>
             </div>
           </div>
@@ -472,6 +474,7 @@ export function SwapTokensLimitUpto({
                   outcomeImage,
                   isInvalidOutcome,
                   outcomeText,
+                  onOutcomeChange,
                 }}
               />
             </div>
@@ -532,6 +535,7 @@ export function SwapTokensLimitUpto({
                   outcomeImage,
                   isInvalidOutcome,
                   outcomeText,
+                  onOutcomeChange,
                 }}
               />
             </div>

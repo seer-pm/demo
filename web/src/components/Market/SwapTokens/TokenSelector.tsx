@@ -3,6 +3,7 @@ import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { MarketCollateralDropdown } from "../CollateralDropdown";
+import { OutcomeDropdown } from "../OutcomeDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 
 interface TokenSelectorProps {
@@ -18,6 +19,7 @@ interface TokenSelectorProps {
   outcomeImage?: string;
   isInvalidOutcome: boolean;
   outcomeText: string;
+  onOutcomeChange?: (i: number, isClick: boolean) => void;
 }
 
 export const TokenSelector = ({
@@ -33,11 +35,15 @@ export const TokenSelector = ({
   outcomeImage,
   isInvalidOutcome,
   outcomeText,
+  onOutcomeChange,
 }: TokenSelectorProps) => {
   const isTokenCollateral = isTwoStringsEqual(
     type === "sell" ? sellToken.address : buyToken.address,
     selectedCollateral.address,
   );
+  if (!isTokenCollateral && onOutcomeChange && market.type !== "Futarchy") {
+    return <OutcomeDropdown market={market} outcomeIndex={outcomeIndex} onOutcomeChange={onOutcomeChange} />;
+  }
   if (isTokenCollateral && isUndefined(fixedCollateral)) {
     return (
       <MarketCollateralDropdown
@@ -116,7 +122,7 @@ export function TokenImage({ token }: { token: Token }) {
       <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
         <img className="w-full h-full" alt={token.symbol} src={paths.tokenImage(token.address, token.chainId)} />
       </div>
-      <p className="font-semibold text-[16px]">{token.symbol}</p>
+      <p className="font-semibold text-[16px] whitespace-nowrap">{token.symbol}</p>
     </div>
   );
 }
