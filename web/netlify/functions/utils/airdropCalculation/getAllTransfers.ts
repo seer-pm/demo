@@ -16,6 +16,15 @@ function isAllChains(chainId: SupportedChain | 0): chainId is 0 {
   return chainId === 0;
 }
 
+/** Fields `getHoldersAtTimestamp` actually reads — a `TokenTransfer` satisfies this structurally. */
+export type TransferForHolders = {
+  token: string;
+  from: string;
+  to: string;
+  value: bigint;
+  timestamp: TokenTransfer["timestamp"];
+};
+
 export async function getAllTransfers(chainId: SupportedChain | 0, token?: Address | string) {
   const tokenFilter = token ? String(token).toLowerCase() : undefined;
 
@@ -163,7 +172,7 @@ async function fetchDatabaseTimeRange(
   return allTransfers;
 }
 
-export function getHoldersAtTimestamp(allTransfers: TokenTransfer[], timestamp: number) {
+export function getHoldersAtTimestamp(allTransfers: TransferForHolders[], timestamp: number) {
   const records = allTransfers.filter((transfer) => Number(transfer.timestamp) <= timestamp);
   const tokenBalances: { [key: string]: { [key: string]: bigint } } = {};
 

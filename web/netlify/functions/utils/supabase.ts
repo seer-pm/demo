@@ -617,6 +617,14 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      get_direct_holdings_at: {
+        Args: { p_chain_id: number; p_timestamp: number };
+        Returns: {
+          owner: string;
+          token: string;
+          balance: number;
+        }[];
+      };
       insert_airdrop_safely: {
         Args: { new_timestamp: number; records: Json };
         Returns: undefined;

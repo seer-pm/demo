@@ -1,17 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
-import {
-  distributeAirdropAtTimestamp,
-  insertAirdropRecords,
-  loadAirdropInputs,
-} from "./utils/airdropCalculation/computeDailyAirdrop";
+import { computeAirdropForTimestamps, insertAirdropRecords } from "./utils/airdropCalculation/computeDailyAirdrop";
 import { getRandomNextDayTimestamp } from "./utils/airdropCalculation/utils";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
-// Stay comfortably under Netlify's 15-minute background-function limit. Any days not reached in
-// this invocation are picked up by the next scheduled run (each insert advances `airdrop_state`,
-// so progress is durable even if the function is killed mid-loop).
-const RUN_BUDGET_MS = 12 * 60 * 1000;
+// Stay comfortably under Netlify's 15-minute background-function limit. Chain history is loaded
+// ONE chain at a time (see computeAirdropForTimestamps), so this bounds the load phase itself
+// rather than the (now cheap) insert loop — a chain that isn't done loading by this point throws
+// a clear error instead of Netlify silently killing the process.
+const LOAD_BUDGET_MS = 13 * 60 * 1000;
 
 async function getLatestSnapshotUnixTimestamp() {
   const { data, error } = await supabase.from("airdrop_state").select("last_timestamp").eq("id", "latest_day").single();
@@ -28,38 +25,48 @@ async function getLatestSnapshotUnixTimestamp() {
   return data.last_timestamp;
 }
 
+/** Every full UTC day boundary strictly between `last` and `now`, same cadence as before. */
+function collectMissingDayTimestamps(last: number, now: number): number[] {
+  const timestamps: number[] = [];
+  let cursor = last;
+  for (;;) {
+    const nextTimestamp = getRandomNextDayTimestamp(cursor, now);
+    if (!nextTimestamp || nextTimestamp >= now) {
+      break;
+    }
+    timestamps.push(nextTimestamp);
+    cursor = nextTimestamp;
+  }
+  return timestamps;
+}
+
 async function addNewAirdropDaysToDb() {
   const startedAt = Date.now();
   try {
     const now = Math.floor(Date.now() / 1000);
-    let last = await getLatestSnapshotUnixTimestamp();
+    const last = await getLatestSnapshotUnixTimestamp();
+    const timestamps = collectMissingDayTimestamps(last, now);
 
-    // One expensive full-history load, reused to catch up every missed day this invocation.
-    // Computing each day from the loaded inputs is pure/in-memory, so catching up N days costs
-    // one load + N cheap computes rather than N separate loads.
-    const inputs = await loadAirdropInputs();
+    if (!timestamps.length) {
+      console.log("Caught up — no full day to add.");
+      return;
+    }
+
+    // One chain-by-chain history load (each chain's raw data is dropped before the next chain
+    // loads, keeping peak memory around the size of a single chain), reused to compute every
+    // missing day in memory — catching up N days costs one load pass + N cheap computes.
+    console.log(`Computing airdrop for ${timestamps.length} missing day(s)...`);
+    const byTimestamp = await computeAirdropForTimestamps(timestamps, { budgetMs: LOAD_BUDGET_MS, startedAt });
 
     let daysInserted = 0;
-    for (;;) {
-      if (Date.now() - startedAt > RUN_BUDGET_MS) {
-        console.log(`Run budget reached after ${daysInserted} day(s); remaining days resume next run.`);
-        break;
-      }
-      const nextTimestamp = getRandomNextDayTimestamp(last, now);
-      if (!nextTimestamp || nextTimestamp >= now) {
-        console.log("Caught up — no full day to add.");
-        break;
-      }
-
-      const finalData = distributeAirdropAtTimestamp(inputs, nextTimestamp);
-      await insertAirdropRecords(nextTimestamp, finalData);
+    for (const timestamp of timestamps) {
+      await insertAirdropRecords(timestamp, byTimestamp.get(timestamp) ?? []);
       daysInserted++;
-      last = nextTimestamp;
     }
     console.log(`Airdrop run complete: ${daysInserted} day(s) inserted.`);
   } catch (e) {
-    console.log("airdrop error");
-    console.log(e);
+    console.error("airdrop worker failed:", (e as Error)?.stack ?? e);
+    throw e;
   }
 }
 

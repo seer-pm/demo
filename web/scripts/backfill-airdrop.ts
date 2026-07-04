@@ -3,9 +3,10 @@
  * Takes one random-time snapshot per UTC day (same cadence as the scheduled function), from a
  * genesis timestamp up to now.
  *
- * It loads each chain's full history ONCE (transfers, mint/burn events, prices) and POH, then
- * computes every day in memory — no per-day network fetch. It reuses the exact same per-day math
- * as the scheduled `airdrop-calculation-background` function.
+ * It loads each chain's markets/liquidity-events/pool-hour-prices ONCE and POH once, then computes
+ * every day in memory from that plus one `get_direct_holdings_at` Postgres call per (chain, day)
+ * for direct token holdings (see supabase/sql/get_direct_holdings_at.sql). It reuses the exact
+ * same per-day math as the scheduled `airdrop-calculation-background` function.
  *
  * Usage (from the `web/` directory so tsconfig `paths` and `.env` resolve):
  *   node --env-file=.env "$(node -e "process.stdout.write(require.resolve('tsx/cli'))")" \
@@ -30,10 +31,7 @@
 import { createWriteStream, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import {
-  distributeAirdropAtTimestamp,
-  loadAirdropInputs,
-} from "../netlify/functions/utils/airdropCalculation/computeDailyAirdrop";
+import { computeAirdropForTimestamps } from "../netlify/functions/utils/airdropCalculation/computeDailyAirdrop";
 import { getRandomNextDayTimestamp } from "../netlify/functions/utils/airdropCalculation/utils";
 
 const GENESIS_TIMESTAMP = 1728579600; // October 11, 2024
@@ -92,15 +90,33 @@ async function getResumeTimestamp(): Promise<number> {
 async function main() {
   const to = getArgNumber("--to") ?? Math.floor(Date.now() / 1000);
   const outPath = getArg("--out") ?? "./tmp/airdrop-backfill.csv";
-  let last = await getResumeTimestamp();
+  const last = await getResumeTimestamp();
   console.log(`Backfilling airdrop CSV from ${last} to ${to} -> ${outPath}`);
 
-  // Fetch each chain's full history (transfers, mint/burn events, prices) + POH ONCE,
-  // then compute every day in memory — no per-day network fetch.
-  console.log("Loading airdrop inputs (once)...");
+  // Day boundaries are deterministic (only the within-day sample time is random), so the full
+  // list of missing days can be walked up front, before any chain data is loaded.
+  const timestamps: number[] = [];
+  let cursor = last;
+  for (;;) {
+    const nextTimestamp = getRandomNextDayTimestamp(cursor, to);
+    if (!nextTimestamp || nextTimestamp >= to) {
+      console.log("Caught up — no more full days to backfill.");
+      break;
+    }
+    timestamps.push(nextTimestamp);
+    cursor = nextTimestamp;
+  }
+
+  if (!timestamps.length) {
+    return;
+  }
+
+  // Each chain's full history (transfers, mint/burn events, prices) is fetched ONCE — one chain
+  // at a time, dropped before the next chain loads — then every day is computed in memory from it.
+  console.log(`Loading airdrop inputs and computing ${timestamps.length} day(s) (once per chain)...`);
   const loadStartedAt = Date.now();
-  const inputs = await loadAirdropInputs();
-  console.log(`Inputs loaded in ${((Date.now() - loadStartedAt) / 1000).toFixed(1)}s`);
+  const byTimestamp = await computeAirdropForTimestamps(timestamps);
+  console.log(`Inputs loaded + computed in ${((Date.now() - loadStartedAt) / 1000).toFixed(1)}s`);
 
   mkdirSync(dirname(outPath), { recursive: true });
   const out = createWriteStream(outPath, { encoding: "utf8" });
@@ -114,15 +130,8 @@ async function main() {
   let daysProcessed = 0;
   let rowsWritten = 0;
   let lastSnapshotTs = last;
-  for (;;) {
-    const nextTimestamp = getRandomNextDayTimestamp(last, to);
-    if (!nextTimestamp || nextTimestamp >= to) {
-      console.log("Caught up — no more full days to backfill.");
-      break;
-    }
-
-    const startedAt = Date.now();
-    const finalData = distributeAirdropAtTimestamp(inputs, nextTimestamp);
+  for (const nextTimestamp of timestamps) {
+    const finalData = byTimestamp.get(nextTimestamp) ?? [];
     const isoTimestamp = new Date(nextTimestamp * 1000).toISOString();
 
     let buffer = "";
@@ -148,11 +157,7 @@ async function main() {
     rowsWritten += finalData.length;
     daysProcessed++;
     lastSnapshotTs = nextTimestamp;
-    console.log(
-      `[${daysProcessed}] day ${isoTimestamp.slice(0, 10)} (ts=${nextTimestamp}) ${finalData.length} rows in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`,
-    );
-
-    last = nextTimestamp;
+    console.log(`[${daysProcessed}] day ${isoTimestamp.slice(0, 10)} (ts=${nextTimestamp}) ${finalData.length} rows`);
   }
 
   await new Promise<void>((resolve) => out.end(resolve));
