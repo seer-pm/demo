@@ -24,16 +24,8 @@ export async function fetchCachedChartData(
   checkTimestamp = true,
   forceFresh = false,
 ) {
-  // Fetch market information
-  const market = await getMarketByChainAndId(chainId, marketId);
+  const hashKey = getMarketChartKeyValueHash(marketId, chainId);
 
-  if (!market) {
-    throw new Error("Market not found");
-  }
-
-  const hashKey = getMarketChartKeyValueHash(market.id, market.chainId);
-
-  // Check current cached data and its timestamp
   const { data: cachedData, error: cacheError } = await supabase
     .from("key_value")
     .select("value")
@@ -46,33 +38,39 @@ export async function fetchCachedChartData(
 
   const shouldUpdate = forceFresh || isCacheMiss || (checkTimestamp && isCacheStale);
 
-  if (shouldUpdate) {
-    // Cache miss or (if checkTimestamp) stale data: generate fresh chart data
-    const chartData = await getChartData(market);
-
-    // getChartData may return [] on subgraph errors; we do not persist that so we do not overwrite
-    // good cache. On such a failed fetch, prefer returning stale cached data over an empty chart.
-    if (chartData.length > 0) {
-      const cacheData = { chartData, timestamp: Date.now(), marketId: market.id };
-
-      const { error: upsertError } = await supabase.from("key_value").upsert(
-        {
-          key: hashKey,
-          value: cacheData,
-        },
-        { onConflict: "key" },
-      );
-
-      if (upsertError) {
-        console.error("Cache upsert failed:", upsertError);
-      }
-    }
-
-    return chartData.length > 0 ? chartData : (cachedData?.value.chartData ?? chartData);
+  if (!shouldUpdate) {
+    // Return cached data (either fresh or when checkTimestamp is false)
+    return cachedData?.value.chartData;
   }
 
-  // Return cached data (either fresh or when checkTimestamp is false)
-  return cachedData?.value.chartData;
+  // Cache miss or (if checkTimestamp) stale data: generate fresh chart data
+  const market = await getMarketByChainAndId(chainId, marketId);
+
+  if (!market) {
+    throw new Error("Market not found");
+  }
+
+  const chartData = await getChartData(market);
+
+  // getChartData may return [] on subgraph errors; we do not persist that so we do not overwrite
+  // good cache. On such a failed fetch, prefer returning stale cached data over an empty chart.
+  if (chartData.length > 0) {
+    const cacheData = { chartData, timestamp: Date.now(), marketId: market.id };
+
+    const { error: upsertError } = await supabase.from("key_value").upsert(
+      {
+        key: hashKey,
+        value: cacheData,
+      },
+      { onConflict: "key" },
+    );
+
+    if (upsertError) {
+      console.error("Cache upsert failed:", upsertError);
+    }
+  }
+
+  return chartData.length > 0 ? chartData : (cachedData?.value.chartData ?? chartData);
 }
 
 /**
