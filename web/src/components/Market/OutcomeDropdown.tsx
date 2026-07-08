@@ -16,6 +16,8 @@ function isInvalidOutcomeIndex(market: Market, index: number) {
   return market.type === "Generic" && index === market.wrappedTokens.length - 1;
 }
 
+const OUTCOME_LABEL_CLASS = "font-semibold text-[16px] truncate max-w-[150px] min-w-0";
+
 export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: OutcomeDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: outcomeTokens } = useTokensInfo(market.wrappedTokens, market.chainId);
@@ -24,7 +26,7 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
     return null;
   }
 
-  const selectedToken = outcomeTokens[outcomeIndex];
+  const selectedOutcome = market.outcomes[outcomeIndex];
   const selectedImage = market.images?.outcomes?.[outcomeIndex];
   const selectedIsInvalid = isInvalidOutcomeIndex(market, outcomeIndex);
 
@@ -39,7 +41,9 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
             title={market.outcomes[outcomeIndex]}
           />
         </div>
-        <p className="font-semibold text-[16px] whitespace-nowrap">{selectedToken.symbol}</p>
+        <p className={OUTCOME_LABEL_CLASS} title={selectedOutcome}>
+          {selectedOutcome}
+        </p>
       </div>
     );
   }
@@ -64,7 +68,7 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
                   "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
               )}
             >
-              <div className="w-6 h-6 overflow-hidden flex-shrink-0">
+              <div className="rounded-full w-6 h-6 overflow-hidden flex-shrink-0">
                 <OutcomeImage
                   className="w-full h-full"
                   image={market.images?.outcomes?.[index]}
@@ -72,7 +76,9 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
                   title={market.outcomes[index]}
                 />
               </div>
-              <p className="font-semibold text-[16px] whitespace-nowrap">{token.symbol}</p>
+              <p className={OUTCOME_LABEL_CLASS} title={market.outcomes[index]}>
+                {market.outcomes[index]}
+              </p>
             </li>
           ))}
         </ul>
@@ -87,7 +93,9 @@ export function OutcomeDropdown({ market, outcomeIndex, onOutcomeChange }: Outco
             title={market.outcomes[outcomeIndex]}
           />
         </div>
-        <p className="font-semibold text-[16px] whitespace-nowrap">{selectedToken.symbol}</p>
+        <p className={OUTCOME_LABEL_CLASS} title={selectedOutcome}>
+          {selectedOutcome}
+        </p>
         <ArrowDropDown />
       </div>
     </DropdownWrapper>
