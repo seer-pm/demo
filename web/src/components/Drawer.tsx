@@ -13,7 +13,7 @@ export interface DrawerProps {
 
 export function Drawer({ open, onClose, children, title, tabs, className }: DrawerProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const drawerRef = useRef<HTMLDialogElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [startY, setStartY] = useState<number | null>(null);
   const [currentY, setCurrentY] = useState<number | null>(null);
@@ -29,6 +29,10 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
     } else {
       document.body.style.overflow = "";
     }
+    // Reset any in-flight drag state so a stale translate can never persist across open/close
+    setStartY(null);
+    setCurrentY(null);
+    setIsDragging(false);
     return () => {
       document.body.style.overflow = "";
     };
@@ -60,6 +64,13 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
     setIsDragging(false);
   };
 
+  const handleTouchCancel = () => {
+    // iOS fires touchcancel when it claims the gesture (e.g. for scrolling): snap back, don't close
+    setStartY(null);
+    setCurrentY(null);
+    setIsDragging(false);
+  };
+
   const translateY = currentY !== null ? currentY : 0;
 
   if (!isMounted) return null;
@@ -77,12 +88,13 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
         aria-hidden={!open}
       />
       {/* Drawer */}
-      <dialog
+      {/* biome-ignore lint/a11y/useSemanticElements: a native <dialog> without show()/showModal() gets closed-dialog UA styles that break the sheet's sizing on iOS WebKit */}
+      <div
+        role="dialog"
         ref={drawerRef}
         className={clsx(
-          "fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-[16px] z-[101] shadow-lg max-h-[90vh] flex flex-col w-full",
+          "fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-[16px] z-[101] shadow-lg max-h-[90dvh] flex flex-col w-full",
           !isDragging && "transition-transform duration-300 ease-out",
-          open ? "translate-y-0" : "translate-y-full",
           className,
         )}
         style={{
@@ -93,10 +105,11 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
       >
         {/* Drag handle */}
         <div
-          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <div className="w-12 h-1 bg-black-medium rounded-full" />
         </div>
@@ -134,8 +147,10 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
         ) : null}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
-      </dialog>
+        <div className="flex-auto min-h-0 overflow-y-auto px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          {children}
+        </div>
+      </div>
     </>,
     document.body,
   );
