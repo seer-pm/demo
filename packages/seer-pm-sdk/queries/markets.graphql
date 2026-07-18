@@ -123,6 +123,7 @@ fragment Transfer on Transfer {
   timestamp
   blockNumber
   transactionHash
+  transactionFrom
   logIndex
   value
   token {

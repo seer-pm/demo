@@ -49,6 +49,7 @@ export default async () => {
     from: transfer.from,
     to: transfer.to,
     tx_hash: transfer.transactionHash,
+    tx_from: transfer.transactionFrom,
     chain_id: transfer.chainId,
     token: transfer.token.id,
     value: transfer.value,
