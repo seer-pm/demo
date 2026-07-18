@@ -1,6 +1,34 @@
 {
   "name": "@seer-pm/contracts",
   "version": "1.0.0",
+  "description": "Solidity smart contracts for the Seer prediction market protocol.",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "contracts"
+  },
+  "keywords": [
+    "seer",
+    "prediction-market",
+    "solidity",
+    "smart-contracts",
+    "ethereum",
+    "gnosis"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**/*.sol",
+    "deployments",
+    "!deployments/localhost",
+    "!deployments/hardhat",
+    "!deployments/**/solcInputs",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
@@ -15,41 +43,41 @@
     "lint:sol-tests": "solhint -c .solhint.tests.json 'test/*.sol'"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
-    "@nomicfoundation/hardhat-ethers": "^3.0.6",
-    "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
-    "@typechain/ethers-v6": "^0.5.1",
-    "@typechain/hardhat": "^9.1.0",
-    "dotenv": "^16.4.1",
-    "ethers": "^6.13.1",
-    "hardhat": "^2.19.4",
-    "hardhat-deploy": "^0.12.4",
-    "solhint-community": "^4.0.0",
-    "ts-node": "^10.9.2",
-    "typechain": "^8.3.2",
-    "typescript": "^5.3.3"
-  },
-  "dependencies": {
     "@cryptoalgebra/core": "^3.0.0",
     "@cryptoalgebra/integral-periphery": "^1.0.2",
-    "@kleros/dispute-resolver-interface-contract": "2.0.0",
-    "@kleros/erc-792": "7.0.0",
-    "@kleros/ethereum-libraries": "7.0.1",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@nomicfoundation/hardhat-viem": "^1.0.0",
-    "@openzeppelin/contracts": "^5.0.1",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^4.2.0",
     "@types/chai-as-promised": "^7.1.6",
     "@types/mocha": ">=9.1.0",
     "chai": "^4.2.0",
+    "dotenv": "^16.4.1",
+    "ethers": "^6.13.1",
+    "hardhat": "^2.19.4",
+    "hardhat-deploy": "^0.12.4",
     "hardhat-gas-reporter": "^1.0.8",
+    "solhint-community": "^4.0.0",
+    "solidity-coverage": "^0.8.1",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.3.3",
+    "viem": "^1.15.1"
+  },
+  "dependencies": {
+    "@kleros/dispute-resolver-interface-contract": "2.0.0",
+    "@kleros/erc-792": "7.0.0",
+    "@kleros/ethereum-libraries": "7.0.1",
+    "@openzeppelin/contracts": "^5.0.1",
     "openzeppelin-contracts-1155-to-20": "npm:@openzeppelin/contracts@3.4.0",
     "openzeppelin-contracts-sdai-on-gnosis": "npm:@openzeppelin/contracts@5.0.2",
     "openzeppelin-solidity-conditional-tokens": "npm:openzeppelin-solidity@2.3.0",
-    "solidity-coverage": "^0.8.1",
-    "solmate": "^6.2.0",
-    "viem": "^1.15.1"
+    "solmate": "^6.2.0"
   }
 }
