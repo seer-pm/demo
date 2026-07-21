@@ -96,10 +96,11 @@ SELECT
   chain_id,
   token,
   value,
-  log_index
+  log_index,
+  tx_from
 FROM public.tokens_transfers
 WHERE false;
-\copy tokens_transfers_tmp (block_number,timestamp,"from","to",tx_hash,chain_id,token,value,log_index) FROM '${f}' WITH (FORMAT csv, HEADER true);
+\copy tokens_transfers_tmp (block_number,timestamp,"from","to",tx_hash,chain_id,token,value,log_index,tx_from) FROM '${f}' WITH (FORMAT csv, HEADER true);
 SELECT COUNT(*) AS staged_rows FROM tokens_transfers_tmp;
 \i '${SQL_FILE}'
 COMMIT;

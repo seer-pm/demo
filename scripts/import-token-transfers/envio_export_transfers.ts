@@ -33,6 +33,7 @@ type TransferRow = {
   timestamp: string;
   blockNumber: string;
   transactionHash: string;
+  transactionFrom: string;
   logIndex: string;
   value: string;
   token: { id: string } | null;
@@ -98,7 +99,7 @@ function resumeParamsMatch(
     autoRange: boolean;
   },
 ): boolean {
-  if (state.csvFormat !== 2) return false;
+  if (state.csvFormat !== CSV_FORMAT_VERSION) return false;
   if (state.url !== opts.url) return false;
   if (state.chunkSize !== opts.chunkSize) return false;
   if (state.rpm !== opts.rpm) return false;
@@ -110,8 +111,8 @@ function resumeParamsMatch(
   return state.fromTs === opts.fromTs && state.toTs === opts.toTs;
 }
 
-/** CSV columns: block_number,timestamp,...,log_index (see csvFormat resume gate). */
-const CSV_FORMAT_VERSION = 2;
+/** CSV columns: block_number,timestamp,...,log_index,tx_from (see csvFormat resume gate). */
+const CSV_FORMAT_VERSION = 3;
 
 const QUERY_GET_TRANSFERS = /* GraphQL */ `
   query GetTransfers($limit: Int!, $offset: Int!, $where: Transfer_bool_exp!, $order_by: [Transfer_order_by!]) {
@@ -122,6 +123,7 @@ const QUERY_GET_TRANSFERS = /* GraphQL */ `
       timestamp
       blockNumber
       transactionHash
+      transactionFrom
       logIndex
       value
       token {
@@ -195,7 +197,7 @@ async function fetchEnvioRange(url: string, extraWhere: any) {
 function openCsv(outPath: string, append: boolean) {
   const stream = createWriteStream(outPath, { flags: append ? "a" : "w" });
   if (!append) {
-    stream.write("block_number,timestamp,from,to,tx_hash,chain_id,token,value,log_index\n");
+    stream.write("block_number,timestamp,from,to,tx_hash,chain_id,token,value,log_index,tx_from\n");
   }
   return stream;
 }
@@ -375,6 +377,7 @@ async function main() {
           t.token!.id,
           t.value,
           t.logIndex,
+          t.transactionFrom,
         ];
         stream.write(row.map((v) => csvEscape(String(v))).join(",") + "\n");
         rowsInCurrentFile++;

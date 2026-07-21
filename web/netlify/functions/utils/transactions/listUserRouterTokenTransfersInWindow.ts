@@ -36,7 +36,7 @@ export async function listUserRouterTokenTransfersInWindow(
   for (;;) {
     let q = supabase
       .from("tokens_transfers")
-      .select("chain_id,token,from,to,value,timestamp,tx_hash,block_number,log_index")
+      .select("chain_id,token,from,to,value,timestamp,tx_hash,tx_from,block_number,log_index")
       .eq("chain_id", chainId)
       .in("token", tokens)
       .gt("timestamp", startTime)

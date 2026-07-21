@@ -438,6 +438,7 @@ export type Database = {
           timestamp: number;
           to: string;
           token: string;
+          tx_from: string;
           tx_hash: string;
           value: number;
         };
@@ -449,6 +450,7 @@ export type Database = {
           timestamp: number;
           to: string;
           token: string;
+          tx_from?: string;
           tx_hash: string;
           value: number;
         };
@@ -460,6 +462,7 @@ export type Database = {
           timestamp?: number;
           to?: string;
           token?: string;
+          tx_from?: string;
           tx_hash?: string;
           value?: number;
         };
