@@ -620,6 +620,18 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      get_airdrop_summary_by_user: {
+        Args: { p_address: string; p_week_start?: string };
+        Returns: {
+          sum_share_of_holding: number;
+          sum_share_of_holding_poh: number;
+          total_seer_tokens: number;
+          current_week_seer_tokens: number;
+          last_share_of_holding: number;
+          last_share_of_holding_poh: number;
+          row_count: number;
+        }[];
+      };
       get_direct_holdings_at: {
         Args: { p_chain_id: number; p_timestamp: number };
         Returns: {
