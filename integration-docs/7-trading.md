@@ -195,14 +195,16 @@ The SDK provides execution functions that take a `trade` (from a quote) and send
 
 Use `tradeTokens` to execute any trade type. It dispatches to CoW Swap or Lens AMM automatically.
 
-**`getSigner` is only required if you want to support CoW Swap trades.** If you omit it, AMM trades work as usual; CoW Swap trades will throw. So you can pass just `{ config }` if you only use Lens:
+**`getSigner` is only required if you want to support CoW Swap trades.** If you omit it, AMM trades work as usual; CoW Swap trades will throw. For Lens-only you can pass just `{ client }` from `getConnectorClient(config)`:
 
 ```typescript
 import { tradeTokens, type TradeTokensProps } from "@seer-pm/sdk";
 import { config } from "@/wagmi";
+import { getConnectorClient } from "@wagmi/core";
 
 // Lens AMM only (no CoW Swap)
-const adapters = { config };
+const client = await getConnectorClient(config);
+const adapters = { client };
 
 const props: TradeTokensProps = {
   trade: quote.trade,
@@ -220,13 +222,12 @@ import { tradeTokens, clientToSigner, type TradeTokensProps } from "@seer-pm/sdk
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 
+const client = await getConnectorClient(config);
+if (!client) throw new Error("No wallet connected");
+
 const adapters = {
-  config,
-  getSigner: async () => {
-    const client = await getConnectorClient(config);
-    if (!client) throw new Error("No wallet connected");
-    return clientToSigner(client);
-  },
+  client,
+  getSigner: async () => clientToSigner(client),
 };
 
 // Returns order ID (CoW Swap) or tx hash (Lens AMM)
@@ -240,10 +241,12 @@ Wrap with `toastifyTx` (AMM) or `toastify` (CoW Swap) in your app to show "Execu
 ```typescript
 import { executeAmmTrade } from "@seer-pm/sdk";
 import { config } from "@/wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { getConnectorClient, waitForTransactionReceipt } from "@wagmi/core";
+
+const client = await getConnectorClient(config);
 
 const hash = await executeAmmTrade(
-  config,
+  client,
   trade, // AmmTrade from fetchAmmQuote
   account,
   false, // isSeerCredits

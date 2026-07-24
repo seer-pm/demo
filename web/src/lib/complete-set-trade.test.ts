@@ -18,6 +18,11 @@ function createMockAmmTrade(overrides: { approveAddress?: string; maximumAmountI
     amountIn: 1000000000000000000n,
     amountOut: 1000000000000000000n,
     maximumAmountIn: () => 1000000000000000000n,
+    swapTransaction: async () => ({
+      to: "0x00000000000000000000000000000000000000ab",
+      data: "0x",
+      value: 0n,
+    }),
     ...overrides,
   });
   return trade;

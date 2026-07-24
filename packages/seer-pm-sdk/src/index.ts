@@ -244,6 +244,11 @@ export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";
 export { isOpStack } from "./chains";
+export {
+  configurePublicRpcUrls,
+  getPublicClientForChain,
+  isPublicClientChainSupported,
+} from "./public-client";
 export { getTokenSwapResult, getTokenPriceFromSwap, getTokenPrice } from "./token-price";
 export {
   isOdd,

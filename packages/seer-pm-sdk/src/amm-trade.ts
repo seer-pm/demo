@@ -19,6 +19,7 @@ export interface QuoteAmmTradeParams {
   outcomeToken: Token;
   collateralToken: Token;
   swapType: "buy" | "sell";
+  /** Slippage tolerance as a percentage string (e.g. `"1"` = 1%, `"0.01"` = 0.01% / 1 bps). */
   maxSlippage: string;
   tradeType: TradeType;
 }
@@ -44,6 +45,10 @@ export function toLensTokenAddress(address: string): string {
   return isTwoStringsEqual(address, NATIVE_TOKEN) ? ETH : address;
 }
 
+/**
+ * Convert a percentage slippage string to basis points.
+ * `"1"` → 100 bps (1%), `"0.01"` → 1 bps (0.01%). Invalid or negative values default to 100 bps.
+ */
 export function maxSlippageToBps(maxSlippage: string): number {
   const pct = Number(maxSlippage);
   if (!Number.isFinite(pct) || pct < 0) {

@@ -138,7 +138,5 @@ export function wrapMulticall(callData: string): string {
   const padHex = "0".repeat((paddedLen - dataLen) * 2);
 
   const u256 = (n: number) => n.toString(16).padStart(64, "0");
-  return (
-    `0x${MULTICALL_SELECTOR}${u256(32)}${u256(1)}${u256(32)}${u256(dataLen)}${hex}${padHex}`
-  );
+  return `0x${MULTICALL_SELECTOR}${u256(32)}${u256(1)}${u256(32)}${u256(dataLen)}${hex}${padHex}`;
 }

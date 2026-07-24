@@ -6,8 +6,8 @@ export { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, MAINNET_RPC, OPTIMISM_RPC, config }
 export { connectors } from "./wagmiConfig";
 
 if (typeof window !== "undefined") {
-  import("@seer-pm/sdk").then(({ configureRpcProviders, ChainId }) => {
-    configureRpcProviders({
+  import("@seer-pm/sdk").then(({ configurePublicRpcUrls, ChainId }) => {
+    configurePublicRpcUrls({
       [ChainId.XDAI]: GNOSIS_RPC,
       [ChainId.MAINNET]: MAINNET_RPC,
       [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
