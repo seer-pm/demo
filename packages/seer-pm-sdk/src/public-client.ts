@@ -14,15 +14,15 @@ const CHAIN_BY_ID = {
   [base.id]: base,
 } as const;
 
-const rpcUrlsByChainId: Partial<Record<number, string>> = {};
+let rpcUrlsByChainId: Partial<Record<number, string>> = {};
 const publicClientsByChainId = new Map<number, PublicClient>();
 
 /**
  * Set public RPC URLs for SDK PublicClients and Swapr providers.
- * Unset chains fall back to viem's default public RPC for that chain.
+ * Replaces any prior configuration; omitted chains fall back to defaults.
  */
 export function configurePublicRpcUrls(urls: Partial<Record<number, string>>): void {
-  Object.assign(rpcUrlsByChainId, urls);
+  rpcUrlsByChainId = { ...urls };
   publicClientsByChainId.clear();
   configureRpcProviders(urls as Partial<Record<ChainId, string>>);
 }
