@@ -19,30 +19,41 @@ export const AMM_NAMES: Record<AMM, string> = {
 
 /** Shared LensQuoter ABI for the unified contract on all chains. */
 export const LENS_QUOTER_ABI = [
-  "function buildBestSwapViaETHMulticall(address to, address refundTo, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline, uint24 hookPoolFee, int24 hookTickSpacing, address hookAddress) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) a, tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) b, bytes[] calls, bytes multicall, uint256 msgValue)",
-  "function buildBestSwapViaTokenMulticall(address to, address refundTo, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline, uint24 hookPoolFee, int24 hookTickSpacing, address hookAddress, address mid) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) a, tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) b, bytes[] calls, bytes multicall, uint256 msgValue)",
+  "function buildBestSwapViaETH(address to, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline, uint24 hookPoolFee, int24 hookTickSpacing, address hookAddress) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) a, tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) b, address target, bytes data, uint256 msgValue)",
+  "function buildBestSwapViaToken(address to, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline, uint24 hookPoolFee, int24 hookTickSpacing, address hookAddress, address mid) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) a, tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) b, address target, bytes data, uint256 msgValue)",
   "function getQuotes(bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) best, tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut)[] quotes)",
-  "function buildBestSwap(address to, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) best, bytes callData, uint256 amountLimit, uint256 msgValue)",
+  "function buildBestSwap(address to, bool exactOut, address tokenIn, address tokenOut, uint256 swapAmount, uint256 slippageBps, uint256 deadline) returns (tuple(uint8 source, uint256 feeBps, uint256 amountIn, uint256 amountOut) best, address target, bytes callData, uint256 amountLimit, uint256 msgValue)",
+  "function V3_SWAP_ROUTER() view returns (address)",
+  "function V4_ROUTER() view returns (address)",
+  "function SWAPR_SWAP_ROUTER() view returns (address)",
   "function V4_QUOTER() view returns (address)",
 ] as const;
 
-/** Per-chain deployed addresses. */
+/** Per-chain LensQuoter and official DEX router addresses. */
 export const CHAINS = {
   1: {
-    lensRouter: "0x03d03464BF9Eb20059Ca6eF6391E9C5d79d5E012",
-    lensQuoter: "0xdEB5dC052e55bf81C6d75CD47C961e0b280B3791",
+    lensQuoter: "0xefa6CB3804303DECFa8677A373Cf9c944af0F485",
+    v3SwapRouter: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+    v4Router: "0x00000000000044a361Ae3cAc094c9D1b14Eece97",
+    swaprSwapRouter: "0x0000000000000000000000000000000000000000",
   },
   10: {
-    lensRouter: "0xb89733665e63ecc1256E0729a9D950eF949450b8",
-    lensQuoter: "0x25A3E57E3070EA5b43e14F7796Fa13806BC9DA05",
+    lensQuoter: "0x9D2166667f497B57d1cE356ed4C6E244b511f7c2",
+    v3SwapRouter: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+    v4Router: "0x00000000000044a361Ae3cAc094c9D1b14Eece97",
+    swaprSwapRouter: "0x0000000000000000000000000000000000000000",
   },
   100: {
-    lensRouter: "0xDD9Ec6DedC3B153E42d17C7F31cE6D6134A2ff1e",
-    lensQuoter: "0x181C1312A3A77f5908AE76F781E025D88E1368eE",
+    lensQuoter: "0xF42Bfb8c5b00A75D8eac00919E04fC8dB552D0c5",
+    v3SwapRouter: "0x0000000000000000000000000000000000000000",
+    v4Router: "0x0000000000000000000000000000000000000000",
+    swaprSwapRouter: "0xfFB643E73f280B97809A8b41f7232AB401a04ee1",
   },
   8453: {
-    lensRouter: "0xb89733665e63ecc1256E0729a9D950eF949450b8",
-    lensQuoter: "0x25A3E57E3070EA5b43e14F7796Fa13806BC9DA05",
+    lensQuoter: "0x9D2166667f497B57d1cE356ed4C6E244b511f7c2",
+    v3SwapRouter: "0x2626664c2603336E57B271c5C0b26F421741e481",
+    v4Router: "0x00000000000044a361Ae3cAc094c9D1b14Eece97",
+    swaprSwapRouter: "0x0000000000000000000000000000000000000000",
   },
 } as const;
 
@@ -74,7 +85,10 @@ export interface Quote {
 export interface QuoteResult {
   amountIn: bigint;
   amountOut: bigint;
-  multicall: string;
+  /** Official DEX router to call. */
+  target: string;
+  /** Ready-to-send calldata for `target`. */
+  data: string;
   msgValue: bigint;
   isTwoHop: boolean;
   sourceA: string;
@@ -96,8 +110,6 @@ export interface BaseQuoteParams {
 
 export interface QuoteParams extends BaseQuoteParams {
   recipient: string;
-  /** Where excess ETH is refunded (defaults to recipient). Set to the tx sender if recipient differs. */
-  refundTo?: string;
   slippageBps?: number;
   deadline?: bigint;
   /** false = exactIn (default); true = exactOut. `amount` is amountIn or desired amountOut accordingly. */
@@ -107,7 +119,7 @@ export interface QuoteParams extends BaseQuoteParams {
   hookTickSpacing?: number;
   hookAddress?: string;
   /**
-   * Intermediate token for two-hop routes (`buildBestSwapViaTokenMulticall`).
+   * Intermediate token for two-hop routes (`buildBestSwapViaToken`).
    * On Gnosis, when omitted and ViaETH/direct fail, the SDK retries via sDAI automatically.
    */
   intermediate?: string;
@@ -119,24 +131,4 @@ export interface SwapParams extends QuoteParams {}
 
 export function defaultDeadline(): bigint {
   return BigInt(Math.trunc(Date.now() / 1000) + 300);
-}
-
-/** `multicall(bytes[])` selector — matches ILensRouter.multicall. */
-const MULTICALL_SELECTOR = "ac9650d8";
-
-/**
- * Wrap a single LensRouter action into `multicall([callData])` calldata.
- * Matches the on-chain single-hop encoding in buildBestSwapViaETHMulticall.
- */
-export function wrapMulticall(callData: string): string {
-  const hex = callData.startsWith("0x") || callData.startsWith("0X") ? callData.slice(2) : callData;
-  if (hex.length % 2 !== 0) {
-    throw new Error("wrapMulticall: callData must be even-length hex");
-  }
-  const dataLen = hex.length / 2;
-  const paddedLen = Math.ceil(dataLen / 32) * 32;
-  const padHex = "0".repeat((paddedLen - dataLen) * 2);
-
-  const u256 = (n: number) => n.toString(16).padStart(64, "0");
-  return `0x${MULTICALL_SELECTOR}${u256(32)}${u256(1)}${u256(32)}${u256(dataLen)}${hex}${padHex}`;
 }

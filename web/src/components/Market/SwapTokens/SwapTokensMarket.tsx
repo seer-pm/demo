@@ -12,7 +12,7 @@ import { isSeerCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
-import { type AmmTrade, CoWTrade, TradeType } from "@seer-pm/sdk";
+import { type AmmTrade, TradeType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -150,7 +150,6 @@ export function SwapTokensMarket({
 
   const {
     maxSlippage,
-    isInstantSwap,
     account,
     parentMarket,
     isFetching,
@@ -192,13 +191,10 @@ export function SwapTokensMarket({
     swapType,
     tradeType,
     maxSlippage,
-    !isInstantSwap,
     market,
     outcomeIndex,
   );
 
-  const trade = quoteData?.trade;
-  const isCowFastQuote = trade instanceof CoWTrade && trade.quote?.expiration === "1970-01-01T00:00:00Z";
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -215,7 +211,7 @@ export function SwapTokensMarket({
     quoteData?.completeSetLeg,
   );
 
-  const onSubmit = async (trade: CoWTrade | AmmTrade) => {
+  const onSubmit = async (trade: AmmTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
@@ -268,18 +264,6 @@ export function SwapTokensMarket({
   };
 
   const renderButtons = () => {
-    if (isCowFastQuote) {
-      return (
-        <Button
-          variant="primary"
-          type="button"
-          disabled={true}
-          isLoading={true}
-          className="w-full"
-          text="Calculating best price..."
-        />
-      );
-    }
     if (amountErrorMessage && amountErrorMessage !== "This field is required.") {
       return <Button variant="primary" className="w-full" type="button" disabled={true} text={amountErrorMessage} />;
     }
@@ -630,9 +614,7 @@ export function SwapTokensMarket({
               className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
               onClick={() => setShowMaxSlippage(true)}
             >
-              <p>
-                Max slippage {maxSlippage}%{isInstantSwap && " - Instant"}
-              </p>
+              <p>Max slippage {maxSlippage}%</p>
 
               <Parameter width="16px" height="16px" />
             </div>

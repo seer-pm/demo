@@ -1,5 +1,5 @@
 /**
- * Composite quotes: PSM3 (USDC/USDS ↔ sUSDS) + Lens AMM (sUSDS ↔ outcome).
+ * Composite quotes: PSM3 (USDC/USDS ↔ sUSDS) + AMM via Lens smart quoter (sUSDS ↔ outcome).
  */
 
 import type { Address, PublicClient } from "viem";

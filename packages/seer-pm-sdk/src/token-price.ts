@@ -1,5 +1,5 @@
 /**
- * Token price from swap quotes (Lens AMM). Used for outcome token pricing when subgraph is not used.
+ * Token price from swap quotes (Lens smart quoter). Used for outcome token pricing when subgraph is not used.
  */
 
 import type { Address } from "viem";

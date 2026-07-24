@@ -27,7 +27,7 @@ When helping with Seer (prediction markets, MarketFactory, Router, trading, or t
 1. **Setup** – viem public + wallet clients: [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md). Contract addresses from **@seer-pm/sdk** (`getMarketFactoryAddress`, `getRouterAddress`, etc.).
 2. **Create or fetch market** – contracts: [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md); app data: [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) (`get-market`, `markets-search`).
 3. **Positions** – split/merge/redeem via Router: [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
-4. **Trading** – Lens AMM (`fetchAmmQuote` / `AmmTrade`; CoW optional): [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md).
+4. **Trading** – Lens smart quoter (`fetchAmmQuote` / `AmmTrade`): [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md).
 5. **Resolve** – [3-resolve-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/3-resolve-market.md); then redeem via [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
 
 Read the linked doc for the task at hand; avoid inferring ABIs or addresses from other sources.

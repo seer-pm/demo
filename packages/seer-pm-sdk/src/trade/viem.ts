@@ -1,4 +1,4 @@
-// Lens SDK — Viem adapter
+// Lens smart quoter — Viem adapter
 
 import { encodeFunctionData, maxUint256, parseAbi, zeroAddress } from "viem";
 import type { Abi, Address, PublicClient } from "viem";
@@ -17,7 +17,6 @@ import {
   type SwapParams,
   type SwapTx,
   defaultDeadline,
-  wrapMulticall,
 } from "./index.js";
 
 const toAbi = (lines: readonly string[]): Abi => parseAbi(lines);
@@ -41,15 +40,14 @@ export {
   LENS_QUOTER_ABI,
   ERC20_ABI,
   defaultDeadline,
-  wrapMulticall,
 } from "./index.js";
 export type { Quote, QuoteResult, SwapTx, BaseQuoteParams, QuoteParams, SwapParams, ChainId } from "./index.js";
 
 const DEFAULT_SLIPPAGE = 50; // 0.5%
 
 type QuoteStruct = { source: number; feeBps: bigint; amountIn: bigint; amountOut: bigint };
-type BestSwapResult = readonly [QuoteStruct, QuoteStruct, readonly `0x${string}`[], `0x${string}`, bigint];
-type BuildBestSwapResult = readonly [QuoteStruct, `0x${string}`, bigint, bigint];
+type BestSwapResult = readonly [QuoteStruct, QuoteStruct, Address, `0x${string}`, bigint];
+type BuildBestSwapResult = readonly [QuoteStruct, Address, `0x${string}`, bigint, bigint];
 type GetQuotesResult = readonly [QuoteStruct, readonly QuoteStruct[]];
 
 function ammName(source: number): string {
@@ -72,12 +70,13 @@ function mapAllQuotes(quotesResult: PromiseSettledResult<unknown>): Quote[] | nu
 }
 
 function mapViaResult(value: BestSwapResult): QuoteResult {
-  const [a, b, _calls, multicall, msgValue] = value;
+  const [a, b, target, data, msgValue] = value;
   const isTwoHop = b.amountOut > 0n;
   return {
     amountIn: a.amountIn,
     amountOut: isTwoHop ? b.amountOut : a.amountOut,
-    multicall: multicall as string,
+    target: target as string,
+    data: data as string,
     msgValue: msgValue ?? 0n,
     isTwoHop,
     sourceA: ammName(a.source),
@@ -93,7 +92,6 @@ function sameAddr(a: string, b: string): boolean {
 export class Lens {
   private client: PublicClient;
   private chainId: ChainId;
-  private lensRouter: Address;
   private lensQuoter: Address;
   private quoterAbi: Abi;
 
@@ -101,14 +99,12 @@ export class Lens {
     this.client = client;
     this.chainId = chainId;
     const chain = CHAINS[chainId];
-    this.lensRouter = chain.lensRouter as Address;
     this.lensQuoter = chain.lensQuoter as Address;
     this.quoterAbi = quoterAbi;
   }
 
   private async viaToken(params: {
     recipient: string;
-    refundTo: string;
     exactOut: boolean;
     tokenIn: string;
     tokenOut: string;
@@ -123,10 +119,9 @@ export class Lens {
     return this.client.readContract({
       address: this.lensQuoter,
       abi: this.quoterAbi,
-      functionName: "buildBestSwapViaTokenMulticall",
+      functionName: "buildBestSwapViaToken",
       args: [
         params.recipient as Address,
-        params.refundTo as Address,
         params.exactOut,
         params.tokenIn as Address,
         params.tokenOut as Address,
@@ -147,7 +142,6 @@ export class Lens {
       tokenOut,
       amount,
       recipient,
-      refundTo = recipient,
       slippageBps = DEFAULT_SLIPPAGE,
       deadline = defaultDeadline(),
       exactOut = false,
@@ -159,7 +153,6 @@ export class Lens {
 
     const routeArgs = {
       recipient,
-      refundTo,
       exactOut,
       tokenIn,
       tokenOut,
@@ -197,10 +190,9 @@ export class Lens {
     const bestPromise = this.client.readContract({
       address: this.lensQuoter,
       abi: this.quoterAbi,
-      functionName: "buildBestSwapViaETHMulticall",
+      functionName: "buildBestSwapViaETH",
       args: [
         recipient as Address,
-        refundTo as Address,
         exactOut,
         tokenIn as Address,
         tokenOut as Address,
@@ -219,9 +211,8 @@ export class Lens {
       result = mapViaResult(bestResult.value as BestSwapResult);
     } else {
       primaryError = bestResult.reason;
-      // ViaETH NoRoute (e.g. no WNATIVE legs) — fall back to direct single-hop.
       try {
-        const [best, callData, _amountLimit, msgValue] = (await this.client.readContract({
+        const [best, target, callData, _amountLimit, msgValue] = (await this.client.readContract({
           address: this.lensQuoter,
           abi: this.quoterAbi,
           functionName: "buildBestSwap",
@@ -239,7 +230,8 @@ export class Lens {
         result = {
           amountIn: best.amountIn,
           amountOut: best.amountOut,
-          multicall: wrapMulticall(callData),
+          target: target as string,
+          data: callData as string,
           msgValue: msgValue ?? 0n,
           isTwoHop: false,
           sourceA: ammName(best.source),
@@ -247,7 +239,6 @@ export class Lens {
           allQuotes: null,
         };
       } catch {
-        // Gnosis: prediction-market outs often only have sDAI legs.
         if (this.chainId === 100 && !sameAddr(tokenIn, GNOSIS_sDAI) && !sameAddr(tokenOut, GNOSIS_sDAI)) {
           try {
             const viaSdai = await this.viaToken({ ...routeArgs, mid: GNOSIS_sDAI });
@@ -268,8 +259,8 @@ export class Lens {
   async buildSwap(params: SwapParams): Promise<SwapTx> {
     const result = await this.quote(params);
     return {
-      to: this.lensRouter,
-      data: result.multicall,
+      to: result.target,
+      data: result.data,
       value: result.msgValue,
     };
   }
@@ -300,22 +291,24 @@ export class Lens {
     return quotes;
   }
 
-  async getAllowance(token: string, owner: string): Promise<bigint> {
+  /** Allowance of `token` for an official DEX router (`spender`). */
+  async getAllowance(token: string, owner: string, spender: string): Promise<bigint> {
     return this.client.readContract({
       address: token as Address,
       abi: erc20Abi,
       functionName: "allowance",
-      args: [owner as Address, this.lensRouter],
+      args: [owner as Address, spender as Address],
     }) as Promise<bigint>;
   }
 
-  buildApprove(token: string): { to: string; data: string } {
+  /** Approve `spender` (typically the `target` from `quote` / `buildSwap`). */
+  buildApprove(token: string, spender: string): { to: string; data: string } {
     return {
       to: token,
       data: encodeFunctionData({
         abi: erc20Abi,
         functionName: "approve",
-        args: [this.lensRouter, maxUint256],
+        args: [spender as Address, maxUint256],
       }),
     };
   }

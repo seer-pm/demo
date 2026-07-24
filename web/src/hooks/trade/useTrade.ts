@@ -1,13 +1,12 @@
-import { toastify, toastifyTx } from "@/lib/toastify";
+import { toastifyTx } from "@/lib/toastify";
 import { useTrade as useTradeBase } from "@seer-pm/react";
-import type { AmmTrade, CoWTrade, CompleteSetLeg, Market, Psm3Leg } from "@seer-pm/sdk";
+import type { AmmTrade, CompleteSetLeg, Market, Psm3Leg } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { useCheck7702Support } from "../useCheck7702Support";
-import { useGlobalState } from "../useGlobalState";
 
 export const useTrade = (
   account: Address | undefined,
-  trade: CoWTrade | AmmTrade | undefined,
+  trade: AmmTrade | undefined,
   isSeerCredits: boolean,
   onSuccess: () => unknown,
   market: Market,
@@ -15,7 +14,6 @@ export const useTrade = (
   completeSetLeg?: CompleteSetLeg,
 ) => {
   const supports7702 = useCheck7702Support();
-  const { addPendingOrder } = useGlobalState();
 
   return useTradeBase(
     account,
@@ -23,12 +21,8 @@ export const useTrade = (
     isSeerCredits,
     onSuccess,
     supports7702,
-    toastify,
     toastifyTx,
     market,
-    (orderUid: string) => {
-      addPendingOrder(orderUid);
-    },
     psm3Leg,
     completeSetLeg,
   );

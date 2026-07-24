@@ -1,6 +1,7 @@
 /**
- * Seer AMM trade adapter over Lens (lensQuoter / lensRouter).
- * Bigint-first API — no @swapr/sdk types.
+ * Seer AMM trade adapter over Lens smart quoter.
+ * Quotes via lensQuoter; swaps execute against the chosen DEX router (`target`).
+ * Bigint-first API — no external DEX SDK trade types.
  */
 
 import type { Address, Hex, PublicClient } from "viem";
@@ -35,8 +36,8 @@ function assertLensDeployed(chainId: number): asserts chainId is ChainId {
     throw new Error(`Lens is not configured for chain ${chainId}`);
   }
   const chain = CHAINS[chainId as ChainId];
-  if (isTwoStringsEqual(chain.lensRouter, zeroAddress) || isTwoStringsEqual(chain.lensQuoter, zeroAddress)) {
-    throw new Error(`Lens is not deployed on chain ${chainId} (lensRouter/lensQuoter are zero addresses)`);
+  if (isTwoStringsEqual(chain.lensQuoter, zeroAddress)) {
+    throw new Error(`Lens smart quoter is not deployed on chain ${chainId}`);
   }
 }
 
@@ -68,6 +69,7 @@ function applySlippageUp(amount: bigint, slippageBps: number): bigint {
 export class AmmTrade {
   readonly chainId: number;
   readonly tradeType: TradeType;
+  /** DEX router to approve / call (from Lens quote `target`). */
   readonly approveAddress: Address;
   readonly tokenIn: Token;
   readonly tokenOut: Token;
@@ -131,7 +133,7 @@ export class AmmTrade {
   async swapTransaction(options: { recipient: string }): Promise<PopulatedSwapTx> {
     const recipient = options.recipient;
     if (recipient.toLowerCase() !== this.cachedRecipient.toLowerCase()) {
-      await this.rebuildSwap(recipient, recipient);
+      await this.rebuildSwap(recipient);
     }
     return {
       to: this.swapTx.to,
@@ -140,7 +142,7 @@ export class AmmTrade {
     };
   }
 
-  private async rebuildSwap(recipient: string, refundTo: string): Promise<void> {
+  private async rebuildSwap(recipient: string): Promise<void> {
     assertLensDeployed(this.chainId);
     const lens = new Lens(this.client, this.chainId);
     this.swapTx = await lens.buildSwap({
@@ -148,7 +150,6 @@ export class AmmTrade {
       tokenOut: this.tokenOutLens,
       amount: this.swapAmount,
       recipient,
-      refundTo,
       slippageBps: this.slippageBps,
       deadline: defaultDeadline(),
       exactOut: this.tradeType === TradeType.EXACT_OUTPUT,
@@ -168,8 +169,6 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
   const tokenOutLens = toLensTokenAddress(buyToken.address);
   const slippageBps = maxSlippageToBps(maxSlippage);
   const recipient = account || zeroAddress;
-  const refundTo = account || zeroAddress;
-  const lensRouter = CHAINS[chainId].lensRouter as Address;
 
   const exactOut = tradeType === TradeType.EXACT_OUTPUT;
   const swapAmount = exactOut
@@ -186,7 +185,6 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
     tokenOut: tokenOutLens,
     amount: swapAmount,
     recipient,
-    refundTo,
     slippageBps,
     deadline: defaultDeadline(),
     exactOut,
@@ -196,11 +194,13 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
     throw new Error("No route found");
   }
 
+  const dexRouter = result.target as Address;
+
   return new AmmTrade({
     client,
     chainId,
     tradeType,
-    approveAddress: lensRouter,
+    approveAddress: dexRouter,
     tokenIn: sellToken,
     tokenOut: buyToken,
     amountIn: result.amountIn,
@@ -209,7 +209,7 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
     tokenInLens,
     tokenOutLens,
     swapAmount,
-    swapTx: { to: lensRouter, data: result.multicall as Hex, value: result.msgValue },
+    swapTx: { to: dexRouter, data: result.data as Hex, value: result.msgValue },
     recipient,
   });
 }

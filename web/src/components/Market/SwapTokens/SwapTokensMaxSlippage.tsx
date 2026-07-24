@@ -1,4 +1,3 @@
-import Toggle from "@/components/Form/Toggle";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import clsx from "clsx";
@@ -19,16 +18,10 @@ const MAX_SLIPPAGE_OPTIONS = [
 
 interface FormData {
   maxSlippage: string;
-  isInstantSwap: boolean;
 }
 
 export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => void }) {
-  const [initialMaxSlippage, setMaxSlippage, initialIsInstantSwap, setInstantSwap] = useGlobalState((state) => [
-    state.maxSlippage,
-    state.setMaxSlippage,
-    state.isInstantSwap,
-    state.setInstantSwap,
-  ]);
+  const [initialMaxSlippage, setMaxSlippage] = useGlobalState((state) => [state.maxSlippage, state.setMaxSlippage]);
   const {
     handleSubmit,
     setValue,
@@ -40,16 +33,13 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
     mode: "all",
     defaultValues: {
       maxSlippage: initialMaxSlippage,
-      isInstantSwap: initialIsInstantSwap,
     },
   });
-  const onSubmit = ({ maxSlippage, isInstantSwap }: FormData) => {
+  const onSubmit = ({ maxSlippage }: FormData) => {
     setMaxSlippage(maxSlippage);
-    setInstantSwap(isInstantSwap);
     onReturn();
   };
   const maxSlippage = watch("maxSlippage");
-  const isInstantSwap = watch("isInstantSwap");
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -109,18 +99,6 @@ export default function SwapTokensMaxSlippage({ onReturn }: { onReturn: () => vo
           })}
         />
         <p>%</p>
-      </div>
-      <div className="flex items-center gap-1">
-        <p>Instant Swap</p>
-        <div className="tooltip">
-          <p className="tooltiptext w-[200px] !whitespace-break-spaces">Swap directly without using Cowswap</p>
-          <QuestionIcon fill="#9747FF" />
-        </div>
-        <Toggle
-          className="checked:bg-purple-primary ml-3"
-          checked={isInstantSwap}
-          onChange={(e) => setValue("isInstantSwap", e.target.checked)}
-        />
       </div>
       <FormError errors={errors} name="maxSlippage" />
       <Button text="Cancel" variant="secondary" onClick={onReturn} className="mr-2" />

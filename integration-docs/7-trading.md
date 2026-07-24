@@ -2,7 +2,7 @@
 
 Outcome tokens (CTF positions) are traded on AMMs. Pools are always **outcome token / main collateral** for the chain.
 
-Quotes and swaps go through **Lens** (`lensQuoter` / `lensRouter`), which aggregates Uniswap V3 and Swapr (Algebra) on-chain. CoW Swap remains available as an optional path.
+Quotes go through **Lens smart quoter** (`lensQuoter`), which picks the best DEX (Uniswap V3/V4 or Swapr) and returns calldata for that DEX’s own router. Swaps execute against the official DEX routers — Lens is not an AMM or a swap router.
 
 Use **@seer-pm/sdk** to get quotes and build swap flows. The SDK handles routing, amounts, and slippage for all supported chains (Gnosis, Ethereum, Base, Optimism).
 
@@ -36,10 +36,9 @@ See [Collateral profiles](9-collateral-profiles.md) for the full registry and wh
 
 **Chain coverage:**
 
-- **AMM (Lens)** on Gnosis, Ethereum, Base, Optimism: `fetchAmmQuote` with `TradeType` (exact-in / exact-out). Requires a viem `PublicClient`.
-- **CoW Swap** (optional): `getCowQuote` / `getCowQuoteExactOut` (or `fetchCowQuote` with `TradeType`).
+- **AMM via Lens smart quoter** on Gnosis, Ethereum, Base, Optimism: `fetchAmmQuote` with `TradeType` (exact-in / exact-out). Requires a viem `PublicClient`.
 
-**Result type:** `QuoteTradeResult` — `value` (bigint), `decimals`, `buyToken`, `sellToken`, `sellAmount`, `swapType`, and `trade` (`AmmTrade` for Lens, or `CoWTrade` for CoW).
+**Result type:** `QuoteTradeResult` — `value` (bigint), `decimals`, `buyToken`, `sellToken`, `sellAmount`, `swapType`, and `trade` (`AmmTrade`).
 
 ### Token and collateral
 
@@ -183,26 +182,21 @@ const exactOutQuote = await getQuote(
 );
 ```
 
-Use `fetchCowQuote` the same way when integrating CoW Swap (e.g. for limit orders); it accepts an optional `isFastQuery` for quote speed vs optimal price.
-
 ---
 
 ## Executing the swap
 
 The SDK provides execution functions that take a `trade` (from a quote) and send the transaction. You need **wagmi** (config, `getConnectorClient`) and optionally a toast/notification layer for UX.
 
-### Execute any trade (CoW or Lens AMM)
+### Execute any trade (AMM via Lens)
 
-Use `tradeTokens` to execute any trade type. It dispatches to CoW Swap or Lens AMM automatically.
-
-**`getSigner` is only required if you want to support CoW Swap trades.** If you omit it, AMM trades work as usual; CoW Swap trades will throw. For Lens-only you can pass just `{ client }` from `getConnectorClient(config)`:
+Use `tradeTokens` to execute an AMM trade (including complete-set / PSM3 composite routes when present on the props):
 
 ```typescript
 import { tradeTokens, type TradeTokensProps } from "@seer-pm/sdk";
 import { config } from "@/wagmi";
 import { getConnectorClient } from "@wagmi/core";
 
-// Lens AMM only (no CoW Swap)
 const client = await getConnectorClient(config);
 const adapters = { client };
 
@@ -215,28 +209,9 @@ const props: TradeTokensProps = {
 const result = await tradeTokens(props, adapters); // tx hash
 ```
 
-To support CoW Swap as well, add `getSigner`:
+Wrap with `toastifyTx` in your app to show "Executing..." and "Done!" notifications.
 
-```typescript
-import { tradeTokens, clientToSigner, type TradeTokensProps } from "@seer-pm/sdk";
-import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
-
-const client = await getConnectorClient(config);
-if (!client) throw new Error("No wallet connected");
-
-const adapters = {
-  client,
-  getSigner: async () => clientToSigner(client),
-};
-
-// Returns order ID (CoW Swap) or tx hash (Lens AMM)
-const result = await tradeTokens(props, adapters);
-```
-
-Wrap with `toastifyTx` (AMM) or `toastify` (CoW Swap) in your app to show "Executing..." and "Done!" notifications.
-
-### Execute Lens AMM trade
+### Execute AMM trade
 
 ```typescript
 import { executeAmmTrade } from "@seer-pm/sdk";
@@ -253,22 +228,6 @@ const hash = await executeAmmTrade(
 );
 
 const receipt = await waitForTransactionReceipt(config, { hash });
-```
-
-### Execute CoW Swap trade (Gnosis)
-
-CoW Swap trades need a signer (ethers). Use `clientToSigner` to convert a wagmi client:
-
-```typescript
-import { executeCoWTrade, clientToSigner } from "@seer-pm/sdk";
-import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
-
-const client = await getConnectorClient(config);
-const signer = clientToSigner(client!);
-
-const orderId = await executeCoWTrade(signer, trade);
-// orderId = CoW Swap order UID (track status via CoW Swap API)
 ```
 
 ### Execute with 7702 batch (approvals + swap)
@@ -294,8 +253,6 @@ const receipt = await waitForTransactionReceipt(config, {
   hash: receipts[0].transactionHash!,
 });
 ```
-
-**Note:** `buildTradeCalls7702` does not support CoW Swap trades; use `tradeTokens` for CoW Swap.
 
 ### Build execution without sending
 

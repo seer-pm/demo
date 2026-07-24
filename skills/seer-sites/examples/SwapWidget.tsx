@@ -145,7 +145,6 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
     mode,
     TradeType.EXACT_INPUT,
     "1",
-    false,
   );
 
   const requiredAmount = quoteData?.trade ? getMaximumAmountIn(quoteData.trade) : 0n;

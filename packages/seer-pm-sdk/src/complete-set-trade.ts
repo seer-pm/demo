@@ -13,7 +13,7 @@ import { getMergeExecution } from "./merge-positions";
 import { getRouterAddress } from "./router-addresses";
 import { getSplitExecution } from "./split-position";
 import type { TradeTokensProps } from "./trade-utils";
-import { getMaximumAmountIn, isAmmTrade } from "./trade-utils";
+import { getMaximumAmountIn } from "./trade-utils";
 
 type ValidatedCompleteSetTrade = {
   completeSetLeg: NonNullable<TradeTokensProps["completeSetLeg"]>;
@@ -38,9 +38,6 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
   const { completeSetLeg, trade } = props;
   if (!completeSetLeg) {
     throw new Error("Complete-set trade requires completeSetLeg");
-  }
-  if (!isAmmTrade(trade)) {
-    throw new Error("Complete-set trade requires AmmTrade secondary trade");
   }
   if (!trade.approveAddress) {
     throw new Error("Complete-set trade requires trade.approveAddress");

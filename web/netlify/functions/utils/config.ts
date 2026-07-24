@@ -1,4 +1,4 @@
-import { ChainId, configurePublicRpcUrls } from "@seer-pm/sdk";
+import { configurePublicRpcUrls } from "@seer-pm/sdk";
 import {
   http,
   type Chain,
@@ -17,10 +17,10 @@ const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimi
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || "https://base.llamarpc.com";
 
 configurePublicRpcUrls({
-  [ChainId.XDAI]: GNOSIS_RPC,
-  [ChainId.MAINNET]: MAINNET_RPC,
-  [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
-  [ChainId.BASE]: BASE_RPC,
+  [gnosis.id]: GNOSIS_RPC,
+  [mainnet.id]: MAINNET_RPC,
+  [optimism.id]: OPTIMISM_RPC,
+  [base.id]: BASE_RPC,
 });
 
 const SEPOLIA_RPC = process.env.PRIVATE_RPC_SEPOLIA || "https://ethereum-sepolia-rpc.publicnode.com";

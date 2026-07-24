@@ -33,11 +33,6 @@
       "import": "./dist/subgraph/index.mjs",
       "require": "./dist/subgraph/index.js"
     },
-    "./swapr": {
-      "types": "./dist/swapr.d.ts",
-      "import": "./dist/swapr.mjs",
-      "require": "./dist/swapr.js"
-    },
     "./create-market": {
       "types": "./dist/create-market.d.ts",
       "import": "./dist/create-market.mjs",
@@ -82,11 +77,6 @@
       "types": "./dist/chains.d.ts",
       "import": "./dist/chains.mjs",
       "require": "./dist/chains.js"
-    },
-    "./cow": {
-      "types": "./dist/cow.d.ts",
-      "import": "./dist/cow.mjs",
-      "require": "./dist/cow.js"
     },
     "./contracts/curate": {
       "types": "./generated/contracts/curate.ts",
@@ -173,8 +163,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/swapr.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/cow.ts --format cjs,esm --dts --watch",
+    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
     "generate:hooks": "wagmi generate",
@@ -203,10 +193,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@cowprotocol/cow-sdk": "^5.3.2",
-    "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk#e4db9435d06604748cb51b3682025939e213c0af",
     "@uniswap/v3-sdk": "^3.19.0",
-    "ethers": "^5.7.2",
     "graphql": "16.11.0"
   }
 }

@@ -1,9 +1,9 @@
 import { gnosis } from "@/lib/chains";
+import { OrderBookApi } from "@cowprotocol/cow-sdk";
 import { getStore } from "@netlify/blobs";
 import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import type { MarketDataMapping } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
-import { OrderBookApi } from "@seer-pm/sdk/cow";
 import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { type GetSwapsQuery, OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";

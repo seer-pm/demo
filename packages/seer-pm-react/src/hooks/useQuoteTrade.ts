@@ -1,5 +1,5 @@
 import { TradeType } from "@seer-pm/sdk";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getPublicClient } from "@wagmi/core";
 import { useEffect, useMemo } from "react";
 import type { Address } from "viem";
@@ -13,7 +13,6 @@ import {
   type Token,
   fetchAmmQuote,
   fetchBestCompleteSetQuote,
-  fetchCowQuote,
   fetchPsm3AmmQuote,
   getActivePrimaryCollateral,
   getCompleteSetRoutingDisabledReasons,
@@ -73,74 +72,6 @@ export function useAmmQuote(
       );
     },
     refetchInterval: QUOTE_REFETCH_INTERVAL,
-  });
-}
-
-const getUseCowQuoteQueryKey = (
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  tradeType: TradeType,
-  maxSlippage: string,
-) => [
-  "useQuote",
-  "useCowQuote",
-  chainId,
-  account,
-  amount.toString(),
-  outcomeToken,
-  collateralToken,
-  swapType,
-  tradeType,
-  maxSlippage,
-];
-
-export function useCowQuote(
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  enabled: boolean,
-  tradeType: TradeType,
-  maxSlippage: string,
-) {
-  const queryClient = useQueryClient();
-  const queryKey = getUseCowQuoteQueryKey(
-    chainId,
-    account,
-    amount,
-    outcomeToken,
-    collateralToken,
-    swapType,
-    tradeType,
-    maxSlippage,
-  );
-  const previousData = queryClient.getQueryData(queryKey);
-  const isFastQuery = previousData === undefined;
-
-  return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey,
-    enabled: Number(amount) > 0 && enabled,
-    retry: false,
-    queryFn: async () =>
-      fetchCowQuote(
-        tradeType,
-        chainId,
-        account,
-        amount,
-        outcomeToken,
-        collateralToken,
-        swapType,
-        maxSlippage,
-        isFastQuery,
-      ),
-    refetchInterval: (query) =>
-      query.state.dataUpdateCount <= 1 && query.state.errorUpdateCount === 0 ? 1 : QUOTE_REFETCH_INTERVAL,
   });
 }
 
@@ -216,7 +147,6 @@ export function useQuoteTrade(
   swapType: "buy" | "sell",
   tradeType: TradeType,
   maxSlippage: string,
-  isCowQuoteEnabled: boolean,
   market?: Market,
   outcomeIndex?: number,
 ) {
@@ -225,20 +155,6 @@ export function useQuoteTrade(
   const isPsm3Collateral = isPsm3SwapToken(chainId, collateralToken.address);
 
   const realCollateralToken: Token = isSeerCreditsCollateral ? getActivePrimaryCollateral(chainId) : collateralToken;
-
-  const shouldUseInstantSwap = isCowQuoteEnabled || isSeerCreditsCollateral || isPsm3Collateral;
-  const cowResult = useCowQuote(
-    chainId,
-    account,
-    amount,
-    outcomeToken,
-    realCollateralToken,
-    swapType,
-    !shouldUseInstantSwap,
-    tradeType,
-    maxSlippage,
-  );
-  const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
 
   const ammResult = useAmmQuote(
     chainId,
@@ -267,11 +183,8 @@ export function useQuoteTrade(
     if (isPsm3Collateral && (chainId === optimism.id || chainId === base.id)) {
       return psm3AmmResult;
     }
-    if (isCowResultOk) {
-      return cowResult;
-    }
     return ammResult;
-  }, [chainId, isCowResultOk, cowResult, ammResult, psm3AmmResult, isPsm3Collateral]);
+  }, [chainId, ammResult, psm3AmmResult, isPsm3Collateral]);
 
   const completeSetEnabled = Boolean(
     market && outcomeIndex !== undefined && isCompleteSetRoutingEnabled(market, outcomeIndex, collateralToken.address),

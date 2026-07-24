@@ -29,9 +29,8 @@ This package exposes reusable hooks that work with `@seer-pm/sdk` and Wagmi.
 
 ### Trading & quotes
 
-- **`useQuoteTrade`** — Unified quote for buy/sell: uses CoW (or instant swap) when enabled or for Seer Credits, otherwise Lens AMM (`useAmmQuote`).
-- **`useCowQuote`** — CoW Protocol quote.
-- **`useAmmQuote`** — Lens AMM quote (Gnosis, Ethereum, Optimism, Base).
+- **`useQuoteTrade`** — Unified quote for buy/sell via Lens smart quoter (`useAmmQuote`), with complete-set / PSM3 routing when applicable.
+- **`useAmmQuote`** — AMM quote via Lens smart quoter (Gnosis, Ethereum, Optimism, Base).
 
 ### Approvals
 

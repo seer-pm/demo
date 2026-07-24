@@ -4,7 +4,7 @@ import { RightArrow } from "@/lib/icons";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
-import { type AmmTrade, CoWTrade } from "@seer-pm/sdk";
+import { type AmmTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { Alert } from "../../Alert";
@@ -14,10 +14,10 @@ import { Spinner } from "../../Spinner";
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
   reset: () => void;
-  trade: CoWTrade | AmmTrade | undefined;
+  trade: AmmTrade | undefined;
   quoteData?: CompleteSetQuoteResult;
   isLoading: boolean;
-  onSubmit: (trade: CoWTrade | AmmTrade) => Promise<void>;
+  onSubmit: (trade: AmmTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
   isSeerCredits: boolean;
@@ -166,7 +166,7 @@ function ShowCompleteSetSummary({
   quoteData,
   collateral,
 }: {
-  trade: CoWTrade | AmmTrade;
+  trade: AmmTrade;
   quoteData: CompleteSetQuoteResult;
   collateral: Token;
 }) {
@@ -207,7 +207,7 @@ function ShowSwapSummary({
   isSeerCredits,
   outcomeToken,
 }: {
-  trade: CoWTrade | AmmTrade;
+  trade: AmmTrade;
   collateral: Token;
   isSeerCredits: boolean;
   outcomeToken: Token;

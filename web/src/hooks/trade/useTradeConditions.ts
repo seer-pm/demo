@@ -27,7 +27,6 @@ interface Props {
 
 export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, errors }: Props) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
-  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId, swapType));
 
@@ -65,7 +64,6 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
 
   return {
     maxSlippage,
-    isInstantSwap,
     account,
     parentMarket,
     selectedCollateral,

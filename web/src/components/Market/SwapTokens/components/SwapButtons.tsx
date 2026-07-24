@@ -2,7 +2,7 @@ import { ApproveButton } from "@/components/Form/ApproveButton";
 import Button from "@/components/Form/Button";
 import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
 import type { UseMissingApprovalsReturn } from "@seer-pm/react";
-import type { AmmTrade, CoWTrade, SupportedChain } from "@seer-pm/sdk";
+import type { AmmTrade, SupportedChain } from "@seer-pm/sdk";
 import { Address } from "viem";
 
 export default function SwapButtons({
@@ -13,7 +13,7 @@ export default function SwapButtons({
   text,
 }: {
   account?: Address;
-  trade: CoWTrade | AmmTrade;
+  trade: AmmTrade;
   isDisabled: boolean;
   isLoading: boolean;
   missingApprovals: UseMissingApprovalsReturn[] | undefined;

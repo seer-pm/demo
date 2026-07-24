@@ -1,5 +1,5 @@
 /**
- * Composite trade execution: PSM3 + Lens AMM in one batch or sequential txs.
+ * Composite trade execution: PSM3 + AMM (via Lens smart quoter) in one batch or sequential txs.
  */
 
 import type { Address, Client } from "viem";
@@ -14,7 +14,7 @@ import { buildPsm3SwapExecution } from "./psm3";
 import type { Psm3Leg } from "./quote";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { TradeTokensProps } from "./trade-utils";
-import { getMaximumAmountIn, isAmmTrade } from "./trade-utils";
+import { getMaximumAmountIn } from "./trade-utils";
 
 async function getAmmExecution(trade: AmmTrade, account: Address): Promise<Execution> {
   return getAmmTradeExecution(trade, account);
@@ -42,7 +42,7 @@ function assertAmmInputWithinPsm3Output(trade: AmmTrade, psm3Leg: Psm3Leg): bigi
 
 export async function buildPsm3CompositeTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
   const { trade, account, psm3Leg } = props;
-  if (!psm3Leg || !isAmmTrade(trade)) {
+  if (!psm3Leg) {
     throw new Error("Composite trade requires AmmTrade and psm3Leg");
   }
 
@@ -106,7 +106,7 @@ export async function buildPsm3CompositeTradeCalls7702(props: TradeTokensProps):
 
 export async function executePsm3CompositeTrade(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
   const { trade, account, psm3Leg } = props;
-  if (!psm3Leg || !isAmmTrade(trade)) {
+  if (!psm3Leg) {
     throw new Error("Composite trade requires AmmTrade and psm3Leg");
   }
 
@@ -194,7 +194,7 @@ export function getPsm3CompositeApprovalTokens(props: TradeTokensProps): {
   amounts: bigint[];
 } {
   const { trade, psm3Leg } = props;
-  if (!psm3Leg || !isAmmTrade(trade)) {
+  if (!psm3Leg) {
     return { tokensAddresses: [], spenders: [], amounts: [] };
   }
 

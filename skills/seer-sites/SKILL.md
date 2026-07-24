@@ -84,7 +84,7 @@ Treat these documents as the **authoritative reference** for:
 - Contract addresses and networks (or how to derive them from the SDK).
 - Required parameters (bounds, oracle, question, outcomes, etc.).
 - How split/merge/redeem work via `useSplitPosition`, `useMergePositions`, and `useRedeemPositions`.
-- How trading works via `useQuoteTrade` (quotes) and `useTrade` (execute) on Lens AMM (aggregates Uniswap/Swapr on-chain; CoW optional).
+- How trading works via `useQuoteTrade` (quotes) and `useTrade` (execute) using Lens smart quoter (picks Uniswap/Swapr and returns DEX-router calldata).
 
 ---
 

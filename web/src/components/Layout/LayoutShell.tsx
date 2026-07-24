@@ -9,7 +9,6 @@ import { WagmiProvider } from "wagmi";
 import { queryClient } from "../../lib/query-client.ts";
 import "../../lib/subgraph";
 import { config } from "../../wagmi.ts";
-import { SwapUpdater } from "../SwapUpdater.tsx";
 
 import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
@@ -35,7 +34,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <AuthUpdater />
-          <SwapUpdater />
           <ToastContainer />
           <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
           <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />

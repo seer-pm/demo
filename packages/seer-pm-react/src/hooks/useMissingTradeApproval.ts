@@ -1,10 +1,9 @@
-import type { AmmTrade, CoWTrade, CompleteSetLeg, Psm3Leg, SupportedChain } from "@seer-pm/sdk";
+import type { AmmTrade, CompleteSetLeg, Psm3Leg, SupportedChain } from "@seer-pm/sdk";
 import {
   getCompleteSetApprovalTokens,
   getMaximumAmountIn,
   getPsm3CompositeApprovalTokens,
   getTradeApproveTokenAddress,
-  isAmmTrade,
 } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { useMissingApprovals } from "./useMissingApprovals";
@@ -86,12 +85,12 @@ function useCompositeMissingApprovals(
 
 export function useMissingTradeApproval(
   account: Address | undefined,
-  trade: CoWTrade | AmmTrade | undefined,
+  trade: AmmTrade | undefined,
   psm3Leg?: Psm3Leg,
   completeSetLeg?: CompleteSetLeg,
 ) {
   const completeSetApproval =
-    completeSetLeg && trade && account && isAmmTrade(trade)
+    completeSetLeg && trade && account
       ? getCompleteSetApprovalTokens({
           trade,
           account,
@@ -101,7 +100,7 @@ export function useMissingTradeApproval(
       : null;
 
   const psm3Approval =
-    !completeSetApproval?.tokensAddresses.length && trade && psm3Leg && account && isAmmTrade(trade)
+    !completeSetApproval?.tokensAddresses.length && trade && psm3Leg && account
       ? getPsm3CompositeApprovalTokens({
           trade,
           account,

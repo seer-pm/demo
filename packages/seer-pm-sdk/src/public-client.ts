@@ -5,7 +5,6 @@
 import type { PublicClient } from "viem";
 import { http, createPublicClient } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
-import { ChainId, configureRpcProviders } from "./swapr";
 
 const CHAIN_BY_ID = {
   [gnosis.id]: gnosis,
@@ -18,13 +17,12 @@ let rpcUrlsByChainId: Partial<Record<number, string>> = {};
 const publicClientsByChainId = new Map<number, PublicClient>();
 
 /**
- * Set public RPC URLs for SDK PublicClients and Swapr providers.
+ * Set public RPC URLs for SDK PublicClients.
  * Replaces any prior configuration; omitted chains fall back to defaults.
  */
 export function configurePublicRpcUrls(urls: Partial<Record<number, string>>): void {
   rpcUrlsByChainId = { ...urls };
   publicClientsByChainId.clear();
-  configureRpcProviders(urls as Partial<Record<ChainId, string>>);
 }
 
 export function isPublicClientChainSupported(chainId: number): boolean {

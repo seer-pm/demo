@@ -2,31 +2,19 @@
  * Trade execution: build transaction data and execute swaps.
  */
 
-import {
-  EnrichedOrder,
-  OrderBookApi,
-  OrderSigningUtils,
-  type SupportedChainId,
-  type UnsignedOrder,
-} from "@cowprotocol/cow-sdk";
-import { CoWTrade } from "@swapr/sdk";
-import { Contract, providers } from "ethers";
-import type { Signer } from "ethers";
 import type { Address, Client, Hex } from "viem";
-import { encodeFunctionData, parseUnits } from "viem";
+import { encodeFunctionData } from "viem";
 import { sendTransaction } from "viem/actions";
 import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
 import type { AmmTrade } from "./amm-trade";
 import { NATIVE_TOKEN } from "./collateral";
-import { ERC20_APPROVE_ABI, ETH_FLOW_ABI } from "./execute-trade-abis";
+import { ERC20_APPROVE_ABI } from "./execute-trade-abis";
 import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { TradeTokensProps } from "./trade-utils";
-import { getMaximumAmountIn, isAmmTrade } from "./trade-utils";
+import { getMaximumAmountIn } from "./trade-utils";
 
 export type { TradeTokensProps } from "./trade-utils";
-
-export const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
 
 /**
  * Get maximum amount in for approval.
@@ -70,7 +58,7 @@ export function getTradeApprovals7702(params: GetTradeApprovals7702Params): Exec
 }
 
 /**
- * Build Lens AMM trade execution.
+ * Build AMM trade execution (DEX router calldata from Lens smart quoter).
  */
 export async function getAmmTradeExecution(trade: AmmTrade, account: Address): Promise<Execution> {
   const populatedTransaction = await trade.swapTransaction({ recipient: account });
@@ -113,124 +101,7 @@ export function getWrappedSeerCreditsExecution(
 }
 
 /**
- * Execute CoW trade (sign + submit or eth flow).
- * Returns order ID. Wrap with toastify in the app for UI feedback.
- */
-export async function executeCoWTrade(signer: Signer, trade: CoWTrade): Promise<string> {
-  if (isTwoStringsEqual(trade.inputAmount.currency.address, NATIVE_TOKEN)) {
-    const ethFlowContract = new Contract(ETH_FLOW_ADDRESS, ETH_FLOW_ABI, signer);
-    const ethOrder = {
-      ...trade.quote.quote,
-      quoteId: trade.quote.id,
-    };
-    const orderDigest = await ethFlowContract.callStatic["createOrder"](ethOrder, {
-      value: ethOrder.sellAmount,
-    });
-    const orderId = `${orderDigest}${ETH_FLOW_ADDRESS.slice(2)}ffffffff`.toLowerCase();
-    await ethFlowContract.createOrder(ethOrder, { value: ethOrder.sellAmount });
-    return orderId;
-  }
-
-  await trade.signOrder(signer);
-  const orderId = await trade.submitOrder();
-  return orderId;
-}
-
-/**
- * Create and submit a CoW limit order (sign + send). Returns order ID.
- * Wrap with toastify in the app for UI feedback.
- */
-export async function createCowOrder(
-  signer: Signer,
-  params: { order: UnsignedOrder; chainId: SupportedChainId },
-): Promise<string> {
-  const { order, chainId } = params;
-  const orderBookApi = new OrderBookApi({ chainId });
-  // biome-ignore lint/suspicious/noExplicitAny:
-  const orderSigningResult: any = await OrderSigningUtils.signOrder(order, chainId, signer);
-  const orderId = await orderBookApi.sendOrder({ ...order, ...orderSigningResult });
-  return orderId;
-}
-
-/**
- * Cancel a CoW order by order ID. Wrap with toastify in the app for UI feedback.
- */
-export async function cancelCowOrder(
-  signer: Signer,
-  params: { orderId: string; chainId: SupportedChainId },
-): Promise<string> {
-  const { orderId, chainId } = params;
-  const orderBookApi = new OrderBookApi({ chainId });
-  const orderCancellationSigningResult = await OrderSigningUtils.signOrderCancellations([orderId], chainId, signer);
-  await orderBookApi.sendSignedOrderCancellations({
-    ...orderCancellationSigningResult,
-    orderUids: [orderId],
-  });
-  return orderId;
-}
-
-/**
- * Invalidate an EthFlow order on-chain. Returns order uid.
- * Wrap with toastify in the app for UI feedback.
- */
-export async function cancelEthFlowOrder(signer: Signer, params: { order: EnrichedOrder }): Promise<string> {
-  const { order } = params;
-  const ethFlowContract = new Contract(ETH_FLOW_ADDRESS, ETH_FLOW_ABI, signer);
-  const contractOrder = {
-    buyToken: order.buyToken,
-    receiver: order.receiver,
-    sellAmount: parseUnits(order.sellAmount, 18),
-    buyAmount: parseUnits(order.buyAmount, 18),
-    appData: order.appData,
-    feeAmount: order.feeAmount,
-    validTo: order.validTo,
-    partiallyFillable: order.partiallyFillable,
-    quoteId: order.quoteId ?? 0,
-  };
-  await ethFlowContract.invalidateOrder(contractOrder, { gasLimit: 200000 });
-  return order.uid;
-}
-
-type SignerCompatibleClient = {
-  account: { address: Address };
-  chain: { id: number; name: string };
-  transport: unknown;
-};
-
-function toEthersSigner(client: SignerCompatibleClient): Signer {
-  const { account, chain } = client;
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-  };
-  const provider = new providers.Web3Provider(client.transport as providers.ExternalProvider, network);
-  return provider.getSigner(account.address);
-}
-
-/**
- * Convert a viem client with account+chain to ethers Signer.
- */
-export function viemClientToSigner(client: Client): Signer {
-  if (!client.account || !client.chain) {
-    throw new Error("Wallet client must include account and chain");
-  }
-
-  return toEthersSigner({
-    account: { address: client.account.address },
-    chain: { id: client.chain.id, name: client.chain.name },
-    transport: client.transport,
-  });
-}
-
-/**
- * Convert wagmi connector client to ethers Signer.
- */
-export function clientToSigner(client: SignerCompatibleClient): Signer {
-  return toEthersSigner(client);
-}
-
-/**
- * Build execution for AMM trade (Lens).
+ * Build execution for AMM trade (via Lens smart quoter → DEX router).
  */
 export async function buildAmmTradeExecution(
   trade: AmmTrade,
@@ -255,26 +126,12 @@ export async function executeAmmTrade(
 }
 
 /**
- * Execute trade. Dispatches to CoW or Lens AMM.
- * Returns order ID (string) for CoW, or tx hash for AMM.
- * Wrap with toastify (CoW) or toastifyTx (AMM) in the app.
- *
- * Pass `getSigner` only if you want to support CoW trades; without it, CoW trades will throw.
+ * Execute AMM trade via Lens smart quoter (or complete-set / PSM3 composite routes).
+ * Returns tx hash. Wrap with toastifyTx in the app.
  */
-export async function tradeTokens(
-  props: TradeTokensProps,
-  adapters: { client: Client; getSigner?: () => Promise<Signer> },
-): Promise<string> {
+export async function tradeTokens(props: TradeTokensProps, adapters: { client: Client }): Promise<string> {
   const { trade, account, isSeerCredits } = props;
-  const { client, getSigner } = adapters;
-
-  if (trade instanceof CoWTrade) {
-    if (!getSigner) {
-      throw new Error("getSigner is required to execute CoW trades; pass it in adapters or use AMM only.");
-    }
-    const signer = await getSigner();
-    return executeCoWTrade(signer, trade);
-  }
+  const { client } = adapters;
 
   if (props.completeSetLeg) {
     if (isSeerCredits) {
@@ -284,7 +141,7 @@ export async function tradeTokens(
     return executeCompleteSetTrade(client, props);
   }
 
-  if (props.psm3Leg && isAmmTrade(trade)) {
+  if (props.psm3Leg) {
     return executePsm3CompositeTradeWrapper(client, props);
   }
 
@@ -302,10 +159,6 @@ async function executePsm3CompositeTradeWrapper(client: Client, props: TradeToke
 export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
   const { trade, account, isSeerCredits, psm3Leg } = props;
 
-  if (trade instanceof CoWTrade) {
-    throw new Error("buildTradeCalls7702 does not support CoW trades; use tradeTokens instead");
-  }
-
   if (props.completeSetLeg) {
     if (isSeerCredits) {
       throw new Error("Complete-set trades are not supported with Seer Credits");
@@ -314,7 +167,7 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
     return buildCompleteSetTradeCalls7702(props);
   }
 
-  if (psm3Leg && isAmmTrade(trade)) {
+  if (psm3Leg) {
     const { buildPsm3CompositeTradeCalls7702 } = await import("./psm3-composite-trade");
     return buildPsm3CompositeTradeCalls7702(props);
   }

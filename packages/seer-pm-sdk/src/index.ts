@@ -152,34 +152,22 @@ export type { GetTokenResult } from "./token-info";
 export { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 export type { ApprovalInfo, GetApprovals7702Props } from "./approvals";
 export {
-  getCowQuote,
-  getCowQuoteExactOut,
-  fetchCowQuote,
   fetchAmmQuote,
-  getTradeArgsExactIn,
-  getTradeArgsExactOut,
   getCollateralPerShare,
   getOutcomeTokenVolume,
 } from "./quote";
-export type { QuoteTradeResult, QuoteTradeFn, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
+export type { QuoteTradeResult, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
 export { AmmTrade, quoteAmmTrade } from "./amm-trade";
 export type { QuoteAmmTradeParams } from "./amm-trade";
 export { Lens } from "./trade/viem";
 export {
+  AMM,
+  AMM_NAMES,
   CHAINS as LENS_CHAINS,
   ETH as LENS_ETH,
-  AMM as LENS_AMM,
-  AMM_NAMES as LENS_AMM_NAMES,
 } from "./trade/index";
 export type { ChainId as LensChainId, QuoteResult as LensQuoteResult, SwapTx as LensSwapTx } from "./trade/index";
 export {
-  cancelCowOrder,
-  cancelEthFlowOrder,
-  clientToSigner,
-  viemClientToSigner,
-  createCowOrder,
-  ETH_FLOW_ADDRESS,
-  executeCoWTrade,
   executeAmmTrade,
   tradeTokens,
   buildTradeCalls7702,
@@ -194,7 +182,6 @@ export type {
   GetTradeApprovals7702Params,
 } from "./execute-trade";
 export {
-  isAmmTrade,
   getTradeAmountIn,
   getTradeAmountOut,
   getTradeTokenIn,
@@ -366,18 +353,3 @@ export {
 } from "./subgraph";
 export type { AppSubgraphType, SubgraphTypes } from "./subgraph";
 export { CHAIN_IDS } from "./subgraph";
-
-// Re-export CoW Protocol SDK for web consumers (single dependency)
-export { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
-export type { EnrichedOrder, UnsignedOrder } from "@cowprotocol/cow-sdk";
-
-// Re-export Swapr SDK for CoW (AMM trades use AmmTrade / Lens; TradeType is Seer-owned above)
-export {
-  Trade,
-  CoWTrade,
-  ChainId,
-  configureRpcProviders,
-  Currency,
-  CurrencyAmount,
-  Percent,
-} from "@swapr/sdk";
