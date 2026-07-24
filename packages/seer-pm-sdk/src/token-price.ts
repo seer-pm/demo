@@ -1,14 +1,29 @@
 /**
- * Token price from swap quotes (Uniswap/Swapr). Used for outcome token pricing when subgraph is not used.
+ * Token price from swap quotes (Lens AMM). Used for outcome token pricing when subgraph is not used.
  */
 
-import type { Address } from "viem";
-import { formatUnits } from "viem";
-import { gnosis, mainnet } from "viem/chains";
-import { isOpStack } from "./chains";
-import { getSwaprQuote, getUniswapQuote } from "./quote";
+import type { Address, PublicClient } from "viem";
+import { http, createPublicClient, formatUnits } from "viem";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
+import { fetchAmmQuote } from "./quote";
 import { getTokenPriceFromSubgraph } from "./subgraph";
 import type { Token } from "./tokens";
+import { TradeType } from "./trade-type";
+
+const CHAIN_BY_ID = {
+  [gnosis.id]: gnosis,
+  [mainnet.id]: mainnet,
+  [optimism.id]: optimism,
+  [base.id]: base,
+} as const;
+
+function getPublicClientForChain(chainId: number): PublicClient {
+  const chain = CHAIN_BY_ID[chainId as keyof typeof CHAIN_BY_ID];
+  if (!chain) {
+    throw new Error(`Unsupported chain for token price: ${chainId}`);
+  }
+  return createPublicClient({ chain, transport: http() }) as PublicClient;
+}
 
 export async function getTokenPrice(wrappedAddress: Address, collateralToken: Token, chainId: number): Promise<number> {
   const priceFromSubgraph = await getTokenPriceFromSubgraph(wrappedAddress, collateralToken, chainId);
@@ -18,7 +33,6 @@ export async function getTokenPrice(wrappedAddress: Address, collateralToken: To
   return priceFromSubgraph;
 }
 
-const CEIL_PRICE = 1;
 const BUY_AMOUNT = 3; // collateral token
 const SELL_AMOUNT = 3; // outcome token
 const MAX_SLIPPAGE = "1"; // 1%
@@ -37,41 +51,27 @@ export async function getTokenSwapResult(
     decimals: 18,
   };
 
-  if (chainId === gnosis.id) {
-    try {
-      const swaprQuote = await getSwaprQuote(
-        chainId,
-        undefined,
-        amount,
-        outcomeToken,
-        collateralToken,
-        swapType,
-        MAX_SLIPPAGE,
-      );
-      return swaprQuote.value;
-    } catch {
-      return 0n;
-    }
+  if (!CHAIN_BY_ID[chainId as keyof typeof CHAIN_BY_ID]) {
+    return 0n;
   }
 
-  if (chainId === mainnet.id || isOpStack(chainId)) {
-    try {
-      const uniswapQuote = await getUniswapQuote(
-        chainId,
-        undefined,
-        amount,
-        outcomeToken,
-        collateralToken,
-        swapType,
-        MAX_SLIPPAGE,
-      );
-      return uniswapQuote.value;
-    } catch {
-      return 0n;
-    }
+  try {
+    const client = getPublicClientForChain(chainId);
+    const quote = await fetchAmmQuote(
+      client,
+      TradeType.EXACT_INPUT,
+      chainId,
+      undefined,
+      amount,
+      outcomeToken,
+      collateralToken,
+      swapType,
+      MAX_SLIPPAGE,
+    );
+    return quote.value;
+  } catch {
+    return 0n;
   }
-
-  return 0n;
 }
 
 export async function getTokenPriceFromSwap(
@@ -81,16 +81,11 @@ export async function getTokenPriceFromSwap(
 ): Promise<number> {
   try {
     const price = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(BUY_AMOUNT), "buy");
-    const pricePerShare = BUY_AMOUNT / Number(formatUnits(price, 18));
-    if (pricePerShare > CEIL_PRICE) {
+    if (price === 0n) {
       const sellPrice = await getTokenSwapResult(wrappedAddress, collateralToken, chainId, String(SELL_AMOUNT), "sell");
-      const sellPricePerShare = Number(formatUnits(sellPrice, 18)) / SELL_AMOUNT;
-      if (sellPricePerShare === 0 || sellPricePerShare > CEIL_PRICE) {
-        return Number.NaN;
-      }
-      return sellPricePerShare;
+      return Number(formatUnits(sellPrice, collateralToken.decimals)) / SELL_AMOUNT;
     }
-    return pricePerShare;
+    return BUY_AMOUNT / Number(formatUnits(price, 18));
   } catch {
     return Number.NaN;
   }

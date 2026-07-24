@@ -151,28 +151,27 @@ export { getTokenInfo, getTokensInfo } from "./token-info";
 export type { GetTokenResult } from "./token-info";
 export { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 export type { ApprovalInfo, GetApprovals7702Props } from "./approvals";
-export { getSwapRouterAddress } from "./trading";
 export {
   getCowQuote,
   getCowQuoteExactOut,
-  getSwaprQuote,
-  getSwaprQuoteExactOut,
-  getUniswapQuote,
-  getUniswapQuoteExactOut,
   fetchCowQuote,
-  fetchSwaprQuote,
-  fetchUniswapQuote,
   fetchAmmQuote,
   getTradeArgsExactIn,
   getTradeArgsExactOut,
-  getUniswapTrade,
-  getSwaprTrade,
-  getUniswapTradeExactOut,
-  getSwaprTradeExactOut,
   getCollateralPerShare,
   getOutcomeTokenVolume,
 } from "./quote";
-export type { QuoteTradeResult, QuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
+export type { QuoteTradeResult, QuoteTradeFn, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
+export { AmmTrade, quoteAmmTrade } from "./amm-trade";
+export type { QuoteAmmTradeParams } from "./amm-trade";
+export { Lens } from "./trade/viem";
+export {
+  CHAINS as LENS_CHAINS,
+  ETH as LENS_ETH,
+  AMM as LENS_AMM,
+  AMM_NAMES as LENS_AMM_NAMES,
+} from "./trade/index";
+export type { ChainId as LensChainId, QuoteResult as LensQuoteResult, SwapTx as LensSwapTx } from "./trade/index";
 export {
   cancelCowOrder,
   cancelEthFlowOrder,
@@ -181,22 +180,29 @@ export {
   createCowOrder,
   ETH_FLOW_ADDRESS,
   executeCoWTrade,
-  executeSwaprTrade,
-  executeUniswapTrade,
+  executeAmmTrade,
   tradeTokens,
   buildTradeCalls7702,
-  buildSwaprTradeExecution,
-  buildUniswapTradeExecution,
+  buildAmmTradeExecution,
   getMaximumAmountIn,
   getTradeApprovals7702,
-  getSwaprTradeExecution,
-  getUniswapTradeExecution,
+  getAmmTradeExecution,
   getWrappedSeerCreditsExecution,
 } from "./execute-trade";
 export type {
   TradeTokensProps,
   GetTradeApprovals7702Params,
 } from "./execute-trade";
+export {
+  isAmmTrade,
+  getTradeAmountIn,
+  getTradeAmountOut,
+  getTradeTokenIn,
+  getTradeTokenOut,
+  getTradeApproveTokenAddress,
+  getMinimumAmountOut,
+  TradeType,
+} from "./trade-utils";
 export {
   PSM3_ADDRESS,
   PSM3_ABI,
@@ -211,7 +217,7 @@ export {
   applySlippageToleranceUp,
   getPsm3Address,
 } from "./psm3";
-export { fetchPsm3UniswapQuote } from "./psm3-composite-quote";
+export { fetchPsm3AmmQuote } from "./psm3-composite-quote";
 export {
   compareCompleteSetRoutes,
   MIN_COMPLETE_SET_SAVINGS_PERCENT,
@@ -360,13 +366,10 @@ export { CHAIN_IDS } from "./subgraph";
 export { OrderBookApi, OrderStatus, SupportedChainId } from "@cowprotocol/cow-sdk";
 export type { EnrichedOrder, UnsignedOrder } from "@cowprotocol/cow-sdk";
 
-// Re-export Swapr SDK for web consumers (single dependency)
+// Re-export Swapr SDK for CoW (AMM trades use AmmTrade / Lens; TradeType is Seer-owned above)
 export {
-  TradeType,
   Trade,
   CoWTrade,
-  SwaprV3Trade,
-  UniswapTrade,
   ChainId,
   configureRpcProviders,
   Currency,

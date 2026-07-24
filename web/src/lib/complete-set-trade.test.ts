@@ -1,5 +1,4 @@
-import { type CompleteSetLeg, type TradeTokensProps, buildCompleteSetTradeCalls7702 } from "@seer-pm/sdk";
-import { SwaprV3Trade } from "@swapr/sdk";
+import { AmmTrade, type CompleteSetLeg, type TradeTokensProps, buildCompleteSetTradeCalls7702 } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
@@ -9,14 +8,16 @@ const collateralToken = "0x0000000000000000000000000000000000000002" as Address;
 const outcomeToken = "0x0000000000000000000000000000000000000003" as Address;
 const oppositeOutcomeToken = "0x0000000000000000000000000000000000000004" as Address;
 
-function createMockSwaprTrade(
-  overrides: { approveAddress?: string; maximumAmountIn?: () => { raw: { toString: () => string } } } = {},
-) {
-  const trade = Object.create(SwaprV3Trade.prototype) as SwaprV3Trade;
+function createMockAmmTrade(overrides: { approveAddress?: string; maximumAmountIn?: () => bigint } = {}) {
+  const trade = Object.create(AmmTrade.prototype) as AmmTrade;
   Object.assign(trade, {
     approveAddress: "0x00000000000000000000000000000000000000ab",
     chainId: 100,
-    maximumAmountIn: () => ({ raw: { toString: () => "1000000000000000000" } }),
+    tokenIn: { address: collateralToken, symbol: "sDAI", decimals: 18, chainId: 100 },
+    tokenOut: { address: outcomeToken, symbol: "YES", decimals: 18, chainId: 100 },
+    amountIn: 1000000000000000000n,
+    amountOut: 1000000000000000000n,
+    maximumAmountIn: () => 1000000000000000000n,
     ...overrides,
   });
   return trade;
@@ -28,7 +29,7 @@ function createBaseCompleteSetLeg(
 ): CompleteSetLeg {
   return {
     route,
-    secondaryTrade: createMockSwaprTrade(),
+    secondaryTrade: createMockAmmTrade(),
     market: { id: zeroAddress, type: "Generic", chainId: 100 },
     collateralToken,
     targetOutcomeIndex: 0,
@@ -39,12 +40,10 @@ function createBaseCompleteSetLeg(
   };
 }
 
-function createProps(completeSetLeg: CompleteSetLeg, trade = createMockSwaprTrade()): TradeTokensProps {
+function createProps(completeSetLeg: CompleteSetLeg, trade = createMockAmmTrade()): TradeTokensProps {
   return {
     trade,
     account,
-    isBuyExactOutputNative: false,
-    isSellToNative: false,
     isSeerCredits: false,
     completeSetLeg,
   };
@@ -64,7 +63,7 @@ describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () 
   });
 
   it("throws when trade.approveAddress is missing", async () => {
-    const trade = createMockSwaprTrade({ approveAddress: undefined });
+    const trade = createMockAmmTrade({ approveAddress: undefined });
     const props = createProps(createBaseCompleteSetLeg("mintSell", { splitAmount: 1_000n }), trade);
 
     await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow(
@@ -83,8 +82,8 @@ describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () 
   });
 
   it("throws when maximum amount in is not positive", async () => {
-    const trade = createMockSwaprTrade({
-      maximumAmountIn: () => ({ raw: { toString: () => "0" } }),
+    const trade = createMockAmmTrade({
+      maximumAmountIn: () => 0n,
     });
     const props = createProps(createBaseCompleteSetLeg("buyMerge", { mergeAmount: 1_000n }), trade);
 

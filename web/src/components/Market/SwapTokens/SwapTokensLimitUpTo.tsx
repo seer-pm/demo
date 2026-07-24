@@ -15,7 +15,7 @@ import { Market } from "@seer-pm/sdk";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
-import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
+import { type AmmTrade, CoWTrade, TradeType } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -108,8 +108,6 @@ export function SwapTokensLimitUpto({
     sellToken,
     showBridgeLink,
     isSecondaryCollateral,
-    isBuyExactOutputNative,
-    isSellToNative,
     isPsm3Collateral,
     isFetchingBalance,
     balance,
@@ -181,12 +179,10 @@ export function SwapTokensLimitUpto({
     quoteData?.psm3Leg,
   );
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | AmmTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
-      isBuyExactOutputNative,
-      isSellToNative,
       isSeerCredits: isSeerCreditsCollateral,
       psm3Leg: quoteData?.psm3Leg,
     });
@@ -231,7 +227,6 @@ export function SwapTokensLimitUpto({
         <SwapButtons
           account={account}
           trade={quoteData.trade}
-          isBuyExactOutputNative={isBuyExactOutputNative}
           isDisabled={
             isUndefined(quoteData?.value) ||
             quoteData?.value === 0n ||
@@ -353,8 +348,6 @@ export function SwapTokensLimitUpto({
             onSubmit={onSubmit}
             collateral={selectedCollateral}
             originalAmount={amount}
-            isBuyExactOutputNative={isBuyExactOutputNative}
-            isSellToNative={isSellToNative}
             isSeerCredits={isSeerCreditsCollateral}
             outcomeToken={outcomeToken}
           />

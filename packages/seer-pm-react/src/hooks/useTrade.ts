@@ -1,11 +1,11 @@
 import {
+  type AmmTrade,
   CoWTrade,
   type CompleteSetLeg,
   type Market,
   type NotifierFn,
   type Psm3Leg,
   type TradeTokensProps as SdkTradeTokensProps,
-  Trade,
   type TxNotifierFn,
   buildTradeCalls7702,
   tradeTokens as sdkTradeTokens,
@@ -24,6 +24,8 @@ const EMPTY_APPROVALS = {
 };
 
 export type TradeTokensProps = SdkTradeTokensProps;
+
+type AnyTrade = CoWTrade | AmmTrade;
 
 async function tradeTokens(
   props: TradeTokensProps,
@@ -87,7 +89,7 @@ async function tradeTokens7702(
 
 function useTradeLegacy(
   account: Address | undefined,
-  trade: Trade | undefined,
+  trade: AnyTrade | undefined,
   isSeerCredits: boolean,
   psm3Leg: Psm3Leg | undefined,
   completeSetLeg: CompleteSetLeg | undefined,
@@ -131,7 +133,7 @@ function useTradeLegacy(
 }
 
 function useTrade7702(
-  trade: Trade | undefined,
+  trade: AnyTrade | undefined,
   market: Market,
   onSuccess: () => unknown,
   orderNotifier: NotifierFn,
@@ -172,7 +174,7 @@ function useTrade7702(
 
 export const useTrade = (
   account: Address | undefined,
-  trade: Trade | undefined,
+  trade: AnyTrade | undefined,
   isSeerCredits: boolean,
   onSuccess: () => unknown,
   supports7702: boolean,

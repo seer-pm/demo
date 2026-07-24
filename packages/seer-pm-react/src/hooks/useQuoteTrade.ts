@@ -1,4 +1,4 @@
-import { TradeType } from "@swapr/sdk";
+import { TradeType } from "@seer-pm/sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPublicClient } from "@wagmi/core";
 import { useEffect, useMemo } from "react";
@@ -11,11 +11,10 @@ import {
   type Market,
   type QuoteTradeResult,
   type Token,
+  fetchAmmQuote,
   fetchBestCompleteSetQuote,
   fetchCowQuote,
-  fetchPsm3UniswapQuote,
-  fetchSwaprQuote,
-  fetchUniswapQuote,
+  fetchPsm3AmmQuote,
   getActivePrimaryCollateral,
   getCompleteSetRoutingDisabledReasons,
   isCompleteSetRoutingEnabled,
@@ -25,7 +24,9 @@ import {
 
 const QUOTE_REFETCH_INTERVAL = 30_000;
 
-export function useSwaprQuote(
+const AMM_CHAIN_IDS: Set<number> = new Set([gnosis.id, mainnet.id, optimism.id, base.id]);
+
+export function useAmmQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
@@ -36,10 +37,12 @@ export function useSwaprQuote(
   tradeType: TradeType,
   maxSlippage: string,
 ) {
+  const config = useConfig();
+
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: [
       "useQuote",
-      "useSwaprQuote",
+      "useAmmQuote",
       chainId,
       account,
       amount.toString(),
@@ -49,10 +52,26 @@ export function useSwaprQuote(
       maxSlippage,
       tradeType,
     ],
-    enabled: Number(amount) > 0 && chainId === gnosis.id && enabled,
+    enabled:
+      Number(amount) > 0 && AMM_CHAIN_IDS.has(chainId) && enabled && !isPsm3SwapToken(chainId, collateralToken.address),
     retry: false,
-    queryFn: async () =>
-      fetchSwaprQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
+    queryFn: async () => {
+      const publicClient = getPublicClient(config, { chainId });
+      if (!publicClient) {
+        throw new Error("Public client not available");
+      }
+      return fetchAmmQuote(
+        publicClient,
+        tradeType,
+        chainId,
+        account,
+        amount,
+        outcomeToken,
+        collateralToken,
+        swapType,
+        maxSlippage,
+      );
+    },
     refetchInterval: QUOTE_REFETCH_INTERVAL,
   });
 }
@@ -125,43 +144,7 @@ export function useCowQuote(
   });
 }
 
-export function useUniswapQuote(
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  enabled: boolean,
-  tradeType: TradeType,
-  maxSlippage: string,
-) {
-  return useQuery<QuoteTradeResult | undefined, Error>({
-    queryKey: [
-      "useQuote",
-      "useUniswapQuote",
-      chainId,
-      account,
-      amount.toString(),
-      outcomeToken,
-      collateralToken,
-      swapType,
-      maxSlippage,
-      tradeType,
-    ],
-    enabled:
-      Number(amount) > 0 &&
-      (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) &&
-      enabled &&
-      !isPsm3SwapToken(chainId, collateralToken.address),
-    retry: false,
-    queryFn: async () =>
-      fetchUniswapQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage),
-    refetchInterval: QUOTE_REFETCH_INTERVAL,
-  });
-}
-
-export function usePsm3UniswapQuote(
+export function usePsm3AmmQuote(
   chainId: number,
   account: Address | undefined,
   amount: string,
@@ -177,7 +160,7 @@ export function usePsm3UniswapQuote(
   return useQuery<QuoteTradeResult | undefined, Error>({
     queryKey: [
       "useQuote",
-      "usePsm3UniswapQuote",
+      "usePsm3AmmQuote",
       chainId,
       account,
       amount.toString(),
@@ -198,7 +181,7 @@ export function usePsm3UniswapQuote(
       if (!publicClient) {
         throw new Error("Public client not available");
       }
-      return fetchPsm3UniswapQuote(
+      return fetchPsm3AmmQuote(
         publicClient,
         tradeType,
         chainId,
@@ -257,7 +240,7 @@ export function useQuoteTrade(
   );
   const isCowResultOk = cowResult.status === "success" && cowResult.data?.value && cowResult.data.value > 0n;
 
-  const swaprResult = useSwaprQuote(
+  const ammResult = useAmmQuote(
     chainId,
     account,
     amount,
@@ -268,18 +251,7 @@ export function useQuoteTrade(
     tradeType,
     maxSlippage,
   );
-  const uniswapResult = useUniswapQuote(
-    chainId,
-    account,
-    amount,
-    outcomeToken,
-    realCollateralToken,
-    swapType,
-    true,
-    tradeType,
-    maxSlippage,
-  );
-  const psm3UniswapResult = usePsm3UniswapQuote(
+  const psm3AmmResult = usePsm3AmmQuote(
     chainId,
     account,
     amount,
@@ -293,16 +265,13 @@ export function useQuoteTrade(
 
   const directQuery = useMemo(() => {
     if (isPsm3Collateral && (chainId === optimism.id || chainId === base.id)) {
-      return psm3UniswapResult;
+      return psm3AmmResult;
     }
     if (isCowResultOk) {
       return cowResult;
     }
-    if (chainId === mainnet.id || chainId === optimism.id || chainId === base.id) {
-      return uniswapResult;
-    }
-    return swaprResult;
-  }, [chainId, isCowResultOk, cowResult, swaprResult, uniswapResult, psm3UniswapResult, isPsm3Collateral]);
+    return ammResult;
+  }, [chainId, isCowResultOk, cowResult, ammResult, psm3AmmResult, isPsm3Collateral]);
 
   const completeSetEnabled = Boolean(
     market && outcomeIndex !== undefined && isCompleteSetRoutingEnabled(market, outcomeIndex, collateralToken.address),
@@ -320,31 +289,30 @@ export function useQuoteTrade(
         marketId: market.id,
         outcomeIndex,
         swapType,
-        tradeType: tradeType === TradeType.EXACT_INPUT ? "exactIn" : "exactOut",
-        selectedCollateral: collateralToken.address,
-        marketCollateral: market.collateralToken,
+        tradeType,
         disabledReasons,
       });
     }
   }, [market, outcomeIndex, amount, collateralToken.address, swapType, tradeType]);
 
-  const completeSetQuery = useQuery<CompleteSetQuoteResult | undefined, Error>({
+  const completeSetQuery = useQuery({
     queryKey: [
       "useQuote",
-      "completeSet",
-      market?.id,
-      outcomeIndex,
+      "useCompleteSetQuote",
       chainId,
       account,
       amount.toString(),
       outcomeToken,
-      realCollateralToken,
+      collateralToken,
       swapType,
-      tradeType,
       maxSlippage,
+      tradeType,
+      market?.id,
+      outcomeIndex,
+      directQuery.data?.value?.toString(),
       directQuery.dataUpdatedAt,
     ],
-    enabled: completeSetEnabled && Number(amount) > 0 && Boolean(directQuery.data),
+    enabled: completeSetEnabled && Number(amount) > 0 && !directQuery.isLoading,
     retry: false,
     queryFn: async () => {
       const publicClient = getPublicClient(config, { chainId });

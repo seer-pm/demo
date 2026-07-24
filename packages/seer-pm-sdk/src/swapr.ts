@@ -4,8 +4,6 @@ export {
   TradeType,
   Trade,
   CoWTrade,
-  SwaprV3Trade,
-  UniswapTrade,
   Currency,
   CurrencyAmount,
   Percent,

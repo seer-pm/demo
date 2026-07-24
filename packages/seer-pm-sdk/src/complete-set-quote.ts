@@ -2,10 +2,10 @@
  * Complete-set route quotes: mint+sell (buy) and buy+merge (sell) vs direct AMM swap.
  */
 
-import { type SwaprV3Trade, TradeType, type UniswapTrade } from "@swapr/sdk";
-import type { Address, Client } from "viem";
+import type { Address, Client, PublicClient } from "viem";
 import { erc20Abi, formatUnits, parseUnits } from "viem";
 import { multicall } from "viem/actions";
+import type { AmmTrade } from "./amm-trade";
 import { isCompleteSetMarket } from "./market";
 import type { Market } from "./market-types";
 import { isPsm3SwapToken } from "./psm3";
@@ -15,6 +15,7 @@ import { isTwoStringsEqual } from "./quote-utils";
 import type { MarketLike } from "./router-addresses";
 import { isSeerCredits } from "./seer-credits";
 import { NATIVE_TOKEN, type Token } from "./tokens";
+import { TradeType } from "./trade-type";
 import { getMaximumAmountIn } from "./trade-utils";
 
 export type CompleteSetRoute = "direct" | "mintSell" | "buyMerge";
@@ -29,7 +30,7 @@ export interface CompleteSetLeg {
   route: "mintSell" | "buyMerge";
   splitAmount?: bigint;
   mergeAmount?: bigint;
-  secondaryTrade: SwaprV3Trade | UniswapTrade;
+  secondaryTrade: AmmTrade;
   market: MarketLike;
   collateralToken: Address;
   targetOutcomeIndex: 0 | 1;
@@ -377,9 +378,10 @@ async function quoteMintSellBuy(params: {
   tradeType: TradeType;
   amount: string;
   account: Address | undefined;
+  client: PublicClient;
   maxSlippage: string;
 }): Promise<CompleteSetQuoteResult | undefined> {
-  const { market, targetOutcomeIndex, tradeType, amount, account, maxSlippage } = params;
+  const { market, targetOutcomeIndex, tradeType, amount, account, client, maxSlippage } = params;
   const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
   const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
   const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
@@ -402,6 +404,7 @@ async function quoteMintSellBuy(params: {
   }
 
   const sellQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_INPUT,
     market.chainId,
     account,
@@ -417,6 +420,7 @@ async function quoteMintSellBuy(params: {
   const tokensOut = splitAmount;
 
   const marketLike: MarketLike = { id: market.id, type: market.type, chainId: market.chainId };
+  const sellTrade = sellQuote.trade as AmmTrade;
 
   return {
     value: tokensOut,
@@ -425,13 +429,13 @@ async function quoteMintSellBuy(params: {
     sellToken: poolCollateral.address,
     sellAmount: formatUnits(netCollateralIn, poolCollateral.decimals),
     swapType: "buy",
-    trade: sellQuote.trade as SwaprV3Trade | UniswapTrade,
+    trade: sellTrade,
     route: "mintSell",
     netCollateral: netCollateralIn,
     completeSetLeg: {
       route: "mintSell",
       splitAmount,
-      secondaryTrade: sellQuote.trade as SwaprV3Trade | UniswapTrade,
+      secondaryTrade: sellTrade,
       market: marketLike,
       collateralToken: poolCollateral.address,
       targetOutcomeIndex,
@@ -449,7 +453,7 @@ async function assertBuyMergeBalances(
   targetOutcomeToken: Token,
   invalidOutcomeToken: Token,
   mergeAmount: bigint,
-  buyTrade: SwaprV3Trade | UniswapTrade,
+  buyTrade: AmmTrade,
 ): Promise<boolean> {
   if (!client || !account) {
     return true;
@@ -493,6 +497,7 @@ async function quoteBuyMergeSellExactInput(params: {
   }
 
   const buyQuote = await fetchAmmQuote(
+    client as PublicClient,
     TradeType.EXACT_OUTPUT,
     market.chainId,
     account,
@@ -503,7 +508,7 @@ async function quoteBuyMergeSellExactInput(params: {
     maxSlippage,
   );
 
-  const buyTrade = buyQuote.trade as SwaprV3Trade | UniswapTrade;
+  const buyTrade = buyQuote.trade as AmmTrade;
   const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));
   const hasBalances = await assertBuyMergeBalances(
     client,
@@ -632,16 +637,18 @@ async function evalBuyMergeNetOut(params: {
   mergeAmount: bigint;
   market: Market;
   account: Address | undefined;
+  client: PublicClient;
   oppositeOutcomeToken: Token;
   poolCollateral: Token;
   maxSlippage: string;
 }): Promise<BuyMergeNetEval | undefined> {
-  const { mergeAmount, market, account, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
+  const { mergeAmount, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
   if (mergeAmount <= 0n) {
     return undefined;
   }
 
   const buyQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_OUTPUT,
     market.chainId,
     account,
@@ -662,12 +669,13 @@ async function findMinimalMergeAmountForDesiredOut(params: {
   desiredOut: bigint;
   market: Market;
   account: Address | undefined;
+  client: PublicClient;
   oppositeOutcomeToken: Token;
   poolCollateral: Token;
   maxSlippage: string;
 }): Promise<(BuyMergeNetEval & { mergeAmount: bigint }) | undefined> {
-  const { desiredOut, market, account, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
-  const evalCtx = { market, account, oppositeOutcomeToken, poolCollateral, maxSlippage };
+  const { desiredOut, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
+  const evalCtx = { market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage };
 
   const searchResult = await searchMinimalAmountForTargetNetOut({
     desiredOut,
@@ -720,6 +728,7 @@ async function quoteBuyMergeSellExactOutput(params: {
     desiredOut,
     market,
     account,
+    client: client as PublicClient,
     oppositeOutcomeToken,
     poolCollateral,
     maxSlippage,
@@ -731,7 +740,7 @@ async function quoteBuyMergeSellExactOutput(params: {
 
   const { mergeAmount, buyQuote } = searchResult;
 
-  const buyTrade = buyQuote.trade as SwaprV3Trade | UniswapTrade;
+  const buyTrade = buyQuote.trade as AmmTrade;
   const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));
   const hasBalances = await assertBuyMergeBalances(
     client,
@@ -792,17 +801,24 @@ export async function fetchCompleteSetAlternativeQuote(params: {
   const index = targetOutcomeIndex as 0 | 1;
 
   if (swapType === "buy") {
+    if (!client) {
+      throw new Error("Public client is required for complete-set AMM quotes");
+    }
     return quoteMintSellBuy({
       market,
       targetOutcomeIndex: index,
       tradeType,
       amount,
       account,
+      client: client as PublicClient,
       maxSlippage,
     });
   }
 
   if (tradeType === TradeType.EXACT_INPUT) {
+    if (!client) {
+      throw new Error("Public client is required for complete-set AMM quotes");
+    }
     return quoteBuyMergeSellExactInput({
       market,
       targetOutcomeIndex: index,
@@ -813,6 +829,9 @@ export async function fetchCompleteSetAlternativeQuote(params: {
     });
   }
 
+  if (!client) {
+    throw new Error("Public client is required for complete-set AMM quotes");
+  }
   return quoteBuyMergeSellExactOutput({
     market,
     targetOutcomeIndex: index,

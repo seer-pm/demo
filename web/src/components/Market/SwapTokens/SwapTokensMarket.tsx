@@ -12,7 +12,7 @@ import { isSeerCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
-import { CoWTrade, SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
+import { type AmmTrade, CoWTrade, TradeType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -160,8 +160,6 @@ export function SwapTokensMarket({
     sellToken,
     showBridgeLink,
     isSecondaryCollateral,
-    isBuyExactOutputNative,
-    isSellToNative,
     amountErrorMessage,
     isFetchingBalance,
     balance,
@@ -217,12 +215,10 @@ export function SwapTokensMarket({
     quoteData?.completeSetLeg,
   );
 
-  const onSubmit = async (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => {
+  const onSubmit = async (trade: CoWTrade | AmmTrade) => {
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
-      isBuyExactOutputNative,
-      isSellToNative,
       isSeerCredits: isSeerCreditsCollateral,
       psm3Leg: quoteData?.psm3Leg,
       completeSetLeg: quoteData?.completeSetLeg,
@@ -292,7 +288,6 @@ export function SwapTokensMarket({
         <SwapButtons
           account={account}
           trade={quoteData.trade}
-          isBuyExactOutputNative={isBuyExactOutputNative}
           isDisabled={
             isUndefined(quoteData?.value) ||
             quoteData?.value === 0n ||
@@ -356,8 +351,6 @@ export function SwapTokensMarket({
             onSubmit={onSubmit}
             collateral={selectedCollateral}
             originalAmount={amount}
-            isBuyExactOutputNative={isBuyExactOutputNative}
-            isSellToNative={isSellToNative}
             isSeerCredits={isSeerCreditsCollateral}
             outcomeToken={outcomeToken}
           />

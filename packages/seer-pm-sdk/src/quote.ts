@@ -1,25 +1,17 @@
 /**
- * Quote (exact-in and exact-out) and trade-building helpers for CoW, Swapr, Uniswap.
+ * Quote (exact-in and exact-out) and trade-building helpers for CoW and Lens AMM.
  */
 
 import { PriceQuality } from "@cowprotocol/cow-sdk";
-import {
-  CoWTrade,
-  Currency,
-  CurrencyAmount,
-  Percent,
-  Token as SwaprToken,
-  SwaprV3Trade,
-  TokenAmount,
-  TradeType,
-  UniswapTrade,
-} from "@swapr/sdk";
-import { Address, formatUnits, parseUnits, zeroAddress } from "viem";
-import { gnosis } from "viem/chains";
-import { getActivePrimaryCollateral } from "./collateral";
+import { CoWTrade, Currency, CurrencyAmount, Percent, Token as SwaprToken, TokenAmount } from "@swapr/sdk";
+import type { Address, PublicClient } from "viem";
+import { formatUnits, parseUnits, zeroAddress } from "viem";
+import { AmmTrade, quoteAmmTrade } from "./amm-trade";
 import { isTwoStringsEqual, parseFraction } from "./quote-utils";
 import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
+import { TradeType } from "./trade-type";
+import { getTradeAmountIn, getTradeAmountOut, getTradeTokenIn, getTradeTokenOut } from "./trade-utils";
 
 export type Psm3TradeType = "exactIn" | "exactOut";
 
@@ -39,7 +31,7 @@ export interface QuoteTradeResult {
   sellToken: Address;
   sellAmount: string;
   swapType: "buy" | "sell";
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  trade: CoWTrade | AmmTrade;
   psm3Leg?: Psm3Leg;
 }
 
@@ -54,25 +46,32 @@ export type QuoteTradeFn = (
   isFastQuery?: boolean,
 ) => Promise<QuoteTradeResult>;
 
+export type AmmQuoteTradeFn = (
+  client: PublicClient,
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  maxSlippage: string,
+) => Promise<QuoteTradeResult>;
+
 export function getCollateralPerShare(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell"): number {
   if (!quoteData) return 0;
-  const inputAmount = Number(
-    formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
-  );
-  const outputAmount = Number(
-    formatUnits(BigInt(quoteData.trade.outputAmount.raw.toString()), quoteData.trade.outputAmount.currency.decimals),
-  );
+  const tokenIn = getTradeTokenIn(quoteData.trade);
+  const tokenOut = getTradeTokenOut(quoteData.trade);
+  const inputAmount = Number(formatUnits(getTradeAmountIn(quoteData.trade), tokenIn.decimals));
+  const outputAmount = Number(formatUnits(getTradeAmountOut(quoteData.trade), tokenOut.decimals));
   return swapType === "buy" ? inputAmount / outputAmount : outputAmount / inputAmount;
 }
 
 export function getOutcomeTokenVolume(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell"): number {
   if (!quoteData) return 0;
-  const inputAmount = Number(
-    formatUnits(BigInt(quoteData.trade.inputAmount.raw.toString()), quoteData.trade.inputAmount.currency.decimals),
-  );
-  const outputAmount = Number(
-    formatUnits(BigInt(quoteData.trade.outputAmount.raw.toString()), quoteData.trade.outputAmount.currency.decimals),
-  );
+  const tokenIn = getTradeTokenIn(quoteData.trade);
+  const tokenOut = getTradeTokenOut(quoteData.trade);
+  const inputAmount = Number(formatUnits(getTradeAmountIn(quoteData.trade), tokenIn.decimals));
+  const outputAmount = Number(formatUnits(getTradeAmountOut(quoteData.trade), tokenOut.decimals));
   return swapType === "buy" ? outputAmount : inputAmount;
 }
 
@@ -150,48 +149,6 @@ export async function getTradeArgsExactIn(
   };
 }
 
-export function getUniswapTrade(
-  _currencyIn: Currency,
-  currencyOut: Currency,
-  currencyAmountIn: CurrencyAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  _chainId: number,
-): Promise<UniswapTrade | null> {
-  return UniswapTrade.getQuote({
-    amount: currencyAmountIn,
-    quoteCurrency: currencyOut,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_INPUT,
-  });
-}
-
-export function getSwaprTrade(
-  _currencyIn: Currency,
-  currencyOut: Currency,
-  currencyAmountIn: CurrencyAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  chainId: number,
-): Promise<SwaprV3Trade | null> {
-  const primary = getActivePrimaryCollateral(chainId);
-  const isSingleHop =
-    isTwoStringsEqual(currencyAmountIn.currency.address, primary.address) ||
-    isTwoStringsEqual(currencyOut.address, primary.address);
-  return SwaprV3Trade.getQuote(
-    {
-      amount: currencyAmountIn,
-      quoteCurrency: currencyOut,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_INPUT,
-    },
-    undefined,
-    !!isSingleHop,
-  );
-}
-
 export const getCowQuote: QuoteTradeFn = async (
   chainId,
   account,
@@ -228,73 +185,77 @@ export const getCowQuote: QuoteTradeFn = async (
   };
 };
 
-export const getUniswapQuote: QuoteTradeFn = async (
-  chainId,
-  account,
-  amount,
-  outcomeToken,
-  collateralToken,
-  swapType,
-  maxSlippage,
-) => {
-  const args = await getTradeArgsExactIn(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+async function getAmmQuoteExactIn(
+  client: PublicClient,
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  maxSlippage: string,
+): Promise<QuoteTradeResult> {
+  const [buyToken, sellToken] =
+    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
+  const sellAmount = parseUnits(String(amount), sellToken.decimals);
 
-  const trade = await getUniswapTrade(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountIn,
-    args.maximumSlippage,
-    account,
+  const trade = await quoteAmmTrade(client, {
     chainId,
-  );
-  if (!trade) {
-    throw new Error("No route found");
-  }
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    maxSlippage,
+    tradeType: TradeType.EXACT_INPUT,
+  });
 
   return {
-    value: BigInt(trade.outputAmount.raw.toString()),
-    decimals: args.sellToken.decimals,
+    value: trade.amountOut,
+    decimals: sellToken.decimals,
     trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.sellAmount.toString(),
+    buyToken: buyToken.address,
+    sellToken: sellToken.address,
+    sellAmount: sellAmount.toString(),
     swapType,
   };
-};
+}
 
-export const getSwaprQuote: QuoteTradeFn = async (
-  chainId,
-  account,
-  amount,
-  outcomeToken,
-  collateralToken,
-  swapType,
-  maxSlippage,
-) => {
-  const args = await getTradeArgsExactIn(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+async function getAmmQuoteExactOut(
+  client: PublicClient,
+  chainId: number,
+  account: Address | undefined,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  maxSlippage: string,
+): Promise<QuoteTradeResult> {
+  const [buyToken, sellToken] =
+    swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
+  const buyAmount = parseUnits(String(amount), buyToken.decimals);
 
-  const trade = await getSwaprTrade(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountIn,
-    args.maximumSlippage,
-    account,
+  const trade = await quoteAmmTrade(client, {
     chainId,
-  );
+    account,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    maxSlippage,
+    tradeType: TradeType.EXACT_OUTPUT,
+  });
 
-  if (!trade) {
-    throw new Error("No route found");
-  }
   return {
-    value: BigInt(trade.outputAmount.raw.toString()),
-    decimals: args.sellToken.decimals,
+    value: trade.amountIn,
+    decimals: buyToken.decimals,
     trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.sellAmount.toString(),
+    buyToken: buyToken.address,
+    sellToken: sellToken.address,
+    sellAmount: buyAmount.toString(),
     swapType,
   };
-};
+}
 
 // ----- Exact-out helpers -----
 
@@ -370,48 +331,6 @@ export async function getTradeArgsExactOut(
   };
 }
 
-export function getUniswapTradeExactOut(
-  currencyIn: Currency,
-  _currencyOut: Currency,
-  currencyAmountOut: CurrencyAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  _chainId: number,
-): Promise<UniswapTrade | null> {
-  return UniswapTrade.getQuote({
-    amount: currencyAmountOut,
-    quoteCurrency: currencyIn,
-    maximumSlippage,
-    recipient: account || zeroAddress,
-    tradeType: TradeType.EXACT_OUTPUT,
-  });
-}
-
-export function getSwaprTradeExactOut(
-  currencyIn: Currency,
-  currencyOut: Currency,
-  currencyAmountOut: CurrencyAmount,
-  maximumSlippage: Percent,
-  account: Address | undefined,
-  chainId: number,
-): Promise<SwaprV3Trade | null> {
-  const primary = getActivePrimaryCollateral(chainId);
-  const isSingleHop =
-    isTwoStringsEqual(currencyIn.address, primary.address) || isTwoStringsEqual(currencyOut.address, primary.address);
-
-  return SwaprV3Trade.getQuote(
-    {
-      amount: currencyAmountOut,
-      quoteCurrency: currencyIn,
-      maximumSlippage,
-      recipient: account || zeroAddress,
-      tradeType: TradeType.EXACT_OUTPUT,
-    },
-    undefined,
-    !!isSingleHop,
-  );
-}
-
 export const getCowQuoteExactOut: QuoteTradeFn = async (
   chainId,
   account,
@@ -447,75 +366,6 @@ export const getCowQuoteExactOut: QuoteTradeFn = async (
   };
 };
 
-export const getUniswapQuoteExactOut: QuoteTradeFn = async (
-  chainId,
-  account,
-  amount,
-  outcomeToken,
-  collateralToken,
-  swapType,
-  maxSlippage,
-) => {
-  const args = await getTradeArgsExactOut(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-
-  const trade = await getUniswapTradeExactOut(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountOut,
-    args.maximumSlippage,
-    account,
-    chainId,
-  );
-  if (!trade) {
-    throw new Error("No route found");
-  }
-
-  return {
-    value: BigInt(trade.inputAmount.raw.toString()),
-    decimals: args.buyToken.decimals,
-    trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.buyAmount.toString(),
-    swapType,
-  };
-};
-
-export const getSwaprQuoteExactOut: QuoteTradeFn = async (
-  chainId,
-  account,
-  amount,
-  outcomeToken,
-  collateralToken,
-  swapType,
-  maxSlippage,
-) => {
-  const args = await getTradeArgsExactOut(chainId, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-
-  const trade = await getSwaprTradeExactOut(
-    args.currencyIn,
-    args.currencyOut,
-    args.currencyAmountOut,
-    args.maximumSlippage,
-    account,
-    chainId,
-  );
-
-  if (!trade) {
-    throw new Error("No route found");
-  }
-
-  return {
-    value: BigInt(trade.inputAmount.raw.toString()),
-    decimals: args.buyToken.decimals,
-    trade,
-    buyToken: args.buyToken.address,
-    sellToken: args.sellToken.address,
-    sellAmount: args.buyAmount.toString(),
-    swapType,
-  };
-};
-
 // ----- Fetch helpers (pick exact-in vs exact-out by tradeType) -----
 
 export async function fetchCowQuote(
@@ -534,38 +384,9 @@ export async function fetchCowQuote(
     : getCowQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, isFastQuery);
 }
 
-export async function fetchSwaprQuote(
-  tradeType: TradeType,
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  maxSlippage: string,
-): Promise<QuoteTradeResult> {
-  return tradeType === TradeType.EXACT_INPUT
-    ? getSwaprQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
-    : getSwaprQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-}
-
-export async function fetchUniswapQuote(
-  tradeType: TradeType,
-  chainId: number,
-  account: Address | undefined,
-  amount: string,
-  outcomeToken: Token,
-  collateralToken: Token,
-  swapType: "buy" | "sell",
-  maxSlippage: string,
-): Promise<QuoteTradeResult> {
-  return tradeType === TradeType.EXACT_INPUT
-    ? getUniswapQuote(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
-    : getUniswapQuoteExactOut(chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-}
-
-/** Route AMM quotes to Swapr (Gnosis) or Uniswap (EVM L1/L2). */
+/** Quote via Lens (Uniswap / Swapr on-chain aggregators). */
 export async function fetchAmmQuote(
+  client: PublicClient,
   tradeType: TradeType,
   chainId: number,
   account: Address | undefined,
@@ -575,8 +396,7 @@ export async function fetchAmmQuote(
   swapType: "buy" | "sell",
   maxSlippage: string,
 ): Promise<QuoteTradeResult> {
-  if (chainId === gnosis.id) {
-    return fetchSwaprQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
-  }
-  return fetchUniswapQuote(tradeType, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+  return tradeType === TradeType.EXACT_INPUT
+    ? getAmmQuoteExactIn(client, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
+    : getAmmQuoteExactOut(client, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
 }

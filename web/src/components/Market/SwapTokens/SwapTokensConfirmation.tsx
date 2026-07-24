@@ -4,7 +4,7 @@ import { RightArrow } from "@/lib/icons";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
-import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@seer-pm/sdk";
+import { type AmmTrade, CoWTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { Alert } from "../../Alert";
@@ -14,14 +14,12 @@ import { Spinner } from "../../Spinner";
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
   reset: () => void;
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade | undefined;
+  trade: CoWTrade | AmmTrade | undefined;
   quoteData?: CompleteSetQuoteResult;
   isLoading: boolean;
-  onSubmit: (trade: CoWTrade | SwaprV3Trade | UniswapTrade) => Promise<void>;
+  onSubmit: (trade: CoWTrade | AmmTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
   isSeerCredits: boolean;
   outcomeToken: Token;
 }
@@ -168,7 +166,7 @@ function ShowCompleteSetSummary({
   quoteData,
   collateral,
 }: {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  trade: CoWTrade | AmmTrade;
   quoteData: CompleteSetQuoteResult;
   collateral: Token;
 }) {
@@ -206,15 +204,11 @@ function ShowCompleteSetSummary({
 function ShowSwapSummary({
   trade,
   collateral,
-  isBuyExactOutputNative,
-  isSellToNative,
   isSeerCredits,
   outcomeToken,
 }: {
-  trade: CoWTrade | SwaprV3Trade | UniswapTrade;
+  trade: CoWTrade | AmmTrade;
   collateral: Token;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
   isSeerCredits: boolean;
   outcomeToken: Token;
 }) {
@@ -240,8 +234,7 @@ function ShowSwapSummary({
 
   const primaryCollateral = getActiveCollateralProfile(filterChain(trade.chainId)).primary.address;
   const isExactInput = trade.tradeType === 0;
-  inputToken = isBuyExactOutputNative ? "xDAI" : inputToken;
-  outputToken = isSellToNative ? "xDAI" : outputToken?.slice(0, 31);
+  outputToken = outputToken?.slice(0, 31);
 
   price = !isTwoStringsEqual(collateral.address, primaryCollateral)
     ? (Number(outputAmount) / Number(inputAmount)).toFixed(2)
@@ -318,8 +311,6 @@ export function SwapTokensConfirmation({
   isLoading,
   onSubmit,
   collateral,
-  isBuyExactOutputNative,
-  isSellToNative,
   isSeerCredits,
   outcomeToken,
 }: SwapTokensConfirmationProps) {
@@ -345,8 +336,6 @@ export function SwapTokensConfirmation({
         <ShowSwapSummary
           trade={trade}
           collateral={collateral}
-          isBuyExactOutputNative={isBuyExactOutputNative}
-          isSellToNative={isSellToNative}
           isSeerCredits={isSeerCredits}
           outcomeToken={outcomeToken}
         />

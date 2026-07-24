@@ -9,27 +9,27 @@ import {
   type SupportedChainId,
   type UnsignedOrder,
 } from "@cowprotocol/cow-sdk";
-import { CoWTrade, SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
+import { CoWTrade } from "@swapr/sdk";
 import { Contract, providers } from "ethers";
 import type { Signer } from "ethers";
 import type { Address, Client, Hex } from "viem";
-import { encodeFunctionData, parseUnits, zeroAddress } from "viem";
+import { encodeFunctionData, parseUnits } from "viem";
 import { sendTransaction } from "viem/actions";
 import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
+import type { AmmTrade } from "./amm-trade";
 import { NATIVE_TOKEN } from "./collateral";
-import { ERC20_APPROVE_ABI, ETH_FLOW_ABI, ROUTER_ABI } from "./execute-trade-abis";
+import { ERC20_APPROVE_ABI, ETH_FLOW_ABI } from "./execute-trade-abis";
 import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { TradeTokensProps } from "./trade-utils";
-import { getMaximumAmountIn } from "./trade-utils";
-import { getSwapRouterAddress } from "./trading";
+import { getMaximumAmountIn, isAmmTrade } from "./trade-utils";
 
 export type { TradeTokensProps } from "./trade-utils";
 
 export const ETH_FLOW_ADDRESS = "0xba3cb449bd2b4adddbc894d8697f5170800eadec" as const;
 
 /**
- * Get maximum amount in for approval (handles Uniswap multicall encoding).
+ * Get maximum amount in for approval.
  */
 export { getMaximumAmountIn } from "./trade-utils";
 
@@ -70,80 +70,9 @@ export function getTradeApprovals7702(params: GetTradeApprovals7702Params): Exec
 }
 
 /**
- * Build Swapr trade execution (single tx or multicall for native).
+ * Build Lens AMM trade execution.
  */
-export async function getSwaprTradeExecution(
-  trade: SwaprV3Trade,
-  account: Address,
-  isBuyExactOutputNative: boolean,
-  isSellToNative: boolean,
-): Promise<Execution> {
-  if (isSellToNative) {
-    const populatedTransaction = await trade.swapTransaction({ recipient: zeroAddress });
-    const amountOut = `0x${trade.minimumAmountOut().raw.toString(16)}`;
-    return multicallSellToNative(amountOut, populatedTransaction.data!.toString(), account, trade.chainId);
-  }
-
-  const populatedTransaction = await trade.swapTransaction({ recipient: account });
-
-  if (isBuyExactOutputNative) {
-    const amountIn = `0x${trade.maximumAmountIn().raw.toString(16)}`;
-    return multicallBuyExactOutputNative(amountIn, populatedTransaction.data!.toString(), trade.chainId);
-  }
-
-  return {
-    to: populatedTransaction.to! as Address,
-    data: populatedTransaction.data!.toString() as Hex,
-    value: BigInt(populatedTransaction.value?.toString() || 0),
-    chainId: trade.chainId,
-  };
-}
-
-function multicallBuyExactOutputNative(amountIn: string, swapData: string, chainId: number): Execution {
-  const refundNativeTokenData = encodeFunctionData({
-    abi: ROUTER_ABI,
-    functionName: "refundNativeToken",
-  });
-
-  const data = encodeFunctionData({
-    abi: ROUTER_ABI,
-    functionName: "multicall",
-    args: [[swapData as Hex, refundNativeTokenData]],
-  });
-
-  return {
-    to: getSwapRouterAddress(chainId),
-    value: BigInt(amountIn),
-    data,
-    chainId,
-  };
-}
-
-function multicallSellToNative(amountOut: string, swapData: string, recipient: string, chainId: number): Execution {
-  const unwrapData = encodeFunctionData({
-    abi: ROUTER_ABI,
-    functionName: "unwrapWNativeToken",
-    args: [BigInt(amountOut), recipient as Address],
-  });
-
-  const data = encodeFunctionData({
-    abi: ROUTER_ABI,
-    functionName: "multicall",
-    args: [[swapData as Hex, unwrapData]],
-  });
-
-  return {
-    to: getSwapRouterAddress(chainId),
-    value: 0n,
-    data,
-    chainId,
-  };
-}
-
-/**
- * Build Uniswap trade execution.
- */
-export async function getUniswapTradeExecution(trade: UniswapTrade, account: Address): Promise<Execution> {
+export async function getAmmTradeExecution(trade: AmmTrade, account: Address): Promise<Execution> {
   const populatedTransaction = await trade.swapTransaction({ recipient: account });
 
   return {
@@ -159,7 +88,7 @@ export async function getUniswapTradeExecution(trade: UniswapTrade, account: Add
  */
 export function getWrappedSeerCreditsExecution(
   isSeerCredits: boolean,
-  trade: SwaprV3Trade | UniswapTrade,
+  trade: AmmTrade,
   tradeExecution: Execution,
 ): Execution {
   if (!isSeerCredits) return tradeExecution;
@@ -172,12 +101,7 @@ export function getWrappedSeerCreditsExecution(
   const executeData = encodeFunctionData({
     abi: creditsManagerAbi,
     functionName: "execute",
-    args: [
-      tradeExecution.to,
-      tradeExecution.data,
-      getMaximumAmountIn(trade),
-      trade.outputAmount.currency.address! as Address,
-    ],
+    args: [tradeExecution.to, tradeExecution.data, getMaximumAmountIn(trade), trade.tokenOut.address as Address],
   });
 
   return {
@@ -306,63 +230,34 @@ export function clientToSigner(client: SignerCompatibleClient): Signer {
 }
 
 /**
- * Build execution for Swapr/Uniswap trade (legacy path).
+ * Build execution for AMM trade (Lens).
  */
-export async function buildSwaprTradeExecution(
-  trade: SwaprV3Trade,
+export async function buildAmmTradeExecution(
+  trade: AmmTrade,
   account: Address,
-  isBuyExactOutputNative: boolean,
-  isSellToNative: boolean,
   isSeerCredits: boolean,
 ): Promise<Execution> {
-  const swapExecution = await getSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative);
+  const swapExecution = await getAmmTradeExecution(trade, account);
   return getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution);
 }
 
 /**
- * Build execution for Uniswap trade (legacy path).
+ * Execute AMM trade. Returns tx hash; app should wrap with toastifyTx and wait for receipt.
  */
-export async function buildUniswapTradeExecution(
-  trade: UniswapTrade,
-  account: Address,
-  isSeerCredits: boolean,
-): Promise<Execution> {
-  const swapExecution = await getUniswapTradeExecution(trade, account);
-  return getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution);
-}
-
-/**
- * Execute Swapr trade. Returns tx hash; app should wrap with toastifyTx and wait for receipt.
- */
-export async function executeSwaprTrade(
+export async function executeAmmTrade(
   client: Client,
-  trade: SwaprV3Trade,
+  trade: AmmTrade,
   account: Address,
-  isBuyExactOutputNative: boolean,
-  isSellToNative: boolean,
   isSeerCredits: boolean,
 ): Promise<`0x${string}`> {
-  const exec = await buildSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  const exec = await buildAmmTradeExecution(trade, account, isSeerCredits);
   return sendTransaction(client, { ...exec, account, chain: client.chain });
 }
 
 /**
- * Execute Uniswap trade. Returns tx hash; app should wrap with toastifyTx and wait for receipt.
- */
-export async function executeUniswapTrade(
-  client: Client,
-  trade: UniswapTrade,
-  account: Address,
-  isSeerCredits: boolean,
-): Promise<`0x${string}`> {
-  const exec = await buildUniswapTradeExecution(trade, account, isSeerCredits);
-  return sendTransaction(client, { ...exec, account, chain: client.chain });
-}
-
-/**
- * Execute trade (legacy path). Dispatches to CoW, Swapr, or Uniswap.
- * Returns order ID (string) for CoW, or tx hash for Swapr/Uniswap.
- * Wrap with toastify (CoW) or toastifyTx (Swapr/Uniswap) in the app.
+ * Execute trade. Dispatches to CoW or Lens AMM.
+ * Returns order ID (string) for CoW, or tx hash for AMM.
+ * Wrap with toastify (CoW) or toastifyTx (AMM) in the app.
  *
  * Pass `getSigner` only if you want to support CoW trades; without it, CoW trades will throw.
  */
@@ -370,12 +265,12 @@ export async function tradeTokens(
   props: TradeTokensProps,
   adapters: { client: Client; getSigner?: () => Promise<Signer> },
 ): Promise<string> {
-  const { trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const { trade, account, isSeerCredits } = props;
   const { client, getSigner } = adapters;
 
   if (trade instanceof CoWTrade) {
     if (!getSigner) {
-      throw new Error("getSigner is required to execute CoW trades; pass it in adapters or use Swapr/Uniswap only.");
+      throw new Error("getSigner is required to execute CoW trades; pass it in adapters or use AMM only.");
     }
     const signer = await getSigner();
     return executeCoWTrade(signer, trade);
@@ -389,14 +284,11 @@ export async function tradeTokens(
     return executeCompleteSetTrade(client, props);
   }
 
-  if (trade instanceof UniswapTrade) {
-    if (props.psm3Leg) {
-      return executePsm3CompositeTradeWrapper(client, props);
-    }
-    return executeUniswapTrade(client, trade, account, isSeerCredits);
+  if (props.psm3Leg && isAmmTrade(trade)) {
+    return executePsm3CompositeTradeWrapper(client, props);
   }
 
-  return executeSwaprTrade(client, trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  return executeAmmTrade(client, trade, account, isSeerCredits);
 }
 
 async function executePsm3CompositeTradeWrapper(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
@@ -408,7 +300,7 @@ async function executePsm3CompositeTradeWrapper(client: Client, props: TradeToke
  * Build calls for 7702 batch (approvals + swap).
  */
 export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits, psm3Leg } = props;
+  const { trade, account, isSeerCredits, psm3Leg } = props;
 
   if (trade instanceof CoWTrade) {
     throw new Error("buildTradeCalls7702 does not support CoW trades; use tradeTokens instead");
@@ -422,7 +314,7 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
     return buildCompleteSetTradeCalls7702(props);
   }
 
-  if (psm3Leg && trade instanceof UniswapTrade) {
+  if (psm3Leg && isAmmTrade(trade)) {
     const { buildPsm3CompositeTradeCalls7702 } = await import("./psm3-composite-trade");
     return buildPsm3CompositeTradeCalls7702(props);
   }
@@ -430,18 +322,14 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
   const calls: Execution[] = isSeerCredits
     ? []
     : getTradeApprovals7702({
-        tokensAddresses: [trade.executionPrice.baseCurrency.address as Address],
+        tokensAddresses: [trade.tokenIn.address as Address],
         account,
         spender: trade.approveAddress as Address,
         amounts: getMaximumAmountIn(trade),
         chainId: trade.chainId,
       });
 
-  const swapExecution =
-    trade instanceof UniswapTrade
-      ? await getUniswapTradeExecution(trade, account)
-      : await getSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative);
-
+  const swapExecution = await getAmmTradeExecution(trade, account);
   calls.push(getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution));
 
   return calls;

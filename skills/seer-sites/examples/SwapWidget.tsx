@@ -326,8 +326,6 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
         await executeTrade({
           trade: quoteData.trade,
           account,
-          isBuyExactOutputNative: false,
-          isSellToNative: false,
           isSeerCredits: isSeerCreditsCollateral,
         });
       } catch (err) {

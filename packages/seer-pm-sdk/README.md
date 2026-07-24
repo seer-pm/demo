@@ -34,9 +34,12 @@ npm install @seer-pm/sdk @wagmi/core graphql-request graphql-tag viem wagmi
 
 ```ts
 import type { Market } from "@seer-pm/sdk";
+import { fetchAmmQuote } from "@seer-pm/sdk";
 ```
 
-See the [integration docs](https://github.com/seer-pm/demo/tree/main/integration-docs) for full flows (create market, resolve, trading, API).
+AMM quotes and swaps go through **Lens** (`fetchAmmQuote` / `AmmTrade`). CoW Swap is optional.
+
+See the [integration docs](https://github.com/seer-pm/demo/tree/main/integration-docs) for full flows (create market, resolve, [trading](https://github.com/seer-pm/demo/blob/main/integration-docs/7-trading.md), API).
 
 ## Publishing (maintainers)
 
