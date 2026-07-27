@@ -172,6 +172,8 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
     return buildPsm3CompositeTradeCalls7702(props);
   }
 
+  const swapExecution = await getAmmTradeExecution(trade, account);
+
   const calls: Execution[] = isSeerCredits
     ? []
     : getTradeApprovals7702({
@@ -182,7 +184,6 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
         chainId: trade.chainId,
       });
 
-  const swapExecution = await getAmmTradeExecution(trade, account);
   calls.push(getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution));
 
   return calls;

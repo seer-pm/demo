@@ -8458,6 +8458,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@seer-pm/lens@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@seer-pm/lens@npm:1.1.0"
+  peerDependencies:
+    viem: ^2.0.0
+  peerDependenciesMeta:
+    viem:
+      optional: true
+  checksum: 10c0/63f9ceb4c895cce65549fa120a0e3cf4b2cf1628729d9500def0254919add7701a10bd69e51d84abc6e2f48bf786afb3635bdd4c0986e202f9914f2799841124
+  languageName: node
+  linkType: hard
+
 "@seer-pm/monorepo@workspace:.":
   version: 0.0.0-use.local
   resolution: "@seer-pm/monorepo@workspace:."
@@ -8492,6 +8504,7 @@ __metadata:
     "@graphql-codegen/typescript-graphql-request": "npm:6.2.0"
     "@graphql-codegen/typescript-operations": "npm:^4.2.0"
     "@graphql-codegen/typescript-react-query": "npm:^6.1.0"
+    "@seer-pm/lens": "npm:^1.1.0"
     "@uniswap/v3-sdk": "npm:^3.19.0"
     "@wagmi/cli": "npm:^2.1.22"
     graphql: "npm:16.11.0"

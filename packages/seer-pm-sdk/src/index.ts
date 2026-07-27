@@ -159,14 +159,6 @@ export {
 export type { QuoteTradeResult, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
 export { AmmTrade, quoteAmmTrade } from "./amm-trade";
 export type { QuoteAmmTradeParams } from "./amm-trade";
-export { Lens } from "./trade/viem";
-export {
-  AMM,
-  AMM_NAMES,
-  CHAINS as LENS_CHAINS,
-  ETH as LENS_ETH,
-} from "./trade/index";
-export type { ChainId as LensChainId, QuoteResult as LensQuoteResult, SwapTx as LensSwapTx } from "./trade/index";
 export {
   executeAmmTrade,
   tradeTokens,

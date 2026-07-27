@@ -4,14 +4,14 @@
  * Bigint-first API — no external DEX SDK trade types.
  */
 
+import { CHAINS, type ChainId, ETH, defaultDeadline } from "@seer-pm/lens";
+import { Lens } from "@seer-pm/lens/client";
 import type { Address, Hex, PublicClient } from "viem";
 import { parseUnits, zeroAddress } from "viem";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
 import { TradeType } from "./trade-type";
-import { CHAINS, type ChainId, ETH, defaultDeadline } from "./trade/index.js";
-import { Lens } from "./trade/viem.js";
 
 export interface QuoteAmmTradeParams {
   chainId: number;
@@ -70,11 +70,11 @@ export class AmmTrade {
   readonly chainId: number;
   readonly tradeType: TradeType;
   /** DEX router to approve / call (from Lens quote `target`). */
-  readonly approveAddress: Address;
+  approveAddress: Address;
   readonly tokenIn: Token;
   readonly tokenOut: Token;
-  readonly amountIn: bigint;
-  readonly amountOut: bigint;
+  amountIn: bigint;
+  amountOut: bigint;
   readonly slippageBps: number;
 
   private readonly client: PublicClient;
@@ -145,7 +145,7 @@ export class AmmTrade {
   private async rebuildSwap(recipient: string): Promise<void> {
     assertLensDeployed(this.chainId);
     const lens = new Lens(this.client, this.chainId);
-    this.swapTx = await lens.buildSwap({
+    const result = await lens.quote({
       tokenIn: this.tokenInLens,
       tokenOut: this.tokenOutLens,
       amount: this.swapAmount,
@@ -154,6 +154,13 @@ export class AmmTrade {
       deadline: defaultDeadline(),
       exactOut: this.tradeType === TradeType.EXACT_OUTPUT,
     });
+    if (result.amountIn <= 0n || result.amountOut <= 0n) {
+      throw new Error("No route found");
+    }
+    this.swapTx = { to: result.target, data: result.data, value: result.msgValue };
+    this.approveAddress = result.target as Address;
+    this.amountIn = result.amountIn;
+    this.amountOut = result.amountOut;
     this.cachedRecipient = recipient;
   }
 }
