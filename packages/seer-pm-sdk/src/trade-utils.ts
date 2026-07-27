@@ -1,52 +1,51 @@
-import { Trade, TradeType, UniswapTrade } from "@swapr/sdk";
-import type { Address, Hex } from "viem";
-import { decodeFunctionData } from "viem";
+import type { Address } from "viem";
+import type { AmmTrade } from "./amm-trade";
 import type { CompleteSetLeg } from "./complete-set-quote";
-import { UNISWAP_ROUTER_ABI } from "./execute-trade-abis";
 import type { Psm3Leg } from "./quote";
+import { TradeType } from "./trade-type";
 
 export interface TradeTokensProps {
-  trade: import("@swapr/sdk").CoWTrade | import("@swapr/sdk").SwaprV3Trade | UniswapTrade;
+  trade: AmmTrade;
   account: Address;
-  isBuyExactOutputNative: boolean;
-  isSellToNative: boolean;
   isSeerCredits: boolean;
   psm3Leg?: Psm3Leg;
   completeSetLeg?: CompleteSetLeg;
 }
 
-export function getMaximumAmountIn(trade: Trade): bigint {
-  let maximumAmountIn = BigInt(trade.maximumAmountIn().raw.toString());
-  if (trade instanceof UniswapTrade) {
-    const callData = trade.swapRoute.methodParameters?.calldata;
-    if (callData) {
-      try {
-        const decodedMulticall = decodeFunctionData({
-          abi: UNISWAP_ROUTER_ABI,
-          data: callData as Hex,
-        });
-        if (decodedMulticall.functionName === "multicall" && decodedMulticall.args?.[1]) {
-          const innerData = (decodedMulticall.args[1] as readonly Hex[])[0];
-          const decoded = decodeFunctionData({
-            abi: UNISWAP_ROUTER_ABI,
-            data: innerData,
-          });
-          if (decoded.args?.[0]) {
-            const params = decoded.args[0] as {
-              amountIn?: bigint;
-              amountInMaximum?: bigint;
-            };
-            const callDataAmountIn =
-              trade.tradeType === TradeType.EXACT_INPUT ? params.amountIn : params.amountInMaximum;
-            if (callDataAmountIn && callDataAmountIn > maximumAmountIn) {
-              maximumAmountIn = callDataAmountIn;
-            }
-          }
-        }
-      } catch {
-        /* keep maximumAmountIn */
-      }
-    }
-  }
-  return maximumAmountIn;
+export function getMaximumAmountIn(trade: AmmTrade): bigint {
+  return trade.maximumAmountIn();
 }
+
+export function getMinimumAmountOut(trade: AmmTrade): bigint {
+  return trade.minimumAmountOut();
+}
+
+export function getTradeAmountIn(trade: AmmTrade): bigint {
+  return trade.amountIn;
+}
+
+export function getTradeAmountOut(trade: AmmTrade): bigint {
+  return trade.amountOut;
+}
+
+export function getTradeTokenIn(trade: AmmTrade): {
+  address: string;
+  symbol: string | undefined;
+  decimals: number;
+} {
+  return trade.tokenIn;
+}
+
+export function getTradeTokenOut(trade: AmmTrade): {
+  address: string;
+  symbol: string | undefined;
+  decimals: number;
+} {
+  return trade.tokenOut;
+}
+
+export function getTradeApproveTokenAddress(trade: AmmTrade): Address {
+  return getTradeTokenIn(trade).address as Address;
+}
+
+export { TradeType };

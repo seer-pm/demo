@@ -15,7 +15,7 @@ This package exposes reusable hooks that work with `@seer-pm/sdk` and Wagmi.
 
 ### Pools & liquidity
 
-- **`useMarketPools`** — Pools for a market (Swapr on Gnosis, Uniswap on Mainnet/Optimism/Base).
+- **`useMarketPools`** — Pool discovery for a market (Swapr subgraph on Gnosis, Uniswap on Mainnet/Optimism/Base). Trading quotes/swaps use Lens via `useAmmQuote`, not these pool hooks.
 - **`useMarketHasLiquidity`** — Whether a market (or a specific outcome) has liquidity.
 - **`useMarketOdds`** — Current odds for a market; requires liquidity check to be resolved.
 - **`useComputedPoolAddresses`** — Computed pool addresses for a market’s token pairs.
@@ -29,10 +29,8 @@ This package exposes reusable hooks that work with `@seer-pm/sdk` and Wagmi.
 
 ### Trading & quotes
 
-- **`useQuoteTrade`** — Unified quote for buy/sell: uses CoW (or instant swap) when enabled or for Seer Credits, otherwise Swapr (Gnosis) or Uniswap (Mainnet/Optimism/Base).
-- **`useCowQuote`** — CoW Protocol quote.
-- **`useSwaprQuote`** — Swapr (Algebra) quote (Gnosis).
-- **`useUniswapQuote`** — Uniswap quote (Mainnet, Optimism, Base).
+- **`useQuoteTrade`** — Unified quote for buy/sell via Lens smart quoter (`useAmmQuote`), with complete-set / PSM3 routing when applicable.
+- **`useAmmQuote`** — AMM quote via Lens smart quoter (Gnosis, Ethereum, Optimism, Base).
 
 ### Approvals
 

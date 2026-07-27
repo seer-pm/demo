@@ -3,12 +3,12 @@
  * Uses primary ERC20 collateral only (e.g. sDAI) — splitPosition + AMM swaps.
  */
 
-import { SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import type { Address, Client } from "viem";
 import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
+import type { AmmTrade } from "./amm-trade";
 import { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 import type { SupportedChain } from "./chains";
-import { buildSwaprTradeExecution, buildUniswapTradeExecution, getTradeApprovals7702 } from "./execute-trade";
+import { buildAmmTradeExecution, getTradeApprovals7702 } from "./execute-trade";
 import type { Execution } from "./execution";
 import type { FillToEstimateLeg, FillToEstimatePlan } from "./fill-to-estimate-plan";
 import type { Market } from "./market-types";
@@ -20,7 +20,7 @@ import { getMaximumAmountIn } from "./trade-utils";
 export interface FillToEstimateLegTrade {
   kind: "sell" | "buy";
   outcomeIndex: 0 | 1;
-  trade: SwaprV3Trade | UniswapTrade;
+  trade: AmmTrade;
 }
 
 export interface FillToEstimateTradeParams {
@@ -45,17 +45,13 @@ function findLegTrade(legTrades: FillToEstimateLegTrade[], leg: FillToEstimateLe
 }
 
 async function getSwapExecution(
-  trade: SwaprV3Trade | UniswapTrade,
+  trade: AmmTrade,
   account: Address,
   collateralToken: Address,
   chainId: number,
 ): Promise<Execution> {
   const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken);
-
-  if (trade instanceof UniswapTrade) {
-    return buildUniswapTradeExecution(trade, account, isSeerCreditsCollateral);
-  }
-  return buildSwaprTradeExecution(trade, account, false, false, isSeerCreditsCollateral);
+  return buildAmmTradeExecution(trade, account, isSeerCreditsCollateral);
 }
 
 export async function buildFillToEstimateCalls7702(params: FillToEstimateTradeParams): Promise<Execution[]> {

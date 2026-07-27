@@ -8,10 +8,11 @@ import { Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber } from "@/lib/utils";
 import { useMarketOdds, useTokenBalance } from "@seer-pm/react";
 import {
+  AmmTrade,
   type FillToEstimateLegTrade,
   Market,
   fetchAmmQuote,
-  fetchPsm3UniswapQuote,
+  fetchPsm3AmmQuote,
   getFillToEstimateCollateral,
   getMarketEstimate,
   getMarketUnit,
@@ -20,7 +21,7 @@ import {
   isSeerCredits,
 } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { SwaprV3Trade, TradeType, UniswapTrade } from "@seer-pm/sdk";
+import { TradeType } from "@seer-pm/sdk";
 import { getPublicClient } from "@wagmi/core";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -174,7 +175,10 @@ export function SwapTokensFillToEstimate({
     }
 
     const legTrades: FillToEstimateLegTrade[] = [];
-    const publicClient = isPsm3Collateral ? getPublicClient(wagmiConfig, { chainId: market.chainId }) : undefined;
+    const publicClient = getPublicClient(wagmiConfig, { chainId: market.chainId });
+    if (!publicClient) {
+      throw new Error("Public client not available");
+    }
 
     for (const leg of plan.legs) {
       if (leg.kind === "split") {
@@ -186,8 +190,8 @@ export function SwapTokensFillToEstimate({
       const tradeType = leg.kind === "buy" ? TradeType.EXACT_OUTPUT : TradeType.EXACT_INPUT;
 
       const quote = isPsm3Collateral
-        ? await fetchPsm3UniswapQuote(
-            publicClient!,
+        ? await fetchPsm3AmmQuote(
+            publicClient,
             tradeType,
             market.chainId,
             account,
@@ -198,6 +202,7 @@ export function SwapTokensFillToEstimate({
             maxSlippage,
           )
         : await fetchAmmQuote(
+            publicClient,
             tradeType,
             market.chainId,
             account,
@@ -208,7 +213,7 @@ export function SwapTokensFillToEstimate({
             maxSlippage,
           );
 
-      if (!quote?.trade || !(quote.trade instanceof SwaprV3Trade || quote.trade instanceof UniswapTrade)) {
+      if (!quote?.trade || !(quote.trade instanceof AmmTrade)) {
         throw new Error(`Unable to quote ${leg.kind} leg for ${market.outcomes[leg.outcomeIndex]}`);
       }
 

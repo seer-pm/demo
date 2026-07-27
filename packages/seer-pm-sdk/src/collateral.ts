@@ -1,4 +1,3 @@
-import { DAI, WXDAI } from "@swapr/sdk";
 import type { Address } from "viem";
 import { base, gnosis, mainnet, optimism, sepolia } from "viem/chains";
 import { isTwoStringsEqual, isUndefined } from "./quote-utils";
@@ -33,6 +32,15 @@ export const TOKENS_BY_CHAIN = {
     USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   },
 } as const;
+
+/** Wrapped xDAI (Gnosis) and DAI (Mainnet) addresses used for swap/symbol helpers. */
+const DAI_BY_CHAIN: Partial<Record<number, { address: Address; symbol: string }>> = {
+  [mainnet.id]: { address: TOKENS_BY_CHAIN[mainnet.id].DAI, symbol: "DAI" },
+};
+
+const WXDAI_BY_CHAIN: Partial<Record<number, { address: Address; symbol: string }>> = {
+  [gnosis.id]: { address: TOKENS_BY_CHAIN[gnosis.id].xDAI, symbol: "wxDAI" },
+};
 
 export type CollateralProfile = {
   primary: Token;
@@ -176,8 +184,8 @@ export function getCollateralTokenForSwap(tokenAddress: Address, chainId: number
     return tokenAddress;
   }
   if (
-    isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address) ||
-    isTwoStringsEqual(tokenAddress, DAI[chainId]?.address) ||
+    isTwoStringsEqual(tokenAddress, WXDAI_BY_CHAIN[chainId]?.address) ||
+    isTwoStringsEqual(tokenAddress, DAI_BY_CHAIN[chainId]?.address) ||
     isTwoStringsEqual(tokenAddress, NATIVE_TOKEN)
   ) {
     return getActivePrimaryCollateral(chainId).address;
@@ -195,14 +203,14 @@ export function getCollateralSymbol(
   chainId: number,
   tokenIdToTokenSymbolMapping: Record<string, string> = {},
 ): string | undefined {
-  if (isTwoStringsEqual(tokenAddress, WXDAI[chainId]?.address)) {
+  if (isTwoStringsEqual(tokenAddress, WXDAI_BY_CHAIN[chainId]?.address)) {
     if (!isTwoStringsEqual(owner, account) && chainId === gnosis.id) {
       return "xDAI";
     }
-    return WXDAI[chainId]?.symbol;
+    return WXDAI_BY_CHAIN[chainId]?.symbol;
   }
-  if (isTwoStringsEqual(tokenAddress, DAI[chainId]?.address)) {
-    return DAI[chainId]?.symbol;
+  if (isTwoStringsEqual(tokenAddress, DAI_BY_CHAIN[chainId]?.address)) {
+    return DAI_BY_CHAIN[chainId]?.symbol;
   }
   if (isTwoStringsEqual(tokenAddress, NATIVE_TOKEN) && chainId === gnosis.id) {
     return "xDAI";

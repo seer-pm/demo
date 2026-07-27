@@ -18,7 +18,6 @@ export default defineConfig({
   ],
   define: {
     global: "window",
-    // @swapr/sdk (and its 0x deps) reference process in the browser; provide a shim.
     "process.env": "{}",
   },
   build: {

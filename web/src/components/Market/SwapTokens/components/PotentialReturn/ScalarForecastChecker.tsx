@@ -38,7 +38,6 @@ export default function ScalarForecastChecker({
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const { data: outcomeTokens = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
-  const isCowQuoteEnabled = useGlobalState((state) => !state.isInstantSwap);
 
   const otherOutcomeToken = outcomeTokens.find((_token) => _token.address !== outcomeToken.address)!;
   const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (
@@ -74,7 +73,6 @@ export default function ScalarForecastChecker({
     "buy",
     TradeType.EXACT_INPUT,
     maxSlippage,
-    isCowQuoteEnabled,
   );
 
   const otherTokenIndex = outcomeTokens.findIndex((token) =>

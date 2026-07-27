@@ -1,4 +1,4 @@
-import { ChainId, configureRpcProviders } from "@seer-pm/sdk/swapr";
+import { configurePublicRpcUrls } from "@seer-pm/sdk";
 import {
   http,
   type Chain,
@@ -16,11 +16,11 @@ const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || "https://eth-pokt.nodies.
 const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimism.io";
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || "https://base.llamarpc.com";
 
-configureRpcProviders({
-  [ChainId.XDAI]: GNOSIS_RPC,
-  [ChainId.MAINNET]: MAINNET_RPC,
-  [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
-  [ChainId.BASE]: BASE_RPC,
+configurePublicRpcUrls({
+  [gnosis.id]: GNOSIS_RPC,
+  [mainnet.id]: MAINNET_RPC,
+  [optimism.id]: OPTIMISM_RPC,
+  [base.id]: BASE_RPC,
 });
 
 const SEPOLIA_RPC = process.env.PRIVATE_RPC_SEPOLIA || "https://ethereum-sepolia-rpc.publicnode.com";

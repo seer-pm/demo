@@ -1,6 +1,10 @@
-import type { CompleteSetLeg, Psm3Leg, SupportedChain } from "@seer-pm/sdk";
-import { getCompleteSetApprovalTokens, getMaximumAmountIn, getPsm3CompositeApprovalTokens } from "@seer-pm/sdk";
-import { CoWTrade, SwaprV3Trade, type Trade, UniswapTrade } from "@swapr/sdk";
+import type { AmmTrade, CompleteSetLeg, Psm3Leg, SupportedChain } from "@seer-pm/sdk";
+import {
+  getCompleteSetApprovalTokens,
+  getMaximumAmountIn,
+  getPsm3CompositeApprovalTokens,
+  getTradeApproveTokenAddress,
+} from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { useMissingApprovals } from "./useMissingApprovals";
 
@@ -81,29 +85,25 @@ function useCompositeMissingApprovals(
 
 export function useMissingTradeApproval(
   account: Address | undefined,
-  trade: Trade | undefined,
+  trade: AmmTrade | undefined,
   psm3Leg?: Psm3Leg,
   completeSetLeg?: CompleteSetLeg,
 ) {
   const completeSetApproval =
-    completeSetLeg && trade && account && !(trade instanceof CoWTrade)
+    completeSetLeg && trade && account
       ? getCompleteSetApprovalTokens({
-          trade: trade as SwaprV3Trade | UniswapTrade,
+          trade,
           account,
-          isBuyExactOutputNative: false,
-          isSellToNative: false,
           isSeerCredits: false,
           completeSetLeg,
         })
       : null;
 
   const psm3Approval =
-    !completeSetApproval?.tokensAddresses.length && trade && psm3Leg && account && trade instanceof UniswapTrade
+    !completeSetApproval?.tokensAddresses.length && trade && psm3Leg && account
       ? getPsm3CompositeApprovalTokens({
           trade,
           account,
-          isBuyExactOutputNative: false,
-          isSellToNative: false,
           isSeerCredits: false,
           psm3Leg,
         })
@@ -128,7 +128,7 @@ export function useMissingTradeApproval(
     !trade || compositeApproval?.tokensAddresses.length
       ? undefined
       : {
-          tokensAddresses: [trade.executionPrice.baseCurrency.address as `0x${string}`],
+          tokensAddresses: [getTradeApproveTokenAddress(trade)],
           account,
           spender: trade.approveAddress as `0x${string}`,
           amounts: getMaximumAmountIn(trade),

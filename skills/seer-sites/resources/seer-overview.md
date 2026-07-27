@@ -22,7 +22,7 @@ Always prefer using SDK helpers over manually encoding contract calls.
 - **Outcome tokens / positions** – ERC-20 style tokens that represent claims on one or more outcomes across the market's question(s).
 - **Collateral token** – ERC-20 token used to buy positions (e.g., stablecoin).
 - **Router / MarketFactory** – contracts that create markets and manage splitting, merging, and redeeming positions.
-- **AMM** – automated market maker (e.g., Swapr, Uniswap V3) that prices and trades outcome tokens.
+- **AMM** – Lens routes quotes/swaps against Uniswap V3 / Swapr (Algebra) pools that price and trade outcome tokens.
 - **Conditional market** – a market that depends on a parent market resolving to a specific outcome. Use `market.parentMarket` (zero = root market) and `market.parentOutcome` (index of the parent outcome). For split/merge/redeem on a conditional market, the collateral token is the **parent’s outcome token** at that index, not the chain’s base collateral. Same hooks (`useSplitPosition`, `useMergePositions`, `useRedeemPositions`) apply; creation uses `CreateMarketProps` with `parentMarket` and `parentOutcome` set.
 
 Frontends usually do not call these contracts directly. Instead, they:

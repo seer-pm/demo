@@ -14,7 +14,6 @@ import {
 } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { FieldErrors } from "react-hook-form";
-import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 
 interface Props {
@@ -26,9 +25,8 @@ interface Props {
   errors: FieldErrors<{ amount: string }>;
 }
 
-export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, tradeType, errors }: Props) {
+export function useTradeConditions({ market, outcomeToken, fixedCollateral, swapType, errors }: Props) {
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
-  const isInstantSwap = useGlobalState((state) => state.isInstantSwap);
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const preferredCollateral = useGlobalState((state) => state.getPreferredCollateral(market.chainId, swapType));
 
@@ -62,18 +60,10 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
   const isSecondaryCollateral =
     isTwoStringsEqual(selectedCollateral.address, activeProfile.secondary?.address) ||
     isTwoStringsEqual(selectedCollateral.address, activeProfile.secondary?.wrapped?.address);
-  const isCollateralNative =
-    market.chainId === gnosis.id && isTwoStringsEqual(selectedCollateral.address, NATIVE_TOKEN);
-
-  const isBuyExactOutputNative = isCollateralNative && swapType === "buy" && tradeType === TradeType.EXACT_OUTPUT;
-
-  const isSellToNative = isCollateralNative && swapType === "sell";
-
   const isPsm3Collateral = isPsm3SwapToken(market.chainId, selectedCollateral.address);
 
   return {
     maxSlippage,
-    isInstantSwap,
     account,
     parentMarket,
     selectedCollateral,
@@ -86,8 +76,6 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     isFetchingBalance,
     showBridgeLink,
     isSecondaryCollateral,
-    isBuyExactOutputNative,
-    isSellToNative,
     isPsm3Collateral,
     amountErrorMessage,
   };

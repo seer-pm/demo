@@ -1,10 +1,10 @@
 /**
- * Composite quotes: PSM3 (USDC/USDS ↔ sUSDS) + Uniswap (sUSDS ↔ outcome).
+ * Composite quotes: PSM3 (USDC/USDS ↔ sUSDS) + AMM via Lens smart quoter (sUSDS ↔ outcome).
  */
 
-import { TradeType, type UniswapTrade } from "@swapr/sdk";
 import type { Address, PublicClient } from "viem";
 import { formatUnits, parseUnits } from "viem";
+import type { AmmTrade } from "./amm-trade";
 import { getActivePrimaryCollateral } from "./collateral";
 import {
   applySlippageToleranceDown,
@@ -14,8 +14,9 @@ import {
   previewPsm3SwapExactOut,
 } from "./psm3";
 import type { Psm3Leg, QuoteTradeResult } from "./quote";
-import { fetchUniswapQuote } from "./quote";
+import { fetchAmmQuote } from "./quote";
 import type { Token } from "./tokens";
+import { TradeType } from "./trade-type";
 
 function buildPsm3LegExactIn(
   assetIn: Address,
@@ -64,7 +65,8 @@ async function quoteBuyExactIn(
   const amountIn = parseUnits(amount, collateralToken.decimals);
   const sUsdsOut = await previewPsm3SwapExactIn(client, chainId, collateralToken.address, primary.address, amountIn);
   const psm3Leg = buildPsm3LegExactIn(collateralToken.address, primary.address, amountIn, sUsdsOut, maxSlippage);
-  const uniswapQuote = await fetchUniswapQuote(
+  const uniswapQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_INPUT,
     chainId,
     account,
@@ -93,7 +95,8 @@ async function quoteBuyExactOut(
   maxSlippage: string,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
-  const uniswapQuote = await fetchUniswapQuote(
+  const uniswapQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_OUTPUT,
     chainId,
     account,
@@ -103,7 +106,7 @@ async function quoteBuyExactOut(
     "buy",
     maxSlippage,
   );
-  const sUsdsNeeded = BigInt((uniswapQuote.trade as UniswapTrade).maximumAmountIn().raw.toString());
+  const sUsdsNeeded = (uniswapQuote.trade as AmmTrade).maximumAmountIn();
   const usdcIn = await previewPsm3SwapExactOut(client, chainId, collateralToken.address, primary.address, sUsdsNeeded);
   const psm3Leg = buildPsm3LegExactOut(collateralToken.address, primary.address, sUsdsNeeded, usdcIn, maxSlippage);
   return {
@@ -125,7 +128,8 @@ async function quoteSellExactIn(
   maxSlippage: string,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
-  const uniswapQuote = await fetchUniswapQuote(
+  const uniswapQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_INPUT,
     chainId,
     account,
@@ -177,7 +181,8 @@ async function quoteSellExactOut(
     sUsdsNeeded,
     maxSlippage,
   );
-  const uniswapQuote = await fetchUniswapQuote(
+  const uniswapQuote = await fetchAmmQuote(
+    client,
     TradeType.EXACT_OUTPUT,
     chainId,
     account,
@@ -196,7 +201,7 @@ async function quoteSellExactOut(
   };
 }
 
-export async function fetchPsm3UniswapQuote(
+export async function fetchPsm3AmmQuote(
   client: PublicClient,
   tradeType: TradeType,
   chainId: number,

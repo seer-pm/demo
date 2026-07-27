@@ -2,12 +2,12 @@
  * Complete-set composite trade execution: mint+sell and buy+merge in one batch or sequential txs.
  */
 
-import { SwaprV3Trade, UniswapTrade } from "@swapr/sdk";
 import type { Address, Client } from "viem";
 import { sendTransaction } from "viem/actions";
+import type { AmmTrade } from "./amm-trade";
 import { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 import type { SupportedChain } from "./chains";
-import { buildSwaprTradeExecution, buildUniswapTradeExecution, getTradeApprovals7702 } from "./execute-trade";
+import { buildAmmTradeExecution, getTradeApprovals7702 } from "./execute-trade";
 import type { Execution } from "./execution";
 import { getMergeExecution } from "./merge-positions";
 import { getRouterAddress } from "./router-addresses";
@@ -17,11 +17,11 @@ import { getMaximumAmountIn } from "./trade-utils";
 
 type ValidatedCompleteSetTrade = {
   completeSetLeg: NonNullable<TradeTokensProps["completeSetLeg"]>;
-  trade: SwaprV3Trade | UniswapTrade;
+  trade: AmmTrade;
   swapSpender: Address;
 } & ({ route: "mintSell"; splitAmount: bigint } | { route: "buyMerge"; mergeAmount: bigint; maxBuyIn: bigint });
 
-function getValidatedMaximumAmountIn(trade: SwaprV3Trade | UniswapTrade): bigint {
+function getValidatedMaximumAmountIn(trade: AmmTrade): bigint {
   let maxBuyIn: bigint;
   try {
     maxBuyIn = getMaximumAmountIn(trade);
@@ -38,9 +38,6 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
   const { completeSetLeg, trade } = props;
   if (!completeSetLeg) {
     throw new Error("Complete-set trade requires completeSetLeg");
-  }
-  if (!(trade instanceof UniswapTrade) && !(trade instanceof SwaprV3Trade)) {
-    throw new Error("Complete-set trade requires Swapr or Uniswap secondary trade");
   }
   if (!trade.approveAddress) {
     throw new Error("Complete-set trade requires trade.approveAddress");
@@ -74,20 +71,15 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
 }
 
 async function getSecondarySwapExecution(
-  trade: SwaprV3Trade | UniswapTrade,
+  trade: AmmTrade,
   account: Address,
-  isBuyExactOutputNative: boolean,
-  isSellToNative: boolean,
   isSeerCredits: boolean,
 ): Promise<Execution> {
-  if (trade instanceof UniswapTrade) {
-    return buildUniswapTradeExecution(trade, account, isSeerCredits);
-  }
-  return buildSwaprTradeExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits);
+  return buildAmmTradeExecution(trade, account, isSeerCredits);
 }
 
 export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const { account, isSeerCredits } = props;
   const validated = validateCompleteSetTradeProps(props);
   const { completeSetLeg, trade, swapSpender } = validated;
 
@@ -124,7 +116,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
         chainId,
       }),
     );
-    calls.push(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits));
+    calls.push(await getSecondarySwapExecution(trade, account, isSeerCredits));
     return calls;
   }
 
@@ -139,7 +131,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
       chainId,
     }),
   );
-  calls.push(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits));
+  calls.push(await getSecondarySwapExecution(trade, account, isSeerCredits));
   const mergeOutcomeTokens = [
     completeSetLeg.targetOutcomeToken.address,
     completeSetLeg.oppositeOutcomeToken.address,
@@ -173,7 +165,7 @@ async function sendApprovalCalls(client: Client, account: Address, calls: Execut
 }
 
 export async function executeCompleteSetTrade(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
-  const { account, isBuyExactOutputNative, isSellToNative, isSeerCredits } = props;
+  const { account, isSeerCredits } = props;
   const validated = validateCompleteSetTradeProps(props);
   const { completeSetLeg, trade, swapSpender } = validated;
 
@@ -232,7 +224,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
     }
 
     return sendTransaction(client, {
-      ...(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits)),
+      ...(await getSecondarySwapExecution(trade, account, isSeerCredits)),
       account,
       chain: client.chain,
     });
@@ -257,7 +249,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
   }
 
   await sendTransaction(client, {
-    ...(await getSecondarySwapExecution(trade, account, isBuyExactOutputNative, isSellToNative, isSeerCredits)),
+    ...(await getSecondarySwapExecution(trade, account, isSeerCredits)),
     account,
     chain: client.chain,
   });

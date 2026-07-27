@@ -1,15 +1,12 @@
 import {
-  CoWTrade,
+  type AmmTrade,
   type CompleteSetLeg,
   type Market,
-  type NotifierFn,
   type Psm3Leg,
   type TradeTokensProps as SdkTradeTokensProps,
-  Trade,
   type TxNotifierFn,
   buildTradeCalls7702,
   tradeTokens as sdkTradeTokens,
-  viemClientToSigner,
 } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Address, Client, TransactionReceipt } from "viem";
@@ -28,24 +25,9 @@ export type TradeTokensProps = SdkTradeTokensProps;
 async function tradeTokens(
   props: TradeTokensProps,
   client: Client,
-  orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
-): Promise<string | TransactionReceipt> {
-  const adapters = {
-    client,
-    getSigner: async () => viemClientToSigner(client),
-  };
-
-  if (props.trade instanceof CoWTrade) {
-    const result = await orderNotifier(() => sdkTradeTokens(props, adapters) as Promise<string>, {
-      txSent: { title: "Confirm order..." },
-      txSuccess: { title: "Order successfully placed! Check its status in your Portfolio." },
-    });
-    if (!result.status) throw result.error;
-    return result.data;
-  }
-
-  const result = await txNotifier(() => sdkTradeTokens(props, adapters) as Promise<`0x${string}`>, {
+): Promise<TransactionReceipt> {
+  const result = await txNotifier(() => sdkTradeTokens(props, { client }) as Promise<`0x${string}`>, {
     txSent: { title: "Executing trade..." },
     txSuccess: { title: "Trade executed!" },
   });
@@ -56,13 +38,8 @@ async function tradeTokens(
 async function tradeTokens7702(
   props: TradeTokensProps,
   client: Client,
-  orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
-): Promise<string | TransactionReceipt> {
-  if (props.trade instanceof CoWTrade) {
-    return tradeTokens(props, client, orderNotifier, txNotifier);
-  }
-
+): Promise<TransactionReceipt> {
   const calls = await buildTradeCalls7702(props);
 
   const result = await txNotifier(
@@ -87,15 +64,13 @@ async function tradeTokens7702(
 
 function useTradeLegacy(
   account: Address | undefined,
-  trade: Trade | undefined,
+  trade: AmmTrade | undefined,
   isSeerCredits: boolean,
   psm3Leg: Psm3Leg | undefined,
   completeSetLeg: CompleteSetLeg | undefined,
   market: Market,
   onSuccess: () => unknown,
-  orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
-  onOrderPlaced?: (orderUid: string) => void,
 ) {
   const { data: walletClient } = useConnectorClient({
     chainId: trade?.chainId,
@@ -113,14 +88,9 @@ function useTradeLegacy(
         if (!walletClient) {
           throw new Error("No wallet client connected");
         }
-        return tradeTokens(props, walletClient, orderNotifier, txNotifier);
+        return tradeTokens(props, walletClient, txNotifier);
       },
-      onSuccess: (result: string | TransactionReceipt) => {
-        const isCowOrder = typeof result === "string";
-        if (isCowOrder) {
-          onOrderPlaced?.(result);
-          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
-        }
+      onSuccess: () => {
         invalidateAfterTrade(queryClient, {
           market,
           onSuccess,
@@ -130,14 +100,7 @@ function useTradeLegacy(
   };
 }
 
-function useTrade7702(
-  trade: Trade | undefined,
-  market: Market,
-  onSuccess: () => unknown,
-  orderNotifier: NotifierFn,
-  txNotifier: TxNotifierFn,
-  onOrderPlaced?: (orderUid: string) => void,
-) {
+function useTrade7702(trade: AmmTrade | undefined, market: Market, onSuccess: () => unknown, txNotifier: TxNotifierFn) {
   const { data: walletClient } = useConnectorClient({
     chainId: trade?.chainId,
     query: {
@@ -153,14 +116,9 @@ function useTrade7702(
         if (!walletClient) {
           throw new Error("No wallet client connected");
         }
-        return tradeTokens7702(props, walletClient, orderNotifier, txNotifier);
+        return tradeTokens7702(props, walletClient, txNotifier);
       },
-      onSuccess: (result: string | TransactionReceipt) => {
-        const isCowOrder = typeof result === "string";
-        if (isCowOrder) {
-          onOrderPlaced?.(result);
-          queryClient.invalidateQueries({ queryKey: ["useCowOrders"] });
-        }
+      onSuccess: () => {
         invalidateAfterTrade(queryClient, {
           market,
           onSuccess,
@@ -172,18 +130,16 @@ function useTrade7702(
 
 export const useTrade = (
   account: Address | undefined,
-  trade: Trade | undefined,
+  trade: AmmTrade | undefined,
   isSeerCredits: boolean,
   onSuccess: () => unknown,
   supports7702: boolean,
-  orderNotifier: NotifierFn,
   txNotifier: TxNotifierFn,
   market: Market,
-  onOrderPlaced?: (orderUid: string) => void,
   psm3Leg?: Psm3Leg,
   completeSetLeg?: CompleteSetLeg,
 ) => {
-  const trade7702 = useTrade7702(trade, market, onSuccess, orderNotifier, txNotifier, onOrderPlaced);
+  const trade7702 = useTrade7702(trade, market, onSuccess, txNotifier);
   const tradeLegacy = useTradeLegacy(
     account,
     trade,
@@ -192,9 +148,7 @@ export const useTrade = (
     completeSetLeg,
     market,
     onSuccess,
-    orderNotifier,
     txNotifier,
-    onOrderPlaced,
   );
 
   return supports7702 ? trade7702 : tradeLegacy;

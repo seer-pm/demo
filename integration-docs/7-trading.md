@@ -2,10 +2,9 @@
 
 Outcome tokens (CTF positions) are traded on AMMs. Pools are always **outcome token / main collateral** for the chain.
 
-- **Gnosis**: [Swapr](https://v3.swapr.eth.limo/) (Algebra V3)
-- **Ethereum, Base, Optimism**: [Uniswap V3](https://app.uniswap.org/)
+Quotes go through **Lens smart quoter** (`lensQuoter`), which picks the best DEX (Uniswap V3/V4 or Swapr) and returns calldata for that DEX’s own router. Swaps execute against the official DEX routers — Lens is not an AMM or a swap router.
 
-Use **@seer-pm/sdk** to get quotes and build swap flows. The SDK handles routing, amounts, and slippage for all supported chains.
+Use **@seer-pm/sdk** to get quotes and build swap flows. The SDK handles routing, amounts, and slippage for all supported chains (Gnosis, Ethereum, Base, Optimism).
 
 ---
 
@@ -35,29 +34,23 @@ See [Collateral profiles](9-collateral-profiles.md) for the full registry and wh
 
 ## Getting quotes with @seer-pm/sdk
 
-The SDK provides quote functions so you can get **how much the user will receive or spend** for any swap. Use these when building swap UIs.
-
 **Chain coverage:**
 
-- **Gnosis**: `getSwaprQuote` / `getSwaprQuoteExactOut` (or `fetchSwaprQuote` with `TradeType`)
-- **Ethereum, Base, Optimism**: `getUniswapQuote` / `getUniswapQuoteExactOut` (or `fetchUniswapQuote` with `TradeType`)
-- **CoW Swap** (optional): `getCowQuote` / `getCowQuoteExactOut` (or `fetchCowQuote` with `TradeType`)
+- **AMM via Lens smart quoter** on Gnosis, Ethereum, Base, Optimism: `fetchAmmQuote` with `TradeType` (exact-in / exact-out). Requires a viem `PublicClient`.
 
-**Result type:** `QuoteTradeResult` — `value` (bigint), `decimals`, `buyToken`, `sellToken`, `sellAmount`, `swapType`, and `trade` (the full route/trade object from @swapr/sdk that you can use to execute the swap).
+**Result type:** `QuoteTradeResult` — `value` (bigint), `decimals`, `buyToken`, `sellToken`, `sellAmount`, `swapType`, and `trade` (`AmmTrade`).
 
 ### Token and collateral
 
-Use the `Token` type and collateral from the SDK:
-
 ```typescript
 import {
+  TradeType,
+  fetchAmmQuote,
   getActivePrimaryCollateral,
-  getSwaprQuote,
-  getUniswapQuote,
   type QuoteTradeResult,
   type Token,
 } from "@seer-pm/sdk";
-import { TradeType } from "@swapr/sdk";
+import type { PublicClient } from "viem";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
@@ -73,74 +66,56 @@ const outcomeToken: Token = {
 
 ### Quote: exact input (e.g. “I spend 10 collateral → how many outcome tokens?”)
 
-**Gnosis (Swapr):**
-
 ```typescript
-import { getActivePrimaryCollateral, getSwaprQuote, type QuoteTradeResult, type Token } from "@seer-pm/sdk";
+import {
+  TradeType,
+  fetchAmmQuote,
+  getActivePrimaryCollateral,
+  type QuoteTradeResult,
+  type Token,
+} from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
 const collateralToken = getActivePrimaryCollateral(chainId);
 const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
 
-const quote: QuoteTradeResult = await getSwaprQuote(
+const quote: QuoteTradeResult = await fetchAmmQuote(
+  publicClient as PublicClient,
+  TradeType.EXACT_INPUT,
   chainId,
   undefined, // or user address
-  "10",     // amount in collateral (string)
+  "10", // amount in collateral (string)
   outcomeToken,
   collateralToken,
-  "buy",    // swapType: "buy" = collateral → outcome
-  "1",     // maxSlippage percent (e.g. "1" = 1%)
+  "buy", // swapType: "buy" = collateral → outcome
+  "1", // maxSlippage percent (e.g. "1" = 1%)
 );
 
 // quote.value = bigint amount of outcome tokens
-// quote.trade = full SwaprV3Trade (use for execution)
+// quote.trade = AmmTrade (use for execution)
 const amountOut = quote.value;
-const amountOutMinimum = (amountOut * 99n) / 100n; // 1% slippage
-```
-
-**Ethereum / Base / Optimism (Uniswap):**
-
-```typescript
-import { getActivePrimaryCollateral, getUniswapQuote, type Token } from "@seer-pm/sdk";
-import { mainnet } from "viem/chains";
-
-const chainId = mainnet.id;
-const collateralToken = getActivePrimaryCollateral(chainId);
-const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
-
-const quote = await getUniswapQuote(
-  chainId,
-  undefined,
-  "10",
-  outcomeToken,
-  collateralToken,
-  "buy",
-  "1",
-);
-
-const amountOut = quote.value;
-const amountOutMinimum = (amountOut * 99n) / 100n;
+const amountOutMinimum = quote.trade.minimumAmountOut(); // AmmTrade helper with slippage
 ```
 
 ### Quote: exact output (e.g. “I want exactly N outcome tokens → how much collateral?”)
 
-Use the exact-out variants or the `fetch*` helpers with `TradeType.EXACT_OUTPUT`:
-
 ```typescript
-import { getActivePrimaryCollateral, fetchSwaprQuote, type Token } from "@seer-pm/sdk";
-import { TradeType } from "@swapr/sdk";
+import { TradeType, fetchAmmQuote, getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
 import { gnosis } from "viem/chains";
 
 const chainId = gnosis.id;
 const collateralToken = getActivePrimaryCollateral(chainId);
 const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
 
-const quote = await fetchSwaprQuote(
+const quote = await fetchAmmQuote(
+  publicClient as PublicClient,
   TradeType.EXACT_OUTPUT,
   chainId,
   undefined,
-  "50",    // exact amount of outcome tokens desired
+  "50", // exact amount of outcome tokens desired
   outcomeToken,
   collateralToken,
   "buy",
@@ -148,19 +123,18 @@ const quote = await fetchSwaprQuote(
 );
 
 // quote.value = bigint amount of collateral (input) needed
-const amountInMaximum = (quote.value * 101n) / 100n; // 1% slippage
+const amountInMaximum = quote.trade.maximumAmountIn();
 ```
 
-### Using the fetch* helpers (exact-in vs exact-out by TradeType)
-
-When you have a `TradeType` (e.g. from UI), use one function for both modes:
+### Using TradeType for exact-in vs exact-out
 
 ```typescript
-import { getActivePrimaryCollateral, fetchUniswapQuote, type Token } from "@seer-pm/sdk";
-import { TradeType } from "@swapr/sdk";
+import { TradeType, fetchAmmQuote, getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
 import { mainnet } from "viem/chains";
 
 async function getQuote(
+  publicClient: PublicClient,
   tradeType: TradeType,
   chainId: number,
   amount: string,
@@ -169,7 +143,8 @@ async function getQuote(
   swapType: "buy" | "sell",
   maxSlippage: string,
 ) {
-  return fetchUniswapQuote(
+  return fetchAmmQuote(
+    publicClient,
     tradeType,
     chainId,
     undefined,
@@ -185,6 +160,7 @@ const collateralToken = getActivePrimaryCollateral(mainnet.id);
 const outcomeToken: Token = { address: "0x...", chainId: mainnet.id, symbol: "SEER_OUTCOME", decimals: 18 };
 
 const exactInQuote = await getQuote(
+  publicClient,
   TradeType.EXACT_INPUT,
   mainnet.id,
   "10",
@@ -195,6 +171,7 @@ const exactInQuote = await getQuote(
 );
 
 const exactOutQuote = await getQuote(
+  publicClient,
   TradeType.EXACT_OUTPUT,
   mainnet.id,
   "50",
@@ -205,104 +182,52 @@ const exactOutQuote = await getQuote(
 );
 ```
 
-Use `fetchCowQuote` the same way when integrating CoW Swap (e.g. for limit orders); it accepts an optional `isFastQuery` for quote speed vs optimal price.
-
 ---
 
 ## Executing the swap
 
 The SDK provides execution functions that take a `trade` (from a quote) and send the transaction. You need **wagmi** (config, `getConnectorClient`) and optionally a toast/notification layer for UX.
 
-### Execute any trade (CoW Swap, Swapr, Uniswap)
+### Execute any trade (AMM via Lens)
 
-Use `tradeTokens` to execute any trade type. It dispatches to CoW Swap, Swapr, or Uniswap automatically.
-
-**`getSigner` is only required if you want to support CoW Swap trades.** If you omit it, Swapr and Uniswap trades work as usual; CoW Swap trades will throw. So you can pass just `{ config }` if you only use Swapr/Uniswap:
+Use `tradeTokens` to execute an AMM trade (including complete-set / PSM3 composite routes when present on the props):
 
 ```typescript
 import { tradeTokens, type TradeTokensProps } from "@seer-pm/sdk";
 import { config } from "@/wagmi";
+import { getConnectorClient } from "@wagmi/core";
 
-// Swapr/Uniswap only (no CoW Swap)
-const adapters = { config };
+const client = await getConnectorClient(config);
+const adapters = { client };
 
 const props: TradeTokensProps = {
   trade: quote.trade,
   account: "0x...",
-  isBuyExactOutputNative: false,
-  isSellToNative: false,
   isSeerCredits: false,
 };
 
 const result = await tradeTokens(props, adapters); // tx hash
 ```
 
-To support CoW Swap as well, add `getSigner`:
+Wrap with `toastifyTx` in your app to show "Executing..." and "Done!" notifications.
+
+### Execute AMM trade
 
 ```typescript
-import { tradeTokens, clientToSigner, type TradeTokensProps } from "@seer-pm/sdk";
+import { executeAmmTrade } from "@seer-pm/sdk";
 import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
+import { getConnectorClient, waitForTransactionReceipt } from "@wagmi/core";
 
-const adapters = {
-  config,
-  getSigner: async () => {
-    const client = await getConnectorClient(config);
-    if (!client) throw new Error("No wallet connected");
-    return clientToSigner(client);
-  },
-};
+const client = await getConnectorClient(config);
 
-// Returns order ID (CoW Swap) or tx hash (Swapr/Uniswap)
-const result = await tradeTokens(props, adapters);
-```
-
-Wrap with `toastifyTx` (Swapr/Uniswap) or `toastify` (CoW Swap) in your app to show "Executing..." and "Done!" notifications.
-
-### Execute Swapr trade (Gnosis)
-
-```typescript
-import { executeSwaprTrade } from "@seer-pm/sdk";
-import { config } from "@/wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
-
-const hash = await executeSwaprTrade(
-  config,
-  trade,       // SwaprV3Trade from getSwaprQuote
+const hash = await executeAmmTrade(
+  client,
+  trade, // AmmTrade from fetchAmmQuote
   account,
-  false,       // isBuyExactOutputNative
-  false,       // isSellToNative
-  false,       // isSeerCredits
+  false, // isSeerCredits
 );
 
 const receipt = await waitForTransactionReceipt(config, { hash });
-```
-
-### Execute Uniswap trade (Ethereum, Base, Optimism)
-
-```typescript
-import { executeUniswapTrade } from "@seer-pm/sdk";
-import { config } from "@/wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
-
-const hash = await executeUniswapTrade(config, trade, account, false);
-const receipt = await waitForTransactionReceipt(config, { hash });
-```
-
-### Execute CoW Swap trade (Gnosis)
-
-CoW Swap trades need a signer (ethers). Use `clientToSigner` to convert a wagmi client:
-
-```typescript
-import { executeCoWTrade, clientToSigner } from "@seer-pm/sdk";
-import { config } from "@/wagmi";
-import { getConnectorClient } from "@wagmi/core";
-
-const client = await getConnectorClient(config);
-const signer = clientToSigner(client!);
-
-const orderId = await executeCoWTrade(signer, trade);
-// orderId = CoW Swap order UID (track status via CoW Swap API)
 ```
 
 ### Execute with 7702 batch (approvals + swap)
@@ -317,8 +242,6 @@ import { sendCalls, waitForCallsStatus, waitForTransactionReceipt } from "@wagmi
 const props: TradeTokensProps = {
   trade,
   account: "0x...",
-  isBuyExactOutputNative: false,
-  isSellToNative: false,
   isSeerCredits: false,
 };
 
@@ -331,30 +254,14 @@ const receipt = await waitForTransactionReceipt(config, {
 });
 ```
 
-**Note:** `buildTradeCalls7702` does not support CoW Swap trades; use `tradeTokens` for CoW Swap.
-
 ### Build execution without sending
 
 To build the transaction data and send it yourself:
 
 ```typescript
-import {
-  buildSwaprTradeExecution,
-  buildUniswapTradeExecution,
-} from "@seer-pm/sdk";
+import { buildAmmTradeExecution } from "@seer-pm/sdk";
 import { sendTransaction } from "@wagmi/core";
 
-// Swapr (Gnosis)
-const swaprExec = await buildSwaprTradeExecution(
-  trade,
-  account,
-  false,  // isBuyExactOutputNative
-  false,  // isSellToNative
-  false,  // isSeerCredits
-);
-const hash = await sendTransaction(config, swaprExec);
-
-// Uniswap (Ethereum, Base, Optimism)
-const uniswapExec = await buildUniswapTradeExecution(trade, account, false);
-const hash = await sendTransaction(config, uniswapExec);
+const exec = await buildAmmTradeExecution(trade, account, false);
+const hash = await sendTransaction(config, exec);
 ```

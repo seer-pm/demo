@@ -2,7 +2,6 @@ import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
-import OrdersTab from "@/components/Portfolio/OrdersTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { filterChain } from "@/lib/chains";
@@ -155,18 +154,6 @@ function PortfolioPage() {
           <button
             type="button"
             role="tab"
-            className={`tab ${activeTab === "orders" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "orders",
-              })
-            }
-          >
-            Orders
-          </button>
-          <button
-            type="button"
-            role="tab"
             className={`tab ${activeTab === "history" && "tab-active"}`}
             onClick={() =>
               setSearchParams({
@@ -190,7 +177,6 @@ function PortfolioPage() {
           </button>
         </div>
         {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
-        {activeTab === "orders" && <OrdersTab account={account} chainId={chainId} />}
         {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
         {activeTab === "airdrop" && <AirdropTab account={account} />}
       </div>

@@ -1,4 +1,6 @@
+import { configurePublicRpcUrls } from "@seer-pm/sdk";
 import { createWeb3Modal } from "@web3modal/wagmi/react";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
 import SEER_ENV from "./lib/env";
 import { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, MAINNET_RPC, OPTIMISM_RPC, config } from "./wagmiConfig";
 
@@ -6,13 +8,11 @@ export { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, MAINNET_RPC, OPTIMISM_RPC, config }
 export { connectors } from "./wagmiConfig";
 
 if (typeof window !== "undefined") {
-  import("@seer-pm/sdk").then(({ configureRpcProviders, ChainId }) => {
-    configureRpcProviders({
-      [ChainId.XDAI]: GNOSIS_RPC,
-      [ChainId.MAINNET]: MAINNET_RPC,
-      [ChainId.OPTIMISM_MAINNET]: OPTIMISM_RPC,
-      [ChainId.BASE]: BASE_RPC,
-    });
+  configurePublicRpcUrls({
+    [gnosis.id]: GNOSIS_RPC,
+    [mainnet.id]: MAINNET_RPC,
+    [optimism.id]: OPTIMISM_RPC,
+    [base.id]: BASE_RPC,
   });
 }
 

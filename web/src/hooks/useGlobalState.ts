@@ -9,13 +9,11 @@ type LiquidityChartLayout = "horizontal" | "vertical";
 
 type State = {
   accessToken: string;
-  pendingOrders: string[];
   // Deprecated. We are now storing the favorites on supabase
   favorites: {
     [address: string]: Address[];
   };
   maxSlippage: string;
-  isInstantSwap: boolean;
   useSmartAccount: boolean;
   liquidityChartLayout: LiquidityChartLayout;
   preferredCollaterals: {
@@ -25,11 +23,8 @@ type State = {
 
 type Action = {
   setAccessToken: (accessToken: string) => void;
-  addPendingOrder: (orderId: string) => void;
-  removePendingOrder: (orderId: string) => void;
   migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
-  setInstantSwap: (value: boolean) => void;
   setUseSmartAccount: (value: boolean) => void;
   setLiquidityChartLayout: (layout: LiquidityChartLayout) => void;
   setPreferredCollateral: (token: Token, chainId: number) => void;
@@ -40,21 +35,14 @@ const useGlobalState = create<State & Action>()(
   persist(
     (set) => ({
       accessToken: "",
-      pendingOrders: [],
       favorites: {},
       maxSlippage: "1",
-      isInstantSwap: true,
       useSmartAccount: true,
       liquidityChartLayout: "vertical",
       preferredCollaterals: {},
       setAccessToken: (accessToken: string) =>
         set(() => ({
           accessToken,
-        })),
-      addPendingOrder: (orderId: string) => set((state) => ({ pendingOrders: [...state.pendingOrders, orderId] })),
-      removePendingOrder: (orderId: string) =>
-        set((state) => ({
-          pendingOrders: state.pendingOrders.filter((pendingOrderId) => pendingOrderId !== orderId),
         })),
       migrateDeprecatedFavorites: (address: Address) =>
         set((state) => {
@@ -68,10 +56,6 @@ const useGlobalState = create<State & Action>()(
       setMaxSlippage: (maxSlippage: string) =>
         set(() => ({
           maxSlippage,
-        })),
-      setInstantSwap: (isInstantSwap: boolean) =>
-        set(() => ({
-          isInstantSwap,
         })),
       setUseSmartAccount: (useSmartAccount: boolean) =>
         set(() => ({
