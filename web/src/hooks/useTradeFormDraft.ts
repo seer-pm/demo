@@ -8,7 +8,8 @@ import {
   getTradeDraftKey,
   readOrderType,
 } from "@/lib/trade-draft";
-import { type Market, isFillToEstimateEnabled, marketSupportsOrderBook } from "@seer-pm/sdk";
+import { marketSupportsOrderBook } from "@seer-pm/order-book";
+import { type Market, isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";

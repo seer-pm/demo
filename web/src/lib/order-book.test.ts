@@ -1,15 +1,20 @@
-import { buildOrderBookPoolKey, chainSupportsOrderBook, clampProbability } from "@seer-pm/sdk";
 import {
+  buildOrderBookPoolKey,
+  chainSupportsOrderBook,
+  clampProbability,
   computeLimitOrderParams,
   computePositionAmounts,
   createV4PoolInstance,
+  formatLimitOrderPriceError,
   formatLimitOrderPriceHint,
   getNearestLimitOrderPrice,
+  getOutcomePriceAtTick,
+  getValidLimitOrderBoundaryPrice,
   probabilityRangeToTicks,
   probabilityToTick,
   resolveLimitOrderZeroForOne,
   resolveLiquiditySqrtPriceX96,
-} from "@seer-pm/sdk/order-book";
+} from "@seer-pm/order-book/v4";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { Position } from "@uniswap/v4-sdk";
 import { describe, expect, it } from "vitest";
@@ -58,11 +63,8 @@ describe("order-book", () => {
     const initialPrice = 0.5;
     const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
     const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-      chainId: 8453,
       poolKey,
       outcomeIsToken0,
-      minPrice,
-      maxPrice,
       initialPrice,
     });
 
@@ -109,11 +111,8 @@ describe("order-book", () => {
     const initialPrice = 0.5;
     const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
     const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-      chainId: 8453,
       poolKey,
       outcomeIsToken0,
-      minPrice,
-      maxPrice,
       initialPrice,
     });
 
@@ -140,11 +139,8 @@ describe("order-book", () => {
     const outcomeIsToken0 = false;
     const initialPrice = 0.65;
     const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-      chainId: 8453,
       poolKey,
       outcomeIsToken0,
-      minPrice: 0.1,
-      maxPrice: 0.9,
       initialPrice,
     });
 
@@ -162,11 +158,8 @@ describe("order-book", () => {
 
     expect(() =>
       resolveLiquiditySqrtPriceX96({
-        chainId: 8453,
         poolKey,
         outcomeIsToken0: false,
-        minPrice: 0.1,
-        maxPrice: 0.9,
       }),
     ).toThrow(/initialPrice is required/);
   });
@@ -180,11 +173,8 @@ describe("order-book", () => {
 
     const poolSqrtPriceX96 = getSqrtRatioAtTick(probabilityToTick(0.4, false));
     const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-      chainId: 8453,
       poolKey,
       outcomeIsToken0: false,
-      minPrice: 0.1,
-      maxPrice: 0.9,
       initialPrice: 0.65,
       poolSqrtPriceX96,
     });
@@ -246,6 +236,8 @@ describe("order-book", () => {
     const outcomeIsToken0 = true;
     const currentTick = probabilityToTick(0.4, outcomeIsToken0);
     const sqrtPriceX96 = getSqrtRatioAtTick(currentTick);
+    const { price: boundaryPrice } = getValidLimitOrderBoundaryPrice("buy", outcomeIsToken0, currentTick);
+    const marketPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
 
     expect(() =>
       computeLimitOrderParams({
@@ -260,12 +252,71 @@ describe("order-book", () => {
         payDecimals: 6,
         receiveDecimals: 18,
       }),
-    ).toThrow(/For a buy order, set a limit price at or below/);
+    ).toThrow(
+      new RegExp(
+        `For a buy order, set a limit price at or below ${boundaryPrice.toFixed(3)} \\(market ${marketPrice.toFixed(3)}\\)`,
+      ),
+    );
   });
 
-  it("formatLimitOrderPriceHint describes buy below market for outcome token0", () => {
-    expect(formatLimitOrderPriceHint("buy", true, 0.6)).toMatch(/at or below 0\.600/);
-    expect(formatLimitOrderPriceHint("sell", true, 0.6)).toMatch(/above 0\.600/);
+  it("getValidLimitOrderBoundaryPrice for buy near 0.454 requires ~0.450", () => {
+    const outcomeIsToken0 = true;
+    // Mid-spacing tick whose displayed market price is ~0.454
+    const currentTick = -7896;
+    const marketPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
+    expect(marketPrice.toFixed(3)).toBe("0.454");
+
+    const { tick, price } = getValidLimitOrderBoundaryPrice("buy", outcomeIsToken0, currentTick);
+    expect(tick).toBe(-7980);
+    expect(price.toFixed(3)).toBe("0.450");
+
+    const poolKey = buildOrderBookPoolKey(
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000002",
+      8453,
+    )!;
+    const sqrtPriceX96 = getSqrtRatioAtTick(currentTick);
+
+    expect(() =>
+      computeLimitOrderParams({
+        chainId: 8453,
+        poolKey,
+        outcomeIsToken0,
+        swapType: "buy",
+        limitPrice: 0.453,
+        payAmount: 1000000n,
+        currentTick,
+        sqrtPriceX96,
+        payDecimals: 6,
+        receiveDecimals: 18,
+      }),
+    ).toThrow(/at or below 0\.450 \(market 0\.454\)/);
+
+    const accepted = computeLimitOrderParams({
+      chainId: 8453,
+      poolKey,
+      outcomeIsToken0,
+      swapType: "buy",
+      limitPrice: price,
+      payAmount: 1000000n,
+      currentTick,
+      sqrtPriceX96,
+      payDecimals: 6,
+      receiveDecimals: 18,
+    });
+    expect(accepted.tick).toBe(tick);
+    expect(accepted.liquidity).toBeGreaterThan(0n);
+  });
+
+  it("formatLimitOrderPriceHint describes buy below boundary for outcome token0", () => {
+    expect(formatLimitOrderPriceHint("buy", true, 0.45)).toMatch(/at or below 0\.450/);
+    expect(formatLimitOrderPriceHint("sell", true, 0.45)).toMatch(/at or above 0\.450/);
+  });
+
+  it("formatLimitOrderPriceError includes boundary and market", () => {
+    expect(formatLimitOrderPriceError("buy", true, 0.45, 0.454)).toBe(
+      "For a buy order, set a limit price at or below 0.450 (market 0.454).",
+    );
   });
 
   it("computePositionAmounts matches Position.fromAmount0/1 for pool-sorted tokens", () => {
@@ -278,11 +329,8 @@ describe("order-book", () => {
     const outcomeIsToken0 = false;
     const { tickLower, tickUpper } = probabilityRangeToTicks(0.49859297, 0.80092425, outcomeIsToken0);
     const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-      chainId: 8453,
       poolKey,
       outcomeIsToken0,
-      minPrice: 0.49859297,
-      maxPrice: 0.80092425,
       initialPrice: 0.7,
     });
 

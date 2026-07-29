@@ -4,7 +4,7 @@ import {
   isOrderBookPoolInitialized,
   marketSupportsOrderBook,
   readV4PoolState,
-} from "@seer-pm/sdk";
+} from "@seer-pm/order-book";
 import { useQuery } from "@tanstack/react-query";
 import { useConfig } from "wagmi";
 import type { Market } from "./useMarketPools";

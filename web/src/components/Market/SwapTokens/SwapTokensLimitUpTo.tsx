@@ -15,11 +15,11 @@ import { displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@
 import { useQuoteTrade } from "@seer-pm/react";
 import { isTradingCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
-import { decimalToFraction } from "@seer-pm/sdk";
+import { decimalToFraction, encodeSqrtRatioX96 } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { type AmmTrade, TradeType } from "@seer-pm/sdk";
-import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
+import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -80,7 +80,7 @@ export function SwapTokensLimitUpto({
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
   );
   const poolInfo = ticksByPool ? Object.values(ticksByPool)[0].poolInfo : undefined;
-  const currentSqrtPriceX96 = poolInfo ? BigInt(TickMath.getSqrtRatioAtTick(poolInfo.tick).toString()) : 0n;
+  const currentSqrtPriceX96 = poolInfo ? getSqrtRatioAtTick(poolInfo.tick) : 0n;
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
@@ -267,7 +267,7 @@ export function SwapTokensLimitUpto({
     if (value > 1 || Number.isNaN(value) || value <= 0 || !poolInfo) return undefined;
     const isOutcomeToken0 = isTwoStringsEqual(poolInfo.token0, outcomeToken.address);
     const [num, den] = decimalToFraction(isOutcomeToken0 ? value : 1 / value);
-    const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+    const targetSqrtPriceX96 = encodeSqrtRatioX96(num, den);
     const isBuy =
       (isOutcomeToken0 && targetSqrtPriceX96 > currentSqrtPriceX96) ||
       (!isOutcomeToken0 && targetSqrtPriceX96 < currentSqrtPriceX96);

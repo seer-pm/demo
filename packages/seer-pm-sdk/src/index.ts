@@ -81,10 +81,10 @@ export {
 } from "./pool-address";
 export {
   getBlockExplorerUrl,
-  getLiquidityUrl,
   getPoolExplorerUrl,
   getTokenExplorerUrl,
 } from "./explorer-urls";
+export { tickSpacingForFeeTier } from "./fee-tier";
 export {
   ANSWERED_TOO_SOON,
   INVALID_RESULT,
@@ -158,7 +158,7 @@ export {
 } from "./quote";
 export type { QuoteTradeResult, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
 export { AmmTrade, quoteAmmTrade } from "./amm-trade";
-export type { QuoteAmmTradeParams } from "./amm-trade";
+export type { QuoteAmmTradeParams, V4HookParams } from "./amm-trade";
 export {
   executeAmmTrade,
   tradeTokens,
@@ -232,7 +232,7 @@ export {
   getCompleteSetApprovalTokens,
 } from "./complete-set-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
-export { marketAbi } from "../generated/contracts/market-factory";
+export { marketAbi } from "@seer-pm/contracts-ts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";
 export { isOpStack } from "./chains";
 export {
@@ -252,7 +252,7 @@ export { getMarketPositions } from "./get-market-positions";
 export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
 export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
-export { decimalToFraction, sqrtPriceX96ToPrice } from "./liquidity-utils";
+export { decimalToFraction, encodeSqrtRatioX96, sqrtPriceX96ToPrice } from "./liquidity-utils";
 export { tickToPrice } from "./tick-math";
 export {
   getVolumeUntilPrice,
@@ -312,26 +312,6 @@ export {
   isTradingCredits,
 } from "./trading-credits";
 export type { CreditsProfileName } from "./trading-credits";
-export {
-  V4_POOL_FEE,
-  V4_TICK_SPACING,
-  V4_POSITION_MANAGER_ADDRESS,
-  V4_STATE_VIEW_ADDRESS,
-  PERMIT2_ADDRESS,
-  chainSupportsOrderBook,
-  marketSupportsOrderBook,
-  getOrderBookPoolParams,
-  clampProbability,
-  isOrderBookPoolInitialized,
-  readV4PoolState,
-  getV4PoolInitializerAddress,
-  getV4PositionManagerAddress,
-  getV4PoolId,
-  getV4HooksAddress,
-  buildOrderBookPoolKey,
-  tickSpacingForFeeTier,
-} from "./order-book-config";
-export type { OrderBookPoolKey, OrderBookPoolParams } from "./order-book-config";
 
 // Curate / TCR
 export { CURATE_STATUS, type CurateStatus, isCurateStatus } from "./curate-status";

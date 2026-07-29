@@ -1,6 +1,6 @@
+import { realityAddress } from "@seer-pm/contracts-ts/reality";
 import { formatEther, hexToNumber, numberToHex } from "viem";
 import type { Hex } from "viem";
-import { realityAddress } from "../generated/contracts/reality";
 import type { SupportedChain } from "./chains";
 import type { Question } from "./market-types";
 import type { Market } from "./market-types";

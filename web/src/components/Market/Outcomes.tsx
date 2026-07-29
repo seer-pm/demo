@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import { getLiquidityUrl, marketSupportsOrderBook } from "@seer-pm/order-book";
 import {
   NftPosition,
   PoolInfo,
@@ -24,13 +25,11 @@ import {
   MarketTypes,
   displayScalarBound,
   getActivePrimaryCollateral,
-  getLiquidityUrl,
   getMarketStatus,
   getMarketType,
   getMultiScalarEstimate,
   isInvalidOutcome,
   isOdd,
-  marketSupportsOrderBook,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
@@ -140,7 +139,11 @@ function AddLiquidityInfo({
                     <span className="text-black-secondary text-[13px]">Use the V4 form above</span>
                   ) : (
                     <a
-                      href={getLiquidityUrl(market, outcomeIndex)}
+                      href={getLiquidityUrl(market, outcomeIndex, {
+                        dex: pool.dex,
+                        isPoolInitialized: true,
+                        poolId: pool.id,
+                      })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-primary flex items-center space-x-2"

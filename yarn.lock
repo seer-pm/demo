@@ -6328,6 +6328,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@seer-pm/contracts-ts@npm:*, @seer-pm/contracts-ts@workspace:packages/seer-pm-contracts-ts":
+  version: 0.0.0-use.local
+  resolution: "@seer-pm/contracts-ts@workspace:packages/seer-pm-contracts-ts"
+  dependencies:
+    "@wagmi/cli": "npm:^2.1.22"
+    tsup: "npm:^8.0.2"
+    typescript: "npm:^5.2.2"
+    viem: "npm:^2.38.0"
+  peerDependencies:
+    "@wagmi/core": ">=2.0.0"
+    viem: ">=2.0.0"
+    wagmi: ^2.0.0 || ^3.0.0
+  languageName: unknown
+  linkType: soft
+
 "@seer-pm/contracts@workspace:contracts":
   version: 0.0.0-use.local
   resolution: "@seer-pm/contracts@workspace:contracts"
@@ -6408,6 +6423,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@seer-pm/order-book@npm:*, @seer-pm/order-book@workspace:packages/seer-pm-order-book":
+  version: 0.0.0-use.local
+  resolution: "@seer-pm/order-book@workspace:packages/seer-pm-order-book"
+  dependencies:
+    "@seer-pm/contracts-ts": "npm:*"
+    "@uniswap/sdk-core": "npm:^7.7.2"
+    "@uniswap/v3-sdk": "npm:^3.19.0"
+    "@uniswap/v4-sdk": "npm:^1.20.0"
+    jsbi: "npm:^3.2.5"
+    tsup: "npm:^8.0.2"
+    typescript: "npm:^5.2.2"
+    viem: "npm:^2.38.0"
+  peerDependencies:
+    "@seer-pm/sdk": "*"
+    "@wagmi/core": ">=2.0.0"
+    viem: ">=2.0.0"
+    wagmi: ^2.0.0 || ^3.0.0
+  languageName: unknown
+  linkType: soft
+
 "@seer-pm/react@npm:*, @seer-pm/react@workspace:packages/seer-pm-react":
   version: 0.0.0-use.local
   resolution: "@seer-pm/react@workspace:packages/seer-pm-react"
@@ -6415,6 +6450,8 @@ __metadata:
     tsup: "npm:^8.0.2"
     typescript: "npm:^5.2.2"
   peerDependencies:
+    "@seer-pm/contracts-ts": "*"
+    "@seer-pm/order-book": "*"
     "@seer-pm/sdk": ~0.0.1
     "@tanstack/react-query": ">=5.0.0"
     "@wagmi/core": ">=2.0.0"
@@ -6434,11 +6471,8 @@ __metadata:
     "@graphql-codegen/typescript-graphql-request": "npm:6.2.0"
     "@graphql-codegen/typescript-operations": "npm:^4.2.0"
     "@graphql-codegen/typescript-react-query": "npm:^6.1.0"
+    "@seer-pm/contracts-ts": "npm:*"
     "@seer-pm/lens": "npm:^1.5.1"
-    "@uniswap/sdk-core": "npm:^7.7.2"
-    "@uniswap/v3-sdk": "npm:^3.19.0"
-    "@uniswap/v4-sdk": "npm:^1.20.0"
-    "@wagmi/cli": "npm:^2.1.22"
     graphql: "npm:16.11.0"
     graphql-request: "npm:>=5.0.0"
     graphql-tag: "npm:>=2.0.0"
@@ -6467,7 +6501,9 @@ __metadata:
     "@mysten/dapp-kit": "npm:^0.19.5"
     "@netlify/blobs": "npm:^8.1.2"
     "@netlify/functions": "npm:^2.8.2"
+    "@seer-pm/contracts-ts": "npm:*"
     "@seer-pm/discussions": "npm:*"
+    "@seer-pm/order-book": "npm:*"
     "@seer-pm/react": "npm:*"
     "@seer-pm/sdk": "npm:*"
     "@solana/wallet-adapter-react": "npm:^0.15.39"
@@ -15046,7 +15082,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsbi@npm:^3.1.4":
+"jsbi@npm:^3.1.4, jsbi@npm:^3.2.5":
   version: 3.2.5
   resolution: "jsbi@npm:3.2.5"
   checksum: 10c0/74d4725f76f169d7848f3f2f88a8dd252d995421c1fefdaed8116daf4a1897c514ce8336ebb68303a2cf8d659e4fbc16791a1d232420b52cec3cf1f12ad760ed
