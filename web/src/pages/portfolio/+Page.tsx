@@ -11,8 +11,11 @@ import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { type PortfolioPnLPeriod, type SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
+import { clientOnly } from "vike-react/clientOnly";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
+
+const OrdersTab = clientOnly(() => import("@/components/Portfolio/OrdersTab"));
 
 function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: SupportedChain }) {
   const { data, isLoading, error } = usePortfolioValue(account, chainId);
@@ -137,7 +140,7 @@ function PortfolioPage() {
       <div>
         <div
           role="tablist"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[720px] mb-6"
         >
           <button
             type="button"
@@ -150,6 +153,18 @@ function PortfolioPage() {
             }
           >
             Positions
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab ${activeTab === "orders" && "tab-active"}`}
+            onClick={() =>
+              setSearchParams({
+                tab: "orders",
+              })
+            }
+          >
+            Open Orders
           </button>
           <button
             type="button"
@@ -177,6 +192,7 @@ function PortfolioPage() {
           </button>
         </div>
         {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
+        {activeTab === "orders" && <OrdersTab account={account} chainId={chainId} />}
         {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
         {activeTab === "airdrop" && <AirdropTab account={account} />}
       </div>

@@ -1,6 +1,7 @@
 import { Dropdown } from "@/components/Dropdown";
 import { useModal } from "@/hooks/useModal";
-import { getLiquidityUrl, isFillToEstimateEnabled, marketSupportsOrderBook } from "@seer-pm/sdk";
+import { getLiquidityUrl, marketSupportsOrderBook } from "@seer-pm/order-book";
+import { isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { useState } from "react";

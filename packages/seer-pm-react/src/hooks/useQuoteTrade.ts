@@ -1,4 +1,5 @@
-import { TradeType } from "@seer-pm/sdk";
+import { getLensV4HookParams } from "@seer-pm/order-book";
+import { TradeType, type V4HookParams } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicClient } from "@wagmi/core";
 import { useEffect, useMemo } from "react";
@@ -35,6 +36,7 @@ export function useAmmQuote(
   enabled: boolean,
   tradeType: TradeType,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ) {
   const config = useConfig();
 
@@ -50,6 +52,7 @@ export function useAmmQuote(
       swapType,
       maxSlippage,
       tradeType,
+      v4Hook,
     ],
     enabled:
       Number(amount) > 0 && AMM_CHAIN_IDS.has(chainId) && enabled && !isPsm3SwapToken(chainId, collateralToken.address),
@@ -69,6 +72,7 @@ export function useAmmQuote(
         collateralToken,
         swapType,
         maxSlippage,
+        v4Hook,
       );
     },
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -85,6 +89,7 @@ export function usePsm3AmmQuote(
   enabled: boolean,
   tradeType: TradeType,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ) {
   const config = useConfig();
 
@@ -100,6 +105,7 @@ export function usePsm3AmmQuote(
       swapType,
       maxSlippage,
       tradeType,
+      v4Hook,
     ],
     enabled:
       Number(amount) > 0 &&
@@ -122,6 +128,7 @@ export function usePsm3AmmQuote(
         collateralToken,
         swapType,
         maxSlippage,
+        v4Hook,
       );
     },
     refetchInterval: QUOTE_REFETCH_INTERVAL,
@@ -155,6 +162,7 @@ export function useQuoteTrade(
   const isPsm3Collateral = isPsm3SwapToken(chainId, collateralToken.address);
 
   const realCollateralToken: Token = isSeerCreditsCollateral ? getActivePrimaryCollateral(chainId) : collateralToken;
+  const v4Hook = market ? getLensV4HookParams(market) : undefined;
 
   const ammResult = useAmmQuote(
     chainId,
@@ -166,6 +174,7 @@ export function useQuoteTrade(
     true,
     tradeType,
     maxSlippage,
+    v4Hook,
   );
   const psm3AmmResult = usePsm3AmmQuote(
     chainId,
@@ -177,6 +186,7 @@ export function useQuoteTrade(
     true,
     tradeType,
     maxSlippage,
+    v4Hook,
   );
 
   const directQuery = useMemo(() => {
@@ -222,6 +232,7 @@ export function useQuoteTrade(
       tradeType,
       market?.id,
       outcomeIndex,
+      v4Hook,
       directQuery.data?.value?.toString(),
       directQuery.dataUpdatedAt,
     ],
@@ -240,6 +251,7 @@ export function useQuoteTrade(
         maxSlippage,
         directQuote: directQuery.data,
         selectedCollateralToken: collateralToken.address,
+        v4Hook,
       });
       return best ?? (directQuery.data ? toCompleteSetQuote(directQuery.data) : undefined);
     },
@@ -261,7 +273,9 @@ export function useQuoteTrade(
     data,
     isLoading: directQuery.isLoading || (completeSetEnabled && completeSetQuery.isLoading),
     isFetching: directQuery.isFetching || completeSetQuery.isFetching,
-    error: directQuery.error ?? completeSetQuery.error,
+    // Only surface an error when neither path produced a usable quote; otherwise the
+    // losing path's NoRoute/etc. would show alongside a valid quote from the winner.
+    error: data ? null : (directQuery.error ?? completeSetQuery.error),
   };
 }
 

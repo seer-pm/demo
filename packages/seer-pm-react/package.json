@@ -32,6 +32,11 @@
       "types": "./src/hooks/usePlaceV4LimitOrder.ts",
       "import": "./src/hooks/usePlaceV4LimitOrder.ts",
       "require": "./src/hooks/usePlaceV4LimitOrder.ts"
+    },
+    "./hooks/useManageV4LimitOrders": {
+      "types": "./src/hooks/useManageV4LimitOrders.ts",
+      "import": "./src/hooks/useManageV4LimitOrders.ts",
+      "require": "./src/hooks/useManageV4LimitOrders.ts"
     }
   },
   "files": [
@@ -44,6 +49,8 @@
     "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
+    "@seer-pm/contracts-ts": "*",
+    "@seer-pm/order-book": "*",
     "@seer-pm/sdk": "~0.0.1",
     "@tanstack/react-query": ">=5.0.0",
     "@wagmi/core": ">=2.0.0",

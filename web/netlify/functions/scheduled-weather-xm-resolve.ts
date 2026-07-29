@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
+import { realityAbi, realityAddress } from "@seer-pm/contracts-ts/reality";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { realityAbi, realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { createClient } from "@supabase/supabase-js";
 import { type PrivateKeyAccount, numberToHex, parseEther } from "viem";
 import { type Address, privateKeyToAccount } from "viem/accounts";

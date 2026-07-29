@@ -1,6 +1,6 @@
 import { config } from "@/wagmi";
+import { readMultiDropClaimed } from "@seer-pm/contracts-ts/multi-drop";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { readMultiDropClaimed } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";

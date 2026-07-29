@@ -10,4 +10,4 @@ node_modules
 !.yarn/versions
 
 # SDK generated contracts (published to npm, not to git)
-packages/seer-sdk/generated
+packages/seer-pm-sdk/generated

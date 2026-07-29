@@ -1,6 +1,7 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { Market, getVolumeUntilPrice, tickToPrice } from "@seer-pm/sdk";
 import { Address } from "viem";
+import { pickPoolForVolume } from "./pickPoolForVolume";
 import { useTicksData } from "./useTicksData";
 
 export { getVolumeUntilPrice } from "@seer-pm/sdk";
@@ -19,12 +20,12 @@ export function useVolumeUntilPrice(
     return;
   }
 
-  const firstPool = Object.values(ticksByPool)[0];
-  if (!firstPool) {
+  const pool = pickPoolForVolume(ticksByPool);
+  if (!pool) {
     return;
   }
 
-  const { ticks, poolInfo } = firstPool;
+  const { ticks, poolInfo } = pool;
   const currentPrice = Number(tickToPrice(poolInfo.tick)[isTwoStringsEqual(poolInfo.token0, outcome) ? 0 : 1]);
   if (currentPrice === targetPrice) {
     return;

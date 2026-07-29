@@ -13,6 +13,13 @@ import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
 import { TradeType } from "./trade-type";
 
+/** Optional V4 hooked-pool candidate for Lens.quote (LimitOrderHook pools, etc.). */
+export type V4HookParams = {
+  hookPoolFee: number;
+  hookTickSpacing: number;
+  hookAddress: string;
+};
+
 export interface QuoteAmmTradeParams {
   chainId: number;
   account: Address | undefined;
@@ -23,6 +30,8 @@ export interface QuoteAmmTradeParams {
   /** Slippage tolerance as a percentage string (e.g. `"1"` = 1%, `"0.01"` = 0.01% / 1 bps). */
   maxSlippage: string;
   tradeType: TradeType;
+  /** When set, Lens considers this Uniswap V4 hooked pool as a routing candidate. */
+  v4Hook?: V4HookParams;
 }
 
 export interface PopulatedSwapTx {
@@ -83,6 +92,7 @@ export class AmmTrade {
   private readonly swapAmount: bigint;
   private swapTx: { to: string; data: string; value: bigint };
   private cachedRecipient: string;
+  private readonly v4Hook: V4HookParams | undefined;
 
   constructor(args: {
     client: PublicClient;
@@ -99,6 +109,7 @@ export class AmmTrade {
     swapAmount: bigint;
     swapTx: { to: string; data: string; value: bigint };
     recipient: string;
+    v4Hook?: V4HookParams;
   }) {
     this.client = args.client;
     this.chainId = args.chainId;
@@ -114,6 +125,7 @@ export class AmmTrade {
     this.swapAmount = args.swapAmount;
     this.swapTx = args.swapTx;
     this.cachedRecipient = args.recipient;
+    this.v4Hook = args.v4Hook;
   }
 
   maximumAmountIn(): bigint {
@@ -153,6 +165,7 @@ export class AmmTrade {
       slippageBps: this.slippageBps,
       deadline: defaultDeadline(),
       exactOut: this.tradeType === TradeType.EXACT_OUTPUT,
+      ...this.v4Hook,
     });
     if (result.amountIn <= 0n || result.amountOut <= 0n) {
       throw new Error("No route found");
@@ -166,7 +179,7 @@ export class AmmTrade {
 }
 
 export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeParams): Promise<AmmTrade> {
-  const { chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, tradeType } = params;
+  const { chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, tradeType, v4Hook } = params;
   assertLensDeployed(chainId);
 
   const [buyToken, sellToken] =
@@ -195,6 +208,7 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
     slippageBps,
     deadline: defaultDeadline(),
     exactOut,
+    ...v4Hook,
   });
 
   if (result.amountIn <= 0n || result.amountOut <= 0n) {
@@ -218,5 +232,6 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
     swapAmount,
     swapTx: { to: dexRouter, data: result.data as Hex, value: result.msgValue },
     recipient,
+    v4Hook,
   });
 }

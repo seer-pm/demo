@@ -2,13 +2,13 @@ import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
-import type { SupportedChain } from "@seer-pm/sdk";
 import {
   writeRealitioForeignArbitrationProxyWithAppealsRequestArbitration,
   writeRealitioForeignProxyBaseRequestArbitration,
   writeRealitioForeignProxyOptimismRequestArbitration,
   writeRealitioV2_1ArbitratorWithAppealsRequestArbitration,
-} from "@seer-pm/sdk/contracts/arbitrators";
+} from "@seer-pm/contracts-ts/arbitrators";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 

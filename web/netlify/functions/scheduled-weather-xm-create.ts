@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
+import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/contracts-ts/market-factory";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk/create-market";
 import { MarketTypes } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";

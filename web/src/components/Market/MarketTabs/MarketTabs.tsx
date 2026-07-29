@@ -1,5 +1,6 @@
 import { useMarketHolders } from "@/hooks/useMarketHolders";
-import { Market, marketSupportsOrderBook } from "@seer-pm/sdk";
+import { marketSupportsOrderBook } from "@seer-pm/order-book";
+import { Market } from "@seer-pm/sdk";
 import { useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
 import Activity from "./Activity";

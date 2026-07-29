@@ -1,5 +1,5 @@
+import { readMarketViewGetMarket } from "@seer-pm/contracts-ts/market-view";
 import { zeroAddress, zeroHash } from "viem";
-import { readMarketViewGetMarket } from "../generated/contracts/market-view";
 import { INVALID_RESULT_OUTCOME, INVALID_RESULT_OUTCOME_TEXT, MarketTypes, getMarketType, getOutcomes } from "./market";
 import type { Market, MarketOffChainFields, Question } from "./market-types";
 import { unescapeJson } from "./reality";

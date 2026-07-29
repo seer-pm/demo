@@ -1,9 +1,9 @@
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { writeRealityReopenQuestion } from "@seer-pm/contracts-ts/reality";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { Question } from "@seer-pm/sdk";
-import { writeRealityReopenQuestion } from "@seer-pm/sdk/contracts/reality";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt, zeroHash } from "viem";
 

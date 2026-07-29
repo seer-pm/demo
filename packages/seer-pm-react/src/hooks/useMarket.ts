@@ -1,7 +1,7 @@
+import { marketFactoryAddress } from "@seer-pm/contracts-ts/market-factory";
+import { readMarketViewGetMarket } from "@seer-pm/contracts-ts/market-view";
 import type { Market, SupportedChain } from "@seer-pm/sdk";
 import { fetchMarket, mapOnChainMarket } from "@seer-pm/sdk";
-import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
-import { readMarketViewGetMarket } from "@seer-pm/sdk/contracts/market-view";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";

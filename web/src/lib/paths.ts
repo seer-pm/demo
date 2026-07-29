@@ -1,8 +1,8 @@
+import { lightGeneralizedTcrAddress } from "@seer-pm/contracts-ts/curate";
 import { TOKENS_BY_CHAIN } from "@seer-pm/sdk";
 import { isSeerCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { base, optimism } from "./chains";
 

@@ -334,7 +334,9 @@ function simulateAchievableEstimate(
     }
 
     const newPrice = getPriceFromVolume(pool.pool, pool.ticks, volume, pool.outcomeAddress, leg.kind);
-    simulatedPrices[leg.outcomeIndex] = newPrice;
+    if (newPrice !== undefined) {
+      simulatedPrices[leg.outcomeIndex] = newPrice;
+    }
   }
 
   return simulateEstimateFromPrices(simulatedPrices, market);

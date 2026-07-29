@@ -45,7 +45,10 @@ export async function getPoolAndTicksData(chainId: SupportedChain, token0: Addre
   try {
     const pools = await getPools(chainId, config).fetch({ token0, token1 });
 
-    const ticksByPool = await Promise.all(pools.map((pool) => getTicks(chainId, pool.id)));
+    // V4 pool ids are not V3 subgraph addresses; use on-chain liquidity + empty ticks.
+    const ticksByPool = await Promise.all(
+      pools.map((pool) => (pool.version === "v4" ? Promise.resolve([]) : getTicks(chainId, pool.id))),
+    );
 
     return pools.reduce(
       (acc, curr, index) => {

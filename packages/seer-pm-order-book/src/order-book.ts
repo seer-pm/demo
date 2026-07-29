@@ -1,10 +1,3 @@
-import { Percent, Token } from "@uniswap/sdk-core";
-import { Pool, Position, V4PositionManager } from "@uniswap/v4-sdk";
-import type { Config } from "@wagmi/core";
-import { readContract, simulateContract, writeContract } from "@wagmi/core";
-import type { Address, Hex } from "viem";
-import { erc20Abi, formatUnits, maxUint256 } from "viem";
-import { base } from "viem/chains";
 import {
   limitOrderHookAddress,
   readLimitOrderHookGetOrderInfo,
@@ -12,8 +5,16 @@ import {
   simulateLimitOrderHookWithdraw,
   writeLimitOrderHookPlaceOrder,
   writeSeerUniV4PoolInitializerInitializePool,
-} from "../generated/contracts/order-book";
-import type { Market } from "./market-types";
+} from "@seer-pm/contracts-ts/order-book";
+import type { Market } from "@seer-pm/sdk";
+import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
+import { Percent, Token } from "@uniswap/sdk-core";
+import { Pool, Position, V4PositionManager } from "@uniswap/v4-sdk";
+import type { Config } from "@wagmi/core";
+import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import type { Address, Hex } from "viem";
+import { formatUnits, maxUint256 } from "viem";
+import { base } from "viem/chains";
 import {
   type OrderBookPoolKey,
   PERMIT2_ADDRESS,
@@ -24,8 +25,7 @@ import {
   permit2Abi,
   positionManagerAbi,
 } from "./order-book-config";
-import { tickToPrice } from "./tick-math";
-import { getSqrtRatioAtTick, getTickAtSqrtRatio, nearestUsableTick } from "./tick-math";
+import { getTickAtSqrtRatio, nearestUsableTick } from "./tick-helpers";
 
 export * from "./order-book-config";
 
@@ -124,19 +124,13 @@ export function createV4PoolInstance(
 
 /** Price for UI amount linking: pool price when known, else initialPrice for new pools. */
 export function resolveLiquiditySqrtPriceX96({
-  chainId,
   poolKey,
   outcomeIsToken0,
-  minPrice,
-  maxPrice,
   initialPrice,
   poolSqrtPriceX96,
 }: {
-  chainId: number;
   poolKey: OrderBookPoolKey;
   outcomeIsToken0: boolean;
-  minPrice: number;
-  maxPrice: number;
   initialPrice?: number;
   poolSqrtPriceX96?: bigint;
 }): bigint {
@@ -303,26 +297,21 @@ export function buildMintV4PositionCalldata({
   return { calldata: calldata as Hex, value: BigInt(value) };
 }
 
-export async function ensurePermit2Allowance(
+type Permit2AllowanceParams = {
+  token: Address;
+  owner: Address;
+  amount: bigint;
+  chainId: number;
+};
+
+export async function hasPermit2Allowance(
   config: Config,
-  {
-    token,
-    owner,
-    amount,
-    chainId,
-  }: {
-    token: Address;
-    owner: Address;
-    amount: bigint;
-    chainId: number;
-  },
-): Promise<void> {
+  { token, owner, amount, chainId }: Permit2AllowanceParams,
+): Promise<boolean> {
   const positionManager = V4_POSITION_MANAGER_ADDRESS[chainId as keyof typeof V4_POSITION_MANAGER_ADDRESS];
   if (!positionManager) {
     throw new Error("V4 PositionManager not configured for chain");
   }
-
-  const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
 
   const allowance = await readContract(config, {
     address: PERMIT2_ADDRESS,
@@ -332,17 +321,36 @@ export async function ensurePermit2Allowance(
     chainId,
   });
 
-  if (allowance[0] >= amount && Number(allowance[1]) > Date.now() / 1000) {
-    return;
+  return allowance[0] >= amount && Number(allowance[1]) > Date.now() / 1000;
+}
+
+export async function approvePermit2Allowance(
+  config: Config,
+  { token, amount, chainId }: Permit2AllowanceParams,
+): Promise<Hex> {
+  const positionManager = V4_POSITION_MANAGER_ADDRESS[chainId as keyof typeof V4_POSITION_MANAGER_ADDRESS];
+  if (!positionManager) {
+    throw new Error("V4 PositionManager not configured for chain");
   }
 
-  await writeContract(config, {
+  const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
+
+  return writeContract(config, {
     address: PERMIT2_ADDRESS,
     abi: permit2Abi,
     functionName: "approve",
     args: [token, positionManager as Address, amount > maxUint256 / 2n ? maxUint256 / 2n : amount, expiration],
     chainId,
   });
+}
+
+export async function ensurePermit2Allowance(config: Config, params: Permit2AllowanceParams): Promise<void> {
+  if (await hasPermit2Allowance(config, params)) {
+    return;
+  }
+
+  const hash = await approvePermit2Allowance(config, params);
+  await waitForTransactionReceipt(config, { hash });
 }
 
 export async function initializeOrderBookPool(
@@ -429,6 +437,34 @@ export function getOutcomePriceAtTick(tick: number, outcomeIsToken0: boolean): n
   return Number(outcomeIsToken0 ? price0 : price1);
 }
 
+export function getValidLimitOrderBoundaryTick(
+  swapType: "buy" | "sell",
+  outcomeIsToken0: boolean,
+  currentTick: number,
+  tickSpacing = 60,
+): number {
+  const zeroForOne = resolveLimitOrderZeroForOne(swapType, outcomeIsToken0);
+
+  if (zeroForOne) {
+    // Need tickLower > currentTick — first usable tick strictly above current.
+    const ceiled = Math.ceil(currentTick / tickSpacing) * tickSpacing;
+    return ceiled === currentTick ? currentTick + tickSpacing : ceiled;
+  }
+
+  // Need tickLower + tickSpacing <= currentTick — last usable tick at or below that max.
+  return Math.floor((currentTick - tickSpacing) / tickSpacing) * tickSpacing;
+}
+
+export function getValidLimitOrderBoundaryPrice(
+  swapType: "buy" | "sell",
+  outcomeIsToken0: boolean,
+  currentTick: number,
+  tickSpacing = 60,
+): { tick: number; price: number } {
+  const tick = getValidLimitOrderBoundaryTick(swapType, outcomeIsToken0, currentTick, tickSpacing);
+  return { tick, price: getOutcomePriceAtTick(tick, outcomeIsToken0) };
+}
+
 export function getLimitOrderPriceRule(
   swapType: "buy" | "sell",
   outcomeIsToken0: boolean,
@@ -443,24 +479,26 @@ export function getLimitOrderPriceRule(
 export function formatLimitOrderPriceError(
   swapType: "buy" | "sell",
   outcomeIsToken0: boolean,
-  currentPrice: number,
+  boundaryPrice: number,
+  marketPrice?: number,
 ): string {
-  const price = currentPrice.toFixed(3);
+  const boundary = boundaryPrice.toFixed(3);
   const { direction } = getLimitOrderPriceRule(swapType, outcomeIsToken0);
+  const marketSuffix = marketPrice !== undefined ? ` (market ${marketPrice.toFixed(3)})` : "";
 
   if (direction === "at_or_below") {
-    return `For a ${swapType} order, set a limit price at or below the current market price (${price}).`;
+    return `For a ${swapType} order, set a limit price at or below ${boundary}${marketSuffix}.`;
   }
 
-  return `For a ${swapType} order, set a limit price above the current market price (${price}).`;
+  return `For a ${swapType} order, set a limit price at or above ${boundary}${marketSuffix}.`;
 }
 
 export function formatLimitOrderPriceHint(
   swapType: "buy" | "sell",
   outcomeIsToken0: boolean,
-  currentPrice: number,
+  boundaryPrice: number,
 ): string {
-  const price = currentPrice.toFixed(3);
+  const price = boundaryPrice.toFixed(3);
   const { direction, side } = getLimitOrderPriceRule(swapType, outcomeIsToken0);
   const action = side === "buy" ? "Buy" : "Sell";
 
@@ -468,7 +506,7 @@ export function formatLimitOrderPriceHint(
     return `${action} when the price drops — set a limit at or below ${price}.`;
   }
 
-  return `${action} when the price rises — set a limit above ${price}.`;
+  return `${action} when the price rises — set a limit at or above ${price}.`;
 }
 
 export function resolveLimitOrderZeroForOne(swapType: "buy" | "sell", outcomeIsToken0: boolean): boolean {
@@ -483,17 +521,18 @@ function validateLimitOrderTickPlacement(
   swapType: "buy" | "sell",
   outcomeIsToken0: boolean,
 ): void {
-  const currentPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
+  const marketPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
+  const { price: boundaryPrice } = getValidLimitOrderBoundaryPrice(swapType, outcomeIsToken0, currentTick, tickSpacing);
 
   if (zeroForOne) {
     if (tickLower <= currentTick) {
-      throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, currentPrice));
+      throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, boundaryPrice, marketPrice));
     }
     return;
   }
 
   if (tickLower + tickSpacing > currentTick) {
-    throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, currentPrice));
+    throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, boundaryPrice, marketPrice));
   }
 }
 
@@ -681,46 +720,6 @@ export async function getLimitOrderWithdrawAmounts(
     currency0,
     currency1,
   };
-}
-
-export async function ensureLimitOrderAllowance(
-  config: Config,
-  {
-    token,
-    owner,
-    amount,
-    chainId,
-  }: {
-    token: Address;
-    owner: Address;
-    amount: bigint;
-    chainId: number;
-  },
-): Promise<void> {
-  const hookAddress = getLimitOrderHookAddress(chainId);
-  if (!hookAddress) {
-    throw new Error("LimitOrderHook not configured for chain");
-  }
-
-  const allowance = await readContract(config, {
-    address: token,
-    abi: erc20Abi,
-    functionName: "allowance",
-    args: [owner, hookAddress],
-    chainId,
-  });
-
-  if (allowance >= amount) {
-    return;
-  }
-
-  await writeContract(config, {
-    address: token,
-    abi: erc20Abi,
-    functionName: "approve",
-    args: [hookAddress, maxUint256],
-    chainId,
-  });
 }
 
 export async function placeLimitOrder(

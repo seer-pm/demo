@@ -2,10 +2,10 @@
  * Trade execution: build transaction data and execute swaps.
  */
 
+import { creditsManagerAbi, creditsManagerAddress } from "@seer-pm/contracts-ts/trading-credits";
 import type { Address, Client, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { sendTransaction } from "viem/actions";
-import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
 import type { AmmTrade } from "./amm-trade";
 import { NATIVE_TOKEN } from "./collateral";
 import { ERC20_APPROVE_ABI } from "./execute-trade-abis";

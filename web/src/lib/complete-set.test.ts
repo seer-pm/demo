@@ -1,3 +1,4 @@
+import { seerCreditsAddress } from "@seer-pm/contracts-ts/trading-credits";
 import {
   type CompleteSetQuoteResult,
   MIN_COMPLETE_SET_SAVINGS_PERCENT,
@@ -10,7 +11,6 @@ import {
 import { REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk";
 import { TradeType } from "@seer-pm/sdk";
-import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
 import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
 

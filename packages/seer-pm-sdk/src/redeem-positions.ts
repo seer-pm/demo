@@ -1,12 +1,12 @@
-import { encodeFunctionData } from "viem";
-import type { Address } from "viem";
 import {
   conditionalRouterAbi,
   futarchyRouterAbi,
   gnosisRouterAbi,
   mainnetRouterAbi,
   routerAbi,
-} from "../generated/contracts/router";
+} from "@seer-pm/contracts-ts/router";
+import { encodeFunctionData } from "viem";
+import type { Address } from "viem";
 import { getActivePrimaryCollateral } from "./collateral";
 import type { Execution } from "./execution";
 import { CHAIN_ROUTERS, type MarketLike, getRedeemRouter } from "./router-addresses";

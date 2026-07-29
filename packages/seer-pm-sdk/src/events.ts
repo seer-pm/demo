@@ -1,7 +1,7 @@
+import { futarchyFactoryAbi, marketFactoryAbi } from "@seer-pm/contracts-ts/market-factory";
 import type { Address } from "viem";
 import type { Log } from "viem";
 import { parseEventLogs } from "viem/utils";
-import { futarchyFactoryAbi, marketFactoryAbi } from "../generated/contracts/market-factory";
 
 /**
  * Parses transaction logs for a MarketFactory `NewMarket` event and returns the new market address.

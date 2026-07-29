@@ -1,9 +1,8 @@
-import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import type { Address } from "viem";
 import { formatUnits } from "viem";
-import { decimalToFraction } from "./liquidity-utils";
+import { decimalToFraction, encodeSqrtRatioX96 } from "./liquidity-utils";
 import { isTwoStringsEqual } from "./quote-utils";
-import { tickToPrice } from "./tick-math";
+import { getSqrtRatioAtTick, tickToPrice } from "./tick-math";
 
 export type PoolVolumeInfo = {
   liquidity: bigint;
@@ -53,9 +52,9 @@ export function getVolumeUntilPrice(
   swapType: "buy" | "sell",
 ): number {
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
-  let currentSqrtPriceX96 = BigInt(TickMath.getSqrtRatioAtTick(pool.tick).toString());
+  let currentSqrtPriceX96 = getSqrtRatioAtTick(pool.tick);
   const [num, den] = decimalToFraction(isOutcomeToken0 ? targetPrice : 1 / targetPrice);
-  const targetSqrtPriceX96 = BigInt(encodeSqrtRatioX96(num, den).toString());
+  const targetSqrtPriceX96 = encodeSqrtRatioX96(num, den);
 
   const movingUp = (isOutcomeToken0 && swapType === "buy") || (!isOutcomeToken0 && swapType === "sell");
   if (movingUp && targetSqrtPriceX96 <= currentSqrtPriceX96) return 0;
@@ -74,10 +73,11 @@ export function getVolumeUntilPrice(
 
   let volume = 0;
   let liquidity = pool.liquidity;
+  let reachedTarget = false;
 
   for (let i = 0; i < relevantTicks.length; i++) {
     const tick = Number(relevantTicks[i].tickIdx);
-    const sqrtAtTick = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
+    const sqrtAtTick = getSqrtRatioAtTick(tick);
 
     let targetWithinRange = false;
     if (movingUp) {
@@ -88,12 +88,23 @@ export function getVolumeUntilPrice(
 
     if (targetWithinRange) {
       volume += getVolumeWithinRange(currentSqrtPriceX96, targetSqrtPriceX96, liquidity, isOutcomeToken0, swapType);
+      reachedTarget = true;
       break;
     }
 
     volume += getVolumeWithinRange(currentSqrtPriceX96, sqrtAtTick, liquidity, isOutcomeToken0, swapType);
     currentSqrtPriceX96 = sqrtAtTick;
     liquidity += BigInt(relevantTicks[i].liquidityNet) * (movingUp ? 1n : -1n);
+  }
+
+  // Empty ticks, or target beyond the last initialized tick: remaining segment with current liquidity.
+  if (!reachedTarget) {
+    if (
+      (movingUp && targetSqrtPriceX96 > currentSqrtPriceX96) ||
+      (!movingUp && targetSqrtPriceX96 < currentSqrtPriceX96)
+    ) {
+      volume += getVolumeWithinRange(currentSqrtPriceX96, targetSqrtPriceX96, liquidity, isOutcomeToken0, swapType);
+    }
   }
 
   return volume;
@@ -105,7 +116,7 @@ export function getPriceFromVolume(
   targetVolume: number,
   outcome: Address,
   swapType: "buy" | "sell",
-): number {
+): number | undefined {
   const tolerance = 1e-12;
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
   const currentPrice = Number(tickToPrice(pool.tick, 18, true)[isOutcomeToken0 ? 0 : 1]);
@@ -114,23 +125,36 @@ export function getPriceFromVolume(
     return currentPrice;
   }
 
-  let low = 0.001;
-  let high = 1;
+  // Search only on the side of the book the trade moves price toward.
+  const low = swapType === "buy" ? currentPrice : 0.001;
+  const high = swapType === "buy" ? 1 : currentPrice;
+  if (low >= high) {
+    return currentPrice;
+  }
+
+  let searchLow = low;
+  let searchHigh = high;
   let mid = currentPrice;
 
   for (let i = 0; i < 60; i++) {
-    mid = (low + high) / 2;
+    mid = (searchLow + searchHigh) / 2;
     const vol = getVolumeUntilPrice(pool, ticks, mid, outcome, swapType);
 
     if (Math.abs(vol - targetVolume) <= tolerance) break;
 
     if (swapType === "buy") {
-      if (vol < targetVolume) low = mid;
-      else high = mid;
+      if (vol < targetVolume) searchLow = mid;
+      else searchHigh = mid;
     } else {
-      if (vol < targetVolume) high = mid;
-      else low = mid;
+      if (vol < targetVolume) searchHigh = mid;
+      else searchLow = mid;
     }
+  }
+
+  // Insufficient simulated depth: hide rather than report the hard cap (e.g. 1.000).
+  const volAtMid = getVolumeUntilPrice(pool, ticks, mid, outcome, swapType);
+  if (volAtMid + tolerance < targetVolume) {
+    return undefined;
   }
 
   return mid;

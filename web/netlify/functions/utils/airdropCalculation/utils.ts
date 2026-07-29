@@ -1,5 +1,5 @@
 import { Market } from "@seer-pm/sdk";
-import { TickMath } from "@uniswap/v3-sdk";
+import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import type { Address } from "viem";
 
 export function getTokensByTimestamp(markets: Market[], timestamp: number) {
@@ -67,10 +67,6 @@ export function getRandomNextDayTimestamp(timestampInSeconds: number, lastDayInS
 
 const Q96 = 2n ** 96n;
 
-function getSqrtPriceAtTick(tick: number): bigint {
-  return BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
-}
-
 // Calculate amount0 and amount1 for burning X LP tokens
 export function calculateBurnAmounts(
   X: bigint,
@@ -82,9 +78,9 @@ export function calculateBurnAmounts(
 ): { amount0: bigint; amount1: bigint } {
   const deltaL = (liquidity * X) / totalSupply;
 
-  const sqrtLower = getSqrtPriceAtTick(tickLower);
-  const sqrtUpper = getSqrtPriceAtTick(tickUpper);
-  const sqrtCurrent = getSqrtPriceAtTick(tickCurrent);
+  const sqrtLower = getSqrtRatioAtTick(tickLower);
+  const sqrtUpper = getSqrtRatioAtTick(tickUpper);
+  const sqrtCurrent = getSqrtRatioAtTick(tickCurrent);
   let amount0: bigint;
   let amount1: bigint;
 

@@ -14,6 +14,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
 import { configureCollateral } from "@seer-pm/sdk";
 import { AuthUpdater } from "../AuthUpdater.tsx";
+import { LimitOrdersWatcher } from "../LimitOrders/LimitOrdersWatcher.tsx";
 
 globalThis.Buffer = Buffer;
 
@@ -34,6 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <AuthUpdater />
+          <LimitOrdersWatcher />
           <ToastContainer />
           <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
           <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />

@@ -12,9 +12,9 @@ const entries = [
   "src/market-odds.ts",
   "src/reality.ts",
   "src/liquidity-utils.ts",
+  "src/tick-math.ts",
   "src/chart-data.ts",
   "src/chains.ts",
-  "src/order-book.ts",
 ];
 
 export default defineConfig({
@@ -23,6 +23,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   outDir: "dist",
-  /** Keep tick-math as a separate SSR-safe bundle (see tsup.tick-math.config.ts). */
-  external: [/[/\\]tick-math(?:\.ts)?$/],
+  external: [/@seer-pm\/contracts-ts/],
 });

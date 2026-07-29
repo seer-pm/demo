@@ -1,0 +1,84 @@
+{
+  "name": "@seer-pm/contracts-ts",
+  "version": "0.0.1",
+  "description": "Generated TypeScript bindings (ABIs, addresses, wagmi actions) for Seer protocol contracts",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-pm-contracts-ts"
+  },
+  "exports": {
+    "./curate": {
+      "types": "./generated/contracts/curate.ts",
+      "import": "./dist/curate.mjs",
+      "require": "./dist/curate.js"
+    },
+    "./reality": {
+      "types": "./generated/contracts/reality.ts",
+      "import": "./dist/reality.mjs",
+      "require": "./dist/reality.js"
+    },
+    "./arbitrators": {
+      "types": "./generated/contracts/arbitrators.ts",
+      "import": "./dist/arbitrators.mjs",
+      "require": "./dist/arbitrators.js"
+    },
+    "./market-factory": {
+      "types": "./generated/contracts/market-factory.ts",
+      "import": "./dist/market-factory.mjs",
+      "require": "./dist/market-factory.js"
+    },
+    "./market-view": {
+      "types": "./generated/contracts/market-view.ts",
+      "import": "./dist/market-view.mjs",
+      "require": "./dist/market-view.js"
+    },
+    "./router": {
+      "types": "./generated/contracts/router.ts",
+      "import": "./dist/router.mjs",
+      "require": "./dist/router.js"
+    },
+    "./multi-drop": {
+      "types": "./generated/contracts/multi-drop.ts",
+      "import": "./dist/multi-drop.mjs",
+      "require": "./dist/multi-drop.js"
+    },
+    "./trading-credits": {
+      "types": "./generated/contracts/trading-credits.ts",
+      "import": "./dist/trading-credits.mjs",
+      "require": "./dist/trading-credits.js"
+    },
+    "./order-book": {
+      "types": "./generated/contracts/order-book.ts",
+      "import": "./dist/order-book.mjs",
+      "require": "./dist/order-book.js"
+    }
+  },
+  "files": [
+    "dist",
+    "generated/contracts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "generate": "wagmi generate",
+    "generate:hooks": "wagmi generate",
+    "prepublishOnly": "yarn build"
+  },
+  "peerDependencies": {
+    "@wagmi/core": ">=2.0.0",
+    "viem": ">=2.0.0",
+    "wagmi": "^2.0.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@wagmi/cli": "^2.1.22",
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2",
+    "viem": "^2.38.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

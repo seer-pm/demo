@@ -14,8 +14,7 @@ import {
   GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
   getSdk as getUniswapSdk,
 } from "@seer-pm/sdk/subgraph/uniswap";
-import { tickToPrice } from "@seer-pm/sdk/tick-math";
-import { TickMath } from "@uniswap/v3-sdk";
+import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
 import combineQuery from "graphql-combine-query";
 import pLimit from "p-limit";
 import { gnosis } from "viem/chains";
@@ -185,7 +184,7 @@ async function getSwapsByTokenAsPoolHourDatas(
         token0Price,
         token1Price,
         periodStartUnix: Number(swap.timestamp),
-        sqrtPrice: TickMath.getSqrtRatioAtTick(Number(swap.tick)).toString(),
+        sqrtPrice: getSqrtRatioAtTick(Number(swap.tick)).toString(),
         pool: swap.pool,
       };
     }) as GetPoolHourDatasQuery["poolHourDatas"];

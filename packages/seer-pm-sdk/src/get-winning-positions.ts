@@ -1,7 +1,7 @@
+import { routerAbi } from "@seer-pm/contracts-ts/router";
 import type { Address, Client } from "viem";
 import { formatUnits } from "viem";
 import { readContract } from "viem/actions";
-import { routerAbi } from "../generated/contracts/router";
 import { generateWinningOutcomeIndexes } from "./conditional-tokens";
 import { getRedeemedPrice } from "./market";
 import type { Market } from "./market-types";

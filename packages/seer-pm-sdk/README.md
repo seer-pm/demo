@@ -50,7 +50,7 @@ yarn workspace @seer-pm/sdk build
 npm publish -w @seer-pm/sdk
 ```
 
-Only the `packages/seer-sdk` package is published to npm; the rest of the repository is not included in the published tarball.
+Only the `packages/seer-pm-sdk` package is published to npm; the rest of the repository is not included in the published tarball.
 
 ## License
 

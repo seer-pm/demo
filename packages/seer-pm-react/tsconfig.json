@@ -6,7 +6,9 @@
     "baseUrl": ".",
     "paths": {
       "@seer-pm/sdk": ["../seer-pm-sdk/src", "../seer-pm-sdk/dist"],
-      "@seer-pm/sdk/*": ["../seer-pm-sdk/src/*", "../seer-pm-sdk/dist/*"]
+      "@seer-pm/sdk/*": ["../seer-pm-sdk/src/*", "../seer-pm-sdk/dist/*"],
+      "@seer-pm/order-book": ["../seer-pm-order-book/src/index.ts"],
+      "@seer-pm/order-book/v4": ["../seer-pm-order-book/src/v4.ts"]
     },
     "declaration": true,
     "declarationMap": true,

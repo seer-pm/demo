@@ -2,8 +2,8 @@ import { getNewCurateItem } from "@/lib/curate";
 import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { writeLightGeneralizedTcrAddItem } from "@seer-pm/contracts-ts/curate";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { writeLightGeneralizedTcrAddItem } from "@seer-pm/sdk/contracts/curate";
 import { useMutation } from "@tanstack/react-query";
 import { TransactionReceipt } from "viem";
 

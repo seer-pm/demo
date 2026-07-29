@@ -26,6 +26,8 @@
       "@seer-pm/sdk": ["../packages/seer-pm-sdk/src/index.ts"],
       "@seer-pm/react": ["../packages/seer-pm-react/src/index.ts"],
       "@seer-pm/react/*": ["../packages/seer-pm-react/src/*"],
+      "@seer-pm/order-book": ["../packages/seer-pm-order-book/src/index.ts"],
+      "@seer-pm/order-book/v4": ["../packages/seer-pm-order-book/src/v4.ts"]
     },
 
     "types": ["vitest/globals"]

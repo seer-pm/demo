@@ -1,10 +1,10 @@
 import { getSplitMergeRedeemCollateral } from "@/hooks/useSelectedCollateral";
+import { gnosisRouterAbi, routerAbi } from "@seer-pm/contracts-ts/router";
 import { TOKENS_BY_CHAIN, getActivePrimaryCollateral, getSplitExecution } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
 import { decodeFunctionData, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
 import { describe, expect, it } from "vitest";
-import { gnosisRouterAbi, routerAbi } from "../../../packages/seer-pm-sdk/generated/contracts/router";
 
 const GNOSIS_SDAI = TOKENS_BY_CHAIN[gnosis.id].sDAI;
 const GNOSIS_XDAI = TOKENS_BY_CHAIN[gnosis.id].xDAI;

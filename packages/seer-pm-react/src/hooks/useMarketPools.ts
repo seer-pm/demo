@@ -1,12 +1,12 @@
-import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
-import { tickSpacingForFeeTier } from "@seer-pm/sdk";
 import {
   V4_POOL_FEE,
   V4_TICK_SPACING,
   buildOrderBookPoolKey,
   chainSupportsOrderBook,
   readV4PoolState,
-} from "@seer-pm/sdk";
+} from "@seer-pm/order-book";
+import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { tickSpacingForFeeTier } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
@@ -411,17 +411,31 @@ async function getUniswapV4Pools(
   return results.flat();
 }
 
+function dedupeTokenPairs(tokens: { token0: Address; token1: Address }[]) {
+  const seen = new Set<string>();
+  return tokens.filter((pair) => {
+    const key = `${pair.token0.toLocaleLowerCase()}-${pair.token1.toLocaleLowerCase()}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
 export const getPools = memoize((chainId: number, config: Config) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
+      const uniqueTokens = dedupeTokenPairs(tokens);
+
       if (chainId === gnosis.id) {
-        return getSwaprPools(chainId, config, tokens);
+        return getSwaprPools(chainId, config, uniqueTokens);
       }
 
       const [v3Pools, v4Pools] = await Promise.all([
-        getUniswapV3Pools(chainId, tokens),
-        getUniswapV4Pools(chainId, config, tokens),
+        getUniswapV3Pools(chainId, uniqueTokens),
+        getUniswapV4Pools(chainId, config, uniqueTokens),
       ]);
 
       return [...v3Pools, ...v4Pools];
