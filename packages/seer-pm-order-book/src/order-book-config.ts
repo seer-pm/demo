@@ -1,30 +1,18 @@
+import {
+  limitOrderHookAddress,
+  readSeerUniV4PoolInitializerIsPoolInitialized,
+  seerUniV4PoolInitializerAddress,
+} from "@seer-pm/contracts-ts/order-book";
+import type { Market } from "@seer-pm/sdk";
+import { getLiquidityPair } from "@seer-pm/sdk";
 import type { Config } from "@wagmi/core";
 import { readContract } from "@wagmi/core";
 import type { Address, Hex } from "viem";
 import { encodeAbiParameters, keccak256, parseAbi } from "viem";
 import { base } from "viem/chains";
-import {
-  limitOrderHookAddress,
-  readSeerUniV4PoolInitializerIsPoolInitialized,
-  seerUniV4PoolInitializerAddress,
-} from "../generated/contracts/order-book";
-import { getLiquidityPair } from "./market-pools";
-import type { Market } from "./market-types";
 
 export const V4_POOL_FEE = 3000;
 export const V4_TICK_SPACING = 60;
-
-/** Uniswap V3 fee tier → tick spacing (no @uniswap/v3-sdk import; safe for SSR). */
-const FEE_TIER_TICK_SPACING: Record<number, number> = {
-  100: 1,
-  500: 10,
-  3000: 60,
-  10000: 200,
-};
-
-export function tickSpacingForFeeTier(feeTier: number): number {
-  return FEE_TIER_TICK_SPACING[feeTier] ?? V4_TICK_SPACING;
-}
 
 export const V4_POSITION_MANAGER_ADDRESS = {
   [base.id]: "0x7c5f5a4bbd8fd63184577525326123b519429bdc",
@@ -71,6 +59,28 @@ export function chainSupportsOrderBook(chainId: number): boolean {
 
 export function marketSupportsOrderBook(market: Market): boolean {
   return market.chainId === base.id && market.type === "Generic";
+}
+
+export type LensV4HookParams = {
+  hookPoolFee: number;
+  hookTickSpacing: number;
+  hookAddress: Address;
+};
+
+/** Lens.quote hooked-pool candidate for markets that use LimitOrderHook V4 pools. */
+export function getLensV4HookParams(market: Market): LensV4HookParams | undefined {
+  if (!marketSupportsOrderBook(market)) {
+    return undefined;
+  }
+  const hookAddress = getV4HooksAddress(market.chainId);
+  if (!hookAddress) {
+    return undefined;
+  }
+  return {
+    hookPoolFee: V4_POOL_FEE,
+    hookTickSpacing: V4_TICK_SPACING,
+    hookAddress,
+  };
 }
 
 export function getV4HooksAddress(chainId: number): Address | undefined {

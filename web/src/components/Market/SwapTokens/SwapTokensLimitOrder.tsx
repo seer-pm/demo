@@ -1,10 +1,20 @@
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { paths } from "@/lib/paths";
 import { toastifyTx } from "@/lib/toastify";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
+import {
+  computeLimitOrderParams,
+  formatLimitOrderPriceHint,
+  getLimitOrderHookAddress,
+  getNearestLimitOrderPrice,
+  getOutcomePriceAtTick,
+  getValidLimitOrderBoundaryPrice,
+  resolveLimitOrderZeroForOne,
+} from "@seer-pm/order-book/v4";
 import { useMissingApprovals, useTokenBalance } from "@seer-pm/react";
 import {
   useIsOrderBookPoolInitialized,
@@ -14,18 +24,10 @@ import {
 import { usePlaceV4LimitOrder } from "@seer-pm/react/hooks/usePlaceV4LimitOrder";
 import { TradeType, getActivePrimaryCollateral } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
-import {
-  computeLimitOrderParams,
-  formatLimitOrderPriceHint,
-  getLimitOrderHookAddress,
-  getNearestLimitOrderPrice,
-  getOutcomePriceAtTick,
-  resolveLimitOrderZeroForOne,
-} from "@seer-pm/sdk/order-book";
 import clsx from "clsx";
 import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { formatUnits, maxUint256, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import { ApproveButton } from "../../Form/ApproveButton";
 import Button from "../../Form/Button";
@@ -136,7 +138,8 @@ export function SwapTokensLimitOrder({
   );
   const { data: poolState } = useV4PoolState(market, outcomeIndex);
 
-  const placeLimitOrder = usePlaceV4LimitOrder(toastifyTx);
+  const supports7702 = useCheck7702Support();
+  const placeLimitOrder = usePlaceV4LimitOrder(toastifyTx, supports7702);
 
   const {
     Modal: ConfirmModal,
@@ -155,12 +158,19 @@ export function SwapTokensLimitOrder({
     return getOutcomePriceAtTick(poolState.tick, outcomeIsToken0);
   }, [poolState, outcomeIsToken0]);
 
-  const limitPriceHint = useMemo(() => {
-    if (currentMarketPrice === undefined) {
+  const boundaryPriceInfo = useMemo(() => {
+    if (!poolState) {
       return undefined;
     }
-    return formatLimitOrderPriceHint(swapType, outcomeIsToken0, currentMarketPrice);
-  }, [swapType, outcomeIsToken0, currentMarketPrice]);
+    return getValidLimitOrderBoundaryPrice(swapType, outcomeIsToken0, poolState.tick, poolParams?.poolKey.tickSpacing);
+  }, [poolState, swapType, outcomeIsToken0, poolParams?.poolKey.tickSpacing]);
+
+  const limitPriceHint = useMemo(() => {
+    if (!boundaryPriceInfo) {
+      return undefined;
+    }
+    return formatLimitOrderPriceHint(swapType, outcomeIsToken0, boundaryPriceInfo.price);
+  }, [swapType, outcomeIsToken0, boundaryPriceInfo]);
 
   const handleSwapTypeChange = (nextSwapType: "buy" | "sell") => {
     setSwapType(nextSwapType);
@@ -242,6 +252,20 @@ export function SwapTokensLimitOrder({
     buyToken.decimals,
   ]);
 
+  const isLimitPricePlacementError = Boolean(
+    orderPreview.error && boundaryPriceInfo && /set a limit price at or (below|above)/.test(orderPreview.error),
+  );
+
+  const applyBoundaryLimitPrice = () => {
+    if (!boundaryPriceInfo) {
+      return;
+    }
+    setValue("limitPrice", boundaryPriceInfo.price.toFixed(3), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
   const totalPayAmount =
     orderPreview.data?.payToken === "token0" ? orderPreview.data.totalPay.amount0 : orderPreview.data?.totalPay.amount1;
   const minReceiveAmount =
@@ -263,7 +287,7 @@ export function SwapTokensLimitOrder({
   const approvalAmount = totalPayAmount && totalPayAmount > 0n ? totalPayAmount : parsedPayAmount;
 
   const { data: missingApprovals = [], isLoading: isLoadingApprovals } = useMissingApprovals(
-    hookAddress && account && approvalAmount && approvalAmount > 0n
+    !supports7702 && hookAddress && account && approvalAmount && approvalAmount > 0n
       ? {
           tokensAddresses: [payTokenAddress],
           account,
@@ -343,7 +367,7 @@ export function SwapTokensLimitOrder({
           tokenAddress={approval.address}
           tokenName={approval.name}
           spender={approval.spender}
-          amount={maxUint256}
+          amount={approval.amount}
           chainId={market.chainId}
         />
       );
@@ -653,7 +677,22 @@ export function SwapTokensLimitOrder({
           </div>
         </div>
 
-        {orderPreview.error && isPoolInitialized && <Alert type="error">{orderPreview.error}</Alert>}
+        {orderPreview.error && isPoolInitialized && (
+          <Alert type="error">
+            <div className="space-y-2">
+              <p>{orderPreview.error}</p>
+              {isLimitPricePlacementError && boundaryPriceInfo && (
+                <button
+                  type="button"
+                  className="text-purple-primary hover:underline font-medium"
+                  onClick={applyBoundaryLimitPrice}
+                >
+                  Use {displayNumber(boundaryPriceInfo.price, 3)}
+                </button>
+              )}
+            </div>
+          </Alert>
+        )}
 
         <SwitchChainButtonWrapper chainId={market.chainId}>{renderButton()}</SwitchChainButtonWrapper>
       </form>

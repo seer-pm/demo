@@ -1,25 +1,24 @@
-import type { TxNotifierFn } from "@seer-pm/sdk";
 import {
   PERMIT2_ADDRESS,
+  approvePermit2Allowance,
+  computePositionAmounts,
   getOrderBookPoolParams,
   getV4PositionManagerAddress,
-  isOrderBookPoolInitialized,
-  readV4PoolState,
-} from "@seer-pm/sdk";
-import {
-  computePositionAmounts,
-  ensurePermit2Allowance,
+  hasPermit2Allowance,
   initializeOrderBookPool,
+  isOrderBookPoolInitialized,
   mintV4Position,
   probabilityRangeToTicks,
   probabilityToTick,
+  readV4PoolState,
   resolveLiquiditySqrtPriceX96,
-} from "@seer-pm/sdk/order-book";
+} from "@seer-pm/order-book/v4";
+import type { TxNotifierFn } from "@seer-pm/sdk";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract, writeContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { erc20Abi, maxUint256 } from "viem";
+import { erc20Abi } from "viem";
 import { useConfig } from "wagmi";
 import type { Market } from "./useMarketPools";
 
@@ -87,7 +86,7 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
                 address: token,
                 abi: erc20Abi,
                 functionName: "approve",
-                args: [PERMIT2_ADDRESS, maxUint256],
+                args: [PERMIT2_ADDRESS, amount],
                 chainId: market.chainId,
               }),
             {
@@ -100,12 +99,21 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
           }
         }
 
-        await ensurePermit2Allowance(config, {
+        const permit2Params = {
           token,
           owner: account,
           amount,
           chainId: market.chainId,
-        });
+        };
+        if (!(await hasPermit2Allowance(config, permit2Params))) {
+          const permit2Result = await txNotifier(() => approvePermit2Allowance(config, permit2Params), {
+            txSent: { title: "Approving Permit2..." },
+            txSuccess: { title: "Permit2 approved." },
+          });
+          if (!permit2Result.status) {
+            throw permit2Result.error;
+          }
+        }
       }
 
       if (!poolInitialized) {
@@ -192,11 +200,8 @@ export function computeV4DerivedAmounts(
   const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
 
   const sqrtPriceX96 = resolveLiquiditySqrtPriceX96({
-    chainId: market.chainId,
     poolKey,
     outcomeIsToken0,
-    minPrice,
-    maxPrice,
     initialPrice,
     poolSqrtPriceX96,
   });

@@ -1,15 +1,15 @@
-import type { TxNotifierFn } from "@seer-pm/sdk";
-import { getOrderBookPoolParams, isOrderBookPoolInitialized, readV4PoolState } from "@seer-pm/sdk";
 import {
+  buildPlaceLimitOrderCalls7702,
   computeLimitOrderParams,
-  ensureLimitOrderAllowance,
-  getLimitOrderHookAddress,
-  placeLimitOrder,
-} from "@seer-pm/sdk/order-book";
+  getOrderBookPoolParams,
+  getPlaceLimitOrderExecution,
+  isOrderBookPoolInitialized,
+  readV4PoolState,
+} from "@seer-pm/order-book/v4";
+import type { TxNotifierFn } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { readContract, writeContract } from "@wagmi/core";
+import { sendCalls, sendTransaction } from "@wagmi/core";
 import type { Address } from "viem";
-import { erc20Abi, maxUint256 } from "viem";
 import { useConfig } from "wagmi";
 import type { Market } from "./useMarketPools";
 
@@ -24,13 +24,13 @@ export interface PlaceV4LimitOrderParams {
   receiveDecimals: number;
 }
 
-export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn) {
+export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boolean) {
   const config = useConfig();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (params: PlaceV4LimitOrderParams) => {
-      const { market, outcomeIndex, account, swapType, limitPrice, payAmount, payDecimals, receiveDecimals } = params;
+      const { market, outcomeIndex, swapType, limitPrice, payAmount, payDecimals, receiveDecimals } = params;
 
       const poolInitialized = await isOrderBookPoolInitialized(config, market, outcomeIndex);
       if (!poolInitialized) {
@@ -62,60 +62,46 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn) {
       const payAmountActual =
         orderParams.payToken === "token0" ? orderParams.totalPay.amount0 : orderParams.totalPay.amount1;
 
-      const hookAddress = getLimitOrderHookAddress(market.chainId);
-      if (!hookAddress) {
-        throw new Error("LimitOrderHook not configured");
-      }
-
-      const allowance = await readContract(config, {
-        address: payToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [account, hookAddress],
+      const placeParams = {
         chainId: market.chainId,
-      });
+        poolKey,
+        tick: orderParams.tick,
+        zeroForOne: orderParams.zeroForOne,
+        liquidity: orderParams.liquidity,
+      };
 
-      if (allowance < payAmountActual) {
-        const approveResult = await txNotifier(
+      if (supports7702) {
+        const calls = buildPlaceLimitOrderCalls7702({
+          token: payToken,
+          amount: payAmountActual,
+          ...placeParams,
+        });
+
+        const placeResult = await txNotifier(
           () =>
-            writeContract(config, {
-              address: payToken,
-              abi: erc20Abi,
-              functionName: "approve",
-              args: [hookAddress, maxUint256],
+            sendCalls(config, {
+              calls,
               chainId: market.chainId,
             }),
           {
-            txSent: { title: "Approving token..." },
-            txSuccess: { title: "Token approved." },
+            txSent: { title: "Placing limit order..." },
+            txSuccess: { title: "Limit order placed." },
           },
         );
-        if (!approveResult.status) {
-          throw approveResult.error;
+
+        if (!placeResult.status) {
+          throw placeResult.error;
         }
+
+        return placeResult.receipt.transactionHash;
       }
 
-      await ensureLimitOrderAllowance(config, {
-        token: payToken,
-        owner: account,
-        amount: payAmountActual,
-        chainId: market.chainId,
+      // Legacy: approval is handled by ApproveButton in the UI.
+      const execution = getPlaceLimitOrderExecution(placeParams);
+      const placeResult = await txNotifier(() => sendTransaction(config, execution), {
+        txSent: { title: "Placing limit order..." },
+        txSuccess: { title: "Limit order placed." },
       });
-
-      const placeResult = await txNotifier(
-        () =>
-          placeLimitOrder(config, {
-            chainId: market.chainId,
-            poolKey,
-            tick: orderParams.tick,
-            zeroForOne: orderParams.zeroForOne,
-            liquidity: orderParams.liquidity,
-          }),
-        {
-          txSent: { title: "Placing limit order..." },
-          txSuccess: { title: "Limit order placed." },
-        },
-      );
 
       if (!placeResult.status) {
         throw placeResult.error;
@@ -133,6 +119,7 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn) {
       });
       queryClient.invalidateQueries({ queryKey: ["useMarketHasLiquidity", variables.market.id] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
+      queryClient.invalidateQueries({ queryKey: ["limitOrderHookUserOrders"] });
     },
   });
 }

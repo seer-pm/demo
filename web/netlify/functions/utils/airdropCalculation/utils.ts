@@ -1,5 +1,5 @@
 import { Market } from "@seer-pm/sdk";
-import { TickMath } from "@uniswap/v3-sdk";
+import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import type { Address } from "viem";
 
 export function getTokensByTimestamp(markets: Market[], timestamp: number) {
@@ -37,13 +37,13 @@ const Q96 = 2n ** 96n;
 
 const sqrtRatioCache = new Map<number, bigint>();
 
-/** `TickMath.getSqrtRatioAtTick` as a Q96 bigint, memoised — positions share tick bounds heavily. */
+/** `getSqrtRatioAtTick` as a Q96 bigint, memoised — positions share tick bounds heavily. */
 export function getSqrtRatioAtTickX96(tick: number): bigint {
   const cached = sqrtRatioCache.get(tick);
   if (cached !== undefined) {
     return cached;
   }
-  const value = BigInt(TickMath.getSqrtRatioAtTick(tick).toString());
+  const value = getSqrtRatioAtTick(tick);
   sqrtRatioCache.set(tick, value);
   return value;
 }

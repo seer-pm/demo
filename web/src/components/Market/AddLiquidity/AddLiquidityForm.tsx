@@ -2,10 +2,14 @@ import { ApproveButton } from "@/components/Form/ApproveButton";
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
-import { displayBalance } from "@/lib/utils";
+import { displayBalance, displayNumber } from "@/lib/utils";
+import {
+  clampProbability,
+  getNearestLimitOrderPrice,
+  probabilityRangeToTicks,
+  probabilityToTick,
+} from "@seer-pm/order-book/v4";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { clampProbability } from "@seer-pm/sdk";
-import { getNearestLimitOrderPrice } from "@seer-pm/sdk/order-book";
 import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -127,6 +131,8 @@ export interface AddLiquidityFormProps {
   token0: AddLiquidityTokenInfo;
   token1: AddLiquidityTokenInfo;
   outcomeIsToken0: boolean;
+  currentPrice?: number;
+  currentTick?: number;
   isPoolInitialized?: boolean;
   isPoolStatusLoading?: boolean;
   isSubmitting?: boolean;
@@ -146,6 +152,8 @@ export function AddLiquidityForm({
   token0,
   token1,
   outcomeIsToken0,
+  currentPrice,
+  currentTick,
   isPoolInitialized,
   isPoolStatusLoading,
   isSubmitting,
@@ -374,13 +382,67 @@ export function AddLiquidityForm({
       });
       closeModal();
     } catch (e) {
+      // Tx failures are already toasted by toastifyTx; keep modal open without duplicating.
+      if (typeof e === "object" && e !== null && ("shortMessage" in e || "details" in e)) {
+        return;
+      }
       setError(e instanceof Error ? e.message : "Transaction failed");
     }
   };
 
   const outcomeLabel = outcomeIsToken0 ? token0.symbol : token1.symbol;
+  const collateralSymbol = outcomeIsToken0 ? token1.symbol : token0.symbol;
   const showApprovals = missingApprovals.length > 0;
   const displayError = error || balanceError || priceRangeError || initialPriceValidationError;
+
+  const requiredTokens = useMemo((): { amount0: boolean; amount1: boolean } => {
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+
+    if (Number.isNaN(min) || Number.isNaN(max) || min <= 0 || max >= 1 || min >= max) {
+      return { amount0: true, amount1: true };
+    }
+
+    let effectiveTick = currentTick;
+
+    if (effectiveTick === undefined) {
+      if (!requiresInitialPrice || !initialPrice) {
+        return { amount0: true, amount1: true };
+      }
+
+      const price = Number(initialPrice);
+      if (Number.isNaN(price) || price <= 0 || price >= 1) {
+        return { amount0: true, amount1: true };
+      }
+
+      effectiveTick = probabilityToTick(price, outcomeIsToken0);
+    }
+
+    try {
+      const { tickLower, tickUpper } = probabilityRangeToTicks(min, max, outcomeIsToken0);
+
+      if (effectiveTick < tickLower) {
+        return { amount0: true, amount1: false };
+      }
+
+      if (effectiveTick >= tickUpper) {
+        return { amount0: false, amount1: true };
+      }
+
+      return { amount0: true, amount1: true };
+    } catch {
+      return { amount0: true, amount1: true };
+    }
+  }, [minPrice, maxPrice, currentTick, requiresInitialPrice, initialPrice, outcomeIsToken0]);
+
+  useEffect(() => {
+    if (!requiredTokens.amount0) {
+      setAmount0("");
+    }
+    if (!requiredTokens.amount1) {
+      setAmount1("");
+    }
+  }, [requiredTokens.amount0, requiredTokens.amount1]);
 
   const uniswapPoolLink =
     uniswapPoolUrl && uniswapPoolUrl !== "#" ? (
@@ -431,7 +493,14 @@ export function AddLiquidityForm({
       )}
 
       <div>
-        <div className="text-[14px] font-semibold mb-2">Position range ({outcomeLabel})</div>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="text-[14px] font-semibold">Position range ({outcomeLabel})</div>
+          {currentPrice !== undefined && (
+            <p className="text-[14px] text-black-secondary">
+              Market: {displayNumber(currentPrice, 3)} {collateralSymbol}
+            </p>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="min-w-0">
             <div className="text-[14px] text-black-secondary mb-2">Min price</div>
@@ -462,58 +531,62 @@ export function AddLiquidityForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="min-w-0">
-          <div className="text-[14px] font-semibold mb-2">{token0.symbol}</div>
-          <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
-            <span className="text-black-secondary truncate">
-              Balance: {displayBalance(token0.balance, token0.decimals)} {token0.symbol}
-            </span>
-            <button
-              type="button"
-              className="text-purple-primary shrink-0"
+      <div className={requiredTokens.amount0 && requiredTokens.amount1 ? "grid grid-cols-2 gap-4" : undefined}>
+        {requiredTokens.amount0 && (
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold mb-2">{token0.symbol}</div>
+            <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
+              <span className="text-black-secondary truncate">
+                Balance: {displayBalance(token0.balance, token0.decimals)} {token0.symbol}
+              </span>
+              <button
+                type="button"
+                className="text-purple-primary shrink-0"
+                disabled={!canComputeAmounts}
+                onClick={() => handleAmountChange("amount0", formatUnits(token0.balance, token0.decimals))}
+              >
+                Max
+              </button>
+            </div>
+            <Input
+              type="number"
+              min="0"
+              step="any"
+              value={amount0}
               disabled={!canComputeAmounts}
-              onClick={() => handleAmountChange("amount0", formatUnits(token0.balance, token0.decimals))}
-            >
-              Max
-            </button>
+              onChange={(e) => handleAmountChange("amount0", e.target.value)}
+              className="w-full"
+            />
           </div>
-          <Input
-            type="number"
-            min="0"
-            step="any"
-            value={amount0}
-            disabled={!canComputeAmounts}
-            onChange={(e) => handleAmountChange("amount0", e.target.value)}
-            className="w-full"
-          />
-        </div>
+        )}
 
-        <div className="min-w-0">
-          <div className="text-[14px] font-semibold mb-2">{token1.symbol}</div>
-          <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
-            <span className="text-black-secondary truncate">
-              Balance: {displayBalance(token1.balance, token1.decimals)} {token1.symbol}
-            </span>
-            <button
-              type="button"
-              className="text-purple-primary shrink-0"
+        {requiredTokens.amount1 && (
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold mb-2">{token1.symbol}</div>
+            <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
+              <span className="text-black-secondary truncate">
+                Balance: {displayBalance(token1.balance, token1.decimals)} {token1.symbol}
+              </span>
+              <button
+                type="button"
+                className="text-purple-primary shrink-0"
+                disabled={!canComputeAmounts}
+                onClick={() => handleAmountChange("amount1", formatUnits(token1.balance, token1.decimals))}
+              >
+                Max
+              </button>
+            </div>
+            <Input
+              type="number"
+              min="0"
+              step="any"
+              value={amount1}
               disabled={!canComputeAmounts}
-              onClick={() => handleAmountChange("amount1", formatUnits(token1.balance, token1.decimals))}
-            >
-              Max
-            </button>
+              onChange={(e) => handleAmountChange("amount1", e.target.value)}
+              className="w-full"
+            />
           </div>
-          <Input
-            type="number"
-            min="0"
-            step="any"
-            value={amount1}
-            disabled={!canComputeAmounts}
-            onChange={(e) => handleAmountChange("amount1", e.target.value)}
-            className="w-full"
-          />
-        </div>
+        )}
       </div>
 
       {displayError ? <p className="text-[14px] text-error-primary">{displayError}</p> : null}

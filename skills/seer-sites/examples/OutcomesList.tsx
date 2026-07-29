@@ -15,10 +15,10 @@
 import * as React from "react";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
+import { getLiquidityUrl } from "@seer-pm/order-book";
 import type { Market } from "@seer-pm/sdk";
 import {
   getTokenExplorerUrl,
-  getLiquidityUrl,
   getPoolExplorerUrl,
   isInvalidOutcome,
 } from "@seer-pm/sdk";
