@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/sdk",
-  "version": "0.0.14",
+  "version": "0.0.16",
   "description": "SDK for the Seer prediction market protocol: create markets, resolve, split/merge/redeem, and trade",
   "license": "MIT",
   "author": "Seer",
@@ -162,6 +162,9 @@
     "queries",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
     "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --watch",
@@ -193,7 +196,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@seer-pm/lens": "^1.1.0",
+    "@seer-pm/lens": "^1.4.0",
     "@uniswap/v3-sdk": "^3.19.0",
     "graphql": "16.11.0"
   }

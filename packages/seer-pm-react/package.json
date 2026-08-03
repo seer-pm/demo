@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/react",
-  "version": "0.0.12",
+  "version": "0.0.14",
   "description": "React hooks for the Seer prediction market protocol",
   "license": "MIT",
   "author": "Seer",
@@ -23,6 +23,9 @@
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
